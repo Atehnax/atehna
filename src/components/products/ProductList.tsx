@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { useMemo } from 'react';
 import { useCartStore } from '@/lib/cart/store';
 
@@ -8,7 +7,6 @@ type ProductItem = {
   sku: string;
   name: string;
   unit?: string;
-  image?: string;
 };
 
 type ProductListProps = {
@@ -40,17 +38,10 @@ export default function ProductList({ items, category }: ProductListProps) {
           key={item.sku}
           className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between"
         >
-          <div className="flex items-center gap-4">
-            {item.image && (
-              <div className="relative h-12 w-12 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-                <Image src={item.image} alt={item.name} fill className="object-cover" />
-              </div>
-            )}
-            <div>
-              <p className="text-sm font-semibold text-slate-900">{item.name}</p>
-              <p className="text-xs text-slate-500">SKU: {item.sku}</p>
-              {item.unit && <p className="text-xs text-slate-500">Enota: {item.unit}</p>}
-            </div>
+          <div>
+            <p className="text-sm font-semibold text-slate-900">{item.name}</p>
+            <p className="text-xs text-slate-500">SKU: {item.sku}</p>
+            {item.unit && <p className="text-xs text-slate-500">Enota: {item.unit}</p>}
           </div>
           <button
             type="button"

@@ -18,7 +18,6 @@ export type CategoryContent = {
     sku: string;
     name: string;
     unit?: string;
-    image?: string;
   }>;
   content: string;
 };

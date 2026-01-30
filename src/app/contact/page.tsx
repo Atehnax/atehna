@@ -27,7 +27,7 @@ export default function ContactPage() {
           >
             <div>
               <label className="text-sm font-medium text-slate-700" htmlFor="school">
-                Naziv naročnika
+                Naziv šole / zavoda
               </label>
               <input
                 id="school"

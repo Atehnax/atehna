@@ -8,6 +8,7 @@ import {
 } from '@react-pdf/renderer';
 import { COMPANY_INFO } from '@/lib/constants';
 import type { CartItem } from '@/lib/cart/store';
+import { DEJAVU_SANS_BASE64, DEJAVU_SANS_BOLD_BASE64 } from '@/lib/pdfFonts';
 
 export type OrderFormData = {
   schoolName: string;
@@ -25,14 +26,16 @@ export type OrderPdfProps = {
   createdAt: string;
 };
 
+const fontFamily = 'DejaVu Sans';
+
 Font.register({
-  family: 'Noto Sans',
+  family: fontFamily,
   fonts: [
     {
-      src: 'https://fonts.gstatic.com/s/notosans/v35/o-0IIpQlx3QUlC5A4PNb4g.ttf'
+      src: `data:font/ttf;base64,${DEJAVU_SANS_BASE64}`
     },
     {
-      src: 'https://fonts.gstatic.com/s/notosans/v35/o-0NIpQlx3QUlC5A4PNjXhFVZNyBw.ttf',
+      src: `data:font/ttf;base64,${DEJAVU_SANS_BOLD_BASE64}`,
       fontWeight: 700
     }
   ]
@@ -42,7 +45,7 @@ const styles = StyleSheet.create({
   page: {
     padding: 32,
     fontSize: 11,
-    fontFamily: 'Noto Sans'
+    fontFamily
   },
   header: {
     marginBottom: 20

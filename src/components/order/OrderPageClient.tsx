@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { PDFDownloadLink, PDFViewer } from '@react-pdf/renderer';
+import { PDFDownloadLink, PDFViewer, pdf } from '@react-pdf/renderer';
 import { useCartStore } from '@/lib/cart/store';
 import { COMPANY_INFO } from '@/lib/constants';
 import OrderPdf, { OrderFormData } from '@/components/order/OrderPdf';
@@ -24,6 +24,7 @@ export default function OrderPageClient() {
   const clearCart = useCartStore((state) => state.clearCart);
   const [formData, setFormData] = useState<OrderFormData>(initialForm);
   const [showPreview, setShowPreview] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const createdAt = useMemo(() => new Date().toLocaleDateString('sl-SI'), []);
 
@@ -35,8 +36,22 @@ export default function OrderPageClient() {
 
   const canPreview = items.length > 0 && Boolean(requiredFieldsFilled);
 
-  const handlePreview = () => {
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  const handlePreview = async () => {
     if (!canPreview) return;
+    const document = <OrderPdf formData={formData} items={items} createdAt={createdAt} />;
+    const blob = await pdf(document).toBlob();
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(URL.createObjectURL(blob));
     setShowPreview(true);
   };
 
@@ -284,6 +299,16 @@ export default function OrderPageClient() {
                 <OrderPdf formData={formData} items={items} createdAt={createdAt} />
               </PDFViewer>
             </div>
+            {previewUrl && (
+              <a
+                href={previewUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex text-xs font-semibold text-brand-600 hover:text-brand-700"
+              >
+                Odpri PDF v novem zavihku →
+              </a>
+            )}
           </section>
         )}
       </div>

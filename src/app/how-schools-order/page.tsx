@@ -2,7 +2,7 @@ import MdxContent from '@/components/MdxContent';
 import { getPageContent } from '@/lib/content';
 
 export const metadata = {
-  title: 'Kako šole naročajo'
+  title: 'Kako naročiti'
 };
 
 export default function HowSchoolsOrderPage() {

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
+import CartDrawer from '@/components/cart/CartDrawer';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://atehna.si'),
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-slate-50 text-slate-900">
         <SiteHeader />
         <main className="min-h-[70vh]">{children}</main>
+        <CartDrawer />
         <SiteFooter />
       </body>
     </html>

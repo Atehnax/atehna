@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getAllCategories, getCategoryContent, getCategorySlugs } from '@/lib/content';
 import MdxContent from '@/components/MdxContent';
+import ProductList from '@/components/products/ProductList';
 
 export function generateStaticParams() {
   return getCategorySlugs().map((slug) => ({ slug }));
@@ -27,6 +28,15 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
           <p className="mt-3 text-lg text-slate-600">{category.summary}</p>
           <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <MdxContent source={category.content} />
+          </div>
+          <div className="mt-8">
+            <h2 className="text-xl font-semibold text-slate-900">Izdelki v kategoriji</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Izberite količine in dodajte artikle v šolsko naročilo.
+            </p>
+            <div className="mt-4">
+              <ProductList items={category.items} category={category.title} />
+            </div>
           </div>
         </div>
         <aside className="space-y-4">

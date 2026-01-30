@@ -14,6 +14,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/how-schools-order`, lastModified: new Date() },
     { url: `${baseUrl}/about`, lastModified: new Date() },
     { url: `${baseUrl}/contact`, lastModified: new Date() },
+    { url: `${baseUrl}/order`, lastModified: new Date() },
     { url: `${baseUrl}/privacy`, lastModified: new Date() },
     { url: `${baseUrl}/terms`, lastModified: new Date() },
     { url: `${baseUrl}/cookies`, lastModified: new Date() },

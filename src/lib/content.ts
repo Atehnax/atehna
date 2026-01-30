@@ -14,6 +14,11 @@ export type CategoryContent = {
   title: string;
   summary: string;
   image: string;
+  items: Array<{
+    sku: string;
+    name: string;
+    unit?: string;
+  }>;
   content: string;
 };
 
@@ -50,6 +55,7 @@ export function getCategoryContent(slug: string): CategoryContent {
     title: data.title ?? slug,
     summary: data.summary ?? '',
     image: data.image ?? '',
+    items: data.items ?? [],
     content
   };
 }

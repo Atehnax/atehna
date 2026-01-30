@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import CartButton from '@/components/cart/CartButton';
 
 const navItems = [
   { href: '/products', label: 'Izdelki' },
@@ -22,12 +25,15 @@ export default function SiteHeader() {
             </Link>
           ))}
         </nav>
-        <Link
-          href="/contact"
-          className="rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
-        >
-          Kontakt
-        </Link>
+        <div className="flex items-center gap-3">
+          <CartButton />
+          <Link
+            href="/contact"
+            className="rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
+          >
+            Kontakt
+          </Link>
+        </div>
       </div>
     </header>
   );

@@ -16,18 +16,19 @@ export default function HomePage() {
               Oprema za tehnični pouk
             </p>
             <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-900 md:text-5xl">
-              Zanesljiva dobava materialov in opreme za javne šole po Sloveniji
+              Zanesljiva dobava materialov in opreme po Sloveniji
             </h1>
             <p className="mt-4 text-lg text-slate-600">
-              Atehna je partner šolam in zavodom, ki potrebujejo kakovostne tehnične materiale,
-              varno delavniško opremo in celovito podporo pri naročilih.
+              Atehna je zanesljiv dobavitelj za šole, podjetja in posameznike, ki potrebujejo
+              kakovostne tehnične materiale, varno delavniško opremo in celovito podporo pri
+              naročilih.
             </p>
             <div className="mt-6 flex flex-wrap gap-4">
               <Link
                 href="/how-schools-order"
                 className="rounded-full bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
               >
-                Kako šole naročajo
+                Kako naročiti
               </Link>
               <Link
                 href="/contact"

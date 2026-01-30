@@ -13,7 +13,8 @@ export default function SiteFooter() {
         <div>
           <p className="text-lg font-semibold text-slate-900">Atehna d.o.o.</p>
           <p className="mt-2 text-sm text-slate-600">
-            Zanesljiv partner javnih šol pri opremljanju tehničnega pouka, delavnic in kabinetov.
+            Zanesljiv partner pri opremljanju delavnic, projektnih prostorov in tehničnih
+            potreb.
           </p>
           <p className="mt-4 text-sm text-slate-500">© 2024 Atehna. Vse pravice pridržane.</p>
         </div>

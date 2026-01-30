@@ -91,7 +91,7 @@ export default function OrderPageClient() {
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <div className="md:col-span-2">
               <label className="text-sm font-medium text-slate-700" htmlFor="schoolName">
-                Naziv šole <span className="text-brand-600">*</span>
+                Naziv <span className="text-brand-600">*</span>
               </label>
               <input
                 id="schoolName"

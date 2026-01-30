@@ -5,7 +5,7 @@ import CartButton from '@/components/cart/CartButton';
 
 const navItems = [
   { href: '/products', label: 'Izdelki' },
-  { href: '/how-schools-order', label: 'Kako šole naročajo' },
+  { href: '/how-schools-order', label: 'Kako naročiti' },
   { href: '/about', label: 'O podjetju' },
   { href: '/contact', label: 'Kontakt' }
 ];

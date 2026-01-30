@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { PDFDownloadLink, PDFViewer } from '@react-pdf/renderer';
+import { PDFDownloadLink, PDFViewer, pdf } from '@react-pdf/renderer';
 import { useCartStore } from '@/lib/cart/store';
 import { COMPANY_INFO } from '@/lib/constants';
 import OrderPdf, { OrderFormData } from '@/components/order/OrderPdf';
@@ -24,6 +24,7 @@ export default function OrderPageClient() {
   const clearCart = useCartStore((state) => state.clearCart);
   const [formData, setFormData] = useState<OrderFormData>(initialForm);
   const [showPreview, setShowPreview] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const createdAt = useMemo(() => new Date().toLocaleDateString('sl-SI'), []);
 
@@ -34,6 +35,30 @@ export default function OrderPageClient() {
     formData.reference.trim();
 
   const canPreview = items.length > 0 && Boolean(requiredFieldsFilled);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  const handlePreview = async () => {
+    if (!canPreview) return;
+    const document = <OrderPdf formData={formData} items={items} createdAt={createdAt} />;
+    const blob = await pdf(document).toBlob();
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(URL.createObjectURL(blob));
+    setShowPreview(true);
+  };
+
+  const handleOpenInNewWindow = () => {
+    if (!previewUrl) return;
+    window.open(previewUrl, '_blank', 'noopener,noreferrer');
+  };
 
   const mailtoLink = useMemo(() => {
     if (!requiredFieldsFilled) {
@@ -224,7 +249,7 @@ export default function OrderPageClient() {
             <button
               type="button"
               disabled={!canPreview}
-              onClick={() => setShowPreview(true)}
+              onClick={handlePreview}
               className={`rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition ${
                 canPreview
                   ? 'bg-brand-600 text-white hover:bg-brand-700'
@@ -266,13 +291,22 @@ export default function OrderPageClient() {
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-semibold text-slate-900">Predogled PDF</p>
-              <button
-                type="button"
-                onClick={() => setShowPreview(false)}
-                className="text-xs font-semibold text-slate-400 hover:text-slate-600"
-              >
-                Skrij predogled
-              </button>
+              <div className="flex items-center gap-3 text-xs font-semibold text-slate-400">
+                <button
+                  type="button"
+                  onClick={handleOpenInNewWindow}
+                  className="text-brand-600 hover:text-brand-700"
+                >
+                  Odpri v novem oknu
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPreview(false)}
+                  className="hover:text-slate-600"
+                >
+                  Skrij predogled
+                </button>
+              </div>
             </div>
             <div className="h-[480px] overflow-hidden rounded-xl border border-slate-200">
               <PDFViewer width="100%" height="100%">

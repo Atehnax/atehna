@@ -1,5 +1,6 @@
 import {
   Document,
+  Font,
   Page,
   Text,
   View,
@@ -24,11 +25,24 @@ export type OrderPdfProps = {
   createdAt: string;
 };
 
+Font.register({
+  family: 'Noto Sans',
+  fonts: [
+    {
+      src: 'https://fonts.gstatic.com/s/notosans/v35/o-0IIpQlx3QUlC5A4PNb4g.ttf'
+    },
+    {
+      src: 'https://fonts.gstatic.com/s/notosans/v35/o-0NIpQlx3QUlC5A4PNjXhFVZNyBw.ttf',
+      fontWeight: 700
+    }
+  ]
+});
+
 const styles = StyleSheet.create({
   page: {
     padding: 32,
     fontSize: 11,
-    fontFamily: 'Helvetica'
+    fontFamily: 'Noto Sans'
   },
   header: {
     marginBottom: 20

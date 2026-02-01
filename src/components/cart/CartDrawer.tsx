@@ -9,6 +9,14 @@ export default function CartDrawer() {
   const closeDrawer = useCartStore((state) => state.closeDrawer);
   const setQuantity = useCartStore((state) => state.setQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
+  const formatter = new Intl.NumberFormat('sl-SI', {
+    style: 'currency',
+    currency: 'EUR'
+  });
+  const total = items.reduce(
+    (sum, item) => sum + (item.price ?? 0) * item.quantity,
+    0
+  );
 
   return (
     <div
@@ -57,6 +65,9 @@ export default function CartDrawer() {
                     <div>
                       <p className="text-sm font-semibold text-slate-900">{item.name}</p>
                       <p className="text-xs text-slate-500">SKU: {item.sku}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Cena: {item.price ? formatter.format(item.price) : '—'}
+                      </p>
                       {item.unit && (
                         <p className="mt-1 text-xs text-slate-500">Enota: {item.unit}</p>
                       )}
@@ -87,6 +98,9 @@ export default function CartDrawer() {
                     >
                       +
                     </button>
+                    <span className="ml-auto text-sm font-semibold text-slate-900">
+                      {formatter.format((item.price ?? 0) * item.quantity)}
+                    </span>
                   </div>
                 </div>
               ))
@@ -94,6 +108,10 @@ export default function CartDrawer() {
           </div>
 
           <div className="border-t border-slate-200 px-6 py-4">
+            <div className="mb-4 flex items-center justify-between text-sm font-semibold text-slate-900">
+              <span>Skupaj</span>
+              <span>{formatter.format(total)}</span>
+            </div>
             <div className="flex flex-col gap-3">
               <button
                 type="button"
@@ -107,7 +125,7 @@ export default function CartDrawer() {
                 onClick={closeDrawer}
                 className="rounded-full bg-brand-600 px-4 py-2 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
               >
-                Oddaj naročilo
+                Nadaljuj na naročilo
               </Link>
             </div>
           </div>

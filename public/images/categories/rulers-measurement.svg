@@ -1,15 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
   <rect width="600" height="400" fill="#f8fafc" />
-  <rect x="120" y="140" width="360" height="120" rx="20" fill="#dbeafe" />
-  <g stroke="#1e293b" stroke-width="6" stroke-linecap="round">
-    <line x1="160" y1="170" x2="160" y2="230" />
-    <line x1="200" y1="180" x2="200" y2="230" />
-    <line x1="240" y1="170" x2="240" y2="230" />
-    <line x1="280" y1="180" x2="280" y2="230" />
-    <line x1="320" y1="170" x2="320" y2="230" />
-    <line x1="360" y1="180" x2="360" y2="230" />
-    <line x1="400" y1="170" x2="400" y2="230" />
-    <line x1="440" y1="180" x2="440" y2="230" />
+  <rect x="60" y="250" width="340" height="80" rx="16" fill="#dbeafe" stroke="#1f2937" stroke-width="6" />
+  <g stroke="#1f2937" stroke-width="6" stroke-linecap="round">
+    <line x1="100" y1="265" x2="100" y2="325" />
+    <line x1="140" y1="275" x2="140" y2="325" />
+    <line x1="180" y1="265" x2="180" y2="325" />
+    <line x1="220" y1="275" x2="220" y2="325" />
+    <line x1="260" y1="265" x2="260" y2="325" />
+    <line x1="300" y1="275" x2="300" y2="325" />
   </g>
-  <circle cx="460" cy="130" r="36" fill="#2c7ef5" opacity="0.8" />
+
+  <polygon points="90,220 230,80 370,220" fill="#93c5fd" stroke="#1f2937" stroke-width="6" />
+  <polygon points="150,220 230,130 310,220" fill="#bfdbfe" stroke="#1f2937" stroke-width="6" />
+
+  <path d="M380 190 A90 90 0 0 1 560 190" stroke="#1f2937" stroke-width="10" fill="none" />
+  <path d="M400 190 A70 70 0 0 1 540 190" stroke="#60a5fa" stroke-width="8" fill="none" />
+  <rect x="380" y="190" width="180" height="30" rx="8" fill="#bfdbfe" stroke="#1f2937" stroke-width="6" />
+  <g stroke="#1f2937" stroke-width="4" stroke-linecap="round">
+    <line x1="410" y1="186" x2="410" y2="202" />
+    <line x1="440" y1="182" x2="440" y2="202" />
+    <line x1="470" y1="180" x2="470" y2="202" />
+    <line x1="500" y1="182" x2="500" y2="202" />
+    <line x1="530" y1="186" x2="530" y2="202" />
+  </g>
 </svg>

@@ -1,0 +1,68 @@
+import Link from 'next/link';
+import {
+  getCatalogCategory,
+  getCatalogCategorySlugs,
+  getCatalogSubcategory,
+  getCatalogSubcategorySlugs
+} from '@/lib/catalog';
+
+export function generateStaticParams() {
+  return getCatalogCategorySlugs().flatMap((category) =>
+    getCatalogSubcategorySlugs(category).map((subcategory) => ({
+      category,
+      subcategory
+    }))
+  );
+}
+
+export function generateMetadata({
+  params
+}: {
+  params: { category: string; subcategory: string };
+}) {
+  const subcategory = getCatalogSubcategory(params.category, params.subcategory);
+  return {
+    title: subcategory.title,
+    description: subcategory.description
+  };
+}
+
+export default function SubcategoryPage({
+  params
+}: {
+  params: { category: string; subcategory: string };
+}) {
+  const category = getCatalogCategory(params.category);
+  const subcategory = getCatalogSubcategory(params.category, params.subcategory);
+
+  return (
+    <div className="container-base py-12">
+      <div className="max-w-3xl">
+        <p className="text-sm font-semibold uppercase tracking-widest text-brand-600">
+          {category.title}
+        </p>
+        <h1 className="mt-3 text-3xl font-semibold text-slate-900">{subcategory.title}</h1>
+        <p className="mt-3 text-lg text-slate-600">{subcategory.description}</p>
+      </div>
+
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {subcategory.items.map((item) => (
+          <Link
+            key={item.slug}
+            href={`/products/${category.slug}/${subcategory.slug}/${item.slug}`}
+            className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm transition hover:border-brand-200"
+          >
+            <p className="text-base font-semibold text-slate-900">{item.name}</p>
+            <p className="mt-2 text-sm text-slate-600">{item.description}</p>
+          </Link>
+        ))}
+      </div>
+
+      <div className="mt-10">
+        <Link href={`/products/${category.slug}`} className="text-sm font-semibold text-brand-600">
+          ← Nazaj na {category.title}
+        </Link>
+      </div>
+    </div>
+  );
+}

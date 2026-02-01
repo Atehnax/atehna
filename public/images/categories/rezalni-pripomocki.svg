@@ -1,7 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
   <rect width="600" height="400" fill="#f8fafc" />
-  <rect x="120" y="110" width="320" height="120" rx="24" fill="#e2e8f0" />
-  <rect x="200" y="160" width="260" height="90" rx="24" fill="#cbd5f5" opacity="0.9" />
-  <rect x="170" y="80" width="240" height="60" rx="20" fill="#94a3b8" opacity="0.7" />
-  <circle cx="430" cy="120" r="28" fill="#2563eb" />
+  <rect x="70" y="150" width="260" height="90" rx="20" fill="#fbbf24" stroke="#1f2937" stroke-width="6" />
+  <rect x="95" y="170" width="180" height="50" rx="12" fill="#f59e0b" stroke="#1f2937" stroke-width="6" />
+  <rect x="255" y="165" width="130" height="24" rx="8" fill="#94a3b8" stroke="#1f2937" stroke-width="6" />
+  <rect x="230" y="172" width="16" height="40" rx="6" fill="#e2e8f0" stroke="#1f2937" stroke-width="6" />
+  <polygon points="385,150 520,195 385,240" fill="#cbd5f5" stroke="#1f2937" stroke-width="6" />
+
+  <rect x="160" y="260" width="320" height="30" rx="14" fill="#94a3b8" stroke="#1f2937" stroke-width="6" />
+  <rect x="130" y="270" width="120" height="36" rx="12" fill="#1d4ed8" stroke="#1f2937" stroke-width="6" />
+  <rect x="150" y="280" width="40" height="8" rx="4" fill="#93c5fd" />
+  <rect x="200" y="280" width="40" height="8" rx="4" fill="#93c5fd" />
+  <polygon points="250,260 520,260 495,290 270,290" fill="#e2e8f0" stroke="#1f2937" stroke-width="6" />
+  <polygon points="520,290 505,302 490,290 475,302 460,290 445,302 430,290 415,302 400,290 385,302 370,290 355,302 340,290 325,302 310,290 295,302 280,290 265,302 250,290" fill="#94a3b8" stroke="#1f2937" stroke-width="3" />
 </svg>

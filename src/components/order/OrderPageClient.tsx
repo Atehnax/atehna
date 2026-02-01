@@ -9,12 +9,14 @@ import OrderPdf, { OrderFormData } from '@/components/order/OrderPdf';
 
 const initialForm: OrderFormData = {
   schoolName: '',
-  deliveryAddress: '',
+  orderAddress: '',
+  shippingAddress: '',
   contactName: '',
   email: '',
   phone: '',
   reference: '',
-  notes: ''
+  notes: '',
+  paymentMethod: ''
 };
 
 export default function OrderPageClient() {
@@ -23,6 +25,7 @@ export default function OrderPageClient() {
   const removeItem = useCartStore((state) => state.removeItem);
   const clearCart = useCartStore((state) => state.clearCart);
   const [formData, setFormData] = useState<OrderFormData>(initialForm);
+  const [useAlternativeShipping, setUseAlternativeShipping] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -103,18 +106,56 @@ export default function OrderPageClient() {
               />
             </div>
             <div className="md:col-span-2">
-              <label className="text-sm font-medium text-slate-700" htmlFor="deliveryAddress">
-                Naslov dostave
+              <label className="text-sm font-medium text-slate-700" htmlFor="orderAddress">
+                Naslov naročnika
               </label>
               <input
-                id="deliveryAddress"
-                value={formData.deliveryAddress}
+                id="orderAddress"
+                value={formData.orderAddress}
                 onChange={(event) =>
-                  setFormData((prev) => ({ ...prev, deliveryAddress: event.target.value }))
+                  setFormData((prev) => ({ ...prev, orderAddress: event.target.value }))
                 }
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
             </div>
+            <div className="md:col-span-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={useAlternativeShipping}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setUseAlternativeShipping(checked);
+                    if (!checked) {
+                      setFormData((prev) => ({ ...prev, shippingAddress: '' }));
+                    }
+                  }}
+                  className="h-4 w-4 rounded border-slate-300 text-brand-600"
+                />
+                Dostava na drug naslov
+              </label>
+              <p className="mt-1 text-xs text-slate-500">
+                Izberite, če se naslov dostave razlikuje od naslova naročnika.
+              </p>
+            </div>
+            {useAlternativeShipping && (
+              <div className="md:col-span-2">
+                <label
+                  className="text-sm font-medium text-slate-700"
+                  htmlFor="shippingAddress"
+                >
+                  Naslov dostave
+                </label>
+                <input
+                  id="shippingAddress"
+                  value={formData.shippingAddress}
+                  onChange={(event) =>
+                    setFormData((prev) => ({ ...prev, shippingAddress: event.target.value }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+              </div>
+            )}
             <div>
               <label className="text-sm font-medium text-slate-700" htmlFor="contactName">
                 Kontaktna oseba <span className="text-brand-600">*</span>
@@ -178,6 +219,65 @@ export default function OrderPageClient() {
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
             </div>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-slate-900">Način plačila</h2>
+          <p className="mt-2 text-sm text-slate-600">
+            Izberite način plačila za to naročilo.
+          </p>
+          <div className="mt-4 grid gap-3">
+            {[
+              {
+                id: 'predracun',
+                label: 'Po predračunu',
+                description: 'Plačilo v spletni banki ali na banki/pošti.'
+              },
+              {
+                id: 'povzetje',
+                label: 'Po povzetju',
+                description: 'Plačilo z gotovino ob prevzemu pošiljke.'
+              },
+              {
+                id: 'kartica',
+                label: 'Plačilna kartica',
+                description: 'VISA, MasterCard in druge kartice.'
+              },
+              {
+                id: 'paypal',
+                label: 'PayPal',
+                description: 'Hiter spletni način plačila.'
+              }
+            ].map((method) => (
+              <label
+                key={method.id}
+                className={`flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-3 text-sm transition ${
+                  formData.paymentMethod === method.label
+                    ? 'border-brand-400 bg-brand-50 text-slate-900'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-brand-200'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value={method.label}
+                  checked={formData.paymentMethod === method.label}
+                  onChange={(event) =>
+                    setFormData((prev) => ({ ...prev, paymentMethod: event.target.value }))
+                  }
+                  className="mt-1 h-4 w-4 text-brand-600"
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-slate-900">
+                    {method.label}
+                  </span>
+                  <span className="mt-1 block text-xs text-slate-500">
+                    {method.description}
+                  </span>
+                </span>
+              </label>
+            ))}
           </div>
         </section>
 

@@ -11,13 +11,20 @@ import type { CartItem } from '@/lib/cart/store';
 import { DEJAVU_SANS_BASE64, DEJAVU_SANS_BOLD_BASE64 } from '@/lib/pdfFonts';
 
 export type OrderFormData = {
-  schoolName: string;
-  deliveryAddress?: string;
+  firstName: string;
+  lastName: string;
+  address?: string;
+  postalCode?: string;
+  city?: string;
+  companyInvoice?: boolean;
+  companyName?: string;
+  companyTaxId?: string;
   contactName: string;
   email: string;
   phone?: string;
   reference: string;
   notes?: string;
+  paymentMethod?: string;
 };
 
 export type OrderPdfProps = {
@@ -104,6 +111,10 @@ const styles = StyleSheet.create({
 });
 
 export default function OrderPdf({ formData, items, createdAt }: OrderPdfProps) {
+  const addressLine = [formData.address, [formData.postalCode, formData.city].filter(Boolean).join(' ')]
+    .filter(Boolean)
+    .join(', ');
+
   return (
     <Document title="Naročilo">
       <Page size="A4" style={styles.page}>
@@ -116,15 +127,29 @@ export default function OrderPdf({ formData, items, createdAt }: OrderPdfProps) 
         </View>
 
         <View>
-          <Text style={styles.sectionTitle}>Podatki šole</Text>
+          <Text style={styles.sectionTitle}>Podatki naročnika</Text>
           <View style={styles.row}>
-            <Text style={styles.label}>Naziv šole:</Text>
-            <Text style={styles.value}>{formData.schoolName}</Text>
+            <Text style={styles.label}>Ime in priimek:</Text>
+            <Text style={styles.value}>
+              {formData.firstName} {formData.lastName}
+            </Text>
           </View>
-          {formData.deliveryAddress && (
+          {addressLine && (
             <View style={styles.row}>
-              <Text style={styles.label}>Naslov dostave:</Text>
-              <Text style={styles.value}>{formData.deliveryAddress}</Text>
+              <Text style={styles.label}>Naslov:</Text>
+              <Text style={styles.value}>{addressLine}</Text>
+            </View>
+          )}
+          {formData.companyInvoice && formData.companyName && (
+            <View style={styles.row}>
+              <Text style={styles.label}>Podjetje:</Text>
+              <Text style={styles.value}>{formData.companyName}</Text>
+            </View>
+          )}
+          {formData.companyInvoice && formData.companyTaxId && (
+            <View style={styles.row}>
+              <Text style={styles.label}>DDV / davčna št.:</Text>
+              <Text style={styles.value}>{formData.companyTaxId}</Text>
             </View>
           )}
           <View style={styles.row}>
@@ -145,6 +170,12 @@ export default function OrderPdf({ formData, items, createdAt }: OrderPdfProps) 
             <Text style={styles.label}>Sklic/št. naročila:</Text>
             <Text style={styles.value}>{formData.reference}</Text>
           </View>
+          {formData.paymentMethod && (
+            <View style={styles.row}>
+              <Text style={styles.label}>Način plačila:</Text>
+              <Text style={styles.value}>{formData.paymentMethod}</Text>
+            </View>
+          )}
           <View style={styles.row}>
             <Text style={styles.label}>Datum:</Text>
             <Text style={styles.value}>{createdAt}</Text>

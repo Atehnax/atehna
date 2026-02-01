@@ -1,6 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
   <rect width="600" height="400" fill="#f8fafc" />
-  <path d="M300 80l150 60v80c0 90-62 140-150 180-88-40-150-90-150-180v-80z" fill="#e2e8f0" />
-  <path d="M300 110l110 44v60c0 70-42 110-110 140-68-30-110-70-110-140v-60z" fill="#2c7ef5" />
-  <path d="M300 170l40 40-40 70-40-70z" fill="#ffffff" />
+  <path d="M300 120l120 48v60c0 70-48 108-120 140-72-32-120-70-120-140v-60z" fill="#e2e8f0" stroke="#1f2937" stroke-width="6" />
+  <path d="M300 140l98 39v50c0 60-36 94-98 118-62-24-98-58-98-118v-50z" fill="#cbd5f5" stroke="#1f2937" stroke-width="6" />
+  <path d="M300 155l86 34v45c0 54-32 84-86 106-54-22-86-52-86-106v-45z" fill="#2c7ef5" stroke="#1f2937" stroke-width="6" />
+  <path d="M300 200l30 30-30 52-30-52z" fill="#ffffff" stroke="#1f2937" stroke-width="6" />
+  <circle cx="300" cy="220" r="10" fill="#1d4ed8" stroke="#1f2937" stroke-width="6" />
 </svg>

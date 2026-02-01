@@ -1,0 +1,909 @@
+{
+  "categories": [
+    {
+      "slug": "materiali",
+      "title": "Materiali",
+      "summary": "Kovine, les, plastika ter papirni materiali za tehnične projekte.",
+      "description": "Nabor osnovnih materialov za tehnični pouk, modeliranje in delavnice.",
+      "image": "/images/categories/metal-plates.svg",
+      "subcategories": [
+        {
+          "slug": "kovine-plocevina",
+          "title": "Kovine – pločevina",
+          "description": "Pločevina iz jekla, aluminija, bakra in medenine v dimenzijah za vaje in projekte.",
+          "items": [
+            {
+              "slug": "jeklena-plocevina-plosca",
+              "name": "Pocinkana železna pločevina",
+              "description": "Osnovna pocinkana železna pločevina debeline 0,5 mm za tehnične vaje."
+            },
+            {
+              "slug": "jeklena-plocevina-100x100x05",
+              "name": "Pocinkana železna pločevina, 100 × 100 × 0,5 mm",
+              "description": "Pocinkana železna pločevina 100 × 100 mm, debelina 0,5 mm."
+            },
+            {
+              "slug": "jeklena-plocevina-100x200x05",
+              "name": "Pocinkana železna pločevina, 100 × 200 × 0,5 mm",
+              "description": "Pocinkana železna pločevina 100 × 200 mm, debelina 0,5 mm."
+            },
+            {
+              "slug": "jeklena-plocevina-200x200x05",
+              "name": "Pocinkana železna pločevina, 200 × 200 × 0,5 mm",
+              "description": "Pocinkana železna pločevina 200 × 200 mm, debelina 0,5 mm."
+            },
+            {
+              "slug": "jeklena-plocevina-300x200x05",
+              "name": "Pocinkana železna pločevina, 300 × 200 × 0,5 mm",
+              "description": "Pocinkana železna pločevina 300 × 200 mm, debelina 0,5 mm."
+            },
+            {
+              "slug": "jeklena-plocevina-300x300x05",
+              "name": "Pocinkana železna pločevina, 300 × 300 × 0,5 mm",
+              "description": "Pocinkana železna pločevina 300 × 300 mm, debelina 0,5 mm."
+            },
+            {
+              "slug": "aluminijasta-plocevina-plosca",
+              "name": "Aluminijasta pločevina",
+              "description": "Osnovna aluminijasta pločevina debeline 0,5 mm."
+            },
+            {
+              "slug": "aluminijasta-plocevina-100x100x05",
+              "name": "Aluminijasta pločevina, 100 × 100 × 0,5 mm",
+              "description": "Aluminijasta plošča 100 × 100 mm, debelina 0,5 mm."
+            },
+            {
+              "slug": "aluminijasta-plocevina-100x200x05",
+              "name": "Aluminijasta pločevina, 100 × 200 × 0,5 mm",
+              "description": "Aluminijasta plošča 100 × 200 mm, debelina 0,5 mm."
+            },
+            {
+              "slug": "aluminijasta-plocevina-200x200x05",
+              "name": "Aluminijasta pločevina, 200 × 200 × 0,5 mm",
+              "description": "Aluminijasta plošča 200 × 200 mm, debelina 0,5 mm."
+            },
+            {
+              "slug": "aluminijasta-plocevina-300x200x05",
+              "name": "Aluminijasta pločevina, 300 × 200 × 0,5 mm",
+              "description": "Aluminijasta plošča 300 × 200 mm, debelina 0,5 mm."
+            },
+            {
+              "slug": "aluminijasta-plocevina-300x300x05",
+              "name": "Aluminijasta pločevina, 300 × 300 × 0,5 mm",
+              "description": "Aluminijasta plošča 300 × 300 mm, debelina 0,5 mm."
+            },
+            {
+              "slug": "bakrena-plocevina-plosca",
+              "name": "Bakrena pločevina",
+              "description": "Osnovna bakrena pločevina debeline 0,5 mm."
+            },
+            {
+              "slug": "bakrena-plocevina-100x100x05",
+              "name": "Bakrena pločevina, 100 × 100 × 0,5 mm",
+              "description": "Bakrena plošča 100 × 100 mm, debelina 0,5 mm."
+            },
+            {
+              "slug": "bakrena-plocevina-100x200x05",
+              "name": "Bakrena pločevina, 100 × 200 × 0,5 mm",
+              "description": "Bakrena plošča 100 × 200 mm, debelina 0,5 mm."
+            },
+            {
+              "slug": "bakrena-plocevina-200x200x05",
+              "name": "Bakrena pločevina, 200 × 200 × 0,5 mm",
+              "description": "Bakrena plošča 200 × 200 mm, debelina 0,5 mm."
+            },
+            {
+              "slug": "bakrena-plocevina-300x200x05",
+              "name": "Bakrena pločevina, 300 × 200 × 0,5 mm",
+              "description": "Bakrena plošča 300 × 200 mm, debelina 0,5 mm."
+            },
+            {
+              "slug": "bakrena-plocevina-300x300x05",
+              "name": "Bakrena pločevina, 300 × 300 × 0,5 mm",
+              "description": "Bakrena plošča 300 × 300 mm, debelina 0,5 mm."
+            },
+            {
+              "slug": "medeninska-plocevina-plosca",
+              "name": "Medeninasta pločevina",
+              "description": "Osnovna medeninasta pločevina debeline 0,5 mm."
+            },
+            {
+              "slug": "medeninska-plocevina-100x100x05",
+              "name": "Medeninasta pločevina, 100 × 100 × 0,5 mm",
+              "description": "Medeninasta plošča 100 × 100 mm, debelina 0,5 mm."
+            },
+            {
+              "slug": "medeninska-plocevina-100x200x05",
+              "name": "Medeninasta pločevina, 100 × 200 × 0,5 mm",
+              "description": "Medeninasta plošča 100 × 200 mm, debelina 0,5 mm."
+            },
+            {
+              "slug": "medeninska-plocevina-200x200x05",
+              "name": "Medeninasta pločevina, 200 × 200 × 0,5 mm",
+              "description": "Medeninasta plošča 200 × 200 mm, debelina 0,5 mm."
+            },
+            {
+              "slug": "medeninska-plocevina-300x200x05",
+              "name": "Medeninasta pločevina, 300 × 200 × 0,5 mm",
+              "description": "Medeninasta plošča 300 × 200 mm, debelina 0,5 mm."
+            },
+            {
+              "slug": "medeninska-plocevina-300x300x05",
+              "name": "Medeninasta pločevina, 300 × 300 × 0,5 mm",
+              "description": "Medeninasta plošča 300 × 300 mm, debelina 0,5 mm."
+            }
+          ]
+        },
+        {
+          "slug": "les-in-lesni-materiali",
+          "title": "Les in lesni materiali",
+          "description": "Plošče, letvice in leseni elementi za konstrukcije in modele.",
+          "items": [
+            {
+              "slug": "vezana-plosca-300x200",
+              "name": "Vezana plošča – plošča (300 × 200 mm)",
+              "description": "Vezana plošča formata 300 × 200 mm za tehnične izdelke."
+            },
+            {
+              "slug": "vezana-plosca-300x200x3",
+              "name": "Vezana plošča – plošča, 300 × 200 × 3 mm",
+              "description": "Vezana plošča debeline 3 mm, format 300 × 200 mm."
+            },
+            {
+              "slug": "vezana-plosca-300x200x4",
+              "name": "Vezana plošča – plošča, 300 × 200 × 4 mm",
+              "description": "Vezana plošča debeline 4 mm, format 300 × 200 mm."
+            },
+            {
+              "slug": "vezana-plosca-300x200x6",
+              "name": "Vezana plošča – plošča, 300 × 200 × 6 mm",
+              "description": "Vezana plošča debeline 6 mm, format 300 × 200 mm."
+            },
+            {
+              "slug": "vezana-plosca-300x200x8",
+              "name": "Vezana plošča – plošča, 300 × 200 × 8 mm",
+              "description": "Vezana plošča debeline 8 mm, format 300 × 200 mm."
+            },
+            {
+              "slug": "vezana-plosca-300x200x10",
+              "name": "Vezana plošča – plošča, 300 × 200 × 10 mm",
+              "description": "Vezana plošča debeline 10 mm, format 300 × 200 mm."
+            },
+            {
+              "slug": "masivni-les",
+              "name": "Masivni les",
+              "description": "Masivni les za rezbarjenje, konstrukcije in modele."
+            },
+            {
+              "slug": "smrekove-descice-razlicne",
+              "name": "Smrekove deščice – različne velikosti",
+              "description": "Smrekove deščice v različnih dimenzijah."
+            },
+            {
+              "slug": "okrogle-letvice",
+              "name": "Okrogle letvice",
+              "description": "Okrogle letvice iz različnih vrst lesa."
+            },
+            {
+              "slug": "smreka-okrogla-letvica-8",
+              "name": "Smreka – okrogla letvica, Ø 8 mm",
+              "description": "Smrekova okrogla letvica premera 8 mm."
+            },
+            {
+              "slug": "smreka-okrogla-letvica-10",
+              "name": "Smreka – okrogla letvica, Ø 10 mm",
+              "description": "Smrekova okrogla letvica premera 10 mm."
+            },
+            {
+              "slug": "bukev-okrogla-letvica-2",
+              "name": "Bukev – okrogla letvica, Ø 2 mm",
+              "description": "Bukova okrogla letvica premera 2 mm."
+            },
+            {
+              "slug": "bukev-okrogla-letvica-4",
+              "name": "Bukev – okrogla letvica, Ø 4 mm",
+              "description": "Bukova okrogla letvica premera 4 mm."
+            },
+            {
+              "slug": "bukev-okrogla-letvica-5",
+              "name": "Bukev – okrogla letvica, Ø 5 mm",
+              "description": "Bukova okrogla letvica premera 5 mm."
+            },
+            {
+              "slug": "bukev-okrogla-letvica-8",
+              "name": "Bukev – okrogla letvica, Ø 8 mm",
+              "description": "Bukova okrogla letvica premera 8 mm."
+            },
+            {
+              "slug": "bukev-okrogla-letvica-10",
+              "name": "Bukev – okrogla letvica, Ø 10 mm",
+              "description": "Bukova okrogla letvica premera 10 mm."
+            },
+            {
+              "slug": "bukev-okrogla-letvica-12",
+              "name": "Bukev – okrogla letvica, Ø 12 mm",
+              "description": "Bukova okrogla letvica premera 12 mm."
+            },
+            {
+              "slug": "bukev-okrogla-letvica-14",
+              "name": "Bukev – okrogla letvica, Ø 14 mm",
+              "description": "Bukova okrogla letvica premera 14 mm."
+            },
+            {
+              "slug": "bukev-okrogla-letvica-20",
+              "name": "Bukev – okrogla letvica, Ø 20 mm",
+              "description": "Bukova okrogla letvica premera 20 mm."
+            },
+            {
+              "slug": "bukev-okrogla-letvica-30",
+              "name": "Bukev – okrogla letvica, Ø 30 mm",
+              "description": "Bukova okrogla letvica premera 30 mm."
+            },
+            {
+              "slug": "leseno-kolo-34x6",
+              "name": "Leseno kolo z osno izvrtino 5 mm – Ø 34 × 6 mm",
+              "description": "Leseno kolo z osno izvrtino 5 mm, Ø 34 × 6 mm."
+            }
+          ]
+        },
+        {
+          "slug": "plastika-pene-izolacijski",
+          "title": "Plastika, pene, izolacijski materiali",
+          "description": "Plošče in folije iz plastike ter izolacijskih materialov.",
+          "items": [
+            {
+              "slug": "penjeni-pvc-300x200x3",
+              "name": "Penjeni PVC (Komateks) – plošča, 300 × 200 × 3 mm",
+              "description": "Penjeni PVC Komateks, plošča 300 × 200 × 3 mm."
+            },
+            {
+              "slug": "polistiren-folija-200x300x05",
+              "name": "Polistiren – folija, 200 × 300 × 0,5 mm",
+              "description": "Polistirenska folija 200 × 300 × 0,5 mm."
+            },
+            {
+              "slug": "stirodur-plosca",
+              "name": "Stirodur – plošča (artikel)",
+              "description": "Stirodur plošča za izolacijo in modeliranje."
+            },
+            {
+              "slug": "stiropor-plosca-16x33x2",
+              "name": "Stiropor – plošča, 16 × 33 × 2 cm",
+              "description": "Stiropor plošča 16 × 33 × 2 cm."
+            },
+            {
+              "slug": "linolej-plosca-a5",
+              "name": "Linolej – plošča, A5",
+              "description": "Linolej plošča formata A5."
+            }
+          ]
+        },
+        {
+          "slug": "papir-karton-lepenka",
+          "title": "Papir, karton, lepenka (risalni in tehnični)",
+          "description": "Papirni in kartonski materiali za risanje, modeliranje in tehnične naloge.",
+          "items": [
+            {
+              "slug": "pisarniski-papir-a4",
+              "name": "Pisarniški papir – A4",
+              "description": "Pisarniški papir formata A4."
+            },
+            {
+              "slug": "risalni-list-a4",
+              "name": "Risalni list – A4",
+              "description": "Risalni list formata A4."
+            },
+            {
+              "slug": "risalni-list-a3",
+              "name": "Risalni list – A3",
+              "description": "Risalni list formata A3."
+            },
+            {
+              "slug": "risalni-list-a2",
+              "name": "Risalni list – A2",
+              "description": "Risalni list formata A2."
+            },
+            {
+              "slug": "risalni-blok-a5",
+              "name": "Risalni blok – A5, 50 listov",
+              "description": "Risalni blok A5 s 50 listi."
+            },
+            {
+              "slug": "papir-lepenka-a4",
+              "name": "Papir (lepenka) – A4",
+              "description": "Lepenka formata A4."
+            },
+            {
+              "slug": "papir-lepenka-a3",
+              "name": "Papir (lepenka) – A3",
+              "description": "Lepenka formata A3."
+            },
+            {
+              "slug": "bela-lepenka-a3",
+              "name": "Bela lepenka – A3",
+              "description": "Bela lepenka formata A3."
+            },
+            {
+              "slug": "siva-lepenka-a2",
+              "name": "Siva lepenka – A2",
+              "description": "Siva lepenka formata A2."
+            },
+            {
+              "slug": "lepenka-12mm-b1",
+              "name": "Lepenka – 1,2 mm, B1",
+              "description": "Lepenka debeline 1,2 mm, format B1."
+            },
+            {
+              "slug": "ekokarton-250g-b2",
+              "name": "Ekokarton – 250 g, B2",
+              "description": "Ekokarton gramature 250 g, format B2."
+            },
+            {
+              "slug": "fotokarton-300g-b2",
+              "name": "Fotokarton – 300 g, B2, različne barve",
+              "description": "Fotokarton 300 g, format B2, različne barve."
+            },
+            {
+              "slug": "barvni-papir-b2",
+              "name": "Barvni papir – B2, različne barve",
+              "description": "Barvni papir formata B2 v različnih barvah."
+            },
+            {
+              "slug": "valovita-lepenka",
+              "name": "Valovita lepenka – različne barve",
+              "description": "Valovita lepenka v različnih barvah."
+            },
+            {
+              "slug": "penasta-guma-20x30",
+              "name": "Penasta guma za oblikovanje – 20 × 30 cm, različne barve",
+              "description": "Penasta guma 20 × 30 cm v različnih barvah."
+            },
+            {
+              "slug": "grafopak-polkarton-a3",
+              "name": "Grafopak polkarton – A3",
+              "description": "Grafopak polkarton formata A3."
+            },
+            {
+              "slug": "grafopak-polkarton-a4",
+              "name": "Grafopak polkarton – A4",
+              "description": "Grafopak polkarton formata A4."
+            },
+            {
+              "slug": "seleshamer-200g-b1",
+              "name": "Papir “šeleshamer” – 200 g, B1",
+              "description": "Papir šeleshamer 200 g, format B1."
+            },
+            {
+              "slug": "ovojni-papir-rjav",
+              "name": "Ovojni papir – rjav",
+              "description": "Rjav ovojni papir."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "stroji-in-naprave",
+      "title": "Stroji in naprave",
+      "summary": "Stroji za rezanje, vrtanje, brušenje in oblikovanje materialov.",
+      "description": "Stroji in naprave za tehnične učilnice in delavnice.",
+      "image": "/images/categories/workshop-machines.svg",
+      "subcategories": [],
+      "items": [
+        {
+          "slug": "vibracijska-zaga-deco-flex",
+          "name": "Vibracijska žaga – Deco-Flex",
+          "description": "Scheppach vibracijska žaga Deco-Flex."
+        },
+        {
+          "slug": "vibracijska-zaga-dsh",
+          "name": "Vibracijska žaga – DSH",
+          "description": "Proxxon vibracijska žaga DSH."
+        },
+        {
+          "slug": "tracna-zaga-mbs-240",
+          "name": "Tračna žaga – MBS 240/E",
+          "description": "Proxxon MBS 240/E tračna žaga."
+        },
+        {
+          "slug": "rezalnik-stiropor-styro-cut-3d",
+          "name": "Rezalnik za stiropor – Styro Cut 3D Set",
+          "description": "Rezalnik za stiropor Styro Cut 3D Set."
+        },
+        {
+          "slug": "steberni-namizni-vrtalni-stroj-dp13",
+          "name": "Stebrni namizni vrtalni stroj – DP13",
+          "description": "Scheppach DP13 stebrni namizni vrtalni stroj."
+        },
+        {
+          "slug": "konzolni-vrtalni-stroj-dp16",
+          "name": "Konzolni vrtalni stroj – DP16",
+          "description": "Scheppach DP16 konzolni vrtalni stroj."
+        },
+        {
+          "slug": "tracno-kolutni-brusilni-stroj-bts-800",
+          "name": "Tračno-kolutni brusilni stroj – BTS 800",
+          "description": "Scheppach BTS 800 tračno-kolutni brusilni stroj."
+        },
+        {
+          "slug": "kolutni-brusilni-stroj-tsg-250",
+          "name": "Kolutni brusilni stroj – TSG 250/E",
+          "description": "Proxxon TSG 250/E kolutni brusilni stroj."
+        },
+        {
+          "slug": "tracno-kolutni-brusilni-stroj-bts-150",
+          "name": "Tračno-kolutni brusilni stroj – BTS 150",
+          "description": "Holzstar BTS 150 tračno-kolutni brusilni stroj."
+        },
+        {
+          "slug": "odsesevanje-prahu-dc-12",
+          "name": "Naprava za odsesovanje prahu – DC 12",
+          "description": "Woodster DC 12 za odsesovanje prahu."
+        },
+        {
+          "slug": "naprava-za-krivljenje-plocevine",
+          "name": "Naprava za krivljenje pločevine",
+          "description": "Naprava za krivljenje pločevine v delavnici."
+        },
+        {
+          "slug": "naprava-za-krivljenje-plasticnih-mas",
+          "name": "Naprava za krivljenje plastičnih mas – brez transformatorja",
+          "description": "Naprava za krivljenje plastičnih mas, brez transformatorja."
+        },
+        {
+          "slug": "krivilnik-thermoform-400",
+          "name": "Krivilnik za plastične mase – THERMOFORM 400",
+          "description": "Krivilnik za plastične mase THERMOFORM 400."
+        }
+      ]
+    },
+    {
+      "slug": "rocno-orodje-in-pribor",
+      "title": "Ročno orodje in delavniški pribor",
+      "summary": "Ročno orodje, pripomočki in pribor za delavnice.",
+      "description": "Orodje za rezanje, zarisovanje, udarjanje in obdelavo materialov.",
+      "image": "/images/categories/rezalni-pripomocki.svg",
+      "subcategories": [
+        {
+          "slug": "rezanje-zaganje-brusenje",
+          "title": "Rezanje, žaganje, brušenje (ročno)",
+          "description": "Ročni pripomočki za rezanje in brušenje.",
+          "items": [
+            {
+              "slug": "pila-rocna",
+              "name": "Pila (ročna)",
+              "description": "Ročna pila za obdelavo materialov."
+            },
+            {
+              "slug": "skalpel",
+              "name": "Skalpel",
+              "description": "Skalpel za natančne reze."
+            },
+            {
+              "slug": "olfa-noz-18",
+              "name": "Olfa nož – 18 mm",
+              "description": "Olfa nož širine 18 mm."
+            }
+          ]
+        },
+        {
+          "slug": "kladiva",
+          "title": "Kladiva",
+          "description": "Kladiva za različne obdelave.",
+          "items": [
+            {
+              "slug": "kladivo-200",
+              "name": "Kladivo – 200 g",
+              "description": "Kladivo teže 200 g."
+            },
+            {
+              "slug": "kovasko-kladivo-500",
+              "name": "Kovaško kladivo – 500 g",
+              "description": "Kovaško kladivo teže 500 g."
+            },
+            {
+              "slug": "plasticno-kladivo",
+              "name": "Plastično kladivo",
+              "description": "Plastično kladivo za nežnejše udarce."
+            }
+          ]
+        },
+        {
+          "slug": "klesce",
+          "title": "Klešče",
+          "description": "Klešče za različne prijeme.",
+          "items": [
+            {
+              "slug": "kombinirane-klesce",
+              "name": "Kombinirane klešče",
+              "description": "Kombinirane klešče za univerzalno uporabo."
+            },
+            {
+              "slug": "okrogle-klesce-140",
+              "name": "Okrogle klešče – 140 mm",
+              "description": "Okrogle klešče dolžine 140 mm."
+            },
+            {
+              "slug": "okrogle-klesce-140-stojalo",
+              "name": "Klešče okrogle – 140 mm (10 kos v stojalu)",
+              "description": "Komplet 10 okroglih klešč v stojalu."
+            }
+          ]
+        },
+        {
+          "slug": "tockanje-zarisovanje",
+          "title": "Točkanje in zarisovanje",
+          "description": "Orodja za označevanje in zarisovanje.",
+          "items": [
+            {
+              "slug": "tockalo-100x3",
+              "name": "Točkalo – 100 × 3 mm (10 kos v stojalu)",
+              "description": "Komplet točkal 100 × 3 mm v stojalu."
+            },
+            {
+              "slug": "tockalo-110x3",
+              "name": "Točkalo – 110 × 3 mm",
+              "description": "Točkalo 110 × 3 mm."
+            },
+            {
+              "slug": "tockalo-120x5",
+              "name": "Točkalo – 120 × 5 mm",
+              "description": "Točkalo 120 × 5 mm."
+            },
+            {
+              "slug": "zarisna-igla",
+              "name": "Zarisna igla",
+              "description": "Zarisna igla za označevanje."
+            }
+          ]
+        },
+        {
+          "slug": "skarje-plocevina",
+          "title": "Škarje (pločevina)",
+          "description": "Škarje za rezanje pločevine.",
+          "items": [
+            {
+              "slug": "skarje-za-plocevino-zlatar",
+              "name": "Škarje za pločevino (zlatarske) – (5 kos v stojalu)",
+              "description": "Zlatarske škarje za pločevino, komplet 5 kos."
+            },
+            {
+              "slug": "namizne-skarje-125",
+              "name": "Namizne škarje za pločevino – 125 mm",
+              "description": "Namizne škarje za pločevino, 125 mm."
+            }
+          ]
+        },
+        {
+          "slug": "ostalo",
+          "title": "Ostalo",
+          "description": "Dodatni delavniški pripomočki.",
+          "items": [
+            {
+              "slug": "pestilo-za-kovine",
+              "name": "Pestilo za kovine",
+              "description": "Pestilo za obdelavo kovin."
+            },
+            {
+              "slug": "rezbarski-lok",
+              "name": "Rezbarski lok s patentnimi ročkami",
+              "description": "Rezbarski lok s patentnimi ročkami."
+            },
+            {
+              "slug": "pirograf-50w",
+              "name": "Pirograf z grelno žico – 50 W",
+              "description": "Pirograf z grelno žico, 50 W."
+            },
+            {
+              "slug": "podloge-za-rezanje",
+              "name": "Podloge za rezanje",
+              "description": "Podloge za zaščito mize pri rezanju."
+            }
+          ]
+        },
+        {
+          "slug": "zagice",
+          "title": "Žagice",
+          "description": "Žagice in potrošni material za žaganje.",
+          "items": [
+            {
+              "slug": "zagice-les-plastika-fini",
+              "name": "Žagice za les in plastiko – fini rob",
+              "description": "Žagice z finim robom za les in plastiko."
+            },
+            {
+              "slug": "zagice-les-plastika-srednji",
+              "name": "Žagice za les in plastiko – srednji rob",
+              "description": "Žagice s srednjim robom za les in plastiko."
+            },
+            {
+              "slug": "zagice-les-plastika-grobi",
+              "name": "Žagice za les in plastiko – grobi rob",
+              "description": "Žagice z grobim robom za les in plastiko."
+            },
+            {
+              "slug": "zagice-les-plastika-zelo-grobi",
+              "name": "Žagice za les in plastiko – zelo grobi rob",
+              "description": "Žagice z zelo grobim robom za les in plastiko."
+            },
+            {
+              "slug": "komplet-zagic-144",
+              "name": "Komplet žagic – 144 kos",
+              "description": "Komplet 144 žagic za različne materiale."
+            },
+            {
+              "slug": "spiralne-zagice",
+              "name": "Spiralne žagice – za les in mehke kovine",
+              "description": "Spiralne žagice za les in mehke kovine."
+            },
+            {
+              "slug": "zagice-za-kovine",
+              "name": "Žagice za kovine",
+              "description": "Žagice za rezanje kovin."
+            },
+            {
+              "slug": "zagice-rezljaca-6-25",
+              "name": "Žagice za rezljačo – komplet 6 kos",
+              "description": "Komplet 6 žagic."
+            },
+            {
+              "slug": "zagice-rezljaca-6-les",
+              "name": "Žagice za rezljačo – komplet 6 kos",
+              "description": "Komplet 6 žagic za les."
+            },
+            {
+              "slug": "zagice-rezljaca-6-mesano",
+              "name": "Žagice za rezljačo – komplet 6 kos",
+              "description": "Komplet 6 žagic za različne materiale."
+            },
+            {
+              "slug": "zagice-proxxon-dsh",
+              "name": "Žagice za vibracijsko žago – Proxxon DSH",
+              "description": "Žagice za vibracijsko žago Proxxon DSH."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "merilno-orodje-in-geometrija",
+      "title": "Merilno orodje in geometrija",
+      "summary": "Merilni pripomočki in geometrijska orodja za pouk.",
+      "description": "Merilniki, ravnila in didaktični pripomočki za geometrijo.",
+      "image": "/images/categories/rulers-measurement.svg",
+      "subcategories": [
+        {
+          "slug": "merjenje",
+          "title": "Merjenje",
+          "description": "Merilni pripomočki za natančne meritve.",
+          "items": [
+            {
+              "slug": "digitalno-pomicno-merilo-150",
+              "name": "Digitalno pomično merilo – 150 mm",
+              "description": "Digitalno pomično merilo 150 mm."
+            },
+            {
+              "slug": "pomicno-merilo-200",
+              "name": "Pomično merilo – 200 mm",
+              "description": "Pomično merilo dolžine 200 mm."
+            },
+            {
+              "slug": "tracni-meter",
+              "name": "Tračni meter",
+              "description": "Tračni meter za merjenje."
+            }
+          ]
+        },
+        {
+          "slug": "ravnila-kotniki-kotomeri",
+          "title": "Ravnila, kotniki, kotomeri",
+          "description": "Ravnila, kotniki in kotomeri za geometrijo.",
+          "items": [
+            {
+              "slug": "aluminijasto-ravnilo-40",
+              "name": "Aluminijasto ravnilo z ročajem – 40 cm",
+              "description": "Aluminijasto ravnilo z ročajem, 40 cm."
+            },
+            {
+              "slug": "jekleno-ravnilo-40",
+              "name": "Jekleno ravnilo (barvano) – 40 cm",
+              "description": "Jekleno barvano ravnilo, 40 cm."
+            },
+            {
+              "slug": "kotnik-kovinski-200x125",
+              "name": "Kotnik kovinski – 200 × 125 mm (10 kos)",
+              "description": "Kovinski kotnik 200 × 125 mm, komplet 10 kos."
+            },
+            {
+              "slug": "kotomer-180-50",
+              "name": "Kotomer – 180°, 50 cm (magnetni)",
+              "description": "Magnetni kotomer 180°, dolžina 50 cm."
+            },
+            {
+              "slug": "trigonir",
+              "name": "Trigonir",
+              "description": "Trigonir za geometrijske naloge."
+            }
+          ]
+        },
+        {
+          "slug": "didakticni-pripomocki",
+          "title": "Didaktični pripomočki",
+          "description": "Didaktični pripomočki za razlago geometrije.",
+          "items": [
+            {
+              "slug": "geometrijska-telesa",
+              "name": "Geometrijska telesa",
+              "description": "Komplet geometrijskih teles."
+            },
+            {
+              "slug": "trikotniki-za-tabla",
+              "name": "Trikotniki za tablo",
+              "description": "Trikotniki za uporabo na tabli."
+            },
+            {
+              "slug": "komplet-ravnil-za-tabla",
+              "name": "Komplet ravnil za tablo (magnetni)",
+              "description": "Magnetni komplet ravnil za tablo."
+            },
+            {
+              "slug": "sestilo-za-tabla-magnetni",
+              "name": "Šestilo za tablo z magnetnim priseskom",
+              "description": "Šestilo za tablo z magnetnim priseskom."
+            },
+            {
+              "slug": "sestilo-za-tabla-plasticni",
+              "name": "Šestilo za tablo s plastičnim priseskom",
+              "description": "Šestilo za tablo s plastičnim priseskom."
+            },
+            {
+              "slug": "komplet-kubicni-meter",
+              "name": "Komplet za prikaz kubičnega metra",
+              "description": "Komplet za prikaz kubičnega metra."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "dodatki-in-nadomestni-deli",
+      "title": "Dodatki in nadomestni deli",
+      "summary": "Pripomočki in nadomestni deli za didaktične pripomočke.",
+      "description": "Nadomestni deli in dodatki za šolske pripomočke.",
+      "image": "/images/categories/safety.svg",
+      "subcategories": [],
+      "items": [
+        {
+          "slug": "magnetni-prisesek",
+          "name": "Magnetni prisesek za šestila (nadomestni del)",
+          "description": "Nadomestni magnetni prisesek za šestila."
+        },
+        {
+          "slug": "plasticni-prisesek",
+          "name": "Plastični prisesek za šestila (nadomestni del)",
+          "description": "Nadomestni plastični prisesek za šestila."
+        }
+      ]
+    },
+    {
+      "slug": "lepila-trakovi-lotanje",
+      "title": "Lepila, trakovi, spajkanje/varjenje",
+      "summary": "Lepila, trakovi in material za spajkanje.",
+      "description": "Lepila, lepilni trakovi ter material za lotanje in varjenje.",
+      "image": "/images/categories/lepila-kompleti.svg",
+      "subcategories": [
+        {
+          "slug": "lepila",
+          "title": "Lepila",
+          "description": "Različna lepila za šolske delavnice.",
+          "items": [
+            {
+              "slug": "mekol-1001",
+              "name": "Mekol 1001 – 1 kg",
+              "description": "Mekol 1001 lepilo, pakiranje 1 kg."
+            },
+            {
+              "slug": "mekol-special",
+              "name": "Mekol Special – 0,5 kg",
+              "description": "Mekol Special lepilo, pakiranje 0,5 kg."
+            },
+            {
+              "slug": "uhu-kraft-alles",
+              "name": "UHU Kraft Alleskleber – 42 g",
+              "description": "UHU Kraft Alleskleber, 42 g."
+            },
+            {
+              "slug": "uhu-super-glue",
+              "name": "UHU Super Glue – 3 ml",
+              "description": "UHU Super Glue, 3 ml."
+            }
+          ]
+        },
+        {
+          "slug": "lepilni-trakovi",
+          "title": "Lepilni trakovi",
+          "description": "Lepilni trakovi za montažo in zaščito.",
+          "items": [
+            {
+              "slug": "aluminijasti-trak",
+              "name": "Aluminijasti lepilni trak",
+              "description": "Aluminijasti lepilni trak za izolacijo."
+            },
+            {
+              "slug": "aerotape-24x66",
+              "name": "Lepilni trak Aerotape – 24 mm × 66 m",
+              "description": "Aerotape lepilni trak 24 mm × 66 m."
+            },
+            {
+              "slug": "aerotape-48x66",
+              "name": "Lepilni trak Aerotape – 48 mm × 66 m",
+              "description": "Aerotape lepilni trak 48 mm × 66 m."
+            }
+          ]
+        },
+        {
+          "slug": "lotanje-varjenje",
+          "title": "Lotanje / varjenje",
+          "description": "Material za spajkanje in varjenje.",
+          "items": [
+            {
+              "slug": "zica-za-lotanje-100",
+              "name": "Žica za lotanje – 100 g",
+              "description": "Žica za lotanje, 100 g."
+            },
+            {
+              "slug": "varilna-zica-2mm",
+              "name": "Varilna žica – Ø 2 mm, 1 m",
+              "description": "Varilna žica premera 2 mm, dolžina 1 m."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "osebna-zascita-in-varnost",
+      "title": "Osebna zaščita in varnost",
+      "summary": "Osebna zaščita in oprema za varno delo.",
+      "description": "Zaščitna oprema in pripomočki za varnost v učilnici.",
+      "image": "/images/categories/safety.svg",
+      "subcategories": [],
+      "items": [
+        {
+          "slug": "zascitni-predpasnik",
+          "name": "Zaščitni predpasnik",
+          "description": "Predpasnik za zaščito pri delu."
+        },
+        {
+          "slug": "otroska-ocala",
+          "name": "Otroška zaščitna očala",
+          "description": "Zaščitna očala za otroke."
+        },
+        {
+          "slug": "odrasla-ocala",
+          "name": "Zaščitna očala (odrasla)",
+          "description": "Zaščitna očala za odrasle."
+        },
+        {
+          "slug": "omarica-prva-pomoc",
+          "name": "Stenska in prenosna omarica za prvo pomoč",
+          "description": "Omarica za prvo pomoč, stenska ali prenosna."
+        }
+      ]
+    },
+    {
+      "slug": "elektrika-mehanika",
+      "title": "Električni in mehanični elementi",
+      "summary": "Osnovni električni elementi za projekte.",
+      "description": "Električni in mehanski elementi za tehnične naloge.",
+      "image": "/images/categories/workshop-machines.svg",
+      "subcategories": [],
+      "items": [
+        {
+          "slug": "motorcek-r20",
+          "name": "Motorček – R20",
+          "description": "Motorček R20 za tehnične projekte."
+        }
+      ]
+    }
+  ]
+}

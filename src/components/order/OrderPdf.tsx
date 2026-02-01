@@ -12,12 +12,14 @@ import { DEJAVU_SANS_BASE64, DEJAVU_SANS_BOLD_BASE64 } from '@/lib/pdfFonts';
 
 export type OrderFormData = {
   schoolName: string;
-  deliveryAddress?: string;
+  orderAddress?: string;
+  shippingAddress?: string;
   contactName: string;
   email: string;
   phone?: string;
   reference: string;
   notes?: string;
+  paymentMethod?: string;
 };
 
 export type OrderPdfProps = {
@@ -121,10 +123,16 @@ export default function OrderPdf({ formData, items, createdAt }: OrderPdfProps) 
             <Text style={styles.label}>Naziv šole:</Text>
             <Text style={styles.value}>{formData.schoolName}</Text>
           </View>
-          {formData.deliveryAddress && (
+          {formData.orderAddress && (
+            <View style={styles.row}>
+              <Text style={styles.label}>Naslov naročnika:</Text>
+              <Text style={styles.value}>{formData.orderAddress}</Text>
+            </View>
+          )}
+          {formData.shippingAddress && (
             <View style={styles.row}>
               <Text style={styles.label}>Naslov dostave:</Text>
-              <Text style={styles.value}>{formData.deliveryAddress}</Text>
+              <Text style={styles.value}>{formData.shippingAddress}</Text>
             </View>
           )}
           <View style={styles.row}>
@@ -145,6 +153,12 @@ export default function OrderPdf({ formData, items, createdAt }: OrderPdfProps) 
             <Text style={styles.label}>Sklic/št. naročila:</Text>
             <Text style={styles.value}>{formData.reference}</Text>
           </View>
+          {formData.paymentMethod && (
+            <View style={styles.row}>
+              <Text style={styles.label}>Način plačila:</Text>
+              <Text style={styles.value}>{formData.paymentMethod}</Text>
+            </View>
+          )}
           <View style={styles.row}>
             <Text style={styles.label}>Datum:</Text>
             <Text style={styles.value}>{createdAt}</Text>

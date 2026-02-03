@@ -158,13 +158,6 @@ export default function OrderPageClient() {
     } finally {
       setUploading(false);
     }
-    const subject = `Naročilo – ${formData.firstName} ${formData.lastName}`;
-    const body = `Pozdravljeni,\n\npošiljamo naročilo v priponki (PDF).\n\nLep pozdrav,\n${formData.firstName} ${formData.lastName}`;
-    return `mailto:${COMPANY_INFO.orderEmail}?subject=${encodeURIComponent(
-      subject
-    )}&body=${encodeURIComponent(body)}`;
-  }, [formData, requiredFieldsFilled]);
-
   if (items.length === 0 && !orderResponse) {
     return (
       <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">

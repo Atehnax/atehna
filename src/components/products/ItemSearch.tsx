@@ -37,27 +37,24 @@ export default function ItemSearch({
   }, [items, normalizedQuery]);
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <label className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-        Hitro iskanje
-      </label>
+    <div className="relative">
       <input
         type="search"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder={placeholder}
-        className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+        className="w-full rounded-full border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
       />
       {normalizedQuery && (
-        <div className="mt-3 space-y-2">
+        <div className="absolute left-0 right-0 z-20 mt-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
           {results.length === 0 ? (
-            <p className="text-sm text-slate-500">Ni zadetkov za vpisan pojem.</p>
+            <p className="px-3 py-2 text-sm text-slate-500">Ni zadetkov za vpisan pojem.</p>
           ) : (
             results.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="block rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 transition hover:border-brand-200 hover:text-brand-600"
+                className="block rounded-xl px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50 hover:text-brand-600"
               >
                 <p className="font-semibold text-slate-900">{item.name}</p>
                 <p className="text-xs text-slate-500">{item.description}</p>

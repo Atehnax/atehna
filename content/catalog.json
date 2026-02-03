@@ -16,37 +16,37 @@
               "slug": "jeklena-plocevina-plosca",
               "name": "Pocinkana železna pločevina",
               "description": "Osnovna pocinkana železna pločevina debeline 0,5 mm za tehnične vaje.",
-              "image": "/images/items/metal-sheet.svg"
+              "image": "/images/items/pocinkana-zelezo.svg"
             },
             {
               "slug": "jeklena-plocevina-100x100x05",
               "name": "Pocinkana železna pločevina, 100 × 100 × 0,5 mm",
               "description": "Pocinkana železna pločevina 100 × 100 mm, debelina 0,5 mm.",
-              "image": "/images/items/metal-sheet.svg"
+              "image": "/images/items/pocinkana-zelezo.svg"
             },
             {
               "slug": "jeklena-plocevina-100x200x05",
               "name": "Pocinkana železna pločevina, 100 × 200 × 0,5 mm",
               "description": "Pocinkana železna pločevina 100 × 200 mm, debelina 0,5 mm.",
-              "image": "/images/items/metal-sheet.svg"
+              "image": "/images/items/pocinkana-zelezo.svg"
             },
             {
               "slug": "jeklena-plocevina-200x200x05",
               "name": "Pocinkana železna pločevina, 200 × 200 × 0,5 mm",
               "description": "Pocinkana železna pločevina 200 × 200 mm, debelina 0,5 mm.",
-              "image": "/images/items/metal-sheet.svg"
+              "image": "/images/items/pocinkana-zelezo.svg"
             },
             {
               "slug": "jeklena-plocevina-300x200x05",
               "name": "Pocinkana železna pločevina, 300 × 200 × 0,5 mm",
               "description": "Pocinkana železna pločevina 300 × 200 mm, debelina 0,5 mm.",
-              "image": "/images/items/metal-sheet.svg"
+              "image": "/images/items/pocinkana-zelezo.svg"
             },
             {
               "slug": "jeklena-plocevina-300x300x05",
               "name": "Pocinkana železna pločevina, 300 × 300 × 0,5 mm",
               "description": "Pocinkana železna pločevina 300 × 300 mm, debelina 0,5 mm.",
-              "image": "/images/items/metal-sheet.svg"
+              "image": "/images/items/pocinkana-zelezo.svg"
             },
             {
               "slug": "aluminijasta-plocevina-plosca",
@@ -300,7 +300,7 @@
               "slug": "penjeni-pvc-300x200x3",
               "name": "Penjeni PVC (Komateks) – plošča, 300 × 200 × 3 mm",
               "description": "Penjeni PVC Komateks, plošča 300 × 200 × 3 mm.",
-              "image": "/images/items/foam-board.svg"
+              "image": "/images/items/komateks-pvc.svg"
             },
             {
               "slug": "polistiren-folija-200x300x05",

@@ -3,7 +3,6 @@ import Image from 'next/image';
 import { getPageContent } from '@/lib/content';
 import { getCatalogCategories } from '@/lib/catalog';
 import MdxContent from '@/components/MdxContent';
-import ItemSearch from '@/components/products/ItemSearch';
 
 export default function HomePage() {
   const page = getPageContent('home');
@@ -52,9 +51,6 @@ export default function HomePage() {
           <Link href="/products" className="text-sm font-semibold text-brand-600">
             Vsi izdelki →
           </Link>
-        </div>
-        <div className="mt-6">
-          <ItemSearch items={searchItems} />
         </div>
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {categories.map((category) => (

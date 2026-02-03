@@ -9,6 +9,7 @@ import {
   formatCatalogPrice
 } from '@/lib/catalog';
 import AddToCartButton from '@/components/products/AddToCartButton';
+import ItemSearch from '@/components/products/ItemSearch';
 
 export function generateStaticParams() {
   return getCatalogCategorySlugs().map((category) => ({ category }));
@@ -32,6 +33,21 @@ const getArticleLabel = (count: number) => {
 export default function CategoryPage({ params }: { params: { category: string } }) {
   const category = getCatalogCategory(params.category);
   const categories = getCatalogCategories();
+  const searchItems = [
+    ...(category.items ?? []).map((item) => ({
+      name: item.name,
+      description: item.description,
+      href: `/products/${category.slug}/items/${item.slug}`
+    })),
+    ...category.subcategories.flatMap((subcategory) =>
+      subcategory.items.map((item) => ({
+        name: item.name,
+        description: item.description,
+        href: `/products/${category.slug}/${subcategory.slug}/${item.slug}`
+      }))
+    )
+  ];
+
   return (
     <div className="container-base py-12">
       <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
@@ -42,6 +58,12 @@ export default function CategoryPage({ params }: { params: { category: string } 
             <p className="text-sm text-slate-600">{category.description}</p>
           </div>
           <div className="mt-8">
+            <div className="mb-6">
+              <ItemSearch
+                items={searchItems}
+                placeholder={`Poiščite v kategoriji ${category.title}...`}
+              />
+            </div>
             {category.subcategories.length > 0 ? (
               <>
                 <h2 className="text-xl font-semibold text-slate-900">Podkategorije</h2>
@@ -75,30 +97,31 @@ export default function CategoryPage({ params }: { params: { category: string } 
                       item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug)
                     );
                     const itemSku = getCatalogCategoryItemSku(category.slug, item.slug);
-                    const itemHref = `/products/${category.slug}/items/${item.slug}`;
                     return (
                       <div
                         key={item.slug}
                         className="flex h-full flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm transition hover:border-brand-200"
                       >
                         <div>
-                          <Link href={itemHref} className="group block">
-                            {item.image && (
-                              <div className="relative h-24 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-                                <Image
-                                  src={item.image}
-                                  alt={item.name}
-                                  fill
-                                  className="object-contain p-3 transition duration-300 group-hover:scale-105"
-                                />
-                              </div>
-                            )}
-                            <p className="mt-3 text-base font-semibold text-slate-900 transition group-hover:text-brand-600">
-                              {item.name}
-                            </p>
-                          </Link>
+                          {item.image && (
+                            <div className="relative h-24 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                              <Image
+                                src={item.image}
+                                alt={item.name}
+                                fill
+                                className="object-contain p-3"
+                              />
+                            </div>
+                          )}
+                          <p className="mt-3 text-base font-semibold text-slate-900">{item.name}</p>
                           <p className="mt-2 text-sm text-slate-600">{item.description}</p>
                           <p className="mt-3 text-sm font-semibold text-slate-900">{price}</p>
+                          <Link
+                            href={`/products/${category.slug}/items/${item.slug}`}
+                            className="mt-3 inline-flex text-sm font-semibold text-brand-600"
+                          >
+                            Več o izdelku →
+                          </Link>
                         </div>
                         <AddToCartButton
                           sku={itemSku}

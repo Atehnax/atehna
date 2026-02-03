@@ -10,7 +10,7 @@ export default function OrderPage() {
       <div className="max-w-5xl">
         <h1 className="text-3xl font-semibold text-slate-900">Oddaja naročila</h1>
         <p className="mt-3 text-slate-600">
-          Izpolnite podatke, pripravite PDF naročilnico in jo pošljite po e-pošti.
+          Izpolnite podatke in oddajte naročilo. PDF dokument bo na voljo po uspešni oddaji.
         </p>
         <div className="mt-8">
           <OrderPageClient />

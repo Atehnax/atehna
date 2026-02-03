@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { getAllCategories, getPageContent } from '@/lib/content';
+import { getPageContent } from '@/lib/content';
+import { getCatalogCategories } from '@/lib/catalog';
 import MdxContent from '@/components/MdxContent';
 
 export default function HomePage() {
   const page = getPageContent('home');
-  const categories = getAllCategories();
+  const categories = getCatalogCategories();
 
   return (
     <div>

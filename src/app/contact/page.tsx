@@ -19,12 +19,7 @@ export default function ContactPage() {
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-slate-900">Pošljite povpraševanje</h2>
-          <form
-            className="mt-4 space-y-4"
-            action="mailto:info@atehna.si"
-            method="post"
-            encType="text/plain"
-          >
+          <form className="mt-4 space-y-4">
             <div>
               <label className="text-sm font-medium text-slate-700" htmlFor="school">
                 Naziv naročnika
@@ -74,14 +69,15 @@ export default function ContactPage() {
               />
             </div>
             <button
-              type="submit"
-              className="w-full rounded-full bg-brand-600 px-6 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
+              type="button"
+              className="w-full cursor-not-allowed rounded-full bg-slate-200 px-6 py-2 text-sm font-semibold text-slate-500 shadow-sm"
+              disabled
             >
               Pošlji povpraševanje
             </button>
             <p className="text-xs text-slate-500">
-              Obrazec trenutno uporablja mailto povezavo. Za produkcijo ga lahko povežemo z vašo
-              e-poštno storitvijo ali obrazcem v eUpravi.
+              Obrazec je informativen. Za oddajo povpraševanja uporabite kanal, ki ga dogovorimo v
+              procesu implementacije.
             </p>
           </form>
         </div>

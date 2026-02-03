@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useCartStore } from '@/lib/cart/store';
 
@@ -30,18 +31,18 @@ type OrderResponse = {
 };
 
 const initialForm: OrderFormData = {
-  buyerType: 'individual',
   firstName: '',
   lastName: '',
-  email: '',
-  phone: '',
-  street: '',
+  address: '',
   postalCode: '',
   city: '',
-  notes: '',
+  companyInvoice: false,
   companyName: '',
-  taxIdOrVatId: '',
-  institutionName: ''
+  companyTaxId: '',
+  email: '',
+  phone: '',
+  notes: '',
+  paymentMethod: ''
 };
 
 export default function OrderPageClient() {
@@ -57,14 +58,14 @@ export default function OrderPageClient() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  const createdAt = useMemo(() => new Date().toLocaleDateString('sl-SI'), []);
   const formatter = useMemo(
     () => new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }),
     []
   );
-  const summaryItems = orderResponse ? submittedItems : items;
   const subtotal = useMemo(
-    () => summaryItems.reduce((sum, item) => sum + (item.price ?? 0) * item.quantity, 0),
-    [summaryItems]
+    () => items.reduce((sum, item) => sum + (item.price ?? 0) * item.quantity, 0),
+    [items]
   );
   const vatRate = 0.22;
   const vatAmount = subtotal * vatRate;
@@ -74,14 +75,9 @@ export default function OrderPageClient() {
     formData.firstName.trim() &&
     formData.lastName.trim() &&
     formData.email.trim() &&
-    formData.street.trim() &&
+    formData.address.trim() &&
     formData.postalCode.trim() &&
     formData.city.trim();
-
-  const companyRequired = formData.buyerType === 'company' ? formData.companyName.trim() : true;
-  const institutionRequired =
-    formData.buyerType === 'school' ? formData.institutionName.trim() : true;
-  const hasPrices = items.every((item) => typeof item.price === 'number');
 
   const canSubmit =
     items.length > 0 &&
@@ -162,7 +158,12 @@ export default function OrderPageClient() {
     } finally {
       setUploading(false);
     }
-  };
+    const subject = `Naročilo – ${formData.firstName} ${formData.lastName}`;
+    const body = `Pozdravljeni,\n\npošiljamo naročilo v priponki (PDF).\n\nLep pozdrav,\n${formData.firstName} ${formData.lastName}`;
+    return `mailto:${COMPANY_INFO.orderEmail}?subject=${encodeURIComponent(
+      subject
+    )}&body=${encodeURIComponent(body)}`;
+  }, [formData, requiredFieldsFilled]);
 
   if (items.length === 0 && !orderResponse) {
     return (
@@ -187,26 +188,6 @@ export default function OrderPageClient() {
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-slate-900">Podatki o naročilu</h2>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <div className="md:col-span-2">
-              <label className="text-sm font-medium text-slate-700" htmlFor="buyerType">
-                Tip kupca <span className="text-brand-600">*</span>
-              </label>
-              <select
-                id="buyerType"
-                value={formData.buyerType}
-                onChange={(event) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    buyerType: event.target.value as BuyerType
-                  }))
-                }
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              >
-                <option value="individual">Posameznik</option>
-                <option value="company">Podjetje</option>
-                <option value="school">Šola</option>
-              </select>
-            </div>
             <div>
               <label className="text-sm font-medium text-slate-700" htmlFor="firstName">
                 Ime <span className="text-brand-600">*</span>
@@ -264,9 +245,9 @@ export default function OrderPageClient() {
               </label>
               <input
                 id="address"
-                value={formData.street}
+                value={formData.address}
                 onChange={(event) =>
-                  setFormData((prev) => ({ ...prev, street: event.target.value }))
+                  setFormData((prev) => ({ ...prev, address: event.target.value }))
                 }
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
@@ -295,11 +276,30 @@ export default function OrderPageClient() {
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
             </div>
-            {formData.buyerType === 'company' && (
+            <div className="md:col-span-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={formData.companyInvoice}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setFormData((prev) => ({
+                      ...prev,
+                      companyInvoice: checked,
+                      companyName: checked ? prev.companyName : '',
+                      companyTaxId: checked ? prev.companyTaxId : ''
+                    }));
+                  }}
+                  className="h-4 w-4 rounded border-slate-300 text-brand-600"
+                />
+                Račun za podjetje
+              </label>
+            </div>
+            {formData.companyInvoice && (
               <>
                 <div>
                   <label className="text-sm font-medium text-slate-700" htmlFor="companyName">
-                    Naziv podjetja <span className="text-brand-600">*</span>
+                    Naziv podjetja
                   </label>
                   <input
                     id="companyName"
@@ -311,34 +311,19 @@ export default function OrderPageClient() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-slate-700" htmlFor="taxIdOrVatId">
+                  <label className="text-sm font-medium text-slate-700" htmlFor="companyTaxId">
                     DDV / davčna številka
                   </label>
                   <input
-                    id="taxIdOrVatId"
-                    value={formData.taxIdOrVatId}
+                    id="companyTaxId"
+                    value={formData.companyTaxId}
                     onChange={(event) =>
-                      setFormData((prev) => ({ ...prev, taxIdOrVatId: event.target.value }))
+                      setFormData((prev) => ({ ...prev, companyTaxId: event.target.value }))
                     }
                     className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                   />
                 </div>
               </>
-            )}
-            {formData.buyerType === 'school' && (
-              <div className="md:col-span-2">
-                <label className="text-sm font-medium text-slate-700" htmlFor="institutionName">
-                  Naziv ustanove <span className="text-brand-600">*</span>
-                </label>
-                <input
-                  id="institutionName"
-                  value={formData.institutionName}
-                  onChange={(event) =>
-                    setFormData((prev) => ({ ...prev, institutionName: event.target.value }))
-                  }
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                />
-              </div>
             )}
             <div className="md:col-span-2">
               <label className="text-sm font-medium text-slate-700" htmlFor="notes">
@@ -383,6 +368,78 @@ export default function OrderPageClient() {
 
       <div className="space-y-6 lg:sticky lg:top-24">
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-slate-900">Način plačila</h2>
+          <p className="mt-2 text-sm text-slate-600">Izberite način plačila za to naročilo.</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {[
+              {
+                id: 'predracun',
+                label: 'Po predračunu',
+                description: 'Plačilo v spletni banki ali na banki/pošti.'
+              },
+              {
+                id: 'povzetje',
+                label: 'Po povzetju',
+                description: 'Plačilo z gotovino ob prevzemu pošiljke.'
+              },
+              {
+                id: 'kartica',
+                label: 'Plačilna kartica',
+                description: 'Podprte kartice Visa in MasterCard.',
+                logos: [
+                  { src: '/images/payments/visa.svg', alt: 'Visa' },
+                  { src: '/images/payments/mastercard.svg', alt: 'Mastercard' }
+                ]
+              },
+              {
+                id: 'paypal',
+                label: 'PayPal',
+                description: 'Hiter spletni način plačila.',
+                logos: [{ src: '/images/payments/paypal.svg', alt: 'PayPal' }]
+              }
+            ].map((method) => (
+              <label
+                key={method.id}
+                className={`flex cursor-pointer items-start gap-2 rounded-xl border px-3 py-2 text-xs transition ${
+                  formData.paymentMethod === method.label
+                    ? 'border-brand-400 bg-brand-50 text-slate-900'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-brand-200'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value={method.label}
+                  checked={formData.paymentMethod === method.label}
+                  onChange={(event) =>
+                    setFormData((prev) => ({ ...prev, paymentMethod: event.target.value }))
+                  }
+                  className="mt-0.5 h-3 w-3 text-brand-600"
+                />
+                <span className="flex flex-1 flex-col gap-1">
+                  <span className="block text-xs font-semibold text-slate-900">
+                    {method.label}
+                  </span>
+                  <span className="text-[11px] text-slate-500">{method.description}</span>
+                  {'logos' in method && method.logos && (
+                    <span className="flex flex-wrap gap-2">
+                      {method.logos.map((logo) => (
+                        <span
+                          key={logo.src}
+                          className="flex items-center rounded-md border border-slate-200 bg-white px-1.5 py-1"
+                        >
+                          <Image src={logo.src} alt={logo.alt} width={44} height={26} />
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                </span>
+              </label>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-slate-900">Povzetek košarice</h2>
             <button
@@ -408,45 +465,40 @@ export default function OrderPageClient() {
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  {orderResponse ? (
-                    <span className="text-sm font-semibold text-slate-700">
-                      Količina: {item.quantity}
-                    </span>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setQuantity(item.sku, item.quantity - 1)}
-                        className="h-8 w-8 rounded-full border border-slate-200 text-sm font-semibold text-slate-600"
-                      >
-                        −
-                      </button>
-                      <input
-                        type="number"
-                        min={1}
-                        value={item.quantity}
-                        onChange={(event) => {
-                          const next = Number.parseInt(event.target.value, 10);
-                          setQuantity(item.sku, Number.isNaN(next) ? item.quantity : next);
-                        }}
-                        className="w-16 rounded-lg border border-slate-200 px-2 py-1 text-center text-sm font-semibold text-slate-700"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setQuantity(item.sku, item.quantity + 1)}
-                        className="h-8 w-8 rounded-full border border-slate-200 text-sm font-semibold text-slate-600"
-                      >
-                        +
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeItem(item.sku)}
-                        className="text-xs font-semibold text-slate-400 hover:text-slate-600"
-                      >
-                        Odstrani
-                      </button>
-                    </>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(item.sku, item.quantity - 1)}
+                    className="h-8 w-8 rounded-full border border-slate-200 text-sm font-semibold text-slate-600"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="number"
+                    min={1}
+                    value={item.quantity}
+                    onChange={(event) => {
+                      const next = Number.parseInt(event.target.value, 10);
+                      setQuantity(item.sku, Number.isNaN(next) ? item.quantity : next);
+                    }}
+                    className="w-16 rounded-lg border border-slate-200 px-2 py-1 text-center text-sm font-semibold text-slate-700"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(item.sku, item.quantity + 1)}
+                    className="h-8 w-8 rounded-full border border-slate-200 text-sm font-semibold text-slate-600"
+                  >
+                    +
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeItem(item.sku)}
+                    className="text-xs font-semibold text-slate-400 hover:text-slate-600"
+                  >
+                    Odstrani
+                  </button>
+                  <span className="text-sm font-semibold text-slate-900">
+                    {formatter.format((item.price ?? 0) * item.quantity)}
+                  </span>
                 </div>
               </div>
             ))}

@@ -3,6 +3,7 @@ import './globals.css';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import CartDrawer from '@/components/cart/CartDrawer';
+import { getCatalogSearchItems } from '@/lib/catalog';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://atehna.si'),
@@ -27,10 +28,11 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const searchItems = getCatalogSearchItems();
   return (
     <html lang="sl">
       <body className="min-h-screen bg-slate-50 text-slate-900">
-        <SiteHeader />
+        <SiteHeader searchItems={searchItems} />
         <main className="min-h-[70vh]">{children}</main>
         <CartDrawer />
         <SiteFooter />

@@ -383,6 +383,78 @@ export default function OrderPageClient() {
 
       <div className="space-y-6 lg:sticky lg:top-24">
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-slate-900">Način plačila</h2>
+          <p className="mt-2 text-sm text-slate-600">Izberite način plačila za to naročilo.</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {[
+              {
+                id: 'predracun',
+                label: 'Po predračunu',
+                description: 'Plačilo v spletni banki ali na banki/pošti.'
+              },
+              {
+                id: 'povzetje',
+                label: 'Po povzetju',
+                description: 'Plačilo z gotovino ob prevzemu pošiljke.'
+              },
+              {
+                id: 'kartica',
+                label: 'Plačilna kartica',
+                description: 'Podprte kartice Visa in MasterCard.',
+                logos: [
+                  { src: '/images/payments/visa.svg', alt: 'Visa' },
+                  { src: '/images/payments/mastercard.svg', alt: 'Mastercard' }
+                ]
+              },
+              {
+                id: 'paypal',
+                label: 'PayPal',
+                description: 'Hiter spletni način plačila.',
+                logos: [{ src: '/images/payments/paypal.svg', alt: 'PayPal' }]
+              }
+            ].map((method) => (
+              <label
+                key={method.id}
+                className={`flex cursor-pointer items-start gap-2 rounded-xl border px-3 py-2 text-xs transition ${
+                  formData.paymentMethod === method.label
+                    ? 'border-brand-400 bg-brand-50 text-slate-900'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-brand-200'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value={method.label}
+                  checked={formData.paymentMethod === method.label}
+                  onChange={(event) =>
+                    setFormData((prev) => ({ ...prev, paymentMethod: event.target.value }))
+                  }
+                  className="mt-0.5 h-3 w-3 text-brand-600"
+                />
+                <span className="flex flex-1 flex-col gap-1">
+                  <span className="block text-xs font-semibold text-slate-900">
+                    {method.label}
+                  </span>
+                  <span className="text-[11px] text-slate-500">{method.description}</span>
+                  {'logos' in method && method.logos && (
+                    <span className="flex flex-wrap gap-2">
+                      {method.logos.map((logo) => (
+                        <span
+                          key={logo.src}
+                          className="flex items-center rounded-md border border-slate-200 bg-white px-1.5 py-1"
+                        >
+                          <Image src={logo.src} alt={logo.alt} width={44} height={26} />
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                </span>
+              </label>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-slate-900">Povzetek košarice</h2>
             <button

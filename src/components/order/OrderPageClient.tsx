@@ -1,47 +1,26 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
+import { PDFDownloadLink, PDFViewer, pdf } from '@react-pdf/renderer';
 import { useCartStore } from '@/lib/cart/store';
-
-type BuyerType = 'individual' | 'company' | 'school';
-
-type OrderFormData = {
-  buyerType: BuyerType;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  street: string;
-  postalCode: string;
-  city: string;
-  notes: string;
-  companyName: string;
-  taxIdOrVatId: string;
-  institutionName: string;
-};
-
-type OrderResponse = {
-  orderId: string;
-  orderNumber: string;
-  buyerType: BuyerType;
-  status: string;
-  documentUrl: string;
-};
+import { COMPANY_INFO } from '@/lib/constants';
+import OrderPdf, { OrderFormData } from '@/components/order/OrderPdf';
 
 const initialForm: OrderFormData = {
-  buyerType: 'individual',
   firstName: '',
   lastName: '',
-  email: '',
-  phone: '',
-  street: '',
+  address: '',
   postalCode: '',
   city: '',
-  notes: '',
+  companyInvoice: false,
   companyName: '',
-  taxIdOrVatId: '',
-  institutionName: ''
+  companyTaxId: '',
+  email: '',
+  phone: '',
+  notes: '',
+  paymentMethod: ''
 };
 
 export default function OrderPageClient() {
@@ -50,21 +29,17 @@ export default function OrderPageClient() {
   const removeItem = useCartStore((state) => state.removeItem);
   const clearCart = useCartStore((state) => state.clearCart);
   const [formData, setFormData] = useState<OrderFormData>(initialForm);
-  const [orderResponse, setOrderResponse] = useState<OrderResponse | null>(null);
-  const [submittedItems, setSubmittedItems] = useState(items);
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
+  const createdAt = useMemo(() => new Date().toLocaleDateString('sl-SI'), []);
   const formatter = useMemo(
     () => new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }),
     []
   );
-  const summaryItems = orderResponse ? submittedItems : items;
   const subtotal = useMemo(
-    () => summaryItems.reduce((sum, item) => sum + (item.price ?? 0) * item.quantity, 0),
-    [summaryItems]
+    () => items.reduce((sum, item) => sum + (item.price ?? 0) * item.quantity, 0),
+    [items]
   );
   const vatRate = 0.22;
   const vatAmount = subtotal * vatRate;
@@ -74,97 +49,43 @@ export default function OrderPageClient() {
     formData.firstName.trim() &&
     formData.lastName.trim() &&
     formData.email.trim() &&
-    formData.street.trim() &&
+    formData.address.trim() &&
     formData.postalCode.trim() &&
     formData.city.trim();
 
-  const companyRequired = formData.buyerType === 'company' ? formData.companyName.trim() : true;
-  const institutionRequired =
-    formData.buyerType === 'school' ? formData.institutionName.trim() : true;
-  const hasPrices = items.every((item) => typeof item.price === 'number');
+  const canPreview = items.length > 0 && Boolean(requiredFieldsFilled);
 
-  const canSubmit =
-    items.length > 0 &&
-    hasPrices &&
-    Boolean(requiredFieldsFilled && companyRequired && institutionRequired);
-
-  const handleSubmit = async () => {
-    if (!canSubmit || isSubmitting) return;
-    setError(null);
-    setIsSubmitting(true);
-
-    try {
-      if (!hasPrices) {
-        setError('V košarici manjkajo cene.');
-        return;
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
       }
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          buyerType: formData.buyerType,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          street: formData.street,
-          postalCode: formData.postalCode,
-          city: formData.city,
-          notes: formData.notes,
-          companyName: formData.companyName,
-          taxIdOrVatId: formData.taxIdOrVatId,
-          institutionName: formData.institutionName,
-          items: items.map((item) => ({
-            sku: item.sku,
-            name: item.name,
-            quantity: item.quantity,
-            unitPrice: item.price ?? 0
-          }))
-        })
-      });
+    };
+  }, [previewUrl]);
 
-      if (!response.ok) {
-        const payload = await response.json();
-        setError(payload.error ?? 'Naročila ni bilo mogoče oddati.');
-        return;
-      }
-
-      const payload = (await response.json()) as OrderResponse;
-      setSubmittedItems(items);
-      setOrderResponse(payload);
-      clearCart();
-    } catch (err) {
-      setError('Naročila ni bilo mogoče oddati.');
-    } finally {
-      setIsSubmitting(false);
+  const handlePreview = async () => {
+    if (!canPreview) return;
+    const document = <OrderPdf formData={formData} items={items} createdAt={createdAt} />;
+    const blob = await pdf(document).toBlob();
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
     }
+    setPreviewUrl(URL.createObjectURL(blob));
+    setShowPreview(true);
   };
 
-  const handleUploadPurchaseOrder = async (file: File) => {
-    if (!orderResponse) return;
-    setUploadError(null);
-    setUploading(true);
-    const form = new FormData();
-    form.append('file', file);
-
-    try {
-      const response = await fetch(`/api/orders/${orderResponse.orderId}/purchase-order`, {
-        method: 'POST',
-        body: form
-      });
-      if (!response.ok) {
-        const payload = await response.json();
-        setUploadError(payload.error ?? 'Nalaganje ni uspelo.');
-        return;
-      }
-    } catch (err) {
-      setUploadError('Nalaganje ni uspelo.');
-    } finally {
-      setUploading(false);
+  const mailtoLink = useMemo(() => {
+    if (!requiredFieldsFilled) {
+      return `mailto:${COMPANY_INFO.orderEmail}`;
     }
-  };
+    const subject = `Naročilo – ${formData.firstName} ${formData.lastName}`;
+    const body = `Pozdravljeni,\n\npošiljamo naročilo v priponki (PDF).\n\nLep pozdrav,\n${formData.firstName} ${formData.lastName}`;
+    return `mailto:${COMPANY_INFO.orderEmail}?subject=${encodeURIComponent(
+      subject
+    )}&body=${encodeURIComponent(body)}`;
+  }, [formData, requiredFieldsFilled]);
 
-  if (items.length === 0 && !orderResponse) {
+  if (items.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
         <p className="text-lg font-semibold text-slate-900">Košarica je prazna</p>
@@ -182,31 +103,11 @@ export default function OrderPageClient() {
   }
 
   return (
-    <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr_0.8fr]">
+    <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">
       <div className="space-y-8">
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-slate-900">Podatki o naročilu</h2>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <div className="md:col-span-2">
-              <label className="text-sm font-medium text-slate-700" htmlFor="buyerType">
-                Tip kupca <span className="text-brand-600">*</span>
-              </label>
-              <select
-                id="buyerType"
-                value={formData.buyerType}
-                onChange={(event) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    buyerType: event.target.value as BuyerType
-                  }))
-                }
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              >
-                <option value="individual">Posameznik</option>
-                <option value="company">Podjetje</option>
-                <option value="school">Šola</option>
-              </select>
-            </div>
             <div>
               <label className="text-sm font-medium text-slate-700" htmlFor="firstName">
                 Ime <span className="text-brand-600">*</span>
@@ -264,9 +165,9 @@ export default function OrderPageClient() {
               </label>
               <input
                 id="address"
-                value={formData.street}
+                value={formData.address}
                 onChange={(event) =>
-                  setFormData((prev) => ({ ...prev, street: event.target.value }))
+                  setFormData((prev) => ({ ...prev, address: event.target.value }))
                 }
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
@@ -295,11 +196,30 @@ export default function OrderPageClient() {
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
             </div>
-            {formData.buyerType === 'company' && (
+            <div className="md:col-span-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={formData.companyInvoice}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setFormData((prev) => ({
+                      ...prev,
+                      companyInvoice: checked,
+                      companyName: checked ? prev.companyName : '',
+                      companyTaxId: checked ? prev.companyTaxId : ''
+                    }));
+                  }}
+                  className="h-4 w-4 rounded border-slate-300 text-brand-600"
+                />
+                Račun za podjetje
+              </label>
+            </div>
+            {formData.companyInvoice && (
               <>
                 <div>
                   <label className="text-sm font-medium text-slate-700" htmlFor="companyName">
-                    Naziv podjetja <span className="text-brand-600">*</span>
+                    Naziv podjetja
                   </label>
                   <input
                     id="companyName"
@@ -311,34 +231,19 @@ export default function OrderPageClient() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-slate-700" htmlFor="taxIdOrVatId">
+                  <label className="text-sm font-medium text-slate-700" htmlFor="companyTaxId">
                     DDV / davčna številka
                   </label>
                   <input
-                    id="taxIdOrVatId"
-                    value={formData.taxIdOrVatId}
+                    id="companyTaxId"
+                    value={formData.companyTaxId}
                     onChange={(event) =>
-                      setFormData((prev) => ({ ...prev, taxIdOrVatId: event.target.value }))
+                      setFormData((prev) => ({ ...prev, companyTaxId: event.target.value }))
                     }
                     className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                   />
                 </div>
               </>
-            )}
-            {formData.buyerType === 'school' && (
-              <div className="md:col-span-2">
-                <label className="text-sm font-medium text-slate-700" htmlFor="institutionName">
-                  Naziv ustanove <span className="text-brand-600">*</span>
-                </label>
-                <input
-                  id="institutionName"
-                  value={formData.institutionName}
-                  onChange={(event) =>
-                    setFormData((prev) => ({ ...prev, institutionName: event.target.value }))
-                  }
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                />
-              </div>
             )}
             <div className="md:col-span-2">
               <label className="text-sm font-medium text-slate-700" htmlFor="notes">
@@ -354,34 +259,7 @@ export default function OrderPageClient() {
             </div>
           </div>
         </section>
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-slate-900">Plačilo</h2>
-          <p className="mt-2 text-sm text-slate-600">Plačilo: po predračunu.</p>
-        </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!canSubmit || isSubmitting}
-            className={`w-full rounded-full px-4 py-3 text-sm font-semibold shadow-sm transition ${
-              canSubmit && !isSubmitting
-                ? 'bg-brand-600 text-white hover:bg-brand-700'
-                : 'cursor-not-allowed bg-slate-200 text-slate-400'
-            }`}
-          >
-            Oddaj naročilo
-          </button>
-          {error && <p className="mt-3 text-sm text-rose-600">{error}</p>}
-          {!canSubmit && (
-            <p className="mt-3 text-xs text-slate-500">
-              Izpolnite obvezna polja in dodajte vsaj en izdelek.
-            </p>
-          )}
-        </section>
-      </div>
-
-      <div className="space-y-6 lg:sticky lg:top-24">
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-slate-900">Način plačila</h2>
           <p className="mt-2 text-sm text-slate-600">Izberite način plačila za to naročilo.</p>
@@ -460,14 +338,13 @@ export default function OrderPageClient() {
             <button
               type="button"
               onClick={clearCart}
-              disabled={Boolean(orderResponse)}
               className="text-xs font-semibold text-slate-400 hover:text-slate-600"
             >
               Počisti
             </button>
           </div>
           <div className="mt-4 space-y-4">
-            {summaryItems.map((item) => (
+            {items.map((item) => (
               <div
                 key={item.sku}
                 className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between"
@@ -480,45 +357,40 @@ export default function OrderPageClient() {
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  {orderResponse ? (
-                    <span className="text-sm font-semibold text-slate-700">
-                      Količina: {item.quantity}
-                    </span>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setQuantity(item.sku, item.quantity - 1)}
-                        className="h-8 w-8 rounded-full border border-slate-200 text-sm font-semibold text-slate-600"
-                      >
-                        −
-                      </button>
-                      <input
-                        type="number"
-                        min={1}
-                        value={item.quantity}
-                        onChange={(event) => {
-                          const next = Number.parseInt(event.target.value, 10);
-                          setQuantity(item.sku, Number.isNaN(next) ? item.quantity : next);
-                        }}
-                        className="w-16 rounded-lg border border-slate-200 px-2 py-1 text-center text-sm font-semibold text-slate-700"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setQuantity(item.sku, item.quantity + 1)}
-                        className="h-8 w-8 rounded-full border border-slate-200 text-sm font-semibold text-slate-600"
-                      >
-                        +
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeItem(item.sku)}
-                        className="text-xs font-semibold text-slate-400 hover:text-slate-600"
-                      >
-                        Odstrani
-                      </button>
-                    </>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(item.sku, item.quantity - 1)}
+                    className="h-8 w-8 rounded-full border border-slate-200 text-sm font-semibold text-slate-600"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="number"
+                    min={1}
+                    value={item.quantity}
+                    onChange={(event) => {
+                      const next = Number.parseInt(event.target.value, 10);
+                      setQuantity(item.sku, Number.isNaN(next) ? item.quantity : next);
+                    }}
+                    className="w-16 rounded-lg border border-slate-200 px-2 py-1 text-center text-sm font-semibold text-slate-700"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(item.sku, item.quantity + 1)}
+                    className="h-8 w-8 rounded-full border border-slate-200 text-sm font-semibold text-slate-600"
+                  >
+                    +
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeItem(item.sku)}
+                    className="text-xs font-semibold text-slate-400 hover:text-slate-600"
+                  >
+                    Odstrani
+                  </button>
+                  <span className="text-sm font-semibold text-slate-900">
+                    {formatter.format((item.price ?? 0) * item.quantity)}
+                  </span>
                 </div>
               </div>
             ))}
@@ -541,48 +413,80 @@ export default function OrderPageClient() {
       </div>
 
       <div className="space-y-6">
-        {orderResponse ? (
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-slate-900">Dokument</h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Št. naročila: <span className="font-semibold text-slate-900">{orderResponse.orderNumber}</span>
-            </p>
-            <div className="mt-4 h-[360px] overflow-hidden rounded-xl border border-slate-200">
-              <iframe title="PDF" src={orderResponse.documentUrl} className="h-full w-full" />
-            </div>
-            <a
-              href={orderResponse.documentUrl}
-              className="mt-3 inline-flex text-sm font-semibold text-brand-600 hover:text-brand-700"
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-slate-900">Naročilnica (PDF)</h2>
+          <p className="mt-2 text-sm text-slate-600">
+            Generirajte PDF, ki ga lahko natisnete ali pošljete po e-pošti.
+          </p>
+          <div className="mt-4 flex flex-col gap-3">
+            <button
+              type="button"
+              disabled={!canPreview}
+              onClick={handlePreview}
+              className={`rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition ${
+                canPreview
+                  ? 'bg-brand-600 text-white hover:bg-brand-700'
+                  : 'cursor-not-allowed bg-slate-200 text-slate-400'
+              }`}
             >
-              Prenesi PDF →
+              Predogled PDF
+            </button>
+            <PDFDownloadLink
+              document={<OrderPdf formData={formData} items={items} createdAt={createdAt} />}
+              fileName="Narocilo.pdf"
+              className={`rounded-full px-4 py-2 text-center text-sm font-semibold shadow-sm transition ${
+                canPreview
+                  ? 'border border-slate-200 text-slate-700 hover:border-brand-200 hover:text-brand-600'
+                  : 'pointer-events-none border border-slate-200 text-slate-300'
+              }`}
+            >
+              Prenesi PDF
+            </PDFDownloadLink>
+            <a
+              href={mailtoLink}
+              className={`rounded-full px-4 py-2 text-center text-sm font-semibold shadow-sm transition ${
+                canPreview
+                  ? 'border border-slate-200 text-slate-700 hover:border-brand-200 hover:text-brand-600'
+                  : 'pointer-events-none border border-slate-200 text-slate-300'
+              }`}
+            >
+              Odpri osnutek emaila
             </a>
-
-            {orderResponse.buyerType === 'school' && (
-              <div className="mt-6 rounded-xl border border-dashed border-slate-200 p-4">
-                <p className="text-sm font-semibold text-slate-900">Naloži naročilnico</p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Dovoljene datoteke: PDF, JPG (do 3 MB).
-                </p>
-                <input
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) handleUploadPurchaseOrder(file);
-                  }}
-                  className="mt-3 text-sm"
-                />
-                {uploading && <p className="mt-2 text-xs text-slate-500">Nalaganje ...</p>}
-                {uploadError && <p className="mt-2 text-xs text-rose-600">{uploadError}</p>}
-              </div>
-            )}
-          </section>
-        ) : (
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">
-            <h2 className="text-xl font-semibold text-slate-900">Dokument</h2>
-            <p className="mt-2">
-              PDF bo na voljo po oddaji naročila.
+          </div>
+          {!canPreview && (
+            <p className="mt-3 text-xs text-slate-500">
+              Za predogled izpolnite obvezna polja in dodajte vsaj en izdelek.
             </p>
+          )}
+        </section>
+
+        {showPreview && canPreview && (
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-semibold text-slate-900">Predogled PDF</p>
+              <button
+                type="button"
+                onClick={() => setShowPreview(false)}
+                className="text-xs font-semibold text-slate-400 hover:text-slate-600"
+              >
+                Skrij predogled
+              </button>
+            </div>
+            <div className="h-[480px] overflow-hidden rounded-xl border border-slate-200">
+              <PDFViewer width="100%" height="100%">
+                <OrderPdf formData={formData} items={items} createdAt={createdAt} />
+              </PDFViewer>
+            </div>
+            {previewUrl && (
+              <a
+                href={previewUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex text-xs font-semibold text-brand-600 hover:text-brand-700"
+              >
+                Odpri PDF v novem zavihku →
+              </a>
+            )}
           </section>
         )}
       </div>

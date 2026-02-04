@@ -1,5 +1,4 @@
-import fs from 'fs';
-import path from 'path';
+import catalogData from '../../content/catalog.json';
 
 export type CatalogItem = {
   slug: string;
@@ -36,16 +35,8 @@ type CatalogData = {
   categories: CatalogCategory[];
 };
 
-const catalogPath = path.join(process.cwd(), 'content', 'catalog.json');
-let cachedCatalog: CatalogData | null = null;
-
 export function getCatalog(): CatalogData {
-  if (cachedCatalog) {
-    return cachedCatalog;
-  }
-  const raw = fs.readFileSync(catalogPath, 'utf8');
-  cachedCatalog = JSON.parse(raw) as CatalogData;
-  return cachedCatalog;
+  return catalogData as unknown as CatalogData;
 }
 
 export function getCatalogCategories(): CatalogCategory[] {
@@ -153,6 +144,7 @@ export function getCatalogSearchItems(): CatalogSearchItem[] {
       description: item.description,
       href: `/products/${category.slug}/items/${item.slug}`
     }));
+
     const subcategoryItems = category.subcategories.flatMap((subcategory) =>
       subcategory.items.map((item) => ({
         name: item.name,
@@ -160,6 +152,7 @@ export function getCatalogSearchItems(): CatalogSearchItem[] {
         href: `/products/${category.slug}/${subcategory.slug}/${item.slug}`
       }))
     );
+
     return [...directItems, ...subcategoryItems];
   });
 }

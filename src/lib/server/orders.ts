@@ -35,6 +35,7 @@ export type OrderDocumentRow = {
   type: string;
   filename: string;
   blob_url: string;
+  blob_pathname: string | null;
   created_at: string;
 };
 
@@ -75,6 +76,18 @@ export async function fetchOrderDocuments(orderId: number): Promise<OrderDocumen
   const result = await pool.query<OrderDocumentRow>(
     'SELECT * FROM order_documents WHERE order_id = $1 ORDER BY created_at DESC',
     [orderId]
+  );
+  return result.rows;
+}
+
+export async function fetchOrderDocumentsForOrders(
+  orderIds: number[]
+): Promise<OrderDocumentRow[]> {
+  if (orderIds.length === 0) return [];
+  const pool = await getPool();
+  const result = await pool.query<OrderDocumentRow>(
+    'SELECT * FROM order_documents WHERE order_id = ANY($1::bigint[]) ORDER BY created_at DESC',
+    [orderIds]
   );
   return result.rows;
 }

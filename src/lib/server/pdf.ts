@@ -1,7 +1,4 @@
-import { PDFDocument, rgb } from 'pdf-lib';
-import fontkit from '@pdf-lib/fontkit';
-import fs from 'node:fs';
-import path from 'node:path';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { COMPANY_INFO } from '@/lib/constants';
 
 export type PdfItem = {
@@ -44,23 +41,8 @@ export async function generateOrderPdf(
   const doc = await PDFDocument.create();
   const page = doc.addPage([595.28, 841.89]);
   const { width, height } = page.getSize();
-doc.registerFontkit(fontkit);
-
-const regularFontPath = path.join(
-  process.cwd(),
-  'src',
-  'assets',
-  'fonts',
-  'NotoSans-Regular.ttf'
-);
-
-const regularFontBytes = fs.readFileSync(regularFontPath);
-const font = await doc.embedFont(regularFontBytes, { subset: true });
-
-// If you want bold, also add NotoSans-Bold.ttf the same way.
-// For now: just use regular as "bold" too to keep it minimal.
-const fontBold = font;
-
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
 
   let y = height - 50;
   const left = 50;

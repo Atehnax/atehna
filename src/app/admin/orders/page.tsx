@@ -1,8 +1,6 @@
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 import Link from 'next/link';
-import { fetchOrders } from '@/lib/server/orders';
+import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
+import { fetchOrderDocumentsForOrders, fetchOrders } from '@/lib/server/orders';
 
 export const metadata = {
   title: 'Administracija naročil'
@@ -10,6 +8,15 @@ export const metadata = {
 
 export default async function AdminOrdersPage() {
   const orders = await fetchOrders();
+  const orderIds = orders.map((order) => order.id);
+  const documents = await fetchOrderDocumentsForOrders(orderIds);
+  const documentsByOrder = new Map<number, typeof documents>();
+
+  documents.forEach((doc) => {
+    const list = documentsByOrder.get(doc.order_id) ?? [];
+    list.push(doc);
+    documentsByOrder.set(doc.order_id, list);
+  });
 
   return (
     <div className="container-base py-12">
@@ -31,13 +38,14 @@ export default async function AdminOrdersPage() {
               <th className="px-4 py-3">Tip</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Datum</th>
+              <th className="px-4 py-3">PDFs</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody>
             {orders.length === 0 ? (
               <tr>
-                <td className="px-4 py-6 text-center text-slate-500" colSpan={6}>
+                <td className="px-4 py-6 text-center text-slate-500" colSpan={7}>
                   Ni evidentiranih naročil.
                 </td>
               </tr>
@@ -54,6 +62,12 @@ export default async function AdminOrdersPage() {
                   <td className="px-4 py-4 text-slate-600">{order.status}</td>
                   <td className="px-4 py-4 text-slate-600">
                     {new Date(order.created_at).toLocaleDateString('sl-SI')}
+                  </td>
+                  <td className="px-4 py-4">
+                    <AdminOrdersPdfCell
+                      orderId={order.id}
+                      documents={documentsByOrder.get(order.id) ?? []}
+                    />
                   </td>
                   <td className="px-4 py-4 text-right">
                     <Link

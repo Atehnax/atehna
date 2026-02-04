@@ -130,9 +130,9 @@ export async function POST(request: Request) {
         ]);
       }
 
-      const documentType = customerType === 'school' ? 'offer' : 'predracun';
+      const documentType = customerType === 'school' ? 'order_summary' : 'predracun';
       const pdfBuffer = await generateOrderPdf(
-        documentType === 'offer' ? 'Ponudba' : 'Predračun',
+        documentType === 'order_summary' ? 'Ponudba' : 'Predračun',
         {
           orderNumber: order.order_number,
           customerType,
@@ -156,8 +156,8 @@ export async function POST(request: Request) {
       const blob = await uploadBlob(blobPath, pdfBuffer, 'application/pdf');
 
       await client.query(
-        'INSERT INTO order_documents (order_id, type, filename, blob_url) VALUES ($1, $2, $3, $4)',
-        [order.id, documentType, fileName, blob.url]
+        'INSERT INTO order_documents (order_id, type, filename, blob_url, blob_pathname) VALUES ($1, $2, $3, $4, $5)',
+        [order.id, documentType, fileName, blob.url, blob.pathname]
       );
 
       await client.query('COMMIT');

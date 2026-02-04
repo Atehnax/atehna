@@ -2,22 +2,13 @@
 
 import { useState } from 'react';
 
-type DocumentItem = {
-  id?: number;
-  type: string;
-  filename: string;
-  blob_url: string;
-};
-
 type Props = {
   orderId: number;
   status: string;
-  documents: DocumentItem[];
 };
 
-export default function AdminOrderActions({ orderId, status, documents }: Props) {
+export default function AdminOrderActions({ orderId, status }: Props) {
   const [currentStatus, setCurrentStatus] = useState(status);
-  const [docList, setDocList] = useState(documents);
   const [message, setMessage] = useState<string | null>(null);
   const [isWorking, setIsWorking] = useState(false);
 
@@ -37,28 +28,6 @@ export default function AdminOrderActions({ orderId, status, documents }: Props)
       setMessage('Status je posodobljen.');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Napaka pri posodobitvi statusa.');
-    } finally {
-      setIsWorking(false);
-    }
-  };
-
-  const generateDocument = async (type: 'dobavnica' | 'invoice') => {
-    setIsWorking(true);
-    setMessage(null);
-    try {
-      const response = await fetch(`/api/admin/orders/${orderId}/generate-${type}`, {
-        method: 'POST'
-      });
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || 'Generiranje ni uspelo.');
-      }
-      const payload = (await response.json()) as { url: string };
-      const filename = `${type}-${new Date().toISOString()}.pdf`;
-      setDocList((prev) => [{ type, filename, blob_url: payload.url }, ...prev]);
-      setMessage('Dokument je ustvarjen.');
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Napaka pri generiranju dokumenta.');
     } finally {
       setIsWorking(false);
     }
@@ -90,51 +59,7 @@ export default function AdminOrderActions({ orderId, status, documents }: Props)
           </div>
         </div>
 
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-slate-700">Dokumenti</p>
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => generateDocument('dobavnica')}
-              disabled={isWorking}
-              className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-200 hover:text-brand-600 disabled:cursor-not-allowed disabled:text-slate-300"
-            >
-              Generiraj dobavnico
-            </button>
-            <button
-              type="button"
-              onClick={() => generateDocument('invoice')}
-              disabled={isWorking}
-              className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-200 hover:text-brand-600 disabled:cursor-not-allowed disabled:text-slate-300"
-            >
-              Generiraj račun
-            </button>
-          </div>
-          {message && <p className="text-sm text-slate-600">{message}</p>}
-        </div>
-
-        <div>
-          <p className="text-sm font-medium text-slate-700">Shranjeni dokumenti</p>
-          <ul className="mt-2 space-y-2 text-sm text-slate-600">
-            {docList.length === 0 ? (
-              <li>Ni shranjenih dokumentov.</li>
-            ) : (
-              docList.map((doc, index) => (
-                <li key={`${doc.type}-${index}`}>
-                  <a
-                    href={doc.blob_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="font-semibold text-brand-600 hover:text-brand-700"
-                  >
-                    {doc.type.toUpperCase()}
-                  </a>{' '}
-                  <span className="text-xs text-slate-400">({doc.filename})</span>
-                </li>
-              ))
-            )}
-          </ul>
-        </div>
+        {message && <p className="text-sm text-slate-600">{message}</p>}
       </div>
     </div>
   );

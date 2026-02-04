@@ -1,9 +1,7 @@
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import AdminOrderActions from '@/components/admin/AdminOrderActions';
+import AdminOrderPdfManager from '@/components/admin/AdminOrderPdfManager';
 import {
   fetchOrderAttachments,
   fetchOrderById,
@@ -99,28 +97,7 @@ export default async function AdminOrderDetailPage({
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900">Dokumenti</h2>
-            <ul className="mt-4 space-y-2 text-sm text-slate-600">
-              {documents.length === 0 ? (
-                <li>Ni shranjenih dokumentov.</li>
-              ) : (
-                documents.map((doc) => (
-                  <li key={doc.id}>
-                    <a
-                      href={doc.blob_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-semibold text-brand-600 hover:text-brand-700"
-                    >
-                      {doc.type.toUpperCase()}
-                    </a>{' '}
-                    <span className="text-xs text-slate-400">({doc.filename})</span>
-                  </li>
-                ))
-              )}
-            </ul>
-          </section>
+          <AdminOrderPdfManager orderId={orderId} documents={documents} />
 
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-900">Priponke</h2>
@@ -146,7 +123,7 @@ export default async function AdminOrderDetailPage({
           </section>
         </div>
 
-        <AdminOrderActions orderId={orderId} status={order.status} documents={documents} />
+        <AdminOrderActions orderId={orderId} status={order.status} />
       </div>
     </div>
   );

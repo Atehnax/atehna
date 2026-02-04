@@ -1,13 +1,19 @@
-import type { Pool } from 'pg';
+import 'server-only';
 
-let pool: Pool | null = null;
+import type { Pool as PgPool } from 'pg';
 
-export async function getPool(): Promise<Pool> {
+let pool: PgPool | null = null;
+
+export async function getPool(): Promise<PgPool> {
   if (pool) return pool;
-  if (!process.env.DATABASE_URL) {
+
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
     throw new Error('DATABASE_URL is not set');
   }
+
   const { Pool } = await import('pg');
-  pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  pool = new Pool({ connectionString });
+
   return pool;
 }

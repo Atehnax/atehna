@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS order_documents (
   type TEXT NOT NULL,
   filename TEXT NOT NULL,
   blob_url TEXT NOT NULL,
+  blob_pathname TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

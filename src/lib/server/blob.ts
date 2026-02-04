@@ -1,3 +1,6 @@
+import 'server-only';
+import { put } from '@vercel/blob';
+
 export type UploadResult = {
   url: string;
   pathname: string;
@@ -12,17 +15,13 @@ export async function uploadBlob(
     throw new Error('BLOB_READ_WRITE_TOKEN is not set');
   }
 
-const { put } = await import('@vercel/blob');
+  const payload = Buffer.isBuffer(data) ? data : Buffer.from(data);
 
-const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
-const copy = new Uint8Array(bytes);
-const body = new Blob([copy.buffer], { type: contentType });
-
-const blob = await put(pathname, body, {
-  access: 'public',
-  contentType,
-  token: process.env.BLOB_READ_WRITE_TOKEN
-});
+  const blob = await put(pathname, payload, {
+    access: 'public',
+    contentType,
+    token: process.env.BLOB_READ_WRITE_TOKEN
+  });
 
   return { url: blob.url, pathname: blob.pathname };
 }

@@ -35,6 +35,7 @@ export type OrderDocumentRow = {
   type: string;
   filename: string;
   blob_url: string;
+  blob_pathname: string | null;
   created_at: string;
 };
 
@@ -49,41 +50,50 @@ export type OrderAttachmentRow = {
 
 export async function fetchOrders(): Promise<OrderRow[]> {
   const pool = await getPool();
-  const result = await pool.query<OrderRow>(
-    'SELECT * FROM orders ORDER BY created_at DESC'
-  );
-  return result.rows;
+  const result = await pool.query('SELECT * FROM orders ORDER BY created_at DESC');
+  return result.rows as OrderRow[];
 }
 
 export async function fetchOrderById(orderId: number): Promise<OrderRow | null> {
   const pool = await getPool();
-  const result = await pool.query<OrderRow>('SELECT * FROM orders WHERE id = $1', [orderId]);
-  return result.rows[0] ?? null;
+  const result = await pool.query('SELECT * FROM orders WHERE id = $1', [orderId]);
+  return (result.rows[0] as OrderRow) ?? null;
 }
 
 export async function fetchOrderItems(orderId: number): Promise<OrderItemRow[]> {
   const pool = await getPool();
-  const result = await pool.query<OrderItemRow>(
-    'SELECT * FROM order_items WHERE order_id = $1 ORDER BY id',
-    [orderId]
-  );
-  return result.rows;
+  const result = await pool.query('SELECT * FROM order_items WHERE order_id = $1 ORDER BY id', [
+    orderId
+  ]);
+  return result.rows as OrderItemRow[];
 }
 
 export async function fetchOrderDocuments(orderId: number): Promise<OrderDocumentRow[]> {
   const pool = await getPool();
-  const result = await pool.query<OrderDocumentRow>(
+  const result = await pool.query(
     'SELECT * FROM order_documents WHERE order_id = $1 ORDER BY created_at DESC',
     [orderId]
   );
-  return result.rows;
+  return result.rows as OrderDocumentRow[];
+}
+
+export async function fetchOrderDocumentsForOrders(
+  orderIds: number[]
+): Promise<OrderDocumentRow[]> {
+  if (orderIds.length === 0) return [];
+  const pool = await getPool();
+  const result = await pool.query(
+    'SELECT * FROM order_documents WHERE order_id = ANY($1::bigint[]) ORDER BY created_at DESC',
+    [orderIds]
+  );
+  return result.rows as OrderDocumentRow[];
 }
 
 export async function fetchOrderAttachments(orderId: number): Promise<OrderAttachmentRow[]> {
   const pool = await getPool();
-  const result = await pool.query<OrderAttachmentRow>(
+  const result = await pool.query(
     'SELECT * FROM order_attachments WHERE order_id = $1 ORDER BY created_at DESC',
     [orderId]
   );
-  return result.rows;
+  return result.rows as OrderAttachmentRow[];
 }

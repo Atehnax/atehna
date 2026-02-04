@@ -46,16 +46,21 @@ export async function POST(
       itemsResult.rows
     );
 
-    const fileName = `${order.order_number}-dobavnica.pdf`;
+    const fileName = `${order.order_number}-dobavnica-${Date.now()}.pdf`;
     const blobPath = `orders/${order.order_number}/${fileName}`;
     const blob = await uploadBlob(blobPath, pdfBuffer, 'application/pdf');
 
-    await pool.query(
-      'INSERT INTO order_documents (order_id, type, filename, blob_url) VALUES ($1, $2, $3, $4)',
-      [orderId, 'dobavnica', fileName, blob.url]
+    const insertResult = await pool.query(
+      'INSERT INTO order_documents (order_id, type, filename, blob_url, blob_pathname) VALUES ($1, $2, $3, $4, $5) RETURNING created_at',
+      [orderId, 'dobavnica', fileName, blob.url, blob.pathname]
     );
 
-    return NextResponse.json({ url: blob.url });
+    return NextResponse.json({
+      url: blob.url,
+      filename: fileName,
+      createdAt: insertResult.rows[0].created_at,
+      type: 'dobavnica'
+    });
   } catch (error) {
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Napaka na strežniku.' },

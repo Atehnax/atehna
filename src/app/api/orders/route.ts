@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/server/db';
 import { uploadBlob } from '@/lib/server/blob';
@@ -5,9 +7,18 @@ import { generateOrderPdf } from '@/lib/server/pdf';
 
 const TAX_RATE = 0.22;
 
+type OrderItemInput = {
+  sku?: unknown;
+  name?: unknown;
+  unit?: unknown;
+  quantity?: unknown;
+  unitPrice?: unknown;
+};
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+
     const {
       customerType,
       organizationName,
@@ -17,7 +28,7 @@ export async function POST(request: Request) {
       phone,
       reference,
       notes,
-      items
+      items,
     } = body ?? {};
 
     if (!customerType || !contactName || !email) {
@@ -34,22 +45,31 @@ export async function POST(request: Request) {
       );
     }
 
-    const normalizedItems = items.map((item: any) => ({
-      sku: String(item.sku ?? ''),
-      name: String(item.name ?? ''),
-      unit: item.unit ? String(item.unit) : null,
-      quantity: Number(item.quantity ?? 0),
-      unitPrice: item.unitPrice ? Number(item.unitPrice) : null
+    const normalizedItems = (items as OrderItemInput[]).map((item) => ({
+      sku: String(item?.sku ?? ''),
+      name: String(item?.name ?? ''),
+      unit: item?.unit ? String(item.unit) : null,
+      quantity: Number(item?.quantity ?? 0),
+      unitPrice: item?.unitPrice !== undefined && item?.unitPrice !== null
+        ? Number(item.unitPrice)
+        : null,
     }));
 
-    if (normalizedItems.some((item: any) => !item.sku || !item.name || item.quantity <= 0)) {
-      return NextResponse.json({ message: 'Podatki o izdelkih niso veljavni.' }, { status: 400 });
+    const hasInvalidItems = normalizedItems.some(
+      (item) => !item.sku || !item.name || item.quantity <= 0
+    );
+
+    if (hasInvalidItems) {
+      return NextResponse.json(
+        { message: 'Podatki o izdelkih niso veljavni.' },
+        { status: 400 }
+      );
     }
 
-    const subtotal = normalizedItems.reduce(
-      (sum: number, item: any) => sum + (item.unitPrice ?? 0) * item.quantity,
-      0
-    );
+    const subtotal = normalizedItems.reduce((sum, item) => {
+      return sum + (item.unitPrice ?? 0) * item.quantity;
+    }, 0);
+
     const tax = subtotal > 0 ? subtotal * TAX_RATE : 0;
     const total = subtotal + tax;
 
@@ -93,7 +113,7 @@ export async function POST(request: Request) {
           $10,
           $11
         FROM next_id
-        RETURNING id, order_number, created_at
+        RETURNING id, order_number, created_at;
       `;
 
       const orderResult = await client.query(insertOrderQuery, [
@@ -107,18 +127,28 @@ export async function POST(request: Request) {
         notes || null,
         subtotal,
         tax,
-        total
+        total,
       ]);
 
       const order = orderResult.rows[0];
 
       const itemInsertQuery = `
-        INSERT INTO order_items (order_id, sku, name, unit, quantity, unit_price, total_price)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        INSERT INTO order_items (
+          order_id,
+          sku,
+          name,
+          unit,
+          quantity,
+          unit_price,
+          total_price
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7);
       `;
 
       for (const item of normalizedItems) {
-        const totalPrice = item.unitPrice ? item.unitPrice * item.quantity : null;
+        const totalPrice =
+          item.unitPrice !== null ? item.unitPrice * item.quantity : null;
+
         await client.query(itemInsertQuery, [
           order.id,
           item.sku,
@@ -126,13 +156,15 @@ export async function POST(request: Request) {
           item.unit,
           item.quantity,
           item.unitPrice,
-          totalPrice
+          totalPrice,
         ]);
       }
 
-      const documentType = customerType === 'school' ? 'offer' : 'predracun';
+      const documentType =
+        customerType === 'school' ? 'order_summary' : 'predracun';
+
       const pdfBuffer = await generateOrderPdf(
-        documentType === 'offer' ? 'Ponudba' : 'Predračun',
+        documentType === 'order_summary' ? 'Ponudba' : 'Predračun',
         {
           orderNumber: order.order_number,
           customerType,
@@ -146,18 +178,28 @@ export async function POST(request: Request) {
           createdAt: new Date(order.created_at),
           subtotal,
           tax,
-          total
+          total,
         },
         normalizedItems
       );
 
       const fileName = `${order.order_number}-${documentType}.pdf`;
       const blobPath = `orders/${order.order_number}/${fileName}`;
+
       const blob = await uploadBlob(blobPath, pdfBuffer, 'application/pdf');
 
       await client.query(
-        'INSERT INTO order_documents (order_id, type, filename, blob_url) VALUES ($1, $2, $3, $4)',
-        [order.id, documentType, fileName, blob.url]
+        `
+          INSERT INTO order_documents (
+            order_id,
+            type,
+            filename,
+            blob_url,
+            blob_pathname
+          )
+          VALUES ($1, $2, $3, $4, $5);
+        `,
+        [order.id, documentType, fileName, blob.url, blob.pathname]
       );
 
       await client.query('COMMIT');
@@ -166,15 +208,21 @@ export async function POST(request: Request) {
         orderId: order.id,
         orderNumber: order.order_number,
         documentUrl: blob.url,
-        documentType
+        documentType,
       });
     } catch (error) {
+      console.error('api/orders transactional error:', error);
+      if (error instanceof Error) console.error(error.stack);
+
       await client.query('ROLLBACK');
       throw error;
     } finally {
       client.release();
     }
   } catch (error) {
+    console.error('api/orders error:', error);
+    if (error instanceof Error) console.error(error.stack);
+
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Napaka na strežniku.' },
       { status: 500 }

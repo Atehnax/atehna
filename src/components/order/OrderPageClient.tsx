@@ -1,26 +1,46 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import Image from 'next/image';
+import { useMemo, useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import { PDFDownloadLink, PDFViewer, pdf } from '@react-pdf/renderer';
 import { useCartStore } from '@/lib/cart/store';
-import { COMPANY_INFO } from '@/lib/constants';
-import OrderPdf, { OrderFormData } from '@/components/order/OrderPdf';
+
+const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
+
+const customerTypeOptions = [
+  { value: 'individual', label: 'Fizična oseba' },
+  { value: 'company', label: 'Podjetje' },
+  { value: 'school', label: 'Šola / javni zavod' }
+] as const;
+
+type CustomerType = (typeof customerTypeOptions)[number]['value'];
+
+type OrderFormData = {
+  customerType: CustomerType;
+  organizationName: string;
+  deliveryAddress: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  reference: string;
+  notes: string;
+};
+
+type OrderResponse = {
+  orderId: number;
+  orderNumber: string;
+  documentUrl: string;
+  documentType: string;
+};
 
 const initialForm: OrderFormData = {
-  firstName: '',
-  lastName: '',
-  address: '',
-  postalCode: '',
-  city: '',
-  companyInvoice: false,
-  companyName: '',
-  companyTaxId: '',
+  customerType: 'school',
+  organizationName: '',
+  deliveryAddress: '',
+  contactName: '',
   email: '',
   phone: '',
-  notes: '',
-  paymentMethod: ''
+  reference: '',
+  notes: ''
 };
 
 export default function OrderPageClient() {
@@ -29,63 +49,106 @@ export default function OrderPageClient() {
   const removeItem = useCartStore((state) => state.removeItem);
   const clearCart = useCartStore((state) => state.clearCart);
   const [formData, setFormData] = useState<OrderFormData>(initialForm);
-  const [showPreview, setShowPreview] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [orderResponse, setOrderResponse] = useState<OrderResponse | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [uploadState, setUploadState] = useState<
+    | { status: 'idle' | 'uploading' | 'success'; message?: string; url?: string }
+    | null
+  >(null);
 
-  const createdAt = useMemo(() => new Date().toLocaleDateString('sl-SI'), []);
-  const formatter = useMemo(
-    () => new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }),
-    []
-  );
-  const subtotal = useMemo(
-    () => items.reduce((sum, item) => sum + (item.price ?? 0) * item.quantity, 0),
-    [items]
-  );
-  const vatRate = 0.22;
-  const vatAmount = subtotal * vatRate;
-  const totalAmount = subtotal + vatAmount;
+  const requiredFieldsFilled = useMemo(() => {
+    const hasContact = formData.contactName.trim() && formData.email.trim();
+    const hasOrg =
+      formData.customerType === 'individual' || formData.organizationName.trim();
+    return Boolean(hasContact && hasOrg && items.length > 0);
+  }, [formData, items.length]);
 
-  const requiredFieldsFilled =
-    formData.firstName.trim() &&
-    formData.lastName.trim() &&
-    formData.email.trim() &&
-    formData.address.trim() &&
-    formData.postalCode.trim() &&
-    formData.city.trim();
-
-  const canPreview = items.length > 0 && Boolean(requiredFieldsFilled);
-
-  useEffect(() => {
-    return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-    };
-  }, [previewUrl]);
-
-  const handlePreview = async () => {
-    if (!canPreview) return;
-    const document = <OrderPdf formData={formData} items={items} createdAt={createdAt} />;
-    const blob = await pdf(document).toBlob();
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
+  const handleSubmit = async () => {
+    setErrorMessage(null);
+    if (!requiredFieldsFilled) {
+      setErrorMessage('Izpolnite obvezna polja in dodajte vsaj en izdelek.');
+      return;
     }
-    setPreviewUrl(URL.createObjectURL(blob));
-    setShowPreview(true);
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerType: formData.customerType,
+          organizationName: formData.organizationName,
+          deliveryAddress: formData.deliveryAddress,
+          contactName: formData.contactName,
+          email: formData.email,
+          phone: formData.phone,
+          reference: formData.reference,
+          notes: formData.notes,
+          items
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || 'Oddaja naročila ni uspela.');
+      }
+
+      const payload = (await response.json()) as OrderResponse;
+      setOrderResponse(payload);
+      setUploadState(null);
+      clearCart();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Napaka pri oddaji naročila.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const mailtoLink = useMemo(() => {
-    if (!requiredFieldsFilled) {
-      return `mailto:${COMPANY_INFO.orderEmail}`;
+  const handleUploadPurchaseOrder = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!orderResponse) return;
+    const form = event.currentTarget;
+    const input = form.elements.namedItem('purchaseOrder') as HTMLInputElement | null;
+    const file = input?.files?.[0];
+    if (!file) {
+      setUploadState({ status: 'idle', message: 'Izberite datoteko za nalaganje.' });
+      return;
     }
-    const subject = `Naročilo – ${formData.firstName} ${formData.lastName}`;
-    const body = `Pozdravljeni,\n\npošiljamo naročilo v priponki (PDF).\n\nLep pozdrav,\n${formData.firstName} ${formData.lastName}`;
-    return `mailto:${COMPANY_INFO.orderEmail}?subject=${encodeURIComponent(
-      subject
-    )}&body=${encodeURIComponent(body)}`;
-  }, [formData, requiredFieldsFilled]);
+    if (file.size > MAX_UPLOAD_SIZE) {
+      setUploadState({ status: 'idle', message: 'Datoteka je prevelika (največ 10 MB).' });
+      return;
+    }
 
-  if (items.length === 0) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setUploadState({ status: 'uploading', message: 'Nalaganje poteka...' });
+
+    try {
+      const response = await fetch(`/api/orders/${orderResponse.orderId}/purchase-order`, {
+        method: 'POST',
+        body: formData
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || 'Nalaganje ni uspelo.');
+      }
+      const payload = (await response.json()) as { url: string };
+      setUploadState({
+        status: 'success',
+        message: 'Naročilnica je uspešno shranjena.',
+        url: payload.url
+      });
+      form.reset();
+    } catch (error) {
+      setUploadState({
+        status: 'idle',
+        message: error instanceof Error ? error.message : 'Napaka pri nalaganju datoteke.'
+      });
+    }
+  };
+
+  if (items.length === 0 && !orderResponse) {
     return (
       <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
         <p className="text-lg font-semibold text-slate-900">Košarica je prazna</p>
@@ -108,28 +171,65 @@ export default function OrderPageClient() {
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-slate-900">Podatki o naročilu</h2>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="text-sm font-medium text-slate-700" htmlFor="firstName">
-                Ime <span className="text-brand-600">*</span>
+            <div className="md:col-span-2">
+              <label className="text-sm font-medium text-slate-700" htmlFor="customerType">
+                Tip naročnika
+              </label>
+              <select
+                id="customerType"
+                value={formData.customerType}
+                onChange={(event) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    customerType: event.target.value as CustomerType
+                  }))
+                }
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              >
+                {customerTypeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {formData.customerType !== 'individual' && (
+              <div className="md:col-span-2">
+                <label className="text-sm font-medium text-slate-700" htmlFor="organizationName">
+                  Naziv organizacije <span className="text-brand-600">*</span>
+                </label>
+                <input
+                  id="organizationName"
+                  value={formData.organizationName}
+                  onChange={(event) =>
+                    setFormData((prev) => ({ ...prev, organizationName: event.target.value }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+              </div>
+            )}
+            <div className="md:col-span-2">
+              <label className="text-sm font-medium text-slate-700" htmlFor="deliveryAddress">
+                Naslov dostave
               </label>
               <input
-                id="firstName"
-                value={formData.firstName}
+                id="deliveryAddress"
+                value={formData.deliveryAddress}
                 onChange={(event) =>
-                  setFormData((prev) => ({ ...prev, firstName: event.target.value }))
+                  setFormData((prev) => ({ ...prev, deliveryAddress: event.target.value }))
                 }
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700" htmlFor="lastName">
-                Priimek <span className="text-brand-600">*</span>
+              <label className="text-sm font-medium text-slate-700" htmlFor="contactName">
+                Kontaktna oseba <span className="text-brand-600">*</span>
               </label>
               <input
-                id="lastName"
-                value={formData.lastName}
+                id="contactName"
+                value={formData.contactName}
                 onChange={(event) =>
-                  setFormData((prev) => ({ ...prev, lastName: event.target.value }))
+                  setFormData((prev) => ({ ...prev, contactName: event.target.value }))
                 }
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
@@ -159,92 +259,19 @@ export default function OrderPageClient() {
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
             </div>
-            <div className="md:col-span-2">
-              <label className="text-sm font-medium text-slate-700" htmlFor="address">
-                Naslov <span className="text-brand-600">*</span>
+            <div>
+              <label className="text-sm font-medium text-slate-700" htmlFor="reference">
+                Sklic / št. naročila
               </label>
               <input
-                id="address"
-                value={formData.address}
+                id="reference"
+                value={formData.reference}
                 onChange={(event) =>
-                  setFormData((prev) => ({ ...prev, address: event.target.value }))
+                  setFormData((prev) => ({ ...prev, reference: event.target.value }))
                 }
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
             </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700" htmlFor="postalCode">
-                Poštna številka <span className="text-brand-600">*</span>
-              </label>
-              <input
-                id="postalCode"
-                value={formData.postalCode}
-                onChange={(event) =>
-                  setFormData((prev) => ({ ...prev, postalCode: event.target.value }))
-                }
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700" htmlFor="city">
-                Kraj <span className="text-brand-600">*</span>
-              </label>
-              <input
-                id="city"
-                value={formData.city}
-                onChange={(event) => setFormData((prev) => ({ ...prev, city: event.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={formData.companyInvoice}
-                  onChange={(event) => {
-                    const checked = event.target.checked;
-                    setFormData((prev) => ({
-                      ...prev,
-                      companyInvoice: checked,
-                      companyName: checked ? prev.companyName : '',
-                      companyTaxId: checked ? prev.companyTaxId : ''
-                    }));
-                  }}
-                  className="h-4 w-4 rounded border-slate-300 text-brand-600"
-                />
-                Račun za podjetje
-              </label>
-            </div>
-            {formData.companyInvoice && (
-              <>
-                <div>
-                  <label className="text-sm font-medium text-slate-700" htmlFor="companyName">
-                    Naziv podjetja
-                  </label>
-                  <input
-                    id="companyName"
-                    value={formData.companyName}
-                    onChange={(event) =>
-                      setFormData((prev) => ({ ...prev, companyName: event.target.value }))
-                    }
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-slate-700" htmlFor="companyTaxId">
-                    DDV / davčna številka
-                  </label>
-                  <input
-                    id="companyTaxId"
-                    value={formData.companyTaxId}
-                    onChange={(event) =>
-                      setFormData((prev) => ({ ...prev, companyTaxId: event.target.value }))
-                    }
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                  />
-                </div>
-              </>
-            )}
             <div className="md:col-span-2">
               <label className="text-sm font-medium text-slate-700" htmlFor="notes">
                 Opombe
@@ -257,78 +284,6 @@ export default function OrderPageClient() {
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
             </div>
-          </div>
-        </section>
-
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-slate-900">Način plačila</h2>
-          <p className="mt-2 text-sm text-slate-600">Izberite način plačila za to naročilo.</p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            {[
-              {
-                id: 'predracun',
-                label: 'Po predračunu',
-                description: 'Plačilo v spletni banki ali na banki/pošti.'
-              },
-              {
-                id: 'povzetje',
-                label: 'Po povzetju',
-                description: 'Plačilo z gotovino ob prevzemu pošiljke.'
-              },
-              {
-                id: 'kartica',
-                label: 'Plačilna kartica',
-                description: 'Podprte kartice Visa in MasterCard.',
-                logos: [
-                  { src: '/images/payments/visa.svg', alt: 'Visa' },
-                  { src: '/images/payments/mastercard.svg', alt: 'Mastercard' }
-                ]
-              },
-              {
-                id: 'paypal',
-                label: 'PayPal',
-                description: 'Hiter spletni način plačila.',
-                logos: [{ src: '/images/payments/paypal.svg', alt: 'PayPal' }]
-              }
-            ].map((method) => (
-              <label
-                key={method.id}
-                className={`flex cursor-pointer items-start gap-2 rounded-xl border px-3 py-2 text-xs transition ${
-                  formData.paymentMethod === method.label
-                    ? 'border-brand-400 bg-brand-50 text-slate-900'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-brand-200'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value={method.label}
-                  checked={formData.paymentMethod === method.label}
-                  onChange={(event) =>
-                    setFormData((prev) => ({ ...prev, paymentMethod: event.target.value }))
-                  }
-                  className="mt-0.5 h-3 w-3 text-brand-600"
-                />
-                <span className="flex flex-1 flex-col gap-1">
-                  <span className="block text-xs font-semibold text-slate-900">
-                    {method.label}
-                  </span>
-                  <span className="text-[11px] text-slate-500">{method.description}</span>
-                  {'logos' in method && method.logos && (
-                    <span className="flex flex-wrap gap-2">
-                      {method.logos.map((logo) => (
-                        <span
-                          key={logo.src}
-                          className="flex items-center rounded-md border border-slate-200 bg-white px-1.5 py-1"
-                        >
-                          <Image src={logo.src} alt={logo.alt} width={44} height={26} />
-                        </span>
-                      ))}
-                    </span>
-                  )}
-                </span>
-              </label>
-            ))}
           </div>
         </section>
 
@@ -352,9 +307,6 @@ export default function OrderPageClient() {
                 <div>
                   <p className="text-sm font-semibold text-slate-900">{item.name}</p>
                   <p className="text-xs text-slate-500">SKU: {item.sku}</p>
-                  <p className="text-xs text-slate-500">
-                    Cena: {item.price ? formatter.format(item.price) : '—'}
-                  </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <button
@@ -364,16 +316,9 @@ export default function OrderPageClient() {
                   >
                     −
                   </button>
-                  <input
-                    type="number"
-                    min={1}
-                    value={item.quantity}
-                    onChange={(event) => {
-                      const next = Number.parseInt(event.target.value, 10);
-                      setQuantity(item.sku, Number.isNaN(next) ? item.quantity : next);
-                    }}
-                    className="w-16 rounded-lg border border-slate-200 px-2 py-1 text-center text-sm font-semibold text-slate-700"
-                  />
+                  <span className="min-w-[2rem] text-center text-sm font-semibold text-slate-700">
+                    {item.quantity}
+                  </span>
                   <button
                     type="button"
                     onClick={() => setQuantity(item.sku, item.quantity + 1)}
@@ -388,105 +333,105 @@ export default function OrderPageClient() {
                   >
                     Odstrani
                   </button>
-                  <span className="text-sm font-semibold text-slate-900">
-                    {formatter.format((item.price ?? 0) * item.quantity)}
-                  </span>
                 </div>
               </div>
             ))}
-          </div>
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
-            <div className="flex items-center justify-between">
-              <span>Vmesna vsota</span>
-              <span className="font-semibold text-slate-900">{formatter.format(subtotal)}</span>
-            </div>
-            <div className="mt-2 flex items-center justify-between">
-              <span>DDV ({Math.round(vatRate * 100)}%)</span>
-              <span className="font-semibold text-slate-900">{formatter.format(vatAmount)}</span>
-            </div>
-            <div className="mt-3 flex items-center justify-between text-base font-semibold text-slate-900">
-              <span>Skupaj</span>
-              <span>{formatter.format(totalAmount)}</span>
-            </div>
           </div>
         </section>
       </div>
 
       <div className="space-y-6">
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-slate-900">Naročilnica (PDF)</h2>
+          <h2 className="text-xl font-semibold text-slate-900">Oddaja naročila</h2>
           <p className="mt-2 text-sm text-slate-600">
-            Generirajte PDF, ki ga lahko natisnete ali pošljete po e-pošti.
+            Po oddaji naročila pripravimo PDF predračuna (za podjetja in fizične osebe) oziroma
+            ponudbe (za šole).
           </p>
           <div className="mt-4 flex flex-col gap-3">
             <button
               type="button"
-              disabled={!canPreview}
-              onClick={handlePreview}
+              disabled={isSubmitting}
+              onClick={handleSubmit}
               className={`rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition ${
-                canPreview
-                  ? 'bg-brand-600 text-white hover:bg-brand-700'
-                  : 'cursor-not-allowed bg-slate-200 text-slate-400'
+                isSubmitting
+                  ? 'cursor-wait bg-slate-200 text-slate-400'
+                  : 'bg-brand-600 text-white hover:bg-brand-700'
               }`}
             >
-              Predogled PDF
+              {isSubmitting ? 'Oddajanje...' : 'Oddaj naročilo'}
             </button>
-            <PDFDownloadLink
-              document={<OrderPdf formData={formData} items={items} createdAt={createdAt} />}
-              fileName="Narocilo.pdf"
-              className={`rounded-full px-4 py-2 text-center text-sm font-semibold shadow-sm transition ${
-                canPreview
-                  ? 'border border-slate-200 text-slate-700 hover:border-brand-200 hover:text-brand-600'
-                  : 'pointer-events-none border border-slate-200 text-slate-300'
-              }`}
-            >
-              Prenesi PDF
-            </PDFDownloadLink>
-            <a
-              href={mailtoLink}
-              className={`rounded-full px-4 py-2 text-center text-sm font-semibold shadow-sm transition ${
-                canPreview
-                  ? 'border border-slate-200 text-slate-700 hover:border-brand-200 hover:text-brand-600'
-                  : 'pointer-events-none border border-slate-200 text-slate-300'
-              }`}
-            >
-              Odpri osnutek emaila
-            </a>
+            {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
+            {!requiredFieldsFilled && !errorMessage && (
+              <p className="text-xs text-slate-500">
+                Za oddajo izpolnite obvezna polja in dodajte vsaj en izdelek.
+              </p>
+            )}
           </div>
-          {!canPreview && (
-            <p className="mt-3 text-xs text-slate-500">
-              Za predogled izpolnite obvezna polja in dodajte vsaj en izdelek.
-            </p>
-          )}
         </section>
 
-        {showPreview && canPreview && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-semibold text-slate-900">Predogled PDF</p>
+        {orderResponse && (
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-semibold text-slate-900">PDF dokument</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Št. naročila: <span className="font-semibold">{orderResponse.orderNumber}</span>
+            </p>
+            <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
+              <iframe
+                title="Predogled PDF"
+                src={orderResponse.documentUrl}
+                className="h-[420px] w-full"
+              />
+            </div>
+            <a
+              href={orderResponse.documentUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-flex text-sm font-semibold text-brand-600 hover:text-brand-700"
+            >
+              Odpri PDF v novem zavihku →
+            </a>
+          </section>
+        )}
+
+        {orderResponse && formData.customerType === 'school' && (
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-semibold text-slate-900">Naloži naročilnico</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Po oddaji ponudbe dodajte skenirano naročilnico (PDF ali JPG, do 10 MB).
+            </p>
+            <form className="mt-4 space-y-3" onSubmit={handleUploadPurchaseOrder}>
+              <input
+                name="purchaseOrder"
+                type="file"
+                accept="application/pdf,image/jpeg"
+                className="block w-full text-sm text-slate-600"
+              />
               <button
-                type="button"
-                onClick={() => setShowPreview(false)}
-                className="text-xs font-semibold text-slate-400 hover:text-slate-600"
+                type="submit"
+                className="rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
               >
-                Skrij predogled
+                Naloži naročilnico
               </button>
-            </div>
-            <div className="h-[480px] overflow-hidden rounded-xl border border-slate-200">
-              <PDFViewer width="100%" height="100%">
-                <OrderPdf formData={formData} items={items} createdAt={createdAt} />
-              </PDFViewer>
-            </div>
-            {previewUrl && (
-              <a
-                href={previewUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 inline-flex text-xs font-semibold text-brand-600 hover:text-brand-700"
-              >
-                Odpri PDF v novem zavihku →
-              </a>
-            )}
+              {uploadState?.message && (
+                <p
+                  className={`text-sm ${
+                    uploadState.status === 'success' ? 'text-emerald-600' : 'text-slate-600'
+                  }`}
+                >
+                  {uploadState.message}
+                </p>
+              )}
+              {uploadState?.url && (
+                <a
+                  href={uploadState.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex text-sm font-semibold text-brand-600 hover:text-brand-700"
+                >
+                  Odpri naloženo naročilnico →
+                </a>
+              )}
+            </form>
           </section>
         )}
       </div>

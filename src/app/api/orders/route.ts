@@ -6,6 +6,7 @@ import { uploadBlob } from '@/lib/server/blob';
 import { generateOrderPdf } from '@/lib/server/pdf';
 
 const TAX_RATE = 0.22;
+const DEBUG_RESPONSE = process.env.VERCEL_ENV !== 'production';
 
 type NormalizedItem = {
   sku: string;
@@ -21,18 +22,18 @@ function normalizeItems(itemsInput: unknown): { items: NormalizedItem[]; error?:
   }
 
   const normalizedItems = itemsInput.map((item) => {
-    const record = (item ?? {}) as Record<string, unknown>;
-    const parsedQuantity = Number(record.quantity ?? 0);
-    const parsedUnitPriceRaw = record.unitPrice;
+    const itemRecord = (item ?? {}) as Record<string, unknown>;
+    const parsedQuantity = Number(itemRecord.quantity ?? 0);
+    const parsedUnitPriceRaw = itemRecord.unitPrice;
     const parsedUnitPrice =
       parsedUnitPriceRaw === null || parsedUnitPriceRaw === undefined || parsedUnitPriceRaw === ''
         ? null
         : Number(parsedUnitPriceRaw);
 
     return {
-      sku: String(record.sku ?? '').trim(),
-      name: String(record.name ?? '').trim(),
-      unit: record.unit ? String(record.unit).trim() : null,
+      sku: String(itemRecord.sku ?? '').trim(),
+      name: String(itemRecord.name ?? '').trim(),
+      unit: itemRecord.unit ? String(itemRecord.unit).trim() : null,
       quantity: Number.isFinite(parsedQuantity) ? parsedQuantity : 0,
       unitPrice:
         parsedUnitPrice === null
@@ -43,7 +44,7 @@ function normalizeItems(itemsInput: unknown): { items: NormalizedItem[]; error?:
     } satisfies NormalizedItem;
   });
 
-  const invalidItem = normalizedItems.find(
+  const hasInvalidItem = normalizedItems.some(
     (item) =>
       !item.sku ||
       !item.name ||
@@ -52,17 +53,27 @@ function normalizeItems(itemsInput: unknown): { items: NormalizedItem[]; error?:
       (item.unitPrice !== null && (!Number.isFinite(item.unitPrice) || item.unitPrice < 0))
   );
 
-  if (invalidItem) {
+  if (hasInvalidItem) {
     return { items: [], error: 'Podatki o izdelkih niso veljavni.' };
   }
 
   return { items: normalizedItems };
 }
 
+function ensureFunction(value: unknown, name: string) {
+  if (typeof value !== 'function') {
+    throw new Error(`${name} is not a function`);
+  }
+}
+
 export async function POST(request: Request) {
+  let debugStep = 'start';
+
   try {
+    debugStep = 'parse:json';
     const body = (await request.json()) as Record<string, unknown>;
 
+    debugStep = 'parse:fields';
     const customerType = String(body.customerType ?? '').trim();
     const organizationName = body.organizationName ? String(body.organizationName).trim() : null;
     const deliveryAddress = body.deliveryAddress ? String(body.deliveryAddress).trim() : null;
@@ -76,37 +87,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Manjkajo obvezni podatki.' }, { status: 400 });
     }
 
+    debugStep = 'validate:items';
     const normalizedItemsResult = normalizeItems(body.items);
     if (normalizedItemsResult.error) {
       return NextResponse.json({ message: normalizedItemsResult.error }, { status: 400 });
     }
     const normalizedItems = normalizedItemsResult.items;
 
-    const subtotal = normalizedItems.reduce((sum, item) => {
-      const lineUnitPrice = item.unitPrice ?? 0;
-      return sum + lineUnitPrice * item.quantity;
-    }, 0);
-
+    debugStep = 'compute:totals';
+    const subtotal = normalizedItems.reduce((sum, item) => sum + (item.unitPrice ?? 0) * item.quantity, 0);
     const tax = subtotal > 0 ? subtotal * TAX_RATE : 0;
     const total = subtotal + tax;
 
-    if (typeof generateOrderPdf !== 'function') {
-      throw new Error('PDF generator is misconfigured.');
-    }
-    if (typeof uploadBlob !== 'function') {
-      throw new Error('Blob uploader is misconfigured.');
-    }
+    debugStep = 'check:imports';
+    ensureFunction(getPool, 'getPool');
+    ensureFunction(generateOrderPdf, 'generateOrderPdf');
+    ensureFunction(uploadBlob, 'uploadBlob');
 
+    debugStep = 'db:getPool';
     const pool = await getPool();
     if (!pool || typeof pool.connect !== 'function') {
       throw new Error('Database pool is not available.');
     }
 
+    debugStep = 'db:connect';
     const client = await pool.connect();
 
     try {
+      debugStep = 'tx:begin';
       await client.query('begin');
 
+      debugStep = 'db:insert_order';
       const insertOrderQuery = `
         with next_id as (
           select nextval('orders_id_seq') as id
@@ -166,14 +177,15 @@ export async function POST(request: Request) {
         throw new Error('Naročilo ni bilo ustvarjeno.');
       }
 
-      const itemInsertQuery = `
+      debugStep = 'db:insert_items';
+      const insertItemQuery = `
         insert into order_items (order_id, sku, name, unit, quantity, unit_price, total_price)
         values ($1, $2, $3, $4, $5, $6, $7)
       `;
 
       for (const item of normalizedItems) {
         const totalPrice = item.unitPrice === null ? null : item.unitPrice * item.quantity;
-        await client.query(itemInsertQuery, [
+        await client.query(insertItemQuery, [
           order.id,
           item.sku,
           item.name,
@@ -186,6 +198,7 @@ export async function POST(request: Request) {
 
       const documentType = customerType === 'school' ? 'order_summary' : 'predracun';
 
+      debugStep = 'pdf:generate';
       const pdfBuffer = await generateOrderPdf(
         documentType === 'order_summary' ? 'Ponudba' : 'Predračun',
         {
@@ -210,6 +223,7 @@ export async function POST(request: Request) {
         throw new Error('PDF generation failed.');
       }
 
+      debugStep = 'blob:upload';
       const fileName = `${order.order_number}-${documentType}.pdf`;
       const blobPath = `orders/${order.order_number}/${fileName}`;
       const blob = await uploadBlob(blobPath, pdfBuffer, 'application/pdf');
@@ -218,6 +232,7 @@ export async function POST(request: Request) {
         throw new Error('Blob upload failed.');
       }
 
+      debugStep = 'db:insert_document';
       try {
         await client.query(
           `
@@ -226,9 +241,9 @@ export async function POST(request: Request) {
           `,
           [order.id, documentType, fileName, blob.url, blob.pathname]
         );
-      } catch (documentInsertError) {
-        const typedError = documentInsertError as { code?: string };
-        if (typedError.code === '42703') {
+      } catch (insertDocumentError) {
+        const postgresError = insertDocumentError as { code?: string };
+        if (postgresError.code === '42703') {
           await client.query(
             `
             insert into order_documents (order_id, type, filename, blob_url)
@@ -237,10 +252,11 @@ export async function POST(request: Request) {
             [order.id, documentType, fileName, blob.url]
           );
         } else {
-          throw documentInsertError;
+          throw insertDocumentError;
         }
       }
 
+      debugStep = 'tx:commit';
       await client.query('commit');
 
       return NextResponse.json({
@@ -250,29 +266,34 @@ export async function POST(request: Request) {
         documentType
       });
     } catch (transactionError) {
-      await client.query('rollback');
+      try {
+        await client.query('rollback');
+      } catch {
+        // ignore rollback failure, preserve original error
+      }
       throw transactionError;
     } finally {
       client.release();
     }
   } catch (error) {
-    const typedError = error as {
-      name?: string;
-      message?: string;
-      stack?: string;
-      cause?: unknown;
-    };
+    const typedError = error as { message?: string; stack?: string; name?: string };
 
-    console.error('[api/orders][POST] failed', {
-      name: typedError?.name,
-      message: typedError?.message,
-      stack: typedError?.stack,
-      cause: typedError?.cause
-    });
+    if (DEBUG_RESPONSE) {
+      return NextResponse.json(
+        {
+          message: typedError?.message ?? 'Napaka na strežniku.',
+          debugStep,
+          importTypes: {
+            getPool: typeof getPool,
+            generateOrderPdf: typeof generateOrderPdf,
+            uploadBlob: typeof uploadBlob
+          },
+          stack: typedError?.stack ?? null
+        },
+        { status: 500 }
+      );
+    }
 
-    return NextResponse.json(
-      { message: typedError?.message ?? 'Napaka na strežniku.' },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: 'Napaka na strežniku.' }, { status: 500 });
   }
 }

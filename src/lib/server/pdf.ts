@@ -1,3 +1,4 @@
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { COMPANY_INFO } from '@/lib/constants';
 
 export type PdfItem = {
@@ -32,18 +33,11 @@ const formatCurrency = (value: number) =>
 const formatDate = (date: Date) =>
   new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(date);
 
-async function getPdfLib() {
-  const { createRequire } = await import('module');
-  const require = createRequire(import.meta.url);
-  return require('pdf-lib') as typeof import('pdf-lib');
-}
-
 export async function generateOrderPdf(
   title: string,
   order: PdfOrder,
   items: PdfItem[]
 ): Promise<Uint8Array> {
-  const { PDFDocument, StandardFonts, rgb } = await getPdfLib();
   const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
@@ -117,9 +111,9 @@ export async function generateOrderPdf(
   ];
 
   let x = left;
-  columns.forEach((col) => {
-    page.drawText(col.title, { x, y, size: 9, font: fontBold });
-    x += col.width;
+  columns.forEach((column) => {
+    page.drawText(column.title, { x, y, size: 9, font: fontBold });
+    x += column.width;
   });
 
   y -= 12;
@@ -134,7 +128,9 @@ export async function generateOrderPdf(
     x += columns[2].width;
     page.drawText(item.unit ?? '-', { x, y, size: 9, font });
     x += columns[3].width;
-    const priceLabel = item.unitPrice ? formatCurrency(item.unitPrice) : 'Po dogovoru';
+    const priceLabel = item.unitPrice !== null && item.unitPrice !== undefined
+      ? formatCurrency(item.unitPrice)
+      : 'Po dogovoru';
     page.drawText(priceLabel, { x, y, size: 9, font });
     y -= lineHeight;
   });

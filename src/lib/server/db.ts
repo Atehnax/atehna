@@ -1,17 +1,15 @@
-let pool: any = null;
+import { Pool } from 'pg';
 
-async function getPgModule() {
-  const { createRequire } = await import('module');
-  const require = createRequire(import.meta.url);
-  return require('pg') as typeof import('pg');
-}
+let pool: Pool | null = null;
 
-export async function getPool() {
+export async function getPool(): Promise<Pool> {
   if (pool) return pool;
-  if (!process.env.DATABASE_URL) {
+
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
     throw new Error('DATABASE_URL is not set');
   }
-  const { Pool } = await getPgModule();
-  pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+  pool = new Pool({ connectionString });
   return pool;
 }

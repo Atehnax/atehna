@@ -6,84 +6,123 @@ import { uploadBlob } from '@/lib/server/blob';
 import { generateOrderPdf } from '@/lib/server/pdf';
 
 const TAX_RATE = 0.22;
+const DEBUG_RESPONSE = process.env.VERCEL_ENV !== 'production';
 
-type OrderItemInput = {
-  sku?: unknown;
-  name?: unknown;
-  unit?: unknown;
-  quantity?: unknown;
-  unitPrice?: unknown;
+type NormalizedItem = {
+  sku: string;
+  name: string;
+  unit: string | null;
+  quantity: number;
+  unitPrice: number | null;
 };
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
+function normalizeItems(itemsInput: unknown): { items: NormalizedItem[]; error?: string } {
+  if (!Array.isArray(itemsInput) || itemsInput.length === 0) {
+    return { items: [], error: 'Naročilo mora vsebovati vsaj en izdelek.' };
+  }
 
-    const {
-      customerType,
-      organizationName,
-      deliveryAddress,
-      contactName,
-      email,
-      phone,
-      reference,
-      notes,
-      items,
-    } = body ?? {};
+  const normalizedItems = itemsInput.map((item) => {
+    const itemRecord = (item ?? {}) as Record<string, unknown>;
+    const parsedQuantity = Number(itemRecord.quantity ?? 0);
+    const parsedUnitPriceRaw = itemRecord.unitPrice;
+    const parsedUnitPrice =
+      parsedUnitPriceRaw === null || parsedUnitPriceRaw === undefined || parsedUnitPriceRaw === ''
+        ? null
+        : Number(parsedUnitPriceRaw);
+
+    return {
+      sku: String(itemRecord.sku ?? '').trim(),
+      name: String(itemRecord.name ?? '').trim(),
+      unit: itemRecord.unit ? String(itemRecord.unit).trim() : null,
+      quantity: Number.isFinite(parsedQuantity) ? parsedQuantity : 0,
+      unitPrice:
+        parsedUnitPrice === null
+          ? null
+          : Number.isFinite(parsedUnitPrice)
+            ? parsedUnitPrice
+            : null
+    } satisfies NormalizedItem;
+  });
+
+  const hasInvalidItem = normalizedItems.some(
+    (item) =>
+      !item.sku ||
+      !item.name ||
+      !Number.isFinite(item.quantity) ||
+      item.quantity <= 0 ||
+      (item.unitPrice !== null && (!Number.isFinite(item.unitPrice) || item.unitPrice < 0))
+  );
+
+  if (hasInvalidItem) {
+    return { items: [], error: 'Podatki o izdelkih niso veljavni.' };
+  }
+
+  return { items: normalizedItems };
+}
+
+function ensureFunction(value: unknown, name: string) {
+  if (typeof value !== 'function') {
+    throw new Error(`${name} is not a function`);
+  }
+}
+
+export async function POST(request: Request) {
+  let debugStep = 'start';
+
+  try {
+    debugStep = 'parse:json';
+    const body = (await request.json()) as Record<string, unknown>;
+
+    debugStep = 'parse:fields';
+    const customerType = String(body.customerType ?? '').trim();
+    const organizationName = body.organizationName ? String(body.organizationName).trim() : null;
+    const deliveryAddress = body.deliveryAddress ? String(body.deliveryAddress).trim() : null;
+    const contactName = String(body.contactName ?? '').trim();
+    const email = String(body.email ?? '').trim();
+    const phone = body.phone ? String(body.phone).trim() : null;
+    const reference = body.reference ? String(body.reference).trim() : null;
+    const notes = body.notes ? String(body.notes).trim() : null;
 
     if (!customerType || !contactName || !email) {
-      return NextResponse.json(
-        { message: 'Manjkajo obvezni podatki.' },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: 'Manjkajo obvezni podatki.' }, { status: 400 });
     }
 
-    if (!Array.isArray(items) || items.length === 0) {
-      return NextResponse.json(
-        { message: 'Naročilo mora vsebovati vsaj en izdelek.' },
-        { status: 400 }
-      );
+    debugStep = 'validate:items';
+    const normalizedItemsResult = normalizeItems(body.items);
+    if (normalizedItemsResult.error) {
+      return NextResponse.json({ message: normalizedItemsResult.error }, { status: 400 });
     }
+    const normalizedItems = normalizedItemsResult.items;
 
-    const normalizedItems = (items as OrderItemInput[]).map((item) => ({
-      sku: String(item?.sku ?? ''),
-      name: String(item?.name ?? ''),
-      unit: item?.unit ? String(item.unit) : null,
-      quantity: Number(item?.quantity ?? 0),
-      unitPrice: item?.unitPrice !== undefined && item?.unitPrice !== null
-        ? Number(item.unitPrice)
-        : null,
-    }));
-
-    const hasInvalidItems = normalizedItems.some(
-      (item) => !item.sku || !item.name || item.quantity <= 0
-    );
-
-    if (hasInvalidItems) {
-      return NextResponse.json(
-        { message: 'Podatki o izdelkih niso veljavni.' },
-        { status: 400 }
-      );
-    }
-
-    const subtotal = normalizedItems.reduce((sum, item) => {
-      return sum + (item.unitPrice ?? 0) * item.quantity;
-    }, 0);
-
+    debugStep = 'compute:totals';
+    const subtotal = normalizedItems.reduce((sum, item) => sum + (item.unitPrice ?? 0) * item.quantity, 0);
     const tax = subtotal > 0 ? subtotal * TAX_RATE : 0;
     const total = subtotal + tax;
 
+    debugStep = 'check:imports';
+    ensureFunction(getPool, 'getPool');
+    ensureFunction(generateOrderPdf, 'generateOrderPdf');
+    ensureFunction(uploadBlob, 'uploadBlob');
+
+    debugStep = 'db:getPool';
     const pool = await getPool();
+    if (!pool || typeof pool.connect !== 'function') {
+      throw new Error('Database pool is not available.');
+    }
+
+    debugStep = 'db:connect';
     const client = await pool.connect();
 
     try {
-      await client.query('BEGIN');
+      debugStep = 'tx:begin';
+      await client.query('begin');
 
+      debugStep = 'db:insert_order';
       const insertOrderQuery = `
-        WITH next_id AS (
-          SELECT nextval('orders_id_seq') AS id
+        with next_id as (
+          select nextval('orders_id_seq') as id
         )
-        INSERT INTO orders (
+        insert into orders (
           id,
           order_number,
           customer_type,
@@ -98,7 +137,7 @@ export async function POST(request: Request) {
           tax,
           total
         )
-        SELECT
+        select
           id,
           'ORD-' || id,
           $1,
@@ -112,120 +151,149 @@ export async function POST(request: Request) {
           $9,
           $10,
           $11
-        FROM next_id
-        RETURNING id, order_number, created_at;
+        from next_id
+        returning id, order_number, created_at
       `;
 
       const orderResult = await client.query(insertOrderQuery, [
         customerType,
-        organizationName || null,
+        organizationName,
         contactName,
         email,
-        phone || null,
-        deliveryAddress || null,
-        reference || null,
-        notes || null,
+        phone,
+        deliveryAddress,
+        reference,
+        notes,
         subtotal,
         tax,
-        total,
+        total
       ]);
 
-      const order = orderResult.rows[0];
+      const order = orderResult?.rows?.[0] as
+        | { id: number; order_number: string; created_at: string | Date }
+        | undefined;
 
-      const itemInsertQuery = `
-        INSERT INTO order_items (
-          order_id,
-          sku,
-          name,
-          unit,
-          quantity,
-          unit_price,
-          total_price
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7);
+      if (!order?.id || !order?.order_number) {
+        throw new Error('Naročilo ni bilo ustvarjeno.');
+      }
+
+      debugStep = 'db:insert_items';
+      const insertItemQuery = `
+        insert into order_items (order_id, sku, name, unit, quantity, unit_price, total_price)
+        values ($1, $2, $3, $4, $5, $6, $7)
       `;
 
       for (const item of normalizedItems) {
-        const totalPrice =
-          item.unitPrice !== null ? item.unitPrice * item.quantity : null;
-
-        await client.query(itemInsertQuery, [
+        const totalPrice = item.unitPrice === null ? null : item.unitPrice * item.quantity;
+        await client.query(insertItemQuery, [
           order.id,
           item.sku,
           item.name,
           item.unit,
           item.quantity,
           item.unitPrice,
-          totalPrice,
+          totalPrice
         ]);
       }
 
-      const documentType =
-        customerType === 'school' ? 'order_summary' : 'predracun';
+      const documentType = customerType === 'school' ? 'order_summary' : 'predracun';
 
+      debugStep = 'pdf:generate';
       const pdfBuffer = await generateOrderPdf(
         documentType === 'order_summary' ? 'Ponudba' : 'Predračun',
         {
           orderNumber: order.order_number,
           customerType,
-          organizationName: organizationName || null,
+          organizationName,
           contactName,
           email,
-          phone: phone || null,
-          deliveryAddress: deliveryAddress || null,
-          reference: reference || null,
-          notes: notes || null,
+          phone,
+          deliveryAddress,
+          reference,
+          notes,
           createdAt: new Date(order.created_at),
           subtotal,
           tax,
-          total,
+          total
         },
         normalizedItems
       );
 
+      if (!pdfBuffer || pdfBuffer.length === 0) {
+        throw new Error('PDF generation failed.');
+      }
+
+      debugStep = 'blob:upload';
       const fileName = `${order.order_number}-${documentType}.pdf`;
       const blobPath = `orders/${order.order_number}/${fileName}`;
-
       const blob = await uploadBlob(blobPath, pdfBuffer, 'application/pdf');
 
-      await client.query(
-        `
-          INSERT INTO order_documents (
-            order_id,
-            type,
-            filename,
-            blob_url,
-            blob_pathname
-          )
-          VALUES ($1, $2, $3, $4, $5);
-        `,
-        [order.id, documentType, fileName, blob.url, blob.pathname]
-      );
+      if (!blob?.url) {
+        throw new Error('Blob upload failed.');
+      }
 
-      await client.query('COMMIT');
+      debugStep = 'db:insert_document';
+      try {
+        await client.query(
+          `
+          insert into order_documents (order_id, type, filename, blob_url, blob_pathname)
+          values ($1, $2, $3, $4, $5)
+          `,
+          [order.id, documentType, fileName, blob.url, blob.pathname]
+        );
+      } catch (insertDocumentError) {
+        const postgresError = insertDocumentError as { code?: string };
+        if (postgresError.code === '42703') {
+          await client.query(
+            `
+            insert into order_documents (order_id, type, filename, blob_url)
+            values ($1, $2, $3, $4)
+            `,
+            [order.id, documentType, fileName, blob.url]
+          );
+        } else {
+          throw insertDocumentError;
+        }
+      }
+
+      debugStep = 'tx:commit';
+      await client.query('commit');
 
       return NextResponse.json({
         orderId: order.id,
         orderNumber: order.order_number,
         documentUrl: blob.url,
-        documentType,
+        documentType
       });
-    } catch (error) {
-      console.error('api/orders transactional error:', error);
-      if (error instanceof Error) console.error(error.stack);
-
-      await client.query('ROLLBACK');
-      throw error;
+    } catch (transactionError) {
+      try {
+        await client.query('rollback');
+      } catch {
+        // ignore rollback failure, preserve original error
+      }
+      throw transactionError;
     } finally {
       client.release();
     }
   } catch (error) {
-    console.error('api/orders error:', error);
-    if (error instanceof Error) console.error(error.stack);
+    const typedError = error as { message?: string; stack?: string; name?: string };
 
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : 'Napaka na strežniku.' },
-      { status: 500 }
-    );
+    if (DEBUG_RESPONSE) {
+      return NextResponse.json(
+        {
+          message: typedError?.message ?? 'Napaka na strežniku.',
+          debugStep,
+          importTypes: {
+            getPool: typeof getPool,
+            generateOrderPdf: typeof generateOrderPdf,
+            uploadBlob: typeof uploadBlob
+          },
+          stack: typedError?.stack ?? null
+        },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ message: 'Napaka na strežniku.' }, { status: 500 });
   }
 }

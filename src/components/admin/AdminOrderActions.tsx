@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 
 type Props = {
   orderId: number;
@@ -42,12 +43,18 @@ export default function AdminOrderActions({ orderId, status }: Props) {
             Status naročila
           </label>
           <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <input
+            <select
               id="status"
               value={currentStatus}
               onChange={(event) => setCurrentStatus(event.target.value)}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
+            >
+              {ORDER_STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
             <button
               type="button"
               onClick={updateStatus}

@@ -97,3 +97,15 @@ export async function fetchOrderAttachments(orderId: number): Promise<OrderAttac
   );
   return result.rows as OrderAttachmentRow[];
 }
+
+export async function fetchOrderAttachmentsForOrders(
+  orderIds: number[]
+): Promise<OrderAttachmentRow[]> {
+  if (orderIds.length === 0) return [];
+  const pool = await getPool();
+  const result = await pool.query(
+    'SELECT * FROM order_attachments WHERE order_id = ANY($1::bigint[]) ORDER BY created_at DESC',
+    [orderIds]
+  );
+  return result.rows as OrderAttachmentRow[];
+}

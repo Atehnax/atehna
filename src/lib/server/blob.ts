@@ -1,4 +1,3 @@
-import 'server-only';
 import { put } from '@vercel/blob';
 
 export type UploadResult = {
@@ -11,7 +10,8 @@ export async function uploadBlob(
   data: Buffer | Uint8Array,
   contentType: string
 ): Promise<UploadResult> {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!token) {
     throw new Error('BLOB_READ_WRITE_TOKEN is not set');
   }
 
@@ -20,8 +20,12 @@ export async function uploadBlob(
   const blob = await put(pathname, payload, {
     access: 'public',
     contentType,
-    token: process.env.BLOB_READ_WRITE_TOKEN
+    token
   });
+
+  if (!blob?.url || !blob?.pathname) {
+    throw new Error('Blob upload failed: missing url/pathname');
+  }
 
   return { url: blob.url, pathname: blob.pathname };
 }

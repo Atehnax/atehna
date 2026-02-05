@@ -1,10 +1,11 @@
 'use client';
 
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useCartStore } from '@/lib/cart/store';
+import { SLOVENIAN_ADDRESSES } from '@/data/slovenianAddresses';
 
-const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
+const FORM_STORAGE_KEY = 'atehna-order-form';
 
 const customerTypeOptions = [
   { value: 'individual', label: 'Fizična oseba' },
@@ -52,10 +53,21 @@ export default function OrderPageClient() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderResponse, setOrderResponse] = useState<OrderResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [uploadState, setUploadState] = useState<
-    | { status: 'idle' | 'uploading' | 'success'; message?: string; url?: string }
-    | null
-  >(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(FORM_STORAGE_KEY);
+    if (!saved) return;
+    try {
+      const parsed = JSON.parse(saved) as OrderFormData;
+      setFormData({ ...initialForm, ...parsed });
+    } catch {
+      localStorage.removeItem(FORM_STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formData));
+  }, [formData]);
 
   const requiredFieldsFilled = useMemo(() => {
     const hasContact = formData.contactName.trim() && formData.email.trim();
@@ -64,7 +76,8 @@ export default function OrderPageClient() {
     return Boolean(hasContact && hasOrg && items.length > 0);
   }, [formData, items.length]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (event?: FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
     setErrorMessage(null);
     if (!requiredFieldsFilled) {
       setErrorMessage('Izpolnite obvezna polja in dodajte vsaj en izdelek.');
@@ -95,56 +108,11 @@ export default function OrderPageClient() {
 
       const payload = (await response.json()) as OrderResponse;
       setOrderResponse(payload);
-      setUploadState(null);
       clearCart();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Napaka pri oddaji naročila.');
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleUploadPurchaseOrder = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!orderResponse) return;
-    const form = event.currentTarget;
-    const input = form.elements.namedItem('purchaseOrder') as HTMLInputElement | null;
-    const file = input?.files?.[0];
-    if (!file) {
-      setUploadState({ status: 'idle', message: 'Izberite datoteko za nalaganje.' });
-      return;
-    }
-    if (file.size > MAX_UPLOAD_SIZE) {
-      setUploadState({ status: 'idle', message: 'Datoteka je prevelika (največ 10 MB).' });
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    setUploadState({ status: 'uploading', message: 'Nalaganje poteka...' });
-
-    try {
-      const response = await fetch(`/api/orders/${orderResponse.orderId}/purchase-order`, {
-        method: 'POST',
-        body: formData
-      });
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || 'Nalaganje ni uspelo.');
-      }
-      const payload = (await response.json()) as { url: string };
-      setUploadState({
-        status: 'success',
-        message: 'Naročilnica je uspešno shranjena.',
-        url: payload.url
-      });
-      form.reset();
-    } catch (error) {
-      setUploadState({
-        status: 'idle',
-        message: error instanceof Error ? error.message : 'Napaka pri nalaganju datoteke.'
-      });
     }
   };
 
@@ -170,7 +138,7 @@ export default function OrderPageClient() {
       <div className="space-y-8">
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-slate-900">Podatki o naročilu</h2>
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <form className="mt-4 grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
             <div className="md:col-span-2">
               <label className="text-sm font-medium text-slate-700" htmlFor="customerType">
                 Tip naročnika
@@ -214,12 +182,18 @@ export default function OrderPageClient() {
               </label>
               <input
                 id="deliveryAddress"
+                list="slovenian-addresses"
                 value={formData.deliveryAddress}
                 onChange={(event) =>
                   setFormData((prev) => ({ ...prev, deliveryAddress: event.target.value }))
                 }
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
+              <datalist id="slovenian-addresses">
+                {SLOVENIAN_ADDRESSES.map((address) => (
+                  <option key={address} value={address} />
+                ))}
+              </datalist>
             </div>
             <div>
               <label className="text-sm font-medium text-slate-700" htmlFor="contactName">
@@ -284,7 +258,8 @@ export default function OrderPageClient() {
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
             </div>
-          </div>
+            <button type="submit" className="hidden" />
+          </form>
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -351,7 +326,7 @@ export default function OrderPageClient() {
             <button
               type="button"
               disabled={isSubmitting}
-              onClick={handleSubmit}
+              onClick={() => handleSubmit()}
               className={`rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition ${
                 isSubmitting
                   ? 'cursor-wait bg-slate-200 text-slate-400'
@@ -390,48 +365,15 @@ export default function OrderPageClient() {
             >
               Odpri PDF v novem zavihku →
             </a>
-          </section>
-        )}
-
-        {orderResponse && formData.customerType === 'school' && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-slate-900">Naloži naročilnico</h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Po oddaji ponudbe dodajte skenirano naročilnico (PDF ali JPG, do 10 MB).
-            </p>
-            <form className="mt-4 space-y-3" onSubmit={handleUploadPurchaseOrder}>
-              <input
-                name="purchaseOrder"
-                type="file"
-                accept="application/pdf,image/jpeg"
-                className="block w-full text-sm text-slate-600"
-              />
-              <button
-                type="submit"
-                className="rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
-              >
-                Naloži naročilnico
-              </button>
-              {uploadState?.message && (
-                <p
-                  className={`text-sm ${
-                    uploadState.status === 'success' ? 'text-emerald-600' : 'text-slate-600'
-                  }`}
-                >
-                  {uploadState.message}
-                </p>
-              )}
-              {uploadState?.url && (
-                <a
-                  href={uploadState.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex text-sm font-semibold text-brand-600 hover:text-brand-700"
-                >
-                  Odpri naloženo naročilnico →
-                </a>
-              )}
-            </form>
+            {formData.customerType === 'school' && (
+              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+                Naročilnico lahko naložite kasneje na strani{' '}
+                <Link href="/order/narocilnica" className="font-semibold text-amber-900">
+                  Naloži naročilnico
+                </Link>
+                .
+              </div>
+            )}
           </section>
         )}
       </div>

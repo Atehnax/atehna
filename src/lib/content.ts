@@ -19,6 +19,7 @@ export type CategoryContent = {
     name: string;
     unit?: string;
     image?: string;
+    unitPrice?: number | null;
   }>;
   content: string;
 };

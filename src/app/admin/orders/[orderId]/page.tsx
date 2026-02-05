@@ -23,7 +23,7 @@ export const dynamic = 'force-dynamic';
 const formatCurrency = (value: number | null | undefined) =>
   typeof value === 'number'
     ? new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }).format(value)
-    : '—';
+    : 'Po dogovoru';
 
 export default async function AdminOrderDetailPage({
   params
@@ -230,12 +230,13 @@ export default async function AdminOrderDetailPage({
     fetchOrderAttachments(orderId),
     fetchPaymentLogs(orderId)
   ]);
-  const subtotal = items.reduce(
+  const computedSubtotal = items.reduce(
     (sum, item) => sum + (item.unit_price ?? 0) * item.quantity,
     0
   );
-  const tax = subtotal * 0.22;
-  const total = subtotal + tax;
+  const subtotal = order.subtotal ?? computedSubtotal;
+  const tax = order.tax ?? subtotal * 0.22;
+  const total = order.total ?? subtotal + tax;
 
   return (
     <div className="container-base py-12">

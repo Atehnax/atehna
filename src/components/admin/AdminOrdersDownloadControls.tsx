@@ -26,9 +26,15 @@ const TYPE_OPTIONS: Option[] = [
 
 const typeLabelMap = new Map(TYPE_OPTIONS.map((option) => [option.value, option.label]));
 
-export default function AdminOrdersDownloadControls() {
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
+export default function AdminOrdersDownloadControls({
+  fromDate,
+  toDate
+}: {
+  fromDate?: string;
+  toDate?: string;
+}) {
+  const activeFromDate = fromDate ?? '';
+  const activeToDate = toDate ?? '';
   const [type, setType] = useState('all');
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,15 +56,15 @@ export default function AdminOrdersDownloadControls() {
 
   const handleLoad = async () => {
     setMessage(null);
-    if (!fromDate || !toDate) {
-      setMessage('Izberite začetni in končni datum.');
+    if (!activeFromDate || !activeToDate) {
+      setMessage('Izberite začetni in končni datum v filtru naročil.');
       return [];
     }
     setIsLoading(true);
     try {
       const url = `/api/admin/orders/download?from=${encodeURIComponent(
-        fromDate
-      )}&to=${encodeURIComponent(toDate)}&type=${encodeURIComponent(type)}`;
+        activeFromDate
+      )}&to=${encodeURIComponent(activeToDate)}&type=${encodeURIComponent(type)}`;
       const response = await fetch(url);
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
@@ -96,25 +102,7 @@ export default function AdminOrdersDownloadControls() {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
-        <div className="flex flex-1 flex-col gap-2 sm:flex-row">
-          <div className="flex-1">
-            <label className="text-xs font-semibold uppercase text-slate-500">Od</label>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(event) => setFromDate(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div className="flex-1">
-            <label className="text-xs font-semibold uppercase text-slate-500">Do</label>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(event) => setToDate(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-          </div>
+        <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-end">
           <div className="flex-1">
             <label className="text-xs font-semibold uppercase text-slate-500">Vrsta PDF</label>
             <select
@@ -128,6 +116,9 @@ export default function AdminOrdersDownloadControls() {
                 </option>
               ))}
             </select>
+          </div>
+          <div className="text-xs text-slate-500">
+            Interval: {activeFromDate || '—'} → {activeToDate || '—'}
           </div>
         </div>
         <button

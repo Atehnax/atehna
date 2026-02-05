@@ -114,6 +114,7 @@ export default async function AdminOrdersPage({
             </div>
           </form>
 
+          <AdminOrdersDownloadControls fromDate={from} toDate={to} />
           <AdminOrdersTable
             orders={demoOrders}
             documents={demoDocuments}
@@ -187,7 +188,7 @@ export default async function AdminOrdersPage({
           </div>
         </form>
 
-        <AdminOrdersDownloadControls />
+        <AdminOrdersDownloadControls fromDate={from} toDate={to} />
 
         <AdminOrdersTable orders={orders} documents={documents} attachments={attachments} />
       </div>

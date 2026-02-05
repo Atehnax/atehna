@@ -9,7 +9,7 @@ type ProductItem = {
   name: string;
   unit?: string;
   image?: string;
-  price?: number;
+  unitPrice?: number | null;
 };
 
 type ProductListProps = {
@@ -60,8 +60,8 @@ export default function ProductList({ items, category }: ProductListProps) {
                 sku: item.sku,
                 name: item.name,
                 unit: item.unit,
-                category,
-                price: item.price
+                unitPrice: item.unitPrice ?? null,
+                category
               });
               openDrawer();
             }}

@@ -7,6 +7,8 @@ const legalLinks = [
 ];
 
 export default function SiteFooter() {
+  const year = new Date().getFullYear();
+
   return (
     <footer className="border-t border-slate-200 bg-white">
       <div className="container-base grid gap-8 py-10 md:grid-cols-[2fr_1fr]">
@@ -16,7 +18,9 @@ export default function SiteFooter() {
             Zanesljiv partner pri opremljanju delavnic, projektnih prostorov in tehničnih
             potreb.
           </p>
-          <p className="mt-4 text-sm text-slate-500">© 2024 Atehna. Vse pravice pridržane.</p>
+          <p className="mt-4 text-sm text-slate-500">
+            © {year} Atehna. Vse pravice pridržane.
+          </p>
         </div>
         <div className="space-y-3 text-sm text-slate-600">
           <p className="font-semibold text-slate-900">Pravno</p>

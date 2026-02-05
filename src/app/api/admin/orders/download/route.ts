@@ -22,10 +22,6 @@ type AttachmentRow = {
   created_at: string;
 };
 
-type QueryRowsResult<T> = {
-  rows: T[];
-};
-
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -48,50 +44,47 @@ export async function GET(request: Request) {
     const rows: Array<DocRow | AttachmentRow> = [];
 
     if (typeParam === 'all' || typeParam === 'purchase_order') {
-      const attachmentResult = (await pool.query(
+      const attachmentResult = await pool.query(
         `
-        select order_table.order_number, attachment.type, attachment.filename, attachment.blob_url, attachment.created_at
-        from order_attachments attachment
-        join orders order_table on order_table.id = attachment.order_id
-        where attachment.created_at between $1 and $2
-        order by attachment.created_at desc
+        SELECT o.order_number, a.type, a.filename, a.blob_url, a.created_at
+        FROM order_attachments a
+        JOIN orders o ON o.id = a.order_id
+        WHERE a.created_at BETWEEN $1 AND $2
+        ORDER BY a.created_at DESC
         `,
         [fromDate.toISOString(), toDate.toISOString()]
-      )) as QueryRowsResult<AttachmentRow>;
-
+      );
       rows.push(
-        ...attachmentResult.rows.map((row) => ({
+        ...(attachmentResult.rows as AttachmentRow[]).map((row) => ({
           ...row,
           type: 'purchase_order'
         }))
       );
     }
 
-    if (typeParam !== 'purchase_order') {
-      const docQuery =
-        typeParam === 'all'
-          ? `
-        select order_table.order_number, document.type, document.filename, document.blob_url, document.created_at
-        from order_documents document
-        join orders order_table on order_table.id = document.order_id
-        where document.created_at between $1 and $2
-        order by document.created_at desc
+    if (typeParam === 'all' || typeParam !== 'purchase_order') {
+      const docQuery = typeParam === 'all'
+        ? `
+        SELECT o.order_number, d.type, d.filename, d.blob_url, d.created_at
+        FROM order_documents d
+        JOIN orders o ON o.id = d.order_id
+        WHERE d.created_at BETWEEN $1 AND $2
+        ORDER BY d.created_at DESC
         `
-          : `
-        select order_table.order_number, document.type, document.filename, document.blob_url, document.created_at
-        from order_documents document
-        join orders order_table on order_table.id = document.order_id
-        where document.created_at between $1 and $2 and document.type = $3
-        order by document.created_at desc
+        : `
+        SELECT o.order_number, d.type, d.filename, d.blob_url, d.created_at
+        FROM order_documents d
+        JOIN orders o ON o.id = d.order_id
+        WHERE d.created_at BETWEEN $1 AND $2 AND d.type = $3
+        ORDER BY d.created_at DESC
         `;
 
-      const docParams =
-        typeParam === 'all'
-          ? [fromDate.toISOString(), toDate.toISOString()]
-          : [fromDate.toISOString(), toDate.toISOString(), typeParam];
+      const docParams = typeParam === 'all'
+        ? [fromDate.toISOString(), toDate.toISOString()]
+        : [fromDate.toISOString(), toDate.toISOString(), typeParam];
 
-      const docResult = (await pool.query(docQuery, docParams)) as QueryRowsResult<DocRow>;
-      rows.push(...docResult.rows);
+      const docResult = await pool.query(docQuery, docParams);
+      rows.push(...(docResult.rows as DocRow[]));
     }
 
     if (rows.length === 0) {

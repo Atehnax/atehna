@@ -1,13 +1,17 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import AdminOrderActions from '@/components/admin/AdminOrderActions';
+import AdminOrderEditForm from '@/components/admin/AdminOrderEditForm';
 import AdminOrderPdfManager from '@/components/admin/AdminOrderPdfManager';
+import AdminOrderPaymentStatus from '@/components/admin/AdminOrderPaymentStatus';
+import { getCustomerTypeLabel } from '@/lib/customerType';
 import { getStatusLabel } from '@/lib/orderStatus';
 import {
   fetchOrderAttachments,
   fetchOrderById,
   fetchOrderDocuments,
-  fetchOrderItems
+  fetchOrderItems,
+  fetchPaymentLogs
 } from '@/lib/server/orders';
 
 export const metadata = {
@@ -15,6 +19,11 @@ export const metadata = {
 };
 
 export const dynamic = 'force-dynamic';
+
+const formatCurrency = (value: number | null | undefined) =>
+  typeof value === 'number'
+    ? new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }).format(value)
+    : '—';
 
 export default async function AdminOrderDetailPage({
   params
@@ -32,10 +41,19 @@ export default async function AdminOrderDetailPage({
       phone: '041 555 123',
       delivery_address: 'Šolska ulica 1, Ljubljana',
       reference: 'PO-2024-01',
-      notes: 'Prosimo za dobavo do konca meseca.'
+      notes: 'Prosimo za dobavo do konca meseca.',
+      payment_status: 'paid',
+      payment_notes: 'Plačano ob prevzemu.'
     };
     const items = [
-      { id: 1, name: 'Tehnični svinčnik 0,5 mm', sku: 'RT-TS-01', quantity: 10, unit: 'kos' }
+      {
+        id: 1,
+        name: 'Tehnični svinčnik 0,5 mm',
+        sku: 'RT-TS-01',
+        quantity: 10,
+        unit: 'kos',
+        unit_price: 1.9
+      }
     ];
     const documents = [
       {
@@ -54,6 +72,19 @@ export default async function AdminOrderDetailPage({
         blob_url: '#'
       }
     ];
+    const paymentLogs = [
+      {
+        id: 1,
+        order_id: 1,
+        previous_status: 'unpaid',
+        new_status: 'paid',
+        note: 'Plačano ob prevzemu.',
+        created_at: new Date().toISOString()
+      }
+    ];
+    const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
+    const tax = subtotal * 0.22;
+    const total = subtotal + tax;
     return (
       <div className="container-base py-12">
         <div className="mx-auto max-w-6xl">
@@ -72,7 +103,7 @@ export default async function AdminOrderDetailPage({
                   <div>
                     <p className="text-xs uppercase text-slate-400">Naročnik</p>
                     <p className="font-semibold text-slate-900">{order.organization_name}</p>
-                    <p>{order.customer_type}</p>
+                    <p>{getCustomerTypeLabel(order.customer_type)}</p>
                   </div>
                   <div>
                     <p className="text-xs uppercase text-slate-400">Kontakt</p>
@@ -103,17 +134,58 @@ export default async function AdminOrderDetailPage({
                       key={item.id}
                       className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm"
                     >
-                      <p className="font-semibold text-slate-900">{item.name}</p>
-                      <p className="text-slate-500">SKU: {item.sku}</p>
-                      <p className="text-slate-500">
-                        Količina: {item.quantity} {item.unit ?? ''}
-                      </p>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-slate-900">{item.name}</p>
+                          <p className="text-slate-500">SKU: {item.sku}</p>
+                          <p className="text-slate-500">
+                            Količina: {item.quantity} {item.unit ?? ''}
+                          </p>
+                        </div>
+                        <div className="text-right text-sm text-slate-600">
+                          <p>Enota: {formatCurrency(item.unit_price)}</p>
+                          <p className="font-semibold text-slate-900">
+                            Skupaj: {formatCurrency(item.unit_price * item.quantity)}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   ))}
+                  <div className="rounded-xl border border-slate-100 bg-white p-4 text-sm text-slate-700">
+                    <div className="flex items-center justify-between">
+                      <span>Vmesni seštevek</span>
+                      <span className="font-semibold">{formatCurrency(subtotal)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>DDV</span>
+                      <span className="font-semibold">{formatCurrency(tax)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-base font-semibold text-slate-900">
+                      <span>Skupaj</span>
+                      <span>{formatCurrency(total)}</span>
+                    </div>
+                  </div>
                 </div>
               </section>
 
               <AdminOrderPdfManager orderId={1} documents={documents} />
+              <AdminOrderEditForm
+                orderId={1}
+                customerType={order.customer_type}
+                organizationName={order.organization_name}
+                contactName={order.contact_name}
+                email={order.email}
+                phone={order.phone}
+                deliveryAddress={order.delivery_address}
+                reference={order.reference}
+                notes={order.notes}
+              />
+              <AdminOrderPaymentStatus
+                orderId={1}
+                status={order.payment_status}
+                notes={order.payment_notes}
+                logs={paymentLogs}
+              />
 
               <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-semibold text-slate-900">Priponke</h2>
@@ -152,11 +224,18 @@ export default async function AdminOrderDetailPage({
     notFound();
   }
 
-  const [items, documents, attachments] = await Promise.all([
+  const [items, documents, attachments, paymentLogs] = await Promise.all([
     fetchOrderItems(orderId),
     fetchOrderDocuments(orderId),
-    fetchOrderAttachments(orderId)
+    fetchOrderAttachments(orderId),
+    fetchPaymentLogs(orderId)
   ]);
+  const subtotal = items.reduce(
+    (sum, item) => sum + (item.unit_price ?? 0) * item.quantity,
+    0
+  );
+  const tax = subtotal * 0.22;
+  const total = subtotal + tax;
 
   return (
     <div className="container-base py-12">
@@ -181,7 +260,7 @@ export default async function AdminOrderDetailPage({
                   <p className="font-semibold text-slate-900">
                     {order.organization_name || order.contact_name}
                   </p>
-                  <p>{order.customer_type}</p>
+                  <p>{getCustomerTypeLabel(order.customer_type)}</p>
                 </div>
                 <div>
                   <p className="text-xs uppercase text-slate-400">Kontakt</p>
@@ -206,25 +285,66 @@ export default async function AdminOrderDetailPage({
               </div>
             </section>
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-900">Postavke</h2>
-              <div className="mt-4 space-y-3">
-                {items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm"
-                  >
-                    <p className="font-semibold text-slate-900">{item.name}</p>
-                    <p className="text-slate-500">SKU: {item.sku}</p>
-                    <p className="text-slate-500">
-                      Količina: {item.quantity} {item.unit ?? ''}
-                    </p>
+              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 className="text-lg font-semibold text-slate-900">Postavke</h2>
+                <div className="mt-4 space-y-3">
+                  {items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-slate-900">{item.name}</p>
+                          <p className="text-slate-500">SKU: {item.sku}</p>
+                          <p className="text-slate-500">
+                            Količina: {item.quantity} {item.unit ?? ''}
+                          </p>
+                        </div>
+                        <div className="text-right text-sm text-slate-600">
+                          <p>Enota: {formatCurrency(item.unit_price)}</p>
+                          <p className="font-semibold text-slate-900">
+                            Skupaj: {formatCurrency((item.unit_price ?? 0) * item.quantity)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="rounded-xl border border-slate-100 bg-white p-4 text-sm text-slate-700">
+                    <div className="flex items-center justify-between">
+                      <span>Vmesni seštevek</span>
+                      <span className="font-semibold">{formatCurrency(subtotal)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>DDV</span>
+                      <span className="font-semibold">{formatCurrency(tax)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-base font-semibold text-slate-900">
+                      <span>Skupaj</span>
+                      <span>{formatCurrency(total)}</span>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </section>
+                </div>
+              </section>
 
-            <AdminOrderPdfManager orderId={orderId} documents={documents} />
+              <AdminOrderPdfManager orderId={orderId} documents={documents} />
+              <AdminOrderEditForm
+                orderId={orderId}
+                customerType={order.customer_type}
+                organizationName={order.organization_name}
+                contactName={order.contact_name}
+                email={order.email}
+                phone={order.phone}
+                deliveryAddress={order.delivery_address}
+                reference={order.reference}
+                notes={order.notes}
+              />
+              <AdminOrderPaymentStatus
+                orderId={orderId}
+                status={order.payment_status ?? null}
+                notes={order.payment_notes ?? null}
+                logs={paymentLogs}
+              />
 
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-slate-900">Priponke</h2>

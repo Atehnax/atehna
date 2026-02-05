@@ -13,9 +13,12 @@ type PdfDocument = {
 type PdfTypeKey = 'order_summary' | 'predracun' | 'dobavnica' | 'invoice' | 'purchase_order';
 type GeneratePdfType = Exclude<PdfTypeKey, 'purchase_order'>;
 
-type PdfTypeConfig =
-  | { key: GeneratePdfType; label: string; color: string; canGenerate: true }
-  | { key: 'purchase_order'; label: string; color: string; canGenerate: false };
+type PdfTypeConfig = {
+  key: PdfTypeKey;
+  label: string;
+  color: string;
+  canGenerate: boolean;
+};
 
 const PDF_TYPES: PdfTypeConfig[] = [
   { key: 'order_summary', label: 'Povzetek', color: 'bg-sky-100 text-sky-700', canGenerate: true },
@@ -34,6 +37,8 @@ const normalizeType = (type: string): PdfTypeKey | null => {
   if (type === 'purchase_order') return 'purchase_order';
   return null;
 };
+
+const isGenerateKey = (key: PdfTypeKey): key is GeneratePdfType => key !== 'purchase_order';
 
 const routeMap: Record<GeneratePdfType, string> = {
   order_summary: 'generate-order-summary',
@@ -72,17 +77,16 @@ export default function AdminOrdersPdfCell({
     };
 
     const sortedDocs = [...docsState].sort(
-      (leftDoc, rightDoc) => new Date(rightDoc.created_at).getTime() - new Date(leftDoc.created_at).getTime()
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
     sortedDocs.forEach((doc) => {
-      const normalizedType = normalizeType(doc.type);
-      if (!normalizedType) return;
-      groupedDocs[normalizedType].push(doc);
+      const normalized = normalizeType(doc.type);
+      if (!normalized) return;
+      groupedDocs[normalized].push(doc);
     });
 
     const sortedAttachments = [...attachmentsState].sort(
-      (leftAttachment, rightAttachment) =>
-        new Date(rightAttachment.created_at).getTime() - new Date(leftAttachment.created_at).getTime()
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
     sortedAttachments.forEach((attachment) => {
       groupedDocs.purchase_order.push(attachment);
@@ -93,27 +97,28 @@ export default function AdminOrdersPdfCell({
 
   const initialSelection = useMemo(() => {
     const selection: Partial<Record<PdfTypeKey, string>> = {};
-    PDF_TYPES.forEach((pdfType) => {
-      const latestDoc = grouped[pdfType.key][0];
-      if (latestDoc) {
-        selection[pdfType.key] = latestDoc.blob_url;
+    PDF_TYPES.forEach((type) => {
+      const latest = grouped[type.key][0];
+      if (latest) {
+        selection[type.key] = latest.blob_url;
       }
     });
     return selection;
   }, [grouped]);
 
   const [selected, setSelected] = useState(initialSelection);
-  const [loadingType, setLoadingType] = useState<PdfTypeKey | null>(null);
+  const [loadingType, setLoadingType] = useState<GeneratePdfType | null>(null);
+  const [openType, setOpenType] = useState<PdfTypeKey | null>(null);
 
   useEffect(() => {
-    setSelected((previousSelected) => {
-      const nextSelected: Partial<Record<PdfTypeKey, string>> = { ...previousSelected };
-      PDF_TYPES.forEach((pdfType) => {
-        if (!nextSelected[pdfType.key] && grouped[pdfType.key][0]) {
-          nextSelected[pdfType.key] = grouped[pdfType.key][0].blob_url;
+    setSelected((prev) => {
+      const next: Partial<Record<PdfTypeKey, string>> = { ...prev };
+      PDF_TYPES.forEach((type) => {
+        if (!next[type.key] && grouped[type.key][0]) {
+          next[type.key] = grouped[type.key][0].blob_url;
         }
       });
-      return nextSelected;
+      return next;
     });
   }, [grouped]);
 
@@ -126,23 +131,20 @@ export default function AdminOrdersPdfCell({
       if (!response.ok) {
         return;
       }
-
       const payload = (await response.json()) as {
         url: string;
         filename: string;
         createdAt: string;
         type: string;
       };
-
       const newDoc: PdfDocument = {
         type: payload.type,
         blob_url: payload.url,
         filename: payload.filename,
         created_at: payload.createdAt
       };
-
-      setDocsState((previousDocs) => [newDoc, ...previousDocs]);
-      setSelected((previousSelected) => ({ ...previousSelected, [type]: payload.url }));
+      setDocsState((prev) => [newDoc, ...prev]);
+      setSelected((prev) => ({ ...prev, [type]: payload.url }));
     } finally {
       setLoadingType(null);
     }
@@ -150,61 +152,67 @@ export default function AdminOrdersPdfCell({
 
   return (
     <div className="flex flex-row flex-wrap gap-4">
-      {PDF_TYPES.map((pdfType) => {
-        const options = grouped[pdfType.key];
-        const selectedUrl = selected[pdfType.key];
+      {PDF_TYPES.map((pdf) => {
+        const options = grouped[pdf.key];
+        const selectedUrl = selected[pdf.key];
         const hasDocs = options.length > 0;
-
+        const generateKey = isGenerateKey(pdf.key) ? pdf.key : null;
         return (
-          <div key={pdfType.key} className="flex w-[190px] flex-col gap-2">
-            <span
-              className={`inline-flex w-fit rounded-full px-2 py-0.5 text-[11px] font-semibold ${pdfType.color}`}
-            >
-              {pdfType.label}
-            </span>
-            <div className="flex items-center gap-2">
-              <select
-                value={selectedUrl ?? ''}
-                onChange={(event) =>
-                  setSelected((previousSelected) => ({
-                    ...previousSelected,
-                    [pdfType.key]: event.target.value
-                  }))
-                }
-                className="w-full rounded-full border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600"
+          <div key={pdf.key} className="flex w-[190px] flex-col gap-2">
+            {selectedUrl ? (
+              <a
+                href={selectedUrl}
+                target="_blank"
+                rel="noreferrer"
+                className={`inline-flex w-fit rounded-full px-2 py-0.5 text-[11px] font-semibold ${pdf.color}`}
               >
-                <option value="" disabled>
-                  {hasDocs ? 'Izberi verzijo' : 'Brez dokumenta'}
-                </option>
-                {options.map((doc) => (
-                  <option key={`${doc.blob_url}-${doc.created_at}`} value={doc.blob_url}>
-                    {new Date(doc.created_at).toLocaleDateString('sl-SI')}
-                  </option>
-                ))}
-              </select>
-
-              {selectedUrl && (
-                <a
-                  href={selectedUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:border-brand-200 hover:text-brand-600"
-                >
-                  Odpri
-                </a>
-              )}
-
-              {pdfType.canGenerate && (
+                {pdf.label}
+              </a>
+            ) : (
+              <span
+                className={`inline-flex w-fit rounded-full px-2 py-0.5 text-[11px] font-semibold ${pdf.color}`}
+              >
+                {pdf.label}
+              </span>
+            )}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setOpenType((prev) => (prev === pdf.key ? null : pdf.key))}
+                disabled={!hasDocs}
+                className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-500 hover:border-brand-200 hover:text-brand-600 disabled:cursor-not-allowed disabled:text-slate-300"
+                aria-label="Prikaži zgodovino"
+              >
+                ▾
+              </button>
+              {pdf.canGenerate && generateKey && (
                 <button
                   type="button"
-                  onClick={() => handleGenerate(pdfType.key)}
-                  disabled={loadingType === pdfType.key}
+                  onClick={() => handleGenerate(generateKey)}
+                  disabled={loadingType === generateKey}
                   className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600 transition hover:border-brand-200 hover:text-brand-600 disabled:cursor-not-allowed disabled:text-slate-300"
                 >
                   {hasDocs ? '↻' : '+'}
                 </button>
               )}
             </div>
+            {openType === pdf.key && hasDocs && (
+              <div className="rounded-lg border border-slate-200 bg-white p-2 text-xs text-slate-600 shadow-sm">
+                {options.map((doc) => (
+                  <button
+                    key={`${doc.blob_url}-${doc.created_at}`}
+                    type="button"
+                    onClick={() => {
+                      setSelected((prev) => ({ ...prev, [pdf.key]: doc.blob_url }));
+                      setOpenType(null);
+                    }}
+                    className="block w-full text-left hover:text-brand-600"
+                  >
+                    {new Date(doc.created_at).toLocaleDateString('sl-SI')}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         );
       })}

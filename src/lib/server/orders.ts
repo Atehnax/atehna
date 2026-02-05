@@ -12,6 +12,8 @@ export type OrderRow = {
   reference: string | null;
   notes: string | null;
   status: string;
+  payment_status?: string | null;
+  payment_notes?: string | null;
   subtotal: number;
   tax: number;
   total: number;
@@ -48,9 +50,45 @@ export type OrderAttachmentRow = {
   created_at: string;
 };
 
-export async function fetchOrders(): Promise<OrderRow[]> {
+export type PaymentLogRow = {
+  id: number;
+  order_id: number;
+  previous_status: string | null;
+  new_status: string;
+  note: string | null;
+  created_at: string;
+};
+
+export async function fetchOrders(options?: {
+  fromDate?: string | null;
+  toDate?: string | null;
+  query?: string | null;
+}): Promise<OrderRow[]> {
   const pool = await getPool();
-  const result = await pool.query('SELECT * FROM orders ORDER BY created_at DESC');
+  const conditions: string[] = [];
+  const params: Array<string> = [];
+
+  if (options?.fromDate) {
+    params.push(options.fromDate);
+    conditions.push(`created_at >= $${params.length}`);
+  }
+  if (options?.toDate) {
+    params.push(options.toDate);
+    conditions.push(`created_at <= $${params.length}`);
+  }
+  if (options?.query) {
+    params.push(`%${options.query}%`);
+    const idx = params.length;
+    conditions.push(
+      `(organization_name ILIKE $${idx} OR contact_name ILIKE $${idx} OR delivery_address ILIKE $${idx})`
+    );
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const result = await pool.query(
+    `SELECT * FROM orders ${whereClause} ORDER BY created_at DESC`,
+    params
+  );
   return result.rows as OrderRow[];
 }
 
@@ -108,4 +146,13 @@ export async function fetchOrderAttachmentsForOrders(
     [orderIds]
   );
   return result.rows as OrderAttachmentRow[];
+}
+
+export async function fetchPaymentLogs(orderId: number): Promise<PaymentLogRow[]> {
+  const pool = await getPool();
+  const result = await pool.query(
+    'SELECT * FROM order_payment_logs WHERE order_id = $1 ORDER BY created_at DESC',
+    [orderId]
+  );
+  return result.rows as PaymentLogRow[];
 }

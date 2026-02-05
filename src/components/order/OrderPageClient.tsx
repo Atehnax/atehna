@@ -76,6 +76,14 @@ export default function OrderPageClient() {
     return Boolean(hasContact && hasOrg && items.length > 0);
   }, [formData, items.length]);
 
+  const addressSuggestions = useMemo(() => {
+    const query = formData.deliveryAddress.trim().toLowerCase();
+    if (!query) return [];
+    return SLOVENIAN_ADDRESSES.filter((address) =>
+      address.toLowerCase().includes(query)
+    ).slice(0, 7);
+  }, [formData.deliveryAddress]);
+
   const handleSubmit = async (event?: FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
     setErrorMessage(null);
@@ -189,11 +197,23 @@ export default function OrderPageClient() {
                 }
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
-              <datalist id="slovenian-addresses">
-                {SLOVENIAN_ADDRESSES.map((address) => (
-                  <option key={address} value={address} />
-                ))}
-              </datalist>
+              {addressSuggestions.length > 0 && (
+                <ul className="mt-2 space-y-1 rounded-lg border border-slate-200 bg-white p-2 text-sm shadow-sm">
+                  {addressSuggestions.map((address) => (
+                    <li key={address}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormData((prev) => ({ ...prev, deliveryAddress: address }))
+                        }
+                        className="w-full text-left text-slate-600 hover:text-brand-600"
+                      >
+                        {address}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
             <div>
               <label className="text-sm font-medium text-slate-700" htmlFor="contactName">

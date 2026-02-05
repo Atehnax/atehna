@@ -24,12 +24,16 @@ const TYPE_OPTIONS: Option[] = [
   { value: 'purchase_order', label: 'Naročilnica' }
 ];
 
+const typeLabelMap = new Map(TYPE_OPTIONS.map((option) => [option.value, option.label]));
+
 export default function AdminOrdersDownloadControls() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [type, setType] = useState('all');
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [items, setItems] = useState<DownloadItem[]>([]);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const downloadFile = async (item: DownloadItem) => {
     const response = await fetch(item.url);
@@ -44,11 +48,11 @@ export default function AdminOrdersDownloadControls() {
     URL.revokeObjectURL(link.href);
   };
 
-  const handleDownload = async () => {
+  const handleLoad = async () => {
     setMessage(null);
     if (!fromDate || !toDate) {
       setMessage('Izberite začetni in končni datum.');
-      return;
+      return [];
     }
     setIsLoading(true);
     try {
@@ -63,16 +67,29 @@ export default function AdminOrdersDownloadControls() {
       const payload = (await response.json()) as { items: DownloadItem[] };
       if (payload.items.length === 0) {
         setMessage('Ni dokumentov za izbran interval.');
-        return;
+        setItems([]);
+        return [];
       }
-      for (const item of payload.items) {
-        await downloadFile(item);
-      }
-      setMessage(`Prenesenih dokumentov: ${payload.items.length}`);
+      setItems(payload.items);
+      setMessage(`Najdenih dokumentov: ${payload.items.length}`);
+      return payload.items;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Napaka pri prenosu.');
+      return [];
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDownloadAll = async () => {
+    setIsDownloading(true);
+    try {
+      const toDownload = items.length > 0 ? items : await handleLoad();
+      for (const item of toDownload) {
+        await downloadFile(item);
+      }
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -115,14 +132,69 @@ export default function AdminOrdersDownloadControls() {
         </div>
         <button
           type="button"
-          onClick={handleDownload}
+          onClick={handleLoad}
           disabled={isLoading}
           className="rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
         >
-          {isLoading ? 'Prenos...' : 'Prenesi PDF-je'}
+          {isLoading ? 'Nalaganje...' : 'Naloži dokumente'}
+        </button>
+        <button
+          type="button"
+          onClick={handleDownloadAll}
+          disabled={isDownloading || isLoading}
+          className="rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 transition hover:border-brand-200 hover:text-brand-600 disabled:cursor-not-allowed disabled:text-slate-300"
+        >
+          {isDownloading ? 'Prenos...' : 'Prenesi PDF-je'}
         </button>
       </div>
       {message && <p className="mt-2 text-sm text-slate-600">{message}</p>}
+      {items.length > 0 && (
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[640px] text-left text-sm">
+            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+              <tr>
+                <th className="px-3 py-2">Št. naročila</th>
+                <th className="px-3 py-2">Tip</th>
+                <th className="px-3 py-2">Datum</th>
+                <th className="px-3 py-2">PDF</th>
+                <th className="px-3 py-2">Open</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={`${item.orderNumber}-${item.filename}-${item.createdAt}`} className="border-t border-slate-100">
+                  <td className="px-3 py-2 text-slate-700">{item.orderNumber}</td>
+                  <td className="px-3 py-2 text-slate-600">
+                    {typeLabelMap.get(item.type) ?? item.type}
+                  </td>
+                  <td className="px-3 py-2 text-slate-600">
+                    {new Date(item.createdAt).toLocaleDateString('sl-SI')}
+                  </td>
+                  <td className="px-3 py-2">
+                    <button
+                      type="button"
+                      onClick={() => downloadFile(item)}
+                      className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 hover:border-brand-200 hover:text-brand-600"
+                    >
+                      Prenesi
+                    </button>
+                  </td>
+                  <td className="px-3 py-2">
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs font-semibold text-brand-600 hover:text-brand-700"
+                    >
+                      Odpri →
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

@@ -10,7 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@vercel/blob": "^0.24.0",
+    "@vercel/blob": "^0.24.1",
     "gray-matter": "^4.0.3",
     "next": "14.2.5",
     "next-mdx-remote": "^5.0.0",

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 
 type Props = {
@@ -9,9 +10,11 @@ type Props = {
 };
 
 export default function AdminOrderActions({ orderId, status }: Props) {
+  const router = useRouter();
   const [currentStatus, setCurrentStatus] = useState(status);
   const [message, setMessage] = useState<string | null>(null);
   const [isWorking, setIsWorking] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const updateStatus = async () => {
     setIsWorking(true);
@@ -31,6 +34,28 @@ export default function AdminOrderActions({ orderId, status }: Props) {
       setMessage(error instanceof Error ? error.message : 'Napaka pri posodobitvi statusa.');
     } finally {
       setIsWorking(false);
+    }
+  };
+
+  const deleteOrder = async () => {
+    const confirmed = window.confirm('Ali ste prepričani, da želite izbrisati to naročilo?');
+    if (!confirmed) return;
+    setIsDeleting(true);
+    setMessage(null);
+    try {
+      const response = await fetch(`/api/admin/orders/${orderId}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || 'Brisanje ni uspelo.');
+      }
+      setMessage('Naročilo je izbrisano.');
+      router.push('/admin/orders');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Napaka pri brisanju naročila.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -65,6 +90,15 @@ export default function AdminOrderActions({ orderId, status }: Props) {
             </button>
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={deleteOrder}
+          disabled={isDeleting}
+          className="w-full rounded-full border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition hover:border-red-300 hover:text-red-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
+        >
+          {isDeleting ? 'Brisanje...' : 'Izbriši naročilo'}
+        </button>
 
         {message && <p className="text-sm text-slate-600">{message}</p>}
       </div>

@@ -10,22 +10,14 @@ export async function uploadBlob(
   data: Buffer | Uint8Array,
   contentType: string
 ): Promise<UploadResult> {
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
     throw new Error('BLOB_READ_WRITE_TOKEN is not set');
   }
-
   const payload = Buffer.isBuffer(data) ? data : Buffer.from(data);
-
   const blob = await put(pathname, payload, {
     access: 'public',
     contentType,
-    token
+    token: process.env.BLOB_READ_WRITE_TOKEN
   });
-
-  if (!blob?.url || !blob?.pathname) {
-    throw new Error('Blob upload failed: missing url/pathname');
-  }
-
   return { url: blob.url, pathname: blob.pathname };
 }

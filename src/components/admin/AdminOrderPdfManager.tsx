@@ -55,6 +55,8 @@ export default function AdminOrderPdfManager({
 }) {
   const [docList, setDocList] = useState(documents);
   const [loadingType, setLoadingType] = useState<PdfTypeKey | null>(null);
+  const [uploadingType, setUploadingType] = useState<PdfTypeKey | null>(null);
+  const [uploadFile, setUploadFile] = useState<Partial<Record<PdfTypeKey, File | null>>>({});
 
   const grouped = useMemo(() => {
     const map: Record<PdfTypeKey, PdfDocument[]> = {
@@ -107,6 +109,38 @@ export default function AdminOrderPdfManager({
     }
   };
 
+  const handleUpload = async (type: PdfTypeKey) => {
+    const file = uploadFile[type];
+    if (!file) return;
+    setUploadingType(type);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', type);
+      const response = await fetch(`/api/admin/orders/${orderId}/documents`, {
+        method: 'POST',
+        body: formData
+      });
+      if (!response.ok) {
+        return;
+      }
+      const payload = (await response.json()) as { url: string; filename: string };
+      setDocList((prev) => [
+        {
+          id: Date.now(),
+          type,
+          filename: payload.filename,
+          blob_url: payload.url,
+          created_at: new Date().toISOString()
+        },
+        ...prev
+      ]);
+      setUploadFile((prev) => ({ ...prev, [type]: null }));
+    } finally {
+      setUploadingType(null);
+    }
+  };
+
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <h2 className="text-lg font-semibold text-slate-900">PDF dokumenti</h2>
@@ -147,6 +181,28 @@ export default function AdminOrderPdfManager({
                     className="rounded-full bg-brand-600 px-3 py-1 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
                   >
                     {latest ? 'Ponovno generiraj' : 'Generiraj'}
+                  </button>
+                  <label className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 hover:border-brand-200 hover:text-brand-600">
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      className="hidden"
+                      onChange={(event) =>
+                        setUploadFile((prev) => ({
+                          ...prev,
+                          [pdfType.key]: event.target.files?.[0] ?? null
+                        }))
+                      }
+                    />
+                    Naloži PDF
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => handleUpload(pdfType.key)}
+                    disabled={!uploadFile[pdfType.key] || uploadingType === pdfType.key}
+                    className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-brand-200 hover:text-brand-600 disabled:cursor-not-allowed disabled:text-slate-300"
+                  >
+                    {uploadingType === pdfType.key ? 'Nalaganje...' : 'Shrani PDF'}
                   </button>
                 </div>
               </div>

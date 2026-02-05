@@ -1,10 +1,9 @@
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
-
+import path from 'path';
+import fs from 'fs/promises';
 import fontkit from '@pdf-lib/fontkit';
 import { PDFDocument, rgb } from 'pdf-lib';
-
 import { COMPANY_INFO } from '@/lib/constants';
+import { NOTO_SANS_BOLD_BASE64, NOTO_SANS_REGULAR_BASE64 } from '@/lib/server/pdfFontData';
 
 export type PdfItem = {
   sku: string;
@@ -38,53 +37,27 @@ const formatCurrency = (value: number) =>
 const formatDate = (date: Date) =>
   new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(date);
 
-let regularFontBytesPromise: Promise<Uint8Array> | null = null;
-let boldFontBytesPromise: Promise<Uint8Array> | null = null;
+let cachedFonts: { regular: Uint8Array; bold: Uint8Array } | null = null;
 
-async function loadFontBytes(fileName: string): Promise<Uint8Array> {
-  const fontPath = path.join(process.cwd(), 'public', 'fonts', fileName);
-  const fontBuffer = await readFile(fontPath);
-  return new Uint8Array(fontBuffer);
-}
-
-function getRegularFontBytes(): Promise<Uint8Array> {
-  if (!regularFontBytesPromise) {
-    regularFontBytesPromise = loadFontBytes('NotoSans-Regular.ttf');
+async function loadFonts() {
+  if (cachedFonts) return cachedFonts;
+  const fontDir = path.join(process.cwd(), 'public', 'fonts');
+  await fs.mkdir(fontDir, { recursive: true });
+  const regularPath = path.join(fontDir, 'NotoSans-Regular.ttf');
+  const boldPath = path.join(fontDir, 'NotoSans-Bold.ttf');
+  try {
+    await fs.access(regularPath);
+    await fs.access(boldPath);
+  } catch {
+    await fs.writeFile(regularPath, Buffer.from(NOTO_SANS_REGULAR_BASE64, 'base64'));
+    await fs.writeFile(boldPath, Buffer.from(NOTO_SANS_BOLD_BASE64, 'base64'));
   }
-  return regularFontBytesPromise;
-}
-
-function getBoldFontBytes(): Promise<Uint8Array> {
-  if (!boldFontBytesPromise) {
-    boldFontBytesPromise = loadFontBytes('NotoSans-Bold.ttf');
-  }
-  return boldFontBytesPromise;
-}
-
-function wrapTextByWidth(
-  inputText: string,
-  maxWidth: number,
-  fontSize: number,
-  measureTextWidth: (text: string, size: number) => number
-): string[] {
-  const words = inputText.split(/\s+/).filter(Boolean);
-  if (words.length === 0) return [''];
-
-  const lines: string[] = [];
-  let currentLine = words[0];
-
-  for (let index = 1; index < words.length; index += 1) {
-    const candidateLine = `${currentLine} ${words[index]}`;
-    if (measureTextWidth(candidateLine, fontSize) <= maxWidth) {
-      currentLine = candidateLine;
-    } else {
-      lines.push(currentLine);
-      currentLine = words[index];
-    }
-  }
-
-  lines.push(currentLine);
-  return lines;
+  const [regular, bold] = await Promise.all([
+    fs.readFile(regularPath),
+    fs.readFile(boldPath)
+  ]);
+  cachedFonts = { regular, bold };
+  return cachedFonts;
 }
 
 export async function generateOrderPdf(
@@ -92,32 +65,21 @@ export async function generateOrderPdf(
   order: PdfOrder,
   items: PdfItem[]
 ): Promise<Uint8Array> {
-  const pdfDocument = await PDFDocument.create();
-  pdfDocument.registerFontkit(fontkit);
+  const doc = await PDFDocument.create();
+  doc.registerFontkit(fontkit);
+  const { regular, bold } = await loadFonts();
+  const font = await doc.embedFont(regular, { subset: true });
+  const fontBold = await doc.embedFont(bold, { subset: true });
 
-  const [regularFontBytes, boldFontBytes] = await Promise.all([
-    getRegularFontBytes(),
-    getBoldFontBytes()
-  ]);
+  const page = doc.addPage([595.28, 841.89]);
+  const { height } = page.getSize();
 
-  const regularFont = await pdfDocument.embedFont(regularFontBytes, { subset: true });
-  const boldFont = await pdfDocument.embedFont(boldFontBytes, { subset: true });
-
-  const page = pdfDocument.addPage([595.28, 841.89]);
-  const pageSize = page.getSize();
-
-  let cursorY = pageSize.height - 50;
-  const leftMargin = 50;
+  let y = height - 50;
+  const left = 50;
   const lineHeight = 16;
 
-  page.drawText(title, {
-    x: leftMargin,
-    y: cursorY,
-    size: 18,
-    font: boldFont,
-    color: rgb(0.15, 0.15, 0.18)
-  });
-  cursorY -= 28;
+  page.drawText(title, { x: left, y, size: 18, font: fontBold, color: rgb(0.15, 0.15, 0.18) });
+  y -= 28;
 
   const companyLines = [
     COMPANY_INFO.name,
@@ -127,11 +89,11 @@ export async function generateOrderPdf(
   ];
 
   companyLines.forEach((line) => {
-    page.drawText(line, { x: leftMargin, y: cursorY, size: 10, font: regularFont });
-    cursorY -= 14;
+    page.drawText(line, { x: left, y, size: 10, font });
+    y -= 14;
   });
 
-  cursorY -= 8;
+  y -= 8;
 
   const infoLines = [
     `Št. naročila: ${order.orderNumber}`,
@@ -140,16 +102,16 @@ export async function generateOrderPdf(
   ];
 
   infoLines.forEach((line) => {
-    page.drawText(line, { x: leftMargin, y: cursorY, size: 10, font: regularFont });
-    cursorY -= 14;
+    page.drawText(line, { x: left, y, size: 10, font });
+    y -= 14;
   });
 
   const customerTitle = order.organizationName
     ? `Organizacija: ${order.organizationName}`
     : `Naročnik: ${order.contactName}`;
 
-  page.drawText(customerTitle, { x: leftMargin, y: cursorY, size: 10, font: boldFont });
-  cursorY -= 16;
+  page.drawText(customerTitle, { x: left, y, size: 10, font: fontBold });
+  y -= 16;
 
   const contactLines = [
     `Kontakt: ${order.contactName}`,
@@ -160,14 +122,14 @@ export async function generateOrderPdf(
   ].filter(Boolean) as string[];
 
   contactLines.forEach((line) => {
-    page.drawText(line, { x: leftMargin, y: cursorY, size: 10, font: regularFont });
-    cursorY -= 14;
+    page.drawText(line, { x: left, y, size: 10, font });
+    y -= 14;
   });
 
-  cursorY -= 6;
+  y -= 6;
 
-  page.drawText('Postavke', { x: leftMargin, y: cursorY, size: 11, font: boldFont });
-  cursorY -= 18;
+  page.drawText('Postavke', { x: left, y, size: 11, font: fontBold });
+  y -= 18;
 
   const columns = [
     { title: 'SKU', width: 90 },
@@ -177,38 +139,30 @@ export async function generateOrderPdf(
     { title: 'Cena', width: 80 }
   ];
 
-  let cursorX = leftMargin;
-  columns.forEach((column) => {
-    page.drawText(column.title, { x: cursorX, y: cursorY, size: 9, font: boldFont });
-    cursorX += column.width;
+  let x = left;
+  columns.forEach((col) => {
+    page.drawText(col.title, { x, y, size: 9, font: fontBold });
+    x += col.width;
   });
 
-  cursorY -= 12;
+  y -= 12;
 
   items.forEach((item) => {
-    cursorX = leftMargin;
-    page.drawText(item.sku, { x: cursorX, y: cursorY, size: 9, font: regularFont });
-
-    cursorX += columns[0].width;
-    page.drawText(item.name, { x: cursorX, y: cursorY, size: 9, font: regularFont });
-
-    cursorX += columns[1].width;
-    page.drawText(String(item.quantity), { x: cursorX, y: cursorY, size: 9, font: regularFont });
-
-    cursorX += columns[2].width;
-    page.drawText(item.unit ?? '-', { x: cursorX, y: cursorY, size: 9, font: regularFont });
-
-    cursorX += columns[3].width;
-    const priceLabel =
-      item.unitPrice !== null && item.unitPrice !== undefined
-        ? formatCurrency(item.unitPrice)
-        : 'Po dogovoru';
-    page.drawText(priceLabel, { x: cursorX, y: cursorY, size: 9, font: regularFont });
-
-    cursorY -= lineHeight;
+    x = left;
+    page.drawText(item.sku, { x, y, size: 9, font });
+    x += columns[0].width;
+    page.drawText(item.name, { x, y, size: 9, font });
+    x += columns[1].width;
+    page.drawText(String(item.quantity), { x, y, size: 9, font });
+    x += columns[2].width;
+    page.drawText(item.unit ?? '-', { x, y, size: 9, font });
+    x += columns[3].width;
+    const priceLabel = item.unitPrice ? formatCurrency(item.unitPrice) : 'Po dogovoru';
+    page.drawText(priceLabel, { x, y, size: 9, font });
+    y -= lineHeight;
   });
 
-  cursorY -= 8;
+  y -= 8;
 
   if (order.subtotal > 0 || order.total > 0) {
     const totals = [
@@ -218,36 +172,25 @@ export async function generateOrderPdf(
     ];
 
     totals.forEach((line) => {
-      page.drawText(line, { x: leftMargin, y: cursorY, size: 10, font: boldFont });
-      cursorY -= 14;
+      page.drawText(line, { x: left, y, size: 10, font: fontBold });
+      y -= 14;
     });
   } else {
     page.drawText('Cene bodo določene ob potrditvi ponudbe.', {
-      x: leftMargin,
-      y: cursorY,
+      x: left,
+      y,
       size: 10,
-      font: regularFont
+      font
     });
-    cursorY -= 14;
+    y -= 14;
   }
 
   if (order.notes) {
-    cursorY -= 4;
-    page.drawText('Opombe:', { x: leftMargin, y: cursorY, size: 10, font: boldFont });
-    cursorY -= 14;
-
-    const wrappedNoteLines = wrapTextByWidth(
-      order.notes,
-      pageSize.width - leftMargin * 2,
-      9,
-      (text, size) => regularFont.widthOfTextAtSize(text, size)
-    );
-
-    wrappedNoteLines.forEach((line) => {
-      page.drawText(line, { x: leftMargin, y: cursorY, size: 9, font: regularFont });
-      cursorY -= 12;
-    });
+    y -= 4;
+    page.drawText('Opombe:', { x: left, y, size: 10, font: fontBold });
+    y -= 14;
+    page.drawText(order.notes, { x: left, y, size: 9, font });
   }
 
-  return pdfDocument.save();
+  return doc.save();
 }

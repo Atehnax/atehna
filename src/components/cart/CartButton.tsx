@@ -6,6 +6,7 @@ import { useCartStore } from '@/lib/cart/store';
 export default function CartButton() {
   const items = useCartStore((state) => state.items);
   const itemCount = useCartStore((state) => state.getItemCount());
+  const items = useCartStore((state) => state.items);
   const openDrawer = useCartStore((state) => state.openDrawer);
   const [isMounted, setIsMounted] = useState(false);
   const total = items.reduce(

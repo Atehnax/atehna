@@ -212,6 +212,7 @@ export default function OrderPageClient() {
               </label>
               <input
                 id="deliveryAddress"
+                list="slovenian-addresses"
                 value={formData.deliveryAddress}
                 onChange={(event) =>
                   setFormData((prev) => ({ ...prev, deliveryAddress: event.target.value }))

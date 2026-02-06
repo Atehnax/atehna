@@ -8,6 +8,7 @@ export type CartItem = {
   sku: string;
   name: string;
   unit?: string;
+  unitPrice?: number | null;
   quantity: number;
   category?: string;
   note?: string;

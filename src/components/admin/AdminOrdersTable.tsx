@@ -14,7 +14,7 @@ type OrderRow = {
   contact_name: string;
   status: string;
   payment_status?: string | null;
-  total: number | null;
+  total: number | string | null;
   created_at: string;
 };
 
@@ -36,10 +36,25 @@ type Attachment = {
   created_at: string;
 };
 
-const formatCurrency = (value: number | null | undefined) =>
-  typeof value === 'number' && value > 0
-    ? new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }).format(value)
-    : 'Po dogovoru';
+const currencyFormatter = new Intl.NumberFormat('sl-SI', {
+  style: 'currency',
+  currency: 'EUR'
+});
+
+const toAmount = (value: unknown): number => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+
+  if (typeof value === 'string') {
+    // handles both "123.45" and "123,45"
+    const normalized = value.replace(',', '.').trim();
+    const parsed = Number(normalized);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+
+  return 0;
+};
+
+const formatCurrency = (value: unknown) => currencyFormatter.format(toAmount(value));
 
 const getPaymentBadge = (status?: string | null) => {
   if (status === 'paid') return 'bg-emerald-100 text-emerald-700';
@@ -111,16 +126,16 @@ export default function AdminOrdersTable({
 
   const handleDelete = async () => {
     if (selected.length === 0) return;
+
     const confirmed = window.confirm(
       `Ali ste prepričani, da želite izbrisati ${selected.length} naročil?`
     );
     if (!confirmed) return;
+
     setIsDeleting(true);
     try {
       await Promise.all(
-        selected.map((orderId) =>
-          fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' })
-        )
+        selected.map((orderId) => fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' }))
       );
       setSelected([]);
       window.location.reload();

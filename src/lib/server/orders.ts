@@ -59,6 +59,91 @@ export type PaymentLogRow = {
   created_at: string;
 };
 
+function parseNullableNumber(rawValue: unknown): number | null {
+  if (rawValue === null || rawValue === undefined) return null;
+  if (typeof rawValue === 'number') return Number.isFinite(rawValue) ? rawValue : null;
+  if (typeof rawValue === 'string') {
+    const normalizedValue = rawValue.replace(',', '.').trim();
+    const parsedValue = Number(normalizedValue);
+    return Number.isFinite(parsedValue) ? parsedValue : null;
+  }
+  return null;
+}
+
+function toIsoTimestamp(rawValue: unknown): string {
+  if (rawValue instanceof Date) return rawValue.toISOString();
+  return String(rawValue);
+}
+
+function mapOrderRow(rawRow: Record<string, unknown>): OrderRow {
+  return {
+    id: Number(rawRow.id),
+    order_number: String(rawRow.order_number),
+    customer_type: String(rawRow.customer_type),
+    organization_name: (rawRow.organization_name as string | null) ?? null,
+    contact_name: String(rawRow.contact_name),
+    email: String(rawRow.email),
+    phone: (rawRow.phone as string | null) ?? null,
+    delivery_address: (rawRow.delivery_address as string | null) ?? null,
+    reference: (rawRow.reference as string | null) ?? null,
+    notes: (rawRow.notes as string | null) ?? null,
+    status: String(rawRow.status),
+    payment_status: (rawRow.payment_status as string | null) ?? null,
+    payment_notes: (rawRow.payment_notes as string | null) ?? null,
+    subtotal: parseNullableNumber(rawRow.subtotal),
+    tax: parseNullableNumber(rawRow.tax),
+    total: parseNullableNumber(rawRow.total),
+    created_at: toIsoTimestamp(rawRow.created_at)
+  };
+}
+
+function mapOrderItemRow(rawRow: Record<string, unknown>): OrderItemRow {
+  return {
+    id: Number(rawRow.id),
+    order_id: Number(rawRow.order_id),
+    sku: String(rawRow.sku),
+    name: String(rawRow.name),
+    unit: (rawRow.unit as string | null) ?? null,
+    quantity: Number(rawRow.quantity),
+    unit_price: parseNullableNumber(rawRow.unit_price),
+    total_price: parseNullableNumber(rawRow.total_price)
+  };
+}
+
+function mapOrderDocumentRow(rawRow: Record<string, unknown>): OrderDocumentRow {
+  return {
+    id: Number(rawRow.id),
+    order_id: Number(rawRow.order_id),
+    type: String(rawRow.type),
+    filename: String(rawRow.filename),
+    blob_url: String(rawRow.blob_url),
+    blob_pathname: (rawRow.blob_pathname as string | null) ?? null,
+    created_at: toIsoTimestamp(rawRow.created_at)
+  };
+}
+
+function mapOrderAttachmentRow(rawRow: Record<string, unknown>): OrderAttachmentRow {
+  return {
+    id: Number(rawRow.id),
+    order_id: Number(rawRow.order_id),
+    type: String(rawRow.type),
+    filename: String(rawRow.filename),
+    blob_url: String(rawRow.blob_url),
+    created_at: toIsoTimestamp(rawRow.created_at)
+  };
+}
+
+function mapPaymentLogRow(rawRow: Record<string, unknown>): PaymentLogRow {
+  return {
+    id: Number(rawRow.id),
+    order_id: Number(rawRow.order_id),
+    previous_status: (rawRow.previous_status as string | null) ?? null,
+    new_status: String(rawRow.new_status),
+    note: (rawRow.note as string | null) ?? null,
+    created_at: toIsoTimestamp(rawRow.created_at)
+  };
+}
+
 export async function fetchOrders(options?: {
   fromDate?: string | null;
   toDate?: string | null;
@@ -66,53 +151,127 @@ export async function fetchOrders(options?: {
 }): Promise<OrderRow[]> {
   const pool = await getPool();
   const conditions: string[] = [];
-  const params: Array<string> = [];
+  const queryParams: unknown[] = [];
 
   if (options?.fromDate) {
-    params.push(options.fromDate);
-    conditions.push(`created_at >= $${params.length}`);
+    queryParams.push(options.fromDate);
+    conditions.push(`orders.created_at >= $${queryParams.length}`);
   }
+
   if (options?.toDate) {
-    params.push(options.toDate);
-    conditions.push(`created_at <= $${params.length}`);
+    queryParams.push(options.toDate);
+    conditions.push(`orders.created_at <= $${queryParams.length}`);
   }
+
   if (options?.query) {
-    params.push(`%${options.query}%`);
-    const idx = params.length;
+    queryParams.push(`%${options.query}%`);
+    const queryIndex = queryParams.length;
     conditions.push(
-      `(organization_name ILIKE $${idx} OR contact_name ILIKE $${idx} OR delivery_address ILIKE $${idx})`
+      `(orders.organization_name ilike $${queryIndex} or orders.contact_name ilike $${queryIndex} or orders.delivery_address ilike $${queryIndex})`
     );
   }
 
-  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const whereClause = conditions.length > 0 ? `where ${conditions.join(' and ')}` : '';
+
   const result = await pool.query(
-    `SELECT * FROM orders ${whereClause} ORDER BY created_at DESC`,
-    params
+    `
+    select
+      orders.id,
+      orders.order_number,
+      orders.customer_type,
+      orders.organization_name,
+      orders.contact_name,
+      orders.email,
+      orders.phone,
+      orders.delivery_address,
+      orders.reference,
+      orders.notes,
+      orders.status,
+      orders.payment_status,
+      orders.payment_notes,
+      coalesce(orders.subtotal, computed_totals.subtotal, 0)::numeric as subtotal,
+      coalesce(orders.tax, computed_totals.tax, 0)::numeric as tax,
+      coalesce(orders.total, computed_totals.total, 0)::numeric as total,
+      orders.created_at
+    from orders
+    left join (
+      select
+        order_items.order_id,
+        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)), 2) as subtotal,
+        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)) * 0.22, 2) as tax,
+        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)) * 1.22, 2) as total
+      from order_items
+      group by order_items.order_id
+    ) as computed_totals
+      on computed_totals.order_id = orders.id
+    ${whereClause}
+    order by orders.created_at desc
+    `,
+    queryParams
   );
-  return result.rows as OrderRow[];
+
+  return result.rows.map((rawRow) => mapOrderRow(rawRow as Record<string, unknown>));
 }
 
 export async function fetchOrderById(orderId: number): Promise<OrderRow | null> {
   const pool = await getPool();
-  const result = await pool.query('SELECT * FROM orders WHERE id = $1', [orderId]);
-  return (result.rows[0] as OrderRow) ?? null;
+
+  const result = await pool.query(
+    `
+    select
+      orders.id,
+      orders.order_number,
+      orders.customer_type,
+      orders.organization_name,
+      orders.contact_name,
+      orders.email,
+      orders.phone,
+      orders.delivery_address,
+      orders.reference,
+      orders.notes,
+      orders.status,
+      orders.payment_status,
+      orders.payment_notes,
+      coalesce(orders.subtotal, computed_totals.subtotal, 0)::numeric as subtotal,
+      coalesce(orders.tax, computed_totals.tax, 0)::numeric as tax,
+      coalesce(orders.total, computed_totals.total, 0)::numeric as total,
+      orders.created_at
+    from orders
+    left join (
+      select
+        order_items.order_id,
+        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)), 2) as subtotal,
+        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)) * 0.22, 2) as tax,
+        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)) * 1.22, 2) as total
+      from order_items
+      group by order_items.order_id
+    ) as computed_totals
+      on computed_totals.order_id = orders.id
+    where orders.id = $1
+    `,
+    [orderId]
+  );
+
+  if (result.rows.length === 0) return null;
+  return mapOrderRow(result.rows[0] as Record<string, unknown>);
 }
 
 export async function fetchOrderItems(orderId: number): Promise<OrderItemRow[]> {
   const pool = await getPool();
-  const result = await pool.query('SELECT * FROM order_items WHERE order_id = $1 ORDER BY id', [
-    orderId
-  ]);
-  return result.rows as OrderItemRow[];
+  const result = await pool.query(
+    'select * from order_items where order_id = $1 order by id',
+    [orderId]
+  );
+  return result.rows.map((rawRow) => mapOrderItemRow(rawRow as Record<string, unknown>));
 }
 
 export async function fetchOrderDocuments(orderId: number): Promise<OrderDocumentRow[]> {
   const pool = await getPool();
   const result = await pool.query(
-    'SELECT * FROM order_documents WHERE order_id = $1 ORDER BY created_at DESC',
+    'select * from order_documents where order_id = $1 order by created_at desc',
     [orderId]
   );
-  return result.rows as OrderDocumentRow[];
+  return result.rows.map((rawRow) => mapOrderDocumentRow(rawRow as Record<string, unknown>));
 }
 
 export async function fetchOrderDocumentsForOrders(
@@ -121,19 +280,19 @@ export async function fetchOrderDocumentsForOrders(
   if (orderIds.length === 0) return [];
   const pool = await getPool();
   const result = await pool.query(
-    'SELECT * FROM order_documents WHERE order_id = ANY($1::bigint[]) ORDER BY created_at DESC',
+    'select * from order_documents where order_id = any($1::bigint[]) order by created_at desc',
     [orderIds]
   );
-  return result.rows as OrderDocumentRow[];
+  return result.rows.map((rawRow) => mapOrderDocumentRow(rawRow as Record<string, unknown>));
 }
 
 export async function fetchOrderAttachments(orderId: number): Promise<OrderAttachmentRow[]> {
   const pool = await getPool();
   const result = await pool.query(
-    'SELECT * FROM order_attachments WHERE order_id = $1 ORDER BY created_at DESC',
+    'select * from order_attachments where order_id = $1 order by created_at desc',
     [orderId]
   );
-  return result.rows as OrderAttachmentRow[];
+  return result.rows.map((rawRow) => mapOrderAttachmentRow(rawRow as Record<string, unknown>));
 }
 
 export async function fetchOrderAttachmentsForOrders(
@@ -142,20 +301,20 @@ export async function fetchOrderAttachmentsForOrders(
   if (orderIds.length === 0) return [];
   const pool = await getPool();
   const result = await pool.query(
-    'SELECT * FROM order_attachments WHERE order_id = ANY($1::bigint[]) ORDER BY created_at DESC',
+    'select * from order_attachments where order_id = any($1::bigint[]) order by created_at desc',
     [orderIds]
   );
-  return result.rows as OrderAttachmentRow[];
+  return result.rows.map((rawRow) => mapOrderAttachmentRow(rawRow as Record<string, unknown>));
 }
 
 export async function fetchPaymentLogs(orderId: number): Promise<PaymentLogRow[]> {
   const pool = await getPool();
   try {
     const result = await pool.query(
-      'SELECT * FROM order_payment_logs WHERE order_id = $1 ORDER BY created_at DESC',
+      'select * from order_payment_logs where order_id = $1 order by created_at desc',
       [orderId]
     );
-    return result.rows as PaymentLogRow[];
+    return result.rows.map((rawRow) => mapPaymentLogRow(rawRow as Record<string, unknown>));
   } catch (error) {
     if (
       typeof error === 'object' &&

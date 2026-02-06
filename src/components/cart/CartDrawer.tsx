@@ -9,12 +9,14 @@ export default function CartDrawer() {
   const closeDrawer = useCartStore((state) => state.closeDrawer);
   const setQuantity = useCartStore((state) => state.setQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
+
   const formatter = new Intl.NumberFormat('sl-SI', {
     style: 'currency',
     currency: 'EUR'
   });
+
   const total = items.reduce(
-    (sum, item) => sum + (item.price ?? 0) * item.quantity,
+    (sum, item) => sum + (item.unitPrice ?? 0) * item.quantity,
     0
   );
 
@@ -66,7 +68,7 @@ export default function CartDrawer() {
                       <p className="text-sm font-semibold text-slate-900">{item.name}</p>
                       <p className="text-xs text-slate-500">SKU: {item.sku}</p>
                       <p className="mt-1 text-xs text-slate-500">
-                        Cena: {item.price ? formatter.format(item.price) : '—'}
+                        Cena: {item.unitPrice != null ? formatter.format(item.unitPrice) : '—'}
                       </p>
                       {item.unit && (
                         <p className="mt-1 text-xs text-slate-500">Enota: {item.unit}</p>
@@ -80,6 +82,7 @@ export default function CartDrawer() {
                       Odstrani
                     </button>
                   </div>
+
                   <div className="mt-3 flex items-center gap-2">
                     <button
                       type="button"
@@ -106,7 +109,7 @@ export default function CartDrawer() {
                       +
                     </button>
                     <span className="ml-auto text-sm font-semibold text-slate-900">
-                      {formatter.format((item.price ?? 0) * item.quantity)}
+                      {formatter.format((item.unitPrice ?? 0) * item.quantity)}
                     </span>
                   </div>
                 </div>

@@ -6,13 +6,14 @@ import { useCartStore } from '@/lib/cart/store';
 export default function CartButton() {
   const items = useCartStore((state) => state.items);
   const itemCount = useCartStore((state) => state.getItemCount());
-  const items = useCartStore((state) => state.items);
   const openDrawer = useCartStore((state) => state.openDrawer);
   const [isMounted, setIsMounted] = useState(false);
+
   const total = items.reduce(
     (sum, item) => sum + (item.unitPrice ?? 0) * item.quantity,
     0
   );
+
   const formattedTotal = new Intl.NumberFormat('sl-SI', {
     style: 'currency',
     currency: 'EUR'

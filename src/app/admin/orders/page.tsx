@@ -65,7 +65,7 @@ export default async function AdminOrdersPage({
       }
     ];
     return (
-      <div className="container-base py-12">
+      <div className="mx-auto w-full max-w-none px-6 py-12">
         <div className="flex flex-col gap-6">
           <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-6 text-sm text-amber-700">
             DATABASE_URL ni nastavljen — prikazan je demo pogled.
@@ -114,6 +114,7 @@ export default async function AdminOrdersPage({
             </div>
           </form>
 
+          <AdminOrdersDownloadControls fromDate={from} toDate={to} />
           <AdminOrdersTable
             orders={demoOrders}
             documents={demoDocuments}
@@ -135,7 +136,7 @@ export default async function AdminOrdersPage({
     fetchOrderAttachmentsForOrders(orderIds)
   ]);
   return (
-    <div className="container-base py-12">
+    <div className="mx-auto w-full max-w-none px-6 py-12">
       <div className="flex flex-col gap-6">
         <div>
           <h1 className="text-3xl font-semibold text-slate-900">Administracija naročil</h1>
@@ -187,7 +188,7 @@ export default async function AdminOrdersPage({
           </div>
         </form>
 
-        <AdminOrdersDownloadControls />
+        <AdminOrdersDownloadControls fromDate={from} toDate={to} />
 
         <AdminOrdersTable orders={orders} documents={documents} attachments={attachments} />
       </div>

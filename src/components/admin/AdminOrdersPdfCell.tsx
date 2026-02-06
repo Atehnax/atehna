@@ -108,7 +108,6 @@ export default function AdminOrdersPdfCell({
 
   const [selected, setSelected] = useState(initialSelection);
   const [loadingType, setLoadingType] = useState<GeneratePdfType | null>(null);
-  const [openType, setOpenType] = useState<PdfTypeKey | null>(null);
 
   useEffect(() => {
     setSelected((prev) => {
@@ -151,17 +150,18 @@ export default function AdminOrdersPdfCell({
   };
 
   return (
-    <div className="flex flex-row flex-wrap gap-4">
+    <div className="flex items-center gap-3 overflow-x-auto whitespace-nowrap">
       {PDF_TYPES.map((pdf) => {
         const options = grouped[pdf.key];
         const selectedUrl = selected[pdf.key];
+        const activeUrl = selectedUrl ?? options[0]?.blob_url ?? null;
         const hasDocs = options.length > 0;
         const generateKey = isGenerateKey(pdf.key) ? pdf.key : null;
         return (
-          <div key={pdf.key} className="flex w-[190px] flex-col gap-2">
-            {selectedUrl ? (
+          <div key={pdf.key} className="flex shrink-0 items-center gap-2">
+            {activeUrl ? (
               <a
-                href={selectedUrl}
+                href={activeUrl}
                 target="_blank"
                 rel="noreferrer"
                 className={`inline-flex w-fit rounded-full px-2 py-0.5 text-[11px] font-semibold ${pdf.color}`}
@@ -175,43 +175,30 @@ export default function AdminOrdersPdfCell({
                 {pdf.label}
               </span>
             )}
-            <div className="flex items-center gap-2">
+            <select
+              value={activeUrl ?? ''}
+              onChange={(event) =>
+                setSelected((prev) => ({ ...prev, [pdf.key]: event.target.value }))
+              }
+              disabled={!hasDocs}
+              className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600 disabled:cursor-not-allowed disabled:text-slate-300"
+            >
+              {!hasDocs && <option value="">Ni dokumenta</option>}
+              {options.map((doc) => (
+                <option key={`${doc.blob_url}-${doc.created_at}`} value={doc.blob_url}>
+                  {new Date(doc.created_at).toLocaleDateString('sl-SI')}
+                </option>
+              ))}
+            </select>
+            {pdf.canGenerate && generateKey && (
               <button
                 type="button"
-                onClick={() => setOpenType((prev) => (prev === pdf.key ? null : pdf.key))}
-                disabled={!hasDocs}
-                className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-500 hover:border-brand-200 hover:text-brand-600 disabled:cursor-not-allowed disabled:text-slate-300"
-                aria-label="Prikaži zgodovino"
+                onClick={() => handleGenerate(generateKey)}
+                disabled={loadingType === generateKey}
+                className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600 transition hover:border-brand-200 hover:text-brand-600 disabled:cursor-not-allowed disabled:text-slate-300"
               >
-                ▾
+                {hasDocs ? '↻' : '+'}
               </button>
-              {pdf.canGenerate && generateKey && (
-                <button
-                  type="button"
-                  onClick={() => handleGenerate(generateKey)}
-                  disabled={loadingType === generateKey}
-                  className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600 transition hover:border-brand-200 hover:text-brand-600 disabled:cursor-not-allowed disabled:text-slate-300"
-                >
-                  {hasDocs ? '↻' : '+'}
-                </button>
-              )}
-            </div>
-            {openType === pdf.key && hasDocs && (
-              <div className="rounded-lg border border-slate-200 bg-white p-2 text-xs text-slate-600 shadow-sm">
-                {options.map((doc) => (
-                  <button
-                    key={`${doc.blob_url}-${doc.created_at}`}
-                    type="button"
-                    onClick={() => {
-                      setSelected((prev) => ({ ...prev, [pdf.key]: doc.blob_url }));
-                      setOpenType(null);
-                    }}
-                    className="block w-full text-left hover:text-brand-600"
-                  >
-                    {new Date(doc.created_at).toLocaleDateString('sl-SI')}
-                  </button>
-                ))}
-              </div>
             )}
           </div>
         );

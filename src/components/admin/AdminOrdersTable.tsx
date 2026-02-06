@@ -14,7 +14,7 @@ type OrderRow = {
   contact_name: string;
   status: string;
   payment_status?: string | null;
-  total: number;
+  total: number | null;
   created_at: string;
 };
 
@@ -36,8 +36,10 @@ type Attachment = {
   created_at: string;
 };
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }).format(value);
+const formatCurrency = (value: number | null | undefined) =>
+  typeof value === 'number' && value > 0
+    ? new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }).format(value)
+    : 'Po dogovoru';
 
 const getPaymentBadge = (status?: string | null) => {
   if (status === 'paid') return 'bg-emerald-100 text-emerald-700';
@@ -128,8 +130,8 @@ export default function AdminOrdersTable({
   };
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <table className="w-full text-left text-sm">
+    <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <table className="w-full min-w-[1200px] table-auto text-left text-sm">
         <thead className="bg-slate-50 text-xs uppercase text-slate-500">
           <tr>
             <th className="px-4 py-3">
@@ -153,11 +155,11 @@ export default function AdminOrdersTable({
             </th>
             <th className="px-4 py-3">Naročnik</th>
             <th className="px-4 py-3">Tip</th>
-            <th className="px-4 py-3">Status</th>
+            <th className="px-4 py-3 min-w-[140px]">Status</th>
             <th className="px-4 py-3">Plačilo</th>
             <th className="px-4 py-3 text-right">Skupaj</th>
             <th className="px-4 py-3">Datum</th>
-            <th className="px-4 py-3">PDFs</th>
+            <th className="px-4 py-3 min-w-[520px]">PDFs</th>
           </tr>
         </thead>
         <tbody>
@@ -178,7 +180,7 @@ export default function AdminOrdersTable({
                     aria-label={`Izberi naročilo ${order.order_number}`}
                   />
                 </td>
-                <td className="px-4 py-4 font-semibold text-slate-900">
+                <td className="px-4 py-4 whitespace-nowrap font-semibold text-slate-900">
                   <Link
                     href={`/admin/orders/${order.id}`}
                     className="text-sm font-semibold text-brand-600 hover:text-brand-700"
@@ -192,7 +194,7 @@ export default function AdminOrdersTable({
                 <td className="px-4 py-4 text-slate-600">
                   {getCustomerTypeLabel(order.customer_type)}
                 </td>
-                <td className="px-4 py-4 text-slate-600">
+                <td className="px-4 py-4 text-slate-600 min-w-[140px]">
                   <AdminOrderStatusSelect orderId={order.id} status={order.status} />
                 </td>
                 <td className="px-4 py-4">
@@ -204,13 +206,13 @@ export default function AdminOrdersTable({
                     {getPaymentLabel(order.payment_status)}
                   </span>
                 </td>
-                <td className="px-4 py-4 text-right text-slate-700">
+                <td className="px-4 py-4 text-right text-slate-700 whitespace-nowrap">
                   {formatCurrency(order.total)}
                 </td>
-                <td className="px-4 py-4 text-slate-600">
+                <td className="px-4 py-4 text-slate-600 whitespace-nowrap">
                   {new Date(order.created_at).toLocaleDateString('sl-SI')}
                 </td>
-                <td className="px-4 py-4">
+                <td className="px-4 py-4 min-w-[520px]">
                   <AdminOrdersPdfCell
                     orderId={order.id}
                     documents={docsByOrder.get(order.id) ?? []}

@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs/promises';
 import fontkit from '@pdf-lib/fontkit';
-import { PDFDocument, rgb } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { COMPANY_INFO } from '@/lib/constants';
 import { NOTO_SANS_BOLD_BASE64, NOTO_SANS_REGULAR_BASE64 } from '@/lib/server/pdfFontData';
 
@@ -52,12 +52,16 @@ async function loadFonts() {
     await fs.writeFile(regularPath, Buffer.from(NOTO_SANS_REGULAR_BASE64, 'base64'));
     await fs.writeFile(boldPath, Buffer.from(NOTO_SANS_BOLD_BASE64, 'base64'));
   }
-  const [regular, bold] = await Promise.all([
-    fs.readFile(regularPath),
-    fs.readFile(boldPath)
-  ]);
-  cachedFonts = { regular, bold };
-  return cachedFonts;
+  try {
+    const [regular, bold] = await Promise.all([
+      fs.readFile(regularPath),
+      fs.readFile(boldPath)
+    ]);
+    cachedFonts = { regular, bold };
+    return cachedFonts;
+  } catch {
+    return null;
+  }
 }
 
 export async function generateOrderPdf(
@@ -67,9 +71,21 @@ export async function generateOrderPdf(
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
-  const { regular, bold } = await loadFonts();
-  const font = await doc.embedFont(regular, { subset: true });
-  const fontBold = await doc.embedFont(bold, { subset: true });
+  let font;
+  let fontBold;
+  try {
+    const fonts = await loadFonts();
+    if (fonts) {
+      font = await doc.embedFont(fonts.regular, { subset: true });
+      fontBold = await doc.embedFont(fonts.bold, { subset: true });
+    } else {
+      font = await doc.embedFont(StandardFonts.Helvetica);
+      fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+    }
+  } catch {
+    font = await doc.embedFont(StandardFonts.Helvetica);
+    fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+  }
 
   const page = doc.addPage([595.28, 841.89]);
   const { height } = page.getSize();

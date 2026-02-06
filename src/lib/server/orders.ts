@@ -14,9 +14,9 @@ export type OrderRow = {
   status: string;
   payment_status?: string | null;
   payment_notes?: string | null;
-  subtotal: number;
-  tax: number;
-  total: number;
+  subtotal: number | null;
+  tax: number | null;
+  total: number | null;
   created_at: string;
 };
 
@@ -150,9 +150,21 @@ export async function fetchOrderAttachmentsForOrders(
 
 export async function fetchPaymentLogs(orderId: number): Promise<PaymentLogRow[]> {
   const pool = await getPool();
-  const result = await pool.query(
-    'SELECT * FROM order_payment_logs WHERE order_id = $1 ORDER BY created_at DESC',
-    [orderId]
-  );
-  return result.rows as PaymentLogRow[];
+  try {
+    const result = await pool.query(
+      'SELECT * FROM order_payment_logs WHERE order_id = $1 ORDER BY created_at DESC',
+      [orderId]
+    );
+    return result.rows as PaymentLogRow[];
+  } catch (error) {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as { code?: string }).code === '42P01'
+    ) {
+      return [];
+    }
+    throw error;
+  }
 }

@@ -609,7 +609,7 @@ export default function OrderPageClient() {
                       </div>
                     </div>
                   ) : (
-                    <div className="grid items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
+                    <div className="grid items-center gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(280px,360px)_auto]">
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-slate-900">{item.name}</p>
                         <p className="text-xs text-slate-500">
@@ -626,9 +626,11 @@ export default function OrderPageClient() {
                         >
                           −
                         </button>
+
                         <span className="min-w-[1.5rem] text-center text-sm font-semibold text-slate-700">
                           {item.quantity}
                         </span>
+
                         <button
                           type="button"
                           onClick={() => setQuantity(item.sku, item.quantity + 1)}
@@ -637,10 +639,10 @@ export default function OrderPageClient() {
                         >
                           +
                         </button>
-                      </div>
 
-                      <div className="justify-self-end text-right text-sm font-semibold text-slate-900 tabular-nums">
-                        {formatCurrency(lineTotal)}
+                        <span className="min-w-[72px] text-right text-sm font-semibold text-slate-900 tabular-nums">
+                          {formatCurrency(lineTotal)}
+                        </span>
                       </div>
 
                       <button

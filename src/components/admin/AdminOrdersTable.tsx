@@ -45,10 +45,9 @@ const toAmount = (value: unknown): number => {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
 
   if (typeof value === 'string') {
-    // handles both "123.45" and "123,45"
-    const normalized = value.replace(',', '.').trim();
-    const parsed = Number(normalized);
-    if (Number.isFinite(parsed)) return parsed;
+    const normalizedValue = value.replace(',', '.').trim();
+    const parsedValue = Number(normalizedValue);
+    if (Number.isFinite(parsedValue)) return parsedValue;
   }
 
   return 0;
@@ -83,29 +82,31 @@ export default function AdminOrdersTable({
   const [isDeleting, setIsDeleting] = useState(false);
   const selectAllRef = useRef<HTMLInputElement>(null);
 
-  const docsByOrder = useMemo(() => {
-    const map = new Map<number, PdfDoc[]>();
-    documents.forEach((doc) => {
-      const list = map.get(doc.order_id) ?? [];
-      list.push(doc);
-      map.set(doc.order_id, list);
+  const documentsByOrder = useMemo(() => {
+    const byOrder = new Map<number, PdfDoc[]>();
+    documents.forEach((documentItem) => {
+      const existingList = byOrder.get(documentItem.order_id) ?? [];
+      existingList.push(documentItem);
+      byOrder.set(documentItem.order_id, existingList);
     });
-    return map;
+    return byOrder;
   }, [documents]);
 
   const attachmentsByOrder = useMemo(() => {
-    const map = new Map<number, Attachment[]>();
-    attachments.forEach((attachment) => {
-      const list = map.get(attachment.order_id) ?? [];
-      list.push({ ...attachment, type: 'purchase_order' });
-      map.set(attachment.order_id, list);
+    const byOrder = new Map<number, Attachment[]>();
+    attachments.forEach((attachmentItem) => {
+      const existingList = byOrder.get(attachmentItem.order_id) ?? [];
+      existingList.push({ ...attachmentItem, type: 'purchase_order' });
+      byOrder.set(attachmentItem.order_id, existingList);
     });
-    return map;
+    return byOrder;
   }, [attachments]);
 
   const toggleSelected = (orderId: number) => {
-    setSelected((prev) =>
-      prev.includes(orderId) ? prev.filter((id) => id !== orderId) : [...prev, orderId]
+    setSelected((previousSelected) =>
+      previousSelected.includes(orderId)
+        ? previousSelected.filter((selectedId) => selectedId !== orderId)
+        : [...previousSelected, orderId]
     );
   };
 
@@ -119,9 +120,9 @@ export default function AdminOrdersTable({
   const toggleAll = () => {
     if (allSelected) {
       setSelected([]);
-    } else {
-      setSelected(orders.map((order) => order.id));
+      return;
     }
+    setSelected(orders.map((order) => order.id));
   };
 
   const handleDelete = async () => {
@@ -135,7 +136,9 @@ export default function AdminOrdersTable({
     setIsDeleting(true);
     try {
       await Promise.all(
-        selected.map((orderId) => fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' }))
+        selected.map((orderId) =>
+          fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' })
+        )
       );
       setSelected([]);
       window.location.reload();
@@ -146,10 +149,10 @@ export default function AdminOrdersTable({
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <table className="w-full min-w-[1200px] table-auto text-left text-sm">
+      <table className="w-full min-w-[1060px] table-auto text-left text-sm">
         <thead className="bg-slate-50 text-xs uppercase text-slate-500">
           <tr>
-            <th className="px-4 py-3">
+            <th className="px-3 py-3">
               <input
                 type="checkbox"
                 ref={selectAllRef}
@@ -158,7 +161,7 @@ export default function AdminOrdersTable({
                 aria-label="Izberi vse"
               />
             </th>
-            <th className="px-4 py-3">
+            <th className="px-3 py-3">
               <button
                 type="button"
                 onClick={handleDelete}
@@ -168,26 +171,26 @@ export default function AdminOrdersTable({
                 {isDeleting ? 'Brisanje...' : 'Izbriši'}
               </button>
             </th>
-            <th className="px-4 py-3">Naročnik</th>
-            <th className="px-4 py-3">Tip</th>
-            <th className="px-4 py-3 min-w-[140px]">Status</th>
-            <th className="px-4 py-3">Plačilo</th>
-            <th className="px-4 py-3 text-right">Skupaj</th>
-            <th className="px-4 py-3">Datum</th>
-            <th className="px-4 py-3 min-w-[520px]">PDFs</th>
+            <th className="px-3 py-3">Naročnik</th>
+            <th className="px-3 py-3">Tip</th>
+            <th className="px-3 py-3 min-w-[130px]">Status</th>
+            <th className="px-3 py-3">Plačilo</th>
+            <th className="px-3 py-3 text-right">Skupaj</th>
+            <th className="px-3 py-3">Datum</th>
+            <th className="px-3 py-3 min-w-[300px]">PDFs</th>
           </tr>
         </thead>
         <tbody>
           {orders.length === 0 ? (
             <tr>
-              <td className="px-4 py-6 text-center text-slate-500" colSpan={9}>
+              <td className="px-3 py-6 text-center text-slate-500" colSpan={9}>
                 Ni evidentiranih naročil.
               </td>
             </tr>
           ) : (
             orders.map((order) => (
               <tr key={order.id} className="border-t border-slate-100">
-                <td className="px-4 py-4">
+                <td className="px-3 py-3">
                   <input
                     type="checkbox"
                     checked={selected.includes(order.id)}
@@ -195,7 +198,7 @@ export default function AdminOrdersTable({
                     aria-label={`Izberi naročilo ${order.order_number}`}
                   />
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap font-semibold text-slate-900">
+                <td className="px-3 py-3 whitespace-nowrap font-semibold text-slate-900">
                   <Link
                     href={`/admin/orders/${order.id}`}
                     className="text-sm font-semibold text-brand-600 hover:text-brand-700"
@@ -203,16 +206,16 @@ export default function AdminOrdersTable({
                     {order.order_number}
                   </Link>
                 </td>
-                <td className="px-4 py-4 text-slate-600">
+                <td className="px-3 py-3 text-slate-600">
                   {order.organization_name || order.contact_name}
                 </td>
-                <td className="px-4 py-4 text-slate-600">
+                <td className="px-3 py-3 text-slate-600">
                   {getCustomerTypeLabel(order.customer_type)}
                 </td>
-                <td className="px-4 py-4 text-slate-600 min-w-[140px]">
+                <td className="px-3 py-3 text-slate-600 min-w-[130px]">
                   <AdminOrderStatusSelect orderId={order.id} status={order.status} />
                 </td>
-                <td className="px-4 py-4">
+                <td className="px-3 py-3">
                   <span
                     className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getPaymentBadge(
                       order.payment_status
@@ -221,16 +224,16 @@ export default function AdminOrdersTable({
                     {getPaymentLabel(order.payment_status)}
                   </span>
                 </td>
-                <td className="px-4 py-4 text-right text-slate-700 whitespace-nowrap">
+                <td className="px-3 py-3 text-right text-slate-700 whitespace-nowrap">
                   {formatCurrency(order.total)}
                 </td>
-                <td className="px-4 py-4 text-slate-600 whitespace-nowrap">
+                <td className="px-3 py-3 text-slate-600 whitespace-nowrap">
                   {new Date(order.created_at).toLocaleDateString('sl-SI')}
                 </td>
-                <td className="px-4 py-4 min-w-[520px]">
+                <td className="px-3 py-3 min-w-[300px]">
                   <AdminOrdersPdfCell
                     orderId={order.id}
-                    documents={docsByOrder.get(order.id) ?? []}
+                    documents={documentsByOrder.get(order.id) ?? []}
                     attachments={attachmentsByOrder.get(order.id) ?? []}
                   />
                 </td>

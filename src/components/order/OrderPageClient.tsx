@@ -302,9 +302,9 @@ export default function OrderPageClient() {
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-slate-900">Podrobnosti naročila</h2>
             <p className="mt-2 text-sm text-slate-600">
-              Naročilo je uspešno oddano. Št. naročila:{' '}
-              <span className="font-semibold text-slate-900">{orderResponse.orderNumber}</span>
+              Naročilo je uspešno oddano.
             </p>
+
 
             <div className="mt-5 grid gap-5 text-sm text-slate-700 md:grid-cols-2">
               <div>
@@ -609,7 +609,7 @@ export default function OrderPageClient() {
                       </div>
                     </div>
                   ) : (
-                    <div className="grid items-center gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(280px,360px)_auto]">
+                    <div className="grid items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-slate-900">{item.name}</p>
                         <p className="text-xs text-slate-500">
@@ -626,11 +626,9 @@ export default function OrderPageClient() {
                         >
                           −
                         </button>
-
                         <span className="min-w-[1.5rem] text-center text-sm font-semibold text-slate-700">
                           {item.quantity}
                         </span>
-
                         <button
                           type="button"
                           onClick={() => setQuantity(item.sku, item.quantity + 1)}
@@ -639,10 +637,10 @@ export default function OrderPageClient() {
                         >
                           +
                         </button>
+                      </div>
 
-                        <span className="min-w-[72px] text-right text-sm font-semibold text-slate-900 tabular-nums">
-                          {formatCurrency(lineTotal)}
-                        </span>
+                      <div className="justify-self-end text-right text-sm font-semibold text-slate-900 tabular-nums">
+                        {formatCurrency(lineTotal)}
                       </div>
 
                       <button
@@ -723,9 +721,6 @@ export default function OrderPageClient() {
         {orderResponse && (
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-slate-900">PDF dokument</h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Št. naročila: <span className="font-semibold">{orderResponse.orderNumber}</span>
-            </p>
 
             <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
               <iframe title="Predogled PDF" src={orderResponse.documentUrl} className="h-[420px] w-full" />

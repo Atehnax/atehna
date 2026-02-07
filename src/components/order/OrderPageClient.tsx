@@ -1,6 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+  type InputHTMLAttributes,
+  type TextareaHTMLAttributes,
+  type SelectHTMLAttributes,
+  type ReactNode
+} from 'react';
 import Link from 'next/link';
 import { useCartStore } from '@/lib/cart/store';
 import { SLOVENIAN_ADDRESSES } from '@/data/slovenianAddresses';
@@ -92,6 +101,74 @@ const composeDeliveryAddressLines = (formData: OrderFormData) => {
   return [formData.addressLine1.trim(), formData.addressLine2.trim(), cityLine].filter(Boolean);
 };
 
+type FloatingInputProps = InputHTMLAttributes<HTMLInputElement> & {
+  label: string;
+};
+
+function FloatingInput({ label, className = '', ...props }: FloatingInputProps) {
+  return (
+    <div className="relative">
+      <input
+        {...props}
+        placeholder=" "
+        className={`peer h-14 w-full rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 ${className}`}
+      />
+      <label className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500 transition-all duration-150 peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-[11px] peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-[11px]">
+        {label}
+      </label>
+    </div>
+  );
+}
+
+type FloatingTextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  label: string;
+};
+
+function FloatingTextarea({ label, className = '', ...props }: FloatingTextareaProps) {
+  return (
+    <div className="relative">
+      <textarea
+        {...props}
+        placeholder=" "
+        className={`peer min-h-[110px] w-full rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 ${className}`}
+      />
+      <label className="pointer-events-none absolute left-3 top-5 -translate-y-1/2 text-sm text-slate-500 transition-all duration-150 peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-[11px] peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-[11px]">
+        {label}
+      </label>
+    </div>
+  );
+}
+
+type FloatingSelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
+  label: string;
+  children: ReactNode;
+};
+
+function FloatingSelect({ label, className = '', children, ...props }: FloatingSelectProps) {
+  return (
+    <div className="relative">
+      <select
+        {...props}
+        className={`peer h-14 w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 ${className}`}
+      >
+        {children}
+      </select>
+      <label className="pointer-events-none absolute left-3 top-2 text-[11px] text-slate-500">
+        {label}
+      </label>
+      <svg
+        viewBox="0 0 20 20"
+        className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      >
+        <path d="M5 7.5l5 5 5-5" />
+      </svg>
+    </div>
+  );
+}
+
 export default function OrderPageClient() {
   const items = useCartStore((state) => state.items) as CheckoutItem[];
   const setQuantity = useCartStore((state) => state.setQuantity);
@@ -121,7 +198,7 @@ export default function OrderPageClient() {
     [items]
   );
 
-  // VAT-INCLUDED pricing model:
+  // VAT-inclusive pricing model:
   // subtotal == total gross amount; VAT shown as informational part of that total.
   const subtotal = useMemo(
     () => normalizedItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0),
@@ -132,6 +209,10 @@ export default function OrderPageClient() {
   const vatIncluded = useMemo(() => extractVatIncluded(total), [total]);
 
   const isIndividual = formData.customerType === 'individual';
+  const emailIsValid = useMemo(() => {
+    const value = formData.email.trim();
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  }, [formData.email]);
 
   useEffect(() => {
     const saved = localStorage.getItem(FORM_STORAGE_KEY);
@@ -158,7 +239,7 @@ export default function OrderPageClient() {
 
   const requiredFieldsFilled = useMemo(() => {
     const commonRequired =
-      formData.email.trim().length > 0 &&
+      emailIsValid &&
       formData.addressLine1.trim().length > 0 &&
       formData.city.trim().length > 0 &&
       formData.postalCode.trim().length > 0 &&
@@ -172,10 +253,10 @@ export default function OrderPageClient() {
 
     return Boolean(formData.organizationName.trim() && formData.organizationContactName.trim());
   }, [
+    emailIsValid,
     formData.addressLine1,
     formData.city,
     formData.customerType,
-    formData.email,
     formData.firstName,
     formData.lastName,
     formData.organizationContactName,
@@ -185,6 +266,7 @@ export default function OrderPageClient() {
   ]);
 
   const canSubmit = requiredFieldsFilled && !hasMissingPrices && !isSubmitting;
+  const shippingDetailsLocked = !emailIsValid;
 
   const addressSuggestions = useMemo(() => {
     const query = formData.addressLine1.trim().toLowerCase();
@@ -231,7 +313,8 @@ export default function OrderPageClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customerType: formData.customerType,
-          organizationName: formData.customerType === 'individual' ? '' : formData.organizationName.trim(),
+          organizationName:
+            formData.customerType === 'individual' ? '' : formData.organizationName.trim(),
           deliveryAddress: deliveryAddressLines.join(', '),
           contactName: recipientName,
           email: formData.email.trim(),
@@ -251,7 +334,8 @@ export default function OrderPageClient() {
 
       setSubmittedOrder({
         customerType: formData.customerType,
-        organizationName: formData.customerType === 'individual' ? '' : formData.organizationName.trim(),
+        organizationName:
+          formData.customerType === 'individual' ? '' : formData.organizationName.trim(),
         recipientName,
         email: formData.email.trim(),
         phone: formData.phone.trim(),
@@ -278,7 +362,9 @@ export default function OrderPageClient() {
     return (
       <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
         <p className="text-lg font-semibold text-slate-900">Košarica je prazna</p>
-        <p className="mt-2 text-sm text-slate-600">Najprej dodajte izdelke iz posameznih kategorij.</p>
+        <p className="mt-2 text-sm text-slate-600">
+          Najprej dodajte izdelke iz posameznih kategorij.
+        </p>
         <Link
           href="/products"
           className="mt-4 inline-flex rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
@@ -301,10 +387,7 @@ export default function OrderPageClient() {
         {orderResponse && submittedOrder ? (
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-slate-900">Podrobnosti naročila</h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Naročilo je uspešno oddano.
-            </p>
-
+            <p className="mt-2 text-sm text-slate-600">Naročilo je uspešno oddano.</p>
 
             <div className="mt-5 grid gap-5 text-sm text-slate-700 md:grid-cols-2">
               <div>
@@ -335,239 +418,247 @@ export default function OrderPageClient() {
             </div>
           </section>
         ) : (
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-slate-900">Podatki o naročilu</h2>
+          <div className="space-y-4">
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-900">Email naslov</h2>
+                  {emailIsValid && (
+                    <p className="mt-2 text-sm text-slate-700">{formData.email.trim()}</p>
+                  )}
+                </div>
 
-            <form className="mt-4 grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
-              <div className="md:col-span-2">
-                <label className="text-sm font-medium text-slate-700" htmlFor="customerType">
-                  Tip naročnika
-                </label>
-                <select
-                  id="customerType"
-                  value={formData.customerType}
-                  onChange={(event) =>
-                    setFormData((previous) => ({
-                      ...previous,
-                      customerType: event.target.value as CustomerType
-                    }))
-                  }
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                >
-                  {customerTypeOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {isIndividual ? (
-                <>
-                  <div>
-                    <label className="text-sm font-medium text-slate-700" htmlFor="firstName">
-                      Ime <span className="text-brand-600">*</span>
-                    </label>
-                    <input
-                      id="firstName"
-                      value={formData.firstName}
-                      onChange={(event) =>
-                        setFormData((previous) => ({ ...previous, firstName: event.target.value }))
-                      }
-                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-slate-700" htmlFor="lastName">
-                      Priimek <span className="text-brand-600">*</span>
-                    </label>
-                    <input
-                      id="lastName"
-                      value={formData.lastName}
-                      onChange={(event) =>
-                        setFormData((previous) => ({ ...previous, lastName: event.target.value }))
-                      }
-                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="md:col-span-2">
-                    <label className="text-sm font-medium text-slate-700" htmlFor="organizationName">
-                      Naziv organizacije <span className="text-brand-600">*</span>
-                    </label>
-                    <input
-                      id="organizationName"
-                      value={formData.organizationName}
-                      onChange={(event) =>
-                        setFormData((previous) => ({
-                          ...previous,
-                          organizationName: event.target.value
-                        }))
-                      }
-                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label
-                      className="text-sm font-medium text-slate-700"
-                      htmlFor="organizationContactName"
+                {emailIsValid && (
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-black text-white">
+                    <svg
+                      viewBox="0 0 20 20"
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
                     >
-                      Kontaktna oseba <span className="text-brand-600">*</span>
-                    </label>
-                    <input
-                      id="organizationContactName"
-                      value={formData.organizationContactName}
-                      onChange={(event) =>
-                        setFormData((previous) => ({
-                          ...previous,
-                          organizationContactName: event.target.value
-                        }))
-                      }
-                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    />
-                  </div>
-                </>
-              )}
-
-              <div className="md:col-span-2">
-                <label className="text-sm font-medium text-slate-700" htmlFor="addressLine1">
-                  Naslov <span className="text-brand-600">*</span>
-                </label>
-                <input
-                  id="addressLine1"
-                  value={formData.addressLine1}
-                  onChange={(event) =>
-                    setFormData((previous) => ({ ...previous, addressLine1: event.target.value }))
-                  }
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                  autoComplete="street-address"
-                />
-                {addressSuggestions.length > 0 && (
-                  <ul className="mt-2 space-y-1 rounded-lg border border-slate-200 bg-white p-2 text-sm shadow-sm">
-                    {addressSuggestions.map((address) => (
-                      <li key={address}>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setFormData((previous) => ({ ...previous, addressLine1: address }))
-                          }
-                          className="w-full text-left text-slate-600 hover:text-brand-600"
-                        >
-                          {address}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                      <path d="M5 10.5l3 3 7-7" />
+                    </svg>
+                  </span>
                 )}
               </div>
 
-              <div className="md:col-span-2">
-                <label className="text-sm font-medium text-slate-700" htmlFor="addressLine2">
-                  Apt, suite, itd. (neobvezno)
-                </label>
-                <input
-                  id="addressLine2"
-                  value={formData.addressLine2}
-                  onChange={(event) =>
-                    setFormData((previous) => ({ ...previous, addressLine2: event.target.value }))
-                  }
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-slate-700" htmlFor="city">
-                  Kraj <span className="text-brand-600">*</span>
-                </label>
-                <input
-                  id="city"
-                  value={formData.city}
-                  onChange={(event) =>
-                    setFormData((previous) => ({ ...previous, city: event.target.value }))
-                  }
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-slate-700" htmlFor="postalCode">
-                  Poštna številka <span className="text-brand-600">*</span>
-                </label>
-                <input
-                  id="postalCode"
-                  value={formData.postalCode}
-                  onChange={(event) =>
-                    setFormData((previous) => ({ ...previous, postalCode: event.target.value }))
-                  }
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-slate-700" htmlFor="email">
-                  Email <span className="text-brand-600">*</span>
-                </label>
-                <input
+              <div className="mt-4">
+                <FloatingInput
                   id="email"
                   type="email"
+                  label="Email naslov"
+                  autoComplete="email"
                   value={formData.email}
                   onChange={(event) =>
                     setFormData((previous) => ({ ...previous, email: event.target.value }))
                   }
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                  autoComplete="email"
                 />
               </div>
+            </section>
 
-              <div>
-                <label className="text-sm font-medium text-slate-700" htmlFor="phone">
-                  Telefon (neobvezno)
-                </label>
-                <input
+            <section
+              className={`rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition ${
+                shippingDetailsLocked ? 'opacity-60' : 'opacity-100'
+              }`}
+              aria-disabled={shippingDetailsLocked}
+            >
+              <h2 className="text-xl font-semibold text-slate-900">Podatki za dostavo</h2>
+              {shippingDetailsLocked && (
+                <p className="mt-2 text-xs text-slate-500">
+                  Najprej vnesite veljaven email naslov.
+                </p>
+              )}
+
+              <form
+                className={`mt-4 grid gap-4 md:grid-cols-2 ${
+                  shippingDetailsLocked ? 'pointer-events-none select-none' : ''
+                }`}
+                onSubmit={handleSubmit}
+              >
+                <div className="md:col-span-2">
+                  <FloatingSelect
+                    id="customerType"
+                    label="Tip naročnika"
+                    disabled={shippingDetailsLocked}
+                    value={formData.customerType}
+                    onChange={(event) =>
+                      setFormData((previous) => ({
+                        ...previous,
+                        customerType: event.target.value as CustomerType
+                      }))
+                    }
+                  >
+                    {customerTypeOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </FloatingSelect>
+                </div>
+
+                {isIndividual ? (
+                  <>
+                    <FloatingInput
+                      id="firstName"
+                      label="Ime *"
+                      disabled={shippingDetailsLocked}
+                      value={formData.firstName}
+                      onChange={(event) =>
+                        setFormData((previous) => ({ ...previous, firstName: event.target.value }))
+                      }
+                    />
+                    <FloatingInput
+                      id="lastName"
+                      label="Priimek *"
+                      disabled={shippingDetailsLocked}
+                      value={formData.lastName}
+                      onChange={(event) =>
+                        setFormData((previous) => ({ ...previous, lastName: event.target.value }))
+                      }
+                    />
+                  </>
+                ) : (
+                  <>
+                    <div className="md:col-span-2">
+                      <FloatingInput
+                        id="organizationName"
+                        label="Naziv organizacije *"
+                        disabled={shippingDetailsLocked}
+                        value={formData.organizationName}
+                        onChange={(event) =>
+                          setFormData((previous) => ({
+                            ...previous,
+                            organizationName: event.target.value
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <FloatingInput
+                        id="organizationContactName"
+                        label="Kontaktna oseba *"
+                        disabled={shippingDetailsLocked}
+                        value={formData.organizationContactName}
+                        onChange={(event) =>
+                          setFormData((previous) => ({
+                            ...previous,
+                            organizationContactName: event.target.value
+                          }))
+                        }
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div className="md:col-span-2">
+                  <FloatingInput
+                    id="addressLine1"
+                    label="Naslov *"
+                    disabled={shippingDetailsLocked}
+                    autoComplete="street-address"
+                    value={formData.addressLine1}
+                    onChange={(event) =>
+                      setFormData((previous) => ({
+                        ...previous,
+                        addressLine1: event.target.value
+                      }))
+                    }
+                  />
+                  {!shippingDetailsLocked && addressSuggestions.length > 0 && (
+                    <ul className="mt-2 space-y-1 rounded-lg border border-slate-200 bg-white p-2 text-sm shadow-sm">
+                      {addressSuggestions.map((address) => (
+                        <li key={address}>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFormData((previous) => ({ ...previous, addressLine1: address }))
+                            }
+                            className="w-full text-left text-slate-600 hover:text-brand-600"
+                          >
+                            {address}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                <div className="md:col-span-2">
+                  <FloatingInput
+                    id="addressLine2"
+                    label="Apt, suite, itd. (neobvezno)"
+                    disabled={shippingDetailsLocked}
+                    value={formData.addressLine2}
+                    onChange={(event) =>
+                      setFormData((previous) => ({
+                        ...previous,
+                        addressLine2: event.target.value
+                      }))
+                    }
+                  />
+                </div>
+
+                <FloatingInput
+                  id="city"
+                  label="Kraj *"
+                  disabled={shippingDetailsLocked}
+                  value={formData.city}
+                  onChange={(event) =>
+                    setFormData((previous) => ({ ...previous, city: event.target.value }))
+                  }
+                />
+
+                <FloatingInput
+                  id="postalCode"
+                  label="Poštna številka *"
+                  disabled={shippingDetailsLocked}
+                  value={formData.postalCode}
+                  onChange={(event) =>
+                    setFormData((previous) => ({ ...previous, postalCode: event.target.value }))
+                  }
+                />
+
+                <FloatingInput
                   id="phone"
+                  label="Telefon (neobvezno)"
+                  disabled={shippingDetailsLocked}
+                  autoComplete="tel"
                   value={formData.phone}
                   onChange={(event) =>
                     setFormData((previous) => ({ ...previous, phone: event.target.value }))
                   }
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                  autoComplete="tel"
                 />
-              </div>
 
-              <div className="md:col-span-2">
-                <label className="text-sm font-medium text-slate-700" htmlFor="reference">
-                  Sklic / št. naročila
-                </label>
-                <input
-                  id="reference"
-                  value={formData.reference}
-                  onChange={(event) =>
-                    setFormData((previous) => ({ ...previous, reference: event.target.value }))
-                  }
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                />
-              </div>
+                <div className="md:col-span-2">
+                  <FloatingInput
+                    id="reference"
+                    label="Sklic / št. naročila"
+                    disabled={shippingDetailsLocked}
+                    value={formData.reference}
+                    onChange={(event) =>
+                      setFormData((previous) => ({ ...previous, reference: event.target.value }))
+                    }
+                  />
+                </div>
 
-              <div className="md:col-span-2">
-                <label className="text-sm font-medium text-slate-700" htmlFor="notes">
-                  Opombe
-                </label>
-                <textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(event) =>
-                    setFormData((previous) => ({ ...previous, notes: event.target.value }))
-                  }
-                  rows={3}
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                />
-              </div>
+                <div className="md:col-span-2">
+                  <FloatingTextarea
+                    id="notes"
+                    label="Opombe"
+                    disabled={shippingDetailsLocked}
+                    rows={3}
+                    value={formData.notes}
+                    onChange={(event) =>
+                      setFormData((previous) => ({ ...previous, notes: event.target.value }))
+                    }
+                  />
+                </div>
 
-              <button type="submit" className="hidden" />
-            </form>
-          </section>
+                <button type="submit" className="hidden" />
+              </form>
+            </section>
+          </div>
         )}
 
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -591,10 +682,7 @@ export default function OrderPageClient() {
               const lineTotal = toNumber(item.unitPrice) * item.quantity;
 
               return (
-                <div
-                  key={item.sku}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                >
+                <div key={item.sku} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   {orderResponse ? (
                     <div className="flex items-center justify-between gap-4">
                       <div>
@@ -723,7 +811,11 @@ export default function OrderPageClient() {
             <h2 className="text-xl font-semibold text-slate-900">PDF dokument</h2>
 
             <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
-              <iframe title="Predogled PDF" src={orderResponse.documentUrl} className="h-[420px] w-full" />
+              <iframe
+                title="Predogled PDF"
+                src={orderResponse.documentUrl}
+                className="h-[420px] w-full"
+              />
             </div>
 
             <a

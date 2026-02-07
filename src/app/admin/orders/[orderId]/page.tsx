@@ -20,10 +20,11 @@ export const metadata = {
 
 export const dynamic = 'force-dynamic';
 
+const toAmount = (value: number | null | undefined) =>
+  typeof value === 'number' && Number.isFinite(value) ? value : 0;
+
 const formatCurrency = (value: number | null | undefined) =>
-  typeof value === 'number' && value > 0
-    ? new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }).format(value)
-    : 'Po dogovoru';
+  new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }).format(toAmount(value));
 
 export default async function AdminOrderDetailPage({
   params
@@ -45,6 +46,7 @@ export default async function AdminOrderDetailPage({
       payment_status: 'paid',
       payment_notes: 'Plačano ob prevzemu.'
     };
+
     const items = [
       {
         id: 1,
@@ -55,6 +57,7 @@ export default async function AdminOrderDetailPage({
         unit_price: 1.9
       }
     ];
+
     const documents = [
       {
         id: 1,
@@ -64,6 +67,7 @@ export default async function AdminOrderDetailPage({
         created_at: new Date().toISOString()
       }
     ];
+
     const attachments = [
       {
         id: 1,
@@ -72,6 +76,7 @@ export default async function AdminOrderDetailPage({
         blob_url: '#'
       }
     ];
+
     const paymentLogs = [
       {
         id: 1,
@@ -82,22 +87,26 @@ export default async function AdminOrderDetailPage({
         created_at: new Date().toISOString()
       }
     ];
-    const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
+
+    const subtotal = items.reduce(
+      (sum, item) => sum + toAmount(item.unit_price) * item.quantity,
+      0
+    );
     const tax = subtotal * 0.22;
     const total = subtotal + tax;
+
     return (
       <div className="container-base py-12">
         <div className="mx-auto max-w-6xl">
           <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-6 text-sm text-amber-700">
             DATABASE_URL ni nastavljen — prikazan je demo pogled.
           </div>
+
           <div className="mt-6 grid gap-6 lg:grid-cols-[2fr_1fr]">
             <div className="space-y-6">
               <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h1 className="text-2xl font-semibold text-slate-900">{order.order_number}</h1>
-                <p className="mt-2 text-sm text-slate-600">
-                  Status: {getStatusLabel(order.status)}
-                </p>
+                <p className="mt-2 text-sm text-slate-600">Status: {getStatusLabel(order.status)}</p>
 
                 <div className="mt-4 grid gap-4 text-sm text-slate-600 md:grid-cols-2">
                   <div>
@@ -145,15 +154,13 @@ export default async function AdminOrderDetailPage({
                         <div className="text-right text-sm text-slate-600">
                           <p>Enota: {formatCurrency(item.unit_price)}</p>
                           <p className="font-semibold text-slate-900">
-                            Skupaj:{' '}
-                            {formatCurrency(
-                              item.unit_price ? item.unit_price * item.quantity : null
-                            )}
+                            Skupaj: {formatCurrency(toAmount(item.unit_price) * item.quantity)}
                           </p>
                         </div>
                       </div>
                     </div>
                   ))}
+
                   <div className="rounded-xl border border-slate-100 bg-white p-4 text-sm text-slate-700">
                     <div className="flex items-center justify-between">
                       <span>Vmesni seštevek</span>
@@ -233,13 +240,14 @@ export default async function AdminOrderDetailPage({
     fetchOrderAttachments(orderId),
     fetchPaymentLogs(orderId)
   ]);
+
   const computedSubtotal = items.reduce(
-    (sum, item) => sum + (item.unit_price ?? 0) * item.quantity,
+    (sum, item) => sum + toAmount(item.unit_price) * item.quantity,
     0
   );
-  const subtotal = order.subtotal ?? computedSubtotal;
-  const tax = order.tax ?? subtotal * 0.22;
-  const total = order.total ?? subtotal + tax;
+  const subtotal = typeof order.subtotal === 'number' ? order.subtotal : computedSubtotal;
+  const tax = typeof order.tax === 'number' ? order.tax : subtotal * 0.22;
+  const total = typeof order.total === 'number' ? order.total : subtotal + tax;
 
   return (
     <div className="container-base py-12">
@@ -251,12 +259,8 @@ export default async function AdminOrderDetailPage({
         <div className="mt-4 grid gap-6 lg:grid-cols-[2fr_1fr]">
           <div className="space-y-6">
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h1 className="text-2xl font-semibold text-slate-900">
-                {order.order_number}
-              </h1>
-              <p className="mt-2 text-sm text-slate-600">
-                Status: {getStatusLabel(order.status)}
-              </p>
+              <h1 className="text-2xl font-semibold text-slate-900">{order.order_number}</h1>
+              <p className="mt-2 text-sm text-slate-600">Status: {getStatusLabel(order.status)}</p>
 
               <div className="mt-4 grid gap-4 text-sm text-slate-600 md:grid-cols-2">
                 <div>
@@ -289,69 +293,67 @@ export default async function AdminOrderDetailPage({
               </div>
             </section>
 
-              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-slate-900">Postavke</h2>
-                <div className="mt-4 space-y-3">
-                  {items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <p className="font-semibold text-slate-900">{item.name}</p>
-                          <p className="text-slate-500">SKU: {item.sku}</p>
-                          <p className="text-slate-500">
-                            Količina: {item.quantity} {item.unit ?? ''}
-                          </p>
-                        </div>
-                        <div className="text-right text-sm text-slate-600">
-                          <p>Enota: {formatCurrency(item.unit_price)}</p>
-                          <p className="font-semibold text-slate-900">
-                            Skupaj:{' '}
-                            {formatCurrency(
-                              item.unit_price ? item.unit_price * item.quantity : null
-                            )}
-                          </p>
-                        </div>
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-slate-900">Postavke</h2>
+              <div className="mt-4 space-y-3">
+                {items.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-slate-900">{item.name}</p>
+                        <p className="text-slate-500">SKU: {item.sku}</p>
+                        <p className="text-slate-500">
+                          Količina: {item.quantity} {item.unit ?? ''}
+                        </p>
+                      </div>
+                      <div className="text-right text-sm text-slate-600">
+                        <p>Enota: {formatCurrency(item.unit_price)}</p>
+                        <p className="font-semibold text-slate-900">
+                          Skupaj: {formatCurrency(toAmount(item.unit_price) * item.quantity)}
+                        </p>
                       </div>
                     </div>
-                  ))}
-                  <div className="rounded-xl border border-slate-100 bg-white p-4 text-sm text-slate-700">
-                    <div className="flex items-center justify-between">
-                      <span>Vmesni seštevek</span>
-                      <span className="font-semibold">{formatCurrency(subtotal)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>DDV</span>
-                      <span className="font-semibold">{formatCurrency(tax)}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-base font-semibold text-slate-900">
-                      <span>Skupaj</span>
-                      <span>{formatCurrency(total)}</span>
-                    </div>
+                  </div>
+                ))}
+
+                <div className="rounded-xl border border-slate-100 bg-white p-4 text-sm text-slate-700">
+                  <div className="flex items-center justify-between">
+                    <span>Vmesni seštevek</span>
+                    <span className="font-semibold">{formatCurrency(subtotal)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>DDV</span>
+                    <span className="font-semibold">{formatCurrency(tax)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-base font-semibold text-slate-900">
+                    <span>Skupaj</span>
+                    <span>{formatCurrency(total)}</span>
                   </div>
                 </div>
-              </section>
+              </div>
+            </section>
 
-              <AdminOrderPdfManager orderId={orderId} documents={documents} />
-              <AdminOrderEditForm
-                orderId={orderId}
-                customerType={order.customer_type}
-                organizationName={order.organization_name}
-                contactName={order.contact_name}
-                email={order.email}
-                phone={order.phone}
-                deliveryAddress={order.delivery_address}
-                reference={order.reference}
-                notes={order.notes}
-              />
-              <AdminOrderPaymentStatus
-                orderId={orderId}
-                status={order.payment_status ?? null}
-                notes={order.payment_notes ?? null}
-                logs={paymentLogs}
-              />
+            <AdminOrderPdfManager orderId={orderId} documents={documents} />
+            <AdminOrderEditForm
+              orderId={orderId}
+              customerType={order.customer_type}
+              organizationName={order.organization_name}
+              contactName={order.contact_name}
+              email={order.email}
+              phone={order.phone}
+              deliveryAddress={order.delivery_address}
+              reference={order.reference}
+              notes={order.notes}
+            />
+            <AdminOrderPaymentStatus
+              orderId={orderId}
+              status={order.payment_status ?? null}
+              notes={order.payment_notes ?? null}
+              logs={paymentLogs}
+            />
 
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-slate-900">Priponke</h2>

@@ -6,6 +6,7 @@ import { useCartStore } from '@/lib/cart/store';
 import { SLOVENIAN_ADDRESSES } from '@/data/slovenianAddresses';
 
 const FORM_STORAGE_KEY = 'atehna-order-form';
+const TAX_RATE = 0.22;
 
 const customerTypeOptions = [
   { value: 'individual', label: 'Fizična oseba' },
@@ -47,34 +48,43 @@ const initialForm: OrderFormData = {
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }).format(value);
 
-const getPriceLabel = (value?: number | null) =>
-  typeof value === 'number' ? formatCurrency(value) : 'Po dogovoru';
+const toNumber = (value: unknown): number => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Number(value.replace(',', '.').trim());
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return 0;
+};
+
+const round2 = (value: number) => Math.round(value * 100) / 100;
+
+const getUnitPrice = (item: { unitPrice?: unknown; price?: unknown }) =>
+  toNumber(item.unitPrice ?? item.price);
 
 export default function OrderPageClient() {
   const items = useCartStore((state) => state.items);
   const setQuantity = useCartStore((state) => state.setQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
   const clearCart = useCartStore((state) => state.clearCart);
+
   const [formData, setFormData] = useState<OrderFormData>(initialForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderResponse, setOrderResponse] = useState<OrderResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const pricedItems = useMemo(
-    () => items.filter((item) => typeof item.unitPrice === 'number'),
-    [items]
-  );
+
   const subtotal = useMemo(
     () =>
-      pricedItems.reduce(
-        (sum, item) => sum + (item.unitPrice ?? 0) * item.quantity,
-        0
+      round2(
+        items.reduce((sum, item) => {
+          const quantity = Math.max(1, toNumber((item as { quantity?: unknown }).quantity));
+          return sum + getUnitPrice(item) * quantity;
+        }, 0)
       ),
-    [pricedItems]
+    [items]
   );
-  const tax = subtotal * 0.22;
-  const total = subtotal + tax;
-  const hasAnyPricing = pricedItems.length > 0;
-  const hasCompletePricing = items.length > 0 && pricedItems.length === items.length;
+  const tax = useMemo(() => round2(subtotal * TAX_RATE), [subtotal]);
+  const total = useMemo(() => round2(subtotal + tax), [subtotal, tax]);
 
   useEffect(() => {
     const saved = localStorage.getItem(FORM_STORAGE_KEY);
@@ -109,12 +119,22 @@ export default function OrderPageClient() {
   const handleSubmit = async (event?: FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
     setErrorMessage(null);
+
     if (!requiredFieldsFilled) {
       setErrorMessage('Izpolnite obvezna polja in dodajte vsaj en izdelek.');
       return;
     }
+
     setIsSubmitting(true);
     try {
+      const normalizedItems = items.map((item) => ({
+        sku: String((item as { sku?: unknown }).sku ?? ''),
+        name: String((item as { name?: unknown }).name ?? ''),
+        unit: ((item as { unit?: unknown }).unit as string | null | undefined) ?? null,
+        quantity: Math.max(1, toNumber((item as { quantity?: unknown }).quantity)),
+        unitPrice: getUnitPrice(item)
+      }));
+
       const response = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -127,7 +147,7 @@ export default function OrderPageClient() {
           phone: formData.phone,
           reference: formData.reference,
           notes: formData.notes,
-          items
+          items: normalizedItems
         })
       });
 
@@ -191,6 +211,7 @@ export default function OrderPageClient() {
                 ))}
               </select>
             </div>
+
             {formData.customerType !== 'individual' && (
               <div className="md:col-span-2">
                 <label className="text-sm font-medium text-slate-700" htmlFor="organizationName">
@@ -206,6 +227,7 @@ export default function OrderPageClient() {
                 />
               </div>
             )}
+
             <div className="md:col-span-2">
               <label className="text-sm font-medium text-slate-700" htmlFor="deliveryAddress">
                 Naslov dostave
@@ -237,6 +259,7 @@ export default function OrderPageClient() {
                 </ul>
               )}
             </div>
+
             <div>
               <label className="text-sm font-medium text-slate-700" htmlFor="contactName">
                 Kontaktna oseba <span className="text-brand-600">*</span>
@@ -250,6 +273,7 @@ export default function OrderPageClient() {
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
             </div>
+
             <div>
               <label className="text-sm font-medium text-slate-700" htmlFor="email">
                 Email <span className="text-brand-600">*</span>
@@ -264,6 +288,7 @@ export default function OrderPageClient() {
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
             </div>
+
             <div>
               <label className="text-sm font-medium text-slate-700" htmlFor="phone">
                 Telefon
@@ -275,6 +300,7 @@ export default function OrderPageClient() {
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
             </div>
+
             <div>
               <label className="text-sm font-medium text-slate-700" htmlFor="reference">
                 Sklic / št. naročila
@@ -288,6 +314,7 @@ export default function OrderPageClient() {
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
             </div>
+
             <div className="md:col-span-2">
               <label className="text-sm font-medium text-slate-700" htmlFor="notes">
                 Opombe
@@ -300,6 +327,7 @@ export default function OrderPageClient() {
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
             </div>
+
             <button type="submit" className="hidden" />
           </form>
         </section>
@@ -315,78 +343,73 @@ export default function OrderPageClient() {
               Počisti
             </button>
           </div>
+
           <div className="mt-4 space-y-4">
-            {items.map((item) => (
-              <div
-                key={item.sku}
-                className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">{item.name}</p>
-                  <p className="text-xs text-slate-500">SKU: {item.sku}</p>
-                  <p className="text-xs text-slate-500">
-                    Cena enote: {getPriceLabel(item.unitPrice)}
-                  </p>
+            {items.map((item) => {
+              const unitPrice = getUnitPrice(item);
+              const quantity = Math.max(1, toNumber((item as { quantity?: unknown }).quantity));
+              const lineTotal = round2(unitPrice * quantity);
+
+              return (
+                <div
+                  key={(item as { sku?: string }).sku}
+                  className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {(item as { name?: string }).name}
+                    </p>
+                    <p className="text-xs text-slate-500">SKU: {(item as { sku?: string }).sku}</p>
+                    <p className="text-xs text-slate-500">Cena enote: {formatCurrency(unitPrice)}</p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setQuantity((item as { sku: string }).sku, quantity - 1)}
+                      className="h-8 w-8 rounded-full border border-slate-200 text-sm font-semibold text-slate-600"
+                    >
+                      −
+                    </button>
+                    <span className="min-w-[2rem] text-center text-sm font-semibold text-slate-700">
+                      {quantity}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setQuantity((item as { sku: string }).sku, quantity + 1)}
+                      className="h-8 w-8 rounded-full border border-slate-200 text-sm font-semibold text-slate-600"
+                    >
+                      +
+                    </button>
+                    <span className="text-xs font-semibold text-slate-700">
+                      Skupaj: {formatCurrency(lineTotal)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeItem((item as { sku: string }).sku)}
+                      className="text-xs font-semibold text-slate-400 hover:text-slate-600"
+                    >
+                      Odstrani
+                    </button>
+                  </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setQuantity(item.sku, item.quantity - 1)}
-                    className="h-8 w-8 rounded-full border border-slate-200 text-sm font-semibold text-slate-600"
-                  >
-                    −
-                  </button>
-                  <span className="min-w-[2rem] text-center text-sm font-semibold text-slate-700">
-                    {item.quantity}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setQuantity(item.sku, item.quantity + 1)}
-                    className="h-8 w-8 rounded-full border border-slate-200 text-sm font-semibold text-slate-600"
-                  >
-                    +
-                  </button>
-                  <span className="text-xs font-semibold text-slate-700">
-                    Skupaj:{' '}
-                    {getPriceLabel(
-                      typeof item.unitPrice === 'number'
-                        ? item.unitPrice * item.quantity
-                        : null
-                    )}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => removeItem(item.sku)}
-                    className="text-xs font-semibold text-slate-400 hover:text-slate-600"
-                  >
-                    Odstrani
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
+
           <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
             <div className="flex items-center justify-between">
               <span>Vmesni seštevek</span>
-              <span className="font-semibold">
-                {hasAnyPricing ? formatCurrency(subtotal) : 'Po dogovoru'}
-              </span>
+              <span className="font-semibold">{formatCurrency(subtotal)}</span>
             </div>
             <div className="flex items-center justify-between">
               <span>DDV (22%)</span>
-              <span className="font-semibold">
-                {hasAnyPricing ? formatCurrency(tax) : 'Po dogovoru'}
-              </span>
+              <span className="font-semibold">{formatCurrency(tax)}</span>
             </div>
             <div className="flex items-center justify-between text-base font-semibold text-slate-900">
               <span>Skupaj</span>
-              <span>{hasAnyPricing ? formatCurrency(total) : 'Po dogovoru'}</span>
+              <span>{formatCurrency(total)}</span>
             </div>
-            {!hasCompletePricing && (
-              <p className="mt-2 text-xs text-slate-500">
-                Cena za nekatere artikle bo določena ob potrditvi naročila.
-              </p>
-            )}
           </div>
         </section>
       </div>

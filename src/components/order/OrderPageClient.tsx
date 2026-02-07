@@ -158,10 +158,10 @@ export default function OrderPageClient() {
 
   const requiredFieldsFilled = useMemo(() => {
     const commonRequired =
-      formData.email.trim() &&
-      formData.addressLine1.trim() &&
-      formData.city.trim() &&
-      formData.postalCode.trim() &&
+      formData.email.trim().length > 0 &&
+      formData.addressLine1.trim().length > 0 &&
+      formData.city.trim().length > 0 &&
+      formData.postalCode.trim().length > 0 &&
       items.length > 0;
 
     if (!commonRequired) return false;
@@ -218,7 +218,7 @@ export default function OrderPageClient() {
           : formData.organizationContactName.trim();
 
       const deliveryAddressLines = composeDeliveryAddressLines(formData);
-      const payloadItems = normalizedItems.map((item) => ({
+      const payloadItems: CheckoutItem[] = normalizedItems.map((item) => ({
         sku: item.sku,
         name: item.name,
         unit: item.unit ?? null,
@@ -306,7 +306,7 @@ export default function OrderPageClient() {
               <span className="font-semibold text-slate-900">{orderResponse.orderNumber}</span>
             </p>
 
-            <div className="mt-5 grid gap-5 md:grid-cols-2 text-sm text-slate-700">
+            <div className="mt-5 grid gap-5 text-sm text-slate-700 md:grid-cols-2">
               <div>
                 <p className="text-xs uppercase tracking-wide text-slate-400">Dostava na</p>
                 <p className="font-semibold text-slate-900">{submittedOrder.recipientName}</p>
@@ -587,61 +587,75 @@ export default function OrderPageClient() {
           </div>
 
           <div className="mt-4 space-y-4">
-            {viewItems.map((item) => (
-              <div
-                key={item.sku}
-                className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-900">{item.name}</p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      Cena enote: {formatCurrency(toNumber(item.unitPrice))}
-                    </p>
-                  </div>
+            {viewItems.map((item) => {
+              const lineTotal = toNumber(item.unitPrice) * item.quantity;
 
+              return (
+                <div
+                  key={item.sku}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                >
                   {orderResponse ? (
-                    <div className="text-sm text-slate-600 whitespace-nowrap">
-                      Količina: {item.quantity}
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">{item.name}</p>
+                        <p className="text-xs text-slate-500">
+                          Cena enote: {formatCurrency(toNumber(item.unitPrice))}
+                        </p>
+                      </div>
+                      <div className="text-right text-sm">
+                        <p className="text-slate-600">Količina: {item.quantity}</p>
+                        <p className="font-semibold text-slate-900">{formatCurrency(lineTotal)}</p>
+                      </div>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setQuantity(item.sku, item.quantity - 1)}
-                        className="h-8 w-8 rounded-full border border-slate-200 text-sm font-semibold text-slate-600"
-                        aria-label={`Zmanjšaj količino za ${item.name}`}
-                      >
-                        −
-                      </button>
+                    <div className="grid items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-900">{item.name}</p>
+                        <p className="text-xs text-slate-500">
+                          Cena enote: {formatCurrency(toNumber(item.unitPrice))}
+                        </p>
+                      </div>
 
-                      <span className="min-w-[1.5rem] text-center text-sm font-semibold text-slate-700">
-                        {item.quantity}
-                      </span>
+                      <div className="flex items-center justify-center gap-3 sm:justify-self-center">
+                        <button
+                          type="button"
+                          onClick={() => setQuantity(item.sku, item.quantity - 1)}
+                          className="h-8 w-8 rounded-full border border-slate-200 text-sm font-semibold text-slate-600"
+                          aria-label={`Zmanjšaj količino za ${item.name}`}
+                        >
+                          −
+                        </button>
+                        <span className="min-w-[1.5rem] text-center text-sm font-semibold text-slate-700">
+                          {item.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setQuantity(item.sku, item.quantity + 1)}
+                          className="h-8 w-8 rounded-full border border-slate-200 text-sm font-semibold text-slate-600"
+                          aria-label={`Povečaj količino za ${item.name}`}
+                        >
+                          +
+                        </button>
+                      </div>
 
-                      <button
-                        type="button"
-                        onClick={() => setQuantity(item.sku, item.quantity + 1)}
-                        className="h-8 w-8 rounded-full border border-slate-200 text-sm font-semibold text-slate-600"
-                        aria-label={`Povečaj količino za ${item.name}`}
-                      >
-                        +
-                      </button>
+                      <div className="justify-self-end text-right text-sm font-semibold text-slate-900 tabular-nums">
+                        {formatCurrency(lineTotal)}
+                      </div>
 
                       <button
                         type="button"
                         onClick={() => removeItem(item.sku)}
-                        className="ml-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-lg leading-none text-slate-500 hover:text-slate-700"
+                        className="h-8 w-8 justify-self-end rounded-full border border-slate-200 text-lg leading-none text-slate-500 hover:text-slate-700"
                         aria-label={`Odstrani ${item.name}`}
-                        title="Odstrani"
                       >
                         ×
                       </button>
                     </div>
                   )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">

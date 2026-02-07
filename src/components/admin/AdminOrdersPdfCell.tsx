@@ -17,7 +17,6 @@ type GeneratePdfType = Exclude<PdfTypeKey, 'purchase_order'>;
 type PdfTypeConfig = {
   key: PdfTypeKey;
   label: string;
-  shortLabel: string;
   color: string;
   canGenerate: boolean;
 };
@@ -28,41 +27,11 @@ type MenuPosition = {
 };
 
 const PDF_TYPES: PdfTypeConfig[] = [
-  {
-    key: 'order_summary',
-    label: 'Povzetek',
-    shortLabel: 'Pov',
-    color: 'bg-sky-100 text-sky-700',
-    canGenerate: true
-  },
-  {
-    key: 'predracun',
-    label: 'Predračun',
-    shortLabel: 'Pred',
-    color: 'bg-amber-100 text-amber-700',
-    canGenerate: true
-  },
-  {
-    key: 'dobavnica',
-    label: 'Dobavnica',
-    shortLabel: 'Dob',
-    color: 'bg-emerald-100 text-emerald-700',
-    canGenerate: true
-  },
-  {
-    key: 'invoice',
-    label: 'Račun',
-    shortLabel: 'Rač',
-    color: 'bg-purple-100 text-purple-700',
-    canGenerate: true
-  },
-  {
-    key: 'purchase_order',
-    label: 'Naročilnica',
-    shortLabel: 'Nar',
-    color: 'bg-slate-100 text-slate-700',
-    canGenerate: false
-  }
+  { key: 'order_summary', label: 'Povzetek', color: 'bg-sky-100 text-sky-700', canGenerate: true },
+  { key: 'predracun', label: 'Predračun', color: 'bg-amber-100 text-amber-700', canGenerate: true },
+  { key: 'dobavnica', label: 'Dobavnica', color: 'bg-emerald-100 text-emerald-700', canGenerate: true },
+  { key: 'invoice', label: 'Račun', color: 'bg-purple-100 text-purple-700', canGenerate: true },
+  { key: 'purchase_order', label: 'Naročilnica', color: 'bg-slate-100 text-slate-700', canGenerate: false }
 ];
 
 const routeMap: Record<GeneratePdfType, string> = {
@@ -253,19 +222,19 @@ export default function AdminOrdersPdfCell({
             href={latestDocument.blob_url}
             target="_blank"
             rel="noreferrer"
-            className={`inline-flex h-6 items-center rounded-full px-2 text-[10px] font-semibold ${pdfType.color}`}
+            className={`inline-flex h-6 items-center rounded-full px-1.5 text-[10px] font-semibold ${pdfType.color}`}
             title={`${pdfType.label} · zadnja verzija (${versionCount})`}
           >
-            <span>{pdfType.shortLabel}</span>
+            <span>{pdfType.label}</span>
             {versionCount > 1 && <span className="ml-1 opacity-75">{versionCount}</span>}
           </a>
         ) : (
           <span
             key={pdfType.key}
-            className={`inline-flex h-6 items-center rounded-full px-2 text-[10px] font-semibold opacity-60 ${pdfType.color}`}
+            className={`inline-flex h-6 items-center rounded-full px-1.5 text-[10px] font-semibold opacity-60 ${pdfType.color}`}
             title={`${pdfType.label} · ni dokumenta`}
           >
-            {pdfType.shortLabel}
+            {pdfType.label}
           </span>
         );
       })}

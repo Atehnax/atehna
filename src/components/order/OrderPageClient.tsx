@@ -44,6 +44,12 @@ const initialForm: OrderFormData = {
   notes: ''
 };
 
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }).format(value);
+
+const getPriceLabel = (value?: number | null) =>
+  typeof value === 'number' ? formatCurrency(value) : 'Po dogovoru';
+
 export default function OrderPageClient() {
   const items = useCartStore((state) => state.items);
   const setQuantity = useCartStore((state) => state.setQuantity);
@@ -53,6 +59,22 @@ export default function OrderPageClient() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderResponse, setOrderResponse] = useState<OrderResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const pricedItems = useMemo(
+    () => items.filter((item) => typeof item.unitPrice === 'number'),
+    [items]
+  );
+  const subtotal = useMemo(
+    () =>
+      pricedItems.reduce(
+        (sum, item) => sum + (item.unitPrice ?? 0) * item.quantity,
+        0
+      ),
+    [pricedItems]
+  );
+  const tax = subtotal * 0.22;
+  const total = subtotal + tax;
+  const hasAnyPricing = pricedItems.length > 0;
+  const hasCompletePricing = items.length > 0 && pricedItems.length === items.length;
 
   useEffect(() => {
     const saved = localStorage.getItem(FORM_STORAGE_KEY);
@@ -302,8 +324,11 @@ export default function OrderPageClient() {
                 <div>
                   <p className="text-sm font-semibold text-slate-900">{item.name}</p>
                   <p className="text-xs text-slate-500">SKU: {item.sku}</p>
+                  <p className="text-xs text-slate-500">
+                    Cena enote: {getPriceLabel(item.unitPrice)}
+                  </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <button
                     type="button"
                     onClick={() => setQuantity(item.sku, item.quantity - 1)}
@@ -321,6 +346,14 @@ export default function OrderPageClient() {
                   >
                     +
                   </button>
+                  <span className="text-xs font-semibold text-slate-700">
+                    Skupaj:{' '}
+                    {getPriceLabel(
+                      typeof item.unitPrice === 'number'
+                        ? item.unitPrice * item.quantity
+                        : null
+                    )}
+                  </span>
                   <button
                     type="button"
                     onClick={() => removeItem(item.sku)}
@@ -331,6 +364,29 @@ export default function OrderPageClient() {
                 </div>
               </div>
             ))}
+          </div>
+          <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
+            <div className="flex items-center justify-between">
+              <span>Vmesni seštevek</span>
+              <span className="font-semibold">
+                {hasAnyPricing ? formatCurrency(subtotal) : 'Po dogovoru'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>DDV (22%)</span>
+              <span className="font-semibold">
+                {hasAnyPricing ? formatCurrency(tax) : 'Po dogovoru'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-base font-semibold text-slate-900">
+              <span>Skupaj</span>
+              <span>{hasAnyPricing ? formatCurrency(total) : 'Po dogovoru'}</span>
+            </div>
+            {!hasCompletePricing && (
+              <p className="mt-2 text-xs text-slate-500">
+                Cena za nekatere artikle bo določena ob potrditvi naročila.
+              </p>
+            )}
           </div>
         </section>
       </div>

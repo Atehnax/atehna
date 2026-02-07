@@ -48,7 +48,7 @@ export async function POST(
 
     const fileName = `${order.order_number}-order-summary-${Date.now()}.pdf`;
     const blobPath = `orders/${order.order_number}/${fileName}`;
-    const blob = await uploadBlob(blobPath, pdfBuffer, 'application/pdf');
+    const blob = await uploadBlob(blobPath, Buffer.from(pdfBuffer), 'application/pdf');
 
     const insertResult = await pool.query(
       'INSERT INTO order_documents (order_id, type, filename, blob_url, blob_pathname) VALUES ($1, $2, $3, $4, $5) RETURNING created_at',

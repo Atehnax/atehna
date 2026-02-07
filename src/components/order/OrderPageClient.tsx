@@ -57,6 +57,7 @@ type SubmittedOrderSnapshot = {
   deliveryAddressLines: string[];
   items: CheckoutItem[];
   subtotal: number; // VAT already included
+  shipping: number;
   total: number; // VAT already included
   vatIncluded: number;
 };
@@ -126,7 +127,8 @@ export default function OrderPageClient() {
     () => normalizedItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0),
     [normalizedItems]
   );
-  const total = subtotal;
+  const shipping = 0;
+  const total = subtotal + shipping;
   const vatIncluded = useMemo(() => extractVatIncluded(total), [total]);
 
   const isIndividual = formData.customerType === 'individual';
@@ -258,6 +260,7 @@ export default function OrderPageClient() {
         deliveryAddressLines,
         items: payloadItems,
         subtotal,
+        shipping,
         total,
         vatIncluded
       });
@@ -288,6 +291,7 @@ export default function OrderPageClient() {
 
   const viewItems = submittedOrder?.items ?? normalizedItems;
   const viewSubtotal = submittedOrder?.subtotal ?? subtotal;
+  const viewShipping = submittedOrder?.shipping ?? shipping;
   const viewTotal = submittedOrder?.total ?? total;
   const viewVatIncluded = submittedOrder?.vatIncluded ?? vatIncluded;
 
@@ -645,11 +649,17 @@ export default function OrderPageClient() {
               <span>Vmesni seštevek</span>
               <span className="font-semibold">{formatCurrency(viewSubtotal)}</span>
             </div>
-            <div className="flex items-center justify-between text-base font-semibold text-slate-900">
+            <div className="mt-1 flex items-center justify-between">
+              <span>Poštnina</span>
+              <span className="font-semibold">{formatCurrency(viewShipping)}</span>
+            </div>
+            <div className="mt-1 flex items-center justify-between text-base font-semibold text-slate-900">
               <span>Skupaj</span>
               <span>{formatCurrency(viewTotal)}</span>
             </div>
-            <p className="mt-2 text-xs text-slate-500">Vključuje DDV (22%): {formatCurrency(viewVatIncluded)}</p>
+            <p className="mt-2 text-xs text-slate-500">
+              Vključuje DDV (22%): {formatCurrency(viewVatIncluded)}
+            </p>
           </div>
         </section>
       </div>

@@ -6,81 +6,129 @@ import { generateOrderPdf } from '@/lib/server/pdf';
 export const runtime = 'nodejs';
 
 const TAX_RATE = 0.22;
+const SHIPPING_DEFAULT = 0;
+const ALLOWED_CUSTOMER_TYPES = new Set(['individual', 'company', 'school'] as const);
+
+type CustomerType = 'individual' | 'company' | 'school';
+
+type PricedOrderItem = {
+  sku: string;
+  name: string;
+  unit: string | null;
+  quantity: number;
+  unitPrice: number;
+};
+
+type OrderPayload = {
+  customerType?: unknown;
+  organizationName?: unknown;
+  deliveryAddress?: unknown;
+  contactName?: unknown;
+  email?: unknown;
+  phone?: unknown;
+  reference?: unknown;
+  notes?: unknown;
+  items?: unknown;
+};
+
+const toTrimmedText = (value: unknown): string =>
+  typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+
+const toNullableText = (value: string): string | null => (value ? value : null);
+
+const parsePricedItem = (rawValue: unknown): PricedOrderItem | null => {
+  if (!rawValue || typeof rawValue !== 'object') return null;
+
+  const rawItem = rawValue as Record<string, unknown>;
+
+  const sku = toTrimmedText(rawItem.sku);
+  const name = toTrimmedText(rawItem.name);
+  const unit = toNullableText(toTrimmedText(rawItem.unit));
+  const quantity = Number(rawItem.quantity);
+  const unitPrice = Number(rawItem.unitPrice);
+
+  if (!sku || !name) return null;
+  if (!Number.isFinite(quantity) || quantity <= 0) return null;
+  if (!Number.isFinite(unitPrice)) return null;
+
+  return { sku, name, unit, quantity, unitPrice };
+};
+
+const parsePricedItems = (rawItems: unknown): PricedOrderItem[] | null => {
+  if (!Array.isArray(rawItems) || rawItems.length === 0) return null;
+
+  const parsedItems: PricedOrderItem[] = [];
+  for (const rawItem of rawItems) {
+    const parsedItem = parsePricedItem(rawItem);
+    if (!parsedItem) return null;
+    parsedItems.push(parsedItem);
+  }
+
+  return parsedItems;
+};
+
+const isMissingColumnError = (error: unknown, columnCode: string): boolean => {
+  if (!error || typeof error !== 'object') return false;
+  const databaseError = error as { code?: string };
+  return databaseError.code === columnCode;
+};
 
 export async function POST(request: Request) {
   try {
-    if (typeof getPool !== 'function') {
-      throw new Error('getPool ni funkcija.');
-    }
-    if (typeof uploadBlob !== 'function') {
-      throw new Error('uploadBlob ni funkcija.');
-    }
-    if (typeof generateOrderPdf !== 'function') {
-      throw new Error('generateOrderPdf ni funkcija.');
+    let payload: OrderPayload;
+    try {
+      payload = (await request.json()) as OrderPayload;
+    } catch {
+      return NextResponse.json({ message: 'Neveljaven JSON.' }, { status: 400 });
     }
 
-    const body = await request.json();
-    const {
-      customerType,
-      organizationName,
-      deliveryAddress,
-      contactName,
-      email,
-      phone,
-      reference,
-      notes,
-      items
-    } = body ?? {};
+    const customerTypeText = toTrimmedText(payload.customerType);
+    const customerType = customerTypeText as CustomerType;
 
-    if (!customerType || !contactName || !email) {
+    const organizationName = toTrimmedText(payload.organizationName);
+    const deliveryAddress = toTrimmedText(payload.deliveryAddress);
+    const contactName = toTrimmedText(payload.contactName);
+    const email = toTrimmedText(payload.email);
+    const phone = toTrimmedText(payload.phone);
+    const reference = toTrimmedText(payload.reference);
+    const notes = toTrimmedText(payload.notes);
+
+    if (!ALLOWED_CUSTOMER_TYPES.has(customerType)) {
+      return NextResponse.json({ message: 'Neveljaven tip naročnika.' }, { status: 400 });
+    }
+
+    if (!contactName || !email) {
+      return NextResponse.json({ message: 'Manjkajo obvezni podatki.' }, { status: 400 });
+    }
+
+    const pricedItems = parsePricedItems(payload.items);
+    if (!pricedItems) {
       return NextResponse.json(
-        { message: 'Manjkajo obvezni podatki.' },
+        { message: 'Podatki o izdelkih niso veljavni (SKU, naziv, količina in cena).' },
         { status: 400 }
       );
     }
 
-    if (!Array.isArray(items) || items.length === 0) {
-      return NextResponse.json(
-        { message: 'Naročilo mora vsebovati vsaj en izdelek.' },
-        { status: 400 }
-      );
-    }
-
-    const normalizedItems = items.map((item: any) => ({
-      sku: String(item.sku ?? ''),
-      name: String(item.name ?? ''),
-      unit: item.unit ? String(item.unit) : null,
-      quantity: Number(item.quantity ?? 0),
-      unitPrice: item.unitPrice ? Number(item.unitPrice) : null
-    }));
-
-    if (normalizedItems.some((item: any) => !item.sku || !item.name || item.quantity <= 0)) {
-      return NextResponse.json({ message: 'Podatki o izdelkih niso veljavni.' }, { status: 400 });
-    }
-
-    const taxRate = 0.22;
-
-    // unitPrice is VAT-inclusive
-    const subtotal = normalizedItems.reduce(
-      (sum, item) => sum + item.quantity * (item.unitPrice ?? 0),
+    // vat-inclusive model
+    const subtotal = pricedItems.reduce(
+      (sum, item) => sum + item.quantity * item.unitPrice,
       0
     );
-
-    const tax = subtotal - subtotal / (1 + taxRate); // informational VAT portion
-    const total = subtotal; // do NOT add VAT again
-
+    const shipping = SHIPPING_DEFAULT;
+    const total = subtotal + shipping;
+    const tax = total - total / (1 + TAX_RATE);
 
     const pool = await getPool();
-    const client = await pool.connect();
+    const databaseClient = await pool.connect();
 
     try {
-      await client.query('BEGIN');
+      await databaseClient.query('begin');
 
       const insertOrderQuery = `
-        WITH next_id AS (
-          SELECT nextval('orders_id_seq') AS id
+        with next_id as (
+          select nextval('orders_id_seq') as id
         )
-        INSERT INTO orders (
+        insert into orders (
           id,
           order_number,
           customer_type,
@@ -95,7 +143,7 @@ export async function POST(request: Request) {
           tax,
           total
         )
-        SELECT
+        select
           id,
           'ORD-' || id,
           $1,
@@ -109,35 +157,42 @@ export async function POST(request: Request) {
           $9,
           $10,
           $11
-        FROM next_id
-        RETURNING id, order_number, created_at
+        from next_id
+        returning id, order_number, created_at
       `;
 
-      const orderResult = await client.query(insertOrderQuery, [
+      const orderResult = await databaseClient.query(insertOrderQuery, [
         customerType,
-        organizationName || null,
+        toNullableText(organizationName),
         contactName,
         email,
-        phone || null,
-        deliveryAddress || null,
-        reference || null,
-        notes || null,
+        toNullableText(phone),
+        toNullableText(deliveryAddress),
+        toNullableText(reference),
+        toNullableText(notes),
         subtotal,
         tax,
         total
       ]);
 
-      const order = orderResult.rows[0];
+      const orderRow = orderResult.rows[0] as
+        | { id: number; order_number: string; created_at: string }
+        | undefined;
 
-      const itemInsertQuery = `
-        INSERT INTO order_items (order_id, sku, name, unit, quantity, unit_price, total_price)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+      if (!orderRow) {
+        throw new Error('Naročilo ni bilo ustvarjeno.');
+      }
+
+      const insertItemQuery = `
+        insert into order_items (order_id, sku, name, unit, quantity, unit_price, total_price)
+        values ($1, $2, $3, $4, $5, $6, $7)
       `;
 
-      for (const item of normalizedItems) {
-        const totalPrice = item.unitPrice ? item.unitPrice * item.quantity : null;
-        await client.query(itemInsertQuery, [
-          order.id,
+      for (const item of pricedItems) {
+        const totalPrice = item.unitPrice * item.quantity;
+
+        await databaseClient.query(insertItemQuery, [
+          orderRow.id,
           item.sku,
           item.name,
           item.unit,
@@ -148,59 +203,59 @@ export async function POST(request: Request) {
       }
 
       const documentType = customerType === 'school' ? 'order_summary' : 'predracun';
+      const documentTitle = documentType === 'order_summary' ? 'Ponudba' : 'Predračun';
+
       const pdfBuffer = await generateOrderPdf(
-        documentType === 'order_summary' ? 'Ponudba' : 'Predračun',
+        documentTitle,
         {
-          orderNumber: order.order_number,
+          orderNumber: orderRow.order_number,
           customerType,
-          organizationName: organizationName || null,
+          organizationName: toNullableText(organizationName),
           contactName,
           email,
-          phone: phone || null,
-          deliveryAddress: deliveryAddress || null,
-          reference: reference || null,
-          notes: notes || null,
-          createdAt: new Date(order.created_at),
+          phone: toNullableText(phone),
+          deliveryAddress: toNullableText(deliveryAddress),
+          reference: toNullableText(reference),
+          notes: toNullableText(notes),
+          createdAt: new Date(orderRow.created_at),
           subtotal,
           tax,
           total
         },
-        normalizedItems
+        pricedItems
       );
 
-      const fileName = `${order.order_number}-${documentType}.pdf`;
-      const blobPath = `orders/${order.order_number}/${fileName}`;
-      const blob = await uploadBlob(blobPath, pdfBuffer, 'application/pdf');
+      const fileName = `${orderRow.order_number}-${documentType}.pdf`;
+      const blobPath = `orders/${orderRow.order_number}/${fileName}`;
+      const blob = await uploadBlob(blobPath, Buffer.from(pdfBuffer), 'application/pdf');
 
       try {
-        await client.query(
-          'INSERT INTO order_documents (order_id, type, filename, blob_url, blob_pathname) VALUES ($1, $2, $3, $4, $5)',
-          [order.id, documentType, fileName, blob.url, blob.pathname]
+        await databaseClient.query(
+          'insert into order_documents (order_id, type, filename, blob_url, blob_pathname) values ($1, $2, $3, $4, $5)',
+          [orderRow.id, documentType, fileName, blob.url, blob.pathname]
         );
       } catch (error) {
-        const code = typeof error === 'object' && error !== null ? (error as { code?: string }).code : null;
-        if (code !== '42703') {
-          throw error;
-        }
-        await client.query(
-          'INSERT INTO order_documents (order_id, type, filename, blob_url) VALUES ($1, $2, $3, $4)',
-          [order.id, documentType, fileName, blob.url]
+        if (!isMissingColumnError(error, '42703')) throw error;
+
+        await databaseClient.query(
+          'insert into order_documents (order_id, type, filename, blob_url) values ($1, $2, $3, $4)',
+          [orderRow.id, documentType, fileName, blob.url]
         );
       }
 
-      await client.query('COMMIT');
+      await databaseClient.query('commit');
 
       return NextResponse.json({
-        orderId: order.id,
-        orderNumber: order.order_number,
+        orderId: orderRow.id,
+        orderNumber: orderRow.order_number,
         documentUrl: blob.url,
         documentType
       });
     } catch (error) {
-      await client.query('ROLLBACK');
+      await databaseClient.query('rollback');
       throw error;
     } finally {
-      client.release();
+      databaseClient.release();
     }
   } catch (error) {
     return NextResponse.json(

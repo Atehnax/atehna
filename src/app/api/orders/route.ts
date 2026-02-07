@@ -58,12 +58,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Podatki o izdelkih niso veljavni.' }, { status: 400 });
     }
 
+    const taxRate = 0.22;
+
+    // unitPrice is VAT-inclusive
     const subtotal = normalizedItems.reduce(
-      (sum: number, item: any) => sum + (item.unitPrice ?? 0) * item.quantity,
+      (sum, item) => sum + item.quantity * (item.unitPrice ?? 0),
       0
     );
-    const tax = subtotal > 0 ? subtotal * TAX_RATE : 0;
-    const total = subtotal + tax;
+
+    const tax = subtotal - subtotal / (1 + taxRate); // informational VAT portion
+    const total = subtotal; // do NOT add VAT again
+
 
     const pool = await getPool();
     const client = await pool.connect();

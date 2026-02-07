@@ -101,22 +101,23 @@ const composeDeliveryAddressLines = (formData: OrderFormData) => {
   return [formData.addressLine1.trim(), formData.addressLine2.trim(), cityLine].filter(Boolean);
 };
 
+const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+
 type FloatingInputProps = InputHTMLAttributes<HTMLInputElement> & {
   label: string;
 };
 
-function FloatingInput({ label, className = '', id, ...props }: FloatingInputProps) {
+function FloatingInput({ label, className = '', ...props }: FloatingInputProps) {
   return (
     <div className="relative">
       <input
-        id={id}
         {...props}
         placeholder=" "
         className={`peer h-14 w-full rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 ${className}`}
       />
       <label
-        htmlFor={id}
-        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[15px] text-slate-500 transition-all duration-150 peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-[11px] peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-[11px]"
+        htmlFor={props.id}
+        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500 transition-all duration-150 peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-[11px] peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-[11px]"
       >
         {label}
       </label>
@@ -128,18 +129,17 @@ type FloatingTextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   label: string;
 };
 
-function FloatingTextarea({ label, className = '', id, ...props }: FloatingTextareaProps) {
+function FloatingTextarea({ label, className = '', ...props }: FloatingTextareaProps) {
   return (
     <div className="relative">
       <textarea
-        id={id}
         {...props}
         placeholder=" "
         className={`peer min-h-[110px] w-full rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 ${className}`}
       />
       <label
-        htmlFor={id}
-        className="pointer-events-none absolute left-3 top-6 -translate-y-1/2 text-[15px] text-slate-500 transition-all duration-150 peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-[11px] peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-[11px]"
+        htmlFor={props.id}
+        className="pointer-events-none absolute left-3 top-5 -translate-y-1/2 text-sm text-slate-500 transition-all duration-150 peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-[11px] peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-[11px]"
       >
         {label}
       </label>
@@ -152,17 +152,19 @@ type FloatingSelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
   children: ReactNode;
 };
 
-function FloatingSelect({ label, className = '', children, id, ...props }: FloatingSelectProps) {
+function FloatingSelect({ label, className = '', children, ...props }: FloatingSelectProps) {
   return (
     <div className="relative">
       <select
-        id={id}
         {...props}
         className={`peer h-14 w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 ${className}`}
       >
         {children}
       </select>
-      <label htmlFor={id} className="pointer-events-none absolute left-3 top-2 text-[11px] text-slate-500">
+      <label
+        htmlFor={props.id}
+        className="pointer-events-none absolute left-3 top-2 text-[11px] text-slate-500"
+      >
         {label}
       </label>
       <svg
@@ -178,6 +180,23 @@ function FloatingSelect({ label, className = '', children, id, ...props }: Float
   );
 }
 
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5">
+      <path d="M5 10.5l3 3 7-7" />
+    </svg>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.9">
+      <path d="M13.8 3.6a1.6 1.6 0 0 1 2.3 2.3l-8.6 8.6-3.6.8.8-3.6 8.6-8.1z" />
+      <path d="M11.8 5.5l2.8 2.8" />
+    </svg>
+  );
+}
+
 export default function OrderPageClient() {
   const items = useCartStore((state) => state.items) as CheckoutItem[];
   const setQuantity = useCartStore((state) => state.setQuantity);
@@ -189,7 +208,9 @@ export default function OrderPageClient() {
   const [orderResponse, setOrderResponse] = useState<OrderResponse | null>(null);
   const [submittedOrder, setSubmittedOrder] = useState<SubmittedOrderSnapshot | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isEmailConfirmed, setIsEmailConfirmed] = useState(false);
+
+  // email step state
+  const [isEmailEditing, setIsEmailEditing] = useState(true);
 
   const normalizedItems = useMemo(
     () =>
@@ -201,7 +222,10 @@ export default function OrderPageClient() {
   );
 
   const hasMissingPrices = useMemo(
-    () => items.some((item) => typeof item.unitPrice !== 'number' || !Number.isFinite(item.unitPrice)),
+    () =>
+      items.some(
+        (item) => typeof item.unitPrice !== 'number' || !Number.isFinite(item.unitPrice)
+      ),
     [items]
   );
 
@@ -209,16 +233,15 @@ export default function OrderPageClient() {
     () => normalizedItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0),
     [normalizedItems]
   );
+
   const shipping = 0;
   const total = subtotal + shipping;
   const vatIncluded = useMemo(() => extractVatIncluded(total), [total]);
 
   const isIndividual = formData.customerType === 'individual';
-
-  const emailIsValid = useMemo(() => {
-    const value = formData.email.trim();
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-  }, [formData.email]);
+  const emailIsValid = useMemo(() => isValidEmail(formData.email), [formData.email]);
+  const emailConfirmed = emailIsValid && !isEmailEditing;
+  const shippingDetailsLocked = !emailConfirmed;
 
   useEffect(() => {
     const saved = localStorage.getItem(FORM_STORAGE_KEY);
@@ -233,6 +256,10 @@ export default function OrderPageClient() {
       }
 
       setFormData(next);
+
+      if (isValidEmail(String(next.email ?? ''))) {
+        setIsEmailEditing(false);
+      }
     } catch {
       localStorage.removeItem(FORM_STORAGE_KEY);
     }
@@ -241,12 +268,6 @@ export default function OrderPageClient() {
   useEffect(() => {
     localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formData));
   }, [formData]);
-
-  useEffect(() => {
-    if (!emailIsValid && isEmailConfirmed) {
-      setIsEmailConfirmed(false);
-    }
-  }, [emailIsValid, isEmailConfirmed]);
 
   const requiredFieldsFilled = useMemo(() => {
     const commonRequired =
@@ -276,23 +297,25 @@ export default function OrderPageClient() {
     items.length
   ]);
 
-  const canSubmit = isEmailConfirmed && requiredFieldsFilled && !hasMissingPrices && !isSubmitting;
-  const shippingDetailsLocked = !isEmailConfirmed;
+  const canSubmit = requiredFieldsFilled && !hasMissingPrices && !isSubmitting;
 
   const addressSuggestions = useMemo(() => {
     const query = formData.addressLine1.trim().toLowerCase();
-    if (!query) return [];
-    return SLOVENIAN_ADDRESSES.filter((address) => address.toLowerCase().includes(query)).slice(0, 7);
-  }, [formData.addressLine1]);
+    if (!query || shippingDetailsLocked) return [];
+
+    return SLOVENIAN_ADDRESSES.filter((address) =>
+      address.toLowerCase().includes(query)
+    ).slice(0, 7);
+  }, [formData.addressLine1, shippingDetailsLocked]);
+
+  const confirmEmailStep = () => {
+    if (!emailIsValid) return;
+    setIsEmailEditing(false);
+  };
 
   const handleSubmit = async (event?: FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
     setErrorMessage(null);
-
-    if (!isEmailConfirmed) {
-      setErrorMessage('Najprej potrdite email naslov.');
-      return;
-    }
 
     if (!requiredFieldsFilled) {
       setErrorMessage('Izpolnite obvezna polja in dodajte vsaj en izdelek.');
@@ -313,6 +336,7 @@ export default function OrderPageClient() {
           : formData.organizationContactName.trim();
 
       const deliveryAddressLines = composeDeliveryAddressLines(formData);
+
       const payloadItems: CheckoutItem[] = normalizedItems.map((item) => ({
         sku: item.sku,
         name: item.name,
@@ -326,7 +350,8 @@ export default function OrderPageClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customerType: formData.customerType,
-          organizationName: formData.customerType === 'individual' ? '' : formData.organizationName.trim(),
+          organizationName:
+            formData.customerType === 'individual' ? '' : formData.organizationName.trim(),
           deliveryAddress: deliveryAddressLines.join(', '),
           contactName: recipientName,
           email: formData.email.trim(),
@@ -346,7 +371,8 @@ export default function OrderPageClient() {
 
       setSubmittedOrder({
         customerType: formData.customerType,
-        organizationName: formData.customerType === 'individual' ? '' : formData.organizationName.trim(),
+        organizationName:
+          formData.customerType === 'individual' ? '' : formData.organizationName.trim(),
         recipientName,
         email: formData.email.trim(),
         phone: formData.phone.trim(),
@@ -400,7 +426,7 @@ export default function OrderPageClient() {
 
             <div className="mt-5 grid gap-5 text-sm text-slate-700 md:grid-cols-2">
               <div>
-                <p className="text-xs tracking-wide text-slate-400">Dostava na</p>
+                <p className="text-xs font-medium text-slate-400">Dostava na</p>
                 <p className="font-semibold text-slate-900">{submittedOrder.recipientName}</p>
                 {submittedOrder.organizationName && <p>{submittedOrder.organizationName}</p>}
                 {submittedOrder.deliveryAddressLines.map((line, index) => (
@@ -408,7 +434,7 @@ export default function OrderPageClient() {
                 ))}
               </div>
               <div>
-                <p className="text-xs tracking-wide text-slate-400">Kontakt</p>
+                <p className="text-xs font-medium text-slate-400">Kontakt</p>
                 <p>{submittedOrder.email}</p>
                 {submittedOrder.phone && <p>{submittedOrder.phone}</p>}
                 {submittedOrder.reference && (
@@ -420,7 +446,7 @@ export default function OrderPageClient() {
               </div>
               {submittedOrder.notes && (
                 <div className="md:col-span-2">
-                  <p className="text-xs tracking-wide text-slate-400">Opombe</p>
+                  <p className="text-xs font-medium text-slate-400">Opombe</p>
                   <p>{submittedOrder.notes}</p>
                 </div>
               )}
@@ -432,55 +458,38 @@ export default function OrderPageClient() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h2 className="text-xl font-semibold text-slate-900">Email naslov</h2>
-                  {isEmailConfirmed && <p className="mt-2 text-sm text-slate-700">{formData.email.trim()}</p>}
+                  {emailConfirmed && <p className="mt-2 text-sm text-slate-700">{formData.email.trim()}</p>}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (isEmailConfirmed) {
-                      setIsEmailConfirmed(false);
-                      return;
-                    }
-                    if (emailIsValid) {
-                      setIsEmailConfirmed(true);
-                    }
-                  }}
-                  disabled={!isEmailConfirmed && !emailIsValid}
-                  className={`inline-flex h-10 w-10 items-center justify-center rounded-full transition ${
-                    !isEmailConfirmed && !emailIsValid
-                      ? 'cursor-not-allowed bg-slate-200 text-slate-400'
-                      : 'bg-black text-white hover:opacity-90'
-                  }`}
-                  aria-label={isEmailConfirmed ? 'Uredi email naslov' : 'Potrdi email naslov'}
-                  title={isEmailConfirmed ? 'Uredi email naslov' : 'Potrdi email naslov'}
-                >
-                  {isEmailConfirmed ? (
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="h-4 w-4"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M12 20h9" />
-                      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-                    </svg>
-                  ) : (
-                    <svg
-                      viewBox="0 0 20 20"
-                      className="h-4 w-4"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                    >
-                      <path d="M5 10.5l3 3 7-7" />
-                    </svg>
-                  )}
-                </button>
+                {emailConfirmed ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsEmailEditing(true)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 text-slate-700 transition hover:border-slate-400 hover:text-slate-900"
+                    aria-label="Uredi email naslov"
+                    title="Uredi email naslov"
+                  >
+                    <PencilIcon />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={confirmEmailStep}
+                    disabled={!emailIsValid}
+                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition ${
+                      emailIsValid
+                        ? 'bg-black text-white hover:opacity-90'
+                        : 'cursor-not-allowed border border-slate-300 text-slate-300'
+                    }`}
+                    aria-label="Potrdi email naslov"
+                    title="Potrdi email naslov"
+                  >
+                    <CheckIcon />
+                  </button>
+                )}
               </div>
 
-              {!isEmailConfirmed && (
+              {isEmailEditing && (
                 <div className="mt-4">
                   <FloatingInput
                     id="email"
@@ -491,6 +500,12 @@ export default function OrderPageClient() {
                     onChange={(event) =>
                       setFormData((previous) => ({ ...previous, email: event.target.value }))
                     }
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        confirmEmailStep();
+                      }
+                    }}
                   />
                 </div>
               )}
@@ -503,7 +518,9 @@ export default function OrderPageClient() {
             >
               <h2 className="text-xl font-semibold text-slate-900">Podatki za dostavo</h2>
               {shippingDetailsLocked && (
-                <p className="mt-2 text-xs text-slate-500">Najprej potrdite email naslov.</p>
+                <p className="mt-2 text-xs text-slate-500">
+                  Najprej vnesite veljaven email naslov in ga potrdite.
+                </p>
               )}
 
               <form
@@ -623,7 +640,7 @@ export default function OrderPageClient() {
                 <div className="md:col-span-2">
                   <FloatingInput
                     id="addressLine2"
-                    label="Stanovanje, enota, nadstropje"
+                    label="Stanovanje, nadstropje, enota"
                     disabled={shippingDetailsLocked}
                     value={formData.addressLine2}
                     onChange={(event) =>
@@ -795,7 +812,9 @@ export default function OrderPageClient() {
               <span>Skupaj</span>
               <span>{formatCurrency(viewTotal)}</span>
             </div>
-            <p className="mt-2 text-xs text-slate-500">Vključuje DDV (22%): {formatCurrency(viewVatIncluded)}</p>
+            <p className="mt-2 text-xs text-slate-500">
+              Vključuje DDV (22%): {formatCurrency(viewVatIncluded)}
+            </p>
           </div>
         </section>
       </div>
@@ -805,7 +824,8 @@ export default function OrderPageClient() {
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-slate-900">Oddaja naročila</h2>
             <p className="mt-2 text-sm text-slate-600">
-              Po oddaji naročila pripravimo PDF predračuna (za podjetja in fizične osebe) oziroma ponudbe (za šole).
+              Po oddaji naročila pripravimo PDF predračuna (za podjetja in fizične osebe) oziroma
+              ponudbe (za šole).
             </p>
 
             <div className="mt-4 flex flex-col gap-3">
@@ -824,12 +844,10 @@ export default function OrderPageClient() {
 
               {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
 
-              {!errorMessage && !isEmailConfirmed && (
-                <p className="text-xs text-slate-500">Najprej potrdite email naslov.</p>
-              )}
-
-              {!errorMessage && isEmailConfirmed && !requiredFieldsFilled && (
-                <p className="text-xs text-slate-500">Za oddajo izpolnite obvezna polja in dodajte vsaj en izdelek.</p>
+              {!errorMessage && !requiredFieldsFilled && (
+                <p className="text-xs text-slate-500">
+                  Za oddajo izpolnite obvezna polja in dodajte vsaj en izdelek.
+                </p>
               )}
 
               {!errorMessage && hasMissingPrices && (

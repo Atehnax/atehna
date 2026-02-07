@@ -61,6 +61,13 @@ const formatVersionDate = (value: string) =>
     minute: '2-digit'
   });
 
+const formatVersionCount = (count: number) => {
+  if (count === 1) return '1 verzija';
+  if (count === 2) return '2 verziji';
+  if (count === 3 || count === 4) return `${count} verzije`;
+  return `${count} verzij`;
+};
+
 const clampValue = (value: number, minimum: number, maximum: number) =>
   Math.min(Math.max(value, minimum), maximum);
 
@@ -289,7 +296,7 @@ export default function AdminOrdersPdfCell({
                           {pdfType.label}
                         </span>
                         <span className="text-[11px] text-slate-500">
-                          {options.length > 0 ? `${options.length} verzij` : 'Brez dokumenta'}
+                          {options.length > 0 ? formatVersionCount(options.length) : 'Brez dokumenta'}
                         </span>
                       </div>
 

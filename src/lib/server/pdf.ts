@@ -37,14 +37,20 @@ const formatCurrency = (value: number) =>
 const formatDate = (date: Date) =>
   new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(date);
 
+const toNumber = (value: number | null | undefined) =>
+  typeof value === 'number' && Number.isFinite(value) ? value : 0;
+
 let cachedFonts: { regular: Uint8Array; bold: Uint8Array } | null = null;
 
 async function loadFonts() {
   if (cachedFonts) return cachedFonts;
+
   const fontDir = path.join(process.cwd(), 'public', 'fonts');
   await fs.mkdir(fontDir, { recursive: true });
+
   const regularPath = path.join(fontDir, 'NotoSans-Regular.ttf');
   const boldPath = path.join(fontDir, 'NotoSans-Bold.ttf');
+
   try {
     await fs.access(regularPath);
     await fs.access(boldPath);
@@ -52,11 +58,9 @@ async function loadFonts() {
     await fs.writeFile(regularPath, Buffer.from(NOTO_SANS_REGULAR_BASE64, 'base64'));
     await fs.writeFile(boldPath, Buffer.from(NOTO_SANS_BOLD_BASE64, 'base64'));
   }
+
   try {
-    const [regular, bold] = await Promise.all([
-      fs.readFile(regularPath),
-      fs.readFile(boldPath)
-    ]);
+    const [regular, bold] = await Promise.all([fs.readFile(regularPath), fs.readFile(boldPath)]);
     cachedFonts = { regular, bold };
     return cachedFonts;
   } catch {
@@ -71,8 +75,10 @@ export async function generateOrderPdf(
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
+
   let font;
   let fontBold;
+
   try {
     const fonts = await loadFonts();
     if (fonts) {
@@ -156,9 +162,9 @@ export async function generateOrderPdf(
   ];
 
   let x = left;
-  columns.forEach((col) => {
-    page.drawText(col.title, { x, y, size: 9, font: fontBold });
-    x += col.width;
+  columns.forEach((column) => {
+    page.drawText(column.title, { x, y, size: 9, font: fontBold });
+    x += column.width;
   });
 
   y -= 12;
@@ -167,39 +173,34 @@ export async function generateOrderPdf(
     x = left;
     page.drawText(item.sku, { x, y, size: 9, font });
     x += columns[0].width;
+
     page.drawText(item.name, { x, y, size: 9, font });
     x += columns[1].width;
+
     page.drawText(String(item.quantity), { x, y, size: 9, font });
     x += columns[2].width;
+
     page.drawText(item.unit ?? '-', { x, y, size: 9, font });
     x += columns[3].width;
-    const priceLabel = item.unitPrice ? formatCurrency(item.unitPrice) : 'Po dogovoru';
-    page.drawText(priceLabel, { x, y, size: 9, font });
+
+    page.drawText(formatCurrency(toNumber(item.unitPrice)), { x, y, size: 9, font });
+
     y -= lineHeight;
   });
 
   y -= 8;
 
-  if (order.subtotal > 0 || order.total > 0) {
-    const totals = [
-      `Vmesni seštevek: ${formatCurrency(order.subtotal)}`,
-      `DDV: ${formatCurrency(order.tax)}`,
-      `Skupaj: ${formatCurrency(order.total)}`
-    ];
+  // Always numeric totals (no fallback text)
+  const totals = [
+    `Vmesni seštevek: ${formatCurrency(toNumber(order.subtotal))}`,
+    `DDV: ${formatCurrency(toNumber(order.tax))}`,
+    `Skupaj: ${formatCurrency(toNumber(order.total))}`
+  ];
 
-    totals.forEach((line) => {
-      page.drawText(line, { x: left, y, size: 10, font: fontBold });
-      y -= 14;
-    });
-  } else {
-    page.drawText('Cene bodo določene ob potrditvi ponudbe.', {
-      x: left,
-      y,
-      size: 10,
-      font
-    });
+  totals.forEach((line) => {
+    page.drawText(line, { x: left, y, size: 10, font: fontBold });
     y -= 14;
-  }
+  });
 
   if (order.notes) {
     y -= 4;

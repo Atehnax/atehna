@@ -39,12 +39,10 @@ type OrderFormData = {
   organizationName: string;
   organizationContactName: string;
   addressLine1: string;
-  addressLine2: string;
   city: string;
   postalCode: string;
   email: string;
   phone: string;
-  reference: string;
   notes: string;
 };
 
@@ -61,7 +59,6 @@ type SubmittedOrderSnapshot = {
   recipientName: string;
   email: string;
   phone: string;
-  reference: string;
   notes: string;
   deliveryAddressLines: string[];
   items: CheckoutItem[];
@@ -78,12 +75,10 @@ const initialForm: OrderFormData = {
   organizationName: '',
   organizationContactName: '',
   addressLine1: '',
-  addressLine2: '',
   city: '',
   postalCode: '',
   email: '',
   phone: '',
-  reference: '',
   notes: ''
 };
 
@@ -98,7 +93,7 @@ const extractVatIncluded = (grossAmount: number, vatRate = 0.22) =>
 
 const composeDeliveryAddressLines = (formData: OrderFormData) => {
   const cityLine = `${formData.postalCode.trim()} ${formData.city.trim()}`.trim();
-  return [formData.addressLine1.trim(), formData.addressLine2.trim(), cityLine].filter(Boolean);
+  return [formData.addressLine1.trim(), cityLine].filter(Boolean);
 };
 
 const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -137,9 +132,7 @@ function FloatingInput({ label, id, className = '', ...props }: FloatingInputPro
         htmlFor={id}
         className={classNames(
           'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400 transition-all duration-150',
-          // float on focus
           'group-focus-within:top-2 group-focus-within:translate-y-0 group-focus-within:bg-white group-focus-within:px-1 group-focus-within:text-[11px] group-focus-within:text-slate-600',
-          // float when value exists
           'group-data-[filled=true]:top-2 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:bg-white group-data-[filled=true]:px-1 group-data-[filled=true]:text-[11px] group-data-[filled=true]:text-slate-600'
         )}
       >
@@ -194,7 +187,15 @@ type FloatingSelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'id'> &
   children: ReactNode;
 };
 
-function FloatingSelect({ label, id, className = '', children, value, defaultValue, ...props }: FloatingSelectProps) {
+function FloatingSelect({
+  label,
+  id,
+  className = '',
+  children,
+  value,
+  defaultValue,
+  ...props
+}: FloatingSelectProps) {
   const currentValue = value ?? defaultValue ?? '';
   const hasValue = String(currentValue).length > 0;
 
@@ -270,7 +271,6 @@ export default function OrderPageClient() {
   const [submittedOrder, setSubmittedOrder] = useState<SubmittedOrderSnapshot | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Email gate
   const [isEmailEditing, setIsEmailEditing] = useState(true);
 
   const normalizedItems = useMemo(
@@ -284,9 +284,7 @@ export default function OrderPageClient() {
 
   const hasMissingPrices = useMemo(
     () =>
-      items.some(
-        (item) => typeof item.unitPrice !== 'number' || !Number.isFinite(item.unitPrice)
-      ),
+      items.some((item) => typeof item.unitPrice !== 'number' || !Number.isFinite(item.unitPrice)),
     [items]
   );
 
@@ -364,9 +362,7 @@ export default function OrderPageClient() {
     const query = formData.addressLine1.trim().toLowerCase();
     if (!query || shippingDetailsLocked) return [];
 
-    return SLOVENIAN_ADDRESSES.filter((address) =>
-      address.toLowerCase().includes(query)
-    ).slice(0, 7);
+    return SLOVENIAN_ADDRESSES.filter((address) => address.toLowerCase().includes(query)).slice(0, 7);
   }, [formData.addressLine1, shippingDetailsLocked]);
 
   const confirmEmailStep = () => {
@@ -417,7 +413,6 @@ export default function OrderPageClient() {
           contactName: recipientName,
           email: formData.email.trim(),
           phone: formData.phone.trim(),
-          reference: formData.reference.trim(),
           notes: formData.notes.trim(),
           items: payloadItems
         })
@@ -437,7 +432,6 @@ export default function OrderPageClient() {
         recipientName,
         email: formData.email.trim(),
         phone: formData.phone.trim(),
-        reference: formData.reference.trim(),
         notes: formData.notes.trim(),
         deliveryAddressLines,
         items: payloadItems,
@@ -460,9 +454,7 @@ export default function OrderPageClient() {
     return (
       <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
         <p className="text-lg font-semibold text-slate-900">Košarica je prazna</p>
-        <p className="mt-2 text-sm text-slate-600">
-          Najprej dodajte izdelke iz posameznih kategorij.
-        </p>
+        <p className="mt-2 text-sm text-slate-600">Najprej dodajte izdelke iz posameznih kategorij.</p>
         <Link
           href="/products"
           className="mt-4 inline-flex rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
@@ -479,22 +471,18 @@ export default function OrderPageClient() {
   const viewTotal = submittedOrder?.total ?? total;
   const viewVatIncluded = submittedOrder?.vatIncluded ?? vatIncluded;
 
-    if (orderResponse && submittedOrder) {
+  if (orderResponse && submittedOrder) {
     return (
       <div className="mx-auto max-w-4xl space-y-8">
         <header className="space-y-3">
-          <h1 className="text-4xl font-semibold tracking-tight text-slate-900">
-            Naročilo je potrjeno
-          </h1>
+          <h1 className="text-4xl font-semibold tracking-tight text-slate-900">Naročilo je potrjeno</h1>
           <p className="text-sm text-slate-600">
             Potrditev je bila poslana na email. Spodaj so podrobnosti naročila in povezava do PDF dokumenta.
           </p>
         </header>
 
         <section className="border-t border-slate-200 pt-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-900">
-            Podrobnosti naročila
-          </h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-900">Podrobnosti naročila</h2>
 
           <div className="mt-6 grid gap-8 text-sm md:grid-cols-2">
             <div>
@@ -526,7 +514,6 @@ export default function OrderPageClient() {
             </div>
           )}
 
-          {/* Instead of tax registration: PDF link */}
           <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-400">PDF dokument</p>
             <a
@@ -537,27 +524,25 @@ export default function OrderPageClient() {
             >
               Odpri PDF dokument →
             </a>
-          </div>
 
-          {submittedOrder.customerType === 'school' && (
-            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-              Naročilnico lahko naložite kasneje na strani{' '}
-              <Link href="/order/narocilnica" className="font-semibold text-amber-900">
-                Naloži naročilnico
-              </Link>
-              .
-            </div>
-          )}
+            {submittedOrder.customerType === 'school' && (
+              <p className="mt-2 text-sm text-slate-600">
+                Če ste šola, naročilnico naložite kasneje na{' '}
+                <Link href="/order/narocilnica" className="font-semibold text-brand-600 hover:text-brand-700">
+                  posebni strani za naročilnice
+                </Link>
+                .
+              </p>
+            )}
+          </div>
         </section>
 
         <section className="border-t border-slate-200 pt-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-900">
-            Povzetek naročila
-          </h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-900">Povzetek naročila</h2>
 
           <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
             <div className="space-y-3">
-              {viewItems.map((item) => {
+              {submittedOrder.items.map((item) => {
                 const lineTotal = toNumber(item.unitPrice) * item.quantity;
 
                 return (
@@ -567,14 +552,12 @@ export default function OrderPageClient() {
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-slate-900">{item.name}</p>
-                      <p className="text-xs text-slate-500">
-                        Cena enote: {formatCurrency(toNumber(item.unitPrice))}
-                      </p>
+                      <p className="text-xs text-slate-500">Cena enote: {formatCurrency(toNumber(item.unitPrice))}</p>
                     </div>
 
                     <div className="text-left text-sm sm:text-right">
                       <p className="font-semibold text-slate-900">{formatCurrency(lineTotal)}</p>
-                      <p className="text-slate-500">Qty: {item.quantity}</p>
+                      <p className="text-slate-500">Količina: {item.quantity}</p>
                     </div>
                   </div>
                 );
@@ -585,18 +568,18 @@ export default function OrderPageClient() {
           <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
             <div className="flex items-center justify-between">
               <span>Vmesni seštevek</span>
-              <span className="font-semibold">{formatCurrency(viewSubtotal)}</span>
+              <span className="font-semibold">{formatCurrency(submittedOrder.subtotal)}</span>
             </div>
             <div className="mt-1 flex items-center justify-between">
               <span>Poštnina</span>
-              <span className="font-semibold">{formatCurrency(viewShipping)}</span>
+              <span className="font-semibold">{formatCurrency(submittedOrder.shipping)}</span>
             </div>
             <div className="mt-1 flex items-center justify-between text-base font-semibold text-slate-900">
               <span>Skupaj</span>
-              <span>{formatCurrency(viewTotal)}</span>
+              <span>{formatCurrency(submittedOrder.total)}</span>
             </div>
             <p className="mt-2 text-xs text-slate-500">
-              Vključuje DDV (22%): {formatCurrency(viewVatIncluded)}
+              Vključuje DDV (22%): {formatCurrency(submittedOrder.vatIncluded)}
             </p>
           </div>
         </section>
@@ -605,268 +588,230 @@ export default function OrderPageClient() {
   }
 
   return (
-    <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">
-      <div className="space-y-8">
-        {orderResponse && submittedOrder ? (
+    <div className="space-y-8">
+      <header className="space-y-3">
+        <h1 className="text-3xl font-semibold text-slate-900">Oddaja naročila</h1>
+        <p className="text-slate-600">
+          Izpolnite podatke in oddajte naročilo. PDF dokument bo na voljo po uspešni oddaji.
+        </p>
+        <p className="text-sm text-slate-600">
+          Če ste šola, naročilnico naložite kasneje na{' '}
+          <Link href="/order/narocilnica" className="font-semibold text-brand-600">
+            posebni strani za naročilnice
+          </Link>
+          .
+        </p>
+      </header>
+
+      <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="space-y-4">
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-slate-900">Podrobnosti naročila</h2>
-            <p className="mt-2 text-sm text-slate-600">Naročilo je uspešno oddano.</p>
-
-            <div className="mt-5 grid gap-5 text-sm text-slate-700 md:grid-cols-2">
-              <div>
-                <p className="text-xs font-medium text-slate-400">Dostava na</p>
-                <p className="font-semibold text-slate-900">{submittedOrder.recipientName}</p>
-                {submittedOrder.organizationName && <p>{submittedOrder.organizationName}</p>}
-                {submittedOrder.deliveryAddressLines.map((line, index) => (
-                  <p key={`${line}-${index}`}>{line}</p>
-                ))}
-              </div>
-              <div>
-                <p className="text-xs font-medium text-slate-400">Kontakt</p>
-                <p>{submittedOrder.email}</p>
-                {submittedOrder.phone && <p>{submittedOrder.phone}</p>}
-                {submittedOrder.reference && (
-                  <p className="mt-2">
-                    <span className="text-slate-500">Sklic: </span>
-                    {submittedOrder.reference}
-                  </p>
-                )}
-              </div>
-              {submittedOrder.notes && (
-                <div className="md:col-span-2">
-                  <p className="text-xs font-medium text-slate-400">Opombe</p>
-                  <p>{submittedOrder.notes}</p>
-                </div>
-              )}
-            </div>
-          </section>
-        ) : (
-          <div className="space-y-4">
-            {/* Email step */}
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <h2 className="text-xl font-semibold text-slate-900">Email naslov</h2>
-
-                  {emailConfirmed && (
-                    <button
-                      type="button"
-                      onClick={() => setIsEmailEditing(true)}
-                      className="mt-2 max-w-full truncate text-left text-sm text-slate-700 hover:text-slate-900"
-                      title="Uredi email naslov"
-                    >
-                      {formData.email.trim()}
-                    </button>
-                  )}
-                </div>
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h2 className="text-xl font-semibold text-slate-900">Email naslov</h2>
 
                 {emailConfirmed && (
                   <button
                     type="button"
                     onClick={() => setIsEmailEditing(true)}
-                    className="group relative inline-flex h-8 w-8 items-center justify-center rounded-full bg-black text-white transition hover:opacity-90"
-                    aria-label="Uredi email naslov"
+                    className="mt-2 max-w-full truncate text-left text-sm text-slate-700 hover:text-slate-900"
                     title="Uredi email naslov"
                   >
-                    <span className="flex items-center justify-center transition-opacity duration-150 group-hover:opacity-0">
-                      <span className="scale-90">
-                        <CheckIcon />
-                      </span>
-                    </span>
-
-                    <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-                      <span className="scale-90">
-                        <PencilIcon />
-                      </span>
-                    </span>
+                    {formData.email.trim()}
                   </button>
                 )}
               </div>
 
-              {isEmailEditing && (
-                <div className="mt-4 space-y-3">
-                  <FloatingInput
-                    id="email"
-                    type="email"
-                    label="Email naslov"
-                    autoComplete="email"
-                    value={formData.email}
-                    onChange={(event) =>
-                      setFormData((previous) => ({ ...previous, email: event.target.value }))
+              {emailConfirmed && (
+                <button
+                  type="button"
+                  onClick={() => setIsEmailEditing(true)}
+                  className="group relative inline-flex h-8 w-8 items-center justify-center rounded-full bg-black text-white transition hover:opacity-90"
+                  aria-label="Uredi email naslov"
+                  title="Uredi email naslov"
+                >
+                  <span className="flex items-center justify-center transition-opacity duration-150 group-hover:opacity-0">
+                    <span className="scale-90">
+                      <CheckIcon />
+                    </span>
+                  </span>
+
+                  <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                    <span className="scale-90">
+                      <PencilIcon />
+                    </span>
+                  </span>
+                </button>
+              )}
+            </div>
+
+            {isEmailEditing && (
+              <div className="mt-4 space-y-3">
+                <FloatingInput
+                  id="email"
+                  type="email"
+                  label="Email naslov"
+                  autoComplete="email"
+                  value={formData.email}
+                  onChange={(event) =>
+                    setFormData((previous) => ({ ...previous, email: event.target.value }))
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      confirmEmailStep();
                     }
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        confirmEmailStep();
-                      }
-                    }}
-                  />
+                  }}
+                />
 
-                  <button
-                    type="button"
-                    onClick={confirmEmailStep}
-                    disabled={!emailIsValid}
-                    className={classNames(
-                      'w-full rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition',
-                      emailIsValid
-                        ? 'bg-brand-600 text-white hover:bg-brand-700'
-                        : 'cursor-not-allowed bg-slate-200 text-slate-400'
-                    )}
-                  >
-                    Nadaljuj
-                  </button>
-                </div>
-              )}
-            </section>
-
-
-
-            {/* Shipping details */}
-            <section
-              className={classNames(
-                'rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition',
-                shippingDetailsLocked ? 'opacity-60' : 'opacity-100'
-              )}
-            >
-              <h2 className="text-xl font-semibold text-slate-900">Podatki za dostavo</h2>
-
-              {shippingDetailsLocked && (
-                <p className="mt-2 text-xs text-slate-500">
-                  Najprej vnesite veljaven email naslov in ga potrdite.
-                </p>
-              )}
-
-              <form
-                className={classNames(
-                  'mt-4 grid gap-4 md:grid-cols-2',
-                  shippingDetailsLocked && 'pointer-events-none select-none'
-                )}
-                onSubmit={handleSubmit}
-              >
-                <div className="md:col-span-2">
-                  <FloatingSelect
-                    id="customerType"
-                    label="Tip naročnika"
-                    disabled={shippingDetailsLocked}
-                    value={formData.customerType}
-                    onChange={(event) => {
-                      setFormData((previous) => ({
-                        ...previous,
-                        customerType: event.target.value as CustomerType
-                      }));
-                    }}
-                  >
-                    {customerTypeOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </FloatingSelect>
-                </div>
-
-                {isIndividual ? (
-                  <>
-                    <FloatingInput
-                      id="firstName"
-                      label="Ime *"
-                      disabled={shippingDetailsLocked}
-                      value={formData.firstName}
-                      onChange={(event) =>
-                        setFormData((previous) => ({ ...previous, firstName: event.target.value }))
-                      }
-                    />
-                    <FloatingInput
-                      id="lastName"
-                      label="Priimek *"
-                      disabled={shippingDetailsLocked}
-                      value={formData.lastName}
-                      onChange={(event) =>
-                        setFormData((previous) => ({ ...previous, lastName: event.target.value }))
-                      }
-                    />
-                  </>
-                ) : (
-                  <>
-                    <div className="md:col-span-2">
-                      <FloatingInput
-                        id="organizationName"
-                        label="Naziv organizacije *"
-                        disabled={shippingDetailsLocked}
-                        value={formData.organizationName}
-                        onChange={(event) =>
-                          setFormData((previous) => ({
-                            ...previous,
-                            organizationName: event.target.value
-                          }))
-                        }
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <FloatingInput
-                        id="organizationContactName"
-                        label="Kontaktna oseba *"
-                        disabled={shippingDetailsLocked}
-                        value={formData.organizationContactName}
-                        onChange={(event) =>
-                          setFormData((previous) => ({
-                            ...previous,
-                            organizationContactName: event.target.value
-                          }))
-                        }
-                      />
-                    </div>
-                  </>
-                )}
-
-                <div className="md:col-span-2">
-                  <FloatingInput
-                    id="addressLine1"
-                    label="Naslov *"
-                    disabled={shippingDetailsLocked}
-                    autoComplete="street-address"
-                    value={formData.addressLine1}
-                    onChange={(event) =>
-                      setFormData((previous) => ({
-                        ...previous,
-                        addressLine1: event.target.value
-                      }))
-                    }
-                  />
-
-                  {!shippingDetailsLocked && addressSuggestions.length > 0 && (
-                    <ul className="mt-2 space-y-1 rounded-lg border border-slate-200 bg-white p-2 text-sm shadow-sm">
-                      {addressSuggestions.map((address) => (
-                        <li key={address}>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setFormData((previous) => ({ ...previous, addressLine1: address }))
-                            }
-                            className="w-full text-left text-slate-600 hover:text-brand-600"
-                          >
-                            {address}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
+                <button
+                  type="button"
+                  onClick={confirmEmailStep}
+                  disabled={!emailIsValid}
+                  className={classNames(
+                    'w-full rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition',
+                    emailIsValid
+                      ? 'bg-brand-600 text-white hover:bg-brand-700'
+                      : 'cursor-not-allowed bg-slate-200 text-slate-400'
                   )}
-                </div>
+                >
+                  Nadaljuj
+                </button>
+              </div>
+            )}
+          </section>
 
-                <div className="md:col-span-2">
+          <section
+            className={classNames(
+              'rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition',
+              shippingDetailsLocked ? 'opacity-60' : 'opacity-100'
+            )}
+          >
+            <h2 className="text-xl font-semibold text-slate-900">Podatki za dostavo</h2>
+
+            {shippingDetailsLocked && (
+              <p className="mt-2 text-xs text-slate-500">
+                Najprej vnesite veljaven email naslov in ga potrdite.
+              </p>
+            )}
+
+            <form
+              className={classNames(
+                'mt-4 grid gap-4 md:grid-cols-2',
+                shippingDetailsLocked && 'pointer-events-none select-none'
+              )}
+              onSubmit={handleSubmit}
+            >
+              <div className="md:col-span-2">
+                <FloatingSelect
+                  id="customerType"
+                  label="Tip naročnika"
+                  disabled={shippingDetailsLocked}
+                  value={formData.customerType}
+                  onChange={(event) => {
+                    setFormData((previous) => ({
+                      ...previous,
+                      customerType: event.target.value as CustomerType
+                    }));
+                  }}
+                >
+                  {customerTypeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </FloatingSelect>
+              </div>
+
+              {isIndividual ? (
+                <>
                   <FloatingInput
-                    id="addressLine2"
-                    label="Stanovanje, nadstropje, enota"
+                    id="firstName"
+                    label="Ime *"
                     disabled={shippingDetailsLocked}
-                    value={formData.addressLine2}
+                    value={formData.firstName}
                     onChange={(event) =>
-                      setFormData((previous) => ({
-                        ...previous,
-                        addressLine2: event.target.value
-                      }))
+                      setFormData((previous) => ({ ...previous, firstName: event.target.value }))
                     }
                   />
-                </div>
+                  <FloatingInput
+                    id="lastName"
+                    label="Priimek *"
+                    disabled={shippingDetailsLocked}
+                    value={formData.lastName}
+                    onChange={(event) =>
+                      setFormData((previous) => ({ ...previous, lastName: event.target.value }))
+                    }
+                  />
+                </>
+              ) : (
+                <>
+                  <div className="md:col-span-2">
+                    <FloatingInput
+                      id="organizationName"
+                      label="Naziv organizacije *"
+                      disabled={shippingDetailsLocked}
+                      value={formData.organizationName}
+                      onChange={(event) =>
+                        setFormData((previous) => ({
+                          ...previous,
+                          organizationName: event.target.value
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <FloatingInput
+                      id="organizationContactName"
+                      label="Kontaktna oseba *"
+                      disabled={shippingDetailsLocked}
+                      value={formData.organizationContactName}
+                      onChange={(event) =>
+                        setFormData((previous) => ({
+                          ...previous,
+                          organizationContactName: event.target.value
+                        }))
+                      }
+                    />
+                  </div>
+                </>
+              )}
 
+              <div className="md:col-span-2">
+                <FloatingInput
+                  id="addressLine1"
+                  label="Naslov *"
+                  disabled={shippingDetailsLocked}
+                  autoComplete="street-address"
+                  value={formData.addressLine1}
+                  onChange={(event) =>
+                    setFormData((previous) => ({
+                      ...previous,
+                      addressLine1: event.target.value
+                    }))
+                  }
+                />
+
+                {!shippingDetailsLocked && addressSuggestions.length > 0 && (
+                  <ul className="mt-2 space-y-1 rounded-lg border border-slate-200 bg-white p-2 text-sm shadow-sm">
+                    {addressSuggestions.map((address) => (
+                      <li key={address}>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormData((previous) => ({ ...previous, addressLine1: address }))
+                          }
+                          className="w-full text-left text-slate-600 hover:text-brand-600"
+                        >
+                          {address}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="md:col-span-2 grid gap-4 md:grid-cols-[3fr_1fr]">
                 <FloatingInput
                   id="city"
                   label="Kraj *"
@@ -886,7 +831,9 @@ export default function OrderPageClient() {
                     setFormData((previous) => ({ ...previous, postalCode: event.target.value }))
                   }
                 />
+              </div>
 
+              <div className="md:col-span-2">
                 <FloatingInput
                   id="phone"
                   label="Telefon"
@@ -897,46 +844,30 @@ export default function OrderPageClient() {
                     setFormData((previous) => ({ ...previous, phone: event.target.value }))
                   }
                 />
+              </div>
 
-                <div className="md:col-span-2">
-                  <FloatingInput
-                    id="reference"
-                    label="Sklic / št. naročila"
-                    disabled={shippingDetailsLocked}
-                    value={formData.reference}
-                    onChange={(event) =>
-                      setFormData((previous) => ({ ...previous, reference: event.target.value }))
-                    }
-                  />
-                </div>
+              <div className="md:col-span-2">
+                <FloatingTextarea
+                  id="notes"
+                  label="Opombe"
+                  disabled={shippingDetailsLocked}
+                  rows={3}
+                  value={formData.notes}
+                  onChange={(event) =>
+                    setFormData((previous) => ({ ...previous, notes: event.target.value }))
+                  }
+                />
+              </div>
 
-                <div className="md:col-span-2">
-                  <FloatingTextarea
-                    id="notes"
-                    label="Opombe"
-                    disabled={shippingDetailsLocked}
-                    rows={3}
-                    value={formData.notes}
-                    onChange={(event) =>
-                      setFormData((previous) => ({ ...previous, notes: event.target.value }))
-                    }
-                  />
-                </div>
+              <button type="submit" className="hidden" />
+            </form>
+          </section>
+        </div>
 
-                <button type="submit" className="hidden" />
-              </form>
-            </section>
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-6">
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-slate-900">
-              {orderResponse ? 'Povzetek naročila' : 'Povzetek košarice'}
-            </h2>
-            {!orderResponse && (
+        <div className="space-y-6">
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-slate-900">Povzetek košarice</h2>
               <button
                 type="button"
                 onClick={clearCart}
@@ -944,35 +875,18 @@ export default function OrderPageClient() {
               >
                 Počisti
               </button>
-            )}
-          </div>
+            </div>
 
-          <div className="mt-4 space-y-4">
-            {viewItems.map((item) => {
-              const lineTotal = toNumber(item.unitPrice) * item.quantity;
+            <div className="mt-4 space-y-4">
+              {viewItems.map((item) => {
+                const lineTotal = toNumber(item.unitPrice) * item.quantity;
 
-              return (
-                <div key={item.sku} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  {orderResponse ? (
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900">{item.name}</p>
-                        <p className="text-xs text-slate-500">
-                          Cena enote: {formatCurrency(toNumber(item.unitPrice))}
-                        </p>
-                      </div>
-                      <div className="text-right text-sm">
-                        <p className="text-slate-600">Količina: {item.quantity}</p>
-                        <p className="font-semibold text-slate-900">{formatCurrency(lineTotal)}</p>
-                      </div>
-                    </div>
-                  ) : (
+                return (
+                  <div key={item.sku} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <div className="grid items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-slate-900">{item.name}</p>
-                        <p className="text-xs text-slate-500">
-                          Cena enote: {formatCurrency(toNumber(item.unitPrice))}
-                        </p>
+                        <p className="text-xs text-slate-500">Cena enote: {formatCurrency(toNumber(item.unitPrice))}</p>
                       </div>
 
                       <div className="flex items-center justify-center gap-3 sm:justify-self-center">
@@ -1010,32 +924,30 @@ export default function OrderPageClient() {
                         ×
                       </button>
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  </div>
+                );
+              })}
+            </div>
 
-          <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
-            <div className="flex items-center justify-between">
-              <span>Vmesni seštevek</span>
-              <span className="font-semibold">{formatCurrency(viewSubtotal)}</span>
+            <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
+              <div className="flex items-center justify-between">
+                <span>Vmesni seštevek</span>
+                <span className="font-semibold">{formatCurrency(viewSubtotal)}</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between">
+                <span>Poštnina</span>
+                <span className="font-semibold">{formatCurrency(viewShipping)}</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between text-base font-semibold text-slate-900">
+                <span>Skupaj</span>
+                <span>{formatCurrency(viewTotal)}</span>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">
+                Vključuje DDV (22%): {formatCurrency(viewVatIncluded)}
+              </p>
             </div>
-            <div className="mt-1 flex items-center justify-between">
-              <span>Poštnina</span>
-              <span className="font-semibold">{formatCurrency(viewShipping)}</span>
-            </div>
-            <div className="mt-1 flex items-center justify-between text-base font-semibold text-slate-900">
-              <span>Skupaj</span>
-              <span>{formatCurrency(viewTotal)}</span>
-            </div>
-            <p className="mt-2 text-xs text-slate-500">
-              Vključuje DDV (22%): {formatCurrency(viewVatIncluded)}
-            </p>
-          </div>
-        </section>
+          </section>
 
-        {!orderResponse && (
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-slate-900">Oddaja naročila</h2>
             <p className="mt-2 text-sm text-slate-600">
@@ -1073,40 +985,7 @@ export default function OrderPageClient() {
               )}
             </div>
           </section>
-        )}
-
-        {orderResponse && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-slate-900">PDF dokument</h2>
-
-            <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
-              <iframe
-                title="Predogled PDF"
-                src={orderResponse.documentUrl}
-                className="h-[420px] w-full"
-              />
-            </div>
-
-            <a
-              href={orderResponse.documentUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-3 inline-flex text-sm font-semibold text-brand-600 hover:text-brand-700"
-            >
-              Odpri PDF v novem zavihku →
-            </a>
-
-            {submittedOrder?.customerType === 'school' && (
-              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-                Naročilnico lahko naložite kasneje na strani{' '}
-                <Link href="/order/narocilnica" className="font-semibold text-amber-900">
-                  Naloži naročilnico
-                </Link>
-                .
-              </div>
-            )}
-          </section>
-        )}
+        </div>
       </div>
     </div>
   );

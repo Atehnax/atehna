@@ -803,7 +803,9 @@ export default function OrderPageClient() {
             </section>
           </div>
         )}
+      </div>
 
+      <div className="space-y-6">
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-slate-900">
@@ -907,9 +909,7 @@ export default function OrderPageClient() {
             </p>
           </div>
         </section>
-      </div>
-
-      <div className="space-y-6">
+        
         {!orderResponse && (
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-slate-900">Oddaja naročila</h2>

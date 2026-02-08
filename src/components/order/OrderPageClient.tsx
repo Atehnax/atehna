@@ -106,20 +106,27 @@ const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.
 const classNames = (...parts: Array<string | false | null | undefined>) =>
   parts.filter(Boolean).join(' ');
 
+const isFilled = (value: unknown) => {
+  if (value === null || value === undefined) return false;
+  return String(value).length > 0;
+};
+
 type FloatingInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'id' | 'placeholder'> & {
   id: string;
   label: string;
 };
 
 function FloatingInput({ label, id, className = '', ...props }: FloatingInputProps) {
+  const filled = isFilled(props.value ?? props.defaultValue);
+
   return (
-    <div className="relative">
+    <div className="group relative" data-filled={filled ? 'true' : 'false'}>
       <input
         {...props}
         id={id}
         placeholder=" "
         className={classNames(
-          'peer h-14 w-full rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6',
+          'h-14 w-full rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6',
           'text-sm text-slate-900 outline-none transition',
           'focus:border-brand-500 focus:ring-2 focus:ring-brand-100',
           'disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400',
@@ -129,13 +136,11 @@ function FloatingInput({ label, id, className = '', ...props }: FloatingInputPro
       <label
         htmlFor={id}
         className={classNames(
-          'pointer-events-none absolute left-3 z-10 bg-white px-1 text-[11px] leading-none text-slate-500 transition-all duration-150',
-          // floated (default)
-          'top-2 translate-y-0',
-          // resting like placeholder when empty
-          'peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:px-0 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400',
-          // active
-          'peer-focus:top-2 peer-focus:translate-y-0 peer-focus:px-1 peer-focus:text-[11px] peer-focus:text-slate-600'
+          'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400 transition-all duration-150',
+          // float on focus
+          'group-focus-within:top-2 group-focus-within:translate-y-0 group-focus-within:bg-white group-focus-within:px-1 group-focus-within:text-[11px] group-focus-within:text-slate-600',
+          // float when value exists
+          'group-data-[filled=true]:top-2 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:bg-white group-data-[filled=true]:px-1 group-data-[filled=true]:text-[11px] group-data-[filled=true]:text-slate-600'
         )}
       >
         {label}
@@ -153,14 +158,16 @@ type FloatingTextareaProps = Omit<
 };
 
 function FloatingTextarea({ label, id, className = '', ...props }: FloatingTextareaProps) {
+  const filled = isFilled(props.value ?? props.defaultValue);
+
   return (
-    <div className="relative">
+    <div className="group relative" data-filled={filled ? 'true' : 'false'}>
       <textarea
         {...props}
         id={id}
         placeholder=" "
         className={classNames(
-          'peer min-h-[110px] w-full rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6',
+          'min-h-[110px] w-full rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6',
           'text-sm text-slate-900 outline-none transition',
           'focus:border-brand-500 focus:ring-2 focus:ring-brand-100',
           'disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400',
@@ -170,13 +177,9 @@ function FloatingTextarea({ label, id, className = '', ...props }: FloatingTexta
       <label
         htmlFor={id}
         className={classNames(
-          'pointer-events-none absolute left-3 z-10 bg-white px-1 text-[11px] leading-none text-slate-500 transition-all duration-150',
-          // floated (default)
-          'top-2',
-          // resting when empty
-          'peer-placeholder-shown:top-4 peer-placeholder-shown:px-0 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400',
-          // active
-          'peer-focus:top-2 peer-focus:px-1 peer-focus:text-[11px] peer-focus:text-slate-600'
+          'pointer-events-none absolute left-3 top-6 -translate-y-1/2 text-sm text-slate-400 transition-all duration-150',
+          'group-focus-within:top-2 group-focus-within:translate-y-0 group-focus-within:bg-white group-focus-within:px-1 group-focus-within:text-[11px] group-focus-within:text-slate-600',
+          'group-data-[filled=true]:top-2 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:bg-white group-data-[filled=true]:px-1 group-data-[filled=true]:text-[11px] group-data-[filled=true]:text-slate-600'
         )}
       >
         {label}

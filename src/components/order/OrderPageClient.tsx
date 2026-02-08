@@ -520,36 +520,28 @@ export default function OrderPageClient() {
             {/* Email step */}
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex items-start justify-between gap-4">
-                <div>
+                <div className="min-w-0">
                   <h2 className="text-xl font-semibold text-slate-900">Email naslov</h2>
+
                   {emailConfirmed && (
-                    <p className="mt-2 text-sm text-slate-700">{formData.email.trim()}</p>
+                    <button
+                      type="button"
+                      onClick={() => setIsEmailEditing(true)}
+                      className="mt-2 max-w-full truncate text-left text-sm text-slate-700 underline-offset-2 hover:text-slate-900 hover:underline"
+                      title="Uredi email naslov"
+                    >
+                      {formData.email.trim()}
+                    </button>
                   )}
                 </div>
 
-                {emailConfirmed ? (
+                {emailConfirmed && (
                   <button
                     type="button"
                     onClick={() => setIsEmailEditing(true)}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 text-slate-700 transition hover:border-slate-400 hover:text-slate-900"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-black text-white transition hover:opacity-90"
                     aria-label="Uredi email naslov"
                     title="Uredi email naslov"
-                  >
-                    <PencilIcon />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={confirmEmailStep}
-                    disabled={!emailIsValid}
-                    className={classNames(
-                      'inline-flex h-9 w-9 items-center justify-center rounded-full transition',
-                      emailIsValid
-                        ? 'bg-black text-white hover:opacity-90'
-                        : 'cursor-not-allowed border border-slate-300 text-slate-300'
-                    )}
-                    aria-label="Potrdi email naslov"
-                    title="Potrdi email naslov"
                   >
                     <CheckIcon />
                   </button>
@@ -557,7 +549,7 @@ export default function OrderPageClient() {
               </div>
 
               {isEmailEditing && (
-                <div className="mt-4">
+                <div className="mt-4 space-y-3">
                   <FloatingInput
                     id="email"
                     type="email"
@@ -574,9 +566,28 @@ export default function OrderPageClient() {
                       }
                     }}
                   />
+
+                  <button
+                    type="button"
+                    onClick={confirmEmailStep}
+                    disabled={!emailIsValid}
+                    className={classNames(
+                      'rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition',
+                      emailIsValid
+                        ? 'bg-brand-600 text-white hover:bg-brand-700'
+                        : 'cursor-not-allowed bg-slate-200 text-slate-400'
+                    )}
+                  >
+                    Nadaljuj
+                  </button>
+
+                  {formData.email.trim().length > 0 && !emailIsValid && (
+                    <p className="text-xs text-red-600">Vnesite veljaven email naslov.</p>
+                  )}
                 </div>
               )}
             </section>
+
 
             {/* Shipping details */}
             <section

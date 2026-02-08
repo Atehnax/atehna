@@ -106,7 +106,8 @@ const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.
 const classNames = (...parts: Array<string | false | null | undefined>) =>
   parts.filter(Boolean).join(' ');
 
-type FloatingInputProps = InputHTMLAttributes<HTMLInputElement> & {
+type FloatingInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'id' | 'placeholder'> & {
+  id: string;
   label: string;
 };
 
@@ -128,9 +129,13 @@ function FloatingInput({ label, id, className = '', ...props }: FloatingInputPro
       <label
         htmlFor={id}
         className={classNames(
-          'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500 transition-all duration-150',
-          'peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-[11px]',
-          'peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-[11px]'
+          'pointer-events-none absolute left-3 z-10 bg-white px-1 text-[11px] leading-none text-slate-500 transition-all duration-150',
+          // floated (default)
+          'top-2 translate-y-0',
+          // resting like placeholder when empty
+          'peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:px-0 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400',
+          // active
+          'peer-focus:top-2 peer-focus:translate-y-0 peer-focus:px-1 peer-focus:text-[11px] peer-focus:text-slate-600'
         )}
       >
         {label}
@@ -139,7 +144,11 @@ function FloatingInput({ label, id, className = '', ...props }: FloatingInputPro
   );
 }
 
-type FloatingTextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
+type FloatingTextareaProps = Omit<
+  TextareaHTMLAttributes<HTMLTextAreaElement>,
+  'id' | 'placeholder'
+> & {
+  id: string;
   label: string;
 };
 
@@ -161,9 +170,13 @@ function FloatingTextarea({ label, id, className = '', ...props }: FloatingTexta
       <label
         htmlFor={id}
         className={classNames(
-          'pointer-events-none absolute left-3 top-6 -translate-y-1/2 text-sm text-slate-500 transition-all duration-150',
-          'peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-[11px]',
-          'peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-[11px]'
+          'pointer-events-none absolute left-3 z-10 bg-white px-1 text-[11px] leading-none text-slate-500 transition-all duration-150',
+          // floated (default)
+          'top-2',
+          // resting when empty
+          'peer-placeholder-shown:top-4 peer-placeholder-shown:px-0 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400',
+          // active
+          'peer-focus:top-2 peer-focus:px-1 peer-focus:text-[11px] peer-focus:text-slate-600'
         )}
       >
         {label}
@@ -172,17 +185,23 @@ function FloatingTextarea({ label, id, className = '', ...props }: FloatingTexta
   );
 }
 
-type FloatingSelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
+type FloatingSelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'id'> & {
+  id: string;
   label: string;
   children: ReactNode;
 };
 
-function FloatingSelect({ label, id, className = '', children, ...props }: FloatingSelectProps) {
+function FloatingSelect({ label, id, className = '', children, value, defaultValue, ...props }: FloatingSelectProps) {
+  const currentValue = value ?? defaultValue ?? '';
+  const hasValue = String(currentValue).length > 0;
+
   return (
-    <div className="relative">
+    <div className="group relative" data-has-value={hasValue}>
       <select
         {...props}
         id={id}
+        value={value}
+        defaultValue={defaultValue}
         className={classNames(
           'peer h-14 w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6',
           'text-sm text-slate-900 outline-none transition',
@@ -193,12 +212,19 @@ function FloatingSelect({ label, id, className = '', children, ...props }: Float
       >
         {children}
       </select>
+
       <label
         htmlFor={id}
-        className="pointer-events-none absolute left-3 top-2 text-[11px] leading-none text-slate-500"
+        className={classNames(
+          'pointer-events-none absolute left-3 z-10 bg-white px-1 leading-none text-slate-500 transition-all duration-150',
+          'top-2 text-[11px]',
+          'group-data-[has-value=false]:top-1/2 group-data-[has-value=false]:-translate-y-1/2 group-data-[has-value=false]:px-0 group-data-[has-value=false]:text-sm group-data-[has-value=false]:text-slate-400',
+          'peer-focus:top-2 peer-focus:translate-y-0 peer-focus:px-1 peer-focus:text-[11px] peer-focus:text-slate-600'
+        )}
       >
         {label}
       </label>
+
       <svg
         viewBox="0 0 20 20"
         className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"

@@ -103,21 +103,71 @@ const composeDeliveryAddressLines = (formData: OrderFormData) => {
 
 const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
+const classNames = (...parts: Array<string | false | null | undefined>) =>
+  parts.filter(Boolean).join(' ');
+
+const hasFieldValue = (value: unknown, defaultValue: unknown) => {
+  if (typeof value === 'string') return value.trim().length > 0;
+  if (typeof value === 'number') return true;
+  if (Array.isArray(value)) return value.length > 0;
+
+  if (typeof defaultValue === 'string') return defaultValue.trim().length > 0;
+  if (typeof defaultValue === 'number') return true;
+  if (Array.isArray(defaultValue)) return defaultValue.length > 0;
+
+  return false;
+};
+
 type FloatingInputProps = InputHTMLAttributes<HTMLInputElement> & {
   label: string;
 };
 
-function FloatingInput({ label, className = '', ...props }: FloatingInputProps) {
+function FloatingInput({
+  label,
+  className = '',
+  onFocus,
+  onBlur,
+  value,
+  defaultValue,
+  id,
+  ...props
+}: FloatingInputProps) {
+  const [isFocused, setIsFocused] = useState(false);
+
+  const isFloating = isFocused || hasFieldValue(value, defaultValue);
+
   return (
     <div className="relative">
       <input
         {...props}
+        id={id}
+        value={value}
+        defaultValue={defaultValue}
         placeholder=" "
-        className={`peer h-14 w-full rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 ${className}`}
+        onFocus={(event) => {
+          setIsFocused(true);
+          onFocus?.(event);
+        }}
+        onBlur={(event) => {
+          setIsFocused(false);
+          onBlur?.(event);
+        }}
+        className={classNames(
+          'peer h-14 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition',
+          'focus:border-brand-500 focus:ring-2 focus:ring-brand-100',
+          'disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400',
+          isFloating ? 'pt-6 pb-2' : 'py-0 leading-[3.5rem]',
+          className
+        )}
       />
       <label
-        htmlFor={props.id}
-        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500 transition-all duration-150 peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-[11px] peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-[11px]"
+        htmlFor={id}
+        className={classNames(
+          'pointer-events-none absolute left-3 text-slate-500 transition-all duration-150',
+          isFloating
+            ? 'top-2 text-[11px] leading-none'
+            : 'top-1/2 -translate-y-1/2 text-sm'
+        )}
       >
         {label}
       </label>
@@ -129,17 +179,51 @@ type FloatingTextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   label: string;
 };
 
-function FloatingTextarea({ label, className = '', ...props }: FloatingTextareaProps) {
+function FloatingTextarea({
+  label,
+  className = '',
+  onFocus,
+  onBlur,
+  value,
+  defaultValue,
+  id,
+  ...props
+}: FloatingTextareaProps) {
+  const [isFocused, setIsFocused] = useState(false);
+  const isFloating = isFocused || hasFieldValue(value, defaultValue);
+
   return (
     <div className="relative">
       <textarea
         {...props}
+        id={id}
+        value={value}
+        defaultValue={defaultValue}
         placeholder=" "
-        className={`peer min-h-[110px] w-full rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 ${className}`}
+        onFocus={(event) => {
+          setIsFocused(true);
+          onFocus?.(event);
+        }}
+        onBlur={(event) => {
+          setIsFocused(false);
+          onBlur?.(event);
+        }}
+        className={classNames(
+          'peer min-h-[110px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition',
+          'focus:border-brand-500 focus:ring-2 focus:ring-brand-100',
+          'disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400',
+          isFloating ? 'pb-2 pt-6' : 'pb-2 pt-5',
+          className
+        )}
       />
       <label
-        htmlFor={props.id}
-        className="pointer-events-none absolute left-3 top-5 -translate-y-1/2 text-sm text-slate-500 transition-all duration-150 peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-[11px] peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-[11px]"
+        htmlFor={id}
+        className={classNames(
+          'pointer-events-none absolute left-3 text-slate-500 transition-all duration-150',
+          isFloating
+            ? 'top-2 text-[11px] leading-none'
+            : 'top-5 -translate-y-1/2 text-sm'
+        )}
       >
         {label}
       </label>
@@ -152,18 +236,24 @@ type FloatingSelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
   children: ReactNode;
 };
 
-function FloatingSelect({ label, className = '', children, ...props }: FloatingSelectProps) {
+function FloatingSelect({ label, className = '', children, id, ...props }: FloatingSelectProps) {
   return (
     <div className="relative">
       <select
         {...props}
-        className={`peer h-14 w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 ${className}`}
+        id={id}
+        className={classNames(
+          'peer h-14 w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6 text-sm text-slate-900 outline-none transition',
+          'focus:border-brand-500 focus:ring-2 focus:ring-brand-100',
+          'disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400',
+          className
+        )}
       >
         {children}
       </select>
       <label
-        htmlFor={props.id}
-        className="pointer-events-none absolute left-3 top-2 text-[11px] text-slate-500"
+        htmlFor={id}
+        className="pointer-events-none absolute left-3 top-2 text-[11px] leading-none text-slate-500"
       >
         {label}
       </label>
@@ -209,7 +299,7 @@ export default function OrderPageClient() {
   const [submittedOrder, setSubmittedOrder] = useState<SubmittedOrderSnapshot | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // email step state
+  // Email step
   const [isEmailEditing, setIsEmailEditing] = useState(true);
 
   const normalizedItems = useMemo(
@@ -233,12 +323,12 @@ export default function OrderPageClient() {
     () => normalizedItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0),
     [normalizedItems]
   );
-
   const shipping = 0;
   const total = subtotal + shipping;
   const vatIncluded = useMemo(() => extractVatIncluded(total), [total]);
 
   const isIndividual = formData.customerType === 'individual';
+
   const emailIsValid = useMemo(() => isValidEmail(formData.email), [formData.email]);
   const emailConfirmed = emailIsValid && !isEmailEditing;
   const shippingDetailsLocked = !emailConfirmed;
@@ -399,7 +489,9 @@ export default function OrderPageClient() {
     return (
       <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
         <p className="text-lg font-semibold text-slate-900">Košarica je prazna</p>
-        <p className="mt-2 text-sm text-slate-600">Najprej dodajte izdelke iz posameznih kategorij.</p>
+        <p className="mt-2 text-sm text-slate-600">
+          Najprej dodajte izdelke iz posameznih kategorij.
+        </p>
         <Link
           href="/products"
           className="mt-4 inline-flex rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
@@ -458,7 +550,9 @@ export default function OrderPageClient() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h2 className="text-xl font-semibold text-slate-900">Email naslov</h2>
-                  {emailConfirmed && <p className="mt-2 text-sm text-slate-700">{formData.email.trim()}</p>}
+                  {emailConfirmed && (
+                    <p className="mt-2 text-sm text-slate-700">{formData.email.trim()}</p>
+                  )}
                 </div>
 
                 {emailConfirmed ? (
@@ -476,11 +570,12 @@ export default function OrderPageClient() {
                     type="button"
                     onClick={confirmEmailStep}
                     disabled={!emailIsValid}
-                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition ${
+                    className={classNames(
+                      'inline-flex h-9 w-9 items-center justify-center rounded-full transition',
                       emailIsValid
                         ? 'bg-black text-white hover:opacity-90'
                         : 'cursor-not-allowed border border-slate-300 text-slate-300'
-                    }`}
+                    )}
                     aria-label="Potrdi email naslov"
                     title="Potrdi email naslov"
                   >
@@ -500,6 +595,11 @@ export default function OrderPageClient() {
                     onChange={(event) =>
                       setFormData((previous) => ({ ...previous, email: event.target.value }))
                     }
+                    onBlur={() => {
+                      if (emailIsValid) {
+                        setIsEmailEditing(false);
+                      }
+                    }}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
                         event.preventDefault();
@@ -512,11 +612,13 @@ export default function OrderPageClient() {
             </section>
 
             <section
-              className={`rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition ${
+              className={classNames(
+                'rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition',
                 shippingDetailsLocked ? 'opacity-60' : 'opacity-100'
-              }`}
+              )}
             >
               <h2 className="text-xl font-semibold text-slate-900">Podatki za dostavo</h2>
+
               {shippingDetailsLocked && (
                 <p className="mt-2 text-xs text-slate-500">
                   Najprej vnesite veljaven email naslov in ga potrdite.
@@ -524,9 +626,10 @@ export default function OrderPageClient() {
               )}
 
               <form
-                className={`mt-4 grid gap-4 md:grid-cols-2 ${
-                  shippingDetailsLocked ? 'pointer-events-none select-none' : ''
-                }`}
+                className={classNames(
+                  'mt-4 grid gap-4 md:grid-cols-2',
+                  shippingDetailsLocked && 'pointer-events-none select-none'
+                )}
                 onSubmit={handleSubmit}
               >
                 <div className="md:col-span-2">
@@ -535,12 +638,12 @@ export default function OrderPageClient() {
                     label="Tip naročnika"
                     disabled={shippingDetailsLocked}
                     value={formData.customerType}
-                    onChange={(event) =>
+                    onChange={(event) => {
                       setFormData((previous) => ({
                         ...previous,
                         customerType: event.target.value as CustomerType
-                      }))
-                    }
+                      }));
+                    }}
                   >
                     {customerTypeOptions.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -618,6 +721,7 @@ export default function OrderPageClient() {
                       }))
                     }
                   />
+
                   {!shippingDetailsLocked && addressSuggestions.length > 0 && (
                     <ul className="mt-2 space-y-1 rounded-lg border border-slate-200 bg-white p-2 text-sm shadow-sm">
                       {addressSuggestions.map((address) => (
@@ -833,11 +937,12 @@ export default function OrderPageClient() {
                 type="button"
                 disabled={!canSubmit}
                 onClick={() => handleSubmit()}
-                className={`rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition ${
+                className={classNames(
+                  'rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition',
                   !canSubmit
                     ? 'cursor-not-allowed bg-slate-200 text-slate-400'
                     : 'bg-brand-600 text-white hover:bg-brand-700'
-                }`}
+                )}
               >
                 {isSubmitting ? 'Oddajanje...' : 'Oddaj naročilo'}
               </button>
@@ -864,7 +969,11 @@ export default function OrderPageClient() {
             <h2 className="text-xl font-semibold text-slate-900">PDF dokument</h2>
 
             <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
-              <iframe title="Predogled PDF" src={orderResponse.documentUrl} className="h-[420px] w-full" />
+              <iframe
+                title="Predogled PDF"
+                src={orderResponse.documentUrl}
+                className="h-[420px] w-full"
+              />
             </div>
 
             <a

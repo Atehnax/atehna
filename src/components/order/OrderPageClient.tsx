@@ -106,67 +106,31 @@ const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.
 const classNames = (...parts: Array<string | false | null | undefined>) =>
   parts.filter(Boolean).join(' ');
 
-const hasFieldValue = (value: unknown, defaultValue: unknown) => {
-  if (typeof value === 'string') return value.trim().length > 0;
-  if (typeof value === 'number') return true;
-  if (Array.isArray(value)) return value.length > 0;
-
-  if (typeof defaultValue === 'string') return defaultValue.trim().length > 0;
-  if (typeof defaultValue === 'number') return true;
-  if (Array.isArray(defaultValue)) return defaultValue.length > 0;
-
-  return false;
-};
-
 type FloatingInputProps = InputHTMLAttributes<HTMLInputElement> & {
   label: string;
 };
 
-function FloatingInput({
-  label,
-  className = '',
-  onFocus,
-  onBlur,
-  value,
-  defaultValue,
-  id,
-  ...props
-}: FloatingInputProps) {
-  const [isFocused, setIsFocused] = useState(false);
-
-  const isFloating = isFocused || hasFieldValue(value, defaultValue);
-
+function FloatingInput({ label, id, className = '', ...props }: FloatingInputProps) {
   return (
     <div className="relative">
       <input
         {...props}
         id={id}
-        value={value}
-        defaultValue={defaultValue}
         placeholder=" "
-        onFocus={(event) => {
-          setIsFocused(true);
-          onFocus?.(event);
-        }}
-        onBlur={(event) => {
-          setIsFocused(false);
-          onBlur?.(event);
-        }}
         className={classNames(
-          'peer h-14 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition',
+          'peer h-14 w-full rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6',
+          'text-sm text-slate-900 outline-none transition',
           'focus:border-brand-500 focus:ring-2 focus:ring-brand-100',
           'disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400',
-          isFloating ? 'pt-6 pb-2' : 'py-0 leading-[3.5rem]',
           className
         )}
       />
       <label
         htmlFor={id}
         className={classNames(
-          'pointer-events-none absolute left-3 text-slate-500 transition-all duration-150',
-          isFloating
-            ? 'top-2 text-[11px] leading-none'
-            : 'top-1/2 -translate-y-1/2 text-sm'
+          'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500 transition-all duration-150',
+          'peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-[11px]',
+          'peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-[11px]'
         )}
       >
         {label}
@@ -179,50 +143,27 @@ type FloatingTextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   label: string;
 };
 
-function FloatingTextarea({
-  label,
-  className = '',
-  onFocus,
-  onBlur,
-  value,
-  defaultValue,
-  id,
-  ...props
-}: FloatingTextareaProps) {
-  const [isFocused, setIsFocused] = useState(false);
-  const isFloating = isFocused || hasFieldValue(value, defaultValue);
-
+function FloatingTextarea({ label, id, className = '', ...props }: FloatingTextareaProps) {
   return (
     <div className="relative">
       <textarea
         {...props}
         id={id}
-        value={value}
-        defaultValue={defaultValue}
         placeholder=" "
-        onFocus={(event) => {
-          setIsFocused(true);
-          onFocus?.(event);
-        }}
-        onBlur={(event) => {
-          setIsFocused(false);
-          onBlur?.(event);
-        }}
         className={classNames(
-          'peer min-h-[110px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition',
+          'peer min-h-[110px] w-full rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6',
+          'text-sm text-slate-900 outline-none transition',
           'focus:border-brand-500 focus:ring-2 focus:ring-brand-100',
           'disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400',
-          isFloating ? 'pb-2 pt-6' : 'pb-2 pt-5',
           className
         )}
       />
       <label
         htmlFor={id}
         className={classNames(
-          'pointer-events-none absolute left-3 text-slate-500 transition-all duration-150',
-          isFloating
-            ? 'top-2 text-[11px] leading-none'
-            : 'top-5 -translate-y-1/2 text-sm'
+          'pointer-events-none absolute left-3 top-6 -translate-y-1/2 text-sm text-slate-500 transition-all duration-150',
+          'peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-[11px]',
+          'peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-[11px]'
         )}
       >
         {label}
@@ -236,14 +177,15 @@ type FloatingSelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
   children: ReactNode;
 };
 
-function FloatingSelect({ label, className = '', children, id, ...props }: FloatingSelectProps) {
+function FloatingSelect({ label, id, className = '', children, ...props }: FloatingSelectProps) {
   return (
     <div className="relative">
       <select
         {...props}
         id={id}
         className={classNames(
-          'peer h-14 w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6 text-sm text-slate-900 outline-none transition',
+          'peer h-14 w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6',
+          'text-sm text-slate-900 outline-none transition',
           'focus:border-brand-500 focus:ring-2 focus:ring-brand-100',
           'disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400',
           className
@@ -299,7 +241,7 @@ export default function OrderPageClient() {
   const [submittedOrder, setSubmittedOrder] = useState<SubmittedOrderSnapshot | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Email step
+  // Email gate
   const [isEmailEditing, setIsEmailEditing] = useState(true);
 
   const normalizedItems = useMemo(
@@ -546,6 +488,7 @@ export default function OrderPageClient() {
           </section>
         ) : (
           <div className="space-y-4">
+            {/* Email step */}
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -595,11 +538,6 @@ export default function OrderPageClient() {
                     onChange={(event) =>
                       setFormData((previous) => ({ ...previous, email: event.target.value }))
                     }
-                    onBlur={() => {
-                      if (emailIsValid) {
-                        setIsEmailEditing(false);
-                      }
-                    }}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
                         event.preventDefault();
@@ -611,6 +549,7 @@ export default function OrderPageClient() {
               )}
             </section>
 
+            {/* Shipping details */}
             <section
               className={classNames(
                 'rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition',

@@ -164,114 +164,125 @@ export default function AdminOrdersTable({
   };
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <table className="w-full min-w-[1260px] table-auto text-left text-sm">
-        <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-          <tr>
-            <th className="px-3 py-3">
-              <input
-                type="checkbox"
-                ref={selectAllRef}
-                checked={allSelected}
-                onChange={toggleAll}
-                aria-label="Izberi vse"
-              />
-            </th>
-            <th className="px-3 py-3">
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={selected.length === 0 || isDeleting}
-                className="text-xs font-semibold text-rose-600 disabled:text-slate-300"
-              >
-                {isDeleting ? 'Brisanje...' : 'Izbriši'}
-              </button>
-            </th>
-            <th className="px-3 py-3">Naročnik</th>
-            <th className="px-3 py-3">Naslov</th>
-            <th className="px-3 py-3">Tip</th>
-            <th className="px-3 py-3 min-w-[130px]">Status</th>
-            <th className="px-3 py-3">Plačilo</th>
-            <th className="px-3 py-3 text-right">Skupaj</th>
-            <th className="px-3 py-3">Datum</th>
-            <th className="px-3 py-3 min-w-[300px]">PDFs</th>
-          </tr>
-        </thead>
-        <tbody>
-          {orders.length === 0 ? (
+    <div className="overflow-x-auto">
+      <div className="inline-block align-top rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <table className="w-max table-auto text-left text-sm whitespace-nowrap">
+          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
             <tr>
-              <td className="px-3 py-6 text-center text-slate-500" colSpan={10}>
-                Ni evidentiranih naročil.
-              </td>
+              <th className="px-3 py-3">
+                <input
+                  type="checkbox"
+                  ref={selectAllRef}
+                  checked={allSelected}
+                  onChange={toggleAll}
+                  aria-label="Izberi vse"
+                />
+              </th>
+              <th className="px-3 py-3">
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={selected.length === 0 || isDeleting}
+                  className="text-xs font-semibold text-rose-600 disabled:text-slate-300"
+                >
+                  {isDeleting ? 'Brisanje...' : 'Izbriši'}
+                </button>
+              </th>
+              <th className="px-3 py-3">Naročnik</th>
+              <th className="px-3 py-3">Naslov</th>
+              <th className="px-3 py-3">Tip</th>
+              <th className="px-3 py-3">Status</th>
+              <th className="px-3 py-3">Plačilo</th>
+              <th className="px-3 py-3 text-right">Skupaj</th>
+              <th className="px-3 py-3">Datum</th>
+              <th className="px-3 py-3">PDFs</th>
             </tr>
-          ) : (
-            orders.map((order, orderIndex) => (
-              <tr
-                key={order.id}
-                className={`border-t border-slate-100 ${
-                  orderIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-                } hover:bg-slate-100/60`}
-              >
-                <td className="px-3 py-3">
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(order.id)}
-                    onChange={() => toggleSelected(order.id)}
-                    aria-label={`Izberi naročilo ${order.order_number}`}
-                  />
-                </td>
-                <td className="px-3 py-3 whitespace-nowrap font-semibold text-slate-900">
-                  <Link
-                    href={`/admin/orders/${order.id}`}
-                    className="text-sm font-semibold text-brand-600 hover:text-brand-700"
-                  >
-                    {order.order_number}
-                  </Link>
-                </td>
-                <td className="px-3 py-3 text-slate-600">
-                  {order.organization_name || order.contact_name}
-                </td>
-                <td className="px-3 py-3 text-slate-600">
-                  <span
-                    className="block max-w-[320px] truncate"
-                    title={formatOrderAddress(order)}
-                  >
-                    {formatOrderAddress(order) || '—'}
-                  </span>
-                </td>
-                <td className="px-3 py-3 text-slate-600">
-                  {getCustomerTypeLabel(order.customer_type)}
-                </td>
-                <td className="px-3 py-3 text-slate-600 min-w-[130px]">
-                  <AdminOrderStatusSelect orderId={order.id} status={order.status} />
-                </td>
-                <td className="px-3 py-3">
-                  <span
-                    className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getPaymentBadge(
-                      order.payment_status
-                    )}`}
-                  >
-                    {getPaymentLabel(order.payment_status)}
-                  </span>
-                </td>
-                <td className="px-3 py-3 text-right text-slate-700 whitespace-nowrap">
-                  {formatCurrency(order.total)}
-                </td>
-                <td className="px-3 py-3 text-slate-600 whitespace-nowrap">
-                  {new Date(order.created_at).toLocaleDateString('sl-SI')}
-                </td>
-                <td className="px-3 py-3 min-w-[300px]">
-                  <AdminOrdersPdfCell
-                    orderId={order.id}
-                    documents={documentsByOrder.get(order.id) ?? []}
-                    attachments={attachmentsByOrder.get(order.id) ?? []}
-                  />
+          </thead>
+
+          <tbody>
+            {orders.length === 0 ? (
+              <tr>
+                <td className="px-3 py-6 text-center text-slate-500" colSpan={10}>
+                  Ni evidentiranih naročil.
                 </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : (
+              orders.map((order, orderIndex) => {
+                const orderAddress = formatOrderAddress(order);
+
+                return (
+                  <tr
+                    key={order.id}
+                    className={`border-t border-slate-100 ${
+                      orderIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+                    } hover:bg-slate-100/60`}
+                  >
+                    <td className="px-3 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selected.includes(order.id)}
+                        onChange={() => toggleSelected(order.id)}
+                        aria-label={`Izberi naročilo ${order.order_number}`}
+                      />
+                    </td>
+
+                    <td className="px-3 py-3 font-semibold text-slate-900">
+                      <Link
+                        href={`/admin/orders/${order.id}`}
+                        className="text-sm font-semibold text-brand-600 hover:text-brand-700"
+                      >
+                        {order.order_number}
+                      </Link>
+                    </td>
+
+                    <td className="px-3 py-3 text-slate-600">
+                      {order.organization_name || order.contact_name}
+                    </td>
+
+                    <td className="px-3 py-3 text-slate-600">
+                      {orderAddress || '—'}
+                    </td>
+
+                    <td className="px-3 py-3 text-slate-600">
+                      {getCustomerTypeLabel(order.customer_type)}
+                    </td>
+
+                    <td className="px-3 py-3 text-slate-600">
+                      <AdminOrderStatusSelect orderId={order.id} status={order.status} />
+                    </td>
+
+                    <td className="px-3 py-3">
+                      <span
+                        className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getPaymentBadge(
+                          order.payment_status
+                        )}`}
+                      >
+                        {getPaymentLabel(order.payment_status)}
+                      </span>
+                    </td>
+
+                    <td className="px-3 py-3 text-right text-slate-700">
+                      {formatCurrency(order.total)}
+                    </td>
+
+                    <td className="px-3 py-3 text-slate-600">
+                      {new Date(order.created_at).toLocaleDateString('sl-SI')}
+                    </td>
+
+                    <td className="px-3 py-3">
+                      <AdminOrdersPdfCell
+                        orderId={order.id}
+                        documents={documentsByOrder.get(order.id) ?? []}
+                        attachments={attachmentsByOrder.get(order.id) ?? []}
+                      />
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

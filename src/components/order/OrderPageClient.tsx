@@ -479,6 +479,127 @@ export default function OrderPageClient() {
   const viewTotal = submittedOrder?.total ?? total;
   const viewVatIncluded = submittedOrder?.vatIncluded ?? vatIncluded;
 
+  if (orderResponse && submittedOrder) {
+    return (
+      <div className="mx-auto max-w-6xl space-y-6">
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-2xl font-semibold text-slate-900">Naročilo uspešno oddano</h2>
+          <p className="mt-2 text-sm text-slate-600">
+            Dokument je pripravljen. Spodaj so podrobnosti naročila in PDF.
+          </p>
+        </section>
+
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+          {/* Left: order details */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="text-xl font-semibold text-slate-900">Podrobnosti naročila</h3>
+
+            <div className="mt-5 grid gap-5 text-sm text-slate-700 md:grid-cols-2">
+              <div>
+                <p className="text-xs font-medium text-slate-400">Dostava na</p>
+                <p className="font-semibold text-slate-900">{submittedOrder.recipientName}</p>
+                {submittedOrder.organizationName && <p>{submittedOrder.organizationName}</p>}
+                {submittedOrder.deliveryAddressLines.map((line, index) => (
+                  <p key={`${line}-${index}`}>{line}</p>
+                ))}
+              </div>
+
+              <div>
+                <p className="text-xs font-medium text-slate-400">Kontakt</p>
+                <p>{submittedOrder.email}</p>
+                {submittedOrder.phone && <p>{submittedOrder.phone}</p>}
+              </div>
+
+              {submittedOrder.notes && (
+                <div className="md:col-span-2">
+                  <p className="text-xs font-medium text-slate-400">Opombe</p>
+                  <p>{submittedOrder.notes}</p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Right: compact sticky summary */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm xl:sticky xl:top-24">
+            <h3 className="text-xl font-semibold text-slate-900">Povzetek naročila</h3>
+
+            <div className="mt-4 space-y-4">
+              {viewItems.map((item) => {
+                const lineTotal = toNumber(item.unitPrice) * item.quantity;
+                return (
+                  <div key={item.sku} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-900">{item.name}</p>
+                        <p className="text-xs text-slate-500">
+                          Cena enote: {formatCurrency(toNumber(item.unitPrice))}
+                        </p>
+                      </div>
+                      <div className="text-right text-sm">
+                        <p className="text-slate-600">Količina: {item.quantity}</p>
+                        <p className="font-semibold text-slate-900">{formatCurrency(lineTotal)}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
+              <div className="flex items-center justify-between">
+                <span>Vmesni seštevek</span>
+                <span className="font-semibold">{formatCurrency(viewSubtotal)}</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between">
+                <span>Poštnina</span>
+                <span className="font-semibold">{formatCurrency(viewShipping)}</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between text-base font-semibold text-slate-900">
+                <span>Skupaj</span>
+                <span>{formatCurrency(viewTotal)}</span>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">
+                Vključuje DDV (22%): {formatCurrency(viewVatIncluded)}
+              </p>
+            </div>
+          </section>
+        </div>
+
+        {/* Full-width PDF */}
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 className="text-xl font-semibold text-slate-900">PDF dokument</h3>
+
+          <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
+            <iframe
+              title="Predogled PDF"
+              src={orderResponse.documentUrl}
+              className="h-[720px] w-full"
+            />
+          </div>
+
+          <a
+            href={orderResponse.documentUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-flex text-sm font-semibold text-brand-600 hover:text-brand-700"
+          >
+            Odpri PDF v novem zavihku →
+          </a>
+
+          {submittedOrder.customerType === 'school' && (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+              Naročilnico lahko naložite kasneje na strani{' '}
+              <Link href="/order/narocilnica" className="font-semibold text-amber-900">
+                Naloži naročilnico
+              </Link>
+              .
+            </div>
+          )}
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">
       <div className="space-y-8">
@@ -909,7 +1030,7 @@ export default function OrderPageClient() {
             </p>
           </div>
         </section>
-        
+
         {!orderResponse && (
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-slate-900">Oddaja naročila</h2>

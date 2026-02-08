@@ -527,7 +527,7 @@ export default function OrderPageClient() {
                     <button
                       type="button"
                       onClick={() => setIsEmailEditing(true)}
-                      className="mt-2 max-w-full truncate text-left text-sm text-slate-700 underline-offset-2 hover:text-slate-900 hover:underline"
+                      className="mt-2 max-w-full truncate text-left text-sm text-slate-700 hover:text-slate-900"
                       title="Uredi email naslov"
                     >
                       {formData.email.trim()}
@@ -539,11 +539,21 @@ export default function OrderPageClient() {
                   <button
                     type="button"
                     onClick={() => setIsEmailEditing(true)}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-black text-white transition hover:opacity-90"
+                    className="group relative inline-flex h-8 w-8 items-center justify-center rounded-full bg-black text-white transition hover:opacity-90"
                     aria-label="Uredi email naslov"
                     title="Uredi email naslov"
                   >
-                    <CheckIcon />
+                    <span className="flex items-center justify-center transition-opacity duration-150 group-hover:opacity-0">
+                      <span className="scale-90">
+                        <CheckIcon />
+                      </span>
+                    </span>
+
+                    <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                      <span className="scale-90">
+                        <PencilIcon />
+                      </span>
+                    </span>
                   </button>
                 )}
               </div>
@@ -572,7 +582,7 @@ export default function OrderPageClient() {
                     onClick={confirmEmailStep}
                     disabled={!emailIsValid}
                     className={classNames(
-                      'rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition',
+                      'w-full rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition',
                       emailIsValid
                         ? 'bg-brand-600 text-white hover:bg-brand-700'
                         : 'cursor-not-allowed bg-slate-200 text-slate-400'
@@ -580,13 +590,10 @@ export default function OrderPageClient() {
                   >
                     Nadaljuj
                   </button>
-
-                  {formData.email.trim().length > 0 && !emailIsValid && (
-                    <p className="text-xs text-red-600">Vnesite veljaven email naslov.</p>
-                  )}
                 </div>
               )}
             </section>
+
 
 
             {/* Shipping details */}

@@ -16,6 +16,10 @@ type OrderRow = {
   payment_status?: string | null;
   total: number | string | null;
   created_at: string;
+  delivery_address?: string | null;
+  address_line1?: string | null;
+  city?: string | null;
+  postal_code?: string | null;
 };
 
 type PdfDoc = {
@@ -67,6 +71,18 @@ const getPaymentLabel = (status?: string | null) => {
   if (status === 'refunded') return 'Povrnjeno';
   if (status === 'cancelled') return 'Preklicano';
   return 'Neplačano';
+};
+
+const formatOrderAddress = (order: OrderRow) => {
+  const deliveryAddress = (order.delivery_address ?? '').trim();
+  if (deliveryAddress) return deliveryAddress;
+
+  const addressLine1 = (order.address_line1 ?? '').trim();
+  const city = (order.city ?? '').trim();
+  const postalCode = (order.postal_code ?? '').trim();
+
+  const cityPostal = [postalCode, city].filter(Boolean).join(' ');
+  return [addressLine1, cityPostal].filter(Boolean).join(', ');
 };
 
 export default function AdminOrdersTable({
@@ -149,7 +165,7 @@ export default function AdminOrdersTable({
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <table className="w-full min-w-[1060px] table-auto text-left text-sm">
+      <table className="w-full min-w-[1260px] table-auto text-left text-sm">
         <thead className="bg-slate-50 text-xs uppercase text-slate-500">
           <tr>
             <th className="px-3 py-3">
@@ -172,6 +188,7 @@ export default function AdminOrdersTable({
               </button>
             </th>
             <th className="px-3 py-3">Naročnik</th>
+            <th className="px-3 py-3">Naslov</th>
             <th className="px-3 py-3">Tip</th>
             <th className="px-3 py-3 min-w-[130px]">Status</th>
             <th className="px-3 py-3">Plačilo</th>
@@ -183,13 +200,18 @@ export default function AdminOrdersTable({
         <tbody>
           {orders.length === 0 ? (
             <tr>
-              <td className="px-3 py-6 text-center text-slate-500" colSpan={9}>
+              <td className="px-3 py-6 text-center text-slate-500" colSpan={10}>
                 Ni evidentiranih naročil.
               </td>
             </tr>
           ) : (
-            orders.map((order) => (
-              <tr key={order.id} className="border-t border-slate-100">
+            orders.map((order, orderIndex) => (
+              <tr
+                key={order.id}
+                className={`border-t border-slate-100 ${
+                  orderIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+                } hover:bg-slate-100/60`}
+              >
                 <td className="px-3 py-3">
                   <input
                     type="checkbox"
@@ -208,6 +230,14 @@ export default function AdminOrdersTable({
                 </td>
                 <td className="px-3 py-3 text-slate-600">
                   {order.organization_name || order.contact_name}
+                </td>
+                <td className="px-3 py-3 text-slate-600">
+                  <span
+                    className="block max-w-[320px] truncate"
+                    title={formatOrderAddress(order)}
+                  >
+                    {formatOrderAddress(order) || '—'}
+                  </span>
                 </td>
                 <td className="px-3 py-3 text-slate-600">
                   {getCustomerTypeLabel(order.customer_type)}

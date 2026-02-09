@@ -40,26 +40,34 @@ type Attachment = {
   created_at: string;
 };
 
-type PaymentFilter = 'all' | 'unpaid' | 'paid' | 'refunded' | 'cancelled';
-type SortKey = 'customer' | 'address' | 'total' | 'created_at';
+type SortKey = 'customer' | 'address' | 'total' | 'date';
 type SortDirection = 'asc' | 'desc';
 
-const CREATE_ORDER_HREF = '/order';
+type StatusFilter =
+  | 'all'
+  | 'received'
+  | 'in_progress'
+  | 'sent'
+  | 'partially_sent'
+  | 'finished'
+  | 'cancelled'
+  | 'refunded';
 
-const paymentFilterOptions: Array<{ value: PaymentFilter; label: string }> = [
+const STATUS_FILTER_OPTIONS: Array<{ value: StatusFilter; label: string }> = [
   { value: 'all', label: 'Vsa' },
-  { value: 'unpaid', label: 'Neplačano' },
-  { value: 'paid', label: 'Plačano' },
-  { value: 'refunded', label: 'Povrnjeno' },
-  { value: 'cancelled', label: 'Preklicano' }
+  { value: 'received', label: 'Prejeto' },
+  { value: 'in_progress', label: 'V obdelavi' },
+  { value: 'sent', label: 'Poslano' },
+  { value: 'partially_sent', label: 'Delno poslano' },
+  { value: 'finished', label: 'Zaključeno' },
+  { value: 'cancelled', label: 'Preklicano' },
+  { value: 'refunded', label: 'Povrnjeno' }
 ];
 
 const currencyFormatter = new Intl.NumberFormat('sl-SI', {
   style: 'currency',
   currency: 'EUR'
 });
-
-const textCollator = new Intl.Collator('sl', { sensitivity: 'base' });
 
 const toAmount = (value: unknown): number => {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
@@ -89,13 +97,6 @@ const getPaymentLabel = (status?: string | null) => {
   return 'Neplačano';
 };
 
-const normalizePaymentStatus = (status?: string | null): Exclude<PaymentFilter, 'all'> => {
-  if (status === 'paid') return 'paid';
-  if (status === 'refunded') return 'refunded';
-  if (status === 'cancelled') return 'cancelled';
-  return 'unpaid';
-};
-
 const formatOrderAddress = (order: OrderRow) => {
   const deliveryAddress = (order.delivery_address ?? '').trim();
   if (deliveryAddress) return deliveryAddress;
@@ -108,8 +109,16 @@ const formatOrderAddress = (order: OrderRow) => {
   return [addressLine1, cityPostal].filter(Boolean).join(', ');
 };
 
-const getCustomerName = (order: OrderRow) =>
-  (order.organization_name ?? '').trim() || order.contact_name.trim();
+const getOrderCustomerName = (order: OrderRow) =>
+  (order.organization_name || order.contact_name || '').trim();
+
+const getOrderTimestamp = (createdAt: string) => {
+  const timestamp = new Date(createdAt).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+};
+
+const isRefundedStatus = (status: string) =>
+  status === 'refunded_returned' || status === 'refunded_not_returned';
 
 export default function AdminOrdersTable({
   orders,
@@ -122,9 +131,12 @@ export default function AdminOrdersTable({
 }) {
   const [selected, setSelected] = useState<number[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>('all');
-  const [sortKey, setSortKey] = useState<SortKey>('created_at');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [sortState, setSortState] = useState<{ key: SortKey; direction: SortDirection }>({
+    key: 'date',
+    direction: 'desc'
+  });
+
   const selectAllRef = useRef<HTMLInputElement>(null);
 
   const documentsByOrder = useMemo(() => {
@@ -147,76 +159,59 @@ export default function AdminOrdersTable({
     return byOrder;
   }, [attachments]);
 
-  const paymentCounts = useMemo(() => {
-    const counts: Record<PaymentFilter, number> = {
-      all: orders.length,
-      unpaid: 0,
-      paid: 0,
-      refunded: 0,
-      cancelled: 0
-    };
-
-    orders.forEach((order) => {
-      counts[normalizePaymentStatus(order.payment_status)] += 1;
+  const filteredAndSortedOrders = useMemo(() => {
+    const filteredOrders = orders.filter((order) => {
+      if (statusFilter === 'all') return true;
+      if (statusFilter === 'refunded') return isRefundedStatus(order.status);
+      return order.status === statusFilter;
     });
 
-    return counts;
-  }, [orders]);
-
-  const filteredOrders = useMemo(() => {
-    if (paymentFilter === 'all') return orders;
-    return orders.filter(
-      (order) => normalizePaymentStatus(order.payment_status) === paymentFilter
-    );
-  }, [orders, paymentFilter]);
-
-  const visibleOrders = useMemo(() => {
-    const sortedOrders = [...filteredOrders];
-
-    sortedOrders.sort((firstOrder, secondOrder) => {
+    const sortedOrders = [...filteredOrders].sort((leftOrder, rightOrder) => {
       let comparison = 0;
 
-      if (sortKey === 'created_at') {
-        const firstTimestamp = new Date(firstOrder.created_at).getTime();
-        const secondTimestamp = new Date(secondOrder.created_at).getTime();
-        comparison = firstTimestamp - secondTimestamp;
-      } else if (sortKey === 'total') {
-        comparison = toAmount(firstOrder.total) - toAmount(secondOrder.total);
-      } else if (sortKey === 'customer') {
-        comparison = textCollator.compare(
-          getCustomerName(firstOrder),
-          getCustomerName(secondOrder)
+      if (sortState.key === 'customer') {
+        comparison = getOrderCustomerName(leftOrder).localeCompare(
+          getOrderCustomerName(rightOrder),
+          'sl-SI',
+          { sensitivity: 'base' }
         );
-      } else if (sortKey === 'address') {
-        comparison = textCollator.compare(
-          formatOrderAddress(firstOrder),
-          formatOrderAddress(secondOrder)
+      } else if (sortState.key === 'address') {
+        comparison = formatOrderAddress(leftOrder).localeCompare(
+          formatOrderAddress(rightOrder),
+          'sl-SI',
+          { sensitivity: 'base' }
         );
+      } else if (sortState.key === 'total') {
+        comparison = toAmount(leftOrder.total) - toAmount(rightOrder.total);
+      } else if (sortState.key === 'date') {
+        comparison = getOrderTimestamp(leftOrder.created_at) - getOrderTimestamp(rightOrder.created_at);
       }
 
-      return sortDirection === 'asc' ? comparison : -comparison;
+      if (comparison === 0) comparison = leftOrder.id - rightOrder.id;
+      return sortState.direction === 'asc' ? comparison : -comparison;
     });
 
     return sortedOrders;
-  }, [filteredOrders, sortDirection, sortKey]);
+  }, [orders, statusFilter, sortState]);
+
+  useEffect(() => {
+    // clear selection when filter changes to avoid deleting hidden rows
+    setSelected([]);
+  }, [statusFilter]);
 
   const visibleOrderIds = useMemo(
-    () => visibleOrders.map((order) => order.id),
-    [visibleOrders]
+    () => filteredAndSortedOrders.map((order) => order.id),
+    [filteredAndSortedOrders]
   );
 
   const allSelected =
     visibleOrderIds.length > 0 &&
-    visibleOrderIds.every((orderId) => selected.includes(orderId));
-
-  const someSelected =
-    visibleOrderIds.length > 0 &&
-    visibleOrderIds.some((orderId) => selected.includes(orderId));
+    visibleOrderIds.every((visibleOrderId) => selected.includes(visibleOrderId));
 
   useEffect(() => {
     if (!selectAllRef.current) return;
-    selectAllRef.current.indeterminate = someSelected && !allSelected;
-  }, [allSelected, someSelected]);
+    selectAllRef.current.indeterminate = selected.length > 0 && !allSelected;
+  }, [allSelected, selected.length]);
 
   const toggleSelected = (orderId: number) => {
     setSelected((previousSelected) =>
@@ -234,26 +229,9 @@ export default function AdminOrdersTable({
       return;
     }
 
-    setSelected((previousSelected) => [
-      ...new Set([...previousSelected, ...visibleOrderIds])
-    ]);
-  };
-
-  const setSort = (nextSortKey: SortKey) => {
-    if (sortKey === nextSortKey) {
-      setSortDirection((previousDirection) =>
-        previousDirection === 'asc' ? 'desc' : 'asc'
-      );
-      return;
-    }
-
-    setSortKey(nextSortKey);
-    setSortDirection(nextSortKey === 'created_at' || nextSortKey === 'total' ? 'desc' : 'asc');
-  };
-
-  const getSortIndicator = (columnSortKey: SortKey) => {
-    if (sortKey !== columnSortKey) return '↕';
-    return sortDirection === 'asc' ? '↑' : '↓';
+    setSelected((previousSelected) =>
+      Array.from(new Set([...previousSelected, ...visibleOrderIds]))
+    );
   };
 
   const handleDelete = async () => {
@@ -267,7 +245,9 @@ export default function AdminOrdersTable({
     setIsDeleting(true);
     try {
       await Promise.all(
-        selected.map((orderId) => fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' }))
+        selected.map((orderId) =>
+          fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' })
+        )
       );
       setSelected([]);
       window.location.reload();
@@ -276,51 +256,67 @@ export default function AdminOrdersTable({
     }
   };
 
+  const toggleSort = (key: SortKey) => {
+    setSortState((previousState) => {
+      if (previousState.key === key) {
+        return {
+          key,
+          direction: previousState.direction === 'asc' ? 'desc' : 'asc'
+        };
+      }
+
+      return {
+        key,
+        direction: key === 'date' ? 'desc' : 'asc'
+      };
+    });
+  };
+
+  const sortIndicator = (key: SortKey) => {
+    if (sortState.key !== key) return '↕';
+    return sortState.direction === 'asc' ? '↑' : '↓';
+  };
+
   return (
-    <div className="w-full overflow-x-auto">
-      <div className="mx-auto w-[96rem] max-w-none space-y-4">
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-          {paymentFilterOptions.map((option) => {
-            const isActive = paymentFilter === option.value;
+    <div className="space-y-4">
+      {/* top status filters */}
+      <div className="w-full overflow-x-auto">
+        <div className="mx-auto flex w-fit min-w-[980px] flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+          {STATUS_FILTER_OPTIONS.map((option) => {
+            const isActive = statusFilter === option.value;
             return (
               <button
                 key={option.value}
                 type="button"
-                onClick={() => setPaymentFilter(option.value)}
-                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                onClick={() => setStatusFilter(option.value)}
+                className={
                   isActive
-                    ? 'bg-slate-900 text-white'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
+                    ? 'rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white'
+                    : 'rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200'
+                }
               >
-                {option.label} ({paymentCounts[option.value]})
+                {option.label}
               </button>
             );
           })}
-
-          <div className="ml-auto">
-            <Link
-              href={CREATE_ORDER_HREF}
-              className="inline-flex items-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-200 hover:text-brand-700"
-            >
-              + Dodaj
-            </Link>
-          </div>
         </div>
+      </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      {/* centered, stable-width table */}
+      <div className="w-full overflow-x-auto">
+        <div className="mx-auto min-w-[1560px] max-w-[1560px] rounded-2xl border border-slate-200 bg-white shadow-sm">
           <table className="w-full table-fixed text-left text-sm">
             <colgroup>
-              <col className="w-10" />
-              <col className="w-28" />
-              <col className="w-56" />
-              <col className="w-80" />
-              <col className="w-36" />
-              <col className="w-40" />
-              <col className="w-32" />
-              <col className="w-28" />
-              <col className="w-28" />
-              <col className="w-[22rem]" />
+              <col className="w-[44px]" />
+              <col className="w-[116px]" />
+              <col className="w-[220px]" />
+              <col className="w-[300px]" />
+              <col className="w-[145px]" />
+              <col className="w-[180px]" />
+              <col className="w-[130px]" />
+              <col className="w-[120px]" />
+              <col className="w-[120px]" />
+              <col className="w-[285px]" />
             </colgroup>
 
             <thead className="bg-slate-50 text-xs uppercase text-slate-500">
@@ -344,63 +340,68 @@ export default function AdminOrdersTable({
                     {isDeleting ? 'Brisanje...' : 'Izbriši'}
                   </button>
                 </th>
+
                 <th className="px-3 py-3">
                   <button
                     type="button"
-                    onClick={() => setSort('customer')}
-                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wide hover:text-slate-700"
+                    onClick={() => toggleSort('customer')}
+                    className="inline-flex items-center gap-1 font-semibold text-slate-600 hover:text-slate-900"
                   >
                     Naročnik
-                    <span className="text-[11px]">{getSortIndicator('customer')}</span>
+                    <span className="text-[11px]">{sortIndicator('customer')}</span>
                   </button>
                 </th>
+
                 <th className="px-3 py-3">
                   <button
                     type="button"
-                    onClick={() => setSort('address')}
-                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wide hover:text-slate-700"
+                    onClick={() => toggleSort('address')}
+                    className="inline-flex items-center gap-1 font-semibold text-slate-600 hover:text-slate-900"
                   >
                     Naslov
-                    <span className="text-[11px]">{getSortIndicator('address')}</span>
+                    <span className="text-[11px]">{sortIndicator('address')}</span>
                   </button>
                 </th>
+
                 <th className="px-3 py-3">Tip</th>
                 <th className="px-3 py-3">Status</th>
                 <th className="px-3 py-3">Plačilo</th>
+
                 <th className="px-3 py-3 text-right">
                   <button
                     type="button"
-                    onClick={() => setSort('total')}
-                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wide hover:text-slate-700"
+                    onClick={() => toggleSort('total')}
+                    className="inline-flex items-center gap-1 font-semibold text-slate-600 hover:text-slate-900"
                   >
                     Skupaj
-                    <span className="text-[11px]">{getSortIndicator('total')}</span>
+                    <span className="text-[11px]">{sortIndicator('total')}</span>
                   </button>
                 </th>
+
                 <th className="px-3 py-3">
                   <button
                     type="button"
-                    onClick={() => setSort('created_at')}
-                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wide hover:text-slate-700"
+                    onClick={() => toggleSort('date')}
+                    className="inline-flex items-center gap-1 font-semibold text-slate-600 hover:text-slate-900"
                   >
                     Datum
-                    <span className="text-[11px]">{getSortIndicator('created_at')}</span>
+                    <span className="text-[11px]">{sortIndicator('date')}</span>
                   </button>
                 </th>
+
                 <th className="px-3 py-3">PDFs</th>
               </tr>
             </thead>
 
             <tbody>
-              {visibleOrders.length === 0 ? (
+              {filteredAndSortedOrders.length === 0 ? (
                 <tr>
                   <td className="px-3 py-6 text-center text-slate-500" colSpan={10}>
                     Ni evidentiranih naročil.
                   </td>
                 </tr>
               ) : (
-                visibleOrders.map((order, orderIndex) => {
-                  const customerName = getCustomerName(order);
+                filteredAndSortedOrders.map((order, orderIndex) => {
                   const orderAddress = formatOrderAddress(order);
 
                   return (
@@ -429,13 +430,13 @@ export default function AdminOrdersTable({
                       </td>
 
                       <td className="px-3 py-3 text-slate-600">
-                        <span className="block truncate" title={customerName}>
-                          {customerName}
+                        <span className="block truncate" title={getOrderCustomerName(order)}>
+                          {getOrderCustomerName(order) || '—'}
                         </span>
                       </td>
 
                       <td className="px-3 py-3 text-slate-600">
-                        <span className="block truncate" title={orderAddress || '—'}>
+                        <span className="block truncate" title={orderAddress}>
                           {orderAddress || '—'}
                         </span>
                       </td>

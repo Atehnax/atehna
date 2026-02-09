@@ -54,7 +54,7 @@ type StatusFilter =
   | 'refunded';
 
 const STATUS_FILTER_OPTIONS: Array<{ value: StatusFilter; label: string }> = [
-  { value: 'all', label: 'Vsa' },
+  { value: 'all', label: 'Vsa naročila' },
   { value: 'received', label: 'Prejeto' },
   { value: 'in_progress', label: 'V obdelavi' },
   { value: 'sent', label: 'Poslano' },

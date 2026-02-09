@@ -40,10 +40,7 @@ type Attachment = {
   created_at: string;
 };
 
-type SortKey = 'customer' | 'address' | 'total' | 'date';
-type SortDirection = 'asc' | 'desc';
-
-type StatusFilter =
+type StatusFilterValue =
   | 'all'
   | 'received'
   | 'in_progress'
@@ -53,21 +50,52 @@ type StatusFilter =
   | 'cancelled'
   | 'refunded';
 
-const STATUS_FILTER_OPTIONS: Array<{ value: StatusFilter; label: string }> = [
-  { value: 'all', label: 'Vsa naročila' },
+type SortKey = 'customer' | 'address' | 'total' | 'created_at';
+type SortDirection = 'asc' | 'desc';
+
+type LatestDocumentRow = {
+  orderId: number;
+  orderNumber: string;
+  customer: string;
+  address: string;
+  orderStatus: string;
+  paymentStatus?: string | null;
+  orderCreatedAt: string;
+  type: string;
+  typeLabel: string;
+  filename: string;
+  url: string;
+  createdAt: string;
+};
+
+const currencyFormatter = new Intl.NumberFormat('sl-SI', {
+  style: 'currency',
+  currency: 'EUR'
+});
+
+const statusFilters: Array<{ value: StatusFilterValue; label: string }> = [
+  { value: 'all', label: 'Vsa' },
   { value: 'received', label: 'Prejeto' },
   { value: 'in_progress', label: 'V obdelavi' },
   { value: 'sent', label: 'Poslano' },
   { value: 'partially_sent', label: 'Delno poslano' },
   { value: 'finished', label: 'Zaključeno' },
   { value: 'cancelled', label: 'Preklicano' },
-  { value: 'refunded', label: 'Povrnjeno' }
+  { value: 'refunded', label: 'Povrnjeno...' }
 ];
 
-const currencyFormatter = new Intl.NumberFormat('sl-SI', {
-  style: 'currency',
-  currency: 'EUR'
-});
+const documentTypeOptions = [
+  { value: 'all', label: 'Vse vrste' },
+  { value: 'order_summary', label: 'Povzetek naročila' },
+  { value: 'predracun', label: 'Predračun' },
+  { value: 'dobavnica', label: 'Dobavnica' },
+  { value: 'invoice', label: 'Račun' },
+  { value: 'purchase_order', label: 'Naročilnica' }
+] as const;
+
+const documentTypeLabelMap = new Map<string, string>(
+  documentTypeOptions.map((option): [string, string] => [option.value, option.label])
+);
 
 const toAmount = (value: unknown): number => {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
@@ -109,16 +137,47 @@ const formatOrderAddress = (order: OrderRow) => {
   return [addressLine1, cityPostal].filter(Boolean).join(', ');
 };
 
-const getOrderCustomerName = (order: OrderRow) =>
-  (order.organization_name || order.contact_name || '').trim();
+const normalizeForSearch = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
 
-const getOrderTimestamp = (createdAt: string) => {
-  const timestamp = new Date(createdAt).getTime();
-  return Number.isFinite(timestamp) ? timestamp : 0;
+const isInDateRange = (isoDate: string, fromDate: string, toDate: string) => {
+  const target = new Date(isoDate);
+  if (Number.isNaN(target.getTime())) return false;
+
+  if (fromDate) {
+    const fromBoundary = new Date(`${fromDate}T00:00:00`);
+    if (target < fromBoundary) return false;
+  }
+
+  if (toDate) {
+    const toBoundary = new Date(`${toDate}T23:59:59.999`);
+    if (target > toBoundary) return false;
+  }
+
+  return true;
 };
 
-const isRefundedStatus = (status: string) =>
-  status === 'refunded_returned' || status === 'refunded_not_returned';
+const orderMatchesStatusFilter = (
+  orderStatus: string,
+  paymentStatus: string | null | undefined,
+  statusFilter: StatusFilterValue
+) => {
+  if (statusFilter === 'all') return true;
+
+  if (statusFilter === 'refunded') {
+    return (
+      orderStatus === 'refunded_returned' ||
+      orderStatus === 'refunded_not_returned' ||
+      paymentStatus === 'refunded'
+    );
+  }
+
+  return orderStatus === statusFilter;
+};
 
 export default function AdminOrdersTable({
   orders,
@@ -131,13 +190,22 @@ export default function AdminOrdersTable({
 }) {
   const [selected, setSelected] = useState<number[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [sortState, setSortState] = useState<{ key: SortKey; direction: SortDirection }>({
-    key: 'date',
-    direction: 'desc'
-  });
-
   const selectAllRef = useRef<HTMLInputElement>(null);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('all');
+
+  const [sortKey, setSortKey] = useState<SortKey>('created_at');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  const [isFileSearchEnabled, setIsFileSearchEnabled] = useState(false);
+  const [documentType, setDocumentType] = useState<(typeof documentTypeOptions)[number]['value']>('all');
+  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
+  const [isDownloadingDocuments, setIsDownloadingDocuments] = useState(false);
+  const [documentMessage, setDocumentMessage] = useState<string | null>(null);
+  const [loadedDocuments, setLoadedDocuments] = useState<LatestDocumentRow[]>([]);
 
   const documentsByOrder = useMemo(() => {
     const byOrder = new Map<number, PdfDoc[]>();
@@ -159,59 +227,194 @@ export default function AdminOrdersTable({
     return byOrder;
   }, [attachments]);
 
-  const filteredAndSortedOrders = useMemo(() => {
-    const filteredOrders = orders.filter((order) => {
-      if (statusFilter === 'all') return true;
-      if (statusFilter === 'refunded') return isRefundedStatus(order.status);
-      return order.status === statusFilter;
+  const searchQueryNormalized = useMemo(() => normalizeForSearch(searchQuery), [searchQuery]);
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
+      if (!isInDateRange(order.created_at, fromDate, toDate)) return false;
+      if (!orderMatchesStatusFilter(order.status, order.payment_status, statusFilter)) return false;
+
+      if (!searchQueryNormalized) return true;
+
+      const address = formatOrderAddress(order);
+      const customer = order.organization_name || order.contact_name;
+      const paymentLabel = getPaymentLabel(order.payment_status);
+      const customerTypeLabel = getCustomerTypeLabel(order.customer_type);
+
+      const searchableText = normalizeForSearch(
+        [
+          order.order_number,
+          customer,
+          address,
+          order.customer_type,
+          customerTypeLabel,
+          order.status,
+          paymentLabel
+        ]
+          .filter(Boolean)
+          .join(' ')
+      );
+
+      return searchableText.includes(searchQueryNormalized);
     });
+  }, [orders, fromDate, toDate, statusFilter, searchQueryNormalized]);
 
-    const sortedOrders = [...filteredOrders].sort((leftOrder, rightOrder) => {
-      let comparison = 0;
+  const sortedOrders = useMemo(() => {
+    const rows = [...filteredOrders];
+    const directionMultiplier = sortDirection === 'asc' ? 1 : -1;
 
-      if (sortState.key === 'customer') {
-        comparison = getOrderCustomerName(leftOrder).localeCompare(
-          getOrderCustomerName(rightOrder),
-          'sl-SI',
-          { sensitivity: 'base' }
-        );
-      } else if (sortState.key === 'address') {
-        comparison = formatOrderAddress(leftOrder).localeCompare(
-          formatOrderAddress(rightOrder),
-          'sl-SI',
-          { sensitivity: 'base' }
-        );
-      } else if (sortState.key === 'total') {
-        comparison = toAmount(leftOrder.total) - toAmount(rightOrder.total);
-      } else if (sortState.key === 'date') {
-        comparison = getOrderTimestamp(leftOrder.created_at) - getOrderTimestamp(rightOrder.created_at);
+    rows.sort((leftOrder, rightOrder) => {
+      if (sortKey === 'total') {
+        const leftTotal = toAmount(leftOrder.total);
+        const rightTotal = toAmount(rightOrder.total);
+        return (leftTotal - rightTotal) * directionMultiplier;
       }
 
-      if (comparison === 0) comparison = leftOrder.id - rightOrder.id;
-      return sortState.direction === 'asc' ? comparison : -comparison;
+      if (sortKey === 'created_at') {
+        const leftDate = new Date(leftOrder.created_at).getTime();
+        const rightDate = new Date(rightOrder.created_at).getTime();
+        return (leftDate - rightDate) * directionMultiplier;
+      }
+
+      if (sortKey === 'customer') {
+        const leftCustomer = (leftOrder.organization_name || leftOrder.contact_name || '').trim();
+        const rightCustomer = (rightOrder.organization_name || rightOrder.contact_name || '').trim();
+        return leftCustomer.localeCompare(rightCustomer, 'sl', { sensitivity: 'base' }) * directionMultiplier;
+      }
+
+      const leftAddress = formatOrderAddress(leftOrder);
+      const rightAddress = formatOrderAddress(rightOrder);
+      return leftAddress.localeCompare(rightAddress, 'sl', { sensitivity: 'base' }) * directionMultiplier;
     });
 
-    return sortedOrders;
-  }, [orders, statusFilter, sortState]);
+    return rows;
+  }, [filteredOrders, sortKey, sortDirection]);
 
-  useEffect(() => {
-    // clear selection when filter changes to avoid deleting hidden rows
-    setSelected([]);
-  }, [statusFilter]);
+  const latestDocumentsPerOrderAndType = useMemo(() => {
+    const orderById = new Map<number, OrderRow>();
+    orders.forEach((order) => orderById.set(order.id, order));
 
-  const visibleOrderIds = useMemo(
-    () => filteredAndSortedOrders.map((order) => order.id),
-    [filteredAndSortedOrders]
-  );
+    const combinedDocuments: Array<{
+      order_id: number;
+      type: string;
+      filename: string;
+      blob_url: string;
+      created_at: string;
+    }> = [
+      ...documents.map((documentItem) => ({
+        order_id: documentItem.order_id,
+        type: documentItem.type,
+        filename: documentItem.filename,
+        blob_url: documentItem.blob_url,
+        created_at: documentItem.created_at
+      })),
+      ...attachments.map((attachmentItem) => ({
+        order_id: attachmentItem.order_id,
+        type: 'purchase_order',
+        filename: attachmentItem.filename,
+        blob_url: attachmentItem.blob_url,
+        created_at: attachmentItem.created_at
+      }))
+    ];
+
+    const latestByOrderAndType = new Map<string, LatestDocumentRow>();
+
+    combinedDocuments.forEach((documentItem) => {
+      const order = orderById.get(documentItem.order_id);
+      if (!order) return;
+
+      const key = `${documentItem.order_id}:${documentItem.type}`;
+      const existing = latestByOrderAndType.get(key);
+
+      const existingTimestamp = existing ? new Date(existing.createdAt).getTime() : -1;
+      const currentTimestamp = new Date(documentItem.created_at).getTime();
+
+      if (existing && currentTimestamp <= existingTimestamp) return;
+
+      const customer = order.organization_name || order.contact_name;
+      const address = formatOrderAddress(order);
+
+      latestByOrderAndType.set(key, {
+        orderId: order.id,
+        orderNumber: order.order_number,
+        customer,
+        address,
+        orderStatus: order.status,
+        paymentStatus: order.payment_status,
+        orderCreatedAt: order.created_at,
+        type: documentItem.type,
+        typeLabel: documentTypeLabelMap.get(documentItem.type) ?? documentItem.type,
+        filename: documentItem.filename,
+        url: documentItem.blob_url,
+        createdAt: documentItem.created_at
+      });
+    });
+
+    return Array.from(latestByOrderAndType.values()).sort(
+      (leftDocument, rightDocument) =>
+        new Date(rightDocument.createdAt).getTime() - new Date(leftDocument.createdAt).getTime()
+    );
+  }, [orders, documents, attachments]);
+
+  const filteredLatestDocuments = useMemo(() => {
+    return latestDocumentsPerOrderAndType.filter((documentItem) => {
+      if (!isInDateRange(documentItem.orderCreatedAt, fromDate, toDate)) return false;
+
+      if (
+        !orderMatchesStatusFilter(
+          documentItem.orderStatus,
+          documentItem.paymentStatus,
+          statusFilter
+        )
+      ) {
+        return false;
+      }
+
+      if (documentType !== 'all' && documentItem.type !== documentType) return false;
+
+      if (!searchQueryNormalized) return true;
+
+      const searchableText = normalizeForSearch(
+        [
+          documentItem.orderNumber,
+          documentItem.customer,
+          documentItem.address,
+          documentItem.type,
+          documentItem.typeLabel,
+          documentItem.filename
+        ]
+          .filter(Boolean)
+          .join(' ')
+      );
+
+      return searchableText.includes(searchQueryNormalized);
+    });
+  }, [
+    latestDocumentsPerOrderAndType,
+    fromDate,
+    toDate,
+    statusFilter,
+    documentType,
+    searchQueryNormalized
+  ]);
+
+  const visibleOrderIds = useMemo(() => sortedOrders.map((order) => order.id), [sortedOrders]);
 
   const allSelected =
-    visibleOrderIds.length > 0 &&
-    visibleOrderIds.every((visibleOrderId) => selected.includes(visibleOrderId));
+    visibleOrderIds.length > 0 && visibleOrderIds.every((orderId) => selected.includes(orderId));
 
   useEffect(() => {
     if (!selectAllRef.current) return;
     selectAllRef.current.indeterminate = selected.length > 0 && !allSelected;
   }, [allSelected, selected.length]);
+
+  useEffect(() => {
+    // keep selection clean when dataset changes
+    const existingOrderIds = new Set(orders.map((order) => order.id));
+    setSelected((previousSelected) =>
+      previousSelected.filter((orderId) => existingOrderIds.has(orderId))
+    );
+  }, [orders]);
 
   const toggleSelected = (orderId: number) => {
     setSelected((previousSelected) =>
@@ -224,14 +427,15 @@ export default function AdminOrdersTable({
   const toggleAll = () => {
     if (allSelected) {
       setSelected((previousSelected) =>
-        previousSelected.filter((selectedId) => !visibleOrderIds.includes(selectedId))
+        previousSelected.filter((orderId) => !visibleOrderIds.includes(orderId))
       );
       return;
     }
 
-    setSelected((previousSelected) =>
-      Array.from(new Set([...previousSelected, ...visibleOrderIds]))
-    );
+    setSelected((previousSelected) => {
+      const merged = new Set([...previousSelected, ...visibleOrderIds]);
+      return Array.from(merged);
+    });
   };
 
   const handleDelete = async () => {
@@ -256,69 +460,265 @@ export default function AdminOrdersTable({
     }
   };
 
-  const toggleSort = (key: SortKey) => {
-    setSortState((previousState) => {
-      if (previousState.key === key) {
-        return {
-          key,
-          direction: previousState.direction === 'asc' ? 'desc' : 'asc'
-        };
+  const toggleSort = (column: SortKey) => {
+    if (sortKey === column) {
+      setSortDirection((previousDirection) => (previousDirection === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+
+    setSortKey(column);
+    setSortDirection(column === 'created_at' ? 'desc' : 'asc');
+  };
+
+  const sortIndicator = (column: SortKey) => {
+    if (sortKey !== column) return '↕';
+    return sortDirection === 'asc' ? '↑' : '↓';
+  };
+
+  const resetFileSearchResults = () => {
+    setLoadedDocuments([]);
+    setDocumentMessage(null);
+  };
+
+  const handleLoadDocuments = async () => {
+    if (!isFileSearchEnabled) return;
+
+    setIsLoadingDocuments(true);
+    setDocumentMessage(null);
+
+    try {
+      const result = filteredLatestDocuments;
+      setLoadedDocuments(result);
+
+      if (result.length === 0) {
+        setDocumentMessage('Ni dokumentov za izbrane filtre.');
+        return;
       }
 
-      return {
-        key,
-        direction: key === 'date' ? 'desc' : 'asc'
-      };
-    });
+      setDocumentMessage(`Najdenih dokumentov (zadnje verzije): ${result.length}`);
+    } finally {
+      setIsLoadingDocuments(false);
+    }
   };
 
-  const sortIndicator = (key: SortKey) => {
-    if (sortState.key !== key) return '↕';
-    return sortState.direction === 'asc' ? '↑' : '↓';
+  const downloadFile = async (documentItem: LatestDocumentRow) => {
+    const response = await fetch(documentItem.url);
+    if (!response.ok) return;
+
+    const blob = await response.blob();
+    const link = document.createElement('a');
+
+    link.href = URL.createObjectURL(blob);
+    link.download = `${documentItem.orderNumber}-${documentItem.filename}`;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    URL.revokeObjectURL(link.href);
   };
+
+  const handleDownloadAll = async () => {
+    if (!isFileSearchEnabled) return;
+
+    setIsDownloadingDocuments(true);
+    setDocumentMessage(null);
+
+    try {
+      const source = loadedDocuments.length > 0 ? loadedDocuments : filteredLatestDocuments;
+      if (source.length === 0) {
+        setDocumentMessage('Ni dokumentov za prenos.');
+        return;
+      }
+
+      for (const documentItem of source) {
+        // sequential to avoid browser throttling / race mess
+        await downloadFile(documentItem);
+      }
+
+      setDocumentMessage(`Prenesenih dokumentov: ${source.length}`);
+    } finally {
+      setIsDownloadingDocuments(false);
+    }
+  };
+
+  const tableColSpan = 10;
 
   return (
-    <div className="space-y-4">
-      {/* top status filters */}
-      <div className="w-full overflow-x-auto">
-        <div className="mx-auto flex w-fit min-w-[980px] flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
-          {STATUS_FILTER_OPTIONS.map((option) => {
-            const isActive = statusFilter === option.value;
-            return (
+    <div className="w-full">
+      <div className="mx-auto w-fit max-w-full space-y-4">
+        {/* unified filters + file search */}
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="grid gap-3 lg:grid-cols-[180px_180px_minmax(360px,1fr)]">
+            <div>
+              <label className="text-xs font-semibold uppercase text-slate-500">Od</label>
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(event) => {
+                  setFromDate(event.target.value);
+                  resetFileSearchResults();
+                }}
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold uppercase text-slate-500">Do</label>
+              <input
+                type="date"
+                value={toDate}
+                onChange={(event) => {
+                  setToDate(event.target.value);
+                  resetFileSearchResults();
+                }}
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold uppercase text-slate-500">Iskanje</label>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(event) => {
+                  setSearchQuery(event.target.value);
+                  resetFileSearchResults();
+                }}
+                placeholder="Šola, kontakt, naslov, tip..."
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {statusFilters.map((statusOption) => {
+              const isActive = statusFilter === statusOption.value;
+
+              return (
+                <button
+                  key={statusOption.value}
+                  type="button"
+                  onClick={() => {
+                    setStatusFilter(statusOption.value);
+                    resetFileSearchResults();
+                  }}
+                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${
+                    isActive
+                      ? 'bg-brand-600 text-white'
+                      : 'border border-slate-200 bg-white text-slate-600 hover:border-brand-200 hover:text-brand-600'
+                  }`}
+                >
+                  {statusOption.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={isFileSearchEnabled}
+                  onChange={(event) => {
+                    const nextChecked = event.target.checked;
+                    setIsFileSearchEnabled(nextChecked);
+                    if (!nextChecked) {
+                      setLoadedDocuments([]);
+                      setDocumentMessage(null);
+                    }
+                  }}
+                />
+                Išči pdf-je
+              </label>
+
+              <div className="min-w-[220px]">
+                <label className="text-xs font-semibold uppercase text-slate-500">Vrsta dokumenta</label>
+                <select
+                  value={documentType}
+                  onChange={(event) => {
+                    setDocumentType(event.target.value as (typeof documentTypeOptions)[number]['value']);
+                    resetFileSearchResults();
+                  }}
+                  disabled={!isFileSearchEnabled}
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  {documentTypeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <button
-                key={option.value}
                 type="button"
-                onClick={() => setStatusFilter(option.value)}
-                className={
-                  isActive
-                    ? 'rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white'
-                    : 'rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200'
-                }
+                onClick={handleLoadDocuments}
+                disabled={!isFileSearchEnabled || isLoadingDocuments}
+                className="rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
               >
-                {option.label}
+                {isLoadingDocuments ? 'Nalaganje...' : 'Naloži datoteke'}
               </button>
-            );
-          })}
-        </div>
-      </div>
 
-      {/* centered, stable-width table */}
-      <div className="w-full overflow-x-auto">
-        <div className="mx-auto min-w-[1560px] max-w-[1560px] rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <table className="w-full table-fixed text-left text-sm">
-            <colgroup>
-              <col className="w-[44px]" />
-              <col className="w-[116px]" />
-              <col className="w-[220px]" />
-              <col className="w-[300px]" />
-              <col className="w-[145px]" />
-              <col className="w-[180px]" />
-              <col className="w-[130px]" />
-              <col className="w-[120px]" />
-              <col className="w-[120px]" />
-              <col className="w-[285px]" />
-            </colgroup>
+              <button
+                type="button"
+                onClick={handleDownloadAll}
+                disabled={!isFileSearchEnabled || isDownloadingDocuments || isLoadingDocuments}
+                className="rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 transition hover:border-brand-200 hover:text-brand-600 disabled:cursor-not-allowed disabled:text-slate-300"
+              >
+                {isDownloadingDocuments ? 'Prenos...' : 'Prenesi vse'}
+              </button>
+            </div>
 
+            {documentMessage && <p className="mt-2 text-sm text-slate-600">{documentMessage}</p>}
+
+            {isFileSearchEnabled && loadedDocuments.length > 0 && (
+              <div className="mt-3 overflow-x-auto rounded-lg border border-slate-200 bg-white">
+                <table className="w-full min-w-[760px] text-left text-sm">
+                  <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                    <tr>
+                      <th className="px-3 py-2">Št. naročila</th>
+                      <th className="px-3 py-2">Naročnik</th>
+                      <th className="px-3 py-2">Vrsta dokumenta</th>
+                      <th className="px-3 py-2">Datum dokumenta</th>
+                      <th className="px-3 py-2">Datoteka</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadedDocuments.map((documentItem) => (
+                      <tr
+                        key={`${documentItem.orderId}-${documentItem.type}-${documentItem.createdAt}`}
+                        className="border-t border-slate-100"
+                      >
+                        <td className="px-3 py-2 text-slate-700">{documentItem.orderNumber}</td>
+                        <td className="px-3 py-2 text-slate-600">{documentItem.customer}</td>
+                        <td className="px-3 py-2 text-slate-600">{documentItem.typeLabel}</td>
+                        <td className="px-3 py-2 text-slate-600">
+                          {new Date(documentItem.createdAt).toLocaleDateString('sl-SI')}
+                        </td>
+                        <td className="px-3 py-2">
+                          <a
+                            href={documentItem.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs font-semibold text-brand-600 hover:text-brand-700"
+                          >
+                            Odpri →
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* table */}
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <table className="w-max table-auto whitespace-nowrap text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-3 py-3">
@@ -345,10 +745,9 @@ export default function AdminOrdersTable({
                   <button
                     type="button"
                     onClick={() => toggleSort('customer')}
-                    className="inline-flex items-center gap-1 font-semibold text-slate-600 hover:text-slate-900"
+                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-500 hover:text-slate-700"
                   >
-                    Naročnik
-                    <span className="text-[11px]">{sortIndicator('customer')}</span>
+                    Naročnik <span>{sortIndicator('customer')}</span>
                   </button>
                 </th>
 
@@ -356,10 +755,9 @@ export default function AdminOrdersTable({
                   <button
                     type="button"
                     onClick={() => toggleSort('address')}
-                    className="inline-flex items-center gap-1 font-semibold text-slate-600 hover:text-slate-900"
+                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-500 hover:text-slate-700"
                   >
-                    Naslov
-                    <span className="text-[11px]">{sortIndicator('address')}</span>
+                    Naslov <span>{sortIndicator('address')}</span>
                   </button>
                 </th>
 
@@ -371,21 +769,19 @@ export default function AdminOrdersTable({
                   <button
                     type="button"
                     onClick={() => toggleSort('total')}
-                    className="inline-flex items-center gap-1 font-semibold text-slate-600 hover:text-slate-900"
+                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-500 hover:text-slate-700"
                   >
-                    Skupaj
-                    <span className="text-[11px]">{sortIndicator('total')}</span>
+                    Skupaj <span>{sortIndicator('total')}</span>
                   </button>
                 </th>
 
                 <th className="px-3 py-3">
                   <button
                     type="button"
-                    onClick={() => toggleSort('date')}
-                    className="inline-flex items-center gap-1 font-semibold text-slate-600 hover:text-slate-900"
+                    onClick={() => toggleSort('created_at')}
+                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-500 hover:text-slate-700"
                   >
-                    Datum
-                    <span className="text-[11px]">{sortIndicator('date')}</span>
+                    Datum <span>{sortIndicator('created_at')}</span>
                   </button>
                 </th>
 
@@ -394,21 +790,21 @@ export default function AdminOrdersTable({
             </thead>
 
             <tbody>
-              {filteredAndSortedOrders.length === 0 ? (
+              {sortedOrders.length === 0 ? (
                 <tr>
-                  <td className="px-3 py-6 text-center text-slate-500" colSpan={10}>
-                    Ni evidentiranih naročil.
+                  <td className="px-3 py-6 text-center text-slate-500" colSpan={tableColSpan}>
+                    Ni zadetkov za izbrane filtre.
                   </td>
                 </tr>
               ) : (
-                filteredAndSortedOrders.map((order, orderIndex) => {
+                sortedOrders.map((order, rowIndex) => {
                   const orderAddress = formatOrderAddress(order);
 
                   return (
                     <tr
                       key={order.id}
                       className={`border-t border-slate-100 ${
-                        orderIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+                        rowIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
                       } hover:bg-slate-100/60`}
                     >
                       <td className="px-3 py-3">
@@ -430,15 +826,11 @@ export default function AdminOrdersTable({
                       </td>
 
                       <td className="px-3 py-3 text-slate-600">
-                        <span className="block truncate" title={getOrderCustomerName(order)}>
-                          {getOrderCustomerName(order) || '—'}
-                        </span>
+                        {order.organization_name || order.contact_name}
                       </td>
 
                       <td className="px-3 py-3 text-slate-600">
-                        <span className="block truncate" title={orderAddress}>
-                          {orderAddress || '—'}
-                        </span>
+                        {orderAddress || '—'}
                       </td>
 
                       <td className="px-3 py-3 text-slate-600">
@@ -459,11 +851,11 @@ export default function AdminOrdersTable({
                         </span>
                       </td>
 
-                      <td className="px-3 py-3 text-right text-slate-700 whitespace-nowrap">
+                      <td className="px-3 py-3 text-right text-slate-700">
                         {formatCurrency(order.total)}
                       </td>
 
-                      <td className="px-3 py-3 text-slate-600 whitespace-nowrap">
+                      <td className="px-3 py-3 text-slate-600">
                         {new Date(order.created_at).toLocaleDateString('sl-SI')}
                       </td>
 

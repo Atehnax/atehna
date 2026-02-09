@@ -74,7 +74,7 @@ export default async function AdminOrdersPage({
     ];
 
     return (
-      <div className="mx-auto w-full max-w-[1600px] px-6 py-12">
+      <div className="w-full px-6 py-12">
         <div className="flex flex-col gap-6">
           <div>
             <h1 className="text-3xl font-semibold text-slate-900">Administracija naročil</h1>
@@ -111,7 +111,7 @@ export default async function AdminOrdersPage({
   ]);
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] px-6 py-12">
+    <div className="w-full px-6 py-12">
       <div className="flex flex-col gap-6">
         <div>
           <h1 className="text-3xl font-semibold text-slate-900">Administracija naročil</h1>

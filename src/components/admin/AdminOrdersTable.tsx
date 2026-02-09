@@ -40,26 +40,39 @@ type Attachment = {
   created_at: string;
 };
 
-type DownloadItem = {
-  orderNumber: string;
+type CombinedDocument = {
+  id: number;
+  order_id: number;
   type: string;
+  typeLabel: string;
   filename: string;
-  url: string;
-  createdAt: string;
+  blob_url: string;
+  created_at: string;
 };
 
-const statusTabs = [
-  { value: 'all', label: 'Vsa' },
-  { value: 'received', label: 'Prejeto' },
-  { value: 'in_progress', label: 'V obdelavi' },
-  { value: 'sent', label: 'Poslano' },
-  { value: 'partially_sent', label: 'Delno poslano' },
-  { value: 'finished', label: 'Zaključeno' },
-  { value: 'cancelled', label: 'Preklicano' },
-  { value: 'refunded', label: 'Povrnjeno' }
-] as const;
+type StatusFilterKey =
+  | 'all'
+  | 'received'
+  | 'in_progress'
+  | 'sent'
+  | 'partially_sent'
+  | 'finished'
+  | 'cancelled'
+  | 'refunded';
 
-type StatusFilterValue = (typeof statusTabs)[number]['value'];
+type SortField = 'customer' | 'address' | 'total' | 'created_at';
+type SortDirection = 'asc' | 'desc';
+
+const statusTabs: Array<{ key: StatusFilterKey; label: string }> = [
+  { key: 'all', label: 'Vsa' },
+  { key: 'received', label: 'Prejeto' },
+  { key: 'in_progress', label: 'V obdelavi' },
+  { key: 'sent', label: 'Poslano' },
+  { key: 'partially_sent', label: 'Delno poslano' },
+  { key: 'finished', label: 'Zaključeno' },
+  { key: 'cancelled', label: 'Preklicano' },
+  { key: 'refunded', label: 'Povrnjeno' }
+];
 
 const documentTypeOptions = [
   { value: 'all', label: 'Vse vrste' },
@@ -70,14 +83,9 @@ const documentTypeOptions = [
   { value: 'purchase_order', label: 'Naročilnica' }
 ] as const;
 
-type DocumentTypeValue = (typeof documentTypeOptions)[number]['value'];
-
 const documentTypeLabelMap = new Map<string, string>(
   documentTypeOptions.map((option) => [option.value, option.label])
 );
-
-type SortField = 'customer' | 'address' | 'total' | 'created_at';
-type SortDirection = 'asc' | 'desc';
 
 const currencyFormatter = new Intl.NumberFormat('sl-SI', {
   style: 'currency',
@@ -128,34 +136,100 @@ const normalizeText = (value: string) =>
   value
     .toLowerCase()
     .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '');
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
 
-const startOfDay = (dateText: string) => {
-  const date = new Date(`${dateText}T00:00:00`);
-  return Number.isNaN(date.getTime()) ? null : date;
+const includesNormalized = (haystack: string, needle: string) => {
+  if (!needle) return true;
+  return normalizeText(haystack).includes(needle);
 };
 
-const endOfDay = (dateText: string) => {
-  const date = new Date(`${dateText}T23:59:59.999`);
-  return Number.isNaN(date.getTime()) ? null : date;
-};
-
-const statusMatches = (status: string, filter: StatusFilterValue) => {
+const statusMatchesFilter = (status: string, filter: StatusFilterKey) => {
   if (filter === 'all') return true;
   if (filter === 'refunded') {
-    return status === 'refunded_returned' || status === 'refunded_not_returned';
+    return (
+      status === 'refunded' ||
+      status === 'refunded_returned' ||
+      status === 'refunded_not_returned'
+    );
+  }
+  if (filter === 'partially_sent') {
+    return status === 'partially_sent' || status === 'partially_shipped';
   }
   return status === filter;
 };
 
-const getSortArrow = (
-  field: SortField,
-  currentField: SortField,
-  direction: SortDirection
-) => {
-  if (field !== currentField) return '↕';
-  return direction === 'asc' ? '↑' : '↓';
+const toTime = (value: string | null | undefined) => {
+  if (!value) return 0;
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : 0;
 };
+
+const startOfDayTime = (ymd: string) => {
+  const time = new Date(`${ymd}T00:00:00`).getTime();
+  return Number.isFinite(time) ? time : null;
+};
+
+const endOfDayTime = (ymd: string) => {
+  const time = new Date(`${ymd}T23:59:59.999`).getTime();
+  return Number.isFinite(time) ? time : null;
+};
+
+const formatDateForLabel = (ymd: string) => {
+  if (!ymd) return '';
+  const date = new Date(`${ymd}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return ymd;
+  return new Intl.DateTimeFormat('sl-SI', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  }).format(date);
+};
+
+const ymd = (date: Date) => {
+  const copy = new Date(date);
+  copy.setHours(0, 0, 0, 0);
+  return copy.toISOString().slice(0, 10);
+};
+
+const shiftDays = (date: Date, days: number) => {
+  const copy = new Date(date);
+  copy.setDate(copy.getDate() + days);
+  return copy;
+};
+
+function SortHeader({
+  label,
+  field,
+  activeField,
+  direction,
+  onToggle,
+  align = 'left'
+}: {
+  label: string;
+  field: SortField;
+  activeField: SortField;
+  direction: SortDirection;
+  onToggle: (field: SortField) => void;
+  align?: 'left' | 'right';
+}) {
+  const isActive = activeField === field;
+  const arrow = isActive ? (direction === 'asc' ? '↑' : '↓') : '↕';
+
+  return (
+    <button
+      type="button"
+      onClick={() => onToggle(field)}
+      className={`inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500 hover:text-slate-700 ${
+        align === 'right' ? 'ml-auto' : ''
+      }`}
+      title={`Razvrsti po: ${label}`}
+    >
+      <span>{label}</span>
+      <span className="text-[11px]">{arrow}</span>
+    </button>
+  );
+}
 
 export default function AdminOrdersTable({
   orders,
@@ -170,107 +244,325 @@ export default function AdminOrdersTable({
   const [isDeleting, setIsDeleting] = useState(false);
   const selectAllRef = useRef<HTMLInputElement>(null);
 
-  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilterKey>('all');
+  const [query, setQuery] = useState('');
+  const [searchDocumentsEnabled, setSearchDocumentsEnabled] = useState(false);
+  const [documentType, setDocumentType] = useState<string>('all');
+
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
-  const [query, setQuery] = useState('');
+  const [isRangeOpen, setIsRangeOpen] = useState(false);
+  const rangeRef = useRef<HTMLDivElement>(null);
+
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-  const [searchDocumentsEnabled, setSearchDocumentsEnabled] = useState(false);
-  const [documentType, setDocumentType] = useState<DocumentTypeValue>('all');
-  const [documentMessage, setDocumentMessage] = useState<string | null>(null);
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
-  const [documentItems, setDocumentItems] = useState<DownloadItem[]>([]);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [showDocumentResults, setShowDocumentResults] = useState(false);
+  const [documentMessage, setDocumentMessage] = useState<string | null>(null);
 
-  const documentsByOrder = useMemo(() => {
-    const byOrder = new Map<number, PdfDoc[]>();
-    documents.forEach((documentItem) => {
+  const normalizedQuery = useMemo(() => normalizeText(query), [query]);
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!rangeRef.current) return;
+      if (!rangeRef.current.contains(event.target as Node)) {
+        setIsRangeOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsRangeOpen(false);
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!searchDocumentsEnabled) {
+      setDocumentType('all');
+      setShowDocumentResults(false);
+      setDocumentMessage(null);
+    }
+  }, [searchDocumentsEnabled]);
+
+  const normalizedFromTo = useMemo(() => {
+    if (!fromDate || !toDate) return { from: fromDate, to: toDate };
+    if (fromDate <= toDate) return { from: fromDate, to: toDate };
+    return { from: toDate, to: fromDate };
+  }, [fromDate, toDate]);
+
+  const dateRangeLabel = useMemo(() => {
+    if (!normalizedFromTo.from && !normalizedFromTo.to) return 'Vsi datumi';
+    if (normalizedFromTo.from && normalizedFromTo.to) {
+      return `${formatDateForLabel(normalizedFromTo.from)} – ${formatDateForLabel(
+        normalizedFromTo.to
+      )}`;
+    }
+    if (normalizedFromTo.from) return `Od ${formatDateForLabel(normalizedFromTo.from)}`;
+    return `Do ${formatDateForLabel(normalizedFromTo.to)}`;
+  }, [normalizedFromTo.from, normalizedFromTo.to]);
+
+  const applyPreset = (preset: 'today' | 'yesterday' | 'last7' | 'last30' | 'last90' | 'last365') => {
+    const today = new Date();
+
+    if (preset === 'today') {
+      const value = ymd(today);
+      setFromDate(value);
+      setToDate(value);
+      setIsRangeOpen(false);
+      return;
+    }
+
+    if (preset === 'yesterday') {
+      const value = ymd(shiftDays(today, -1));
+      setFromDate(value);
+      setToDate(value);
+      setIsRangeOpen(false);
+      return;
+    }
+
+    if (preset === 'last7') {
+      setFromDate(ymd(shiftDays(today, -6)));
+      setToDate(ymd(today));
+      setIsRangeOpen(false);
+      return;
+    }
+
+    if (preset === 'last30') {
+      setFromDate(ymd(shiftDays(today, -29)));
+      setToDate(ymd(today));
+      setIsRangeOpen(false);
+      return;
+    }
+
+    if (preset === 'last90') {
+      setFromDate(ymd(shiftDays(today, -89)));
+      setToDate(ymd(today));
+      setIsRangeOpen(false);
+      return;
+    }
+
+    setFromDate(ymd(shiftDays(today, -364)));
+    setToDate(ymd(today));
+    setIsRangeOpen(false);
+  };
+
+  const clearRange = () => {
+    setFromDate('');
+    setToDate('');
+    setIsRangeOpen(false);
+  };
+
+  const isOrderInDateRange = (order: OrderRow) => {
+    if (!normalizedFromTo.from && !normalizedFromTo.to) return true;
+
+    const orderTime = toTime(order.created_at);
+    if (orderTime === 0) return false;
+
+    const fromTime = normalizedFromTo.from ? startOfDayTime(normalizedFromTo.from) : null;
+    const toTimeInclusive = normalizedFromTo.to ? endOfDayTime(normalizedFromTo.to) : null;
+
+    if (fromTime !== null && orderTime < fromTime) return false;
+    if (toTimeInclusive !== null && orderTime > toTimeInclusive) return false;
+    return true;
+  };
+
+  const latestDocuments = useMemo(() => {
+    const combined: CombinedDocument[] = [
+      ...documents.map((documentItem) => ({
+        id: documentItem.id,
+        order_id: documentItem.order_id,
+        type: documentItem.type,
+        typeLabel: documentTypeLabelMap.get(documentItem.type) ?? documentItem.type,
+        filename: documentItem.filename,
+        blob_url: documentItem.blob_url,
+        created_at: documentItem.created_at
+      })),
+      ...attachments.map((attachmentItem) => ({
+        id: attachmentItem.id,
+        order_id: attachmentItem.order_id,
+        type: 'purchase_order',
+        typeLabel: documentTypeLabelMap.get('purchase_order') ?? 'Naročilnica',
+        filename: attachmentItem.filename,
+        blob_url: attachmentItem.blob_url,
+        created_at: attachmentItem.created_at
+      }))
+    ];
+
+    const byOrderAndType = new Map<string, CombinedDocument>();
+
+    for (const item of combined) {
+      const key = `${item.order_id}::${item.type}`;
+      const existing = byOrderAndType.get(key);
+
+      if (!existing) {
+        byOrderAndType.set(key, item);
+        continue;
+      }
+
+      const existingTime = toTime(existing.created_at);
+      const nextTime = toTime(item.created_at);
+
+      if (nextTime > existingTime || (nextTime === existingTime && item.id > existing.id)) {
+        byOrderAndType.set(key, item);
+      }
+    }
+
+    return Array.from(byOrderAndType.values()).sort(
+      (leftItem, rightItem) => toTime(rightItem.created_at) - toTime(leftItem.created_at)
+    );
+  }, [documents, attachments]);
+
+  const latestDocumentsByOrder = useMemo(() => {
+    const byOrder = new Map<number, CombinedDocument[]>();
+
+    for (const documentItem of latestDocuments) {
       const existingList = byOrder.get(documentItem.order_id) ?? [];
       existingList.push(documentItem);
       byOrder.set(documentItem.order_id, existingList);
-    });
+    }
+
     return byOrder;
-  }, [documents]);
+  }, [latestDocuments]);
 
-  const attachmentsByOrder = useMemo(() => {
-    const byOrder = new Map<number, Attachment[]>();
-    attachments.forEach((attachmentItem) => {
-      const existingList = byOrder.get(attachmentItem.order_id) ?? [];
-      existingList.push({ ...attachmentItem, type: 'purchase_order' });
-      byOrder.set(attachmentItem.order_id, existingList);
-    });
-    return byOrder;
-  }, [attachments]);
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
+      if (!statusMatchesFilter(order.status, statusFilter)) return false;
+      if (!isOrderInDateRange(order)) return false;
 
-  const filteredAndSortedOrders = useMemo(() => {
-    const normalizedQuery = normalizeText(query.trim());
-    const from = fromDate ? startOfDay(fromDate) : null;
-    const to = toDate ? endOfDay(toDate) : null;
+      const orderAddress = formatOrderAddress(order);
+      const customer = order.organization_name || order.contact_name;
+      const orderHaystack = [
+        order.order_number,
+        customer,
+        order.contact_name,
+        order.organization_name ?? '',
+        orderAddress,
+        getCustomerTypeLabel(order.customer_type),
+        getPaymentLabel(order.payment_status),
+        formatCurrency(order.total),
+        new Date(order.created_at).toLocaleDateString('sl-SI')
+      ]
+        .filter(Boolean)
+        .join(' ');
 
-    const filtered = orders.filter((order) => {
-      if (!statusMatches(order.status, statusFilter)) return false;
+      const orderDocumentsForOrder = latestDocumentsByOrder.get(order.id) ?? [];
+      const documentsAfterTypeFilter =
+        documentType === 'all'
+          ? orderDocumentsForOrder
+          : orderDocumentsForOrder.filter((documentItem) => documentItem.type === documentType);
 
-      const createdAt = new Date(order.created_at);
-      if (from && createdAt < from) return false;
-      if (to && createdAt > to) return false;
+      if (searchDocumentsEnabled && documentType !== 'all' && documentsAfterTypeFilter.length === 0) {
+        return false;
+      }
 
       if (!normalizedQuery) return true;
 
-      const customer = order.organization_name || order.contact_name || '';
-      const address = formatOrderAddress(order);
-      const searchable = normalizeText(
-        [
-          order.order_number,
-          customer,
-          address,
-          getCustomerTypeLabel(order.customer_type),
-          getPaymentLabel(order.payment_status)
-        ]
-          .filter(Boolean)
-          .join(' ')
-      );
+      const orderMatches = includesNormalized(orderHaystack, normalizedQuery);
+      if (orderMatches) return true;
 
-      return searchable.includes(normalizedQuery);
+      if (!searchDocumentsEnabled) return false;
+
+      const documentHaystack = documentsAfterTypeFilter
+        .map(
+          (documentItem) =>
+            `${documentItem.filename} ${documentItem.type} ${documentItem.typeLabel} ${documentItem.created_at}`
+        )
+        .join(' ');
+
+      return includesNormalized(documentHaystack, normalizedQuery);
     });
+  }, [
+    orders,
+    statusFilter,
+    normalizedQuery,
+    searchDocumentsEnabled,
+    documentType,
+    latestDocumentsByOrder,
+    normalizedFromTo.from,
+    normalizedFromTo.to
+  ]);
 
-    return [...filtered].sort((leftOrder, rightOrder) => {
+  const sortedOrders = useMemo(() => {
+    const nextOrders = [...filteredOrders];
+
+    nextOrders.sort((leftOrder, rightOrder) => {
       let comparison = 0;
 
-      if (sortField === 'created_at') {
-        comparison =
-          new Date(leftOrder.created_at).getTime() -
-          new Date(rightOrder.created_at).getTime();
+      if (sortField === 'customer') {
+        const leftCustomer = (leftOrder.organization_name || leftOrder.contact_name || '').toString();
+        const rightCustomer = (rightOrder.organization_name || rightOrder.contact_name || '').toString();
+        comparison = leftCustomer.localeCompare(rightCustomer, 'sl', { sensitivity: 'base' });
+      } else if (sortField === 'address') {
+        const leftAddress = formatOrderAddress(leftOrder);
+        const rightAddress = formatOrderAddress(rightOrder);
+        comparison = leftAddress.localeCompare(rightAddress, 'sl', { sensitivity: 'base' });
       } else if (sortField === 'total') {
         comparison = toAmount(leftOrder.total) - toAmount(rightOrder.total);
-      } else if (sortField === 'customer') {
-        const leftCustomer = (leftOrder.organization_name || leftOrder.contact_name || '').toLowerCase();
-        const rightCustomer = (rightOrder.organization_name || rightOrder.contact_name || '').toLowerCase();
-        comparison = leftCustomer.localeCompare(rightCustomer, 'sl');
-      } else if (sortField === 'address') {
-        const leftAddress = formatOrderAddress(leftOrder).toLowerCase();
-        const rightAddress = formatOrderAddress(rightOrder).toLowerCase();
-        comparison = leftAddress.localeCompare(rightAddress, 'sl');
+      } else {
+        comparison = toTime(leftOrder.created_at) - toTime(rightOrder.created_at);
       }
 
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [orders, statusFilter, fromDate, toDate, query, sortField, sortDirection]);
 
-  const visibleOrderIds = filteredAndSortedOrders.map((order) => order.id);
-  const selectedVisibleCount = visibleOrderIds.filter((orderId) =>
-    selected.includes(orderId)
-  ).length;
+    return nextOrders;
+  }, [filteredOrders, sortField, sortDirection]);
 
-  const allSelected =
-    visibleOrderIds.length > 0 && selectedVisibleCount === visibleOrderIds.length;
+  const filteredLatestDocuments = useMemo(() => {
+    const allowedOrderIds = new Set(sortedOrders.map((order) => order.id));
+
+    return latestDocuments.filter((documentItem) => {
+      if (!allowedOrderIds.has(documentItem.order_id)) return false;
+      if (documentType !== 'all' && documentItem.type !== documentType) return false;
+
+      if (!normalizedQuery) return true;
+
+      const order = orders.find((orderItem) => orderItem.id === documentItem.order_id);
+      const orderAddress = order ? formatOrderAddress(order) : '';
+      const orderCustomer = order ? order.organization_name || order.contact_name : '';
+
+      const haystack = [
+        documentItem.filename,
+        documentItem.type,
+        documentItem.typeLabel,
+        order?.order_number ?? '',
+        orderCustomer ?? '',
+        orderAddress
+      ].join(' ');
+
+      return includesNormalized(haystack, normalizedQuery);
+    });
+  }, [sortedOrders, latestDocuments, documentType, normalizedQuery, orders]);
+
+  const visibleOrderIds = sortedOrders.map((order) => order.id);
+  const visibleOrderIdSet = useMemo(() => new Set(visibleOrderIds), [visibleOrderIds]);
+
+  const selectedVisibleCount = selected.filter((selectedId) => visibleOrderIdSet.has(selectedId)).length;
+  const allSelected = visibleOrderIds.length > 0 && selectedVisibleCount === visibleOrderIds.length;
 
   useEffect(() => {
     if (!selectAllRef.current) return;
-    selectAllRef.current.indeterminate =
-      selectedVisibleCount > 0 && selectedVisibleCount < visibleOrderIds.length;
-  }, [selectedVisibleCount, visibleOrderIds.length]);
+    selectAllRef.current.indeterminate = selectedVisibleCount > 0 && !allSelected;
+  }, [allSelected, selectedVisibleCount]);
+
+  const toggleSort = (field: SortField) => {
+    if (sortField !== field) {
+      setSortField(field);
+      setSortDirection(field === 'created_at' ? 'desc' : 'asc');
+      return;
+    }
+
+    setSortDirection((previousDirection) => (previousDirection === 'asc' ? 'desc' : 'asc'));
+  };
 
   const toggleSelected = (orderId: number) => {
     setSelected((previousSelected) =>
@@ -280,18 +572,18 @@ export default function AdminOrdersTable({
     );
   };
 
-  const toggleAll = () => {
+  const toggleAllVisible = () => {
     if (allSelected) {
       setSelected((previousSelected) =>
-        previousSelected.filter((orderId) => !visibleOrderIds.includes(orderId))
+        previousSelected.filter((selectedId) => !visibleOrderIdSet.has(selectedId))
       );
       return;
     }
 
-    setSelected((previousSelected) => [
-      ...previousSelected,
-      ...visibleOrderIds.filter((orderId) => !previousSelected.includes(orderId))
-    ]);
+    setSelected((previousSelected) => {
+      const merged = new Set([...previousSelected, ...visibleOrderIds]);
+      return Array.from(merged);
+    });
   };
 
   const handleDelete = async () => {
@@ -305,9 +597,7 @@ export default function AdminOrdersTable({
     setIsDeleting(true);
     try {
       await Promise.all(
-        selected.map((orderId) =>
-          fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' })
-        )
+        selected.map((orderId) => fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' }))
       );
       setSelected([]);
       window.location.reload();
@@ -316,75 +606,47 @@ export default function AdminOrdersTable({
     }
   };
 
-  const toggleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDirection((previousDirection) =>
-        previousDirection === 'asc' ? 'desc' : 'asc'
-      );
-      return;
-    }
-    setSortField(field);
-    setSortDirection(field === 'created_at' ? 'desc' : 'asc');
-  };
+  const downloadFile = async (documentItem: CombinedDocument, orderNumber: string) => {
+    const response = await fetch(documentItem.blob_url);
+    if (!response.ok) throw new Error(`Prenos ni uspel: ${documentItem.filename}`);
 
-  const downloadFile = async (item: DownloadItem) => {
-    const response = await fetch(item.url);
-    if (!response.ok) return;
     const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${item.orderNumber}-${item.filename}`;
+    link.href = objectUrl;
+    link.download = `${orderNumber}-${documentItem.filename}`;
     document.body.appendChild(link);
     link.click();
     link.remove();
-    URL.revokeObjectURL(link.href);
+
+    URL.revokeObjectURL(objectUrl);
   };
 
   const handleLoadDocuments = async () => {
-    if (!searchDocumentsEnabled) return [];
-    setDocumentMessage(null);
+    if (!searchDocumentsEnabled) return;
+
     setIsLoadingDocuments(true);
-
     try {
-      const params = new URLSearchParams();
-      if (fromDate) params.set('from', fromDate);
-      if (toDate) params.set('to', toDate);
-      if (query.trim()) params.set('q', query.trim());
-      if (documentType !== 'all') params.set('type', documentType);
-
-      const response = await fetch(`/api/admin/orders/download?${params.toString()}`);
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || 'Nalaganje dokumentov ni uspelo.');
-      }
-
-      const payload = (await response.json()) as { items: DownloadItem[] };
-      setDocumentItems(payload.items ?? []);
-      setDocumentMessage(
-        payload.items?.length
-          ? `Najdenih dokumentov: ${payload.items.length}`
-          : 'Ni dokumentov za izbrane filtre.'
-      );
-      return payload.items ?? [];
-    } catch (error) {
-      setDocumentItems([]);
-      setDocumentMessage(
-        error instanceof Error ? error.message : 'Napaka pri nalaganju dokumentov.'
-      );
-      return [];
+      const count = filteredLatestDocuments.length;
+      setDocumentMessage(count > 0 ? `Najdenih dokumentov: ${count}` : 'Ni dokumentov za izbran filter.');
+      setShowDocumentResults(true);
     } finally {
       setIsLoadingDocuments(false);
     }
   };
 
-  const handleDownloadAllDocuments = async () => {
+  const handleDownloadAll = async () => {
     if (!searchDocumentsEnabled) return;
+    if (filteredLatestDocuments.length === 0) return;
+
     setIsDownloading(true);
     try {
-      const toDownload =
-        documentItems.length > 0 ? documentItems : await handleLoadDocuments();
-      for (const item of toDownload) {
-        await downloadFile(item);
+      const orderNumberById = new Map(sortedOrders.map((order) => [order.id, order.order_number]));
+
+      for (const documentItem of filteredLatestDocuments) {
+        const orderNumber = orderNumberById.get(documentItem.order_id) ?? `ORD-${documentItem.order_id}`;
+        await downloadFile(documentItem, orderNumber);
       }
     } finally {
       setIsDownloading(false);
@@ -392,116 +654,202 @@ export default function AdminOrdersTable({
   };
 
   return (
-    <div className="relative left-1/2 w-[75vw] -translate-x-1/2 space-y-3 min-w-[1100px]">
-      {/* unified search row */}
-      <section className="w-full rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap items-end gap-3">
-          <div>
-            <label className="text-xs font-semibold uppercase text-slate-500">Od</label>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(event) => setFromDate(event.target.value)}
-              className="mt-1 h-10 w-40 rounded-lg border border-slate-300 px-3 text-sm"
-            />
-          </div>
+    <div className="mx-auto w-[75vw] min-w-[1200px] max-w-[1900px]">
+      <div className="flex flex-col gap-4">
+        {/* Unified search row */}
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap items-end gap-3">
+            <div ref={rangeRef} className="relative w-[260px]">
+              <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">
+                Datumski interval
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsRangeOpen((previousOpen) => !previousOpen)}
+                className="flex h-10 w-full items-center justify-between rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 hover:border-slate-400"
+              >
+                <span className="truncate">{dateRangeLabel}</span>
+                <span className="text-slate-400">▾</span>
+              </button>
 
-          <div>
-            <label className="text-xs font-semibold uppercase text-slate-500">Do</label>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(event) => setToDate(event.target.value)}
-              className="mt-1 h-10 w-40 rounded-lg border border-slate-300 px-3 text-sm"
-            />
-          </div>
+              {isRangeOpen && (
+                <div className="absolute z-40 mt-2 w-[560px] rounded-xl border border-slate-200 bg-white p-4 shadow-xl">
+                  <div className="grid grid-cols-[190px_1fr] gap-4">
+                    <div className="space-y-1 border-r border-slate-200 pr-3">
+                      <button
+                        type="button"
+                        onClick={() => applyPreset('today')}
+                        className="block w-full rounded-md px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100"
+                      >
+                        Danes
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyPreset('yesterday')}
+                        className="block w-full rounded-md px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100"
+                      >
+                        Včeraj
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyPreset('last7')}
+                        className="block w-full rounded-md px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100"
+                      >
+                        Zadnjih 7 dni
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyPreset('last30')}
+                        className="block w-full rounded-md px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100"
+                      >
+                        Zadnjih 30 dni
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyPreset('last90')}
+                        className="block w-full rounded-md px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100"
+                      >
+                        Zadnje 3 mesece
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyPreset('last365')}
+                        className="block w-full rounded-md px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100"
+                      >
+                        Zadnje leto
+                      </button>
+                      <button
+                        type="button"
+                        onClick={clearRange}
+                        className="mt-2 block w-full rounded-md px-2 py-1.5 text-left text-sm font-semibold text-slate-600 hover:bg-slate-100"
+                      >
+                        Počisti datum
+                      </button>
+                    </div>
 
-          <div className="min-w-[260px] flex-1 max-w-[420px]">
-            <label className="text-xs font-semibold uppercase text-slate-500">Iskanje</label>
-            <input
-              type="text"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Št. naročila, naročnik, naslov, tip, plačilo"
-              className="mt-1 h-10 w-full rounded-lg border border-slate-300 px-3 text-sm"
-            />
-          </div>
+                    <div>
+                      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Obdobje po meri
+                      </p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">
+                            Od
+                          </label>
+                          <input
+                            type="date"
+                            value={fromDate}
+                            onChange={(event) => setFromDate(event.target.value)}
+                            className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">
+                            Do
+                          </label>
+                          <input
+                            type="date"
+                            value={toDate}
+                            onChange={(event) => setToDate(event.target.value)}
+                            className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-4 flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setIsRangeOpen(false)}
+                          className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                        >
+                          Zapri
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsRangeOpen(false)}
+                          className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+                        >
+                          Uporabi
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
-          <label className="mb-2 inline-flex items-center gap-2 text-sm text-slate-700">
-            <input
-              type="checkbox"
-              checked={searchDocumentsEnabled}
-              onChange={(event) => {
-                const checked = event.target.checked;
-                setSearchDocumentsEnabled(checked);
-                if (!checked) {
-                  setDocumentItems([]);
-                  setDocumentMessage(null);
-                }
-              }}
-              className="h-4 w-4 rounded border-slate-300"
-            />
-            Išči dokumente
-          </label>
+            <div className="w-[320px]">
+              <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">Iskanje</label>
+              <input
+                type="text"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Št. naročila, naročnik, naslov, tip"
+                className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm"
+              />
+            </div>
 
-          <div className="w-[210px]">
-            <label className="text-xs font-semibold uppercase text-slate-500">
-              Vrsta dokumenta
+            <label className="inline-flex h-10 items-center gap-2 self-end rounded-lg border border-slate-200 px-3 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={searchDocumentsEnabled}
+                onChange={(event) => setSearchDocumentsEnabled(event.target.checked)}
+              />
+              <span>Išči dokumente</span>
             </label>
-            <select
-              value={documentType}
-              onChange={(event) =>
-                setDocumentType(event.target.value as DocumentTypeValue)
-              }
-              disabled={!searchDocumentsEnabled}
-              className="mt-1 h-10 w-full rounded-lg border border-slate-300 px-3 text-sm disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+
+            <div className="w-[220px]">
+              <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">
+                Vrsta dokumenta
+              </label>
+              <select
+                value={documentType}
+                onChange={(event) => setDocumentType(event.target.value)}
+                disabled={!searchDocumentsEnabled}
+                className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+              >
+                {documentTypeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleLoadDocuments}
+              disabled={!searchDocumentsEnabled || isLoadingDocuments}
+              className="h-10 rounded-full bg-brand-600 px-5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
             >
-              {documentTypeOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              {isLoadingDocuments ? 'Nalaganje...' : 'Naloži dokumente'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownloadAll}
+              disabled={!searchDocumentsEnabled || isLoadingDocuments || isDownloading}
+              className="h-10 rounded-full border border-slate-200 px-5 text-sm font-semibold text-slate-600 transition hover:border-brand-200 hover:text-brand-600 disabled:cursor-not-allowed disabled:text-slate-300"
+            >
+              {isDownloading ? 'Prenos...' : 'Prenesi vse'}
+            </button>
           </div>
 
-          <button
-            type="button"
-            onClick={handleLoadDocuments}
-            disabled={!searchDocumentsEnabled || isLoadingDocuments}
-            className="h-10 rounded-full bg-brand-600 px-4 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
-          >
-            {isLoadingDocuments ? 'Nalaganje...' : 'Naloži dokumente'}
-          </button>
+          {documentMessage && <p className="mt-3 text-sm text-slate-600">{documentMessage}</p>}
+        </section>
 
-          <button
-            type="button"
-            onClick={handleDownloadAllDocuments}
-            disabled={!searchDocumentsEnabled || isLoadingDocuments || isDownloading}
-            className="h-10 rounded-full border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-brand-200 hover:text-brand-600 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
-          >
-            {isDownloading ? 'Prenos...' : 'Prenesi vse'}
-          </button>
-        </div>
-
-        {documentMessage && (
-          <p className="mt-2 text-sm text-slate-600">{documentMessage}</p>
-        )}
-      </section>
-
-      {/* status tabs directly above table */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+        {/* Status tabs immediately above table */}
         <div className="flex flex-wrap gap-2">
           {statusTabs.map((tab) => {
-            const isActive = statusFilter === tab.value;
+            const isActive = statusFilter === tab.key;
             return (
               <button
-                key={tab.value}
+                key={tab.key}
                 type="button"
-                onClick={() => setStatusFilter(tab.value)}
+                onClick={() => setStatusFilter(tab.key)}
                 className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                   isActive
                     ? 'bg-brand-600 text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    : 'border border-slate-200 bg-white text-slate-600 hover:border-brand-200 hover:text-brand-600'
                 }`}
               >
                 {tab.label}
@@ -509,251 +857,245 @@ export default function AdminOrdersTable({
             );
           })}
         </div>
-      </section>
 
-      {/* table */}
-      <div className="w-full overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="w-full table-fixed text-left text-sm">
-          <colgroup>
-            <col style={{ width: '3%' }} />
-            <col style={{ width: '8%' }} />
-            <col style={{ width: '13%' }} />
-            <col style={{ width: '17%' }} />
-            <col style={{ width: '10%' }} />
-            <col style={{ width: '13%' }} />
-            <col style={{ width: '9%' }} />
-            <col style={{ width: '8%' }} />
-            <col style={{ width: '8%' }} />
-            <col style={{ width: '11%' }} />
-          </colgroup>
-
-          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-            <tr>
-              <th className="px-3 py-3">
-                <input
-                  type="checkbox"
-                  ref={selectAllRef}
-                  checked={allSelected}
-                  onChange={toggleAll}
-                  aria-label="Izberi vse"
-                />
-              </th>
-              <th className="px-3 py-3">
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  disabled={selected.length === 0 || isDeleting}
-                  className="text-xs font-semibold text-rose-600 disabled:text-slate-300"
-                >
-                  {isDeleting ? 'Brisanje...' : 'Izbriši'}
-                </button>
-              </th>
-
-              <th className="px-3 py-3">
-                <button
-                  type="button"
-                  onClick={() => toggleSort('customer')}
-                  className="inline-flex items-center gap-1 hover:text-slate-700"
-                >
-                  Naročnik
-                  <span>{getSortArrow('customer', sortField, sortDirection)}</span>
-                </button>
-              </th>
-
-              <th className="px-3 py-3">
-                <button
-                  type="button"
-                  onClick={() => toggleSort('address')}
-                  className="inline-flex items-center gap-1 hover:text-slate-700"
-                >
-                  Naslov
-                  <span>{getSortArrow('address', sortField, sortDirection)}</span>
-                </button>
-              </th>
-
-              <th className="px-3 py-3">Tip</th>
-              <th className="px-3 py-3">Status</th>
-              <th className="px-3 py-3">Plačilo</th>
-
-              <th className="px-3 py-3 text-right">
-                <button
-                  type="button"
-                  onClick={() => toggleSort('total')}
-                  className="inline-flex items-center gap-1 hover:text-slate-700"
-                >
-                  Skupaj
-                  <span>{getSortArrow('total', sortField, sortDirection)}</span>
-                </button>
-              </th>
-
-              <th className="px-3 py-3">
-                <button
-                  type="button"
-                  onClick={() => toggleSort('created_at')}
-                  className="inline-flex items-center gap-1 hover:text-slate-700"
-                >
-                  Datum
-                  <span>{getSortArrow('created_at', sortField, sortDirection)}</span>
-                </button>
-              </th>
-
-              <th className="px-3 py-3">PDFs</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {filteredAndSortedOrders.length === 0 ? (
-              <tr>
-                <td className="px-3 py-8 text-center text-slate-500" colSpan={10}>
-                  Ni zadetkov za izbrane filtre.
-                </td>
-              </tr>
-            ) : (
-              filteredAndSortedOrders.map((order, orderIndex) => {
-                const orderAddress = formatOrderAddress(order);
-                const customer = order.organization_name || order.contact_name;
-
-                return (
-                  <tr
-                    key={order.id}
-                    className={`border-t border-slate-100 ${
-                      orderIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-                    } hover:bg-slate-100/60`}
-                  >
-                    <td className="px-3 py-3">
-                      <input
-                        type="checkbox"
-                        checked={selected.includes(order.id)}
-                        onChange={() => toggleSelected(order.id)}
-                        aria-label={`Izberi naročilo ${order.order_number}`}
-                      />
-                    </td>
-
-                    <td className="px-3 py-3">
-                      <Link
-                        href={`/admin/orders/${order.id}`}
-                        className="block truncate text-sm font-semibold text-brand-600 hover:text-brand-700"
-                        title={order.order_number}
-                      >
-                        {order.order_number}
-                      </Link>
-                    </td>
-
-                    <td className="px-3 py-3 text-slate-700">
-                      <span className="block truncate" title={customer}>
-                        {customer}
-                      </span>
-                    </td>
-
-                    <td className="px-3 py-3 text-slate-600">
-                      <span className="block truncate" title={orderAddress || '—'}>
-                        {orderAddress || '—'}
-                      </span>
-                    </td>
-
-                    <td className="px-3 py-3 text-slate-600">
-                      <span className="block truncate" title={getCustomerTypeLabel(order.customer_type)}>
-                        {getCustomerTypeLabel(order.customer_type)}
-                      </span>
-                    </td>
-
-                    <td className="px-3 py-3">
-                      <AdminOrderStatusSelect orderId={order.id} status={order.status} />
-                    </td>
-
-                    <td className="px-3 py-3">
-                      <span
-                        className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getPaymentBadge(
-                          order.payment_status
-                        )}`}
-                      >
-                        {getPaymentLabel(order.payment_status)}
-                      </span>
-                    </td>
-
-                    <td className="px-3 py-3 text-right text-slate-700">
-                      {formatCurrency(order.total)}
-                    </td>
-
-                    <td className="px-3 py-3 text-slate-600">
-                      {new Date(order.created_at).toLocaleDateString('sl-SI')}
-                    </td>
-
-                    <td className="px-3 py-3">
-                      <AdminOrdersPdfCell
-                        orderId={order.id}
-                        documents={documentsByOrder.get(order.id) ?? []}
-                        attachments={attachmentsByOrder.get(order.id) ?? []}
-                      />
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {searchDocumentsEnabled && documentItems.length > 0 && (
-        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
           <table className="w-full table-fixed text-left text-sm">
             <colgroup>
-              <col style={{ width: '18%' }} />
-              <col style={{ width: '20%' }} />
+              <col style={{ width: '44px' }} />
+              <col style={{ width: '96px' }} />
               <col style={{ width: '14%' }} />
-              <col style={{ width: '18%' }} />
-              <col style={{ width: '30%' }} />
+              <col style={{ width: '20%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '13%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '15%' }} />
             </colgroup>
+
             <thead className="bg-slate-50 text-xs uppercase text-slate-500">
               <tr>
-                <th className="px-3 py-2">Št. naročila</th>
-                <th className="px-3 py-2">Tip</th>
-                <th className="px-3 py-2">Datum</th>
-                <th className="px-3 py-2">Prenos</th>
-                <th className="px-3 py-2">Datoteka</th>
+                <th className="px-3 py-3">
+                  <input
+                    type="checkbox"
+                    ref={selectAllRef}
+                    checked={allSelected}
+                    onChange={toggleAllVisible}
+                    aria-label="Izberi vse"
+                  />
+                </th>
+                <th className="px-3 py-3">
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    disabled={selected.length === 0 || isDeleting}
+                    className="text-xs font-semibold text-rose-600 disabled:text-slate-300"
+                  >
+                    {isDeleting ? 'Brisanje...' : 'Izbriši'}
+                  </button>
+                </th>
+                <th className="px-3 py-3">
+                  <SortHeader
+                    label="Naročnik"
+                    field="customer"
+                    activeField={sortField}
+                    direction={sortDirection}
+                    onToggle={toggleSort}
+                  />
+                </th>
+                <th className="px-3 py-3">
+                  <SortHeader
+                    label="Naslov"
+                    field="address"
+                    activeField={sortField}
+                    direction={sortDirection}
+                    onToggle={toggleSort}
+                  />
+                </th>
+                <th className="px-3 py-3">Tip</th>
+                <th className="px-3 py-3">Status</th>
+                <th className="px-3 py-3">Plačilo</th>
+                <th className="px-3 py-3 text-right">
+                  <SortHeader
+                    label="Skupaj"
+                    field="total"
+                    activeField={sortField}
+                    direction={sortDirection}
+                    onToggle={toggleSort}
+                    align="right"
+                  />
+                </th>
+                <th className="px-3 py-3">
+                  <SortHeader
+                    label="Datum"
+                    field="created_at"
+                    activeField={sortField}
+                    direction={sortDirection}
+                    onToggle={toggleSort}
+                  />
+                </th>
+                <th className="px-3 py-3">Dokumenti</th>
               </tr>
             </thead>
+
             <tbody>
-              {documentItems.map((item, index) => (
-                <tr
-                  key={`${item.orderNumber}-${item.filename}-${item.createdAt}-${index}`}
-                  className={`border-t border-slate-100 ${
-                    index % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-                  }`}
-                >
-                  <td className="px-3 py-2 text-slate-700">{item.orderNumber}</td>
-                  <td className="px-3 py-2 text-slate-600">
-                    {documentTypeLabelMap.get(item.type) ?? item.type}
-                  </td>
-                  <td className="px-3 py-2 text-slate-600">
-                    {new Date(item.createdAt).toLocaleDateString('sl-SI')}
-                  </td>
-                  <td className="px-3 py-2">
-                    <button
-                      type="button"
-                      onClick={() => downloadFile(item)}
-                      className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 hover:border-brand-200 hover:text-brand-600"
-                    >
-                      Prenesi
-                    </button>
-                  </td>
-                  <td className="px-3 py-2">
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block truncate text-xs font-semibold text-brand-600 hover:text-brand-700"
-                      title={item.filename}
-                    >
-                      {item.filename}
-                    </a>
+              {sortedOrders.length === 0 ? (
+                <tr>
+                  <td className="px-3 py-6 text-center text-slate-500" colSpan={10}>
+                    Ni zadetkov za izbrane filtre.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                sortedOrders.map((order, rowIndex) => {
+                  const orderAddress = formatOrderAddress(order);
+
+                  return (
+                    <tr
+                      key={order.id}
+                      className={`border-t border-slate-100 ${
+                        rowIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+                      } hover:bg-slate-100/60`}
+                    >
+                      <td className="px-3 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selected.includes(order.id)}
+                          onChange={() => toggleSelected(order.id)}
+                          aria-label={`Izberi naročilo ${order.order_number}`}
+                        />
+                      </td>
+
+                      <td className="px-3 py-3 font-semibold text-slate-900">
+                        <Link
+                          href={`/admin/orders/${order.id}`}
+                          className="text-sm font-semibold text-brand-600 hover:text-brand-700"
+                        >
+                          {order.order_number}
+                        </Link>
+                      </td>
+
+                      <td className="px-3 py-3 text-slate-600">
+                        <span
+                          className="block truncate"
+                          title={order.organization_name || order.contact_name}
+                        >
+                          {order.organization_name || order.contact_name}
+                        </span>
+                      </td>
+
+                      <td className="px-3 py-3 text-slate-600">
+                        <span className="block truncate" title={orderAddress || '—'}>
+                          {orderAddress || '—'}
+                        </span>
+                      </td>
+
+                      <td className="px-3 py-3 text-slate-600">
+                        <span className="block truncate" title={getCustomerTypeLabel(order.customer_type)}>
+                          {getCustomerTypeLabel(order.customer_type)}
+                        </span>
+                      </td>
+
+                      <td className="px-3 py-3 text-slate-600">
+                        <AdminOrderStatusSelect orderId={order.id} status={order.status} />
+                      </td>
+
+                      <td className="px-3 py-3">
+                        <span
+                          className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getPaymentBadge(
+                            order.payment_status
+                          )}`}
+                        >
+                          {getPaymentLabel(order.payment_status)}
+                        </span>
+                      </td>
+
+                      <td className="px-3 py-3 text-right text-slate-700 whitespace-nowrap">
+                        {formatCurrency(order.total)}
+                      </td>
+
+                      <td className="px-3 py-3 text-slate-600 whitespace-nowrap">
+                        {new Date(order.created_at).toLocaleDateString('sl-SI')}
+                      </td>
+
+                      <td className="px-3 py-3">
+                        <AdminOrdersPdfCell
+                          orderId={order.id}
+                          documents={documents.filter((documentItem) => documentItem.order_id === order.id)}
+                          attachments={attachments.filter(
+                            (attachmentItem) => attachmentItem.order_id === order.id
+                          )}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
-      )}
+
+        {showDocumentResults && searchDocumentsEnabled && (
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-700">
+              Najdeni dokumenti (zadnje verzije)
+            </h3>
+
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[820px] text-left text-sm">
+                <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                  <tr>
+                    <th className="px-3 py-2">Št. naročila</th>
+                    <th className="px-3 py-2">Vrsta dokumenta</th>
+                    <th className="px-3 py-2">Datoteka</th>
+                    <th className="px-3 py-2">Datum</th>
+                    <th className="px-3 py-2">Odpri</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredLatestDocuments.length === 0 ? (
+                    <tr>
+                      <td className="px-3 py-4 text-slate-500" colSpan={5}>
+                        Ni dokumentov za izbran filter.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredLatestDocuments.map((documentItem) => {
+                      const order = sortedOrders.find(
+                        (orderItem) => orderItem.id === documentItem.order_id
+                      );
+                      const orderNumber = order?.order_number ?? `ORD-${documentItem.order_id}`;
+
+                      return (
+                        <tr
+                          key={`${documentItem.order_id}-${documentItem.type}-${documentItem.id}`}
+                          className="border-t border-slate-100"
+                        >
+                          <td className="px-3 py-2 text-slate-700">{orderNumber}</td>
+                          <td className="px-3 py-2 text-slate-600">{documentItem.typeLabel}</td>
+                          <td className="px-3 py-2 text-slate-600">{documentItem.filename}</td>
+                          <td className="px-3 py-2 text-slate-600">
+                            {new Date(documentItem.created_at).toLocaleDateString('sl-SI')}
+                          </td>
+                          <td className="px-3 py-2">
+                            <a
+                              href={documentItem.blob_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs font-semibold text-brand-600 hover:text-brand-700"
+                            >
+                              Odpri →
+                            </a>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+      </div>
     </div>
   );
 }

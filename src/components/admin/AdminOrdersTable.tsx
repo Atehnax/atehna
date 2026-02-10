@@ -111,18 +111,18 @@ const statusTabs: Array<{ value: StatusTab; label: string }> = [
   { value: 'refunded', label: 'Povrnjeno' }
 ];
 
-// adjust these to tune column widths
+// percentages to avoid horizontal scroll and keep stable layout
 const columnWidths = {
-  selectAndDelete: 90,
-  order: 90,
-  customer: 180,
-  address: 240,
-  type: 130,
-  status: 120,
-  payment: 90,
-  total: 90,
-  date: 150,
-  documents: 250
+  selectAndDelete: '4%',
+  order: '7%',
+  customer: '15%',
+  address: '20%',
+  type: '5%',
+  status: '14%',
+  payment: '9%',
+  total: '8%',
+  date: '10%',
+  documents: '8%'
 };
 
 const toAmount = (value: unknown): number => {
@@ -183,32 +183,30 @@ const normalizeForSearch = (value: string) =>
     .toLowerCase()
     .trim();
 
+const padTwoDigits = (value: number) => String(value).padStart(2, '0');
+
 const formatDateTime = (value: string) => {
   const parsedDate = new Date(value);
   if (Number.isNaN(parsedDate.getTime())) return value;
 
-  return new Intl.DateTimeFormat('sl-SI', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  }).format(parsedDate);
+  const day = padTwoDigits(parsedDate.getDate());
+  const month = padTwoDigits(parsedDate.getMonth() + 1);
+  const year = parsedDate.getFullYear();
+  const hour = padTwoDigits(parsedDate.getHours());
+  const minute = padTwoDigits(parsedDate.getMinutes());
+
+  return `${day}.${month}.${year} ${hour}:${minute}`;
 };
 
 const formatShortDateForButton = (value: string) => {
   if (!value) return '—';
   const parsedDate = new Date(`${value}T00:00:00`);
   if (Number.isNaN(parsedDate.getTime())) return value;
-  return new Intl.DateTimeFormat('sl-SI', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  }).format(parsedDate);
+  const day = padTwoDigits(parsedDate.getDate());
+  const month = padTwoDigits(parsedDate.getMonth() + 1);
+  const year = parsedDate.getFullYear();
+  return `${day}.${month}.${year}`;
 };
-
-const padTwoDigits = (value: number) => String(value).padStart(2, '0');
 
 const toDateInputValue = (dateValue: Date) =>
   `${dateValue.getFullYear()}-${padTwoDigits(dateValue.getMonth() + 1)}-${padTwoDigits(
@@ -219,6 +217,15 @@ const shiftDateByDays = (dateValue: Date, dayShift: number) => {
   const clonedDate = new Date(dateValue);
   clonedDate.setDate(clonedDate.getDate() + dayShift);
   return clonedDate;
+};
+
+const getCustomerTypeShortLabel = (customerType: string) => {
+  const normalizedType = normalizeForSearch(customerType);
+
+  if (normalizedType === 'company' || normalizedType.includes('podjet')) return 'P';
+  if (normalizedType === 'school' || normalizedType.includes('sola') || normalizedType.includes('javni'))
+    return 'Š';
+  return 'F';
 };
 
 export default function AdminOrdersTable({
@@ -399,7 +406,11 @@ export default function AdminOrdersTable({
 
       if (toDate) {
         const toTimestamp = new Date(`${toDate}T23:59:59.999`).getTime();
-        if (!Number.isNaN(toTimestamp) && !Number.isNaN(orderTimestamp) && orderTimestamp > toTimestamp) {
+        if (
+          !Number.isNaN(toTimestamp) &&
+          !Number.isNaN(orderTimestamp) &&
+          orderTimestamp > toTimestamp
+        ) {
           return false;
         }
       }
@@ -553,7 +564,9 @@ export default function AdminOrdersTable({
   const handleDelete = async () => {
     if (selected.length === 0) return;
 
-    const confirmed = window.confirm(`Ali ste prepričani, da želite izbrisati ${selected.length} naročil?`);
+    const confirmed = window.confirm(
+      `Ali ste prepričani, da želite izbrisati ${selected.length} naročil?`
+    );
     if (!confirmed) return;
 
     setIsDeleting(true);
@@ -659,15 +672,15 @@ export default function AdminOrdersTable({
   };
 
   return (
-    <div className="mx-auto w-[75vw]">
-      <div className="mb-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap items-end gap-3">
+    <div className="w-full">
+      <div className="mb-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="flex flex-wrap items-end gap-2">
           <div className="relative" ref={datePopoverRef}>
             <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">Datum</label>
             <button
               type="button"
               onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-              className="h-10 min-w-[230px] rounded-lg border border-slate-300 bg-white px-3 text-left text-sm text-slate-700 hover:border-slate-400"
+              className="h-9 min-w-[220px] rounded-lg border border-slate-300 bg-white px-3 text-left text-sm text-slate-700 hover:border-slate-400"
             >
               {dateRangeLabel}
             </button>
@@ -734,7 +747,7 @@ export default function AdminOrdersTable({
                         type="date"
                         value={fromDate}
                         onChange={(event) => setFromDate(event.target.value)}
-                        className="mt-1 h-10 w-full rounded-lg border border-slate-300 px-3 text-sm"
+                        className="mt-1 h-9 w-full rounded-lg border border-slate-300 px-3 text-sm"
                       />
                     </div>
 
@@ -744,7 +757,7 @@ export default function AdminOrdersTable({
                         type="date"
                         value={toDate}
                         onChange={(event) => setToDate(event.target.value)}
-                        className="mt-1 h-10 w-full rounded-lg border border-slate-300 px-3 text-sm"
+                        className="mt-1 h-9 w-full rounded-lg border border-slate-300 px-3 text-sm"
                       />
                     </div>
 
@@ -773,14 +786,14 @@ export default function AdminOrdersTable({
             )}
           </div>
 
-          <div className="min-w-[260px] flex-1">
+          <div className="min-w-[220px] flex-1">
             <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">Iskanje</label>
             <input
               type="text"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="ORD, naročnik, naslov, tip, status, plačilo..."
-              className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm"
+              className="h-9 w-full rounded-lg border border-slate-300 px-3 text-sm"
             />
           </div>
 
@@ -788,7 +801,7 @@ export default function AdminOrdersTable({
             <label className="mb-1 block select-none text-xs font-semibold uppercase text-transparent">
               Dokumenti
             </label>
-            <div className="flex h-10 items-center gap-2">
+            <div className="flex h-9 items-center gap-2">
               <input
                 id="search-documents"
                 type="checkbox"
@@ -809,7 +822,7 @@ export default function AdminOrdersTable({
             </div>
           </div>
 
-          <div className="min-w-[200px]">
+          <div className="min-w-[180px]">
             <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">
               Vrsta dokumenta
             </label>
@@ -817,7 +830,7 @@ export default function AdminOrdersTable({
               value={documentType}
               onChange={(event) => setDocumentType(event.target.value as DocumentType)}
               disabled={!isDocumentSearchEnabled}
-              className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm disabled:bg-slate-100 disabled:text-slate-400"
+              className="h-9 w-full rounded-lg border border-slate-300 px-3 text-sm disabled:bg-slate-100 disabled:text-slate-400"
             >
               {documentTypeOptions.map((documentTypeOption) => (
                 <option key={documentTypeOption.value} value={documentTypeOption.value}>
@@ -831,7 +844,7 @@ export default function AdminOrdersTable({
             type="button"
             onClick={handleApplyDocuments}
             disabled={!isDocumentSearchEnabled}
-            className="h-10 rounded-full bg-brand-600 px-4 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+            className="h-9 rounded-full bg-brand-600 px-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
           >
             Naloži dokumente
           </button>
@@ -840,7 +853,7 @@ export default function AdminOrdersTable({
             type="button"
             onClick={handleDownloadAllDocuments}
             disabled={!isDocumentSearchEnabled || isDownloading}
-            className="h-10 rounded-full border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-brand-300 hover:text-brand-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
+            className="h-9 rounded-full border border-slate-300 px-3 text-sm font-semibold text-slate-700 transition hover:border-brand-300 hover:text-brand-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
           >
             {isDownloading ? 'Prenos...' : 'Prenesi vse'}
           </button>
@@ -849,7 +862,7 @@ export default function AdminOrdersTable({
             <button
               type="button"
               onClick={handleResetDocumentFilter}
-              className="h-10 rounded-full px-4 text-sm font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
+              className="h-9 rounded-full px-3 text-sm font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
             >
               Počisti
             </button>
@@ -859,7 +872,7 @@ export default function AdminOrdersTable({
         {message && <p className="mt-2 text-sm text-slate-600">{message}</p>}
       </div>
 
-      <div className="mb-3 flex flex-wrap items-center gap-2">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
         {statusTabs.map((tab) => {
           const isActive = statusFilter === tab.value;
           return (
@@ -867,7 +880,7 @@ export default function AdminOrdersTable({
               key={tab.value}
               type="button"
               onClick={() => setStatusFilter(tab.value)}
-              className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${
+              className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
                 isActive
                   ? 'bg-slate-900 text-white'
                   : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50'
@@ -879,45 +892,44 @@ export default function AdminOrdersTable({
         })}
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full table-fixed text-left text-sm">
           <colgroup>
-            <col style={{ width: `${columnWidths.selectAndDelete}px` }} />
-            <col style={{ width: `${columnWidths.order}px` }} />
-            <col style={{ width: `${columnWidths.customer}px` }} />
-            <col style={{ width: `${columnWidths.address}px` }} />
-            <col style={{ width: `${columnWidths.type}px` }} />
-            <col style={{ width: `${columnWidths.status}px` }} />
-            <col style={{ width: `${columnWidths.payment}px` }} />
-            <col style={{ width: `${columnWidths.total}px` }} />
-            <col style={{ width: `${columnWidths.date}px` }} />
-            <col style={{ width: `${columnWidths.documents}px` }} />
+            <col style={{ width: columnWidths.selectAndDelete }} />
+            <col style={{ width: columnWidths.order }} />
+            <col style={{ width: columnWidths.customer }} />
+            <col style={{ width: columnWidths.address }} />
+            <col style={{ width: columnWidths.type }} />
+            <col style={{ width: columnWidths.status }} />
+            <col style={{ width: columnWidths.payment }} />
+            <col style={{ width: columnWidths.total }} />
+            <col style={{ width: columnWidths.date }} />
+            <col style={{ width: columnWidths.documents }} />
           </colgroup>
 
           <thead className="bg-slate-50 text-xs uppercase text-slate-500">
             <tr>
-              <th className="px-3 py-2 align-middle">
-                <div className="flex items-center gap-2">
+              <th className="px-2 py-2">
+                <div className="flex flex-col items-center gap-1">
                   <input
                     type="checkbox"
                     ref={selectAllRef}
                     checked={allSelected}
                     onChange={toggleAll}
                     aria-label="Izberi vse"
-                    className="h-4 w-4"
                   />
                   <button
                     type="button"
                     onClick={handleDelete}
                     disabled={selected.length === 0 || isDeleting}
-                    className="text-xs font-semibold leading-none text-rose-600 disabled:text-slate-300"
+                    className="text-[10px] font-semibold text-rose-600 disabled:text-slate-300"
                   >
                     {isDeleting ? 'Brisanje...' : 'Izbriši'}
                   </button>
                 </div>
               </th>
 
-              <th className="px-3 py-2">
+              <th className="px-2 py-2">
                 <button
                   type="button"
                   onClick={() => onSort('order_number')}
@@ -927,7 +939,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-3 py-2">
+              <th className="px-2 py-2">
                 <button
                   type="button"
                   onClick={() => onSort('customer')}
@@ -937,7 +949,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-3 py-2">
+              <th className="px-2 py-2">
                 <button
                   type="button"
                   onClick={() => onSort('address')}
@@ -947,7 +959,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-3 py-2">
+              <th className="px-2 py-2 text-center">
                 <button
                   type="button"
                   onClick={() => onSort('type')}
@@ -957,7 +969,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-3 py-2">
+              <th className="px-2 py-2">
                 <button
                   type="button"
                   onClick={() => onSort('status')}
@@ -967,7 +979,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-3 py-2">
+              <th className="px-2 py-2">
                 <button
                   type="button"
                   onClick={() => onSort('payment')}
@@ -977,7 +989,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-3 py-2 text-right">
+              <th className="px-2 py-2 text-right">
                 <button
                   type="button"
                   onClick={() => onSort('total')}
@@ -987,7 +999,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-3 py-2">
+              <th className="px-2 py-2">
                 <button
                   type="button"
                   onClick={() => onSort('created_at')}
@@ -1004,13 +1016,15 @@ export default function AdminOrdersTable({
           <tbody>
             {filteredAndSortedOrders.length === 0 ? (
               <tr>
-                <td className="px-3 py-8 text-center text-slate-500" colSpan={10}>
+                <td className="px-2 py-6 text-center text-slate-500" colSpan={10}>
                   Ni zadetkov za izbrane filtre.
                 </td>
               </tr>
             ) : (
               filteredAndSortedOrders.map((order, orderIndex) => {
                 const orderAddress = formatOrderAddress(order);
+                const typeShort = getCustomerTypeShortLabel(order.customer_type);
+                const typeFull = getCustomerTypeLabel(order.customer_type);
 
                 return (
                   <tr
@@ -1019,17 +1033,18 @@ export default function AdminOrdersTable({
                       orderIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
                     } hover:bg-slate-100/60`}
                   >
-                    <td className="px-3 py-2 align-middle">
-                      <input
-                        type="checkbox"
-                        checked={selected.includes(order.id)}
-                        onChange={() => toggleSelected(order.id)}
-                        aria-label={`Izberi naročilo ${order.order_number}`}
-                        className="h-4 w-4"
-                      />
+                    <td className="px-2 py-2">
+                      <div className="flex justify-center">
+                        <input
+                          type="checkbox"
+                          checked={selected.includes(order.id)}
+                          onChange={() => toggleSelected(order.id)}
+                          aria-label={`Izberi naročilo ${order.order_number}`}
+                        />
+                      </div>
                     </td>
 
-                    <td className="px-3 py-2 font-semibold text-slate-900">
+                    <td className="px-2 py-2 font-semibold text-slate-900">
                       <Link
                         href={`/admin/orders/${order.id}`}
                         className="text-sm font-semibold text-brand-600 hover:text-brand-700"
@@ -1038,25 +1053,29 @@ export default function AdminOrdersTable({
                       </Link>
                     </td>
 
-                    <td className="px-3 py-2 text-slate-600">
+                    <td className="px-2 py-2 text-slate-600">
                       <span className="block truncate" title={order.organization_name || order.contact_name}>
                         {order.organization_name || order.contact_name}
                       </span>
                     </td>
 
-                    <td className="px-3 py-2 text-slate-600">
+                    <td className="px-2 py-2 text-slate-600">
                       <span className="block truncate" title={orderAddress || '—'}>
                         {orderAddress || '—'}
                       </span>
                     </td>
 
-                    <td className="px-3 py-2 text-slate-600">{getCustomerTypeLabel(order.customer_type)}</td>
+                    <td className="px-2 py-2 text-center text-slate-700" title={typeFull}>
+                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 bg-slate-100 text-xs font-semibold">
+                        {typeShort}
+                      </span>
+                    </td>
 
-                    <td className="px-3 py-2 text-slate-600">
+                    <td className="px-2 py-2 text-slate-600">
                       <AdminOrderStatusSelect orderId={order.id} status={order.status} />
                     </td>
 
-                    <td className="px-3 py-2">
+                    <td className="px-2 py-2">
                       <span
                         className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getPaymentBadge(
                           order.payment_status
@@ -1066,9 +1085,11 @@ export default function AdminOrdersTable({
                       </span>
                     </td>
 
-                    <td className="px-3 py-2 text-right text-slate-700">{formatCurrency(order.total)}</td>
+                    <td className="px-2 py-2 text-right text-slate-700">
+                      {formatCurrency(order.total)}
+                    </td>
 
-                    <td className="whitespace-nowrap px-3 py-2 text-slate-600">
+                    <td className="px-2 py-2 whitespace-nowrap text-slate-600">
                       {formatDateTime(order.created_at)}
                     </td>
 

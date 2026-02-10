@@ -51,18 +51,19 @@ const normalizeType = (type: string): PdfTypeKey | null => {
 
 const isGenerateKey = (key: PdfTypeKey): key is GeneratePdfType => key !== 'purchase_order';
 
-const formatVersionDate = (value: string) => {
+const padTwoDigits = (value: number) => String(value).padStart(2, '0');
+
+const formatDateTimeCompact = (value: string) => {
   const parsedDate = new Date(value);
   if (Number.isNaN(parsedDate.getTime())) return value;
 
-  return parsedDate.toLocaleString('sl-SI', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
+  const day = padTwoDigits(parsedDate.getDate());
+  const month = padTwoDigits(parsedDate.getMonth() + 1);
+  const year = parsedDate.getFullYear();
+  const hour = padTwoDigits(parsedDate.getHours());
+  const minute = padTwoDigits(parsedDate.getMinutes());
+
+  return `${day}.${month}.${year} ${hour}:${minute}`;
 };
 
 const formatVersionCount = (count: number) => {
@@ -76,9 +77,9 @@ const clampValue = (value: number, minimum: number, maximum: number) =>
   Math.min(Math.max(value, minimum), maximum);
 
 const badgeBaseClass =
-  'inline-flex h-5 items-center rounded-full border px-1.5 text-[10px] font-semibold leading-none';
+  'relative inline-flex h-5 w-full items-center justify-center rounded-md border px-1 text-[10px] font-medium leading-none';
 
-const badgeAvailableClass = `${badgeBaseClass} border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200 transition`;
+const badgeAvailableClass = `${badgeBaseClass} border-slate-300 bg-slate-100 text-slate-700 transition hover:bg-slate-200`;
 const badgeMissingClass = `${badgeBaseClass} border-slate-200 bg-slate-50 text-slate-400`;
 
 export default function AdminOrdersPdfCell({
@@ -227,39 +228,44 @@ export default function AdminOrdersPdfCell({
   };
 
   return (
-    <div className="flex items-center gap-1 whitespace-nowrap leading-none">
-      {pdfTypes.map((pdfType) => {
-        const options = groupedDocuments[pdfType.key];
-        const latestDocument = options[0];
-        const versionCount = options.length;
+    <div className="flex items-center gap-1 min-w-0">
+      <div className="grid flex-1 grid-cols-5 gap-1 min-w-0">
+        {pdfTypes.map((pdfType) => {
+          const options = groupedDocuments[pdfType.key];
+          const latestDocument = options[0];
+          const versionCount = options.length;
 
-        return latestDocument ? (
-          <a
-            key={pdfType.key}
-            href={latestDocument.blob_url}
-            target="_blank"
-            rel="noreferrer"
-            className={badgeAvailableClass}
-            title={`${pdfType.label} · zadnja verzija (${versionCount})`}
-          >
-            <span>{pdfType.label}</span>
-            <span className="ml-1 inline-block w-4 text-right tabular-nums text-slate-500">
-              {versionCount > 1 ? versionCount : '\u00A0'}
+          if (latestDocument) {
+            return (
+              <a
+                key={pdfType.key}
+                href={latestDocument.blob_url}
+                target="_blank"
+                rel="noreferrer"
+                className={badgeAvailableClass}
+                title={`${pdfType.label} · zadnja verzija (${versionCount})`}
+              >
+                <span className="truncate">{pdfType.label}</span>
+                {versionCount > 1 && (
+                  <span className="absolute -right-1 -top-1 inline-flex min-w-[14px] items-center justify-center rounded-full border border-slate-300 bg-white px-1 text-[9px] leading-none text-slate-700 tabular-nums">
+                    {versionCount}
+                  </span>
+                )}
+              </a>
+            );
+          }
+
+          return (
+            <span
+              key={pdfType.key}
+              className={badgeMissingClass}
+              title={`${pdfType.label} · ni dokumenta`}
+            >
+              <span className="truncate">{pdfType.label}</span>
             </span>
-          </a>
-        ) : (
-          <span
-            key={pdfType.key}
-            className={badgeMissingClass}
-            title={`${pdfType.label} · ni dokumenta`}
-          >
-            <span>{pdfType.label}</span>
-            <span className="ml-1 inline-block w-4 text-right tabular-nums text-slate-400">
-              {'\u00A0'}
-            </span>
-          </span>
-        );
-      })}
+          );
+        })}
+      </div>
 
       <button
         ref={menuButtonRef}
@@ -271,7 +277,7 @@ export default function AdminOrdersPdfCell({
           }
           openMenuAtButton(event.currentTarget);
         }}
-        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 text-[11px] text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+        className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-200 text-[11px] text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
         aria-label="Odpri meni dokumentov"
         title="Verzije in generiranje"
       >
@@ -365,7 +371,7 @@ export default function AdminOrdersPdfCell({
                                   {latestTag}
                                 </span>
                                 <span className="text-slate-500">
-                                  {formatVersionDate(documentItem.created_at)}
+                                  {formatDateTimeCompact(documentItem.created_at)}
                                 </span>
                               </div>
                             </a>

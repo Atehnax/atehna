@@ -113,15 +113,15 @@ const statusTabs: Array<{ value: StatusTab; label: string }> = [
 
 // adjust these to tune column widths
 const columnWidths = {
-  selectAndDelete: 70,
-  order: 80,
+  selectAndDelete: 90,
+  order: 90,
   customer: 180,
   address: 240,
   type: 130,
   status: 120,
-  payment: 70,
-  total: 80,
-  date: 130,
+  payment: 90,
+  total: 90,
+  date: 150,
   documents: 250
 };
 
@@ -333,7 +333,10 @@ export default function AdminOrdersTable({
         const candidateTimestamp = new Date(documentItem.created_at).getTime();
         const existingTimestamp = new Date(existingItem.created_at).getTime();
 
-        if (Number.isNaN(existingTimestamp) || (!Number.isNaN(candidateTimestamp) && candidateTimestamp > existingTimestamp)) {
+        if (
+          Number.isNaN(existingTimestamp) ||
+          (!Number.isNaN(candidateTimestamp) && candidateTimestamp > existingTimestamp)
+        ) {
           byType.set(documentItem.type, documentItem);
         }
       }
@@ -385,7 +388,11 @@ export default function AdminOrdersTable({
 
       if (fromDate) {
         const fromTimestamp = new Date(`${fromDate}T00:00:00`).getTime();
-        if (!Number.isNaN(fromTimestamp) && !Number.isNaN(orderTimestamp) && orderTimestamp < fromTimestamp) {
+        if (
+          !Number.isNaN(fromTimestamp) &&
+          !Number.isNaN(orderTimestamp) &&
+          orderTimestamp < fromTimestamp
+        ) {
           return false;
         }
       }
@@ -404,14 +411,7 @@ export default function AdminOrdersTable({
       const paymentLabel = getPaymentLabel(order.payment_status);
 
       const orderSearchBlob = normalizeForSearch(
-        [
-          order.order_number,
-          customerLabel,
-          addressLabel,
-          typeLabel,
-          statusLabel,
-          paymentLabel
-        ]
+        [order.order_number, customerLabel, addressLabel, typeLabel, statusLabel, paymentLabel]
           .filter(Boolean)
           .join(' ')
       );
@@ -553,9 +553,7 @@ export default function AdminOrdersTable({
   const handleDelete = async () => {
     if (selected.length === 0) return;
 
-    const confirmed = window.confirm(
-      `Ali ste prepričani, da želite izbrisati ${selected.length} naročil?`
-    );
+    const confirmed = window.confirm(`Ali ste prepričani, da želite izbrisati ${selected.length} naročil?`);
     if (!confirmed) return;
 
     setIsDeleting(true);
@@ -662,7 +660,6 @@ export default function AdminOrdersTable({
 
   return (
     <div className="mx-auto w-[75vw]">
-      {/* Search / controls */}
       <div className="mb-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-end gap-3">
           <div className="relative" ref={datePopoverRef}>
@@ -788,7 +785,9 @@ export default function AdminOrdersTable({
           </div>
 
           <div>
-            <label className="mb-1 block select-none text-xs font-semibold uppercase text-transparent">Dokumenti</label>
+            <label className="mb-1 block select-none text-xs font-semibold uppercase text-transparent">
+              Dokumenti
+            </label>
             <div className="flex h-10 items-center gap-2">
               <input
                 id="search-documents"
@@ -860,7 +859,6 @@ export default function AdminOrdersTable({
         {message && <p className="mt-2 text-sm text-slate-600">{message}</p>}
       </div>
 
-      {/* Status tabs -> now directly above table */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
         {statusTabs.map((tab) => {
           const isActive = statusFilter === tab.value;
@@ -898,7 +896,7 @@ export default function AdminOrdersTable({
 
           <thead className="bg-slate-50 text-xs uppercase text-slate-500">
             <tr>
-              <th className="px-3 py-3">
+              <th className="px-3 py-2 align-middle">
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -906,19 +904,20 @@ export default function AdminOrdersTable({
                     checked={allSelected}
                     onChange={toggleAll}
                     aria-label="Izberi vse"
+                    className="h-4 w-4"
                   />
                   <button
                     type="button"
                     onClick={handleDelete}
                     disabled={selected.length === 0 || isDeleting}
-                    className="text-xs font-semibold text-rose-600 disabled:text-slate-300"
+                    className="text-xs font-semibold leading-none text-rose-600 disabled:text-slate-300"
                   >
                     {isDeleting ? 'Brisanje...' : 'Izbriši'}
                   </button>
                 </div>
               </th>
 
-              <th className="px-3 py-3">
+              <th className="px-3 py-2">
                 <button
                   type="button"
                   onClick={() => onSort('order_number')}
@@ -928,7 +927,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-3 py-3">
+              <th className="px-3 py-2">
                 <button
                   type="button"
                   onClick={() => onSort('customer')}
@@ -938,7 +937,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-3 py-3">
+              <th className="px-3 py-2">
                 <button
                   type="button"
                   onClick={() => onSort('address')}
@@ -948,7 +947,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-3 py-3">
+              <th className="px-3 py-2">
                 <button
                   type="button"
                   onClick={() => onSort('type')}
@@ -958,7 +957,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-3 py-3">
+              <th className="px-3 py-2">
                 <button
                   type="button"
                   onClick={() => onSort('status')}
@@ -968,7 +967,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-3 py-3">
+              <th className="px-3 py-2">
                 <button
                   type="button"
                   onClick={() => onSort('payment')}
@@ -978,7 +977,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-3 py-3 text-right">
+              <th className="px-3 py-2 text-right">
                 <button
                   type="button"
                   onClick={() => onSort('total')}
@@ -988,7 +987,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-3 py-3">
+              <th className="px-3 py-2">
                 <button
                   type="button"
                   onClick={() => onSort('created_at')}
@@ -998,7 +997,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-3 py-3">PDFs</th>
+              <th className="px-2 py-2">PDFs</th>
             </tr>
           </thead>
 
@@ -1020,18 +1019,17 @@ export default function AdminOrdersTable({
                       orderIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
                     } hover:bg-slate-100/60`}
                   >
-                    <td className="px-3 py-3">
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={selected.includes(order.id)}
-                          onChange={() => toggleSelected(order.id)}
-                          aria-label={`Izberi naročilo ${order.order_number}`}
-                        />
-                      </div>
+                    <td className="px-3 py-2 align-middle">
+                      <input
+                        type="checkbox"
+                        checked={selected.includes(order.id)}
+                        onChange={() => toggleSelected(order.id)}
+                        aria-label={`Izberi naročilo ${order.order_number}`}
+                        className="h-4 w-4"
+                      />
                     </td>
 
-                    <td className="px-3 py-3 font-semibold text-slate-900">
+                    <td className="px-3 py-2 font-semibold text-slate-900">
                       <Link
                         href={`/admin/orders/${order.id}`}
                         className="text-sm font-semibold text-brand-600 hover:text-brand-700"
@@ -1040,27 +1038,25 @@ export default function AdminOrdersTable({
                       </Link>
                     </td>
 
-                    <td className="px-3 py-3 text-slate-600">
+                    <td className="px-3 py-2 text-slate-600">
                       <span className="block truncate" title={order.organization_name || order.contact_name}>
                         {order.organization_name || order.contact_name}
                       </span>
                     </td>
 
-                    <td className="px-3 py-3 text-slate-600">
+                    <td className="px-3 py-2 text-slate-600">
                       <span className="block truncate" title={orderAddress || '—'}>
                         {orderAddress || '—'}
                       </span>
                     </td>
 
-                    <td className="px-3 py-3 text-slate-600">
-                      {getCustomerTypeLabel(order.customer_type)}
-                    </td>
+                    <td className="px-3 py-2 text-slate-600">{getCustomerTypeLabel(order.customer_type)}</td>
 
-                    <td className="px-3 py-3 text-slate-600">
+                    <td className="px-3 py-2 text-slate-600">
                       <AdminOrderStatusSelect orderId={order.id} status={order.status} />
                     </td>
 
-                    <td className="px-3 py-3">
+                    <td className="px-3 py-2">
                       <span
                         className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getPaymentBadge(
                           order.payment_status
@@ -1070,15 +1066,13 @@ export default function AdminOrdersTable({
                       </span>
                     </td>
 
-                    <td className="px-3 py-3 text-right text-slate-700">
-                      {formatCurrency(order.total)}
-                    </td>
+                    <td className="px-3 py-2 text-right text-slate-700">{formatCurrency(order.total)}</td>
 
-                    <td className="px-3 py-3 text-slate-600 whitespace-nowrap">
+                    <td className="whitespace-nowrap px-3 py-2 text-slate-600">
                       {formatDateTime(order.created_at)}
                     </td>
 
-                    <td className="px-3 py-3">
+                    <td className="px-2 py-2 align-middle">
                       <AdminOrdersPdfCell
                         orderId={order.id}
                         documents={documentsByOrder.get(order.id) ?? []}

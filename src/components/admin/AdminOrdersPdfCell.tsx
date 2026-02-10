@@ -17,7 +17,6 @@ type GeneratePdfType = Exclude<PdfTypeKey, 'purchase_order'>;
 type PdfTypeConfig = {
   key: PdfTypeKey;
   label: string;
-  color: string;
   canGenerate: boolean;
 };
 
@@ -26,12 +25,12 @@ type MenuPosition = {
   left: number;
 };
 
-const PDF_TYPES: PdfTypeConfig[] = [
-  { key: 'order_summary', label: 'Povzetek', color: 'bg-sky-100 text-sky-700', canGenerate: true },
-  { key: 'predracun', label: 'Predračun', color: 'bg-amber-100 text-amber-700', canGenerate: true },
-  { key: 'dobavnica', label: 'Dobavnica', color: 'bg-emerald-100 text-emerald-700', canGenerate: true },
-  { key: 'invoice', label: 'Račun', color: 'bg-purple-100 text-purple-700', canGenerate: true },
-  { key: 'purchase_order', label: 'Naročilnica', color: 'bg-slate-100 text-slate-700', canGenerate: false }
+const pdfTypes: PdfTypeConfig[] = [
+  { key: 'order_summary', label: 'Povzetek', canGenerate: true },
+  { key: 'predracun', label: 'Predračun', canGenerate: true },
+  { key: 'dobavnica', label: 'Dobavnica', canGenerate: true },
+  { key: 'invoice', label: 'Račun', canGenerate: true },
+  { key: 'purchase_order', label: 'Naročilnica', canGenerate: false }
 ];
 
 const routeMap: Record<GeneratePdfType, string> = {
@@ -52,14 +51,19 @@ const normalizeType = (type: string): PdfTypeKey | null => {
 
 const isGenerateKey = (key: PdfTypeKey): key is GeneratePdfType => key !== 'purchase_order';
 
-const formatVersionDate = (value: string) =>
-  new Date(value).toLocaleString('sl-SI', {
+const formatVersionDate = (value: string) => {
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) return value;
+
+  return parsedDate.toLocaleString('sl-SI', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    hour12: false
   });
+};
 
 const formatVersionCount = (count: number) => {
   if (count === 1) return '1 verzija';
@@ -70,6 +74,12 @@ const formatVersionCount = (count: number) => {
 
 const clampValue = (value: number, minimum: number, maximum: number) =>
   Math.min(Math.max(value, minimum), maximum);
+
+const badgeBaseClass =
+  'inline-flex h-5 items-center rounded-full border px-1.5 text-[10px] font-semibold leading-none';
+
+const badgeAvailableClass = `${badgeBaseClass} border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200 transition`;
+const badgeMissingClass = `${badgeBaseClass} border-slate-200 bg-slate-50 text-slate-400`;
 
 export default function AdminOrdersPdfCell({
   orderId,
@@ -217,8 +227,8 @@ export default function AdminOrdersPdfCell({
   };
 
   return (
-    <div className="flex items-center gap-1 whitespace-nowrap">
-      {PDF_TYPES.map((pdfType) => {
+    <div className="flex items-center gap-1 whitespace-nowrap leading-none">
+      {pdfTypes.map((pdfType) => {
         const options = groupedDocuments[pdfType.key];
         const latestDocument = options[0];
         const versionCount = options.length;
@@ -229,19 +239,24 @@ export default function AdminOrdersPdfCell({
             href={latestDocument.blob_url}
             target="_blank"
             rel="noreferrer"
-            className={`inline-flex h-6 items-center rounded-full px-1.5 text-[10px] font-semibold ${pdfType.color}`}
+            className={badgeAvailableClass}
             title={`${pdfType.label} · zadnja verzija (${versionCount})`}
           >
             <span>{pdfType.label}</span>
-            {versionCount > 1 && <span className="ml-1 opacity-75">{versionCount}</span>}
+            <span className="ml-1 inline-block w-4 text-right tabular-nums text-slate-500">
+              {versionCount > 1 ? versionCount : '\u00A0'}
+            </span>
           </a>
         ) : (
           <span
             key={pdfType.key}
-            className={`inline-flex h-6 items-center rounded-full px-1.5 text-[10px] font-semibold opacity-60 ${pdfType.color}`}
+            className={badgeMissingClass}
             title={`${pdfType.label} · ni dokumenta`}
           >
-            {pdfType.label}
+            <span>{pdfType.label}</span>
+            <span className="ml-1 inline-block w-4 text-right tabular-nums text-slate-400">
+              {'\u00A0'}
+            </span>
           </span>
         );
       })}
@@ -256,7 +271,7 @@ export default function AdminOrdersPdfCell({
           }
           openMenuAtButton(event.currentTarget);
         }}
-        className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 text-xs text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 text-[11px] text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
         aria-label="Odpri meni dokumentov"
         title="Verzije in generiranje"
       >
@@ -276,10 +291,12 @@ export default function AdminOrdersPdfCell({
             }}
           >
             <div className="max-h-[60vh] overflow-y-auto pr-1">
-              {PDF_TYPES.map((pdfType) => {
+              {pdfTypes.map((pdfType) => {
                 const options = groupedDocuments[pdfType.key];
                 const latestDocument = options[0];
-                const generateKey: GeneratePdfType | null = isGenerateKey(pdfType.key) ? pdfType.key : null;
+                const generateKey: GeneratePdfType | null = isGenerateKey(pdfType.key)
+                  ? pdfType.key
+                  : null;
                 const canGenerate = pdfType.canGenerate && generateKey !== null;
                 const isGeneratingThisType = generateKey ? loadingType === generateKey : false;
 
@@ -290,9 +307,7 @@ export default function AdminOrdersPdfCell({
                   >
                     <div className="mb-1 flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <span
-                          className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${pdfType.color}`}
-                        >
+                        <span className="inline-flex rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
                           {pdfType.label}
                         </span>
                         <span className="text-[11px] text-slate-500">
@@ -317,9 +332,13 @@ export default function AdminOrdersPdfCell({
                             type="button"
                             onClick={() => handleGenerate(generateKey)}
                             disabled={isGeneratingThisType}
-                            className="rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-700 transition hover:border-brand-200 hover:text-brand-600 disabled:cursor-not-allowed disabled:text-slate-300"
+                            className="rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
                           >
-                            {isGeneratingThisType ? 'Generiram…' : latestDocument ? 'Nova verzija' : 'Ustvari'}
+                            {isGeneratingThisType
+                              ? 'Generiram…'
+                              : latestDocument
+                              ? 'Nova verzija'
+                              : 'Ustvari'}
                           </button>
                         )}
                       </div>

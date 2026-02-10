@@ -115,10 +115,10 @@ const statusTabs: Array<{ value: StatusTab; label: string }> = [
 const columnWidths = {
   selectAndDelete: 70,
   order: 80,
-  customer: 190,
-  address: 260,
+  customer: 180,
+  address: 240,
   type: 130,
-  status: 130,
+  status: 120,
   payment: 70,
   total: 80,
   date: 130,

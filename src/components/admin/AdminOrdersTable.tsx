@@ -113,15 +113,15 @@ const statusTabs: Array<{ value: StatusTab; label: string }> = [
 
 // adjust these to tune column widths
 const columnWidths = {
-  selectAndDelete: 120,
-  order: 120,
+  selectAndDelete: 80,
+  order: 100,
   customer: 190,
   address: 260,
   type: 130,
-  status: 175,
-  payment: 130,
-  total: 120,
-  date: 165,
+  status: 150,
+  payment: 100,
+  total: 100,
+  date: 150,
   documents: 250
 };
 

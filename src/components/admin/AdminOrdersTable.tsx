@@ -114,13 +114,13 @@ const statusTabs: Array<{ value: StatusTab; label: string }> = [
 // adjust these to tune column widths
 const columnWidths = {
   selectAndDelete: 80,
-  order: 100,
+  order: 80,
   customer: 190,
   address: 260,
   type: 130,
-  status: 150,
-  payment: 100,
-  total: 100,
+  status: 130,
+  payment: 80,
+  total: 80,
   date: 150,
   documents: 250
 };
@@ -852,7 +852,7 @@ export default function AdminOrdersTable({
               onClick={handleResetDocumentFilter}
               className="h-10 rounded-full px-4 text-sm font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
             >
-              Počisti filter dokumentov
+              Počisti
             </button>
           )}
         </div>

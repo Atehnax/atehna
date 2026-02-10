@@ -13,11 +13,23 @@ export async function uploadBlob(
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     throw new Error('BLOB_READ_WRITE_TOKEN is not set');
   }
+
   const payload = Buffer.isBuffer(data) ? data : Buffer.from(data);
+  const effectiveContentType = contentType || 'application/octet-stream';
+
+  // Safety check for PDFs: must start with "%PDF-"
+  if (effectiveContentType === 'application/pdf') {
+    const header = payload.subarray(0, 5).toString('ascii');
+    if (header !== '%PDF-') {
+      throw new Error('Invalid PDF payload (missing %PDF- header). Binary likely got converted to text/base64.');
+    }
+  }
+
   const blob = await put(pathname, payload, {
     access: 'public',
-    contentType,
+    contentType: effectiveContentType,
     token: process.env.BLOB_READ_WRITE_TOKEN
   });
+
   return { url: blob.url, pathname: blob.pathname };
 }

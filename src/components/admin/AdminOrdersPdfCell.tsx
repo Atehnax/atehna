@@ -105,7 +105,7 @@ export default function AdminOrdersPdfCell({
   };
 
   return (
-    <div className="inline-flex items-center justify-center" ref={versionsMenuRef}>
+    <div className="inline-flex items-center justify-center" ref={versionsMenuRef} data-no-row-nav>
       <div className="grid grid-cols-[repeat(5,minmax(0,84px))_20px] items-center gap-0.5 whitespace-nowrap">
         {pdfTypes.map((pdfType) => {
           const options = groupedDocuments[pdfType.key];
@@ -120,6 +120,7 @@ export default function AdminOrdersPdfCell({
             <div key={pdfType.key} className="flex justify-center">
               {latestDocument ? (
                 <a
+                  data-no-row-nav
                   href={latestDocument.blob_url}
                   target="_blank"
                   rel="noreferrer"
@@ -141,6 +142,7 @@ export default function AdminOrdersPdfCell({
                 </span>
               ) : (
                 <button
+                  data-no-row-nav
                   type="button"
                   onClick={() => handleGenerate(pdfType.key as GeneratePdfType)}
                   disabled={interactionsDisabled || isGeneratingThisType}
@@ -155,6 +157,7 @@ export default function AdminOrdersPdfCell({
 
         <div className="relative flex justify-center">
           <button
+            data-no-row-nav
             type="button"
             onClick={() => setIsVersionsMenuOpen((previousValue) => !previousValue)}
             disabled={interactionsDisabled}
@@ -200,6 +203,7 @@ export default function AdminOrdersPdfCell({
                         <div className="flex items-center gap-1">
                           {latestDocument && (
                             <a
+                              data-no-row-nav
                               href={latestDocument.blob_url}
                               target="_blank"
                               rel="noreferrer"
@@ -213,6 +217,7 @@ export default function AdminOrdersPdfCell({
 
                           {generateKey && (
                             <button
+                              data-no-row-nav
                               type="button"
                               onClick={() => handleGenerate(generateKey)}
                               disabled={interactionsDisabled || isGeneratingThisType}

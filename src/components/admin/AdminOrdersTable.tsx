@@ -542,12 +542,12 @@ export default function AdminOrdersTable({
     const minTimestamp = Math.min(...timestamps);
     const maxTimestamp = Math.max(...timestamps);
 
-    return `📅 ${formatSlDateTime(new Date(minTimestamp).toISOString())} - ${formatSlDateTime(new Date(maxTimestamp).toISOString())}`;
+    return `${formatSlDate(new Date(minTimestamp).toISOString())} – ${formatSlDate(new Date(maxTimestamp).toISOString())}`;
   }, [orders]);
 
   const dateRangeLabel =
     fromDate || toDate
-      ? `📅 ${formatSlDateFromDateInput(fromDate)} - ${formatSlDateFromDateInput(toDate)}`
+      ? `${formatSlDateFromDateInput(fromDate)} – ${formatSlDateFromDateInput(toDate)}`
       : defaultDateRangeLabel;
 
   const handleApplyDocuments = () => {
@@ -616,6 +616,18 @@ export default function AdminOrdersTable({
     }
   };
 
+
+  const shouldIgnoreRowNavigation = (target: EventTarget | null) => {
+    if (!(target instanceof Element)) return false;
+    return Boolean(
+      target.closest('a,button,input,select,textarea,[role=menu],[role=menuitem],[data-no-row-nav]')
+    );
+  };
+
+  const openOrderDetails = (orderId: number) => {
+    window.location.href = `/admin/orders/${orderId}`;
+  };
+
   return (
     <div className="w-full">
       <div className="mx-auto w-[80vw] min-w-[1180px] max-w-[1520px]">
@@ -628,7 +640,20 @@ export default function AdminOrdersTable({
               onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
               className="h-8 min-w-[220px] rounded-lg border border-slate-300 bg-white px-2.5 text-left text-xs text-slate-700 hover:border-slate-400"
             >
-              {dateRangeLabel}
+              <span className="inline-flex items-center gap-1.5"> 
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="h-3.5 w-3.5 text-slate-700"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                >
+                  <rect x="3" y="5" width="18" height="16" rx="2" />
+                  <path d="M16 3v4M8 3v4M3 10h18" />
+                </svg>
+                <span>{dateRangeLabel}</span>
+              </span>
             </button>
 
             {isDatePopoverOpen && (
@@ -1046,13 +1071,26 @@ export default function AdminOrdersTable({
                 return (
                   <tr
                     key={order.id}
-                    className={`border-t border-slate-100 ${
+                    className={`border-t border-slate-100 transition-colors duration-200 ${
                       orderIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-                    } hover:bg-slate-100/60`}
+                    } hover:bg-[#8aa4a4]`}
+                    onClick={(event) => {
+                      if (shouldIgnoreRowNavigation(event.target)) return;
+                      openOrderDetails(order.id);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key !== 'Enter' && event.key !== ' ') return;
+                      if (shouldIgnoreRowNavigation(event.target)) return;
+                      event.preventDefault();
+                      openOrderDetails(order.id);
+                    }}
+                    tabIndex={0}
+                    aria-label={`Odpri podrobnosti naročila ${toDisplayOrderNumber(order.order_number)}`}
                   >
                     <td className="px-2 py-2 align-middle">
                       <div className="flex justify-center">
                         <input
+                          data-no-row-nav
                           type="checkbox"
                           checked={selected.includes(order.id)}
                           onChange={() => toggleSelected(order.id)}
@@ -1063,6 +1101,7 @@ export default function AdminOrdersTable({
 
                     <td className="px-2 py-2 align-middle text-center font-semibold text-slate-900">
                       <Link
+                        data-no-row-nav
                         href={`/admin/orders/${order.id}`}
                         className="text-[13px] font-semibold text-brand-600 hover:text-brand-700"
                       >
@@ -1141,7 +1180,7 @@ export default function AdminOrdersTable({
                       {formatCurrency(order.total)}
                     </td>
 
-                    <td className="px-2 py-2 align-middle text-center align-middle pr-4">
+                    <td className="px-2 py-2 align-middle text-center align-middle pr-4" data-no-row-nav>
                       <AdminOrdersPdfCell
                         orderId={order.id}
                         documents={documentsByOrder.get(order.id) ?? []}

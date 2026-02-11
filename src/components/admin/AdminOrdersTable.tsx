@@ -4,229 +4,36 @@ import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
 import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
+import AdminOrderPaymentSelect from '@/components/admin/AdminOrderPaymentSelect';
+import StatusChip from '@/components/admin/StatusChip';
 import { getCustomerTypeLabel } from '@/lib/customerType';
-import { getStatusLabel } from '@/lib/orderStatus';
+import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
+import { formatSlDateFromDateInput, formatSlDateTime } from '@/lib/format/dateTime';
+import { PAYMENT_STATUS_OPTIONS, getPaymentBadgeClassName, getPaymentLabel, isPaymentStatus } from '@/lib/paymentStatus';
 
-type OrderRow = {
-  id: number;
-  order_number: string;
-  customer_type: string;
-  organization_name: string | null;
-  contact_name: string;
-  status: string;
-  payment_status?: string | null;
-  total: number | string | null;
-  created_at: string;
-  delivery_address?: string | null;
-  address_line1?: string | null;
-  city?: string | null;
-  postal_code?: string | null;
-};
-
-type PdfDoc = {
-  id: number;
-  order_id: number;
-  type: string;
-  filename: string;
-  blob_url: string;
-  created_at: string;
-};
-
-type Attachment = {
-  id: number;
-  order_id: number;
-  type: string;
-  filename: string;
-  blob_url: string;
-  created_at: string;
-};
-
-type SortKey =
-  | 'order_number'
-  | 'customer'
-  | 'address'
-  | 'type'
-  | 'status'
-  | 'payment'
-  | 'total'
-  | 'created_at';
-
-type SortDirection = 'asc' | 'desc';
-
-type StatusTab =
-  | 'all'
-  | 'received'
-  | 'in_progress'
-  | 'sent'
-  | 'partially_sent'
-  | 'finished'
-  | 'cancelled'
-  | 'refunded';
-
-type DocumentType =
-  | 'all'
-  | 'order_summary'
-  | 'predracun'
-  | 'dobavnica'
-  | 'invoice'
-  | 'purchase_order';
-
-type UnifiedDocument = {
-  order_id: number;
-  type: string;
-  filename: string;
-  blob_url: string;
-  created_at: string;
-  typeLabel: string;
-};
-
-const currencyFormatter = new Intl.NumberFormat('sl-SI', {
-  style: 'currency',
-  currency: 'EUR'
-});
-
-const textCollator = new Intl.Collator('sl', { sensitivity: 'base', numeric: true });
-
-const documentTypeOptions: Array<{ value: DocumentType; label: string }> = [
-  { value: 'all', label: 'Vse vrste' },
-  { value: 'order_summary', label: 'Povzetek naročila' },
-  { value: 'predracun', label: 'Predračun' },
-  { value: 'dobavnica', label: 'Dobavnica' },
-  { value: 'invoice', label: 'Račun' },
-  { value: 'purchase_order', label: 'Naročilnica' }
-];
-
-const documentTypeLabelMap: Map<string, string> = new Map(
-  documentTypeOptions.map((documentTypeOption) => [documentTypeOption.value, documentTypeOption.label])
-);
-
-const statusTabs: Array<{ value: StatusTab; label: string }> = [
-  { value: 'all', label: 'Vsa' },
-  { value: 'received', label: 'Prejeto' },
-  { value: 'in_progress', label: 'V obdelavi' },
-  { value: 'sent', label: 'Poslano' },
-  { value: 'partially_sent', label: 'Delno poslano' },
-  { value: 'finished', label: 'Zaključeno' },
-  { value: 'cancelled', label: 'Preklicano' },
-  { value: 'refunded', label: 'Povrnjeno' }
-];
-
-// percentages to avoid horizontal scroll and keep stable layout
-const columnWidths = {
-  selectAndDelete: '4%',
-  order: '7%',
-  customer: '15%',
-  address: '20%',
-  type: '5%',
-  status: '14%',
-  payment: '9%',
-  total: '8%',
-  date: '10%',
-  documents: '8%'
-};
-
-const toAmount = (value: unknown): number => {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
-
-  if (typeof value === 'string') {
-    const normalizedValue = value.replace(',', '.').trim();
-    const parsedValue = Number(normalizedValue);
-    if (Number.isFinite(parsedValue)) return parsedValue;
-  }
-
-  return 0;
-};
-
-const formatCurrency = (value: unknown) => currencyFormatter.format(toAmount(value));
-
-const getPaymentBadge = (status?: string | null) => {
-  if (status === 'paid') return 'bg-emerald-100 text-emerald-700';
-  if (status === 'refunded') return 'bg-amber-100 text-amber-700';
-  if (status === 'cancelled') return 'bg-rose-100 text-rose-700';
-  return 'bg-slate-100 text-slate-600';
-};
-
-const getPaymentLabel = (status?: string | null) => {
-  if (status === 'paid') return 'Plačano';
-  if (status === 'refunded') return 'Povrnjeno';
-  if (status === 'cancelled') return 'Preklicano';
-  return 'Neplačano';
-};
-
-const isRefundedOrderStatus = (status: string) => status === 'refunded_returned';
-
-const getMergedOrderStatusValue = (status: string): StatusTab | string =>
-  isRefundedOrderStatus(status) ? 'refunded' : status;
-
-const getOrderStatusLabelForUi = (status: string) => {
-  if (isRefundedOrderStatus(status)) return 'Povrnjeno';
-  if (status === 'partially_sent') return 'Delno poslano';
-  return getStatusLabel(status);
-};
-
-const formatOrderAddress = (order: OrderRow) => {
-  const deliveryAddress = (order.delivery_address ?? '').trim();
-  if (deliveryAddress) return deliveryAddress;
-
-  const addressLine1 = (order.address_line1 ?? '').trim();
-  const city = (order.city ?? '').trim();
-  const postalCode = (order.postal_code ?? '').trim();
-
-  const cityAndPostalCode = [postalCode, city].filter(Boolean).join(' ');
-  return [addressLine1, cityAndPostalCode].filter(Boolean).join(', ');
-};
-
-const normalizeForSearch = (value: string) =>
-  value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
-
-const padTwoDigits = (value: number) => String(value).padStart(2, '0');
-
-const formatDateTime = (value: string) => {
-  const parsedDate = new Date(value);
-  if (Number.isNaN(parsedDate.getTime())) return value;
-
-  const day = padTwoDigits(parsedDate.getDate());
-  const month = padTwoDigits(parsedDate.getMonth() + 1);
-  const year = parsedDate.getFullYear();
-  const hour = padTwoDigits(parsedDate.getHours());
-  const minute = padTwoDigits(parsedDate.getMinutes());
-
-  return `${day}.${month}.${year} ${hour}:${minute}`;
-};
-
-const formatShortDateForButton = (value: string) => {
-  if (!value) return '—';
-  const parsedDate = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(parsedDate.getTime())) return value;
-  const day = padTwoDigits(parsedDate.getDate());
-  const month = padTwoDigits(parsedDate.getMonth() + 1);
-  const year = parsedDate.getFullYear();
-  return `${day}.${month}.${year}`;
-};
-
-const toDateInputValue = (dateValue: Date) =>
-  `${dateValue.getFullYear()}-${padTwoDigits(dateValue.getMonth() + 1)}-${padTwoDigits(
-    dateValue.getDate()
-  )}`;
-
-const shiftDateByDays = (dateValue: Date, dayShift: number) => {
-  const clonedDate = new Date(dateValue);
-  clonedDate.setDate(clonedDate.getDate() + dayShift);
-  return clonedDate;
-};
-
-const getCustomerTypeShortLabel = (customerType: string) => {
-  const normalizedType = normalizeForSearch(customerType);
-
-  if (normalizedType === 'company' || normalizedType.includes('podjet')) return 'P';
-  if (normalizedType === 'school' || normalizedType.includes('sola') || normalizedType.includes('javni'))
-    return 'Š';
-  return 'F';
-};
+import {
+  type Attachment,
+  type DocumentType,
+  type OrderRow,
+  type PdfDoc,
+  type SortDirection,
+  type SortKey,
+  type StatusTab,
+  type UnifiedDocument,
+  columnWidths,
+  documentTypeLabelMap,
+  documentTypeOptions,
+  formatCurrency,
+  formatOrderAddress,
+  getMergedOrderStatusValue,
+  getOrderStatusLabelForUi,
+  normalizeForSearch,
+  shiftDateByDays,
+  statusTabs,
+  textCollator,
+  toAmount,
+  toDateInputValue
+} from '@/components/admin/adminOrdersTableUtils';
 
 export default function AdminOrdersTable({
   orders,
@@ -239,6 +46,7 @@ export default function AdminOrdersTable({
 }) {
   const [selected, setSelected] = useState<number[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isBulkUpdatingStatus, setIsBulkUpdatingStatus] = useState(false);
 
   const [statusFilter, setStatusFilter] = useState<StatusTab>('all');
   const [query, setQuery] = useState('');
@@ -258,6 +66,11 @@ export default function AdminOrdersTable({
 
   const selectAllRef = useRef<HTMLInputElement>(null);
   const datePopoverRef = useRef<HTMLDivElement>(null);
+  const statusHeaderMenuRef = useRef<HTMLDivElement>(null);
+  const paymentHeaderMenuRef = useRef<HTMLDivElement>(null);
+
+  const [isStatusHeaderMenuOpen, setIsStatusHeaderMenuOpen] = useState(false);
+  const [isPaymentHeaderMenuOpen, setIsPaymentHeaderMenuOpen] = useState(false);
 
   useEffect(() => {
     const closeOnOutsideClick = (mouseEvent: MouseEvent) => {
@@ -275,6 +88,36 @@ export default function AdminOrdersTable({
       document.removeEventListener('mousedown', closeOnOutsideClick);
     };
   }, [isDatePopoverOpen]);
+
+
+  useEffect(() => {
+    if (!isStatusHeaderMenuOpen && !isPaymentHeaderMenuOpen) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!statusHeaderMenuRef.current?.contains(target)) {
+        setIsStatusHeaderMenuOpen(false);
+      }
+      if (!paymentHeaderMenuRef.current?.contains(target)) {
+        setIsPaymentHeaderMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsStatusHeaderMenuOpen(false);
+        setIsPaymentHeaderMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isPaymentHeaderMenuOpen, isStatusHeaderMenuOpen]);
 
   const applyQuickDateRange = (range: 'today' | 'yesterday' | '7d' | '30d' | '3m' | '6m' | '1y') => {
     const todayDate = new Date();
@@ -532,11 +375,39 @@ export default function AdminOrdersTable({
   );
 
   const allSelected = visibleOrderIds.length > 0 && selectedVisibleCount === visibleOrderIds.length;
+  const selectedCount = selected.length;
+  const isBulkMode = selectedCount > 0;
+  const isSingleSelection = selectedCount === 1;
+
+  const [rowStatusOverrides, setRowStatusOverrides] = useState<Record<number, string>>({});
+  const [rowPaymentOverrides, setRowPaymentOverrides] = useState<Record<number, string | null>>({});
+
+  useEffect(() => {
+    if (selectedCount === 0) {
+      setIsStatusHeaderMenuOpen(false);
+      setIsPaymentHeaderMenuOpen(false);
+    }
+  }, [selectedCount]);
 
   useEffect(() => {
     if (!selectAllRef.current) return;
     selectAllRef.current.indeterminate = selectedVisibleCount > 0 && !allSelected;
   }, [allSelected, selectedVisibleCount]);
+
+
+  useEffect(() => {
+    const validIds = new Set(orders.map((order) => order.id));
+    setRowStatusOverrides((previousOverrides) =>
+      Object.fromEntries(
+        Object.entries(previousOverrides).filter(([orderId]) => validIds.has(Number(orderId)))
+      )
+    );
+    setRowPaymentOverrides((previousOverrides) =>
+      Object.fromEntries(
+        Object.entries(previousOverrides).filter(([orderId]) => validIds.has(Number(orderId)))
+      )
+    );
+  }, [orders]);
 
   const toggleSelected = (orderId: number) => {
     setSelected((previousSelected) =>
@@ -581,6 +452,63 @@ export default function AdminOrdersTable({
     }
   };
 
+
+  const handleBulkStatusUpdate = async (nextStatus: string) => {
+    if (selected.length === 0) return;
+
+    setIsBulkUpdatingStatus(true);
+    try {
+      await Promise.all(
+        selected.map((orderId) =>
+          fetch(`/api/admin/orders/${orderId}/status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: nextStatus })
+          })
+        )
+      );
+
+      setRowStatusOverrides((previousOverrides) => {
+        const nextOverrides = { ...previousOverrides };
+        selected.forEach((orderId) => {
+          nextOverrides[orderId] = nextStatus;
+        });
+        return nextOverrides;
+      });
+      setIsStatusHeaderMenuOpen(false);
+    } finally {
+      setIsBulkUpdatingStatus(false);
+    }
+  };
+
+  const handleBulkPaymentUpdate = async (nextPaymentStatus: string) => {
+    if (selected.length === 0 || !isPaymentStatus(nextPaymentStatus)) return;
+
+    setIsBulkUpdatingStatus(true);
+    try {
+      await Promise.all(
+        selected.map((orderId) =>
+          fetch(`/api/admin/orders/${orderId}/payment-status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: nextPaymentStatus, note: '' })
+          })
+        )
+      );
+
+      setRowPaymentOverrides((previousOverrides) => {
+        const nextOverrides = { ...previousOverrides };
+        selected.forEach((orderId) => {
+          nextOverrides[orderId] = nextPaymentStatus;
+        });
+        return nextOverrides;
+      });
+      setIsPaymentHeaderMenuOpen(false);
+    } finally {
+      setIsBulkUpdatingStatus(false);
+    }
+  };
+
   const onSort = (nextSortKey: SortKey) => {
     if (sortKey === nextSortKey) {
       setSortDirection((previousDirection) => (previousDirection === 'asc' ? 'desc' : 'asc'));
@@ -602,7 +530,7 @@ export default function AdminOrdersTable({
 
   const dateRangeLabel =
     fromDate || toDate
-      ? `${formatShortDateForButton(fromDate)} - ${formatShortDateForButton(toDate)}`
+      ? `${formatSlDateFromDateInput(fromDate)} - ${formatSlDateFromDateInput(toDate)}`
       : 'Izberi interval';
 
   const handleApplyDocuments = () => {
@@ -673,6 +601,7 @@ export default function AdminOrdersTable({
 
   return (
     <div className="w-full">
+      <div className="mx-auto w-[75vw] min-w-[1180px] max-w-[1480px]">
       <div className="mb-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
         <div className="flex flex-wrap items-end gap-2">
           <div className="relative" ref={datePopoverRef}>
@@ -680,7 +609,7 @@ export default function AdminOrdersTable({
             <button
               type="button"
               onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-              className="h-9 min-w-[220px] rounded-lg border border-slate-300 bg-white px-3 text-left text-sm text-slate-700 hover:border-slate-400"
+              className="h-8 min-w-[220px] rounded-lg border border-slate-300 bg-white px-2.5 text-left text-xs text-slate-700 hover:border-slate-400"
             >
               {dateRangeLabel}
             </button>
@@ -692,49 +621,49 @@ export default function AdminOrdersTable({
                     <button
                       type="button"
                       onClick={() => applyQuickDateRange('today')}
-                      className="w-full rounded-lg px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100"
+                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
                     >
                       Danes
                     </button>
                     <button
                       type="button"
                       onClick={() => applyQuickDateRange('yesterday')}
-                      className="w-full rounded-lg px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100"
+                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
                     >
                       Včeraj
                     </button>
                     <button
                       type="button"
                       onClick={() => applyQuickDateRange('7d')}
-                      className="w-full rounded-lg px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100"
+                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
                     >
                       Zadnjih 7 dni
                     </button>
                     <button
                       type="button"
                       onClick={() => applyQuickDateRange('30d')}
-                      className="w-full rounded-lg px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100"
+                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
                     >
                       Zadnjih 30 dni
                     </button>
                     <button
                       type="button"
                       onClick={() => applyQuickDateRange('3m')}
-                      className="w-full rounded-lg px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100"
+                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
                     >
                       Zadnje 3 mesece
                     </button>
                     <button
                       type="button"
                       onClick={() => applyQuickDateRange('6m')}
-                      className="w-full rounded-lg px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100"
+                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
                     >
                       Zadnjih 6 mesecev
                     </button>
                     <button
                       type="button"
                       onClick={() => applyQuickDateRange('1y')}
-                      className="w-full rounded-lg px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100"
+                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
                     >
                       Zadnje leto
                     </button>
@@ -747,7 +676,7 @@ export default function AdminOrdersTable({
                         type="date"
                         value={fromDate}
                         onChange={(event) => setFromDate(event.target.value)}
-                        className="mt-1 h-9 w-full rounded-lg border border-slate-300 px-3 text-sm"
+                        className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs"
                       />
                     </div>
 
@@ -757,7 +686,7 @@ export default function AdminOrdersTable({
                         type="date"
                         value={toDate}
                         onChange={(event) => setToDate(event.target.value)}
-                        className="mt-1 h-9 w-full rounded-lg border border-slate-300 px-3 text-sm"
+                        className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs"
                       />
                     </div>
 
@@ -793,7 +722,7 @@ export default function AdminOrdersTable({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="ORD, naročnik, naslov, tip, status, plačilo..."
-              className="h-9 w-full rounded-lg border border-slate-300 px-3 text-sm"
+              className="h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs"
             />
           </div>
 
@@ -801,7 +730,7 @@ export default function AdminOrdersTable({
             <label className="mb-1 block select-none text-xs font-semibold uppercase text-transparent">
               Dokumenti
             </label>
-            <div className="flex h-9 items-center gap-2">
+            <div className="flex h-8 items-center gap-2">
               <input
                 id="search-documents"
                 type="checkbox"
@@ -816,7 +745,7 @@ export default function AdminOrdersTable({
                 }}
                 className="h-4 w-4 rounded border-slate-300"
               />
-              <label htmlFor="search-documents" className="text-sm text-slate-700">
+              <label htmlFor="search-documents" className="text-xs text-slate-700">
                 Išči dokumente
               </label>
             </div>
@@ -830,7 +759,7 @@ export default function AdminOrdersTable({
               value={documentType}
               onChange={(event) => setDocumentType(event.target.value as DocumentType)}
               disabled={!isDocumentSearchEnabled}
-              className="h-9 w-full rounded-lg border border-slate-300 px-3 text-sm disabled:bg-slate-100 disabled:text-slate-400"
+              className="h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs disabled:bg-slate-100 disabled:text-slate-400"
             >
               {documentTypeOptions.map((documentTypeOption) => (
                 <option key={documentTypeOption.value} value={documentTypeOption.value}>
@@ -844,7 +773,7 @@ export default function AdminOrdersTable({
             type="button"
             onClick={handleApplyDocuments}
             disabled={!isDocumentSearchEnabled}
-            className="h-9 rounded-full bg-brand-600 px-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+            className="h-8 rounded-full bg-brand-600 px-3 text-xs font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
           >
             Naloži dokumente
           </button>
@@ -853,7 +782,7 @@ export default function AdminOrdersTable({
             type="button"
             onClick={handleDownloadAllDocuments}
             disabled={!isDocumentSearchEnabled || isDownloading}
-            className="h-9 rounded-full border border-slate-300 px-3 text-sm font-semibold text-slate-700 transition hover:border-brand-300 hover:text-brand-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
+            className="h-8 rounded-full border border-slate-300 px-3 text-xs font-semibold text-slate-700 transition hover:border-brand-300 hover:text-brand-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
           >
             {isDownloading ? 'Prenos...' : 'Prenesi vse'}
           </button>
@@ -862,14 +791,14 @@ export default function AdminOrdersTable({
             <button
               type="button"
               onClick={handleResetDocumentFilter}
-              className="h-9 rounded-full px-3 text-sm font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
+              className="h-8 rounded-full px-3 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
             >
               Počisti
             </button>
           )}
         </div>
 
-        {message && <p className="mt-2 text-sm text-slate-600">{message}</p>}
+        {message && <p className="mt-2 text-xs text-slate-600">{message}</p>}
       </div>
 
       <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -880,7 +809,7 @@ export default function AdminOrdersTable({
               key={tab.value}
               type="button"
               onClick={() => setStatusFilter(tab.value)}
-              className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
                 isActive
                   ? 'bg-slate-900 text-white'
                   : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50'
@@ -892,8 +821,9 @@ export default function AdminOrdersTable({
         })}
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="w-full table-fixed text-left text-sm">
+
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <table className="min-w-[1180px] w-full table-fixed text-left text-[13px]">
           <colgroup>
             <col style={{ width: columnWidths.selectAndDelete }} />
             <col style={{ width: columnWidths.order }} />
@@ -907,7 +837,7 @@ export default function AdminOrdersTable({
             <col style={{ width: columnWidths.documents }} />
           </colgroup>
 
-          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+          <thead className="bg-slate-50 text-[12px] uppercase text-slate-500">
             <tr>
               <th className="px-2 py-2">
                 <div className="flex flex-col items-center gap-1">
@@ -929,7 +859,7 @@ export default function AdminOrdersTable({
                 </div>
               </th>
 
-              <th className="px-2 py-2">
+              <th className="px-2 py-2 text-center">
                 <button
                   type="button"
                   onClick={() => onSort('order_number')}
@@ -969,24 +899,98 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-2 py-2">
-                <button
-                  type="button"
-                  onClick={() => onSort('status')}
-                  className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
-                >
-                  Status {sortIndicator('status')}
-                </button>
+              <th className="px-2 py-2 text-center">
+                <div className="relative inline-flex" ref={statusHeaderMenuRef}>
+                  {selectedCount > 0 ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setIsStatusHeaderMenuOpen((previousOpen) => !previousOpen)}
+                        disabled={isBulkUpdatingStatus}
+                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:border-slate-400 disabled:cursor-not-allowed disabled:text-slate-300"
+                        aria-haspopup="menu"
+                        aria-expanded={isStatusHeaderMenuOpen}
+                      >
+                        Status ▾ ({selectedCount})
+                      </button>
+
+                      {isStatusHeaderMenuOpen && (
+                        <div
+                          role="menu"
+                          className="absolute left-1/2 top-8 z-20 w-44 -translate-x-1/2 rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
+                        >
+                          {ORDER_STATUS_OPTIONS.map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              role="menuitem"
+                              onClick={() => handleBulkStatusUpdate(option.value)}
+                              disabled={isBulkUpdatingStatus}
+                              className="block w-full rounded-md px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onSort('status')}
+                      className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
+                    >
+                      Status {sortIndicator('status')}
+                    </button>
+                  )}
+                </div>
               </th>
 
-              <th className="px-2 py-2">
-                <button
-                  type="button"
-                  onClick={() => onSort('payment')}
-                  className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
-                >
-                  Plačilo {sortIndicator('payment')}
-                </button>
+              <th className="px-2 py-2 text-center">
+                <div className="relative inline-flex" ref={paymentHeaderMenuRef}>
+                  {selectedCount > 0 ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setIsPaymentHeaderMenuOpen((previousOpen) => !previousOpen)}
+                        disabled={isBulkUpdatingStatus}
+                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:border-slate-400 disabled:cursor-not-allowed disabled:text-slate-300"
+                        aria-haspopup="menu"
+                        aria-expanded={isPaymentHeaderMenuOpen}
+                      >
+                        Plačilo ▾ ({selectedCount})
+                      </button>
+
+                      {isPaymentHeaderMenuOpen && (
+                        <div
+                          role="menu"
+                          className="absolute left-1/2 top-8 z-20 w-44 -translate-x-1/2 rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
+                        >
+                          {PAYMENT_STATUS_OPTIONS.map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              role="menuitem"
+                              onClick={() => handleBulkPaymentUpdate(option.value)}
+                              disabled={isBulkUpdatingStatus}
+                              className="block w-full rounded-md px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onSort('payment')}
+                      className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
+                    >
+                      Plačilo {sortIndicator('payment')}
+                    </button>
+                  )}
+                </div>
               </th>
 
               <th className="px-2 py-2 text-right">
@@ -999,7 +1003,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-2 py-2">
+              <th className="px-2 py-2 text-center">
                 <button
                   type="button"
                   onClick={() => onSort('created_at')}
@@ -1009,7 +1013,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-2 py-2">PDFs</th>
+              <th className="px-2 py-2 text-center">PDFs</th>
             </tr>
           </thead>
 
@@ -1023,8 +1027,12 @@ export default function AdminOrdersTable({
             ) : (
               filteredAndSortedOrders.map((order, orderIndex) => {
                 const orderAddress = formatOrderAddress(order);
-                const typeShort = getCustomerTypeShortLabel(order.customer_type);
-                const typeFull = getCustomerTypeLabel(order.customer_type);
+                const typeLabel = getCustomerTypeLabel(order.customer_type);
+                const rowStatus = rowStatusOverrides[order.id] ?? order.status;
+                const rowPaymentStatus = rowPaymentOverrides[order.id] ?? order.payment_status ?? null;
+                const isRowSelected = selected.includes(order.id);
+                const canEditStatus = isSingleSelection && isRowSelected;
+                const canEditPayment = isSingleSelection && isRowSelected;
 
                 return (
                   <tr
@@ -1033,7 +1041,7 @@ export default function AdminOrdersTable({
                       orderIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
                     } hover:bg-slate-100/60`}
                   >
-                    <td className="px-2 py-2">
+                    <td className="px-2 py-2 align-middle">
                       <div className="flex justify-center">
                         <input
                           type="checkbox"
@@ -1044,60 +1052,91 @@ export default function AdminOrdersTable({
                       </div>
                     </td>
 
-                    <td className="px-2 py-2 font-semibold text-slate-900">
+                    <td className="px-2 py-2 align-middle text-center font-semibold text-slate-900">
                       <Link
                         href={`/admin/orders/${order.id}`}
-                        className="text-sm font-semibold text-brand-600 hover:text-brand-700"
+                        className="text-[13px] font-semibold text-brand-600 hover:text-brand-700"
                       >
                         {order.order_number}
                       </Link>
                     </td>
 
-                    <td className="px-2 py-2 text-slate-600">
+                    <td className="px-2 py-2 align-middle text-slate-600">
                       <span className="block truncate" title={order.organization_name || order.contact_name}>
                         {order.organization_name || order.contact_name}
                       </span>
                     </td>
 
-                    <td className="px-2 py-2 text-slate-600">
+                    <td className="px-2 py-2 align-middle text-slate-600">
                       <span className="block truncate" title={orderAddress || '—'}>
                         {orderAddress || '—'}
                       </span>
                     </td>
 
-                    <td className="px-2 py-2 text-center text-slate-700" title={typeFull}>
-                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 bg-slate-100 text-xs font-semibold">
-                        {typeShort}
-                      </span>
+                    <td className="px-2 py-2 align-middle text-center text-slate-700">{typeLabel}</td>
+
+                    <td className="px-2 py-2 align-middle text-center text-slate-600">
+                      {selectedCount > 1 ? (
+                        <div className="flex justify-center">
+                          <StatusChip status={rowStatus} />
+                        </div>
+                      ) : (
+                        <AdminOrderStatusSelect
+                          orderId={order.id}
+                          status={rowStatus}
+                          canEdit={canEditStatus}
+                          disabled={isBulkUpdatingStatus}
+                          onStatusSaved={(nextStatus) =>
+                            setRowStatusOverrides((previousOverrides) => ({
+                              ...previousOverrides,
+                              [order.id]: nextStatus
+                            }))
+                          }
+                        />
+                      )}
                     </td>
 
-                    <td className="px-2 py-2 text-slate-600">
-                      <AdminOrderStatusSelect orderId={order.id} status={order.status} />
+                    <td className="px-2 py-2 align-middle text-center">
+                      {selectedCount > 1 ? (
+                        <div className="flex justify-center">
+                          <span
+                            className={`mx-auto inline-flex h-7 min-w-[120px] items-center justify-center rounded-full border px-3 text-xs font-semibold leading-none ${getPaymentBadgeClassName(
+                              rowPaymentStatus
+                            )}`}
+                          >
+                            {getPaymentLabel(rowPaymentStatus)}
+                          </span>
+                        </div>
+                      ) : (
+                        <AdminOrderPaymentSelect
+                          orderId={order.id}
+                          status={rowPaymentStatus}
+                          canEdit={canEditPayment}
+                          disabled={isBulkUpdatingStatus}
+                          onStatusSaved={(nextStatus) =>
+                            setRowPaymentOverrides((previousOverrides) => ({
+                              ...previousOverrides,
+                              [order.id]: nextStatus
+                            }))
+                          }
+                        />
+                      )}
                     </td>
 
-                    <td className="px-2 py-2">
-                      <span
-                        className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getPaymentBadge(
-                          order.payment_status
-                        )}`}
-                      >
-                        {getPaymentLabel(order.payment_status)}
-                      </span>
-                    </td>
-
-                    <td className="px-2 py-2 text-right text-slate-700">
+                    <td className="px-2 py-2 align-middle text-right text-slate-700">
                       {formatCurrency(order.total)}
                     </td>
 
-                    <td className="px-2 py-2 whitespace-nowrap text-slate-600">
-                      {formatDateTime(order.created_at)}
+                    <td className="px-2 py-2 align-middle text-center whitespace-nowrap text-slate-600">
+                      {formatSlDateTime(order.created_at)}
                     </td>
 
-                    <td className="px-2 py-2 align-middle">
+                    <td className="px-2 py-2 align-middle text-center align-middle">
                       <AdminOrdersPdfCell
                         orderId={order.id}
                         documents={documentsByOrder.get(order.id) ?? []}
                         attachments={attachmentsByOrder.get(order.id) ?? []}
+                        interactionsDisabled={isBulkMode}
                       />
                     </td>
                   </tr>
@@ -1106,6 +1145,7 @@ export default function AdminOrdersTable({
             )}
           </tbody>
         </table>
+      </div>
       </div>
     </div>
   );

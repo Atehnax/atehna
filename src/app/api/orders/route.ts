@@ -145,7 +145,7 @@ export async function POST(request: Request) {
         )
         select
           id,
-          'ORD-' || id,
+          'N-' || id,
           $1,
           $2,
           $3,

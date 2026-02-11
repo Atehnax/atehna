@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isPaymentStatus } from '@/lib/paymentStatus';
 import { getPool } from '@/lib/server/db';
 
 export async function POST(
@@ -14,8 +15,8 @@ export async function POST(
     const body = await request.json();
     const { status, note } = body ?? {};
 
-    if (!status) {
-      return NextResponse.json({ message: 'Manjka status plačila.' }, { status: 400 });
+    if (!status || typeof status !== 'string' || !isPaymentStatus(status)) {
+      return NextResponse.json({ message: 'Manjka ali je neveljaven status plačila.' }, { status: 400 });
     }
 
     const pool = await getPool();

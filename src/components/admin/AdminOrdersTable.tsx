@@ -5,7 +5,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
 import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
 import { getCustomerTypeLabel } from '@/lib/customerType';
+import { formatSlDateFromDateInput, formatSlDateTime } from '@/lib/format/dateTime';
 import { getStatusLabel } from '@/lib/orderStatus';
+import { getPaymentBadgeClassName, getPaymentLabel } from '@/lib/paymentStatus';
 
 type OrderRow = {
   id: number;
@@ -139,20 +141,6 @@ const toAmount = (value: unknown): number => {
 
 const formatCurrency = (value: unknown) => currencyFormatter.format(toAmount(value));
 
-const getPaymentBadge = (status?: string | null) => {
-  if (status === 'paid') return 'bg-emerald-100 text-emerald-700';
-  if (status === 'refunded') return 'bg-amber-100 text-amber-700';
-  if (status === 'cancelled') return 'bg-rose-100 text-rose-700';
-  return 'bg-slate-100 text-slate-600';
-};
-
-const getPaymentLabel = (status?: string | null) => {
-  if (status === 'paid') return 'Plačano';
-  if (status === 'refunded') return 'Povrnjeno';
-  if (status === 'cancelled') return 'Preklicano';
-  return 'Neplačano';
-};
-
 const isRefundedOrderStatus = (status: string) => status === 'refunded_returned';
 
 const getMergedOrderStatusValue = (status: string): StatusTab | string =>
@@ -184,29 +172,6 @@ const normalizeForSearch = (value: string) =>
     .trim();
 
 const padTwoDigits = (value: number) => String(value).padStart(2, '0');
-
-const formatDateTime = (value: string) => {
-  const parsedDate = new Date(value);
-  if (Number.isNaN(parsedDate.getTime())) return value;
-
-  const day = padTwoDigits(parsedDate.getDate());
-  const month = padTwoDigits(parsedDate.getMonth() + 1);
-  const year = parsedDate.getFullYear();
-  const hour = padTwoDigits(parsedDate.getHours());
-  const minute = padTwoDigits(parsedDate.getMinutes());
-
-  return `${day}.${month}.${year} ${hour}:${minute}`;
-};
-
-const formatShortDateForButton = (value: string) => {
-  if (!value) return '—';
-  const parsedDate = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(parsedDate.getTime())) return value;
-  const day = padTwoDigits(parsedDate.getDate());
-  const month = padTwoDigits(parsedDate.getMonth() + 1);
-  const year = parsedDate.getFullYear();
-  return `${day}.${month}.${year}`;
-};
 
 const toDateInputValue = (dateValue: Date) =>
   `${dateValue.getFullYear()}-${padTwoDigits(dateValue.getMonth() + 1)}-${padTwoDigits(
@@ -602,7 +567,7 @@ export default function AdminOrdersTable({
 
   const dateRangeLabel =
     fromDate || toDate
-      ? `${formatShortDateForButton(fromDate)} - ${formatShortDateForButton(toDate)}`
+      ? `${formatSlDateFromDateInput(fromDate)} - ${formatSlDateFromDateInput(toDate)}`
       : 'Izberi interval';
 
   const handleApplyDocuments = () => {
@@ -1077,7 +1042,7 @@ export default function AdminOrdersTable({
 
                     <td className="px-2 py-2">
                       <span
-                        className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getPaymentBadge(
+                        className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getPaymentBadgeClassName(
                           order.payment_status
                         )}`}
                       >
@@ -1090,7 +1055,7 @@ export default function AdminOrdersTable({
                     </td>
 
                     <td className="px-2 py-2 whitespace-nowrap text-slate-600">
-                      {formatDateTime(order.created_at)}
+                      {formatSlDateTime(order.created_at)}
                     </td>
 
                     <td className="px-2 py-2 align-middle">

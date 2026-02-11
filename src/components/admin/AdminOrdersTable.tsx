@@ -1175,7 +1175,7 @@ export default function AdminOrdersTable({
                       {formatCurrency(order.total)}
                     </td>
 
-                    <td className="px-2 py-2 align-middle text-center align-middle pr-4" data-no-row-nav>
+                    <td className="px-2 py-2 align-middle text-left align-middle pr-4" data-no-row-nav>
                       <AdminOrdersPdfCell
                         orderId={order.id}
                         documents={documentsByOrder.get(order.id) ?? []}

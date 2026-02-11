@@ -105,8 +105,8 @@ export default function AdminOrdersPdfCell({
   };
 
   return (
-    <div className="inline-flex items-center justify-center" ref={versionsMenuRef} data-no-row-nav>
-      <div className="grid grid-cols-[62px_78px_68px_74px_52px_16px] items-center gap-0 whitespace-nowrap">
+    <div className="inline-flex items-center justify-start" ref={versionsMenuRef} data-no-row-nav>
+      <div className="grid grid-cols-[auto_auto_auto_auto_auto_16px] items-center gap-[0.5px] whitespace-nowrap">
         {pdfTypes.map((pdfType) => {
           const options = groupedDocuments[pdfType.key];
           const latestDocument = options[0];
@@ -117,7 +117,7 @@ export default function AdminOrdersPdfCell({
             'relative inline-flex h-6 items-center justify-center whitespace-nowrap rounded-md border border-slate-200 bg-white px-1.5 text-[10px] font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50';
 
           return (
-            <div key={pdfType.key} className="flex justify-center">
+            <div key={pdfType.key} className="flex justify-start">
               {latestDocument ? (
                 <a
                   data-no-row-nav

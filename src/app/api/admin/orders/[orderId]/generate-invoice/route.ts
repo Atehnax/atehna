@@ -38,7 +38,7 @@ export async function POST(
         deliveryAddress: order.delivery_address,
         reference: order.reference,
         notes: order.notes,
-        createdAt: new Date(order.created_at),
+        createdAt: new Date(),
         subtotal: Number(order.subtotal),
         tax: Number(order.tax),
         total: Number(order.total)

@@ -106,7 +106,7 @@ export default function AdminOrdersPdfCell({
 
   return (
     <div className="inline-flex items-center justify-start" ref={versionsMenuRef} data-no-row-nav>
-      <div className="grid grid-cols-[auto_auto_auto_auto_auto_16px] items-center gap-[0.5px] whitespace-nowrap">
+      <div className="grid grid-cols-[auto_auto_auto_auto_auto_16px] items-center gap-[1px] whitespace-nowrap">
         {pdfTypes.map((pdfType) => {
           const options = groupedDocuments[pdfType.key];
           const latestDocument = options[0];
@@ -230,9 +230,35 @@ export default function AdminOrdersPdfCell({
                       </div>
 
                       {latestDocument ? (
-                        <div className="mt-1.5 text-[10px] text-slate-600">
-                          <span className="font-semibold">v{options.length} (zadnja)</span>
-                          <span className="ml-2">{formatDateTimeCompact(latestDocument.created_at)}</span>
+                        <div className="mt-1.5 space-y-1 text-[10px] text-slate-600">
+                          <div>
+                            <span className="font-semibold">v{options.length} (zadnja)</span>
+                            <span className="ml-2">{formatDateTimeCompact(latestDocument.created_at)}</span>
+                          </div>
+
+                          <div className="space-y-1 rounded-md border border-slate-200 bg-white p-1">
+                            {options.map((documentOption, index) => {
+                              const versionNumber = options.length - index;
+                              return (
+                                <a
+                                  key={`${pdfType.key}-${documentOption.blob_url}-${documentOption.created_at}`}
+                                  data-no-row-nav
+                                  href={documentOption.blob_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  onClick={() => setIsVersionsMenuOpen(false)}
+                                  role="menuitem"
+                                  className="flex items-center justify-between rounded px-1 py-0.5 text-[10px] text-slate-700 hover:bg-slate-50"
+                                  title={documentOption.filename}
+                                >
+                                  <span className="font-medium">v{versionNumber}</span>
+                                  <span className="truncate text-slate-500">
+                                    {formatDateTimeCompact(documentOption.created_at)}
+                                  </span>
+                                </a>
+                              );
+                            })}
+                          </div>
                         </div>
                       ) : (
                         <div className="mt-1.5 text-[10px] text-slate-400">Ni shranjenih verzij.</div>

@@ -8,8 +8,8 @@ const ALLOWED_TYPES = ['application/pdf', 'image/jpeg'];
 function parseOrderId(value: string) {
   const trimmed = value.trim();
   if (!trimmed) return null;
-  if (trimmed.toUpperCase().startsWith('ORD-')) {
-    const numeric = trimmed.slice(4);
+  if (trimmed.toUpperCase().startsWith('ORD-') || trimmed.toUpperCase().startsWith('N-')) {
+    const numeric = trimmed.slice(trimmed.indexOf('-') + 1);
     const parsed = Number(numeric);
     return Number.isFinite(parsed) ? parsed : null;
   }
@@ -30,7 +30,7 @@ export default function PurchaseOrderUploadForm() {
 
     const orderId = parseOrderId(orderNumber);
     if (!orderId) {
-      setMessage('Vnesite veljavno številko naročila (npr. ORD-123).');
+      setMessage('Vnesite veljavno številko naročila (npr. N-123).');
       return;
     }
 
@@ -87,7 +87,7 @@ export default function PurchaseOrderUploadForm() {
           id="orderNumber"
           value={orderNumber}
           onChange={(event) => setOrderNumber(event.target.value)}
-          placeholder="ORD-123"
+          placeholder="N-123"
           className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
         />
       </div>

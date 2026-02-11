@@ -5,228 +5,34 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
 import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
 import { getCustomerTypeLabel } from '@/lib/customerType';
-import { getStatusLabel } from '@/lib/orderStatus';
+import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
+import { formatSlDateFromDateInput, formatSlDateTime } from '@/lib/format/dateTime';
+import { getPaymentBadgeClassName, getPaymentLabel } from '@/lib/paymentStatus';
 
-type OrderRow = {
-  id: number;
-  order_number: string;
-  customer_type: string;
-  organization_name: string | null;
-  contact_name: string;
-  status: string;
-  payment_status?: string | null;
-  total: number | string | null;
-  created_at: string;
-  delivery_address?: string | null;
-  address_line1?: string | null;
-  city?: string | null;
-  postal_code?: string | null;
-};
-
-type PdfDoc = {
-  id: number;
-  order_id: number;
-  type: string;
-  filename: string;
-  blob_url: string;
-  created_at: string;
-};
-
-type Attachment = {
-  id: number;
-  order_id: number;
-  type: string;
-  filename: string;
-  blob_url: string;
-  created_at: string;
-};
-
-type SortKey =
-  | 'order_number'
-  | 'customer'
-  | 'address'
-  | 'type'
-  | 'status'
-  | 'payment'
-  | 'total'
-  | 'created_at';
-
-type SortDirection = 'asc' | 'desc';
-
-type StatusTab =
-  | 'all'
-  | 'received'
-  | 'in_progress'
-  | 'sent'
-  | 'partially_sent'
-  | 'finished'
-  | 'cancelled'
-  | 'refunded';
-
-type DocumentType =
-  | 'all'
-  | 'order_summary'
-  | 'predracun'
-  | 'dobavnica'
-  | 'invoice'
-  | 'purchase_order';
-
-type UnifiedDocument = {
-  order_id: number;
-  type: string;
-  filename: string;
-  blob_url: string;
-  created_at: string;
-  typeLabel: string;
-};
-
-const currencyFormatter = new Intl.NumberFormat('sl-SI', {
-  style: 'currency',
-  currency: 'EUR'
-});
-
-const textCollator = new Intl.Collator('sl', { sensitivity: 'base', numeric: true });
-
-const documentTypeOptions: Array<{ value: DocumentType; label: string }> = [
-  { value: 'all', label: 'Vse vrste' },
-  { value: 'order_summary', label: 'Povzetek naročila' },
-  { value: 'predracun', label: 'Predračun' },
-  { value: 'dobavnica', label: 'Dobavnica' },
-  { value: 'invoice', label: 'Račun' },
-  { value: 'purchase_order', label: 'Naročilnica' }
-];
-
-const documentTypeLabelMap: Map<string, string> = new Map(
-  documentTypeOptions.map((documentTypeOption) => [documentTypeOption.value, documentTypeOption.label])
-);
-
-const statusTabs: Array<{ value: StatusTab; label: string }> = [
-  { value: 'all', label: 'Vsa' },
-  { value: 'received', label: 'Prejeto' },
-  { value: 'in_progress', label: 'V obdelavi' },
-  { value: 'sent', label: 'Poslano' },
-  { value: 'partially_sent', label: 'Delno poslano' },
-  { value: 'finished', label: 'Zaključeno' },
-  { value: 'cancelled', label: 'Preklicano' },
-  { value: 'refunded', label: 'Povrnjeno' }
-];
-
-// percentages to avoid horizontal scroll and keep stable layout
-const columnWidths = {
-  selectAndDelete: '4%',
-  order: '7%',
-  customer: '15%',
-  address: '20%',
-  type: '5%',
-  status: '14%',
-  payment: '9%',
-  total: '8%',
-  date: '10%',
-  documents: '8%'
-};
-
-const toAmount = (value: unknown): number => {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
-
-  if (typeof value === 'string') {
-    const normalizedValue = value.replace(',', '.').trim();
-    const parsedValue = Number(normalizedValue);
-    if (Number.isFinite(parsedValue)) return parsedValue;
-  }
-
-  return 0;
-};
-
-const formatCurrency = (value: unknown) => currencyFormatter.format(toAmount(value));
-
-const getPaymentBadge = (status?: string | null) => {
-  if (status === 'paid') return 'bg-emerald-100 text-emerald-700';
-  if (status === 'refunded') return 'bg-amber-100 text-amber-700';
-  if (status === 'cancelled') return 'bg-rose-100 text-rose-700';
-  return 'bg-slate-100 text-slate-600';
-};
-
-const getPaymentLabel = (status?: string | null) => {
-  if (status === 'paid') return 'Plačano';
-  if (status === 'refunded') return 'Povrnjeno';
-  if (status === 'cancelled') return 'Preklicano';
-  return 'Neplačano';
-};
-
-const isRefundedOrderStatus = (status: string) => status === 'refunded_returned';
-
-const getMergedOrderStatusValue = (status: string): StatusTab | string =>
-  isRefundedOrderStatus(status) ? 'refunded' : status;
-
-const getOrderStatusLabelForUi = (status: string) => {
-  if (isRefundedOrderStatus(status)) return 'Povrnjeno';
-  if (status === 'partially_sent') return 'Delno poslano';
-  return getStatusLabel(status);
-};
-
-const formatOrderAddress = (order: OrderRow) => {
-  const deliveryAddress = (order.delivery_address ?? '').trim();
-  if (deliveryAddress) return deliveryAddress;
-
-  const addressLine1 = (order.address_line1 ?? '').trim();
-  const city = (order.city ?? '').trim();
-  const postalCode = (order.postal_code ?? '').trim();
-
-  const cityAndPostalCode = [postalCode, city].filter(Boolean).join(' ');
-  return [addressLine1, cityAndPostalCode].filter(Boolean).join(', ');
-};
-
-const normalizeForSearch = (value: string) =>
-  value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
-
-const padTwoDigits = (value: number) => String(value).padStart(2, '0');
-
-const formatDateTime = (value: string) => {
-  const parsedDate = new Date(value);
-  if (Number.isNaN(parsedDate.getTime())) return value;
-
-  const day = padTwoDigits(parsedDate.getDate());
-  const month = padTwoDigits(parsedDate.getMonth() + 1);
-  const year = parsedDate.getFullYear();
-  const hour = padTwoDigits(parsedDate.getHours());
-  const minute = padTwoDigits(parsedDate.getMinutes());
-
-  return `${day}.${month}.${year} ${hour}:${minute}`;
-};
-
-const formatShortDateForButton = (value: string) => {
-  if (!value) return '—';
-  const parsedDate = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(parsedDate.getTime())) return value;
-  const day = padTwoDigits(parsedDate.getDate());
-  const month = padTwoDigits(parsedDate.getMonth() + 1);
-  const year = parsedDate.getFullYear();
-  return `${day}.${month}.${year}`;
-};
-
-const toDateInputValue = (dateValue: Date) =>
-  `${dateValue.getFullYear()}-${padTwoDigits(dateValue.getMonth() + 1)}-${padTwoDigits(
-    dateValue.getDate()
-  )}`;
-
-const shiftDateByDays = (dateValue: Date, dayShift: number) => {
-  const clonedDate = new Date(dateValue);
-  clonedDate.setDate(clonedDate.getDate() + dayShift);
-  return clonedDate;
-};
-
-const getCustomerTypeShortLabel = (customerType: string) => {
-  const normalizedType = normalizeForSearch(customerType);
-
-  if (normalizedType === 'company' || normalizedType.includes('podjet')) return 'P';
-  if (normalizedType === 'school' || normalizedType.includes('sola') || normalizedType.includes('javni'))
-    return 'Š';
-  return 'F';
-};
+import {
+  type Attachment,
+  type DocumentType,
+  type OrderRow,
+  type PdfDoc,
+  type SortDirection,
+  type SortKey,
+  type StatusTab,
+  type UnifiedDocument,
+  columnWidths,
+  documentTypeLabelMap,
+  documentTypeOptions,
+  formatCurrency,
+  formatOrderAddress,
+  getMergedOrderStatusValue,
+  getOrderStatusLabelForUi,
+  formatOrderNumberForDisplay,
+  normalizeForSearch,
+  shiftDateByDays,
+  statusTabs,
+  textCollator,
+  toAmount,
+  toDateInputValue
+} from '@/components/admin/adminOrdersTableUtils';
 
 export default function AdminOrdersTable({
   orders,
@@ -239,6 +45,8 @@ export default function AdminOrdersTable({
 }) {
   const [selected, setSelected] = useState<number[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [bulkStatus, setBulkStatus] = useState<string>(ORDER_STATUS_OPTIONS[0].value);
+  const [isBulkUpdatingStatus, setIsBulkUpdatingStatus] = useState(false);
 
   const [statusFilter, setStatusFilter] = useState<StatusTab>('all');
   const [query, setQuery] = useState('');
@@ -422,7 +230,7 @@ export default function AdminOrdersTable({
       const paymentLabel = getPaymentLabel(order.payment_status);
 
       const orderSearchBlob = normalizeForSearch(
-        [order.order_number, customerLabel, addressLabel, typeLabel, statusLabel, paymentLabel]
+        [formatOrderNumberForDisplay(order.order_number), customerLabel, addressLabel, typeLabel, statusLabel, paymentLabel]
           .filter(Boolean)
           .join(' ')
       );
@@ -465,8 +273,8 @@ export default function AdminOrdersTable({
 
       switch (sortKey) {
         case 'order_number':
-          leftValue = leftOrder.order_number;
-          rightValue = rightOrder.order_number;
+          leftValue = formatOrderNumberForDisplay(leftOrder.order_number);
+          rightValue = formatOrderNumberForDisplay(rightOrder.order_number);
           break;
         case 'customer':
           leftValue = leftOrder.organization_name || leftOrder.contact_name || '';
@@ -532,11 +340,26 @@ export default function AdminOrdersTable({
   );
 
   const allSelected = visibleOrderIds.length > 0 && selectedVisibleCount === visibleOrderIds.length;
+  const selectedCount = selected.length;
+  const isBulkMode = selectedCount > 0;
+  const isSingleSelection = selectedCount === 1;
+
+  const [rowStatusOverrides, setRowStatusOverrides] = useState<Record<number, string>>({});
 
   useEffect(() => {
     if (!selectAllRef.current) return;
     selectAllRef.current.indeterminate = selectedVisibleCount > 0 && !allSelected;
   }, [allSelected, selectedVisibleCount]);
+
+
+  useEffect(() => {
+    const validIds = new Set(orders.map((order) => order.id));
+    setRowStatusOverrides((previousOverrides) =>
+      Object.fromEntries(
+        Object.entries(previousOverrides).filter(([orderId]) => validIds.has(Number(orderId)))
+      )
+    );
+  }, [orders]);
 
   const toggleSelected = (orderId: number) => {
     setSelected((previousSelected) =>
@@ -581,6 +404,34 @@ export default function AdminOrdersTable({
     }
   };
 
+
+  const handleBulkStatusUpdate = async () => {
+    if (selected.length === 0) return;
+
+    setIsBulkUpdatingStatus(true);
+    try {
+      await Promise.all(
+        selected.map((orderId) =>
+          fetch(`/api/admin/orders/${orderId}/status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: bulkStatus })
+          })
+        )
+      );
+
+      setRowStatusOverrides((previousOverrides) => {
+        const nextOverrides = { ...previousOverrides };
+        selected.forEach((orderId) => {
+          nextOverrides[orderId] = bulkStatus;
+        });
+        return nextOverrides;
+      });
+    } finally {
+      setIsBulkUpdatingStatus(false);
+    }
+  };
+
   const onSort = (nextSortKey: SortKey) => {
     if (sortKey === nextSortKey) {
       setSortDirection((previousDirection) => (previousDirection === 'asc' ? 'desc' : 'asc'));
@@ -602,7 +453,7 @@ export default function AdminOrdersTable({
 
   const dateRangeLabel =
     fromDate || toDate
-      ? `${formatShortDateForButton(fromDate)} - ${formatShortDateForButton(toDate)}`
+      ? `${formatSlDateFromDateInput(fromDate)} - ${formatSlDateFromDateInput(toDate)}`
       : 'Izberi interval';
 
   const handleApplyDocuments = () => {
@@ -651,7 +502,7 @@ export default function AdminOrdersTable({
         documentsBySelectedType.forEach((documentItem) => {
           filesToDownload.push({
             url: documentItem.blob_url,
-            filename: `${order.order_number}-${documentItem.filename}`
+            filename: `${formatOrderNumberForDisplay(order.order_number)}-${documentItem.filename}`
           });
         });
       });
@@ -892,6 +743,37 @@ export default function AdminOrdersTable({
         })}
       </div>
 
+
+      {isBulkMode && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+          <span className="text-sm font-medium text-slate-700">Izbrano: {selectedCount}</span>
+          <label className="text-xs font-semibold uppercase text-slate-500" htmlFor="bulk-status-select">
+            Spremeni status
+          </label>
+          <select
+            id="bulk-status-select"
+            value={bulkStatus}
+            onChange={(event) => setBulkStatus(event.target.value)}
+            disabled={isBulkUpdatingStatus}
+            className="h-9 rounded-lg border border-slate-300 px-3 text-sm disabled:bg-slate-100 disabled:text-slate-400"
+          >
+            {ORDER_STATUS_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={handleBulkStatusUpdate}
+            disabled={isBulkUpdatingStatus}
+            className="h-9 rounded-full bg-brand-600 px-4 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+          >
+            {isBulkUpdatingStatus ? 'Posodabljam...' : 'Spremeni status'}
+          </button>
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full table-fixed text-left text-sm">
           <colgroup>
@@ -1023,8 +905,9 @@ export default function AdminOrdersTable({
             ) : (
               filteredAndSortedOrders.map((order, orderIndex) => {
                 const orderAddress = formatOrderAddress(order);
-                const typeShort = getCustomerTypeShortLabel(order.customer_type);
-                const typeFull = getCustomerTypeLabel(order.customer_type);
+                const typeLabel = getCustomerTypeLabel(order.customer_type);
+                const rowStatus = rowStatusOverrides[order.id] ?? order.status;
+                const canEditStatus = isSingleSelection && selected.includes(order.id);
 
                 return (
                   <tr
@@ -1039,7 +922,7 @@ export default function AdminOrdersTable({
                           type="checkbox"
                           checked={selected.includes(order.id)}
                           onChange={() => toggleSelected(order.id)}
-                          aria-label={`Izberi naročilo ${order.order_number}`}
+                          aria-label={`Izberi naročilo ${formatOrderNumberForDisplay(order.order_number)}`}
                         />
                       </div>
                     </td>
@@ -1049,7 +932,7 @@ export default function AdminOrdersTable({
                         href={`/admin/orders/${order.id}`}
                         className="text-sm font-semibold text-brand-600 hover:text-brand-700"
                       >
-                        {order.order_number}
+                        {formatOrderNumberForDisplay(order.order_number)}
                       </Link>
                     </td>
 
@@ -1065,19 +948,30 @@ export default function AdminOrdersTable({
                       </span>
                     </td>
 
-                    <td className="px-2 py-2 text-center text-slate-700" title={typeFull}>
-                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 bg-slate-100 text-xs font-semibold">
-                        {typeShort}
+                    <td className="px-2 py-2 text-slate-700">
+                      <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold">
+                        {typeLabel}
                       </span>
                     </td>
 
                     <td className="px-2 py-2 text-slate-600">
-                      <AdminOrderStatusSelect orderId={order.id} status={order.status} />
+                      <AdminOrderStatusSelect
+                        orderId={order.id}
+                        status={rowStatus}
+                        canEdit={canEditStatus}
+                        disabled={isBulkUpdatingStatus}
+                        onStatusSaved={(nextStatus) =>
+                          setRowStatusOverrides((previousOverrides) => ({
+                            ...previousOverrides,
+                            [order.id]: nextStatus
+                          }))
+                        }
+                      />
                     </td>
 
                     <td className="px-2 py-2">
                       <span
-                        className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getPaymentBadge(
+                        className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${getPaymentBadgeClassName(
                           order.payment_status
                         )}`}
                       >
@@ -1090,7 +984,7 @@ export default function AdminOrdersTable({
                     </td>
 
                     <td className="px-2 py-2 whitespace-nowrap text-slate-600">
-                      {formatDateTime(order.created_at)}
+                      {formatSlDateTime(order.created_at)}
                     </td>
 
                     <td className="px-2 py-2 align-middle">
@@ -1098,6 +992,7 @@ export default function AdminOrdersTable({
                         orderId={order.id}
                         documents={documentsByOrder.get(order.id) ?? []}
                         attachments={attachmentsByOrder.get(order.id) ?? []}
+                        interactionsDisabled={isBulkMode}
                       />
                     </td>
                   </tr>

@@ -7,6 +7,7 @@ import {
   type PdfDocument,
   formatDateTimeCompact,
   groupDocumentsByType,
+  isGenerateKey,
   pdfTypes,
   routeMap
 } from '@/components/admin/adminOrdersPdfCellUtils';
@@ -14,6 +15,13 @@ import {
 const getVersionsLabel = (count: number) => {
   if (count <= 1) return '';
   return `v${count}`;
+};
+
+const getVersionsWord = (count: number) => {
+  if (count === 1) return 'verzija';
+  if (count === 2) return 'verziji';
+  if (count === 3 || count === 4) return 'verzije';
+  return 'verzij';
 };
 
 export default function AdminOrdersPdfCell({
@@ -123,7 +131,7 @@ export default function AdminOrdersPdfCell({
             >
               <span>{pdfType.label}</span>
               {versionBadge && (
-                <span className="rounded-sm bg-slate-100 px-1 py-0 text-[10px] font-semibold leading-none text-slate-600">
+                <span className="rounded-sm bg-slate-100 px-1 py-0 text-[9px] font-semibold leading-none text-slate-600">
                   {versionBadge}
                 </span>
               )}
@@ -159,57 +167,87 @@ export default function AdminOrdersPdfCell({
         <button
           type="button"
           onClick={() => setIsVersionsMenuOpen((previousValue) => !previousValue)}
-          disabled={interactionsDisabled || !hasAnyVersions}
+          disabled={interactionsDisabled}
           aria-haspopup="menu"
           aria-expanded={isVersionsMenuOpen}
           aria-label="Odpri meni verzij PDF dokumentov"
-          className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 bg-white text-[11px] text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+          className="inline-flex h-6 w-5 items-center justify-center rounded-md border border-slate-200 bg-white text-[12px] leading-none text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:cursor-not-allowed disabled:text-slate-300"
         >
-          ☰
+          ⋮
         </button>
 
         {isVersionsMenuOpen && (
           <div
             role="menu"
-            className="absolute right-0 top-7 z-30 w-80 rounded-lg border border-slate-200 bg-white p-2 shadow-lg"
+            className="absolute right-0 top-7 z-30 w-[340px] rounded-lg border border-slate-200 bg-white p-2 shadow-lg"
           >
-            <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+            <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
               {pdfTypes.map((pdfType) => {
                 const options = groupedDocuments[pdfType.key];
-                if (options.length === 0) return null;
+                const latestDocument = options[0];
+                const generateKey = isGenerateKey(pdfType.key) ? pdfType.key : null;
+                const isGeneratingThisType = loadingType === generateKey;
 
                 return (
-                  <section key={pdfType.key} className="border-b border-slate-100 pb-2 last:border-b-0 last:pb-0">
-                    <p className="mb-1 text-[10px] font-semibold uppercase text-slate-500">{pdfType.label}</p>
-                    <div className="space-y-1">
-                      {options.map((documentOption, index) => {
-                        const version = options.length - index;
-                        return (
+                  <section
+                    key={pdfType.key}
+                    className="rounded-lg border border-slate-200 bg-slate-50/60 px-2 py-1.5"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-700">
+                            {pdfType.label}
+                          </span>
+                          <span className="text-[10px] text-slate-600">
+                            {options.length > 0 ? `${options.length} ${getVersionsWord(options.length)}` : 'Brez dokumenta'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        {latestDocument && (
                           <a
-                            key={`${pdfType.key}-${documentOption.created_at}-${documentOption.blob_url}`}
-                            href={documentOption.blob_url}
+                            href={latestDocument.blob_url}
                             target="_blank"
                             rel="noreferrer"
                             onClick={() => setIsVersionsMenuOpen(false)}
                             role="menuitem"
-                            className="block rounded-md border border-slate-100 px-2 py-1.5 text-[11px] text-slate-700 transition hover:bg-slate-50"
-                            title={documentOption.filename}
+                            className="inline-flex h-6 items-center rounded-md border border-slate-300 bg-white px-1.5 text-[10px] font-medium text-slate-700 transition hover:border-slate-400"
                           >
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-semibold">v{version}</span>
-                              <span className="text-[10px] text-slate-500">
-                                {formatDateTimeCompact(documentOption.created_at)}
-                              </span>
-                            </div>
-                            <p className="truncate text-[10px] text-slate-500">{documentOption.filename}</p>
+                            Odpri
                           </a>
-                        );
-                      })}
+                        )}
+
+                        {generateKey && (
+                          <button
+                            type="button"
+                            onClick={() => handleGenerate(generateKey)}
+                            disabled={interactionsDisabled || isGeneratingThisType}
+                            className="inline-flex h-6 items-center rounded-md border border-slate-300 bg-white px-1.5 text-[10px] font-medium text-slate-700 transition hover:border-slate-400 disabled:cursor-not-allowed disabled:text-slate-300"
+                          >
+                            {isGeneratingThisType ? '…' : options.length > 0 ? 'Nova verzija' : 'Ustvari'}
+                          </button>
+                        )}
+                      </div>
                     </div>
+
+                    {latestDocument ? (
+                      <div className="mt-1.5 text-[10px] text-slate-600">
+                        <span className="font-semibold">v{options.length} (zadnja)</span>
+                        <span className="ml-2">{formatDateTimeCompact(latestDocument.created_at)}</span>
+                      </div>
+                    ) : (
+                      <div className="mt-1.5 text-[10px] text-slate-400">Ni shranjenih verzij.</div>
+                    )}
                   </section>
                 );
               })}
             </div>
+
+            {!hasAnyVersions && (
+              <p className="mt-1 text-[10px] text-slate-400">Ni še shranjenih dokumentov.</p>
+            )}
           </div>
         )}
       </div>

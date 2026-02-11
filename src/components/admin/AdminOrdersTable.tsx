@@ -6,10 +6,11 @@ import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
 import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
 import AdminOrderPaymentSelect from '@/components/admin/AdminOrderPaymentSelect';
 import StatusChip from '@/components/admin/StatusChip';
+import PaymentChip from '@/components/admin/PaymentChip';
 import { getCustomerTypeLabel } from '@/lib/customerType';
 import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
-import { formatSlDateFromDateInput, formatSlDateTime } from '@/lib/format/dateTime';
-import { PAYMENT_STATUS_OPTIONS, getPaymentBadgeClassName, getPaymentLabel, isPaymentStatus } from '@/lib/paymentStatus';
+import { formatSlDate, formatSlDateFromDateInput, formatSlDateTime } from '@/lib/format/dateTime';
+import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, isPaymentStatus } from '@/lib/paymentStatus';
 
 import {
   type Attachment,
@@ -1099,13 +1100,7 @@ export default function AdminOrdersTable({
                     <td className="px-2 py-2 align-middle text-center">
                       {selectedCount > 1 ? (
                         <div className="flex justify-center">
-                          <span
-                            className={`mx-auto inline-flex h-7 min-w-[120px] items-center justify-center rounded-full border px-3 text-xs font-semibold leading-none ${getPaymentBadgeClassName(
-                              rowPaymentStatus
-                            )}`}
-                          >
-                            {getPaymentLabel(rowPaymentStatus)}
-                          </span>
+                          <PaymentChip status={rowPaymentStatus} />
                         </div>
                       ) : (
                         <AdminOrderPaymentSelect
@@ -1128,7 +1123,14 @@ export default function AdminOrdersTable({
                     </td>
 
                     <td className="px-2 py-2 align-middle text-center whitespace-nowrap text-slate-600">
-                      {formatSlDateTime(order.created_at)}
+                      <span
+                        className="inline-block rounded-sm px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+                        title={formatSlDateTime(order.created_at)}
+                        aria-label={`Datum naročila ${formatSlDateTime(order.created_at)}`}
+                        tabIndex={0}
+                      >
+                        {formatSlDate(order.created_at)}
+                      </span>
                     </td>
 
                     <td className="px-2 py-2 align-middle text-center align-middle">
@@ -1136,7 +1138,7 @@ export default function AdminOrdersTable({
                         orderId={order.id}
                         documents={documentsByOrder.get(order.id) ?? []}
                         attachments={attachmentsByOrder.get(order.id) ?? []}
-                        interactionsDisabled={isBulkMode}
+                        interactionsDisabled={false}
                       />
                     </td>
                   </tr>

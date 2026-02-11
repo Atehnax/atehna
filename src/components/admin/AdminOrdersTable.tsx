@@ -5,228 +5,33 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
 import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
 import { getCustomerTypeLabel } from '@/lib/customerType';
-import { getStatusLabel } from '@/lib/orderStatus';
+import { formatSlDateFromDateInput, formatSlDateTime } from '@/lib/format/dateTime';
+import { getPaymentBadgeClassName, getPaymentLabel } from '@/lib/paymentStatus';
 
-type OrderRow = {
-  id: number;
-  order_number: string;
-  customer_type: string;
-  organization_name: string | null;
-  contact_name: string;
-  status: string;
-  payment_status?: string | null;
-  total: number | string | null;
-  created_at: string;
-  delivery_address?: string | null;
-  address_line1?: string | null;
-  city?: string | null;
-  postal_code?: string | null;
-};
-
-type PdfDoc = {
-  id: number;
-  order_id: number;
-  type: string;
-  filename: string;
-  blob_url: string;
-  created_at: string;
-};
-
-type Attachment = {
-  id: number;
-  order_id: number;
-  type: string;
-  filename: string;
-  blob_url: string;
-  created_at: string;
-};
-
-type SortKey =
-  | 'order_number'
-  | 'customer'
-  | 'address'
-  | 'type'
-  | 'status'
-  | 'payment'
-  | 'total'
-  | 'created_at';
-
-type SortDirection = 'asc' | 'desc';
-
-type StatusTab =
-  | 'all'
-  | 'received'
-  | 'in_progress'
-  | 'sent'
-  | 'partially_sent'
-  | 'finished'
-  | 'cancelled'
-  | 'refunded';
-
-type DocumentType =
-  | 'all'
-  | 'order_summary'
-  | 'predracun'
-  | 'dobavnica'
-  | 'invoice'
-  | 'purchase_order';
-
-type UnifiedDocument = {
-  order_id: number;
-  type: string;
-  filename: string;
-  blob_url: string;
-  created_at: string;
-  typeLabel: string;
-};
-
-const currencyFormatter = new Intl.NumberFormat('sl-SI', {
-  style: 'currency',
-  currency: 'EUR'
-});
-
-const textCollator = new Intl.Collator('sl', { sensitivity: 'base', numeric: true });
-
-const documentTypeOptions: Array<{ value: DocumentType; label: string }> = [
-  { value: 'all', label: 'Vse vrste' },
-  { value: 'order_summary', label: 'Povzetek naročila' },
-  { value: 'predracun', label: 'Predračun' },
-  { value: 'dobavnica', label: 'Dobavnica' },
-  { value: 'invoice', label: 'Račun' },
-  { value: 'purchase_order', label: 'Naročilnica' }
-];
-
-const documentTypeLabelMap: Map<string, string> = new Map(
-  documentTypeOptions.map((documentTypeOption) => [documentTypeOption.value, documentTypeOption.label])
-);
-
-const statusTabs: Array<{ value: StatusTab; label: string }> = [
-  { value: 'all', label: 'Vsa' },
-  { value: 'received', label: 'Prejeto' },
-  { value: 'in_progress', label: 'V obdelavi' },
-  { value: 'sent', label: 'Poslano' },
-  { value: 'partially_sent', label: 'Delno poslano' },
-  { value: 'finished', label: 'Zaključeno' },
-  { value: 'cancelled', label: 'Preklicano' },
-  { value: 'refunded', label: 'Povrnjeno' }
-];
-
-// percentages to avoid horizontal scroll and keep stable layout
-const columnWidths = {
-  selectAndDelete: '4%',
-  order: '7%',
-  customer: '15%',
-  address: '20%',
-  type: '5%',
-  status: '14%',
-  payment: '9%',
-  total: '8%',
-  date: '10%',
-  documents: '8%'
-};
-
-const toAmount = (value: unknown): number => {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
-
-  if (typeof value === 'string') {
-    const normalizedValue = value.replace(',', '.').trim();
-    const parsedValue = Number(normalizedValue);
-    if (Number.isFinite(parsedValue)) return parsedValue;
-  }
-
-  return 0;
-};
-
-const formatCurrency = (value: unknown) => currencyFormatter.format(toAmount(value));
-
-const getPaymentBadge = (status?: string | null) => {
-  if (status === 'paid') return 'bg-emerald-100 text-emerald-700';
-  if (status === 'refunded') return 'bg-amber-100 text-amber-700';
-  if (status === 'cancelled') return 'bg-rose-100 text-rose-700';
-  return 'bg-slate-100 text-slate-600';
-};
-
-const getPaymentLabel = (status?: string | null) => {
-  if (status === 'paid') return 'Plačano';
-  if (status === 'refunded') return 'Povrnjeno';
-  if (status === 'cancelled') return 'Preklicano';
-  return 'Neplačano';
-};
-
-const isRefundedOrderStatus = (status: string) => status === 'refunded_returned';
-
-const getMergedOrderStatusValue = (status: string): StatusTab | string =>
-  isRefundedOrderStatus(status) ? 'refunded' : status;
-
-const getOrderStatusLabelForUi = (status: string) => {
-  if (isRefundedOrderStatus(status)) return 'Povrnjeno';
-  if (status === 'partially_sent') return 'Delno poslano';
-  return getStatusLabel(status);
-};
-
-const formatOrderAddress = (order: OrderRow) => {
-  const deliveryAddress = (order.delivery_address ?? '').trim();
-  if (deliveryAddress) return deliveryAddress;
-
-  const addressLine1 = (order.address_line1 ?? '').trim();
-  const city = (order.city ?? '').trim();
-  const postalCode = (order.postal_code ?? '').trim();
-
-  const cityAndPostalCode = [postalCode, city].filter(Boolean).join(' ');
-  return [addressLine1, cityAndPostalCode].filter(Boolean).join(', ');
-};
-
-const normalizeForSearch = (value: string) =>
-  value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
-
-const padTwoDigits = (value: number) => String(value).padStart(2, '0');
-
-const formatDateTime = (value: string) => {
-  const parsedDate = new Date(value);
-  if (Number.isNaN(parsedDate.getTime())) return value;
-
-  const day = padTwoDigits(parsedDate.getDate());
-  const month = padTwoDigits(parsedDate.getMonth() + 1);
-  const year = parsedDate.getFullYear();
-  const hour = padTwoDigits(parsedDate.getHours());
-  const minute = padTwoDigits(parsedDate.getMinutes());
-
-  return `${day}.${month}.${year} ${hour}:${minute}`;
-};
-
-const formatShortDateForButton = (value: string) => {
-  if (!value) return '—';
-  const parsedDate = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(parsedDate.getTime())) return value;
-  const day = padTwoDigits(parsedDate.getDate());
-  const month = padTwoDigits(parsedDate.getMonth() + 1);
-  const year = parsedDate.getFullYear();
-  return `${day}.${month}.${year}`;
-};
-
-const toDateInputValue = (dateValue: Date) =>
-  `${dateValue.getFullYear()}-${padTwoDigits(dateValue.getMonth() + 1)}-${padTwoDigits(
-    dateValue.getDate()
-  )}`;
-
-const shiftDateByDays = (dateValue: Date, dayShift: number) => {
-  const clonedDate = new Date(dateValue);
-  clonedDate.setDate(clonedDate.getDate() + dayShift);
-  return clonedDate;
-};
-
-const getCustomerTypeShortLabel = (customerType: string) => {
-  const normalizedType = normalizeForSearch(customerType);
-
-  if (normalizedType === 'company' || normalizedType.includes('podjet')) return 'P';
-  if (normalizedType === 'school' || normalizedType.includes('sola') || normalizedType.includes('javni'))
-    return 'Š';
-  return 'F';
-};
+import {
+  type Attachment,
+  type DocumentType,
+  type OrderRow,
+  type PdfDoc,
+  type SortDirection,
+  type SortKey,
+  type StatusTab,
+  type UnifiedDocument,
+  columnWidths,
+  documentTypeLabelMap,
+  documentTypeOptions,
+  formatCurrency,
+  formatOrderAddress,
+  getCustomerTypeShortLabel,
+  getMergedOrderStatusValue,
+  getOrderStatusLabelForUi,
+  normalizeForSearch,
+  shiftDateByDays,
+  statusTabs,
+  textCollator,
+  toAmount,
+  toDateInputValue
+} from '@/components/admin/adminOrdersTableUtils';
 
 export default function AdminOrdersTable({
   orders,
@@ -602,7 +407,7 @@ export default function AdminOrdersTable({
 
   const dateRangeLabel =
     fromDate || toDate
-      ? `${formatShortDateForButton(fromDate)} - ${formatShortDateForButton(toDate)}`
+      ? `${formatSlDateFromDateInput(fromDate)} - ${formatSlDateFromDateInput(toDate)}`
       : 'Izberi interval';
 
   const handleApplyDocuments = () => {
@@ -1077,7 +882,7 @@ export default function AdminOrdersTable({
 
                     <td className="px-2 py-2">
                       <span
-                        className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getPaymentBadge(
+                        className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getPaymentBadgeClassName(
                           order.payment_status
                         )}`}
                       >
@@ -1090,7 +895,7 @@ export default function AdminOrdersTable({
                     </td>
 
                     <td className="px-2 py-2 whitespace-nowrap text-slate-600">
-                      {formatDateTime(order.created_at)}
+                      {formatSlDateTime(order.created_at)}
                     </td>
 
                     <td className="px-2 py-2 align-middle">

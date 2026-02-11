@@ -68,7 +68,7 @@ export default function AdminOrdersPdfCell({
   };
 
   return (
-    <div className="grid grid-cols-3 gap-1.5">
+    <div className="inline-flex flex-nowrap items-center justify-center gap-1 whitespace-nowrap">
       {pdfTypes.map((pdfType) => {
         const options = groupedDocuments[pdfType.key];
         const latestDocument = options[0];
@@ -84,7 +84,7 @@ export default function AdminOrdersPdfCell({
               onClick={(event) => {
                 if (interactionsDisabled) event.preventDefault();
               }}
-              className="inline-flex min-w-[92px] items-center justify-center whitespace-nowrap rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+              className="inline-flex h-7 min-w-[84px] shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-slate-200 bg-white px-2 text-[11px] font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
             >
               {pdfType.label}
             </a>
@@ -95,7 +95,7 @@ export default function AdminOrdersPdfCell({
           return (
             <span
               key={pdfType.key}
-              className="inline-flex min-w-[92px] items-center justify-center whitespace-nowrap rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-400"
+              className="inline-flex h-7 min-w-[84px] shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-slate-200 bg-slate-50 px-2 text-[11px] font-medium text-slate-400"
             >
               {pdfType.label}
             </span>
@@ -108,7 +108,7 @@ export default function AdminOrdersPdfCell({
             type="button"
             onClick={() => handleGenerate(pdfType.key as GeneratePdfType)}
             disabled={interactionsDisabled || isGeneratingThisType}
-            className="inline-flex min-w-[92px] items-center justify-center whitespace-nowrap rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+            className="inline-flex h-7 min-w-[84px] shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-slate-200 bg-white px-2 text-[11px] font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
           >
             {isGeneratingThisType ? 'Generiram…' : pdfType.label}
           </button>

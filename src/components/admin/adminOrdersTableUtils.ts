@@ -96,16 +96,16 @@ export const statusTabs: Array<{ value: StatusTab; label: string }> = [
 ];
 
 export const columnWidths = {
-  selectAndDelete: '3%',
-  order: '8%',
-  customer: '16%',
-  address: '16%',
-  type: '9%',
-  status: '10%',
-  payment: '8%',
-  total: '7%',
-  date: '9%',
-  documents: '14%'
+  selectAndDelete: '42px',
+  order: '92px',
+  customer: '190px',
+  address: '170px',
+  type: '110px',
+  status: '120px',
+  payment: '120px',
+  total: '95px',
+  date: '120px',
+  documents: '440px'
 };
 
 const currencyFormatter = new Intl.NumberFormat('sl-SI', {

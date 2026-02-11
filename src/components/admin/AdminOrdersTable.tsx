@@ -530,10 +530,25 @@ export default function AdminOrdersTable({
     return <span className="ml-1 text-slate-500">{sortDirection === 'asc' ? '↑' : '↓'}</span>;
   };
 
+  const defaultDateRangeLabel = useMemo(() => {
+    if (orders.length === 0) return '📅 —';
+
+    const timestamps = orders
+      .map((order) => new Date(order.created_at).getTime())
+      .filter((timestamp) => !Number.isNaN(timestamp));
+
+    if (timestamps.length === 0) return '📅 —';
+
+    const minTimestamp = Math.min(...timestamps);
+    const maxTimestamp = Math.max(...timestamps);
+
+    return `📅 ${formatSlDateTime(new Date(minTimestamp).toISOString())} - ${formatSlDateTime(new Date(maxTimestamp).toISOString())}`;
+  }, [orders]);
+
   const dateRangeLabel =
     fromDate || toDate
-      ? `${formatSlDateFromDateInput(fromDate)} - ${formatSlDateFromDateInput(toDate)}`
-      : 'Izberi interval';
+      ? `📅 ${formatSlDateFromDateInput(fromDate)} - ${formatSlDateFromDateInput(toDate)}`
+      : defaultDateRangeLabel;
 
   const handleApplyDocuments = () => {
     if (!isDocumentSearchEnabled) return;
@@ -702,15 +717,7 @@ export default function AdminOrdersTable({
                         className="text-xs font-semibold text-slate-500 hover:text-slate-700"
                       >
                         Počisti datum
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsDatePopoverOpen(false)}
-                        className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white"
-                      >
-                        Zapri
-                      </button>
-                    </div>
+                      </button>                    </div>
                   </div>
                 </div>
               </div>
@@ -1015,7 +1022,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-2 py-2 text-left">PDF datoteke</th>
+              <th className="px-2 py-2 text-left normal-case">PDF datoteke</th>
             </tr>
           </thead>
 

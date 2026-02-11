@@ -97,14 +97,14 @@ export const statusTabs: Array<{ value: StatusTab; label: string }> = [
 
 export const columnWidths = {
   selectAndDelete: '42px',
-  order: '92px',
+  order: '82px',
   customer: '190px',
-  address: '170px',
+  address: '200px',
   type: '110px',
   status: '120px',
   payment: '120px',
   total: '95px',
-  date: '120px',
+  date: '104px',
   documents: '440px'
 };
 

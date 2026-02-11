@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
 import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
@@ -638,7 +637,7 @@ export default function AdminOrdersTable({
             <button
               type="button"
               onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-              className="h-8 min-w-[220px] rounded-lg border border-slate-300 bg-white px-2.5 text-left text-xs text-slate-700 hover:border-slate-400"
+              className="h-8 min-w-[200px] rounded-lg border border-slate-300 bg-white px-2.5 text-left text-xs text-slate-700 hover:border-slate-400"
             >
               <span className="inline-flex items-center gap-1.5"> 
                 <svg
@@ -1100,13 +1099,9 @@ export default function AdminOrdersTable({
                     </td>
 
                     <td className="px-2 py-2 align-middle text-center font-semibold text-slate-900">
-                      <Link
-                        data-no-row-nav
-                        href={`/admin/orders/${order.id}`}
-                        className="text-[13px] font-semibold text-brand-600 hover:text-brand-700"
-                      >
+                      <span className="text-[13px] font-semibold text-slate-900">
                         {toDisplayOrderNumber(order.order_number)}
-                      </Link>
+                      </span>
                     </td>
 
                     <td className="px-2 py-2 align-middle text-center whitespace-nowrap text-slate-600">

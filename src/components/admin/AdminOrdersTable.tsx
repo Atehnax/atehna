@@ -1073,7 +1073,7 @@ export default function AdminOrdersTable({
                     key={order.id}
                     className={`border-t border-slate-100 transition-colors duration-200 ${
                       orderIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-                    } hover:bg-[#8aa4a4]`}
+                    } hover:bg-[#e7efef]`}
                     onClick={(event) => {
                       if (shouldIgnoreRowNavigation(event.target)) return;
                       openOrderDetails(order.id);

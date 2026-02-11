@@ -106,7 +106,7 @@ export default function AdminOrdersPdfCell({
 
   return (
     <div className="inline-flex items-center justify-center" ref={versionsMenuRef} data-no-row-nav>
-      <div className="grid grid-cols-[70px_84px_74px_80px_60px_18px] items-center gap-0 whitespace-nowrap">
+      <div className="grid grid-cols-[62px_78px_68px_74px_52px_16px] items-center gap-0 whitespace-nowrap">
         {pdfTypes.map((pdfType) => {
           const options = groupedDocuments[pdfType.key];
           const latestDocument = options[0];

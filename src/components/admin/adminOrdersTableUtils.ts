@@ -99,7 +99,7 @@ export const columnWidths = {
   selectAndDelete: '42px',
   order: '82px',
   customer: '190px',
-  address: '240px',
+  address: '200px',
   type: '110px',
   status: '120px',
   payment: '120px',

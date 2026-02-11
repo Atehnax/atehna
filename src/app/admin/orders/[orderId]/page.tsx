@@ -33,7 +33,7 @@ export default async function AdminOrderDetailPage({
 }) {
   if (!process.env.DATABASE_URL) {
     const order = {
-      order_number: 'N-1',
+      order_number: '#1',
       status: 'received',
       organization_name: 'Osnovna šola Triglav',
       contact_name: 'Maja Kovač',
@@ -62,7 +62,7 @@ export default async function AdminOrderDetailPage({
       {
         id: 1,
         type: 'order_summary',
-        filename: 'N-1-order-summary.pdf',
+        filename: '#1-order-summary.pdf',
         blob_url: '#',
         created_at: new Date().toISOString()
       }
@@ -72,7 +72,7 @@ export default async function AdminOrderDetailPage({
       {
         id: 1,
         type: 'purchase_order',
-        filename: 'N-1-narocilnica.pdf',
+        filename: '#1-narocilnica.pdf',
         blob_url: '#'
       }
     ];

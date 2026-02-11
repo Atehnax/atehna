@@ -106,7 +106,7 @@ export default function AdminOrdersPdfCell({
 
   return (
     <div className="inline-flex items-center justify-center" ref={versionsMenuRef}>
-      <div className="grid grid-cols-[repeat(5,minmax(0,84px))_20px] items-center gap-1 whitespace-nowrap">
+      <div className="grid grid-cols-[repeat(5,minmax(0,84px))_20px] items-center gap-0.5 whitespace-nowrap">
         {pdfTypes.map((pdfType) => {
           const options = groupedDocuments[pdfType.key];
           const latestDocument = options[0];
@@ -161,7 +161,7 @@ export default function AdminOrdersPdfCell({
             aria-haspopup="menu"
             aria-expanded={isVersionsMenuOpen}
             aria-label="Odpri meni verzij PDF dokumentov"
-            className="inline-flex h-6 w-5 items-center justify-center rounded-md border border-slate-200 bg-white text-[12px] leading-none text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:cursor-not-allowed disabled:text-slate-300"
+            className="inline-flex h-6 w-5 items-center justify-center text-[12px] leading-none text-slate-500 transition hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:cursor-not-allowed disabled:text-slate-300"
           >
             ⋮
           </button>

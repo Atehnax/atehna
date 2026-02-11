@@ -33,7 +33,8 @@ import {
   statusTabs,
   textCollator,
   toAmount,
-  toDateInputValue
+  toDateInputValue,
+  toDisplayOrderNumber
 } from '@/components/admin/adminOrdersTableUtils';
 
 export default function AdminOrdersTable({
@@ -580,7 +581,7 @@ export default function AdminOrdersTable({
         documentsBySelectedType.forEach((documentItem) => {
           filesToDownload.push({
             url: documentItem.blob_url,
-            filename: `${order.order_number}-${documentItem.filename}`
+            filename: `${toDisplayOrderNumber(order.order_number)}-${documentItem.filename}`
           });
         });
       });
@@ -828,13 +829,13 @@ export default function AdminOrdersTable({
           <colgroup>
             <col style={{ width: columnWidths.selectAndDelete }} />
             <col style={{ width: columnWidths.order }} />
+            <col style={{ width: columnWidths.date }} />
             <col style={{ width: columnWidths.customer }} />
             <col style={{ width: columnWidths.address }} />
             <col style={{ width: columnWidths.type }} />
             <col style={{ width: columnWidths.status }} />
             <col style={{ width: columnWidths.payment }} />
             <col style={{ width: columnWidths.total }} />
-            <col style={{ width: columnWidths.date }} />
             <col style={{ width: columnWidths.documents }} />
           </colgroup>
 
@@ -867,6 +868,16 @@ export default function AdminOrdersTable({
                   className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
                 >
                   Naročilo {sortIndicator('order_number')}
+                </button>
+              </th>
+
+              <th className="px-2 py-2 text-center">
+                <button
+                  type="button"
+                  onClick={() => onSort('created_at')}
+                  className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
+                >
+                  Datum {sortIndicator('created_at')}
                 </button>
               </th>
 
@@ -1004,17 +1015,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-2 py-2 text-center">
-                <button
-                  type="button"
-                  onClick={() => onSort('created_at')}
-                  className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
-                >
-                  Datum {sortIndicator('created_at')}
-                </button>
-              </th>
-
-              <th className="px-2 py-2 text-center">PDFs</th>
+              <th className="px-2 py-2 text-left">PDF datoteke</th>
             </tr>
           </thead>
 
@@ -1048,7 +1049,7 @@ export default function AdminOrdersTable({
                           type="checkbox"
                           checked={selected.includes(order.id)}
                           onChange={() => toggleSelected(order.id)}
-                          aria-label={`Izberi naročilo ${order.order_number}`}
+                          aria-label={`Izberi naročilo ${toDisplayOrderNumber(order.order_number)}`}
                         />
                       </div>
                     </td>
@@ -1058,8 +1059,19 @@ export default function AdminOrdersTable({
                         href={`/admin/orders/${order.id}`}
                         className="text-[13px] font-semibold text-brand-600 hover:text-brand-700"
                       >
-                        {order.order_number}
+                        {toDisplayOrderNumber(order.order_number)}
                       </Link>
+                    </td>
+
+                    <td className="px-2 py-2 align-middle text-center whitespace-nowrap text-slate-600">
+                      <span
+                        className="inline-block rounded-sm px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+                        title={formatSlDateTime(order.created_at)}
+                        aria-label={`Datum naročila ${formatSlDateTime(order.created_at)}`}
+                        tabIndex={0}
+                      >
+                        {formatSlDate(order.created_at)}
+                      </span>
                     </td>
 
                     <td className="px-2 py-2 align-middle text-slate-600">
@@ -1122,18 +1134,7 @@ export default function AdminOrdersTable({
                       {formatCurrency(order.total)}
                     </td>
 
-                    <td className="px-2 py-2 align-middle text-center whitespace-nowrap text-slate-600">
-                      <span
-                        className="inline-block rounded-sm px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
-                        title={formatSlDateTime(order.created_at)}
-                        aria-label={`Datum naročila ${formatSlDateTime(order.created_at)}`}
-                        tabIndex={0}
-                      >
-                        {formatSlDate(order.created_at)}
-                      </span>
-                    </td>
-
-                    <td className="px-2 py-2 align-middle text-center align-middle">
+                    <td className="px-2 py-2 align-middle text-center align-middle pr-4">
                       <AdminOrdersPdfCell
                         orderId={order.id}
                         documents={documentsByOrder.get(order.id) ?? []}

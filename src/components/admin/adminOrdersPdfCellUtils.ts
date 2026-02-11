@@ -13,7 +13,7 @@ export type PdfTypeKey =
   | 'predracun'
   | 'invoice';
 
-export type GeneratePdfType = Exclude<PdfTypeKey, 'purchase_order'>;
+export type GeneratePdfType = PdfTypeKey;
 
 export type PdfTypeConfig = {
   key: PdfTypeKey;
@@ -23,7 +23,7 @@ export type PdfTypeConfig = {
 
 export const pdfTypes: PdfTypeConfig[] = [
   { key: 'order_summary', label: 'Povzetek', canGenerate: true },
-  { key: 'purchase_order', label: 'Naročilnica', canGenerate: false },
+  { key: 'purchase_order', label: 'Naročilnica', canGenerate: true },
   { key: 'dobavnica', label: 'Dobavnica', canGenerate: true },
   { key: 'predracun', label: 'Predračun', canGenerate: true },
   { key: 'invoice', label: 'Račun', canGenerate: true }
@@ -31,6 +31,7 @@ export const pdfTypes: PdfTypeConfig[] = [
 
 export const routeMap: Record<GeneratePdfType, string> = {
   order_summary: 'generate-order-summary',
+  purchase_order: 'generate-purchase-order',
   predracun: 'generate-predracun',
   dobavnica: 'generate-dobavnica',
   invoice: 'generate-invoice'
@@ -45,7 +46,7 @@ export const normalizePdfType = (type: string): PdfTypeKey | null => {
   return null;
 };
 
-export const isGenerateKey = (key: PdfTypeKey): key is GeneratePdfType => key !== 'purchase_order';
+export const isGenerateKey = (key: PdfTypeKey): key is GeneratePdfType => Boolean(key);
 
 const padTwoDigits = (value: number) => String(value).padStart(2, '0');
 
@@ -81,7 +82,7 @@ export const groupDocumentsByType = (
 
   sortedDocuments.forEach((documentItem) => {
     const normalizedType = normalizePdfType(documentItem.type);
-    if (!normalizedType || normalizedType === 'purchase_order') return;
+    if (!normalizedType) return;
     grouped[normalizedType].push(documentItem);
   });
 

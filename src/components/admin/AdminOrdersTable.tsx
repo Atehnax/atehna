@@ -629,7 +629,7 @@ export default function AdminOrdersTable({
 
   return (
     <div className="w-full">
-      <div className="mx-auto w-[75vw] min-w-[1180px] max-w-[1520px]">
+      <div className="mx-auto w-[72vw] min-w-[1180px] max-w-[1520px]">
       <div className="mb-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
         <div className="flex flex-wrap items-end gap-2">
           <div className="relative" ref={datePopoverRef}>

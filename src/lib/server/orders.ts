@@ -29,6 +29,7 @@ export type OrderItemRow = {
   quantity: number;
   unit_price: number | null;
   total_price: number | null;
+  discount_percentage: number;
 };
 
 export type OrderDocumentRow = {
@@ -102,15 +103,24 @@ function mapOrderRow(rawRow: Record<string, unknown>): OrderRow {
 }
 
 function mapOrderItemRow(rawRow: Record<string, unknown>): OrderItemRow {
+  const quantity = Number(rawRow.quantity);
+  const unitPrice = parseNullableNumber(rawRow.unit_price);
+  const totalPrice = parseNullableNumber(rawRow.total_price);
+  const lineBase = Math.max(0, quantity) * (unitPrice ?? 0);
+  const effectiveTotal = totalPrice ?? lineBase;
+  const discountPercentage =
+    lineBase > 0 ? Math.min(100, Math.max(0, Number((((lineBase - effectiveTotal) / lineBase) * 100).toFixed(2)))) : 0;
+
   return {
     id: Number(rawRow.id),
     order_id: Number(rawRow.order_id),
     sku: String(rawRow.sku),
     name: String(rawRow.name),
     unit: asNullableString(rawRow.unit),
-    quantity: Number(rawRow.quantity),
-    unit_price: parseNullableNumber(rawRow.unit_price),
-    total_price: parseNullableNumber(rawRow.total_price)
+    quantity,
+    unit_price: unitPrice,
+    total_price: totalPrice,
+    discount_percentage: discountPercentage
   };
 }
 
@@ -201,9 +211,9 @@ export async function fetchOrders(options?: {
     left join (
       select
         order_items.order_id,
-        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)), 2) as subtotal,
-        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)) * 0.22, 2) as tax,
-        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)) * 1.22, 2) as total
+        round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))), 2) as subtotal,
+        round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 0.22, 2) as tax,
+        round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 1.22, 2) as total
       from order_items
       group by order_items.order_id
     ) as computed_totals
@@ -244,9 +254,9 @@ export async function fetchOrderById(orderId: number): Promise<OrderRow | null> 
     left join (
       select
         order_items.order_id,
-        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)), 2) as subtotal,
-        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)) * 0.22, 2) as tax,
-        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)) * 1.22, 2) as total
+        round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))), 2) as subtotal,
+        round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 0.22, 2) as tax,
+        round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 1.22, 2) as total
       from order_items
       group by order_items.order_id
     ) as computed_totals

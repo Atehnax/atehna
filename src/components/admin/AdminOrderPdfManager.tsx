@@ -10,7 +10,7 @@ type PdfDocument = {
   created_at: string;
 };
 
-type PdfTypeKey = 'order_summary' | 'predracun' | 'dobavnica' | 'invoice';
+type PdfTypeKey = 'order_summary' | 'purchase_order' | 'predracun' | 'dobavnica' | 'invoice';
 
 type PdfTypeConfig = {
   key: PdfTypeKey;
@@ -19,6 +19,7 @@ type PdfTypeConfig = {
 
 const PDF_TYPES: PdfTypeConfig[] = [
   { key: 'order_summary', label: 'Povzetek naročila' },
+  { key: 'purchase_order', label: 'Naročilnica' },
   { key: 'predracun', label: 'Predračun' },
   { key: 'dobavnica', label: 'Dobavnica' },
   { key: 'invoice', label: 'Račun' }
@@ -26,6 +27,7 @@ const PDF_TYPES: PdfTypeConfig[] = [
 
 const routeMap: Record<PdfTypeKey, string> = {
   order_summary: 'generate-order-summary',
+  purchase_order: 'generate-purchase-order',
   predracun: 'generate-predracun',
   dobavnica: 'generate-dobavnica',
   invoice: 'generate-invoice'
@@ -33,6 +35,7 @@ const routeMap: Record<PdfTypeKey, string> = {
 
 const normalizeType = (type: string): PdfTypeKey | null => {
   if (type === 'offer') return 'order_summary';
+  if (type === 'purchase_order') return 'purchase_order';
   if (type === 'order_summary') return 'order_summary';
   if (type === 'predracun') return 'predracun';
   if (type === 'dobavnica') return 'dobavnica';
@@ -61,6 +64,7 @@ export default function AdminOrderPdfManager({
   const grouped = useMemo(() => {
     const map: Record<PdfTypeKey, PdfDocument[]> = {
       order_summary: [],
+      purchase_order: [],
       predracun: [],
       dobavnica: [],
       invoice: []

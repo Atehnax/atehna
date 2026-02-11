@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { PAYMENT_STATUS_OPTIONS, getPaymentLabel } from '@/lib/paymentStatus';
 
 type LogEntry = {
   id: number;
@@ -16,15 +17,6 @@ type Props = {
   notes: string | null;
   logs: LogEntry[];
 };
-
-const STATUS_OPTIONS = [
-  { value: 'unpaid', label: 'Neplačano' },
-  { value: 'paid', label: 'Plačano' },
-  { value: 'refunded', label: 'Povrnjeno' },
-  { value: 'cancelled', label: 'Preklicano' }
-];
-
-const statusLabelMap = new Map(STATUS_OPTIONS.map((option) => [option.value, option.label]));
 
 const formatTimestamp = (value: string) =>
   new Date(value).toLocaleString('sl-SI', {
@@ -73,7 +65,7 @@ export default function AdminOrderPaymentStatus({ orderId, status, notes, logs }
             onChange={(event) => setCurrentStatus(event.target.value)}
             className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
           >
-            {STATUS_OPTIONS.map((option) => (
+            {PAYMENT_STATUS_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -112,7 +104,7 @@ export default function AdminOrderPaymentStatus({ orderId, status, notes, logs }
               {logs.map((log) => (
                 <li key={log.id}>
                   <span className="font-semibold text-slate-900">
-                    {statusLabelMap.get(log.new_status) ?? log.new_status}
+                    {getPaymentLabel(log.new_status)}
                   </span>{' '}
                   <span className="text-xs text-slate-400">{formatTimestamp(log.created_at)}</span>
                   {log.note && <div className="text-xs text-slate-500">Opomba: {log.note}</div>}

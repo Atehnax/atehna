@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 
 type OrderItemInput = {
   id: number;
@@ -73,7 +72,6 @@ export default function AdminOrderEditForm({
   notes,
   items
 }: Props) {
-  const router = useRouter();
   const [formData, setFormData] = useState({
     customerType,
     organizationName: organizationName ?? '',
@@ -244,7 +242,6 @@ export default function AdminOrderEditForm({
 
       setMessage('Podatki naročila so posodobljeni. Ustvarite novo verzijo PDF dokumentov.');
       setIsDirty(false);
-      router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Napaka pri shranjevanju.');
     } finally {
@@ -342,13 +339,6 @@ export default function AdminOrderEditForm({
         <div className="rounded-xl border border-slate-200">
           <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
             <h3 className="text-[13px] font-semibold text-slate-900">Postavke</h3>
-            <button
-              type="button"
-              onClick={openAddItem}
-              className="rounded-full bg-brand-600 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-brand-700"
-            >
-              Dodaj
-            </button>
           </div>
 
           <div className="overflow-x-auto">
@@ -444,9 +434,16 @@ export default function AdminOrderEditForm({
 
         <div className="flex flex-wrap items-center gap-3">
           <button
+            type="button"
+            onClick={openAddItem}
+            className="w-full rounded-full bg-brand-600 px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-brand-700 md:w-[calc(50%-0.375rem)]"
+          >
+            Dodaj
+          </button>
+          <button
             type="submit"
             disabled={isSaving}
-            className="whitespace-nowrap rounded-full bg-brand-600 px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+            className="w-full whitespace-nowrap rounded-full bg-brand-600 px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 md:w-[calc(50%-0.375rem)]"
           >
             {isSaving ? 'Shranjevanje...' : 'Shrani spremembe'}
           </button>

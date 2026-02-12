@@ -1,4 +1,4 @@
-import { put } from '@vercel/blob';
+import { del, put } from '@vercel/blob';
 
 export type UploadResult = {
   url: string;
@@ -32,4 +32,14 @@ export async function uploadBlob(
   });
 
   return { url: blob.url, pathname: blob.pathname };
+}
+
+export async function deleteBlob(pathnameOrUrl: string): Promise<void> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    throw new Error('BLOB_READ_WRITE_TOKEN is not set');
+  }
+
+  await del(pathnameOrUrl, {
+    token: process.env.BLOB_READ_WRITE_TOKEN
+  });
 }

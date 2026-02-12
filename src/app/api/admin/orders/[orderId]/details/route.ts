@@ -28,31 +28,64 @@ export async function POST(
     }
 
     const pool = await getPool();
-    await pool.query(
-      `
-      UPDATE orders
-      SET customer_type = $1,
-          organization_name = $2,
-          contact_name = $3,
-          email = $4,
-          phone = $5,
-          delivery_address = $6,
-          reference = $7,
-          notes = $8
-      WHERE id = $9
-      `,
-      [
-        customerType,
-        organizationName || null,
-        contactName,
-        email,
-        phone || null,
-        deliveryAddress || null,
-        reference || null,
-        notes || null,
-        orderId
-      ]
-    );
+    try {
+      await pool.query(
+        `
+        UPDATE orders
+        SET customer_type = $1,
+            organization_name = $2,
+            contact_name = $3,
+            email = $4,
+            phone = $5,
+            delivery_address = $6,
+            reference = $7,
+            notes = $8,
+            is_draft = false
+        WHERE id = $9
+        `,
+        [
+          customerType,
+          organizationName || null,
+          contactName,
+          email,
+          phone || null,
+          deliveryAddress || null,
+          reference || null,
+          notes || null,
+          orderId
+        ]
+      );
+    } catch (error) {
+      if (!(error && typeof error === 'object' && 'code' in error && error.code === '42703')) {
+        throw error;
+      }
+
+      await pool.query(
+        `
+        UPDATE orders
+        SET customer_type = $1,
+            organization_name = $2,
+            contact_name = $3,
+            email = $4,
+            phone = $5,
+            delivery_address = $6,
+            reference = $7,
+            notes = $8
+        WHERE id = $9
+        `,
+        [
+          customerType,
+          organizationName || null,
+          contactName,
+          email,
+          phone || null,
+          deliveryAddress || null,
+          reference || null,
+          notes || null,
+          orderId
+        ]
+      );
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

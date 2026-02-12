@@ -1,10 +1,12 @@
 export type CustomerType = 'individual' | 'company' | 'school';
 
 const CUSTOMER_TYPE_LABELS: Record<CustomerType, string> = {
-  individual: 'Fizična oseba',
+  individual: 'Fiz. oseba',
   company: 'Podjetje',
-  school: 'Šola / javni zavod'
+  school: 'Šola'
 };
 
+const isCustomerType = (value: string): value is CustomerType => value in CUSTOMER_TYPE_LABELS;
+
 export const getCustomerTypeLabel = (value: string) =>
-  CUSTOMER_TYPE_LABELS[value as CustomerType] ?? value;
+  isCustomerType(value) ? CUSTOMER_TYPE_LABELS[value] : value;

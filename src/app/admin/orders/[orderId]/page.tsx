@@ -7,7 +7,6 @@ import AdminOrderHeaderChips from '@/components/admin/AdminOrderHeaderChips';
 import AdminOrderOverviewCard from '@/components/admin/AdminOrderOverviewCard';
 import { toDisplayOrderNumber } from '@/components/admin/adminOrdersTableUtils';
 import {
-  fetchOrderAttachments,
   fetchOrderById,
   fetchOrderDocuments,
   fetchOrderItems
@@ -69,15 +68,6 @@ export default async function AdminOrderDetailPage({
       }
     ];
 
-    const attachments = [
-      {
-        id: 1,
-        type: 'purchase_order',
-        filename: '#1-narocilnica.pdf',
-        blob_url: '#'
-      }
-    ];
-
     const subtotal = items.reduce(
       (sum, item) => sum + toAmount(item.unit_price) * item.quantity,
       0
@@ -92,7 +82,7 @@ export default async function AdminOrderDetailPage({
             DATABASE_URL ni nastavljen — prikazan je demo pogled.
           </div>
 
-          <div className="mt-6 grid gap-6 lg:grid-cols-[2fr_1.5fr]">
+          <div className="mt-6 grid items-start gap-6 lg:grid-cols-[2fr_1.5fr]">
             <div className="space-y-6">
               <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <AdminOrderHeaderChips
@@ -122,7 +112,6 @@ export default async function AdminOrderDetailPage({
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
                           <p className="font-semibold text-slate-900">{item.name}</p>
-                          <p className="text-slate-500">SKU: {item.sku}</p>
                           <p className="text-slate-500">
                             Količina: {item.quantity} {item.unit ?? ''}
                           </p>
@@ -176,24 +165,6 @@ export default async function AdminOrderDetailPage({
                 paymentNotes={order.payment_notes}
               />
               <AdminOrderPdfManager orderId={1} documents={documents} />
-              <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-slate-900">Priponke</h2>
-                <ul className="mt-4 space-y-2 text-sm text-slate-600">
-                  {attachments.map((attachment) => (
-                    <li key={attachment.filename}>
-                      <a
-                        href={attachment.blob_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-semibold text-brand-600 hover:text-brand-700"
-                      >
-                        {attachment.type.replace('_', ' ').toUpperCase()}
-                      </a>{' '}
-                      <span className="text-xs text-slate-400">({attachment.filename})</span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
             </aside>
           </div>
         </div>
@@ -211,10 +182,9 @@ export default async function AdminOrderDetailPage({
     notFound();
   }
 
-  const [items, documents, attachments] = await Promise.all([
+  const [items, documents] = await Promise.all([
     fetchOrderItems(orderId),
-    fetchOrderDocuments(orderId),
-    fetchOrderAttachments(orderId)
+    fetchOrderDocuments(orderId)
   ]);
 
   const computedSubtotal = items.reduce(
@@ -232,7 +202,7 @@ export default async function AdminOrderDetailPage({
           ← Nazaj na seznam
         </Link>
 
-        <div className="mt-4 grid gap-6 lg:grid-cols-[2fr_1.5fr]">
+        <div className="mt-4 grid items-start gap-6 lg:grid-cols-[2fr_1.5fr]">
           <div className="space-y-6">
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <AdminOrderHeaderChips
@@ -273,28 +243,6 @@ export default async function AdminOrderDetailPage({
               paymentNotes={order.payment_notes ?? null}
             />
             <AdminOrderPdfManager orderId={orderId} documents={documents} />
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-900">Priponke</h2>
-              <ul className="mt-4 space-y-2 text-sm text-slate-600">
-                {attachments.length === 0 ? (
-                  <li>Ni naloženih priponk.</li>
-                ) : (
-                  attachments.map((attachment) => (
-                    <li key={attachment.id}>
-                      <a
-                        href={attachment.blob_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-semibold text-brand-600 hover:text-brand-700"
-                      >
-                        {attachment.type.replace('_', ' ').toUpperCase()}
-                      </a>{' '}
-                      <span className="text-xs text-slate-400">({attachment.filename})</span>
-                    </li>
-                  ))
-                )}
-              </ul>
-            </section>
           </aside>
         </div>
       </div>

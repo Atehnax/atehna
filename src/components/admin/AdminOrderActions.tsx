@@ -55,7 +55,6 @@ export default function AdminOrderActions({
         throw new Error(error.message || 'Posodobitev plačilnega statusa ni uspela.');
       }
 
-      setMessage('Status naročila in plačila je posodobljen.');
       window.dispatchEvent(
         new CustomEvent('admin-order-status-updated', {
           detail: { status: currentStatus, paymentStatus: currentPaymentStatus }
@@ -81,7 +80,6 @@ export default function AdminOrderActions({
         const error = await response.json().catch(() => ({}));
         throw new Error(error.message || 'Brisanje ni uspelo.');
       }
-      setMessage('Naročilo je izbrisano.');
       router.push('/admin/orders');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Napaka pri brisanju naročila.');
@@ -164,7 +162,7 @@ export default function AdminOrderActions({
           </button>
         </div>
 
-        {message && <p className="text-sm text-slate-600">{message}</p>}
+        {message && <p className="text-sm text-rose-600">{message}</p>}
       </div>
     </div>
   );

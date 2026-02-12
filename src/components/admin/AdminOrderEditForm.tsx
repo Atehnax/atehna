@@ -60,6 +60,18 @@ const formatCurrency = (value: number) =>
 const lineBase = (item: EditableItem) => item.quantity * item.unitPrice;
 const lineTotal = (item: EditableItem) => toMoney(lineBase(item) * (1 - item.discountPercentage / 100));
 
+const parseLocaleNumber = (value: string) => {
+  const trimmed = value.trim();
+  const normalized = trimmed.includes(',')
+    ? trimmed.replace(/\./g, '').replace(',', '.')
+    : trimmed;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const formatDecimalInput = (value: number) =>
+  new Intl.NumberFormat('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+
 export default function AdminOrderEditForm({
   orderId,
   customerType,
@@ -358,7 +370,7 @@ export default function AdminOrderEditForm({
                 <tr>
                   <th className="px-3 py-2 text-left">Artikel</th>
                   <th className="px-2 py-2 text-center">Količina</th>
-                  <th className="px-2 py-2 text-right">Cena</th>
+                  <th className="px-2 py-2 text-center">Cena</th>
                   <th className="px-2 py-2 text-center">Popust %</th>
                   <th className="px-2 py-2 text-right">Skupaj</th>
                   <th className="px-2 py-2" aria-label="Dejanje" />
@@ -369,7 +381,6 @@ export default function AdminOrderEditForm({
                   <tr key={item.id} className="border-t border-slate-200/80 bg-white/80">
                     <td className="px-3 py-2">
                       <p className="font-medium text-slate-900">{item.name}</p>
-                          <p className="text-[10px] text-slate-500">{item.sku}</p>
                     </td>
                     <td className="px-2 py-2 text-center">
                       <input
@@ -382,27 +393,24 @@ export default function AdminOrderEditForm({
                         className="h-9 w-16 rounded-lg border border-slate-300 bg-white px-2 text-center shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
                       />
                     </td>
-                    <td className="px-2 py-2 text-right">
+                    <td className="px-2 py-2 text-center">
                       <input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        value={item.unitPrice}
+                        type="text"
+                        inputMode="decimal"
+                        value={formatDecimalInput(item.unitPrice)}
                         onChange={(event) =>
-                          updateItem(item.id, { unitPrice: Number(event.target.value) || 0 })
+                          updateItem(item.id, { unitPrice: parseLocaleNumber(event.target.value) })
                         }
-                        className="h-9 w-24 rounded-lg border border-slate-300 bg-white px-2 text-right shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                        className="h-9 w-24 rounded-lg border border-slate-300 bg-white px-2 text-center shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
                       />
                     </td>
                     <td className="px-2 py-2 text-center">
                       <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        step="0.01"
-                        value={item.discountPercentage}
+                        type="text"
+                        inputMode="decimal"
+                        value={formatDecimalInput(item.discountPercentage)}
                         onChange={(event) =>
-                          updateItem(item.id, { discountPercentage: Number(event.target.value) || 0 })
+                          updateItem(item.id, { discountPercentage: parseLocaleNumber(event.target.value) })
                         }
                         className="h-9 w-20 rounded-lg border border-slate-300 bg-white px-2 text-center shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
                       />
@@ -489,10 +497,7 @@ export default function AdminOrderEditForm({
                   onClick={() => addCatalogItem(choice)}
                   className="flex w-full items-center justify-between border-b border-slate-100 px-3 py-2 text-left text-sm hover:bg-slate-50"
                 >
-                  <span>
-                    <span className="font-medium text-slate-900">{choice.name}</span>
-                    <span className="ml-2 text-xs text-slate-500">{choice.sku}</span>
-                  </span>
+                  <span className="font-medium text-slate-900">{choice.name}</span>
                   <span className="text-xs text-slate-600">{formatCurrency(choice.unitPrice)}</span>
                 </button>
               ))}

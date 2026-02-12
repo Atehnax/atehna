@@ -222,24 +222,33 @@ export default function AdminOrderPdfManager({
                         [pdfType.key]: !previousState[pdfType.key]
                       }))
                     }
-                    className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-600 hover:border-slate-300"
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:border-brand-200 hover:text-brand-700"
                   >
-                    Zgodovina ({history.length})
-                    <span>{openHistoryByType[pdfType.key] ? '▾' : '▸'}</span>
+                    <span>Zgodovina</span>
+                    <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">{history.length}</span>
+                    <span className={`text-xs text-slate-500 transition ${openHistoryByType[pdfType.key] ? 'rotate-180' : ''}`}>⌄</span>
                   </button>
                   {openHistoryByType[pdfType.key] && (
-                    <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto rounded-lg border border-slate-100 bg-slate-50/60 p-2 text-[12px] text-slate-600">
-                      {history.map((doc) => (
-                        <li key={`${doc.id}-${doc.created_at}`} className="rounded-md px-2 py-1 hover:bg-white">
+                    <ul className="mt-2 max-h-44 space-y-1.5 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 text-[12px] text-slate-600 shadow-inner">
+                      {history.map((doc, index) => (
+                        <li
+                          key={`${doc.id}-${doc.created_at}`}
+                          className="rounded-lg border border-transparent px-2.5 py-2 transition hover:border-slate-200 hover:bg-slate-50"
+                        >
                           <a
                             href={doc.blob_url}
                             target="_blank"
                             rel="noreferrer"
-                            className="flex items-center justify-between gap-2 font-semibold text-brand-600 hover:text-brand-700"
+                            className="flex items-center justify-between gap-3"
                           >
-                            <span className="truncate">{doc.filename}</span>
+                            <span className="truncate font-semibold text-brand-600 hover:text-brand-700">{doc.filename}</span>
                             <span className="shrink-0 text-[11px] text-slate-500">{formatTimestamp(doc.created_at)}</span>
-                          </a>{' '}
+                          </a>
+                          {index === 0 && (
+                            <span className="mt-1 inline-flex rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                              Najnovejše
+                            </span>
+                          )}
                         </li>
                       ))}
                     </ul>

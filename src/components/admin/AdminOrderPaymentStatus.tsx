@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { PAYMENT_STATUS_OPTIONS, getPaymentLabel } from '@/lib/paymentStatus';
 
 type LogEntry = {
   id: number;
@@ -15,16 +16,8 @@ type Props = {
   status: string | null;
   notes: string | null;
   logs: LogEntry[];
+  embedded?: boolean;
 };
-
-const STATUS_OPTIONS = [
-  { value: 'unpaid', label: 'Neplačano' },
-  { value: 'paid', label: 'Plačano' },
-  { value: 'refunded', label: 'Povrnjeno' },
-  { value: 'cancelled', label: 'Preklicano' }
-];
-
-const statusLabelMap = new Map(STATUS_OPTIONS.map((option) => [option.value, option.label]));
 
 const formatTimestamp = (value: string) =>
   new Date(value).toLocaleString('sl-SI', {
@@ -32,7 +25,13 @@ const formatTimestamp = (value: string) =>
     timeStyle: 'short'
   });
 
-export default function AdminOrderPaymentStatus({ orderId, status, notes, logs }: Props) {
+export default function AdminOrderPaymentStatus({
+  orderId,
+  status,
+  notes,
+  logs,
+  embedded = false
+}: Props) {
   const [currentStatus, setCurrentStatus] = useState(status ?? 'unpaid');
   const [currentNote, setCurrentNote] = useState(notes ?? '');
   const [message, setMessage] = useState<string | null>(null);
@@ -59,21 +58,21 @@ export default function AdminOrderPaymentStatus({ orderId, status, notes, logs }
     }
   };
 
-  return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-slate-900">Plačilni status</h2>
+  const content = (
+    <>
+      <h2 className="text-base font-semibold text-slate-900">Plačilni status</h2>
       <div className="mt-4 grid gap-4">
         <div>
-          <label className="text-sm font-medium text-slate-700" htmlFor="paymentStatus">
+          <label className="text-xs font-medium text-slate-700" htmlFor="paymentStatus">
             Status plačila
           </label>
           <select
             id="paymentStatus"
             value={currentStatus}
             onChange={(event) => setCurrentStatus(event.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[12px]"
           >
-            {STATUS_OPTIONS.map((option) => (
+            {PAYMENT_STATUS_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -81,7 +80,7 @@ export default function AdminOrderPaymentStatus({ orderId, status, notes, logs }
           </select>
         </div>
         <div>
-          <label className="text-sm font-medium text-slate-700" htmlFor="paymentNote">
+          <label className="text-xs font-medium text-slate-700" htmlFor="paymentNote">
             Opombe
           </label>
           <textarea
@@ -89,7 +88,7 @@ export default function AdminOrderPaymentStatus({ orderId, status, notes, logs }
             rows={3}
             value={currentNote}
             onChange={(event) => setCurrentNote(event.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[12px]"
           />
         </div>
         <div className="flex items-center gap-3">
@@ -97,7 +96,7 @@ export default function AdminOrderPaymentStatus({ orderId, status, notes, logs }
             type="button"
             onClick={handleSave}
             disabled={isSaving}
-            className="rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+            className="whitespace-nowrap rounded-full bg-brand-600 px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
           >
             {isSaving ? 'Shranjevanje...' : 'Shrani status'}
           </button>
@@ -112,7 +111,7 @@ export default function AdminOrderPaymentStatus({ orderId, status, notes, logs }
               {logs.map((log) => (
                 <li key={log.id}>
                   <span className="font-semibold text-slate-900">
-                    {statusLabelMap.get(log.new_status) ?? log.new_status}
+                    {getPaymentLabel(log.new_status)}
                   </span>{' '}
                   <span className="text-xs text-slate-400">{formatTimestamp(log.created_at)}</span>
                   {log.note && <div className="text-xs text-slate-500">Opomba: {log.note}</div>}
@@ -122,6 +121,10 @@ export default function AdminOrderPaymentStatus({ orderId, status, notes, logs }
           </div>
         )}
       </div>
-    </section>
+    </>
   );
+
+  if (embedded) return content;
+
+  return <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">{content}</section>;
 }

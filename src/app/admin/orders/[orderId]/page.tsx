@@ -3,15 +3,14 @@ import { notFound } from 'next/navigation';
 import AdminOrderActions from '@/components/admin/AdminOrderActions';
 import AdminOrderEditForm from '@/components/admin/AdminOrderEditForm';
 import AdminOrderPdfManager from '@/components/admin/AdminOrderPdfManager';
-import AdminOrderPaymentStatus from '@/components/admin/AdminOrderPaymentStatus';
+import AdminOrderHeaderChips from '@/components/admin/AdminOrderHeaderChips';
+import { toDisplayOrderNumber } from '@/components/admin/adminOrdersTableUtils';
 import { getCustomerTypeLabel } from '@/lib/customerType';
-import { getStatusLabel } from '@/lib/orderStatus';
 import {
   fetchOrderAttachments,
   fetchOrderById,
   fetchOrderDocuments,
-  fetchOrderItems,
-  fetchPaymentLogs
+  fetchOrderItems
 } from '@/lib/server/orders';
 
 export const metadata = {
@@ -33,7 +32,7 @@ export default async function AdminOrderDetailPage({
 }) {
   if (!process.env.DATABASE_URL) {
     const order = {
-      order_number: 'ORD-1',
+      order_number: '#1',
       status: 'received',
       organization_name: 'Osnovna šola Triglav',
       contact_name: 'Maja Kovač',
@@ -54,7 +53,9 @@ export default async function AdminOrderDetailPage({
         sku: 'RT-TS-01',
         quantity: 10,
         unit: 'kos',
-        unit_price: 1.9
+        unit_price: 1.9,
+        total_price: 19,
+        discount_percentage: 0
       }
     ];
 
@@ -62,7 +63,7 @@ export default async function AdminOrderDetailPage({
       {
         id: 1,
         type: 'order_summary',
-        filename: 'ORD-1-order-summary.pdf',
+        filename: '#1-order-summary.pdf',
         blob_url: '#',
         created_at: new Date().toISOString()
       }
@@ -72,19 +73,8 @@ export default async function AdminOrderDetailPage({
       {
         id: 1,
         type: 'purchase_order',
-        filename: 'ORD-1-narocilnica.pdf',
+        filename: '#1-narocilnica.pdf',
         blob_url: '#'
-      }
-    ];
-
-    const paymentLogs = [
-      {
-        id: 1,
-        order_id: 1,
-        previous_status: 'unpaid',
-        new_status: 'paid',
-        note: 'Plačano ob prevzemu.',
-        created_at: new Date().toISOString()
       }
     ];
 
@@ -97,16 +87,19 @@ export default async function AdminOrderDetailPage({
 
     return (
       <div className="container-base py-12">
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto max-w-7xl">
           <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-6 text-sm text-amber-700">
             DATABASE_URL ni nastavljen — prikazan je demo pogled.
           </div>
 
-          <div className="mt-6 grid gap-6 lg:grid-cols-[2fr_1fr]">
+          <div className="mt-6 grid gap-6 lg:grid-cols-[2fr_1.5fr]">
             <div className="space-y-6">
               <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h1 className="text-2xl font-semibold text-slate-900">{order.order_number}</h1>
-                <p className="mt-2 text-sm text-slate-600">Status: {getStatusLabel(order.status)}</p>
+                <AdminOrderHeaderChips
+                  orderNumber={toDisplayOrderNumber(order.order_number)}
+                  status={order.status}
+                  paymentStatus={order.payment_status ?? null}
+                />
 
                 <div className="mt-4 grid gap-4 text-sm text-slate-600 md:grid-cols-2">
                   <div>
@@ -123,10 +116,6 @@ export default async function AdminOrderDetailPage({
                   <div>
                     <p className="text-xs uppercase text-slate-400">Naslov</p>
                     <p>{order.delivery_address}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase text-slate-400">Sklic</p>
-                    <p>{order.reference}</p>
                   </div>
                   <div className="md:col-span-2">
                     <p className="text-xs uppercase text-slate-400">Opombe</p>
@@ -178,7 +167,6 @@ export default async function AdminOrderDetailPage({
                 </div>
               </section>
 
-              <AdminOrderPdfManager orderId={1} documents={documents} />
               <AdminOrderEditForm
                 orderId={1}
                 customerType={order.customer_type}
@@ -189,14 +177,18 @@ export default async function AdminOrderDetailPage({
                 deliveryAddress={order.delivery_address}
                 reference={order.reference}
                 notes={order.notes}
+                items={items}
               />
-              <AdminOrderPaymentStatus
-                orderId={1}
-                status={order.payment_status}
-                notes={order.payment_notes}
-                logs={paymentLogs}
-              />
+            </div>
 
+            <aside className="space-y-4">
+              <AdminOrderActions
+                orderId={1}
+                status={order.status}
+                paymentStatus={order.payment_status}
+                paymentNotes={order.payment_notes}
+              />
+              <AdminOrderPdfManager orderId={1} documents={documents} />
               <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-semibold text-slate-900">Priponke</h2>
                 <ul className="mt-4 space-y-2 text-sm text-slate-600">
@@ -215,9 +207,7 @@ export default async function AdminOrderDetailPage({
                   ))}
                 </ul>
               </section>
-            </div>
-
-            <AdminOrderActions orderId={1} status={order.status} />
+            </aside>
           </div>
         </div>
       </div>
@@ -234,11 +224,10 @@ export default async function AdminOrderDetailPage({
     notFound();
   }
 
-  const [items, documents, attachments, paymentLogs] = await Promise.all([
+  const [items, documents, attachments] = await Promise.all([
     fetchOrderItems(orderId),
     fetchOrderDocuments(orderId),
-    fetchOrderAttachments(orderId),
-    fetchPaymentLogs(orderId)
+    fetchOrderAttachments(orderId)
   ]);
 
   const computedSubtotal = items.reduce(
@@ -251,16 +240,19 @@ export default async function AdminOrderDetailPage({
 
   return (
     <div className="container-base py-12">
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto max-w-7xl">
         <Link href="/admin/orders" className="text-sm font-semibold text-brand-600">
           ← Nazaj na seznam
         </Link>
 
-        <div className="mt-4 grid gap-6 lg:grid-cols-[2fr_1fr]">
+        <div className="mt-4 grid gap-6 lg:grid-cols-[2fr_1.5fr]">
           <div className="space-y-6">
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h1 className="text-2xl font-semibold text-slate-900">{order.order_number}</h1>
-              <p className="mt-2 text-sm text-slate-600">Status: {getStatusLabel(order.status)}</p>
+              <AdminOrderHeaderChips
+                orderNumber={toDisplayOrderNumber(order.order_number)}
+                status={order.status}
+                paymentStatus={order.payment_status ?? null}
+              />
 
               <div className="mt-4 grid gap-4 text-sm text-slate-600 md:grid-cols-2">
                 <div>
@@ -280,10 +272,6 @@ export default async function AdminOrderDetailPage({
                   <p className="text-xs uppercase text-slate-400">Naslov</p>
                   <p>{order.delivery_address || 'Ni podan.'}</p>
                 </div>
-                <div>
-                  <p className="text-xs uppercase text-slate-400">Sklic</p>
-                  <p>{order.reference || 'Ni podan.'}</p>
-                </div>
                 {order.notes && (
                   <div className="md:col-span-2">
                     <p className="text-xs uppercase text-slate-400">Opombe</p>
@@ -293,50 +281,6 @@ export default async function AdminOrderDetailPage({
               </div>
             </section>
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-900">Postavke</h2>
-              <div className="mt-4 space-y-3">
-                {items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-slate-900">{item.name}</p>
-                        <p className="text-slate-500">SKU: {item.sku}</p>
-                        <p className="text-slate-500">
-                          Količina: {item.quantity} {item.unit ?? ''}
-                        </p>
-                      </div>
-                      <div className="text-right text-sm text-slate-600">
-                        <p>Enota: {formatCurrency(item.unit_price)}</p>
-                        <p className="font-semibold text-slate-900">
-                          Skupaj: {formatCurrency(toAmount(item.unit_price) * item.quantity)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                <div className="rounded-xl border border-slate-100 bg-white p-4 text-sm text-slate-700">
-                  <div className="flex items-center justify-between">
-                    <span>Vmesni seštevek</span>
-                    <span className="font-semibold">{formatCurrency(subtotal)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>DDV</span>
-                    <span className="font-semibold">{formatCurrency(tax)}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-base font-semibold text-slate-900">
-                    <span>Skupaj</span>
-                    <span>{formatCurrency(total)}</span>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <AdminOrderPdfManager orderId={orderId} documents={documents} />
             <AdminOrderEditForm
               orderId={orderId}
               customerType={order.customer_type}
@@ -347,14 +291,18 @@ export default async function AdminOrderDetailPage({
               deliveryAddress={order.delivery_address}
               reference={order.reference}
               notes={order.notes}
+              items={items}
             />
-            <AdminOrderPaymentStatus
-              orderId={orderId}
-              status={order.payment_status ?? null}
-              notes={order.payment_notes ?? null}
-              logs={paymentLogs}
-            />
+          </div>
 
+          <aside className="space-y-4">
+            <AdminOrderActions
+              orderId={orderId}
+              status={order.status}
+              paymentStatus={order.payment_status ?? null}
+              paymentNotes={order.payment_notes ?? null}
+            />
+            <AdminOrderPdfManager orderId={orderId} documents={documents} />
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-slate-900">Priponke</h2>
               <ul className="mt-4 space-y-2 text-sm text-slate-600">
@@ -377,9 +325,7 @@ export default async function AdminOrderDetailPage({
                 )}
               </ul>
             </section>
-          </div>
-
-          <AdminOrderActions orderId={orderId} status={order.status} />
+          </aside>
         </div>
       </div>
     </div>

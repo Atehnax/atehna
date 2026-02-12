@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 
 type OrderItemInput = {
   id: number;
@@ -135,6 +135,44 @@ function FloatingTextarea({ id, label, value, rows = 3, onChange }: FloatingText
     </div>
   );
 }
+type StaticFloatingSelectProps = {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  children: ReactNode;
+};
+
+function StaticFloatingSelect({ id, label, value, onChange, children }: StaticFloatingSelectProps) {
+  return (
+    <div className="relative">
+      <select
+        id={id}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 pb-1 pt-4 text-[12px] text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+      >
+        {children}
+      </select>
+      <label
+        htmlFor={id}
+        className="pointer-events-none absolute left-3 top-1.5 bg-white px-1 text-[10px] text-slate-600"
+      >
+        {label}
+      </label>
+      <svg
+        viewBox="0 0 20 20"
+        className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      >
+        <path d="M5 7.5l5 5 5-5" />
+      </svg>
+    </div>
+  );
+}
+
 
 export default function AdminOrderEditForm({
   orderId,
@@ -349,24 +387,21 @@ export default function AdminOrderEditForm({
       <form className="mt-4 space-y-6 text-[12px]" onSubmit={handleSubmit}>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="md:col-span-2">
-            <label className="text-xs font-medium text-slate-700" htmlFor="customerType">
-              Tip naročnika
-            </label>
-            <select
+            <StaticFloatingSelect
               id="customerType"
+              label="Tip naročnika"
               value={formData.customerType}
-              onChange={(event) => {
-                setFormData((previousValue) => ({ ...previousValue, customerType: event.target.value }));
+              onChange={(value) => {
+                setFormData((previousValue) => ({ ...previousValue, customerType: value }));
                 markDirty();
               }}
-              className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[12px] shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             >
               {customerTypeOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
-            </select>
+            </StaticFloatingSelect>
           </div>
 
           {[

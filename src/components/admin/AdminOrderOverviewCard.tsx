@@ -35,7 +35,7 @@ export default function AdminOrderOverviewCard({
     customerType,
     email,
     deliveryAddress: deliveryAddress ?? '',
-    notes: notes ?? ''
+    notes: notes?.trim() ? notes : '/'
   });
 
   useEffect(() => {
@@ -44,7 +44,8 @@ export default function AdminOrderOverviewCard({
       if (!custom.detail) return;
       setState((prev) => ({
         ...prev,
-        ...custom.detail
+        ...custom.detail,
+        notes: custom.detail.notes?.trim() ? custom.detail.notes : '/'
       }));
     };
 
@@ -69,12 +70,10 @@ export default function AdminOrderOverviewCard({
         <p className="text-xs uppercase text-slate-400">Naslov</p>
         <p>{state.deliveryAddress || 'Ni podan.'}</p>
       </div>
-      {state.notes && (
-        <div className="md:col-span-2">
-          <p className="text-xs uppercase text-slate-400">Opombe</p>
-          <p>{state.notes}</p>
-        </div>
-      )}
+      <div className="md:col-span-2">
+        <p className="text-xs uppercase text-slate-400">Opombe</p>
+        <p>{state.notes || '/'}</p>
+      </div>
     </div>
   );
 }

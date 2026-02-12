@@ -194,7 +194,7 @@ export default function AdminOrderEditForm({
     phone: phone ?? '',
     deliveryAddress: deliveryAddress ?? '',
     reference: reference ?? '',
-    notes: notes ?? ''
+    notes: notes?.trim() ? notes : '/'
   });
   const [editableItems, setEditableItems] = useState<EditableItem[]>(
     items.map((item) => ({
@@ -364,7 +364,7 @@ export default function AdminOrderEditForm({
             customerType: formData.customerType,
             email: formData.email,
             deliveryAddress: formData.deliveryAddress,
-            notes: formData.notes
+            notes: formData.notes.trim() ? formData.notes : '/'
           }
         })
       );

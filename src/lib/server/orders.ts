@@ -1,5 +1,26 @@
 import { getPool } from '@/lib/server/db';
 
+let hasOrdersDraftColumnCache: boolean | null = null;
+
+async function hasOrdersDraftColumn() {
+  if (hasOrdersDraftColumnCache !== null) return hasOrdersDraftColumnCache;
+
+  const pool = await getPool();
+  const result = await pool.query(
+    `
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'orders'
+      and column_name = 'is_draft'
+    limit 1
+    `
+  );
+
+  hasOrdersDraftColumnCache = Number(result.rowCount ?? 0) > 0;
+  return hasOrdersDraftColumnCache;
+}
+
 export type OrderRow = {
   id: number;
   order_number: string;
@@ -167,10 +188,11 @@ export async function fetchOrders(options?: {
   includeDrafts?: boolean;
 }): Promise<OrderRow[]> {
   const pool = await getPool();
+  const supportsDraftColumn = await hasOrdersDraftColumn();
   const conditions: string[] = [];
   const queryParams: unknown[] = [];
 
-  if (!options?.includeDrafts) {
+  if (!options?.includeDrafts && supportsDraftColumn) {
     conditions.push('coalesce(orders.is_draft, false) = false');
   }
 
@@ -214,7 +236,7 @@ export async function fetchOrders(options?: {
       coalesce(orders.tax, computed_totals.tax, 0)::numeric as tax,
       coalesce(orders.total, computed_totals.total, 0)::numeric as total,
       orders.created_at,
-      orders.is_draft
+      ${supportsDraftColumn ? 'orders.is_draft' : 'false as is_draft'}
     from orders
     left join (
       select

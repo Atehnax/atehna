@@ -6,7 +6,6 @@ import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
 import AdminOrderPaymentSelect from '@/components/admin/AdminOrderPaymentSelect';
 import StatusChip from '@/components/admin/StatusChip';
 import PaymentChip from '@/components/admin/PaymentChip';
-import AdminOrdersMiniCharts from '@/components/admin/AdminOrdersMiniCharts';
 import { getCustomerTypeLabel } from '@/lib/customerType';
 import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 import { formatSlDate, formatSlDateFromDateInput, formatSlDateTime } from '@/lib/format/dateTime';
@@ -36,6 +35,30 @@ import {
   toDateInputValue,
   toDisplayOrderNumber
 } from '@/components/admin/adminOrdersTableUtils';
+
+type DailyPoint = {
+  day: string;
+  revenue: number;
+  orders: number;
+  averageOrderValue: number;
+  paidShare: number;
+};
+
+function buildSparklinePoints(values: number[], width = 120, height = 28): string {
+  if (values.length === 0) return '';
+
+  const maxValue = Math.max(...values, 1);
+  const step = values.length === 1 ? width : width / (values.length - 1);
+
+  return values
+    .map((value, index) => {
+      const normalized = maxValue === 0 ? 0 : value / maxValue;
+      const x = index * step;
+      const y = height - normalized * height;
+      return `${x},${y}`;
+    })
+    .join(' ');
+}
 
 export default function AdminOrdersTable({
   orders,
@@ -585,6 +608,29 @@ export default function AdminOrdersTable({
     };
   }, [dateRangeFilteredOrders]);
 
+  const dailyKpiSeries = useMemo<DailyPoint[]>(() => {
+    const perDay = new Map<string, { revenue: number; orders: number; paid: number }>();
+
+    dateRangeFilteredOrders.forEach((order) => {
+      const day = order.created_at.slice(0, 10);
+      const row = perDay.get(day) ?? { revenue: 0, orders: 0, paid: 0 };
+      row.revenue += toAmount(order.total);
+      row.orders += 1;
+      if (order.payment_status === 'paid') row.paid += 1;
+      perDay.set(day, row);
+    });
+
+    return Array.from(perDay.entries())
+      .map(([day, row]) => ({
+        day,
+        revenue: row.revenue,
+        orders: row.orders,
+        averageOrderValue: row.orders > 0 ? row.revenue / row.orders : 0,
+        paidShare: row.orders > 0 ? (row.paid / row.orders) * 100 : 0
+      }))
+      .sort((left, right) => left.day.localeCompare(right.day));
+  }, [dateRangeFilteredOrders]);
+
   const analyticsHref = useMemo(() => {
     const params = new URLSearchParams();
     if (fromDate) params.set('from', fromDate);
@@ -677,19 +723,27 @@ export default function AdminOrdersTable({
         {[
           {
             label: 'Skupni prihodki',
-            value: formatCurrency(kpiMetrics.totalRevenue)
+            value: formatCurrency(kpiMetrics.totalRevenue),
+            points: buildSparklinePoints(dailyKpiSeries.map((item) => item.revenue)),
+            stroke: '#0f766e'
           },
           {
             label: 'Število naročil',
-            value: String(kpiMetrics.totalOrders)
+            value: String(kpiMetrics.totalOrders),
+            points: buildSparklinePoints(dailyKpiSeries.map((item) => item.orders)),
+            stroke: '#475569'
           },
           {
             label: 'Povprečna vrednost naročila',
-            value: formatCurrency(kpiMetrics.averageOrderValue)
+            value: formatCurrency(kpiMetrics.averageOrderValue),
+            points: buildSparklinePoints(dailyKpiSeries.map((item) => item.averageOrderValue)),
+            stroke: '#334155'
           },
           {
             label: 'Delež plačanih naročil',
-            value: `${kpiMetrics.paidShare.toFixed(1).replace('.', ',')} %`
+            value: `${kpiMetrics.paidShare.toFixed(1).replace('.', ',')} %`,
+            points: buildSparklinePoints(dailyKpiSeries.map((item) => item.paidShare)),
+            stroke: '#155e75'
           }
         ].map((kpi) => (
           <button
@@ -702,10 +756,12 @@ export default function AdminOrdersTable({
           >
             <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{kpi.label}</p>
             <p className="mt-1 text-lg font-semibold text-slate-900">{kpi.value}</p>
+            <svg viewBox="0 0 120 30" className="mt-2 h-8 w-full rounded bg-slate-50/70 px-1 py-0.5">
+              <polyline fill="none" stroke={kpi.stroke} strokeWidth="1.6" points={kpi.points} />
+            </svg>
           </button>
         ))}
       </div>
-      <AdminOrdersMiniCharts orders={dateRangeFilteredOrders} />
       <div className="mb-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
         <div className="flex flex-wrap items-end gap-2">
           <div className="relative" ref={datePopoverRef}>

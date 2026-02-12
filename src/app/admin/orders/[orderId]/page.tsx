@@ -4,8 +4,9 @@ import AdminOrderActions from '@/components/admin/AdminOrderActions';
 import AdminOrderEditForm from '@/components/admin/AdminOrderEditForm';
 import AdminOrderPdfManager from '@/components/admin/AdminOrderPdfManager';
 import AdminOrderPaymentStatus from '@/components/admin/AdminOrderPaymentStatus';
+import StatusChip from '@/components/admin/StatusChip';
+import { toDisplayOrderNumber } from '@/components/admin/adminOrdersTableUtils';
 import { getCustomerTypeLabel } from '@/lib/customerType';
-import { getStatusLabel } from '@/lib/orderStatus';
 import {
   fetchOrderAttachments,
   fetchOrderById,
@@ -104,11 +105,15 @@ export default async function AdminOrderDetailPage({
             DATABASE_URL ni nastavljen — prikazan je demo pogled.
           </div>
 
-          <div className="mt-6 grid gap-6 lg:grid-cols-[2fr_1fr]">
+          <div className="mt-6 grid gap-6 lg:grid-cols-[2fr_1.5fr]">
             <div className="space-y-6">
               <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h1 className="text-2xl font-semibold text-slate-900">{order.order_number}</h1>
-                <p className="mt-2 text-sm text-slate-600">Status: {getStatusLabel(order.status)}</p>
+                <h1 className="text-2xl font-semibold text-slate-900">
+                  {toDisplayOrderNumber(order.order_number)}
+                </h1>
+                <div className="mt-2">
+                  <StatusChip status={order.status} />
+                </div>
 
                 <div className="mt-4 grid gap-4 text-sm text-slate-600 md:grid-cols-2">
                   <div>
@@ -125,10 +130,6 @@ export default async function AdminOrderDetailPage({
                   <div>
                     <p className="text-xs uppercase text-slate-400">Naslov</p>
                     <p>{order.delivery_address}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase text-slate-400">Sklic</p>
-                    <p>{order.reference}</p>
                   </div>
                   <div className="md:col-span-2">
                     <p className="text-xs uppercase text-slate-400">Opombe</p>
@@ -195,17 +196,15 @@ export default async function AdminOrderDetailPage({
             </div>
 
             <aside className="space-y-4">
-              <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <h2 className="text-base font-semibold text-slate-900">Administracija</h2>
-                <p className="mt-1 text-xs text-slate-500">Status, plačilo, PDF dokumenti in priponke.</p>
-              </section>
-              <AdminOrderActions orderId={1} status={order.status} />
-              <AdminOrderPaymentStatus
-                orderId={1}
-                status={order.payment_status}
-                notes={order.payment_notes}
-                logs={paymentLogs}
-              />
+              <AdminOrderActions orderId={1} status={order.status}>
+                <AdminOrderPaymentStatus
+                  orderId={1}
+                  status={order.payment_status}
+                  notes={order.payment_notes}
+                  logs={paymentLogs}
+                  embedded
+                />
+              </AdminOrderActions>
               <AdminOrderPdfManager orderId={1} documents={documents} />
               <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-semibold text-slate-900">Priponke</h2>
@@ -264,11 +263,15 @@ export default async function AdminOrderDetailPage({
           ← Nazaj na seznam
         </Link>
 
-        <div className="mt-4 grid gap-6 lg:grid-cols-[2fr_1fr]">
+        <div className="mt-4 grid gap-6 lg:grid-cols-[2fr_1.5fr]">
           <div className="space-y-6">
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h1 className="text-2xl font-semibold text-slate-900">{order.order_number}</h1>
-              <p className="mt-2 text-sm text-slate-600">Status: {getStatusLabel(order.status)}</p>
+              <h1 className="text-2xl font-semibold text-slate-900">
+                {toDisplayOrderNumber(order.order_number)}
+              </h1>
+              <div className="mt-2">
+                <StatusChip status={order.status} />
+              </div>
 
               <div className="mt-4 grid gap-4 text-sm text-slate-600 md:grid-cols-2">
                 <div>
@@ -287,10 +290,6 @@ export default async function AdminOrderDetailPage({
                 <div>
                   <p className="text-xs uppercase text-slate-400">Naslov</p>
                   <p>{order.delivery_address || 'Ni podan.'}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase text-slate-400">Sklic</p>
-                  <p>{order.reference || 'Ni podan.'}</p>
                 </div>
                 {order.notes && (
                   <div className="md:col-span-2">
@@ -316,17 +315,15 @@ export default async function AdminOrderDetailPage({
           </div>
 
           <aside className="space-y-4">
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h2 className="text-base font-semibold text-slate-900">Administracija</h2>
-              <p className="mt-1 text-xs text-slate-500">Status naročila, plačilo, PDF dokumenti in priponke.</p>
-            </section>
-            <AdminOrderActions orderId={orderId} status={order.status} />
-            <AdminOrderPaymentStatus
-              orderId={orderId}
-              status={order.payment_status ?? null}
-              notes={order.payment_notes ?? null}
-              logs={paymentLogs}
-            />
+            <AdminOrderActions orderId={orderId} status={order.status}>
+              <AdminOrderPaymentStatus
+                orderId={orderId}
+                status={order.payment_status ?? null}
+                notes={order.payment_notes ?? null}
+                logs={paymentLogs}
+                embedded
+              />
+            </AdminOrderActions>
             <AdminOrderPdfManager orderId={orderId} documents={documents} />
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-slate-900">Priponke</h2>

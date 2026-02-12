@@ -60,6 +60,7 @@ export default function AdminOrderPdfManager({
   const [loadingType, setLoadingType] = useState<PdfTypeKey | null>(null);
   const [uploadingType, setUploadingType] = useState<PdfTypeKey | null>(null);
   const [uploadFile, setUploadFile] = useState<Partial<Record<PdfTypeKey, File | null>>>({});
+  const [openHistoryByType, setOpenHistoryByType] = useState<Partial<Record<PdfTypeKey, boolean>>>({});
 
   const grouped = useMemo(() => {
     const map: Record<PdfTypeKey, PdfDocument[]> = {
@@ -213,22 +214,36 @@ export default function AdminOrderPdfManager({
 
               {history.length > 0 && (
                 <div className="mt-3 border-t border-slate-100 pt-3">
-                  <p className="text-xs font-semibold uppercase text-slate-400">Zgodovina</p>
-                  <ul className="mt-2 space-y-2 text-sm text-slate-600">
-                    {history.map((doc) => (
-                      <li key={`${doc.id}-${doc.created_at}`}>
-                        <a
-                          href={doc.blob_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-semibold text-brand-600 hover:text-brand-700"
-                        >
-                          {formatTimestamp(doc.created_at)}
-                        </a>{' '}
-                        <span className="text-xs text-slate-400">({doc.filename})</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOpenHistoryByType((previousState) => ({
+                        ...previousState,
+                        [pdfType.key]: !previousState[pdfType.key]
+                      }))
+                    }
+                    className="inline-flex items-center gap-1 text-xs font-semibold uppercase text-slate-500"
+                  >
+                    Zgodovina
+                    <span>{openHistoryByType[pdfType.key] ? '▾' : '▸'}</span>
+                  </button>
+                  {openHistoryByType[pdfType.key] && (
+                    <ul className="mt-2 space-y-2 text-sm text-slate-600">
+                      {history.map((doc) => (
+                        <li key={`${doc.id}-${doc.created_at}`}>
+                          <a
+                            href={doc.blob_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-semibold text-brand-600 hover:text-brand-700"
+                          >
+                            {formatTimestamp(doc.created_at)}
+                          </a>{' '}
+                          <span className="text-xs text-slate-400">({doc.filename})</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               )}
             </div>

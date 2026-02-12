@@ -7,9 +7,10 @@ import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 type Props = {
   orderId: number;
   status: string;
+  children?: React.ReactNode;
 };
 
-export default function AdminOrderActions({ orderId, status }: Props) {
+export default function AdminOrderActions({ orderId, status, children }: Props) {
   const router = useRouter();
   const [currentStatus, setCurrentStatus] = useState(status);
   const [message, setMessage] = useState<string | null>(null);
@@ -61,10 +62,10 @@ export default function AdminOrderActions({ orderId, status }: Props) {
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-slate-900">Administracija</h2>
+      <h2 className="text-base font-semibold text-slate-900">Status naročila</h2>
       <div className="mt-4 space-y-4">
         <div>
-          <label className="text-sm font-medium text-slate-700" htmlFor="status">
+          <label className="text-xs font-medium text-slate-700" htmlFor="status">
             Status naročila
           </label>
           <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -72,7 +73,7 @@ export default function AdminOrderActions({ orderId, status }: Props) {
               id="status"
               value={currentStatus}
               onChange={(event) => setCurrentStatus(event.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[12px]"
             >
               {ORDER_STATUS_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -84,12 +85,14 @@ export default function AdminOrderActions({ orderId, status }: Props) {
               type="button"
               onClick={updateStatus}
               disabled={isWorking}
-              className="rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+              className="whitespace-nowrap rounded-full bg-brand-600 px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
             >
               Shrani status
             </button>
           </div>
         </div>
+
+        {children ? <div className="border-t border-slate-100 pt-4">{children}</div> : null}
 
         <button
           type="button"

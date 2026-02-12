@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 type OrderItemInput = {
   id: number;
@@ -72,6 +73,7 @@ export default function AdminOrderEditForm({
   notes,
   items
 }: Props) {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     customerType,
     organizationName: organizationName ?? '',
@@ -240,8 +242,9 @@ export default function AdminOrderEditForm({
         throw new Error(error.message || 'Shranjevanje postavk ni uspelo.');
       }
 
-      setMessage('Podatki naročila so posodobljeni. Ustvarite novo verzijo PDF dokumentov po potrebi.');
+      setMessage('Podatki naročila so posodobljeni. Ustvarite novo verzijo PDF dokumentov.');
       setIsDirty(false);
+      router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Napaka pri shranjevanju.');
     } finally {
@@ -251,17 +254,17 @@ export default function AdminOrderEditForm({
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-slate-900">Uredi naročilo</h2>
+      <h2 className="text-base font-semibold text-slate-900">Uredi naročilo</h2>
       {isDirty && (
         <p className="mt-2 text-xs font-medium text-amber-700">
           Imate neshranjene spremembe. Pred odhodom shranite obrazec.
         </p>
       )}
 
-      <form className="mt-4 space-y-6" onSubmit={handleSubmit}>
+      <form className="mt-4 space-y-6 text-[12px]" onSubmit={handleSubmit}>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="md:col-span-2">
-            <label className="text-sm font-medium text-slate-700" htmlFor="customerType">
+            <label className="text-xs font-medium text-slate-700" htmlFor="customerType">
               Tip naročnika
             </label>
             <select
@@ -271,7 +274,7 @@ export default function AdminOrderEditForm({
                 setFormData((previousValue) => ({ ...previousValue, customerType: event.target.value }));
                 markDirty();
               }}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[12px]"
             >
               {customerTypeOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -285,11 +288,10 @@ export default function AdminOrderEditForm({
             ['organizationName', 'Naziv organizacije'],
             ['contactName', 'Kontaktna oseba'],
             ['email', 'Email'],
-            ['phone', 'Telefon'],
-            ['reference', 'Sklic']
+            ['phone', 'Telefon']
           ].map(([fieldName, label]) => (
             <div key={fieldName} className={fieldName === 'organizationName' ? 'md:col-span-2' : ''}>
-              <label className="text-sm font-medium text-slate-700" htmlFor={fieldName}>
+              <label className="text-xs font-medium text-slate-700" htmlFor={fieldName}>
                 {label}
               </label>
               <input
@@ -300,7 +302,7 @@ export default function AdminOrderEditForm({
                   setFormData((previousValue) => ({ ...previousValue, [fieldName]: event.target.value }));
                   markDirty();
                 }}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[12px]"
               />
             </div>
           ))}
@@ -321,7 +323,7 @@ export default function AdminOrderEditForm({
           </div>
 
           <div className="md:col-span-2">
-            <label className="text-sm font-medium text-slate-700" htmlFor="notes">
+            <label className="text-xs font-medium text-slate-700" htmlFor="notes">
               Opombe
             </label>
             <textarea
@@ -332,25 +334,25 @@ export default function AdminOrderEditForm({
                 setFormData((previousValue) => ({ ...previousValue, notes: event.target.value }));
                 markDirty();
               }}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[12px]"
             />
           </div>
         </div>
 
         <div className="rounded-xl border border-slate-200">
           <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-            <h3 className="text-sm font-semibold text-slate-900">Postavke</h3>
+            <h3 className="text-[13px] font-semibold text-slate-900">Postavke</h3>
             <button
               type="button"
               onClick={openAddItem}
-              className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:border-brand-300 hover:text-brand-700"
+              className="rounded-full border border-slate-300 px-3 py-1 text-[11px] font-semibold text-slate-700 transition hover:border-brand-300 hover:text-brand-700"
             >
               + Dodaj artikel
             </button>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="min-w-full text-xs">
+            <table className="min-w-full text-[11px]">
               <thead className="bg-slate-50 text-slate-600">
                 <tr>
                   <th className="px-3 py-2 text-left">Artikel</th>
@@ -366,7 +368,7 @@ export default function AdminOrderEditForm({
                   <tr key={item.id} className="border-t border-slate-100">
                     <td className="px-3 py-2">
                       <p className="font-medium text-slate-900">{item.name}</p>
-                      <p className="text-[11px] text-slate-500">{item.sku}</p>
+                          <p className="text-[10px] text-slate-500">{item.sku}</p>
                     </td>
                     <td className="px-2 py-2 text-center">
                       <input
@@ -411,9 +413,11 @@ export default function AdminOrderEditForm({
                       <button
                         type="button"
                         onClick={() => removeItem(item.id)}
-                        className="rounded-md border border-rose-200 px-2 py-1 text-[11px] font-medium text-rose-600 hover:bg-rose-50"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-rose-300 text-base font-semibold leading-none text-rose-600 hover:bg-rose-50"
+                        aria-label="Odstrani postavko"
+                        title="Odstrani"
                       >
-                        Odstrani
+                        ×
                       </button>
                     </td>
                   </tr>
@@ -422,7 +426,7 @@ export default function AdminOrderEditForm({
             </table>
           </div>
 
-          <div className="space-y-1 border-t border-slate-200 px-4 py-3 text-xs text-slate-700">
+          <div className="space-y-1 border-t border-slate-200 px-4 py-3 text-[11px] text-slate-700">
             <div className="flex items-center justify-between">
               <span>Vmesni seštevek</span>
               <span className="font-semibold">{formatCurrency(totals.subtotal)}</span>
@@ -438,15 +442,15 @@ export default function AdminOrderEditForm({
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             type="submit"
             disabled={isSaving}
-            className="rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+            className="whitespace-nowrap rounded-full bg-brand-600 px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
           >
             {isSaving ? 'Shranjevanje...' : 'Shrani spremembe'}
           </button>
-          {message && <span className="text-sm text-slate-600">{message}</span>}
+          {message && <span className="text-[12px] text-slate-600">{message}</span>}
         </div>
       </form>
 

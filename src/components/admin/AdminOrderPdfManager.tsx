@@ -61,6 +61,7 @@ export default function AdminOrderPdfManager({
   const [uploadingType, setUploadingType] = useState<PdfTypeKey | null>(null);
   const [uploadFile, setUploadFile] = useState<Partial<Record<PdfTypeKey, File | null>>>({});
   const [openHistoryByType, setOpenHistoryByType] = useState<Partial<Record<PdfTypeKey, boolean>>>({});
+  const [deletingDocumentId, setDeletingDocumentId] = useState<number | null>(null);
 
   const grouped = useMemo(() => {
     const map: Record<PdfTypeKey, PdfDocument[]> = {
@@ -146,6 +147,22 @@ export default function AdminOrderPdfManager({
     }
   };
 
+
+  const handleDeleteDocument = async (documentId: number) => {
+    const confirmed = window.confirm('Ali ste prepričani, da želite izbrisati to verzijo PDF dokumenta?');
+    if (!confirmed) return;
+    setDeletingDocumentId(documentId);
+    try {
+      const response = await fetch(`/api/admin/orders/${orderId}/documents/${documentId}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) return;
+      setDocList((previousDocuments) => previousDocuments.filter((doc) => doc.id !== documentId));
+    } finally {
+      setDeletingDocumentId(null);
+    }
+  };
+
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <h2 className="text-base font-semibold text-slate-900">PDF dokumenti</h2>
@@ -155,7 +172,23 @@ export default function AdminOrderPdfManager({
           const latest = docs[0];
           const history = docs;
 
-          return (
+        
+  const handleDeleteDocument = async (documentId: number) => {
+    const confirmed = window.confirm('Ali ste prepričani, da želite izbrisati to verzijo PDF dokumenta?');
+    if (!confirmed) return;
+    setDeletingDocumentId(documentId);
+    try {
+      const response = await fetch(`/api/admin/orders/${orderId}/documents/${documentId}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) return;
+      setDocList((previousDocuments) => previousDocuments.filter((doc) => doc.id !== documentId));
+    } finally {
+      setDeletingDocumentId(null);
+    }
+  };
+
+  return (
             <div key={pdfType.key} className="rounded-2xl border border-slate-200/80 p-3.5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -235,15 +268,26 @@ export default function AdminOrderPdfManager({
                           key={`${doc.id}-${doc.created_at}`}
                           className="rounded-lg border border-transparent px-2.5 py-2 transition hover:border-slate-200 hover:bg-slate-50"
                         >
-                          <a
-                            href={doc.blob_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center justify-between gap-3"
-                          >
-                            <span className="truncate font-semibold text-brand-600 hover:text-brand-700">{doc.filename}</span>
-                            <span className="shrink-0 text-[11px] text-slate-500">{formatTimestamp(doc.created_at)}</span>
-                          </a>
+                          <div className="flex items-center justify-between gap-2">
+                            <a
+                              href={doc.blob_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex min-w-0 flex-1 items-center justify-between gap-3"
+                            >
+                              <span className="truncate font-semibold text-brand-600 hover:text-brand-700">{doc.filename}</span>
+                              <span className="shrink-0 text-[11px] text-slate-500">{formatTimestamp(doc.created_at)}</span>
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteDocument(doc.id)}
+                              disabled={deletingDocumentId === doc.id}
+                              className="inline-flex h-6 items-center rounded-md border border-rose-200 px-1.5 text-[10px] font-medium text-rose-600 hover:bg-rose-50 disabled:text-slate-300"
+                              aria-label={`Izbriši dokument ${doc.filename}`}
+                            >
+                              {deletingDocumentId === doc.id ? '...' : 'Izbriši'}
+                            </button>
+                          </div>
                           {index === 0 && (
                             <span className="mt-1 inline-flex rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
                               Najnovejše

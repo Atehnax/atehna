@@ -42,7 +42,8 @@ export default async function AdminOrderDetailPage({
       reference: 'PO-2024-01',
       notes: 'Prosimo za dobavo do konca meseca.',
       payment_status: 'paid',
-      payment_notes: 'Plačano ob prevzemu.'
+      payment_notes: 'Plačano ob prevzemu.',
+      is_draft: false
     };
 
     const items = [
@@ -81,6 +82,12 @@ export default async function AdminOrderDetailPage({
           <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-6 text-sm text-amber-700">
             DATABASE_URL ni nastavljen — prikazan je demo pogled.
           </div>
+
+          {order.is_draft && (
+            <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              To naročilo je osnutek. Izpolnite podatke in shranite, da bo vidno na seznamu naročil.
+            </div>
+          )}
 
           <div className="mt-6 space-y-6">
             <div className="grid items-stretch gap-6 lg:grid-cols-[2fr_1.5fr]">
@@ -206,6 +213,12 @@ export default async function AdminOrderDetailPage({
         <Link href="/admin/orders" className="text-sm font-semibold text-brand-600">
           ← Nazaj na seznam
         </Link>
+
+        {order.is_draft && (
+          <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            To naročilo je osnutek. Izpolnite podatke in shranite, da bo vidno na seznamu naročil.
+          </div>
+        )}
 
         <div className="mt-4 space-y-6">
           <div className="grid items-stretch gap-6 lg:grid-cols-[2fr_1.5fr]">

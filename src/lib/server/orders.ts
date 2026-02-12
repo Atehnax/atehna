@@ -18,6 +18,7 @@ export type OrderRow = {
   tax: number | null;
   total: number | null;
   created_at: string;
+  is_draft?: boolean;
 };
 
 export type OrderItemRow = {
@@ -98,7 +99,8 @@ function mapOrderRow(rawRow: Record<string, unknown>): OrderRow {
     subtotal: parseNullableNumber(rawRow.subtotal),
     tax: parseNullableNumber(rawRow.tax),
     total: parseNullableNumber(rawRow.total),
-    created_at: toIsoTimestamp(rawRow.created_at)
+    created_at: toIsoTimestamp(rawRow.created_at),
+    is_draft: Boolean(rawRow.is_draft)
   };
 }
 
@@ -162,10 +164,15 @@ export async function fetchOrders(options?: {
   fromDate?: string | null;
   toDate?: string | null;
   query?: string | null;
+  includeDrafts?: boolean;
 }): Promise<OrderRow[]> {
   const pool = await getPool();
   const conditions: string[] = [];
   const queryParams: unknown[] = [];
+
+  if (!options?.includeDrafts) {
+    conditions.push('coalesce(orders.is_draft, false) = false');
+  }
 
   if (options?.fromDate) {
     queryParams.push(options.fromDate);
@@ -206,7 +213,8 @@ export async function fetchOrders(options?: {
       coalesce(orders.subtotal, computed_totals.subtotal, 0)::numeric as subtotal,
       coalesce(orders.tax, computed_totals.tax, 0)::numeric as tax,
       coalesce(orders.total, computed_totals.total, 0)::numeric as total,
-      orders.created_at
+      orders.created_at,
+      orders.is_draft
     from orders
     left join (
       select
@@ -249,7 +257,8 @@ export async function fetchOrderById(orderId: number): Promise<OrderRow | null> 
       coalesce(orders.subtotal, computed_totals.subtotal, 0)::numeric as subtotal,
       coalesce(orders.tax, computed_totals.tax, 0)::numeric as tax,
       coalesce(orders.total, computed_totals.total, 0)::numeric as total,
-      orders.created_at
+      orders.created_at,
+      orders.is_draft
     from orders
     left join (
       select

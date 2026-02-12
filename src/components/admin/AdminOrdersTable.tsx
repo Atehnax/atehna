@@ -6,6 +6,7 @@ import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
 import AdminOrderPaymentSelect from '@/components/admin/AdminOrderPaymentSelect';
 import StatusChip from '@/components/admin/StatusChip';
 import PaymentChip from '@/components/admin/PaymentChip';
+import AdminOrdersMiniCharts from '@/components/admin/AdminOrdersMiniCharts';
 import { getCustomerTypeLabel } from '@/lib/customerType';
 import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 import { formatSlDate, formatSlDateFromDateInput, formatSlDateTime } from '@/lib/format/dateTime';
@@ -588,7 +589,7 @@ export default function AdminOrdersTable({
     const params = new URLSearchParams();
     if (fromDate) params.set('from', fromDate);
     if (toDate) params.set('to', toDate);
-    return `/admin/analitika${params.toString() ? `?${params.toString()}` : ''}`;
+    return `/admin/analitika/narocila${params.toString() ? `?${params.toString()}` : ''}`;
   }, [fromDate, toDate]);
 
   const handleApplyDocuments = () => {
@@ -704,6 +705,7 @@ export default function AdminOrdersTable({
           </button>
         ))}
       </div>
+      <AdminOrdersMiniCharts orders={dateRangeFilteredOrders} />
       <div className="mb-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
         <div className="flex flex-wrap items-end gap-2">
           <div className="relative" ref={datePopoverRef}>

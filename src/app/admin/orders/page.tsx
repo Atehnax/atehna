@@ -1,4 +1,5 @@
 import AdminOrdersTable from '@/components/admin/AdminOrdersTable';
+import AdminCreateDraftOrderButton from '@/components/admin/AdminCreateDraftOrderButton';
 import {
   fetchOrderAttachmentsForOrders,
   fetchOrderDocumentsForOrders,
@@ -76,11 +77,14 @@ export default async function AdminOrdersPage({
     return (
       <div className="w-full px-6 py-12">
         <div className="flex flex-col gap-6">
-          <div>
-            <h1 className="text-3xl font-semibold text-slate-900">Administracija naročil</h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Pregled oddanih naročil, statusov in dokumentov.
-            </p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h1 className="text-3xl font-semibold text-slate-900">Administracija naročil</h1>
+              <p className="mt-2 text-sm text-slate-600">
+                Pregled oddanih naročil, statusov in dokumentov.
+              </p>
+            </div>
+            <AdminCreateDraftOrderButton />
           </div>
 
           <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-6 text-sm text-amber-700">

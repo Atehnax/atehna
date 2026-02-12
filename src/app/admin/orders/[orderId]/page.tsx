@@ -82,9 +82,9 @@ export default async function AdminOrderDetailPage({
             DATABASE_URL ni nastavljen — prikazan je demo pogled.
           </div>
 
-          <div className="mt-6 grid items-start gap-6 lg:grid-cols-[2fr_1.5fr]">
-            <div className="space-y-6">
-              <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mt-6 space-y-6">
+            <div className="grid items-stretch gap-6 lg:grid-cols-[2fr_1.5fr]">
+              <section className="h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <AdminOrderHeaderChips
                   orderNumber={toDisplayOrderNumber(order.order_number)}
                   status={order.status}
@@ -101,71 +101,76 @@ export default async function AdminOrderDetailPage({
                 />
               </section>
 
-              <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-slate-900">Postavke</h2>
-                <div className="mt-4 space-y-3">
-                  {items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <p className="font-semibold text-slate-900">{item.name}</p>
-                          <p className="text-slate-500">
-                            Količina: {item.quantity} {item.unit ?? ''}
-                          </p>
-                        </div>
-                        <div className="text-right text-sm text-slate-600">
-                          <p>Enota: {formatCurrency(item.unit_price)}</p>
-                          <p className="font-semibold text-slate-900">
-                            Skupaj: {formatCurrency(toAmount(item.unit_price) * item.quantity)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-
-                  <div className="rounded-xl border border-slate-100 bg-white p-4 text-sm text-slate-700">
-                    <div className="flex items-center justify-between">
-                      <span>Vmesni seštevek</span>
-                      <span className="font-semibold">{formatCurrency(subtotal)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>DDV</span>
-                      <span className="font-semibold">{formatCurrency(tax)}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-base font-semibold text-slate-900">
-                      <span>Skupaj</span>
-                      <span>{formatCurrency(total)}</span>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <AdminOrderEditForm
-                orderId={1}
-                customerType={order.customer_type}
-                organizationName={order.organization_name}
-                contactName={order.contact_name}
-                email={order.email}
-                phone={order.phone}
-                deliveryAddress={order.delivery_address}
-                reference={order.reference}
-                notes={order.notes}
-                items={items}
-              />
-            </div>
-
-            <aside className="space-y-5">
               <AdminOrderActions
                 orderId={1}
                 status={order.status}
                 paymentStatus={order.payment_status}
                 paymentNotes={order.payment_notes}
               />
-              <AdminOrderPdfManager orderId={1} documents={documents} />
-            </aside>
+            </div>
+
+            <div className="grid items-start gap-6 lg:grid-cols-[2fr_1.5fr]">
+              <div className="space-y-6">
+                <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <h2 className="text-lg font-semibold text-slate-900">Postavke</h2>
+                  <div className="mt-4 space-y-3">
+                    {items.map((item) => (
+                      <div
+                        key={item.id}
+                        className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-slate-900">{item.name}</p>
+                            <p className="text-slate-500">
+                              Količina: {item.quantity} {item.unit ?? ''}
+                            </p>
+                          </div>
+                          <div className="text-right text-sm text-slate-600">
+                            <p>Enota: {formatCurrency(item.unit_price)}</p>
+                            <p className="font-semibold text-slate-900">
+                              Skupaj: {formatCurrency(toAmount(item.unit_price) * item.quantity)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    <div className="rounded-xl border border-slate-100 bg-white p-4 text-sm text-slate-700">
+                      <div className="flex items-center justify-between">
+                        <span>Vmesni seštevek</span>
+                        <span className="font-semibold">{formatCurrency(subtotal)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>DDV</span>
+                        <span className="font-semibold">{formatCurrency(tax)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-base font-semibold text-slate-900">
+                        <span>Skupaj</span>
+                        <span>{formatCurrency(total)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <AdminOrderEditForm
+                  orderId={1}
+                  customerType={order.customer_type}
+                  organizationName={order.organization_name}
+                  contactName={order.contact_name}
+                  email={order.email}
+                  phone={order.phone}
+                  deliveryAddress={order.delivery_address}
+                  reference={order.reference}
+                  notes={order.notes}
+                  items={items}
+                />
+              </div>
+
+              <aside className="space-y-5">
+                <AdminOrderPdfManager orderId={1} documents={documents} />
+              </aside>
+            </div>
           </div>
         </div>
       </div>
@@ -202,9 +207,9 @@ export default async function AdminOrderDetailPage({
           ← Nazaj na seznam
         </Link>
 
-        <div className="mt-4 grid items-start gap-6 lg:grid-cols-[2fr_1.5fr]">
-          <div className="space-y-6">
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mt-4 space-y-6">
+          <div className="grid items-stretch gap-6 lg:grid-cols-[2fr_1.5fr]">
+            <section className="h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <AdminOrderHeaderChips
                 orderNumber={toDisplayOrderNumber(order.order_number)}
                 status={order.status}
@@ -221,29 +226,34 @@ export default async function AdminOrderDetailPage({
               />
             </section>
 
-            <AdminOrderEditForm
-              orderId={orderId}
-              customerType={order.customer_type}
-              organizationName={order.organization_name}
-              contactName={order.contact_name}
-              email={order.email}
-              phone={order.phone}
-              deliveryAddress={order.delivery_address}
-              reference={order.reference}
-              notes={order.notes}
-              items={items}
-            />
-          </div>
-
-          <aside className="space-y-5">
             <AdminOrderActions
               orderId={orderId}
               status={order.status}
               paymentStatus={order.payment_status ?? null}
               paymentNotes={order.payment_notes ?? null}
             />
-            <AdminOrderPdfManager orderId={orderId} documents={documents} />
-          </aside>
+          </div>
+
+          <div className="grid items-start gap-6 lg:grid-cols-[2fr_1.5fr]">
+            <div className="space-y-6">
+              <AdminOrderEditForm
+                orderId={orderId}
+                customerType={order.customer_type}
+                organizationName={order.organization_name}
+                contactName={order.contact_name}
+                email={order.email}
+                phone={order.phone}
+                deliveryAddress={order.delivery_address}
+                reference={order.reference}
+                notes={order.notes}
+                items={items}
+              />
+            </div>
+
+            <aside className="space-y-5">
+              <AdminOrderPdfManager orderId={orderId} documents={documents} />
+            </aside>
+          </div>
         </div>
       </div>
     </div>

@@ -1,12 +1,34 @@
 export const ORDER_STATUS_OPTIONS = [
   { value: 'received', label: 'Prejeto' },
   { value: 'in_progress', label: 'V obdelavi' },
-  { value: 'sent', label: 'Poslano' },
   { value: 'partially_sent', label: 'Delno poslano' },
+  { value: 'sent', label: 'Poslano' },
   { value: 'finished', label: 'Zaključeno' },
-  { value: 'cancelled', label: 'Preklicano' },
-  { value: 'refunded_returned', label: 'Povrnjeno' },
-];
+  { value: 'cancelled', label: 'Preklicano' }
+] as const;
+
+export type OrderStatus = (typeof ORDER_STATUS_OPTIONS)[number]['value'];
+
+const STATUS_LABELS = new Map<OrderStatus, string>(
+  ORDER_STATUS_OPTIONS.map((option) => [option.value, option.label])
+);
+
+const STATUS_CHIP_CLASSNAMES: Record<OrderStatus, string> = {
+  received: 'border-slate-200 bg-slate-50 text-slate-700',
+  in_progress: 'border-yellow-200 bg-yellow-50 text-yellow-800',
+  partially_sent: 'border-sky-200 bg-sky-50 text-sky-700',
+  sent: 'border-blue-200 bg-blue-50 text-blue-700',
+  finished: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  cancelled: 'border-orange-300 bg-orange-100 text-orange-900'
+};
+
+export const isOrderStatus = (value: string): value is OrderStatus =>
+  STATUS_LABELS.has(value as OrderStatus);
 
 export const getStatusLabel = (value: string) =>
-  ORDER_STATUS_OPTIONS.find((option) => option.value === value)?.label ?? value;
+  isOrderStatus(value) ? STATUS_LABELS.get(value) ?? 'Neznano' : 'Neznano';
+
+export const getStatusChipClassName = (value: string) =>
+  isOrderStatus(value)
+    ? STATUS_CHIP_CLASSNAMES[value]
+    : 'border-slate-200 bg-slate-50 text-slate-400';

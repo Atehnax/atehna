@@ -29,6 +29,7 @@ export type OrderItemRow = {
   quantity: number;
   unit_price: number | null;
   total_price: number | null;
+  discount_percentage: number;
 };
 
 export type OrderDocumentRow = {
@@ -75,21 +76,25 @@ function toIsoTimestamp(rawValue: unknown): string {
   return String(rawValue);
 }
 
+function asNullableString(rawValue: unknown): string | null {
+  return typeof rawValue === 'string' ? rawValue : null;
+}
+
 function mapOrderRow(rawRow: Record<string, unknown>): OrderRow {
   return {
     id: Number(rawRow.id),
     order_number: String(rawRow.order_number),
     customer_type: String(rawRow.customer_type),
-    organization_name: (rawRow.organization_name as string | null) ?? null,
+    organization_name: asNullableString(rawRow.organization_name),
     contact_name: String(rawRow.contact_name),
     email: String(rawRow.email),
-    phone: (rawRow.phone as string | null) ?? null,
-    delivery_address: (rawRow.delivery_address as string | null) ?? null,
-    reference: (rawRow.reference as string | null) ?? null,
-    notes: (rawRow.notes as string | null) ?? null,
+    phone: asNullableString(rawRow.phone),
+    delivery_address: asNullableString(rawRow.delivery_address),
+    reference: asNullableString(rawRow.reference),
+    notes: asNullableString(rawRow.notes),
     status: String(rawRow.status),
-    payment_status: (rawRow.payment_status as string | null) ?? null,
-    payment_notes: (rawRow.payment_notes as string | null) ?? null,
+    payment_status: asNullableString(rawRow.payment_status),
+    payment_notes: asNullableString(rawRow.payment_notes),
     subtotal: parseNullableNumber(rawRow.subtotal),
     tax: parseNullableNumber(rawRow.tax),
     total: parseNullableNumber(rawRow.total),
@@ -98,15 +103,24 @@ function mapOrderRow(rawRow: Record<string, unknown>): OrderRow {
 }
 
 function mapOrderItemRow(rawRow: Record<string, unknown>): OrderItemRow {
+  const quantity = Number(rawRow.quantity);
+  const unitPrice = parseNullableNumber(rawRow.unit_price);
+  const totalPrice = parseNullableNumber(rawRow.total_price);
+  const lineBase = Math.max(0, quantity) * (unitPrice ?? 0);
+  const effectiveTotal = totalPrice ?? lineBase;
+  const discountPercentage =
+    lineBase > 0 ? Math.min(100, Math.max(0, Number((((lineBase - effectiveTotal) / lineBase) * 100).toFixed(2)))) : 0;
+
   return {
     id: Number(rawRow.id),
     order_id: Number(rawRow.order_id),
     sku: String(rawRow.sku),
     name: String(rawRow.name),
-    unit: (rawRow.unit as string | null) ?? null,
-    quantity: Number(rawRow.quantity),
-    unit_price: parseNullableNumber(rawRow.unit_price),
-    total_price: parseNullableNumber(rawRow.total_price)
+    unit: asNullableString(rawRow.unit),
+    quantity,
+    unit_price: unitPrice,
+    total_price: totalPrice,
+    discount_percentage: discountPercentage
   };
 }
 
@@ -117,7 +131,7 @@ function mapOrderDocumentRow(rawRow: Record<string, unknown>): OrderDocumentRow 
     type: String(rawRow.type),
     filename: String(rawRow.filename),
     blob_url: String(rawRow.blob_url),
-    blob_pathname: (rawRow.blob_pathname as string | null) ?? null,
+    blob_pathname: asNullableString(rawRow.blob_pathname),
     created_at: toIsoTimestamp(rawRow.created_at)
   };
 }
@@ -137,9 +151,9 @@ function mapPaymentLogRow(rawRow: Record<string, unknown>): PaymentLogRow {
   return {
     id: Number(rawRow.id),
     order_id: Number(rawRow.order_id),
-    previous_status: (rawRow.previous_status as string | null) ?? null,
+    previous_status: asNullableString(rawRow.previous_status),
     new_status: String(rawRow.new_status),
-    note: (rawRow.note as string | null) ?? null,
+    note: asNullableString(rawRow.note),
     created_at: toIsoTimestamp(rawRow.created_at)
   };
 }
@@ -197,9 +211,9 @@ export async function fetchOrders(options?: {
     left join (
       select
         order_items.order_id,
-        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)), 2) as subtotal,
-        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)) * 0.22, 2) as tax,
-        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)) * 1.22, 2) as total
+        round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))), 2) as subtotal,
+        round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 0.22, 2) as tax,
+        round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 1.22, 2) as total
       from order_items
       group by order_items.order_id
     ) as computed_totals
@@ -240,9 +254,9 @@ export async function fetchOrderById(orderId: number): Promise<OrderRow | null> 
     left join (
       select
         order_items.order_id,
-        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)), 2) as subtotal,
-        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)) * 0.22, 2) as tax,
-        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)) * 1.22, 2) as total
+        round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))), 2) as subtotal,
+        round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 0.22, 2) as tax,
+        round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 1.22, 2) as total
       from order_items
       group by order_items.order_id
     ) as computed_totals

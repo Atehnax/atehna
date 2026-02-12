@@ -31,7 +31,7 @@ export default async function AdminOrdersPage({
     const demoOrders = [
       {
         id: 1,
-        order_number: 'ORD-1',
+        order_number: '#1',
         customer_type: 'school',
         organization_name: 'Osnovna šola Triglav',
         contact_name: 'Maja Kovač',
@@ -55,7 +55,7 @@ export default async function AdminOrdersPage({
         id: 1,
         order_id: 1,
         type: 'order_summary',
-        filename: 'ORD-1-order-summary.pdf',
+        filename: '#1-order-summary.pdf',
         blob_url: '#',
         blob_pathname: null,
         created_at: new Date().toISOString()
@@ -67,7 +67,7 @@ export default async function AdminOrdersPage({
         id: 1,
         order_id: 1,
         type: 'purchase_order',
-        filename: 'ORD-1-narocilnica.pdf',
+        filename: '#1-narocilnica.pdf',
         blob_url: '#',
         created_at: new Date().toISOString()
       }
@@ -91,6 +91,9 @@ export default async function AdminOrdersPage({
             orders={demoOrders}
             documents={demoDocuments}
             attachments={demoAttachments}
+            initialFrom={from}
+            initialTo={to}
+            initialQuery={query}
           />
         </div>
       </div>
@@ -120,7 +123,14 @@ export default async function AdminOrdersPage({
           </p>
         </div>
 
-        <AdminOrdersTable orders={orders} documents={documents} attachments={attachments} />
+        <AdminOrdersTable
+          orders={orders}
+          documents={documents}
+          attachments={attachments}
+          initialFrom={from}
+          initialTo={to}
+          initialQuery={query}
+        />
       </div>
     </div>
   );

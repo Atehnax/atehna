@@ -38,7 +38,8 @@ export async function POST(
           phone = $5,
           delivery_address = $6,
           reference = $7,
-          notes = $8
+          notes = $8,
+          is_draft = false
       WHERE id = $9
       `,
       [

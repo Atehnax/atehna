@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getPool } from '@/lib/server/db';
 import { uploadBlob } from '@/lib/server/blob';
+import { getPool } from '@/lib/server/db';
 import { generateOrderPdf } from '@/lib/server/pdf';
 
 export async function POST(
-  request: Request,
+  _request: Request,
   { params }: { params: { orderId: string } }
 ) {
   try {
@@ -27,7 +27,7 @@ export async function POST(
     );
 
     const pdfBuffer = await generateOrderPdf(
-      'Dobavnica',
+      'Naročilnica',
       {
         orderNumber: order.order_number,
         customerType: order.customer_type,
@@ -46,20 +46,20 @@ export async function POST(
       itemsResult.rows
     );
 
-    const fileName = `${order.order_number}-dobavnica-${Date.now()}.pdf`;
+    const fileName = `${order.order_number}-purchase-order-${Date.now()}.pdf`;
     const blobPath = `orders/${order.order_number}/${fileName}`;
     const blob = await uploadBlob(blobPath, Buffer.from(pdfBuffer), 'application/pdf');
 
     const insertResult = await pool.query(
       'INSERT INTO order_documents (order_id, type, filename, blob_url, blob_pathname) VALUES ($1, $2, $3, $4, $5) RETURNING created_at',
-      [orderId, 'dobavnica', fileName, blob.url, blob.pathname]
+      [orderId, 'purchase_order', fileName, blob.url, blob.pathname]
     );
 
     return NextResponse.json({
       url: blob.url,
       filename: fileName,
       createdAt: insertResult.rows[0].created_at,
-      type: 'dobavnica'
+      type: 'purchase_order'
     });
   } catch (error) {
     return NextResponse.json(

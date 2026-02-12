@@ -22,7 +22,7 @@ export async function POST(
     }
 
     const itemsResult = await pool.query(
-      'SELECT sku, name, unit, quantity, unit_price FROM order_items WHERE order_id = $1 ORDER BY id',
+      'SELECT sku, name, unit, quantity, unit_price as "unitPrice" FROM order_items WHERE order_id = $1 ORDER BY id',
       [orderId]
     );
 
@@ -38,7 +38,7 @@ export async function POST(
         deliveryAddress: order.delivery_address,
         reference: order.reference,
         notes: order.notes,
-        createdAt: new Date(order.created_at),
+        createdAt: new Date(),
         subtotal: Number(order.subtotal),
         tax: Number(order.tax),
         total: Number(order.total)

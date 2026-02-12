@@ -5,6 +5,7 @@ import AdminOrderEditForm from '@/components/admin/AdminOrderEditForm';
 import AdminOrderPdfManager from '@/components/admin/AdminOrderPdfManager';
 import AdminOrderPaymentStatus from '@/components/admin/AdminOrderPaymentStatus';
 import StatusChip from '@/components/admin/StatusChip';
+import PaymentChip from '@/components/admin/PaymentChip';
 import { toDisplayOrderNumber } from '@/components/admin/adminOrdersTableUtils';
 import { getCustomerTypeLabel } from '@/lib/customerType';
 import {
@@ -108,11 +109,12 @@ export default async function AdminOrderDetailPage({
           <div className="mt-6 grid gap-6 lg:grid-cols-[2fr_1.5fr]">
             <div className="space-y-6">
               <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h1 className="text-2xl font-semibold text-slate-900">
-                  {toDisplayOrderNumber(order.order_number)}
-                </h1>
-                <div className="mt-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-semibold text-slate-900">
+                    {toDisplayOrderNumber(order.order_number)}
+                  </h1>
                   <StatusChip status={order.status} />
+                  <PaymentChip status={order.payment_status ?? null} />
                 </div>
 
                 <div className="mt-4 grid gap-4 text-sm text-slate-600 md:grid-cols-2">
@@ -266,11 +268,12 @@ export default async function AdminOrderDetailPage({
         <div className="mt-4 grid gap-6 lg:grid-cols-[2fr_1.5fr]">
           <div className="space-y-6">
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h1 className="text-2xl font-semibold text-slate-900">
-                {toDisplayOrderNumber(order.order_number)}
-              </h1>
-              <div className="mt-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl font-semibold text-slate-900">
+                  {toDisplayOrderNumber(order.order_number)}
+                </h1>
                 <StatusChip status={order.status} />
+                <PaymentChip status={order.payment_status ?? null} />
               </div>
 
               <div className="mt-4 grid gap-4 text-sm text-slate-600 md:grid-cols-2">

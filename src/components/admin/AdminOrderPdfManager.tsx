@@ -153,7 +153,7 @@ export default function AdminOrderPdfManager({
         {PDF_TYPES.map((pdfType) => {
           const docs = grouped[pdfType.key];
           const latest = docs[0];
-          const history = docs.slice(1);
+          const history = docs;
 
           return (
             <div key={pdfType.key} className="rounded-xl border border-slate-100 p-4">
@@ -185,7 +185,7 @@ export default function AdminOrderPdfManager({
                     disabled={loadingType === pdfType.key}
                     className="rounded-full bg-brand-600 px-3 py-1 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
                   >
-                    {latest ? 'Ponovno generiraj' : 'Generiraj'}
+                    Ustvari PDF
                   </button>
                   <label className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 hover:border-brand-200 hover:text-brand-600">
                     <input

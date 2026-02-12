@@ -68,12 +68,12 @@ export default function AdminOrderActions({ orderId, status, children }: Props) 
           <label className="text-xs font-medium text-slate-700" htmlFor="status">
             Status naročila
           </label>
-          <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="mt-2 flex items-center gap-3">
             <select
               id="status"
               value={currentStatus}
               onChange={(event) => setCurrentStatus(event.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[12px]"
+              className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-[12px]"
             >
               {ORDER_STATUS_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -81,27 +81,29 @@ export default function AdminOrderActions({ orderId, status, children }: Props) 
                 </option>
               ))}
             </select>
-            <button
-              type="button"
-              onClick={updateStatus}
-              disabled={isWorking}
-              className="whitespace-nowrap rounded-full bg-brand-600 px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
-            >
-              Shrani status
-            </button>
           </div>
         </div>
 
         {children ? <div className="border-t border-slate-100 pt-4">{children}</div> : null}
 
-        <button
-          type="button"
-          onClick={deleteOrder}
-          disabled={isDeleting}
-          className="w-full rounded-full border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition hover:border-red-300 hover:text-red-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
-        >
-          {isDeleting ? 'Brisanje...' : 'Izbriši naročilo'}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={updateStatus}
+            disabled={isWorking}
+            className="w-40 whitespace-nowrap rounded-full bg-brand-600 px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+          >
+            Shrani status
+          </button>
+          <button
+            type="button"
+            onClick={deleteOrder}
+            disabled={isDeleting}
+            className="w-40 whitespace-nowrap rounded-full border border-red-200 px-4 py-2 text-[12px] font-semibold text-red-600 transition hover:border-red-300 hover:text-red-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
+          >
+            {isDeleting ? 'Brisanje...' : 'Izbriši naročilo'}
+          </button>
+        </div>
 
         {message && <p className="text-sm text-slate-600">{message}</p>}
       </div>

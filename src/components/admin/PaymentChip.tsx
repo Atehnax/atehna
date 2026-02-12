@@ -8,7 +8,7 @@ type Props = {
 export default function PaymentChip({ status, isSaving = false }: Props) {
   return (
     <span
-      className={`mx-auto inline-flex h-6 min-w-[104px] items-center justify-center rounded-full border px-2 text-[11px] font-semibold leading-none ${getPaymentBadgeClassName(
+      className={`inline-flex h-6 min-w-[104px] items-center justify-center rounded-full border px-2 text-[11px] font-semibold leading-none ${getPaymentBadgeClassName(
         status
       )}`}
     >

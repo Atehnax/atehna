@@ -20,8 +20,8 @@ type PdfTypeConfig = {
 const PDF_TYPES: PdfTypeConfig[] = [
   { key: 'order_summary', label: 'Povzetek naročila' },
   { key: 'purchase_order', label: 'Naročilnica' },
-  { key: 'predracun', label: 'Predračun' },
   { key: 'dobavnica', label: 'Dobavnica' },
+  { key: 'predracun', label: 'Predračun' },
   { key: 'invoice', label: 'Račun' }
 ];
 

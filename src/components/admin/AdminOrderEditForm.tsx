@@ -345,9 +345,9 @@ export default function AdminOrderEditForm({
             <button
               type="button"
               onClick={openAddItem}
-              className="rounded-full border border-slate-300 px-3 py-1 text-[11px] font-semibold text-slate-700 transition hover:border-brand-300 hover:text-brand-700"
+              className="rounded-full bg-brand-600 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-brand-700"
             >
-              + Dodaj artikel
+              Dodaj
             </button>
           </div>
 

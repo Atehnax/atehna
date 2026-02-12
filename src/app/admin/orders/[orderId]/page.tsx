@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
 import AdminOrderActions from '@/components/admin/AdminOrderActions';
 import AdminOrderEditForm from '@/components/admin/AdminOrderEditForm';
 import AdminOrderPdfManager from '@/components/admin/AdminOrderPdfManager';
-import AdminOrderPaymentStatus from '@/components/admin/AdminOrderPaymentStatus';
 import StatusChip from '@/components/admin/StatusChip';
 import PaymentChip from '@/components/admin/PaymentChip';
 import { toDisplayOrderNumber } from '@/components/admin/adminOrdersTableUtils';
@@ -12,8 +11,7 @@ import {
   fetchOrderAttachments,
   fetchOrderById,
   fetchOrderDocuments,
-  fetchOrderItems,
-  fetchPaymentLogs
+  fetchOrderItems
 } from '@/lib/server/orders';
 
 export const metadata = {
@@ -81,17 +79,6 @@ export default async function AdminOrderDetailPage({
       }
     ];
 
-    const paymentLogs = [
-      {
-        id: 1,
-        order_id: 1,
-        previous_status: 'unpaid',
-        new_status: 'paid',
-        note: 'Plačano ob prevzemu.',
-        created_at: new Date().toISOString()
-      }
-    ];
-
     const subtotal = items.reduce(
       (sum, item) => sum + toAmount(item.unit_price) * item.quantity,
       0
@@ -109,7 +96,7 @@ export default async function AdminOrderDetailPage({
           <div className="mt-6 grid gap-6 lg:grid-cols-[2fr_1.5fr]">
             <div className="space-y-6">
               <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-0.5">
                   <h1 className="text-2xl font-semibold text-slate-900">
                     {toDisplayOrderNumber(order.order_number)}
                   </h1>
@@ -198,15 +185,12 @@ export default async function AdminOrderDetailPage({
             </div>
 
             <aside className="space-y-4">
-              <AdminOrderActions orderId={1} status={order.status}>
-                <AdminOrderPaymentStatus
-                  orderId={1}
-                  status={order.payment_status}
-                  notes={order.payment_notes}
-                  logs={paymentLogs}
-                  embedded
-                />
-              </AdminOrderActions>
+              <AdminOrderActions
+                orderId={1}
+                status={order.status}
+                paymentStatus={order.payment_status}
+                paymentNotes={order.payment_notes}
+              />
               <AdminOrderPdfManager orderId={1} documents={documents} />
               <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-semibold text-slate-900">Priponke</h2>
@@ -243,11 +227,10 @@ export default async function AdminOrderDetailPage({
     notFound();
   }
 
-  const [items, documents, attachments, paymentLogs] = await Promise.all([
+  const [items, documents, attachments] = await Promise.all([
     fetchOrderItems(orderId),
     fetchOrderDocuments(orderId),
-    fetchOrderAttachments(orderId),
-    fetchPaymentLogs(orderId)
+    fetchOrderAttachments(orderId)
   ]);
 
   const computedSubtotal = items.reduce(
@@ -268,7 +251,7 @@ export default async function AdminOrderDetailPage({
         <div className="mt-4 grid gap-6 lg:grid-cols-[2fr_1.5fr]">
           <div className="space-y-6">
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-0.5">
                 <h1 className="text-2xl font-semibold text-slate-900">
                   {toDisplayOrderNumber(order.order_number)}
                 </h1>
@@ -318,15 +301,12 @@ export default async function AdminOrderDetailPage({
           </div>
 
           <aside className="space-y-4">
-            <AdminOrderActions orderId={orderId} status={order.status}>
-              <AdminOrderPaymentStatus
-                orderId={orderId}
-                status={order.payment_status ?? null}
-                notes={order.payment_notes ?? null}
-                logs={paymentLogs}
-                embedded
-              />
-            </AdminOrderActions>
+            <AdminOrderActions
+              orderId={orderId}
+              status={order.status}
+              paymentStatus={order.payment_status ?? null}
+              paymentNotes={order.payment_notes ?? null}
+            />
             <AdminOrderPdfManager orderId={orderId} documents={documents} />
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-slate-900">Priponke</h2>

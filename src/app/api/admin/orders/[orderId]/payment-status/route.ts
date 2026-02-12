@@ -28,10 +28,15 @@ export async function POST(
       [status, note || null, orderId]
     );
 
-    await pool.query(
-      'INSERT INTO order_payment_logs (order_id, previous_status, new_status, note) VALUES ($1, $2, $3, $4)',
-      [orderId, previousStatus, status, note || null]
-    );
+    try {
+      await pool.query(
+        'INSERT INTO order_payment_logs (order_id, previous_status, new_status, note) VALUES ($1, $2, $3, $4)',
+        [orderId, previousStatus, status, note || null]
+      );
+    } catch (error) {
+      const errorCode = typeof error === 'object' && error !== null ? (error as { code?: string }).code : null;
+      if (errorCode !== '42P01') throw error;
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

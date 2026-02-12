@@ -4,8 +4,8 @@ import AdminOrderActions from '@/components/admin/AdminOrderActions';
 import AdminOrderEditForm from '@/components/admin/AdminOrderEditForm';
 import AdminOrderPdfManager from '@/components/admin/AdminOrderPdfManager';
 import AdminOrderHeaderChips from '@/components/admin/AdminOrderHeaderChips';
+import AdminOrderOverviewCard from '@/components/admin/AdminOrderOverviewCard';
 import { toDisplayOrderNumber } from '@/components/admin/adminOrdersTableUtils';
-import { getCustomerTypeLabel } from '@/lib/customerType';
 import {
   fetchOrderAttachments,
   fetchOrderById,
@@ -94,37 +94,24 @@ export default async function AdminOrderDetailPage({
 
           <div className="mt-6 grid gap-6 lg:grid-cols-[2fr_1.5fr]">
             <div className="space-y-6">
-              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <AdminOrderHeaderChips
                   orderNumber={toDisplayOrderNumber(order.order_number)}
                   status={order.status}
                   paymentStatus={order.payment_status ?? null}
                 />
 
-                <div className="mt-4 grid gap-4 text-sm text-slate-600 md:grid-cols-2">
-                  <div>
-                    <p className="text-xs uppercase text-slate-400">Naročnik</p>
-                    <p className="font-semibold text-slate-900">{order.organization_name}</p>
-                    <p>{getCustomerTypeLabel(order.customer_type)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase text-slate-400">Kontakt</p>
-                    <p>{order.contact_name}</p>
-                    <p>{order.email}</p>
-                    <p>{order.phone}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase text-slate-400">Naslov</p>
-                    <p>{order.delivery_address}</p>
-                  </div>
-                  <div className="md:col-span-2">
-                    <p className="text-xs uppercase text-slate-400">Opombe</p>
-                    <p>{order.notes}</p>
-                  </div>
-                </div>
+                <AdminOrderOverviewCard
+                  organizationName={order.organization_name}
+                  contactName={order.contact_name}
+                  customerType={order.customer_type}
+                  email={order.email}
+                  deliveryAddress={order.delivery_address}
+                  notes={order.notes}
+                />
               </section>
 
-              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-semibold text-slate-900">Postavke</h2>
                 <div className="mt-4 space-y-3">
                   {items.map((item) => (
@@ -181,7 +168,7 @@ export default async function AdminOrderDetailPage({
               />
             </div>
 
-            <aside className="space-y-4">
+            <aside className="space-y-5">
               <AdminOrderActions
                 orderId={1}
                 status={order.status}
@@ -189,7 +176,7 @@ export default async function AdminOrderDetailPage({
                 paymentNotes={order.payment_notes}
               />
               <AdminOrderPdfManager orderId={1} documents={documents} />
-              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-semibold text-slate-900">Priponke</h2>
                 <ul className="mt-4 space-y-2 text-sm text-slate-600">
                   {attachments.map((attachment) => (
@@ -247,38 +234,21 @@ export default async function AdminOrderDetailPage({
 
         <div className="mt-4 grid gap-6 lg:grid-cols-[2fr_1.5fr]">
           <div className="space-y-6">
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <AdminOrderHeaderChips
                 orderNumber={toDisplayOrderNumber(order.order_number)}
                 status={order.status}
                 paymentStatus={order.payment_status ?? null}
               />
 
-              <div className="mt-4 grid gap-4 text-sm text-slate-600 md:grid-cols-2">
-                <div>
-                  <p className="text-xs uppercase text-slate-400">Naročnik</p>
-                  <p className="font-semibold text-slate-900">
-                    {order.organization_name || order.contact_name}
-                  </p>
-                  <p>{getCustomerTypeLabel(order.customer_type)}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase text-slate-400">Kontakt</p>
-                  <p>{order.contact_name}</p>
-                  <p>{order.email}</p>
-                  {order.phone && <p>{order.phone}</p>}
-                </div>
-                <div>
-                  <p className="text-xs uppercase text-slate-400">Naslov</p>
-                  <p>{order.delivery_address || 'Ni podan.'}</p>
-                </div>
-                {order.notes && (
-                  <div className="md:col-span-2">
-                    <p className="text-xs uppercase text-slate-400">Opombe</p>
-                    <p>{order.notes}</p>
-                  </div>
-                )}
-              </div>
+              <AdminOrderOverviewCard
+                organizationName={order.organization_name}
+                contactName={order.contact_name}
+                customerType={order.customer_type}
+                email={order.email}
+                deliveryAddress={order.delivery_address}
+                notes={order.notes}
+              />
             </section>
 
             <AdminOrderEditForm
@@ -295,7 +265,7 @@ export default async function AdminOrderDetailPage({
             />
           </div>
 
-          <aside className="space-y-4">
+          <aside className="space-y-5">
             <AdminOrderActions
               orderId={orderId}
               status={order.status}
@@ -303,7 +273,7 @@ export default async function AdminOrderDetailPage({
               paymentNotes={order.payment_notes ?? null}
             />
             <AdminOrderPdfManager orderId={orderId} documents={documents} />
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-slate-900">Priponke</h2>
               <ul className="mt-4 space-y-2 text-sm text-slate-600">
                 {attachments.length === 0 ? (

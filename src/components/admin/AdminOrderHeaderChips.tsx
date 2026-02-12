@@ -29,9 +29,9 @@ export default function AdminOrderHeaderChips({ orderNumber, status, paymentStat
   }, []);
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
-      <h1 className="text-2xl font-semibold text-slate-900">{orderNumber}</h1>
-      <div className="flex items-center gap-1.5">
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-4 py-3 shadow-sm">
+      <h1 className="text-2xl font-bold tracking-tight text-slate-900">{orderNumber}</h1>
+      <div className="flex items-center gap-1">
         <StatusChip status={currentStatus} />
         <PaymentChip status={currentPaymentStatus} />
       </div>

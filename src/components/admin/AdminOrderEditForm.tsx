@@ -242,7 +242,18 @@ export default function AdminOrderEditForm({
 
       setMessage('Podatki naročila so posodobljeni. Ustvarite novo verzijo PDF dokumentov.');
       setIsDirty(false);
-      window.dispatchEvent(new CustomEvent('admin-order-details-updated'));
+      window.dispatchEvent(
+        new CustomEvent('admin-order-details-updated', {
+          detail: {
+            organizationName: formData.organizationName,
+            contactName: formData.contactName,
+            customerType: formData.customerType,
+            email: formData.email,
+            deliveryAddress: formData.deliveryAddress,
+            notes: formData.notes
+          }
+        })
+      );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Napaka pri shranjevanju.');
     } finally {
@@ -251,7 +262,7 @@ export default function AdminOrderEditForm({
   };
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <h2 className="text-base font-semibold text-slate-900">Uredi naročilo</h2>
       {isDirty && (
         <p className="mt-2 text-xs font-medium text-amber-700">
@@ -272,7 +283,7 @@ export default function AdminOrderEditForm({
                 setFormData((previousValue) => ({ ...previousValue, customerType: event.target.value }));
                 markDirty();
               }}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[12px]"
+              className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[12px] shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             >
               {customerTypeOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -299,13 +310,13 @@ export default function AdminOrderEditForm({
                   setFormData((previousValue) => ({ ...previousValue, [fieldName]: event.target.value }));
                   markDirty();
                 }}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[12px]"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[12px] shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               />
             </div>
           ))}
 
           <div className="md:col-span-2">
-            <label className="text-sm font-medium text-slate-700" htmlFor="deliveryAddress">
+            <label className="text-xs font-medium text-slate-700" htmlFor="deliveryAddress">
               Naslov dostave
             </label>
             <input
@@ -315,7 +326,7 @@ export default function AdminOrderEditForm({
                 setFormData((previousValue) => ({ ...previousValue, deliveryAddress: event.target.value }));
                 markDirty();
               }}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[12px] shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
           </div>
 
@@ -331,19 +342,19 @@ export default function AdminOrderEditForm({
                 setFormData((previousValue) => ({ ...previousValue, notes: event.target.value }));
                 markDirty();
               }}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[12px]"
+              className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[12px] shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/50">
           <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-            <h3 className="text-[13px] font-semibold text-slate-900">Postavke</h3>
+            <h3 className="text-sm font-semibold text-slate-900">Postavke</h3>
           </div>
 
           <div className="overflow-x-auto">
             <table className="min-w-full text-[11px]">
-              <thead className="bg-slate-50 text-slate-600">
+              <thead className="bg-white text-slate-600">
                 <tr>
                   <th className="px-3 py-2 text-left">Artikel</th>
                   <th className="px-2 py-2 text-center">Količina</th>
@@ -355,7 +366,7 @@ export default function AdminOrderEditForm({
               </thead>
               <tbody>
                 {editableItems.map((item) => (
-                  <tr key={item.id} className="border-t border-slate-100">
+                  <tr key={item.id} className="border-t border-slate-200/80 bg-white/80">
                     <td className="px-3 py-2">
                       <p className="font-medium text-slate-900">{item.name}</p>
                           <p className="text-[10px] text-slate-500">{item.sku}</p>
@@ -416,7 +427,7 @@ export default function AdminOrderEditForm({
             </table>
           </div>
 
-          <div className="space-y-1 border-t border-slate-200 px-4 py-3 text-[11px] text-slate-700">
+          <div className="space-y-1 border-t border-slate-200 bg-white px-4 py-3 text-[11px] text-slate-700">
             <div className="flex items-center justify-between">
               <span>Vmesni seštevek</span>
               <span className="font-semibold">{formatCurrency(totals.subtotal)}</span>
@@ -432,22 +443,22 @@ export default function AdminOrderEditForm({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="grid gap-3 md:grid-cols-2">
           <button
             type="button"
             onClick={openAddItem}
-            className="w-full rounded-full bg-brand-600 px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-brand-700 md:w-[calc(50%-0.375rem)]"
+            className="w-full rounded-xl bg-brand-600 px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-brand-700"
           >
             Dodaj
           </button>
           <button
             type="submit"
             disabled={isSaving}
-            className="w-full whitespace-nowrap rounded-full bg-brand-600 px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 md:w-[calc(50%-0.375rem)]"
+            className="w-full whitespace-nowrap rounded-xl bg-brand-600 px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
           >
             {isSaving ? 'Shranjevanje...' : 'Shrani spremembe'}
           </button>
-          {message && <span className="text-[12px] text-slate-600">{message}</span>}
+          {message && <span className="text-[12px] text-slate-600 md:col-span-2">{message}</span>}
         </div>
       </form>
 

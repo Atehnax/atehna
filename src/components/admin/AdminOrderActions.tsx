@@ -91,19 +91,19 @@ export default function AdminOrderActions({
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <h2 className="text-base font-semibold text-slate-900">Status naročila</h2>
       <div className="mt-4 space-y-4">
         <div className="grid gap-3 md:grid-cols-2">
           <div>
-          <label className="text-xs font-medium text-slate-700" htmlFor="status">
-            Status naročila
-          </label>
+            <label className="text-xs font-medium text-slate-700" htmlFor="status">
+              Status naročila
+            </label>
             <select
               id="status"
               value={currentStatus}
               onChange={(event) => setCurrentStatus(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[12px]"
+              className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[12px] shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             >
               {ORDER_STATUS_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -114,21 +114,21 @@ export default function AdminOrderActions({
           </div>
 
           <div>
-              <label className="text-xs font-medium text-slate-700" htmlFor="paymentStatus">
-                Status plačila
-              </label>
-              <select
-                id="paymentStatus"
-                value={currentPaymentStatus}
-                onChange={(event) => setCurrentPaymentStatus(event.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[12px]"
-              >
-                {PAYMENT_STATUS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+            <label className="text-xs font-medium text-slate-700" htmlFor="paymentStatus">
+              Status plačila
+            </label>
+            <select
+              id="paymentStatus"
+              value={currentPaymentStatus}
+              onChange={(event) => setCurrentPaymentStatus(event.target.value)}
+              className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-[12px] shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            >
+              {PAYMENT_STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -141,7 +141,7 @@ export default function AdminOrderActions({
             rows={2}
             value={currentPaymentNote ?? ""}
             onChange={(event) => setCurrentPaymentNote(event.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[12px]"
+            className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-[12px] shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           />
         </div>
 

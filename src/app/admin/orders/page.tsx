@@ -139,7 +139,6 @@ export default async function AdminOrdersPage({
               Pregled oddanih naročil, statusov in dokumentov.
             </p>
           </div>
-          <AdminCreateDraftOrderButton />
         </div>
 
         {warningMessage ? (
@@ -155,6 +154,7 @@ export default async function AdminOrdersPage({
           initialFrom={from}
           initialTo={to}
           initialQuery={query}
+          topAction={<AdminCreateDraftOrderButton />}
         />
       </div>
     </div>

@@ -3,7 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function AdminCreateDraftOrderButton() {
+type Props = {
+  className?: string;
+};
+
+export default function AdminCreateDraftOrderButton({ className }: Props) {
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,12 +31,13 @@ export default function AdminCreateDraftOrderButton() {
   };
 
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div className={`flex flex-col items-end gap-1 ${className ?? ''}`.trim()}>
       <button
         type="button"
         onClick={createDraft}
         disabled={isCreating}
-        className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
+        aria-label="Dodaj naročilo"
+        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-300 bg-slate-100 px-2.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:text-slate-400"
       >
         <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
           <path d="M10 4v12M4 10h12" />

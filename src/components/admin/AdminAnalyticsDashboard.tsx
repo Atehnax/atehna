@@ -71,6 +71,8 @@ export default function AdminAnalyticsDashboard({
   const [toDate, setToDate] = useState(initialTo);
   const [hoveredRevenue, setHoveredRevenue] = useState<number | null>(null);
   const [hoveredOrders, setHoveredOrders] = useState<number | null>(null);
+  const [hoveredStatus, setHoveredStatus] = useState<{ day: string; status: string; count: number } | null>(null);
+  const [hoveredPayment, setHoveredPayment] = useState<{ label: string; count: number; share: number } | null>(null);
   const [hiddenSeries, setHiddenSeries] = useState<Record<string, boolean>>({});
 
   const metrics = useMemo(() => {
@@ -203,6 +205,17 @@ export default function AdminAnalyticsDashboard({
           <line x1="0" y1={CHART_INNER_HEIGHT} x2={CHART_WIDTH} y2={CHART_INNER_HEIGHT} stroke="#cbd5e1" strokeWidth="1" />
           <line x1="0" y1="0" x2="0" y2={CHART_INNER_HEIGHT} stroke="#cbd5e1" strokeWidth="1" />
           <polyline fill="none" stroke="#0f766e" strokeWidth="2.4" points={polyline(revenuePoints)} />
+          {hoveredRevenue !== null && revenuePoints[hoveredRevenue] ? (
+            <line
+              x1={revenuePoints[hoveredRevenue]?.x}
+              x2={revenuePoints[hoveredRevenue]?.x}
+              y1="0"
+              y2={CHART_INNER_HEIGHT}
+              stroke="#0f766e"
+              strokeWidth="1"
+              opacity="0.35"
+            />
+          ) : null}
           {revenuePoints.map((point, index) => (
             <circle
               key={`rev-${point.day}`}
@@ -245,6 +258,17 @@ export default function AdminAnalyticsDashboard({
             />
           ))}
           {hoveredOrders !== null && orderPoints[hoveredOrders] ? (
+            <line
+              x1={orderPoints[hoveredOrders]?.x}
+              x2={orderPoints[hoveredOrders]?.x}
+              y1="0"
+              y2={CHART_INNER_HEIGHT}
+              stroke="#334155"
+              strokeWidth="1"
+              opacity="0.35"
+            />
+          ) : null}
+          {hoveredOrders !== null && orderPoints[hoveredOrders] ? (
             <g>
               <rect x="12" y="10" width="280" height="42" rx="6" fill="#0f172a" opacity="0.9" />
               <text x="20" y="28" fill="#fff" fontSize="11">{`Datum: ${orderPoints[hoveredOrders]?.day}`}</text>
@@ -285,13 +309,26 @@ export default function AdminAnalyticsDashboard({
                     if (hiddenSeries[status]) return null;
                     const count = point.statuses[status] ?? 0;
                     const width = total > 0 ? (count / total) * 100 : 0;
-                    return <div key={`${point.day}-${status}`} style={{ width: `${width}%`, backgroundColor: statusPalette[index % statusPalette.length] }} title={`${getStatusLabel(status)}: ${count}`} />;
+                    return (
+                      <div
+                        key={`${point.day}-${status}`}
+                        style={{ width: `${width}%`, backgroundColor: statusPalette[index % statusPalette.length] }}
+                        title={`${point.day} · ${getStatusLabel(status)}: ${count}`}
+                        onMouseEnter={() => setHoveredStatus({ day: point.day, status, count })}
+                        onMouseLeave={() => setHoveredStatus(null)}
+                      />
+                    );
                   })}
                 </div>
               </div>
             );
           })}
         </div>
+        {hoveredStatus ? (
+          <p className="mt-2 text-xs text-slate-500">
+            {hoveredStatus.day} · {getStatusLabel(hoveredStatus.status)}: {hoveredStatus.count}
+          </p>
+        ) : null}
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-4">
@@ -305,7 +342,14 @@ export default function AdminAnalyticsDashboard({
                 const start = acc.angle;
                 const end = start + segmentAngle;
                 acc.nodes.push(
-                  <path key={row.key} d={donutSegment(110, 110, 90, start, end)} fill={row.color} opacity="0.85" />
+                  <path
+                    key={row.key}
+                    d={donutSegment(110, 110, 90, start, end)}
+                    fill={row.color}
+                    opacity="0.85"
+                    onMouseEnter={() => setHoveredPayment({ label: row.label, count: row.count, share: row.share })}
+                    onMouseLeave={() => setHoveredPayment(null)}
+                  />
                 );
                 acc.angle = end;
                 return acc;
@@ -328,6 +372,11 @@ export default function AdminAnalyticsDashboard({
             ))}
           </div>
         </div>
+        {hoveredPayment ? (
+          <p className="mt-3 text-xs text-slate-500">
+            {hoveredPayment.label}: {hoveredPayment.count} ({formatPercent(hoveredPayment.share)})
+          </p>
+        ) : null}
       </section>
     </div>
   );

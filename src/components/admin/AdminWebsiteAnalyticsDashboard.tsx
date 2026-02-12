@@ -119,6 +119,17 @@ export default function AdminWebsiteAnalyticsDashboard({
           <line x1="0" y1={INNER_HEIGHT} x2={WIDTH} y2={INNER_HEIGHT} stroke="#cbd5e1" strokeWidth="1" />
           <line x1="0" y1="0" x2="0" y2={INNER_HEIGHT} stroke="#cbd5e1" strokeWidth="1" />
           <polyline fill="none" stroke="#0f766e" strokeWidth="2.4" points={toPolyline(visitPoints)} />
+          {hoveredVisit !== null && visitPoints[hoveredVisit] ? (
+            <line
+              x1={visitPoints[hoveredVisit]?.x}
+              x2={visitPoints[hoveredVisit]?.x}
+              y1="0"
+              y2={INNER_HEIGHT}
+              stroke="#0f766e"
+              strokeWidth="1"
+              opacity="0.35"
+            />
+          ) : null}
           {visitPoints.map((point, index) => (
             <circle
               key={`visit-${point.day}`}
@@ -147,6 +158,17 @@ export default function AdminWebsiteAnalyticsDashboard({
           <line x1="0" y1={INNER_HEIGHT} x2={WIDTH} y2={INNER_HEIGHT} stroke="#cbd5e1" strokeWidth="1" />
           <line x1="0" y1="0" x2="0" y2={INNER_HEIGHT} stroke="#cbd5e1" strokeWidth="1" />
           <polyline fill="none" stroke="#334155" strokeWidth="2.4" points={toPolyline(retentionPoints)} />
+          {hoveredRetention !== null && retentionPoints[hoveredRetention] ? (
+            <line
+              x1={retentionPoints[hoveredRetention]?.x}
+              x2={retentionPoints[hoveredRetention]?.x}
+              y1="0"
+              y2={INNER_HEIGHT}
+              stroke="#334155"
+              strokeWidth="1"
+              opacity="0.35"
+            />
+          ) : null}
           {retentionPoints.map((point, index) => (
             <circle
               key={`ret-${point.day}`}

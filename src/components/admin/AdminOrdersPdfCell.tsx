@@ -1,16 +1,25 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-
 import {
   type GeneratePdfType,
   type PdfDocument,
+  type PdfTypeKey,
   formatDateTimeCompact,
   groupDocumentsByType,
   isGenerateKey,
-  pdfTypes,
   routeMap
 } from '@/components/admin/adminOrdersPdfCellUtils';
+
+type PdfButton = { key: PdfTypeKey; short: string; full: string };
+
+const PDF_BUTTONS: PdfButton[] = [
+  { key: 'order_summary', short: 'PN', full: 'Povzetek naročila' },
+  { key: 'purchase_order', short: 'N', full: 'Naročilnica' },
+  { key: 'dobavnica', short: 'D', full: 'Dobavnica' },
+  { key: 'predracun', short: 'P', full: 'Predračun' },
+  { key: 'invoice', short: 'R', full: 'Račun' }
+];
 
 export default function AdminOrdersPdfCell({
   orderId,
@@ -23,84 +32,54 @@ export default function AdminOrdersPdfCell({
   attachments: PdfDocument[];
   interactionsDisabled?: boolean;
 }) {
-  const [documentsState, setDocumentsState] = useState(documents);
-  const [attachmentsState, setAttachmentsState] = useState(attachments);
+  const [documentsState, setDocumentsState] = useState<PdfDocument[]>(documents);
+  const [attachmentsState] = useState<PdfDocument[]>(attachments);
   const [loadingType, setLoadingType] = useState<GeneratePdfType | null>(null);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [openType, setOpenType] = useState<PdfTypeKey | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  useEffect(() => setDocumentsState(documents), [documents]);
-  useEffect(() => setAttachmentsState(attachments), [attachments]);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const closeMenu = (event: MouseEvent) => {
-      if (!menuRef.current) return;
-      if (!menuRef.current.contains(event.target as Node) && !buttonRef.current?.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
+    if (!openType) return;
+
+    const onOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (menuRef.current?.contains(target)) return;
+      if (buttonRef.current?.contains(target)) return;
+      setOpenType(null);
     };
 
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsMenuOpen(false);
-        buttonRef.current?.focus();
-      }
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenType(null);
     };
 
-    document.addEventListener('mousedown', closeMenu);
-    document.addEventListener('keydown', closeOnEscape);
+    document.addEventListener('mousedown', onOutside);
+    document.addEventListener('keydown', onEscape);
     return () => {
-      document.removeEventListener('mousedown', closeMenu);
-      document.removeEventListener('keydown', closeOnEscape);
+      document.removeEventListener('mousedown', onOutside);
+      document.removeEventListener('keydown', onEscape);
     };
-  }, []);
-
-  useEffect(() => {
-    if (!isMenuOpen || !menuRef.current) return;
-    const focusable = menuRef.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])');
-    if (focusable.length > 0) focusable[0].focus();
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Tab' || !menuRef.current) return;
-      const items = Array.from(
-        menuRef.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])')
-      );
-      if (items.length === 0) return;
-      const first = items[0];
-      const last = items[items.length - 1];
-      const active = document.activeElement as HTMLElement;
-
-      if (event.shiftKey && active === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && active === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [isMenuOpen]);
+  }, [openType]);
 
   const groupedDocuments = useMemo(
     () => groupDocumentsByType(documentsState, attachmentsState),
     [attachmentsState, documentsState]
   );
 
-  const totalFiles = useMemo(
-    () => pdfTypes.reduce((sum, typeItem) => sum + groupedDocuments[typeItem.key].length, 0),
-    [groupedDocuments]
-  );
-
   const handleGenerate = async (type: GeneratePdfType) => {
     setLoadingType(type);
+    setErrorMessage(null);
     try {
       const response = await fetch(`/api/admin/orders/${orderId}/${routeMap[type]}`, {
         method: 'POST'
       });
-      if (!response.ok) return;
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        setErrorMessage(body.message || 'Generiranje PDF ni uspelo.');
+        return;
+      }
 
       const payload = (await response.json()) as {
         url: string;
@@ -109,101 +88,102 @@ export default function AdminOrdersPdfCell({
         type: string;
       };
 
-      setDocumentsState((previousDocuments) => [
+      setDocumentsState((prev) => [
         {
           type: payload.type,
           blob_url: payload.url,
           filename: payload.filename,
           created_at: payload.createdAt
         },
-        ...previousDocuments
+        ...prev
       ]);
+      setOpenType(type);
     } finally {
       setLoadingType(null);
     }
   };
 
   return (
-    <div className="relative inline-flex" data-no-row-nav>
-      <button
-        ref={buttonRef}
-        type="button"
-        data-no-row-nav
-        aria-haspopup="menu"
-        aria-expanded={isMenuOpen}
-        onClick={() => setIsMenuOpen((prev) => !prev)}
-        disabled={interactionsDisabled}
-        className="inline-flex h-7 items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 text-[11px] font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
-      >
-        Datoteke
-        {totalFiles > 0 && (
-          <span className="inline-flex min-w-4 items-center justify-center rounded bg-slate-100 px-1 text-[10px] text-slate-600">
-            {totalFiles}
-          </span>
-        )}
-      </button>
+    <div className="relative inline-flex items-center gap-[1px]" data-no-row-nav>
+      {PDF_BUTTONS.map((button) => {
+        const versions = groupedDocuments[button.key];
+        const latest = versions[0];
+        const isOpen = openType === button.key;
 
-      {isMenuOpen && (
-        <div
-          ref={menuRef}
-          role="menu"
-          aria-label="Datoteke naročila"
-          className="absolute right-0 top-8 z-30 w-[360px] rounded-xl border border-slate-200 bg-white p-2 shadow-xl"
-          data-no-row-nav
-        >
-          <div className="max-h-[380px] space-y-2 overflow-y-auto pr-1">
-            {pdfTypes.map((pdfType) => {
-              const options = groupedDocuments[pdfType.key];
-              const latestDocument = options[0];
-              const generateKey = isGenerateKey(pdfType.key) ? pdfType.key : null;
-              const isGeneratingThisType = loadingType === generateKey;
+        return (
+          <div key={button.key} className="relative" data-no-row-nav>
+            <button
+              ref={isOpen ? buttonRef : null}
+              type="button"
+              data-no-row-nav
+              title={button.full}
+              aria-label={`${button.full} dokumenti`}
+              aria-haspopup="menu"
+              aria-expanded={isOpen}
+              onClick={() => setOpenType((previousType) => (previousType === button.key ? null : button.key))}
+              disabled={interactionsDisabled}
+              className="inline-flex h-6 min-w-[20px] items-center justify-center rounded-md border border-slate-300 bg-white px-1 text-[10px] font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+            >
+              {button.short}
+            </button>
+            {versions.length > 1 ? (
+              <span className="pointer-events-none absolute -right-1 -top-1 inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-slate-800 px-1 text-[9px] text-white">
+                {versions.length}
+              </span>
+            ) : null}
 
-              return (
-                <section key={pdfType.key} className="rounded-lg border border-slate-200 bg-slate-50/40 p-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[11px] font-semibold text-slate-800">{pdfType.label}</p>
-                    {generateKey && (
-                      <button
-                        type="button"
-                        data-no-row-nav
-                        onClick={() => handleGenerate(generateKey)}
-                        disabled={interactionsDisabled || isGeneratingThisType}
-                        className="inline-flex h-6 items-center rounded-md border border-slate-300 bg-white px-2 text-[10px] font-medium text-slate-700 transition hover:border-slate-400 disabled:cursor-not-allowed disabled:text-slate-300"
-                      >
-                        {isGeneratingThisType ? 'Generiram ...' : options.length > 0 ? 'Nova verzija' : 'Ustvari'}
-                      </button>
-                    )}
-                  </div>
+            {isOpen ? (
+              <div
+                ref={menuRef}
+                role="menu"
+                data-no-row-nav
+                className="absolute left-0 top-7 z-30 w-[250px] rounded-xl border border-slate-200 bg-white p-2 shadow-xl"
+              >
+                <div className="mb-2 flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                  <p className="text-[11px] font-semibold text-slate-800">{button.full}</p>
+                  {isGenerateKey(button.key) ? (
+                    <button
+                      type="button"
+                      data-no-row-nav
+                      onClick={() => handleGenerate(button.key)}
+                      disabled={interactionsDisabled || loadingType === button.key}
+                      className="inline-flex h-6 items-center rounded-md border border-slate-300 bg-white px-2 text-[10px] font-medium text-slate-700 transition hover:border-slate-400 disabled:cursor-not-allowed disabled:text-slate-300"
+                    >
+                      {loadingType === button.key ? 'Generiram ...' : latest ? 'Nova verzija' : 'Ustvari'}
+                    </button>
+                  ) : null}
+                </div>
 
-                  {latestDocument ? (
-                    <ul className="mt-1.5 space-y-1">
-                      {options.map((documentOption, index) => (
-                        <li key={`${pdfType.key}-${documentOption.blob_url}-${documentOption.created_at}-${index}`}>
-                          <a
-                            href={documentOption.blob_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            role="menuitem"
-                            data-no-row-nav
-                            onClick={() => setIsMenuOpen(false)}
-                            className="flex items-center justify-between rounded-md border border-transparent bg-white px-2 py-1 text-[10px] text-slate-700 transition hover:border-slate-200 hover:bg-slate-50"
-                            title={documentOption.filename}
-                          >
-                            <span className="truncate font-medium">{documentOption.filename}</span>
-                            <span className="ml-2 shrink-0 text-slate-500">{formatDateTimeCompact(documentOption.created_at)}</span>
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-1.5 text-[10px] text-slate-400">Ni shranjenih verzij.</p>
-                  )}
-                </section>
-              );
-            })}
+                {versions.length > 0 ? (
+                  <ul className="space-y-1">
+                    {versions.map((documentOption, index) => (
+                      <li key={`${button.key}-${documentOption.blob_url}-${documentOption.created_at}-${index}`}>
+                        <a
+                          href={documentOption.blob_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          role="menuitem"
+                          data-no-row-nav
+                          onClick={() => setOpenType(null)}
+                          className="flex items-center justify-between rounded-md border border-transparent bg-white px-2 py-1 text-[10px] text-slate-700 transition hover:border-slate-200 hover:bg-slate-50"
+                          title={documentOption.filename}
+                        >
+                          <span className="truncate font-medium">{documentOption.filename}</span>
+                          <span className="ml-2 shrink-0 text-slate-500">{formatDateTimeCompact(documentOption.created_at)}</span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-[10px] text-slate-400">Ni shranjenih verzij.</p>
+                )}
+
+                {errorMessage ? <p className="mt-2 text-[10px] text-rose-600">{errorMessage}</p> : null}
+              </div>
+            ) : null}
           </div>
-        </div>
-      )}
+        );
+      })}
     </div>
   );
 }

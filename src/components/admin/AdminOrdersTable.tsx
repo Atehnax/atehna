@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
 import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
 import AdminOrderPaymentSelect from '@/components/admin/AdminOrderPaymentSelect';
@@ -79,7 +79,8 @@ export default function AdminOrdersTable({
   attachments,
   initialFrom = '',
   initialTo = '',
-  initialQuery = ''
+  initialQuery = '',
+  topAction
 }: {
   orders: OrderRow[];
   documents: PdfDoc[];
@@ -87,6 +88,7 @@ export default function AdminOrdersTable({
   initialFrom?: string;
   initialTo?: string;
   initialQuery?: string;
+  topAction?: ReactNode;
 }) {
   const [selected, setSelected] = useState<number[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -768,32 +770,47 @@ export default function AdminOrdersTable({
             }}
             className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-left shadow-sm transition hover:border-teal-200 hover:bg-slate-50"
           >
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{kpi.label}</p>
-            <p className="mt-1 text-lg font-semibold text-slate-900">{kpi.value}</p>
-            <svg viewBox="0 0 120 30" className="mt-2 h-8 w-full rounded bg-slate-50/70 px-1 py-0.5">
-              <path d={pointsToArea(kpi.points)} fill={kpi.stroke} opacity="0.12" />
-              <polyline fill="none" stroke={kpi.stroke} strokeWidth="1.6" points={pointsToPolyline(kpi.points)} />
-              {kpi.points.map((point) => (
-                <circle
-                  key={`${kpi.label}-${point.index}`}
-                  cx={point.x}
-                  cy={point.y}
-                  r="2.1"
-                  fill={kpi.stroke}
-                  opacity={hoveredKpi?.label === kpi.label && hoveredKpi.index === point.index ? 1 : 0.35}
-                  onMouseEnter={() => setHoveredKpi({ label: kpi.label, index: point.index })}
-                  onMouseLeave={() => setHoveredKpi(null)}
-                />
-              ))}
-              {kpi.points.length > 0 ? (
-                <circle
-                  cx={kpi.points[kpi.points.length - 1]?.x}
-                  cy={kpi.points[kpi.points.length - 1]?.y}
-                  r="2.7"
-                  fill={kpi.stroke}
-                />
-              ) : null}
-            </svg>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{kpi.label}</p>
+                <p className="mt-1 text-lg font-semibold text-slate-900">{kpi.value}</p>
+              </div>
+              <svg viewBox="0 0 120 30" className="h-8 w-[46%] rounded bg-slate-50/70 px-1 py-0.5">
+                <path d={pointsToArea(kpi.points)} fill={kpi.stroke} opacity="0.12" />
+                <polyline fill="none" stroke={kpi.stroke} strokeWidth="1.6" points={pointsToPolyline(kpi.points)} />
+                {hoveredKpi?.label === kpi.label ? (
+                  <line
+                    x1={kpi.points[hoveredKpi.index]?.x ?? 0}
+                    x2={kpi.points[hoveredKpi.index]?.x ?? 0}
+                    y1="0"
+                    y2="30"
+                    stroke={kpi.stroke}
+                    strokeWidth="1"
+                    opacity="0.3"
+                  />
+                ) : null}
+                {kpi.points.map((point) => (
+                  <circle
+                    key={`${kpi.label}-${point.index}`}
+                    cx={point.x}
+                    cy={point.y}
+                    r="2.1"
+                    fill={kpi.stroke}
+                    opacity={hoveredKpi?.label === kpi.label && hoveredKpi.index === point.index ? 1 : 0.35}
+                    onMouseEnter={() => setHoveredKpi({ label: kpi.label, index: point.index })}
+                    onMouseLeave={() => setHoveredKpi(null)}
+                  />
+                ))}
+                {kpi.points.length > 0 ? (
+                  <circle
+                    cx={kpi.points[kpi.points.length - 1]?.x}
+                    cy={kpi.points[kpi.points.length - 1]?.y}
+                    r="2.7"
+                    fill={kpi.stroke}
+                  />
+                ) : null}
+              </svg>
+            </div>
             {hoveredKpi?.label === kpi.label && dailyKpiSeries[hoveredKpi.index] ? (
               <p className="mt-1 text-[10px] text-slate-500">
                 {dailyKpiSeries[hoveredKpi.index]?.day}: {kpi.label === 'Skupni prihodki' || kpi.label === 'Povprečna vrednost naročila' ? formatCurrency(kpi.points[hoveredKpi.index]?.value ?? 0) : kpi.label === 'Delež plačanih naročil' ? `${(kpi.points[hoveredKpi.index]?.value ?? 0).toFixed(1).replace('.', ',')} %` : Math.round(kpi.points[hoveredKpi.index]?.value ?? 0)}
@@ -1001,6 +1018,8 @@ export default function AdminOrdersTable({
               Počisti
             </button>
           )}
+
+          {topAction ? <div className="ml-auto flex h-8 items-center">{topAction}</div> : null}
         </div>
 
         {message && <p className="mt-2 text-xs text-slate-600">{message}</p>}

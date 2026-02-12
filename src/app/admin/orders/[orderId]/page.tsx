@@ -82,9 +82,9 @@ export default async function AdminOrderDetailPage({
             DATABASE_URL ni nastavljen — prikazan je demo pogled.
           </div>
 
-          <div className="mt-6 grid items-start gap-6 lg:grid-cols-[2fr_1.5fr]">
+          <div className="mt-6 grid items-stretch gap-6 lg:grid-cols-[2fr_1.5fr]">
             <div className="space-y-6">
-              <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <section className="h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <AdminOrderHeaderChips
                   orderNumber={toDisplayOrderNumber(order.order_number)}
                   status={order.status}
@@ -101,7 +101,7 @@ export default async function AdminOrderDetailPage({
                 />
               </section>
 
-              <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <section className="h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-semibold text-slate-900">Postavke</h2>
                 <div className="mt-4 space-y-3">
                   {items.map((item) => (
@@ -202,9 +202,9 @@ export default async function AdminOrderDetailPage({
           ← Nazaj na seznam
         </Link>
 
-        <div className="mt-4 grid items-start gap-6 lg:grid-cols-[2fr_1.5fr]">
+        <div className="mt-4 grid items-stretch gap-6 lg:grid-cols-[2fr_1.5fr]">
           <div className="space-y-6">
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <AdminOrderHeaderChips
                 orderNumber={toDisplayOrderNumber(order.order_number)}
                 status={order.status}

@@ -72,6 +72,70 @@ const parseLocaleNumber = (value: string) => {
 const formatDecimalInput = (value: number) =>
   new Intl.NumberFormat('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
 
+const isFilled = (value: unknown) => {
+  if (typeof value === 'string') return value.trim().length > 0;
+  if (typeof value === 'number') return Number.isFinite(value);
+  return false;
+};
+
+type FloatingInputProps = {
+  id: string;
+  label: string;
+  type?: string;
+  value: string;
+  onChange: (value: string) => void;
+};
+
+function FloatingInput({ id, label, type = 'text', value, onChange }: FloatingInputProps) {
+  return (
+    <div className="group relative" data-filled={isFilled(value) ? 'true' : 'false'}>
+      <input
+        id={id}
+        type={type}
+        value={value}
+        placeholder=" "
+        onChange={(event) => onChange(event.target.value)}
+        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 pb-1 pt-4 text-[12px] text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+      />
+      <label
+        htmlFor={id}
+        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:bg-white group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:bg-white group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600"
+      >
+        {label}
+      </label>
+    </div>
+  );
+}
+
+type FloatingTextareaProps = {
+  id: string;
+  label: string;
+  value: string;
+  rows?: number;
+  onChange: (value: string) => void;
+};
+
+function FloatingTextarea({ id, label, value, rows = 3, onChange }: FloatingTextareaProps) {
+  return (
+    <div className="group relative" data-filled={isFilled(value) ? 'true' : 'false'}>
+      <textarea
+        id={id}
+        rows={rows}
+        value={value}
+        placeholder=" "
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-xl border border-slate-300 bg-white px-3 pb-2 pt-5 text-[12px] text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+      />
+      <label
+        htmlFor={id}
+        className="pointer-events-none absolute left-3 top-5 -translate-y-1/2 text-[12px] text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:bg-white group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:bg-white group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600"
+      >
+        {label}
+      </label>
+    </div>
+  );
+}
+
 export default function AdminOrderEditForm({
   orderId,
   customerType,
@@ -311,50 +375,41 @@ export default function AdminOrderEditForm({
             ['email', 'Email']
           ].map(([fieldName, label]) => (
             <div key={fieldName} className={fieldName === 'organizationName' ? 'md:col-span-2' : ''}>
-              <label className="text-xs font-medium text-slate-700" htmlFor={fieldName}>
-                {label}
-              </label>
-              <input
+              <FloatingInput
                 id={fieldName}
                 type={fieldName === 'email' ? 'email' : 'text'}
-                value={formData[fieldName as keyof typeof formData]}
-                onChange={(event) => {
-                  setFormData((previousValue) => ({ ...previousValue, [fieldName]: event.target.value }));
+                label={label}
+                value={String(formData[fieldName as keyof typeof formData] ?? '')}
+                onChange={(value) => {
+                  setFormData((previousValue) => ({ ...previousValue, [fieldName]: value }));
                   markDirty();
                 }}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[12px] shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               />
             </div>
           ))}
 
           <div className="md:col-span-2">
-            <label className="text-xs font-medium text-slate-700" htmlFor="deliveryAddress">
-              Naslov dostave
-            </label>
-            <input
+            <FloatingInput
               id="deliveryAddress"
+              label="Naslov dostave"
               value={formData.deliveryAddress}
-              onChange={(event) => {
-                setFormData((previousValue) => ({ ...previousValue, deliveryAddress: event.target.value }));
+              onChange={(value) => {
+                setFormData((previousValue) => ({ ...previousValue, deliveryAddress: value }));
                 markDirty();
               }}
-              className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[12px] shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
           </div>
 
           <div className="md:col-span-2">
-            <label className="text-xs font-medium text-slate-700" htmlFor="notes">
-              Opombe
-            </label>
-            <textarea
+            <FloatingTextarea
               id="notes"
+              label="Opombe"
               rows={3}
               value={formData.notes}
-              onChange={(event) => {
-                setFormData((previousValue) => ({ ...previousValue, notes: event.target.value }));
+              onChange={(value) => {
+                setFormData((previousValue) => ({ ...previousValue, notes: value }));
                 markDirty();
               }}
-              className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[12px] shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
           </div>
         </div>

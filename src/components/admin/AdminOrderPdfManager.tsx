@@ -229,7 +229,7 @@ export default function AdminOrderPdfManager({
                     <span className={`text-xs text-slate-500 transition ${openHistoryByType[pdfType.key] ? 'rotate-180' : ''}`}>⌄</span>
                   </button>
                   {openHistoryByType[pdfType.key] && (
-                    <ul className="mt-2 max-h-44 space-y-1.5 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 text-[12px] text-slate-600 shadow-inner">
+                    <ul className="mt-2 space-y-1.5 rounded-xl border border-slate-200 bg-white p-2 text-[12px] text-slate-600 shadow-inner">
                       {history.map((doc, index) => (
                         <li
                           key={`${doc.id}-${doc.created_at}`}

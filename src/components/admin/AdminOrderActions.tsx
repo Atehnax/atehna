@@ -12,6 +12,38 @@ type Props = {
   paymentNotes?: string | null;
 };
 
+
+const isFilled = (value: unknown) => typeof value === 'string' && value.trim().length > 0;
+
+type FloatingTextareaProps = {
+  id: string;
+  label: string;
+  value: string;
+  rows?: number;
+  onChange: (value: string) => void;
+};
+
+function FloatingTextarea({ id, label, value, rows = 2, onChange }: FloatingTextareaProps) {
+  return (
+    <div className="group relative" data-filled={isFilled(value) ? 'true' : 'false'}>
+      <textarea
+        id={id}
+        rows={rows}
+        value={value}
+        placeholder=" "
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-xl border border-slate-300 bg-white px-3 pb-2 pt-5 text-[12px] text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+      />
+      <label
+        htmlFor={id}
+        className="pointer-events-none absolute left-3 top-5 -translate-y-1/2 text-[12px] text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:bg-white group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:bg-white group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600"
+      >
+        {label}
+      </label>
+    </div>
+  );
+}
+
 export default function AdminOrderActions({
   orderId,
   status,
@@ -89,7 +121,7 @@ export default function AdminOrderActions({
   };
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <h2 className="text-base font-semibold text-slate-900">Status naročila</h2>
       <div className="mt-4 space-y-4">
         <div className="grid gap-3 md:grid-cols-2">
@@ -130,18 +162,13 @@ export default function AdminOrderActions({
           </div>
         </div>
 
-        <div>
-          <label className="text-xs font-medium text-slate-700" htmlFor="paymentNote">
-            Opombe plačila
-          </label>
-          <textarea
-            id="paymentNote"
-            rows={2}
-            value={currentPaymentNote ?? ""}
-            onChange={(event) => setCurrentPaymentNote(event.target.value)}
-            className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-[12px] shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-          />
-        </div>
+        <FloatingTextarea
+          id="paymentNote"
+          label="Opombe plačila"
+          rows={2}
+          value={currentPaymentNote ?? ''}
+          onChange={(value) => setCurrentPaymentNote(value)}
+        />
 
         <div className="flex items-center gap-3">
           <button

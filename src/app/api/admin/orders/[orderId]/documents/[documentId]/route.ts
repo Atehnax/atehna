@@ -1,6 +1,21 @@
 import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/server/db';
 
+async function hasDocumentsDeletedAtColumn() {
+  const pool = await getPool();
+  const result = await pool.query(
+    `
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'order_documents'
+      and column_name = 'deleted_at'
+    limit 1
+    `
+  );
+  return Number(result.rowCount ?? 0) > 0;
+}
+
 export async function DELETE(
   _request: Request,
   { params }: { params: { orderId: string; documentId: string } }
@@ -14,8 +29,12 @@ export async function DELETE(
     }
 
     const pool = await getPool();
+    const supportsSoftDelete = await hasDocumentsDeletedAtColumn();
+
     const documentResult = await pool.query(
-      'select id, type, filename, blob_url, blob_pathname, deleted_at from order_documents where id = $1 and order_id = $2',
+      supportsSoftDelete
+        ? 'select id, type, filename, blob_url, blob_pathname, deleted_at from order_documents where id = $1 and order_id = $2'
+        : 'select id, type, filename, blob_url, blob_pathname, null::timestamptz as deleted_at from order_documents where id = $1 and order_id = $2',
       [documentId, orderId]
     );
 
@@ -31,16 +50,12 @@ export async function DELETE(
       deleted_at: string | null;
     };
 
-    if (!row.deleted_at) {
-      try {
-        await pool.query('update order_documents set deleted_at = now() where id = $1 and order_id = $2', [documentId, orderId]);
-      } catch (error) {
-        if (!(error && typeof error === 'object' && 'code' in error && error.code === '42703')) {
-          throw error;
-        }
-        await pool.query('delete from order_documents where id = $1 and order_id = $2', [documentId, orderId]);
-        return NextResponse.json({ success: true });
-      }
+    if (row.deleted_at) {
+      return NextResponse.json({ success: true });
+    }
+
+    if (supportsSoftDelete) {
+      await pool.query('update order_documents set deleted_at = now() where id = $1 and order_id = $2', [documentId, orderId]);
 
       try {
         await pool.query(
@@ -61,8 +76,11 @@ export async function DELETE(
           throw error;
         }
       }
+
+      return NextResponse.json({ success: true });
     }
 
+    await pool.query('delete from order_documents where id = $1 and order_id = $2', [documentId, orderId]);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(

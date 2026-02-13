@@ -19,6 +19,14 @@ type BuildPdfContextFailure = {
 
 export type BuildPdfContextResult = BuildPdfContextSuccess | BuildPdfContextFailure;
 
+const PDF_CODE_BY_TYPE: Record<string, string> = {
+  order_summary: 'PN',
+  purchase_order: 'N',
+  dobavnica: 'D',
+  predracun: 'P',
+  invoice: 'R'
+};
+
 const asString = (value: unknown, fallback = '') => (typeof value === 'string' ? value.trim() : fallback);
 const asNullableString = (value: unknown) => (typeof value === 'string' ? value.trim() : null);
 const asNumber = (value: unknown) => {
@@ -35,6 +43,32 @@ const toOrderToken = (orderNumber: string, orderId: number) => {
   const cleaned = normalized.replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
   return cleaned || `order-${orderId}`;
 };
+
+const toDateStamp = (value: Date) => {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}${month}${day}`;
+};
+
+const randomSuffix = (length = 30) => {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  return Array.from({ length }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('');
+};
+
+export async function buildGeneratedPdfFileName(pool: Pool, orderId: number, type: string) {
+  const documentCode = PDF_CODE_BY_TYPE[type] ?? 'DOC';
+  const versionResult = await pool.query(
+    'select count(*)::int as count from order_documents where order_id = $1 and type = $2',
+    [orderId, type]
+  );
+  const currentCount = Number(versionResult.rows[0]?.count ?? 0);
+  const nextVersion = currentCount + 1;
+  const dateStamp = toDateStamp(new Date());
+  const suffix = randomSuffix();
+
+  return `${documentCode}-${orderId}-${nextVersion}-${dateStamp}-${suffix}.pdf`;
+}
 
 export async function buildPdfContext(pool: Pool, orderId: number): Promise<BuildPdfContextResult> {
   const orderResult = await pool.query('SELECT * FROM orders WHERE id = $1', [orderId]);

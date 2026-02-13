@@ -203,10 +203,10 @@ export default function AdminOrdersPdfCell({
               aria-expanded={isOpen}
               onClick={() => setOpenType((previousType) => (previousType === button.key ? null : button.key))}
               disabled={interactionsDisabled}
-              className="inline-flex h-6 items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+              className="relative inline-flex h-6 items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-1 pr-5 text-[11px] font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
             >
               <span>{button.short}</span>
-              <span className="rounded-sm bg-slate-200 px-1.5 py-0.5 text-[10px] text-slate-700">{versions.length}</span>
+              <span className="absolute -right-1 -top-1 min-w-[14px] rounded-[3px] bg-slate-300 px-1 text-center text-[9px] leading-4 text-slate-700">{versions.length}</span>
             </button>
           </div>
         );

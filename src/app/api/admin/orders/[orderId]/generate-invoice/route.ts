@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/server/db';
 import { uploadBlob } from '@/lib/server/blob';
 import { generateOrderPdf } from '@/lib/server/pdf';
-import { buildPdfContext } from '@/lib/server/pdfGeneration';
+import { buildGeneratedPdfFileName, buildPdfContext } from '@/lib/server/pdfGeneration';
 
 export async function POST(
   request: Request,
@@ -26,7 +26,7 @@ export async function POST(
       context.itemsForPdf
     );
 
-    const fileName = `${context.orderToken}-invoice-${Date.now()}.pdf`;
+    const fileName = await buildGeneratedPdfFileName(pool, orderId, 'invoice');
     const blobPath = `orders/${context.orderToken}/${fileName}`;
     const blob = await uploadBlob(blobPath, Buffer.from(pdfBuffer), 'application/pdf');
 

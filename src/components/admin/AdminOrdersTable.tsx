@@ -656,7 +656,10 @@ export default function AdminOrdersTable({
 
 
   const handleResetDocumentFilter = () => {
-    setIsDocumentFilterApplied(false);
+    setDocumentType('all');
+    if (isDocumentSearchEnabled) {
+      setIsDocumentFilterApplied(true);
+    }
     setMessage(null);
   };
 
@@ -1004,15 +1007,14 @@ export default function AdminOrdersTable({
             {isDownloading ? 'Prenos...' : 'Prenesi vse'}
           </button>
 
-          {isDocumentFilterApplied && (
-            <button
-              type="button"
-              onClick={handleResetDocumentFilter}
-              className="h-8 rounded-full px-3 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
-            >
-              Počisti
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handleResetDocumentFilter}
+            disabled={documentType === 'all'}
+            className="h-8 rounded-full px-3 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:ring-slate-100 disabled:hover:bg-transparent"
+          >
+            Počisti
+          </button>
 
           {topAction ? <div className="ml-auto flex h-8 items-center">{topAction}</div> : null}
         </div>

@@ -49,8 +49,6 @@ const formatTimestamp = (value: string) =>
     timeStyle: 'short'
   });
 
-const MAX_VISIBLE_VERSIONS = 4;
-
 export default function AdminOrderPdfManager({
   orderId,
   documents
@@ -188,12 +186,13 @@ export default function AdminOrderPdfManager({
         {PDF_TYPES.map((pdfType) => {
           const docs = grouped[pdfType.key];
           const latest = docs[0];
+          const hasMultipleVersions = docs.length > 1;
           const isExpanded = Boolean(expandedByType[pdfType.key]);
-          const hasManyVersions = docs.length > MAX_VISIBLE_VERSIONS;
+          const visibleDocs = isExpanded ? docs : docs.slice(0, 1);
 
           return (
             <div key={pdfType.key} className="rounded-2xl border border-slate-200/80 p-3.5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-slate-900">{pdfType.label}</p>
                   {latest ? (
@@ -237,7 +236,7 @@ export default function AdminOrderPdfManager({
               </div>
 
               <div className="mt-3 border-t border-slate-100 pt-3">
-                {hasManyVersions ? (
+                {hasMultipleVersions ? (
                   <button
                     type="button"
                     onClick={() =>
@@ -246,25 +245,19 @@ export default function AdminOrderPdfManager({
                         [pdfType.key]: !previousState[pdfType.key]
                       }))
                     }
-                    className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-700 transition hover:bg-slate-100"
+                    className="mb-2 inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-700 transition hover:bg-slate-100"
                     aria-expanded={isExpanded}
                     aria-controls={`pdf-versions-${pdfType.key}`}
                   >
-                    <span>Verzije</span>
+                    <span>{isExpanded ? 'Skrij verzije' : 'Pokaži vse verzije'}</span>
                     <span className="rounded-sm bg-slate-200 px-1.5 py-0.5 text-[10px] text-slate-700">{docs.length}</span>
-                    <span className={`text-xs text-slate-500 transition ${isExpanded ? 'rotate-180' : ''}`}>⌄</span>
                   </button>
                 ) : null}
 
                 {docs.length > 0 ? (
-                  <div
-                    id={`pdf-versions-${pdfType.key}`}
-                    className={`mt-2 rounded-xl border border-slate-200 bg-white p-2 text-[12px] text-slate-600 shadow-inner ${
-                      hasManyVersions && !isExpanded ? 'max-h-44 overflow-y-auto' : ''
-                    }`}
-                  >
+                  <div id={`pdf-versions-${pdfType.key}`} className="rounded-xl border border-slate-200 bg-white p-2 text-[12px] text-slate-600 shadow-inner">
                     <ul className="space-y-1.5">
-                      {docs.map((doc, index) => (
+                      {visibleDocs.map((doc, index) => (
                         <li
                           key={`${doc.id}-${doc.created_at}`}
                           className="rounded-lg border border-transparent px-2.5 py-2 transition hover:border-slate-200 hover:bg-slate-50"

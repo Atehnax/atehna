@@ -1,66 +1,5 @@
 import { getPool } from '@/lib/server/db';
 
-let hasOrdersDraftColumnCache: boolean | null = null;
-let hasOrdersDeletedColumnCache: boolean | null = null;
-let hasDocumentsDeletedColumnCache: boolean | null = null;
-
-async function hasOrdersDraftColumn() {
-  if (hasOrdersDraftColumnCache !== null) return hasOrdersDraftColumnCache;
-
-  const pool = await getPool();
-  const result = await pool.query(
-    `
-    select 1
-    from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'orders'
-      and column_name = 'is_draft'
-    limit 1
-    `
-  );
-
-  hasOrdersDraftColumnCache = Number(result.rowCount ?? 0) > 0;
-  return hasOrdersDraftColumnCache;
-}
-
-async function hasOrdersDeletedColumn() {
-  if (hasOrdersDeletedColumnCache !== null) return hasOrdersDeletedColumnCache;
-
-  const pool = await getPool();
-  const result = await pool.query(
-    `
-    select 1
-    from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'orders'
-      and column_name = 'deleted_at'
-    limit 1
-    `
-  );
-
-  hasOrdersDeletedColumnCache = Number(result.rowCount ?? 0) > 0;
-  return hasOrdersDeletedColumnCache;
-}
-
-async function hasDocumentsDeletedColumn() {
-  if (hasDocumentsDeletedColumnCache !== null) return hasDocumentsDeletedColumnCache;
-
-  const pool = await getPool();
-  const result = await pool.query(
-    `
-    select 1
-    from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'order_documents'
-      and column_name = 'deleted_at'
-    limit 1
-    `
-  );
-
-  hasDocumentsDeletedColumnCache = Number(result.rowCount ?? 0) > 0;
-  return hasDocumentsDeletedColumnCache;
-}
-
 export type OrderRow = {
   id: number;
   order_number: string;
@@ -79,8 +18,6 @@ export type OrderRow = {
   tax: number | null;
   total: number | null;
   created_at: string;
-  is_draft?: boolean;
-  deleted_at?: string | null;
 };
 
 export type OrderItemRow = {
@@ -92,7 +29,6 @@ export type OrderItemRow = {
   quantity: number;
   unit_price: number | null;
   total_price: number | null;
-  discount_percentage: number;
 };
 
 export type OrderDocumentRow = {
@@ -113,6 +49,40 @@ export type OrderAttachmentRow = {
   blob_url: string;
   created_at: string;
 };
+
+
+let hasOrdersDeletedAtColumnCache: boolean | null = null;
+let hasOrderDocumentsDeletedAtColumnCache: boolean | null = null;
+
+async function hasOrdersDeletedAtColumn() {
+  if (hasOrdersDeletedAtColumnCache !== null) return hasOrdersDeletedAtColumnCache;
+  const pool = await getPool();
+  const result = await pool.query(
+    `
+    select 1
+    from information_schema.columns
+    where table_schema = 'public' and table_name = 'orders' and column_name = 'deleted_at'
+    limit 1
+    `
+  );
+  hasOrdersDeletedAtColumnCache = Number(result.rowCount ?? 0) > 0;
+  return hasOrdersDeletedAtColumnCache;
+}
+
+async function hasOrderDocumentsDeletedAtColumn() {
+  if (hasOrderDocumentsDeletedAtColumnCache !== null) return hasOrderDocumentsDeletedAtColumnCache;
+  const pool = await getPool();
+  const result = await pool.query(
+    `
+    select 1
+    from information_schema.columns
+    where table_schema = 'public' and table_name = 'order_documents' and column_name = 'deleted_at'
+    limit 1
+    `
+  );
+  hasOrderDocumentsDeletedAtColumnCache = Number(result.rowCount ?? 0) > 0;
+  return hasOrderDocumentsDeletedAtColumnCache;
+}
 
 export type PaymentLogRow = {
   id: number;
@@ -139,53 +109,38 @@ function toIsoTimestamp(rawValue: unknown): string {
   return String(rawValue);
 }
 
-function asNullableString(rawValue: unknown): string | null {
-  return typeof rawValue === 'string' ? rawValue : null;
-}
-
 function mapOrderRow(rawRow: Record<string, unknown>): OrderRow {
   return {
     id: Number(rawRow.id),
     order_number: String(rawRow.order_number),
     customer_type: String(rawRow.customer_type),
-    organization_name: asNullableString(rawRow.organization_name),
+    organization_name: (rawRow.organization_name as string | null) ?? null,
     contact_name: String(rawRow.contact_name),
     email: String(rawRow.email),
-    phone: asNullableString(rawRow.phone),
-    delivery_address: asNullableString(rawRow.delivery_address),
-    reference: asNullableString(rawRow.reference),
-    notes: asNullableString(rawRow.notes),
+    phone: (rawRow.phone as string | null) ?? null,
+    delivery_address: (rawRow.delivery_address as string | null) ?? null,
+    reference: (rawRow.reference as string | null) ?? null,
+    notes: (rawRow.notes as string | null) ?? null,
     status: String(rawRow.status),
-    payment_status: asNullableString(rawRow.payment_status),
-    payment_notes: asNullableString(rawRow.payment_notes),
+    payment_status: (rawRow.payment_status as string | null) ?? null,
+    payment_notes: (rawRow.payment_notes as string | null) ?? null,
     subtotal: parseNullableNumber(rawRow.subtotal),
     tax: parseNullableNumber(rawRow.tax),
     total: parseNullableNumber(rawRow.total),
-    created_at: toIsoTimestamp(rawRow.created_at),
-    is_draft: Boolean(rawRow.is_draft),
-    deleted_at: asNullableString(rawRow.deleted_at)
+    created_at: toIsoTimestamp(rawRow.created_at)
   };
 }
 
 function mapOrderItemRow(rawRow: Record<string, unknown>): OrderItemRow {
-  const quantity = Number(rawRow.quantity);
-  const unitPrice = parseNullableNumber(rawRow.unit_price);
-  const totalPrice = parseNullableNumber(rawRow.total_price);
-  const lineBase = Math.max(0, quantity) * (unitPrice ?? 0);
-  const effectiveTotal = totalPrice ?? lineBase;
-  const discountPercentage =
-    lineBase > 0 ? Math.min(100, Math.max(0, Number((((lineBase - effectiveTotal) / lineBase) * 100).toFixed(2)))) : 0;
-
   return {
     id: Number(rawRow.id),
     order_id: Number(rawRow.order_id),
     sku: String(rawRow.sku),
     name: String(rawRow.name),
-    unit: asNullableString(rawRow.unit),
-    quantity,
-    unit_price: unitPrice,
-    total_price: totalPrice,
-    discount_percentage: discountPercentage
+    unit: (rawRow.unit as string | null) ?? null,
+    quantity: Number(rawRow.quantity),
+    unit_price: parseNullableNumber(rawRow.unit_price),
+    total_price: parseNullableNumber(rawRow.total_price)
   };
 }
 
@@ -196,7 +151,7 @@ function mapOrderDocumentRow(rawRow: Record<string, unknown>): OrderDocumentRow 
     type: String(rawRow.type),
     filename: String(rawRow.filename),
     blob_url: String(rawRow.blob_url),
-    blob_pathname: asNullableString(rawRow.blob_pathname),
+    blob_pathname: (rawRow.blob_pathname as string | null) ?? null,
     created_at: toIsoTimestamp(rawRow.created_at)
   };
 }
@@ -216,9 +171,9 @@ function mapPaymentLogRow(rawRow: Record<string, unknown>): PaymentLogRow {
   return {
     id: Number(rawRow.id),
     order_id: Number(rawRow.order_id),
-    previous_status: asNullableString(rawRow.previous_status),
+    previous_status: (rawRow.previous_status as string | null) ?? null,
     new_status: String(rawRow.new_status),
-    note: asNullableString(rawRow.note),
+    note: (rawRow.note as string | null) ?? null,
     created_at: toIsoTimestamp(rawRow.created_at)
   };
 }
@@ -227,20 +182,10 @@ export async function fetchOrders(options?: {
   fromDate?: string | null;
   toDate?: string | null;
   query?: string | null;
-  includeDrafts?: boolean;
 }): Promise<OrderRow[]> {
   const pool = await getPool();
-  const supportsDraftColumn = await hasOrdersDraftColumn();
-  const supportsDeletedColumn = await hasOrdersDeletedColumn();
   const conditions: string[] = [];
   const queryParams: unknown[] = [];
-
-  if (!options?.includeDrafts && supportsDraftColumn) {
-    conditions.push('coalesce(orders.is_draft, false) = false');
-  }
-  if (supportsDeletedColumn) {
-    conditions.push('orders.deleted_at is null');
-  }
 
   if (options?.fromDate) {
     queryParams.push(options.fromDate);
@@ -258,6 +203,11 @@ export async function fetchOrders(options?: {
     conditions.push(
       `(orders.organization_name ilike $${queryIndex} or orders.contact_name ilike $${queryIndex} or orders.delivery_address ilike $${queryIndex})`
     );
+  }
+
+  const includeDeletedFilter = await hasOrdersDeletedAtColumn();
+  if (includeDeletedFilter) {
+    conditions.push('orders.deleted_at is null');
   }
 
   const whereClause = conditions.length > 0 ? `where ${conditions.join(' and ')}` : '';
@@ -281,16 +231,14 @@ export async function fetchOrders(options?: {
       coalesce(orders.subtotal, computed_totals.subtotal, 0)::numeric as subtotal,
       coalesce(orders.tax, computed_totals.tax, 0)::numeric as tax,
       coalesce(orders.total, computed_totals.total, 0)::numeric as total,
-      orders.created_at,
-      ${supportsDraftColumn ? 'orders.is_draft' : 'false as is_draft'},
-      ${supportsDeletedColumn ? 'orders.deleted_at' : 'null::timestamptz as deleted_at'}
+      orders.created_at
     from orders
     left join (
       select
         order_items.order_id,
-        round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))), 2) as subtotal,
-        round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 0.22, 2) as tax,
-        round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 1.22, 2) as total
+        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)), 2) as subtotal,
+        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)) * 0.22, 2) as tax,
+        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)) * 1.22, 2) as total
       from order_items
       group by order_items.order_id
     ) as computed_totals
@@ -306,8 +254,7 @@ export async function fetchOrders(options?: {
 
 export async function fetchOrderById(orderId: number): Promise<OrderRow | null> {
   const pool = await getPool();
-  const supportsDraftColumn = await hasOrdersDraftColumn();
-  const supportsDeletedColumn = await hasOrdersDeletedColumn();
+  const includeDeletedFilter = await hasOrdersDeletedAtColumn();
 
   const result = await pool.query(
     `
@@ -328,21 +275,19 @@ export async function fetchOrderById(orderId: number): Promise<OrderRow | null> 
       coalesce(orders.subtotal, computed_totals.subtotal, 0)::numeric as subtotal,
       coalesce(orders.tax, computed_totals.tax, 0)::numeric as tax,
       coalesce(orders.total, computed_totals.total, 0)::numeric as total,
-      orders.created_at,
-      ${supportsDraftColumn ? 'orders.is_draft' : 'false as is_draft'},
-      ${supportsDeletedColumn ? 'orders.deleted_at' : 'null::timestamptz as deleted_at'}
+      orders.created_at
     from orders
     left join (
       select
         order_items.order_id,
-        round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))), 2) as subtotal,
-        round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 0.22, 2) as tax,
-        round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 1.22, 2) as total
+        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)), 2) as subtotal,
+        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)) * 0.22, 2) as tax,
+        round(sum(order_items.quantity * coalesce(order_items.unit_price, 0)) * 1.22, 2) as total
       from order_items
       group by order_items.order_id
     ) as computed_totals
       on computed_totals.order_id = orders.id
-    where orders.id = $1
+    where orders.id = $1 ${includeDeletedFilter ? 'and orders.deleted_at is null' : ''}
     `,
     [orderId]
   );
@@ -362,9 +307,9 @@ export async function fetchOrderItems(orderId: number): Promise<OrderItemRow[]> 
 
 export async function fetchOrderDocuments(orderId: number): Promise<OrderDocumentRow[]> {
   const pool = await getPool();
-  const supportsDeletedColumn = await hasDocumentsDeletedColumn();
+  const includeDeletedFilter = await hasOrderDocumentsDeletedAtColumn();
   const result = await pool.query(
-    `select * from order_documents where order_id = $1 ${supportsDeletedColumn ? 'and deleted_at is null' : ''} order by created_at desc`,
+    `select * from order_documents where order_id = $1 ${includeDeletedFilter ? 'and deleted_at is null' : ''} order by created_at desc`,
     [orderId]
   );
   return result.rows.map((rawRow) => mapOrderDocumentRow(rawRow as Record<string, unknown>));
@@ -375,9 +320,9 @@ export async function fetchOrderDocumentsForOrders(
 ): Promise<OrderDocumentRow[]> {
   if (orderIds.length === 0) return [];
   const pool = await getPool();
-  const supportsDeletedColumn = await hasDocumentsDeletedColumn();
+  const includeDeletedFilter = await hasOrderDocumentsDeletedAtColumn();
   const result = await pool.query(
-    `select * from order_documents where order_id = any($1::bigint[]) ${supportsDeletedColumn ? 'and deleted_at is null' : ''} order by created_at desc`,
+    `select * from order_documents where order_id = any($1::bigint[]) ${includeDeletedFilter ? 'and deleted_at is null' : ''} order by created_at desc`,
     [orderIds]
   );
   return result.rows.map((rawRow) => mapOrderDocumentRow(rawRow as Record<string, unknown>));

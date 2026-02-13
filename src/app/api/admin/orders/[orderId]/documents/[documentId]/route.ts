@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/server/db';
+import { recordDeletedArchiveEntry } from '@/lib/server/deletedArchive';
+
+const isMissingColumnError = (error: unknown) =>
+  Boolean(error && typeof error === 'object' && 'code' in error && error.code === '42703');
 
 export async function DELETE(
   _request: Request,
@@ -14,54 +18,48 @@ export async function DELETE(
     }
 
     const pool = await getPool();
-    const documentResult = await pool.query(
-      'select id, type, filename, blob_url, blob_pathname, deleted_at from order_documents where id = $1 and order_id = $2',
+    const result = await pool.query(
+      'select id, type, filename, blob_url, blob_pathname from order_documents where id = $1 and order_id = $2',
       [documentId, orderId]
     );
 
-    if (documentResult.rows.length === 0) {
+    if (result.rowCount === 0) {
       return NextResponse.json({ message: 'Dokument ne obstaja.' }, { status: 404 });
     }
 
-    const row = documentResult.rows[0] as {
+    const row = result.rows[0] as {
+      id: number;
       type: string;
       filename: string;
       blob_url: string;
       blob_pathname: string | null;
-      deleted_at: string | null;
     };
 
-    if (!row.deleted_at) {
-      try {
-        await pool.query('update order_documents set deleted_at = now() where id = $1 and order_id = $2', [documentId, orderId]);
-      } catch (error) {
-        if (!(error && typeof error === 'object' && 'code' in error && error.code === '42703')) {
-          throw error;
-        }
-        await pool.query('delete from order_documents where id = $1 and order_id = $2', [documentId, orderId]);
-        return NextResponse.json({ success: true });
-      }
-
-      try {
-        await pool.query(
-          `
-          insert into deleted_archive_entries (item_type, order_id, document_id, label, payload)
-          values ($1, $2, $3, $4, $5::jsonb)
-          `,
-          [
-            'pdf',
-            orderId,
-            documentId,
-            row.filename,
-            JSON.stringify({ type: row.type, blobUrl: row.blob_url, blobPathname: row.blob_pathname })
-          ]
-        );
-      } catch (error) {
-        if (!(error && typeof error === 'object' && 'code' in error && error.code === '42P01')) {
-          throw error;
-        }
-      }
+    try {
+      await pool.query('update order_documents set deleted_at = now() where id = $1 and order_id = $2', [
+        documentId,
+        orderId
+      ]);
+    } catch (error) {
+      if (!isMissingColumnError(error)) throw error;
+      await pool.query('delete from order_documents where id = $1 and order_id = $2', [
+        documentId,
+        orderId
+      ]);
+      return NextResponse.json({ success: true });
     }
+
+    await recordDeletedArchiveEntry({
+      itemType: 'pdf',
+      orderId,
+      documentId,
+      label: row.filename,
+      payload: {
+        type: row.type,
+        blobUrl: row.blob_url,
+        blobPathname: row.blob_pathname
+      }
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

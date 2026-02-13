@@ -8,7 +8,6 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 const ALLOWED_DOCUMENT_TYPES = new Set([
   'order_summary',
-  'purchase_order',
   'predracun',
   'dobavnica',
   'invoice'

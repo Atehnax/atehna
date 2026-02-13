@@ -2,102 +2,210 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  type GeneratePdfType,
-  type PdfDocument,
-  type PdfTypeKey,
-  formatDateTimeCompact,
-  groupDocumentsByType,
-  isGenerateKey,
-  routeMap
-} from '@/components/admin/adminOrdersPdfCellUtils';
 
-type PdfButton = { key: PdfTypeKey; short: string; full: string };
+type PdfDocument = {
+  id?: number;
+  type: string;
+  blob_url: string;
+  filename: string;
+  created_at: string;
+};
 
-const PDF_BUTTONS: PdfButton[] = [
-  { key: 'order_summary', short: 'PN', full: 'Povzetek naročila' },
-  { key: 'purchase_order', short: 'N', full: 'Naročilnica' },
-  { key: 'dobavnica', short: 'D', full: 'Dobavnica' },
-  { key: 'predracun', short: 'P', full: 'Predračun' },
-  { key: 'invoice', short: 'R', full: 'Račun' }
+type PdfTypeKey = 'order_summary' | 'predracun' | 'dobavnica' | 'invoice' | 'purchase_order';
+type GeneratePdfType = Exclude<PdfTypeKey, 'purchase_order'>;
+
+type PdfTypeConfig = {
+  key: PdfTypeKey;
+  label: string;
+  canGenerate: boolean;
+};
+
+type MenuPosition = {
+  top: number;
+  left: number;
+};
+
+const pdfTypes: PdfTypeConfig[] = [
+  { key: 'order_summary', label: 'Povzetek', canGenerate: true },
+  { key: 'predracun', label: 'Predračun', canGenerate: true },
+  { key: 'dobavnica', label: 'Dobavnica', canGenerate: true },
+  { key: 'invoice', label: 'Račun', canGenerate: true },
+  { key: 'purchase_order', label: 'Naročilnica', canGenerate: false }
 ];
+
+const routeMap: Record<GeneratePdfType, string> = {
+  order_summary: 'generate-order-summary',
+  predracun: 'generate-predracun',
+  dobavnica: 'generate-dobavnica',
+  invoice: 'generate-invoice'
+};
+
+const normalizeType = (type: string): PdfTypeKey | null => {
+  if (type === 'offer' || type === 'order_summary') return 'order_summary';
+  if (type === 'predracun') return 'predracun';
+  if (type === 'dobavnica') return 'dobavnica';
+  if (type === 'invoice') return 'invoice';
+  if (type === 'purchase_order') return 'purchase_order';
+  return null;
+};
+
+const isGenerateKey = (key: PdfTypeKey): key is GeneratePdfType => key !== 'purchase_order';
+
+const padTwoDigits = (value: number) => String(value).padStart(2, '0');
+
+const formatDateTimeCompact = (value: string) => {
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) return value;
+
+  const day = padTwoDigits(parsedDate.getDate());
+  const month = padTwoDigits(parsedDate.getMonth() + 1);
+  const year = parsedDate.getFullYear();
+  const hour = padTwoDigits(parsedDate.getHours());
+  const minute = padTwoDigits(parsedDate.getMinutes());
+
+  return `${day}.${month}.${year} ${hour}:${minute}`;
+};
+
+const formatVersionCount = (count: number) => {
+  if (count === 1) return '1 verzija';
+  if (count === 2) return '2 verziji';
+  if (count === 3 || count === 4) return `${count} verzije`;
+  return `${count} verzij`;
+};
+
+const clampValue = (value: number, minimum: number, maximum: number) =>
+  Math.min(Math.max(value, minimum), maximum);
+
+const badgeBaseClass =
+  'relative inline-flex h-5 w-full items-center justify-center rounded-md border px-1 text-[10px] font-medium leading-none';
+
+const badgeAvailableClass = `${badgeBaseClass} border-slate-300 bg-slate-100 text-slate-700 transition hover:bg-slate-200`;
+const badgeMissingClass = `${badgeBaseClass} border-slate-200 bg-slate-50 text-slate-400`;
 
 export default function AdminOrdersPdfCell({
   orderId,
   documents,
-  attachments,
-  interactionsDisabled = false
+  attachments
 }: {
   orderId: number;
   documents: PdfDocument[];
   attachments: PdfDocument[];
-  interactionsDisabled?: boolean;
 }) {
-  const [documentsState, setDocumentsState] = useState<PdfDocument[]>(documents);
-  const [attachmentsState] = useState<PdfDocument[]>(attachments);
+  const [documentsState, setDocumentsState] = useState(documents);
+  const [attachmentsState, setAttachmentsState] = useState(attachments);
   const [loadingType, setLoadingType] = useState<GeneratePdfType | null>(null);
-  const [openType, setOpenType] = useState<PdfTypeKey | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
+  const [isClient, setIsClient] = useState(false);
 
-  const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const menuRef = useRef<HTMLDivElement | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (!openType) return;
-    const anchor = buttonRefs.current[openType];
-    if (!anchor) return;
+    setIsClient(true);
+  }, []);
 
-    const updatePosition = () => {
-      const rect = anchor.getBoundingClientRect();
-      setMenuPosition({
-        top: rect.bottom + window.scrollY + 6,
-        left: rect.left + window.scrollX
-      });
+  useEffect(() => {
+    setDocumentsState(documents);
+  }, [documents]);
+
+  useEffect(() => {
+    setAttachmentsState(attachments);
+  }, [attachments]);
+
+  const groupedDocuments = useMemo(() => {
+    const grouped: Record<PdfTypeKey, PdfDocument[]> = {
+      order_summary: [],
+      predracun: [],
+      dobavnica: [],
+      invoice: [],
+      purchase_order: []
     };
 
-    updatePosition();
-    window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition, true);
+    const sortedDocuments = [...documentsState].sort(
+      (leftDocument, rightDocument) =>
+        new Date(rightDocument.created_at).getTime() - new Date(leftDocument.created_at).getTime()
+    );
 
-    const onOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (menuRef.current?.contains(target)) return;
-      if (anchor.contains(target)) return;
-      setOpenType(null);
+    sortedDocuments.forEach((documentItem) => {
+      const normalizedType = normalizeType(documentItem.type);
+      if (!normalizedType) return;
+      grouped[normalizedType].push(documentItem);
+    });
+
+    const sortedAttachments = [...attachmentsState].sort(
+      (leftAttachment, rightAttachment) =>
+        new Date(rightAttachment.created_at).getTime() - new Date(leftAttachment.created_at).getTime()
+    );
+
+    sortedAttachments.forEach((attachmentItem) => {
+      grouped.purchase_order.push(attachmentItem);
+    });
+
+    return grouped;
+  }, [attachmentsState, documentsState]);
+
+  const closeMenu = () => setMenuPosition(null);
+
+  const openMenuAtButton = (buttonElement: HTMLButtonElement) => {
+    const rect = buttonElement.getBoundingClientRect();
+    const menuWidth = 360;
+    const viewportPadding = 8;
+
+    const calculatedLeft = clampValue(
+      rect.right - menuWidth,
+      viewportPadding,
+      window.innerWidth - menuWidth - viewportPadding
+    );
+
+    setMenuPosition({
+      top: rect.bottom + 6,
+      left: calculatedLeft
+    });
+  };
+
+  useEffect(() => {
+    if (!menuPosition) return;
+
+    const handleOutsideClick = (mouseEvent: MouseEvent) => {
+      const eventTarget = mouseEvent.target as Node | null;
+      if (!eventTarget) return;
+
+      const clickedInsideMenu = menuRef.current?.contains(eventTarget);
+      const clickedMenuButton = menuButtonRef.current?.contains(eventTarget);
+
+      if (clickedInsideMenu || clickedMenuButton) return;
+      closeMenu();
     };
 
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpenType(null);
+    const handleEscapeKey = (keyboardEvent: KeyboardEvent) => {
+      if (keyboardEvent.key === 'Escape') closeMenu();
     };
 
-    document.addEventListener('mousedown', onOutside);
-    document.addEventListener('keydown', onEscape);
+    const handleViewportChange = () => {
+      closeMenu();
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscapeKey);
+    window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('scroll', handleViewportChange, true);
+
     return () => {
-      window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition, true);
-      document.removeEventListener('mousedown', onOutside);
-      document.removeEventListener('keydown', onEscape);
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscapeKey);
+      window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('scroll', handleViewportChange, true);
     };
-  }, [openType]);
-
-  const groupedDocuments = useMemo(
-    () => groupDocumentsByType(documentsState, attachmentsState),
-    [attachmentsState, documentsState]
-  );
+  }, [menuPosition]);
 
   const handleGenerate = async (type: GeneratePdfType) => {
     setLoadingType(type);
-    setErrorMessage(null);
     try {
       const response = await fetch(`/api/admin/orders/${orderId}/${routeMap[type]}`, {
         method: 'POST'
       });
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        setErrorMessage(body.message || 'Generiranje PDF ni uspelo.');
-        return;
-      }
+
+      if (!response.ok) return;
 
       const payload = (await response.json()) as {
         url: string;
@@ -106,112 +214,178 @@ export default function AdminOrdersPdfCell({
         type: string;
       };
 
-      setDocumentsState((prev) => [
-        {
-          type: payload.type,
-          blob_url: payload.url,
-          filename: payload.filename,
-          created_at: payload.createdAt
-        },
-        ...prev
-      ]);
-      setOpenType(type);
+      const newDocument: PdfDocument = {
+        type: payload.type,
+        blob_url: payload.url,
+        filename: payload.filename,
+        created_at: payload.createdAt
+      };
+
+      setDocumentsState((previousDocuments) => [newDocument, ...previousDocuments]);
     } finally {
       setLoadingType(null);
     }
   };
 
-  const renderMenu = () => {
-    if (!openType || typeof document === 'undefined') return null;
-
-    const button = PDF_BUTTONS.find((item) => item.key === openType);
-    if (!button) return null;
-
-    const versions = groupedDocuments[button.key];
-    const latest = versions[0];
-
-    return createPortal(
-      <div
-        ref={menuRef}
-        role="menu"
-        data-no-row-nav
-        className="fixed z-[120] w-[250px] rounded-xl border border-slate-200 bg-white p-2 shadow-2xl"
-        style={{ top: menuPosition.top, left: menuPosition.left }}
-      >
-        <div className="mb-2 flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
-          <p className="text-[11px] font-semibold text-slate-800">{button.full}</p>
-          {isGenerateKey(button.key) ? (
-            <button
-              type="button"
-              data-no-row-nav
-              onClick={() => handleGenerate(button.key)}
-              disabled={interactionsDisabled || loadingType === button.key}
-              className="inline-flex h-6 items-center rounded-md border border-slate-300 bg-white px-2 text-[10px] font-medium text-slate-700 transition hover:border-slate-400 disabled:cursor-not-allowed disabled:text-slate-300"
-            >
-              {loadingType === button.key ? 'Generiram ...' : latest ? 'Nova verzija' : 'Ustvari'}
-            </button>
-          ) : null}
-        </div>
-
-        {versions.length > 0 ? (
-          <ul className="max-h-56 space-y-1 overflow-y-auto pr-1">
-            {versions.map((documentOption, index) => (
-              <li key={`${button.key}-${documentOption.blob_url}-${documentOption.created_at}-${index}`}>
-                <a
-                  href={documentOption.blob_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  role="menuitem"
-                  data-no-row-nav
-                  onClick={() => setOpenType(null)}
-                  className="flex items-center justify-between rounded-md border border-transparent bg-white px-2 py-1 text-[10px] text-slate-700 transition hover:border-slate-200 hover:bg-slate-50"
-                  title={documentOption.filename}
-                >
-                  <span className="truncate font-medium">{documentOption.filename}</span>
-                  <span className="ml-2 shrink-0 text-slate-500">{formatDateTimeCompact(documentOption.created_at)}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-[10px] text-slate-400">Ni shranjenih verzij.</p>
-        )}
-
-        {errorMessage ? <p className="mt-2 text-[10px] text-rose-600">{errorMessage}</p> : null}
-      </div>,
-      document.body
-    );
-  };
-
   return (
-    <div className="relative inline-flex items-center gap-[6px]" data-no-row-nav>
-      {PDF_BUTTONS.map((button) => {
-        const versions = groupedDocuments[button.key];
-        const isOpen = openType === button.key;
+    <div className="flex items-center gap-1 min-w-0">
+      <div className="grid flex-1 grid-cols-5 gap-1 min-w-0">
+        {pdfTypes.map((pdfType) => {
+          const options = groupedDocuments[pdfType.key];
+          const latestDocument = options[0];
+          const versionCount = options.length;
 
-        return (
-          <div key={button.key} className="relative" data-no-row-nav>
-            <button
-              ref={(element) => {
-                buttonRefs.current[button.key] = element;
-              }}
-              type="button"
-              data-no-row-nav
-              title={button.full}
-              aria-label={`${button.full} dokumenti`}
-              aria-haspopup="menu"
-              aria-expanded={isOpen}
-              onClick={() => setOpenType((previousType) => (previousType === button.key ? null : button.key))}
-              disabled={interactionsDisabled}
-              className="inline-flex h-6 items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+          if (latestDocument) {
+            return (
+              <a
+                key={pdfType.key}
+                href={latestDocument.blob_url}
+                target="_blank"
+                rel="noreferrer"
+                className={badgeAvailableClass}
+                title={`${pdfType.label} · zadnja verzija (${versionCount})`}
+              >
+                <span className="truncate">{pdfType.label}</span>
+                <span className="pointer-events-none absolute -right-1 -top-1 inline-flex min-w-[14px] items-center justify-center rounded-sm border border-slate-300 bg-slate-200 px-1 text-[9px] leading-none text-slate-700 tabular-nums">
+                  {versionCount}
+                </span>
+              </a>
+            );
+          }
+
+          return (
+            <span
+              key={pdfType.key}
+              className={badgeMissingClass}
+              title={`${pdfType.label} · ni dokumenta`}
             >
-              <span>{button.short}</span>
-              <span className="rounded-sm bg-slate-200 px-1.5 py-0.5 text-[10px] text-slate-700">{versions.length}</span>
-            </button>
-          </div>
-        );
-      })}
-      {renderMenu()}
+              <span className="truncate">{pdfType.label}</span>
+            </span>
+          );
+        })}
+      </div>
+
+      <button
+        ref={menuButtonRef}
+        type="button"
+        onClick={(event) => {
+          if (menuPosition) {
+            closeMenu();
+            return;
+          }
+          openMenuAtButton(event.currentTarget);
+        }}
+        className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-200 text-[11px] text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+        aria-label="Odpri meni dokumentov"
+        title="Verzije in generiranje"
+      >
+        ⋯
+      </button>
+
+      {isClient &&
+        menuPosition &&
+        createPortal(
+          <div
+            ref={menuRef}
+            className="z-[1000] w-[360px] rounded-xl border border-slate-200 bg-white p-2 shadow-xl"
+            style={{
+              position: 'fixed',
+              top: `${menuPosition.top}px`,
+              left: `${menuPosition.left}px`
+            }}
+          >
+            <div className="max-h-[60vh] overflow-y-auto pr-1">
+              {pdfTypes.map((pdfType) => {
+                const options = groupedDocuments[pdfType.key];
+                const latestDocument = options[0];
+                const generateKey: GeneratePdfType | null = isGenerateKey(pdfType.key)
+                  ? pdfType.key
+                  : null;
+                const canGenerate = pdfType.canGenerate && generateKey !== null;
+                const isGeneratingThisType = generateKey ? loadingType === generateKey : false;
+
+                return (
+                  <section
+                    key={pdfType.key}
+                    className="mb-2 rounded-lg border border-slate-100 p-2 last:mb-0"
+                  >
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                          {pdfType.label}
+                        </span>
+                        <span className="text-[11px] text-slate-500">
+                          {options.length > 0 ? formatVersionCount(options.length) : 'Brez dokumenta'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        {latestDocument && (
+                          <a
+                            href={latestDocument.blob_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
+                          >
+                            Odpri
+                          </a>
+                        )}
+
+                        {canGenerate && generateKey && (
+                          <button
+                            type="button"
+                            onClick={() => handleGenerate(generateKey)}
+                            disabled={isGeneratingThisType}
+                            className="rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                          >
+                            {isGeneratingThisType
+                              ? 'Generiram…'
+                              : latestDocument
+                              ? 'Nova verzija'
+                              : 'Ustvari'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {options.length > 0 ? (
+                      <div className="space-y-1">
+                        {options.map((documentItem, index) => {
+                          const versionNumber = options.length - index;
+                          const latestTag = index === 0 ? ' (zadnja)' : '';
+                          return (
+                            <a
+                              key={`${documentItem.blob_url}-${documentItem.created_at}-${versionNumber}`}
+                              href={documentItem.blob_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={closeMenu}
+                              className="block rounded-md px-2 py-1 text-[11px] text-slate-700 hover:bg-slate-50"
+                              title={documentItem.filename}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-medium">
+                                  v{versionNumber}
+                                  {latestTag}
+                                </span>
+                                <span className="text-slate-500">
+                                  {formatDateTimeCompact(documentItem.created_at)}
+                                </span>
+                              </div>
+                            </a>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-slate-400">Ni shranjenih verzij.</p>
+                    )}
+                  </section>
+                );
+              })}
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

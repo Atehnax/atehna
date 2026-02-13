@@ -145,7 +145,7 @@ export async function POST(request: Request) {
         )
         select
           id,
-          '#' || id,
+          'ORD-' || id,
           $1,
           $2,
           $3,
@@ -202,8 +202,8 @@ export async function POST(request: Request) {
         ]);
       }
 
-      const documentType = 'order_summary';
-      const documentTitle = 'Povzetek';
+      const documentType = customerType === 'school' ? 'order_summary' : 'predracun';
+      const documentTitle = documentType === 'order_summary' ? 'Ponudba' : 'Predračun';
 
       const pdfBuffer = await generateOrderPdf(
         documentTitle,

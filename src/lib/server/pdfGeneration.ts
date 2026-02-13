@@ -1,107 +1,54 @@
-import type { Pool } from 'pg';
-import type { PdfItem, PdfOrder } from '@/lib/server/pdf';
+import crypto from 'node:crypto';
+import { getPool } from '@/lib/server/db';
 
-type RawOrder = Record<string, unknown>;
+type PdfTypeKey = 'order_summary' | 'purchase_order' | 'dobavnica' | 'predracun' | 'invoice';
 
-type BuildPdfContextSuccess = {
-  ok: true;
-  order: RawOrder;
-  orderForPdf: PdfOrder;
-  itemsForPdf: PdfItem[];
-  orderToken: string;
+const DOC_CODE_BY_TYPE: Record<PdfTypeKey, string> = {
+  order_summary: 'PN',
+  purchase_order: 'N',
+  dobavnica: 'D',
+  predracun: 'P',
+  invoice: 'R'
 };
 
-type BuildPdfContextFailure = {
-  ok: false;
-  status: number;
-  message: string;
+const toDateKey = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}${month}${day}`;
 };
 
-export type BuildPdfContextResult = BuildPdfContextSuccess | BuildPdfContextFailure;
+const buildSuffix = () => crypto.randomBytes(18).toString('base64url');
 
-const asString = (value: unknown, fallback = '') => (typeof value === 'string' ? value.trim() : fallback);
-const asNullableString = (value: unknown) => (typeof value === 'string' ? value.trim() : null);
-const asNumber = (value: unknown) => {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
-  if (typeof value === 'string') {
-    const parsed = Number(value.replace(',', '.'));
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-  return 0;
+export const buildGeneratedPdfFilename = (options: {
+  type: PdfTypeKey;
+  orderIdentifier: string | number;
+  version: number;
+  now?: Date;
+}) => {
+  const orderPart = String(options.orderIdentifier).trim() || 'UNKNOWN';
+  const code = DOC_CODE_BY_TYPE[options.type];
+  return `${code}-${orderPart}-${options.version}-${toDateKey(options.now)}-${buildSuffix()}.pdf`;
 };
 
-const toOrderToken = (orderNumber: string, orderId: number) => {
-  const normalized = orderNumber.trim() || `order-${orderId}`;
-  const cleaned = normalized.replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-  return cleaned || `order-${orderId}`;
-};
+const isMissingColumnError = (error: unknown) =>
+  Boolean(error && typeof error === 'object' && 'code' in error && error.code === '42703');
 
-export async function buildPdfContext(pool: Pool, orderId: number): Promise<BuildPdfContextResult> {
-  const orderResult = await pool.query('SELECT * FROM orders WHERE id = $1', [orderId]);
-  const order = (orderResult.rows[0] ?? null) as RawOrder | null;
+export async function getNextPdfVersion(orderId: number, type: PdfTypeKey): Promise<number> {
+  const pool = await getPool();
 
-  if (!order) {
-    return { ok: false, status: 404, message: 'Naročilo ne obstaja.' };
+  try {
+    const result = await pool.query(
+      'select count(*)::int as total from order_documents where order_id = $1 and type = $2 and deleted_at is null',
+      [orderId, type]
+    );
+    return Number(result.rows[0]?.total ?? 0) + 1;
+  } catch (error) {
+    if (!isMissingColumnError(error)) throw error;
+    const fallback = await pool.query(
+      'select count(*)::int as total from order_documents where order_id = $1 and type = $2',
+      [orderId, type]
+    );
+    return Number(fallback.rows[0]?.total ?? 0) + 1;
   }
-
-  const contactName = asString(order.contact_name);
-  const email = asString(order.email);
-  const orderNumber = asString(order.order_number, `#${orderId}`);
-  const customerType = asString(order.customer_type, 'company');
-
-  if (!contactName || !email) {
-    return {
-      ok: false,
-      status: 400,
-      message:
-        'Za generiranje PDF izpolnite vsaj Kontakt in E-pošta v razdelku »Uredi naročilo«, nato kliknite »Shrani spremembe«.'
-    };
-  }
-
-  const itemsResult = await pool.query(
-    'SELECT sku, name, unit, quantity, unit_price as "unitPrice" FROM order_items WHERE order_id = $1 ORDER BY id',
-    [orderId]
-  );
-
-  const itemsForPdf = (itemsResult.rows as Record<string, unknown>[]).map((row) => ({
-    sku: asString(row.sku, '-'),
-    name: asString(row.name, 'Artikel'),
-    unit: asNullableString(row.unit),
-    quantity: Math.max(1, Math.floor(asNumber(row.quantity) || 1)),
-    unitPrice: asNumber(row.unitPrice)
-  }));
-
-  if (itemsForPdf.length === 0) {
-    return {
-      ok: false,
-      status: 400,
-      message: 'Za generiranje PDF dodajte vsaj eno postavko in shranite spremembe.'
-    };
-  }
-
-  const subtotal = asNumber(order.subtotal);
-  const tax = asNumber(order.tax);
-  const total = asNumber(order.total);
-
-  return {
-    ok: true,
-    order,
-    itemsForPdf,
-    orderToken: toOrderToken(orderNumber, orderId),
-    orderForPdf: {
-      orderNumber,
-      customerType,
-      organizationName: asNullableString(order.organization_name),
-      contactName,
-      email,
-      phone: asNullableString(order.phone),
-      deliveryAddress: asNullableString(order.delivery_address),
-      reference: asNullableString(order.reference),
-      notes: asNullableString(order.notes),
-      createdAt: new Date(),
-      subtotal,
-      tax,
-      total
-    }
-  };
 }

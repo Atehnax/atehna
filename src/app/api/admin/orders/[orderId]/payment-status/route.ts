@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { isPaymentStatus } from '@/lib/paymentStatus';
 import { getPool } from '@/lib/server/db';
 
 export async function POST(
@@ -15,8 +14,8 @@ export async function POST(
     const body = await request.json();
     const { status, note } = body ?? {};
 
-    if (!status || typeof status !== 'string' || !isPaymentStatus(status)) {
-      return NextResponse.json({ message: 'Manjka ali je neveljaven status plačila.' }, { status: 400 });
+    if (!status) {
+      return NextResponse.json({ message: 'Manjka status plačila.' }, { status: 400 });
     }
 
     const pool = await getPool();
@@ -28,15 +27,10 @@ export async function POST(
       [status, note || null, orderId]
     );
 
-    try {
-      await pool.query(
-        'INSERT INTO order_payment_logs (order_id, previous_status, new_status, note) VALUES ($1, $2, $3, $4)',
-        [orderId, previousStatus, status, note || null]
-      );
-    } catch (error) {
-      const errorCode = typeof error === 'object' && error !== null ? (error as { code?: string }).code : null;
-      if (errorCode !== '42P01') throw error;
-    }
+    await pool.query(
+      'INSERT INTO order_payment_logs (order_id, previous_status, new_status, note) VALUES ($1, $2, $3, $4)',
+      [orderId, previousStatus, status, note || null]
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

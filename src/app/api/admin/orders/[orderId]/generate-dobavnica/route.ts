@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/server/db';
 import { uploadBlob } from '@/lib/server/blob';
 import { generateOrderPdf } from '@/lib/server/pdf';
+import { buildPdfContext } from '@/lib/server/pdfGeneration';
 
 export async function POST(
   request: Request,
@@ -14,40 +15,19 @@ export async function POST(
     }
 
     const pool = await getPool();
-    const orderResult = await pool.query('SELECT * FROM orders WHERE id = $1', [orderId]);
-    const order = orderResult.rows[0];
-
-    if (!order) {
-      return NextResponse.json({ message: 'Naročilo ne obstaja.' }, { status: 404 });
+    const context = await buildPdfContext(pool, orderId);
+    if (!context.ok) {
+      return NextResponse.json({ message: context.message }, { status: context.status });
     }
-
-    const itemsResult = await pool.query(
-      'SELECT sku, name, unit, quantity, unit_price FROM order_items WHERE order_id = $1 ORDER BY id',
-      [orderId]
-    );
 
     const pdfBuffer = await generateOrderPdf(
       'Dobavnica',
-      {
-        orderNumber: order.order_number,
-        customerType: order.customer_type,
-        organizationName: order.organization_name,
-        contactName: order.contact_name,
-        email: order.email,
-        phone: order.phone,
-        deliveryAddress: order.delivery_address,
-        reference: order.reference,
-        notes: order.notes,
-        createdAt: new Date(order.created_at),
-        subtotal: Number(order.subtotal),
-        tax: Number(order.tax),
-        total: Number(order.total)
-      },
-      itemsResult.rows
+      context.orderForPdf,
+      context.itemsForPdf
     );
 
-    const fileName = `${order.order_number}-dobavnica-${Date.now()}.pdf`;
-    const blobPath = `orders/${order.order_number}/${fileName}`;
+    const fileName = `${context.orderToken}-dobavnica-${Date.now()}.pdf`;
+    const blobPath = `orders/${context.orderToken}/${fileName}`;
     const blob = await uploadBlob(blobPath, Buffer.from(pdfBuffer), 'application/pdf');
 
     const insertResult = await pool.query(

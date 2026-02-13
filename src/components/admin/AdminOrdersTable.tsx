@@ -605,13 +605,8 @@ export default function AdminOrdersTable({
       ? `${formatShortDateForButton(fromDate)} - ${formatShortDateForButton(toDate)}`
       : 'Izberi interval';
 
-  const handleApplyDocuments = () => {
-    if (!isDocumentSearchEnabled) return;
-    setIsDocumentFilterApplied(true);
-    setMessage('Prikazana so naročila z dokumenti glede na izbrani filter.');
-  };
-
   const handleResetDocumentFilter = () => {
+    setDocumentType('all');
     setIsDocumentFilterApplied(false);
     setMessage(null);
   };
@@ -809,8 +804,8 @@ export default function AdminOrdersTable({
                 onChange={(event) => {
                   const checked = event.target.checked;
                   setIsDocumentSearchEnabled(checked);
+                  setIsDocumentFilterApplied(checked && documentType !== 'all');
                   if (!checked) {
-                    setIsDocumentFilterApplied(false);
                     setMessage(null);
                   }
                 }}
@@ -828,7 +823,14 @@ export default function AdminOrdersTable({
             </label>
             <select
               value={documentType}
-              onChange={(event) => setDocumentType(event.target.value as DocumentType)}
+              onChange={(event) => {
+                const nextType = event.target.value as DocumentType;
+                setDocumentType(nextType);
+                if (isDocumentSearchEnabled) {
+                  setIsDocumentFilterApplied(nextType !== 'all');
+                  setMessage(null);
+                }
+              }}
               disabled={!isDocumentSearchEnabled}
               className="h-9 w-full rounded-lg border border-slate-300 px-3 text-sm disabled:bg-slate-100 disabled:text-slate-400"
             >
@@ -840,14 +842,6 @@ export default function AdminOrdersTable({
             </select>
           </div>
 
-          <button
-            type="button"
-            onClick={handleApplyDocuments}
-            disabled={!isDocumentSearchEnabled}
-            className="h-9 rounded-full bg-brand-600 px-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
-          >
-            Naloži dokumente
-          </button>
 
           <button
             type="button"
@@ -858,15 +852,14 @@ export default function AdminOrdersTable({
             {isDownloading ? 'Prenos...' : 'Prenesi vse'}
           </button>
 
-          {isDocumentFilterApplied && (
-            <button
-              type="button"
-              onClick={handleResetDocumentFilter}
-              className="h-9 rounded-full px-3 text-sm font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
-            >
-              Počisti
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handleResetDocumentFilter}
+            disabled={!isDocumentSearchEnabled || documentType === 'all'}
+            className="h-9 rounded-full px-3 text-sm font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:ring-slate-200"
+          >
+            Počisti
+          </button>
         </div>
 
         {message && <p className="mt-2 text-sm text-slate-600">{message}</p>}

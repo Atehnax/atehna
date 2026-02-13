@@ -246,11 +246,9 @@ export default function AdminOrdersPdfCell({
                 title={`${pdfType.label} · zadnja verzija (${versionCount})`}
               >
                 <span className="truncate">{pdfType.label}</span>
-                {versionCount > 1 && (
-                  <span className="absolute -right-1 -top-1 inline-flex min-w-[14px] items-center justify-center rounded-full border border-slate-300 bg-white px-1 text-[9px] leading-none text-slate-700 tabular-nums">
-                    {versionCount}
-                  </span>
-                )}
+                <span className="pointer-events-none absolute -right-1 -top-1 inline-flex min-w-[14px] items-center justify-center rounded-sm border border-slate-300 bg-slate-200 px-1 text-[9px] leading-none text-slate-700 tabular-nums">
+                  {versionCount}
+                </span>
               </a>
             );
           }

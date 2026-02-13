@@ -50,6 +50,40 @@ export type OrderAttachmentRow = {
   created_at: string;
 };
 
+
+let hasOrdersDeletedAtColumnCache: boolean | null = null;
+let hasOrderDocumentsDeletedAtColumnCache: boolean | null = null;
+
+async function hasOrdersDeletedAtColumn() {
+  if (hasOrdersDeletedAtColumnCache !== null) return hasOrdersDeletedAtColumnCache;
+  const pool = await getPool();
+  const result = await pool.query(
+    `
+    select 1
+    from information_schema.columns
+    where table_schema = 'public' and table_name = 'orders' and column_name = 'deleted_at'
+    limit 1
+    `
+  );
+  hasOrdersDeletedAtColumnCache = Number(result.rowCount ?? 0) > 0;
+  return hasOrdersDeletedAtColumnCache;
+}
+
+async function hasOrderDocumentsDeletedAtColumn() {
+  if (hasOrderDocumentsDeletedAtColumnCache !== null) return hasOrderDocumentsDeletedAtColumnCache;
+  const pool = await getPool();
+  const result = await pool.query(
+    `
+    select 1
+    from information_schema.columns
+    where table_schema = 'public' and table_name = 'order_documents' and column_name = 'deleted_at'
+    limit 1
+    `
+  );
+  hasOrderDocumentsDeletedAtColumnCache = Number(result.rowCount ?? 0) > 0;
+  return hasOrderDocumentsDeletedAtColumnCache;
+}
+
 export type PaymentLogRow = {
   id: number;
   order_id: number;
@@ -171,6 +205,11 @@ export async function fetchOrders(options?: {
     );
   }
 
+  const includeDeletedFilter = await hasOrdersDeletedAtColumn();
+  if (includeDeletedFilter) {
+    conditions.push('orders.deleted_at is null');
+  }
+
   const whereClause = conditions.length > 0 ? `where ${conditions.join(' and ')}` : '';
 
   const result = await pool.query(
@@ -215,6 +254,7 @@ export async function fetchOrders(options?: {
 
 export async function fetchOrderById(orderId: number): Promise<OrderRow | null> {
   const pool = await getPool();
+  const includeDeletedFilter = await hasOrdersDeletedAtColumn();
 
   const result = await pool.query(
     `
@@ -247,7 +287,7 @@ export async function fetchOrderById(orderId: number): Promise<OrderRow | null> 
       group by order_items.order_id
     ) as computed_totals
       on computed_totals.order_id = orders.id
-    where orders.id = $1
+    where orders.id = $1 ${includeDeletedFilter ? 'and orders.deleted_at is null' : ''}
     `,
     [orderId]
   );
@@ -267,8 +307,9 @@ export async function fetchOrderItems(orderId: number): Promise<OrderItemRow[]> 
 
 export async function fetchOrderDocuments(orderId: number): Promise<OrderDocumentRow[]> {
   const pool = await getPool();
+  const includeDeletedFilter = await hasOrderDocumentsDeletedAtColumn();
   const result = await pool.query(
-    'select * from order_documents where order_id = $1 order by created_at desc',
+    `select * from order_documents where order_id = $1 ${includeDeletedFilter ? 'and deleted_at is null' : ''} order by created_at desc`,
     [orderId]
   );
   return result.rows.map((rawRow) => mapOrderDocumentRow(rawRow as Record<string, unknown>));
@@ -279,8 +320,9 @@ export async function fetchOrderDocumentsForOrders(
 ): Promise<OrderDocumentRow[]> {
   if (orderIds.length === 0) return [];
   const pool = await getPool();
+  const includeDeletedFilter = await hasOrderDocumentsDeletedAtColumn();
   const result = await pool.query(
-    'select * from order_documents where order_id = any($1::bigint[]) order by created_at desc',
+    `select * from order_documents where order_id = any($1::bigint[]) ${includeDeletedFilter ? 'and deleted_at is null' : ''} order by created_at desc`,
     [orderIds]
   );
   return result.rows.map((rawRow) => mapOrderDocumentRow(rawRow as Record<string, unknown>));

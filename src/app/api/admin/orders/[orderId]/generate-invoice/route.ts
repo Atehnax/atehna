@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/server/db';
 import { uploadBlob } from '@/lib/server/blob';
 import { generateOrderPdf } from '@/lib/server/pdf';
+import { buildGeneratedPdfFilename, getNextPdfVersion } from '@/lib/server/pdfGeneration';
 
 export async function POST(
   request: Request,
@@ -46,8 +47,15 @@ export async function POST(
       itemsResult.rows
     );
 
-    const fileName = `${order.order_number}-invoice-${Date.now()}.pdf`;
-    const blobPath = `orders/${order.order_number}/${fileName}`;
+    
+    const version = await getNextPdfVersion(orderId, 'invoice');
+    const fileName = buildGeneratedPdfFilename({
+      type: 'invoice',
+      orderIdentifier: order.order_number || order.id || orderId,
+      version
+    });
+    const orderFolder = String(order.order_number || order.id || orderId);
+    const blobPath = `orders/${orderFolder}/${fileName}`;
     const blob = await uploadBlob(blobPath, Buffer.from(pdfBuffer), 'application/pdf');
 
     const insertResult = await pool.query(

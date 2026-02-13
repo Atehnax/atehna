@@ -56,7 +56,9 @@ export default function AdminOrderPdfManager({
   const [docList, setDocList] = useState(documents);
   const [loadingType, setLoadingType] = useState<PdfTypeKey | null>(null);
   const [uploadingType, setUploadingType] = useState<PdfTypeKey | null>(null);
+  const [deletingDocumentId, setDeletingDocumentId] = useState<number | null>(null);
   const [uploadFile, setUploadFile] = useState<Partial<Record<PdfTypeKey, File | null>>>({});
+  const [expandedByType, setExpandedByType] = useState<Partial<Record<PdfTypeKey, boolean>>>({});
 
   const grouped = useMemo(() => {
     const map: Record<PdfTypeKey, PdfDocument[]> = {
@@ -85,15 +87,15 @@ export default function AdminOrderPdfManager({
       const response = await fetch(`/api/admin/orders/${orderId}/${routeMap[type]}`, {
         method: 'POST'
       });
-      if (!response.ok) {
-        return;
-      }
+      if (!response.ok) return;
+
       const payload = (await response.json()) as {
         url: string;
         filename: string;
         createdAt: string;
         type: string;
       };
+
       setDocList((prev) => [
         {
           id: Date.now(),
@@ -121,9 +123,8 @@ export default function AdminOrderPdfManager({
         method: 'POST',
         body: formData
       });
-      if (!response.ok) {
-        return;
-      }
+      if (!response.ok) return;
+
       const payload = (await response.json()) as { url: string; filename: string };
       setDocList((prev) => [
         {
@@ -141,6 +142,22 @@ export default function AdminOrderPdfManager({
     }
   };
 
+  const handleDeleteDocument = async (documentId: number) => {
+    const confirmed = window.confirm('Ali ste prepričani, da želite izbrisati to verzijo PDF dokumenta?');
+    if (!confirmed) return;
+
+    setDeletingDocumentId(documentId);
+    try {
+      const response = await fetch(`/api/admin/orders/${orderId}/documents/${documentId}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) return;
+      setDocList((prev) => prev.filter((doc) => doc.id !== documentId));
+    } finally {
+      setDeletingDocumentId(null);
+    }
+  };
+
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <h2 className="text-lg font-semibold text-slate-900">PDF dokumenti</h2>
@@ -148,7 +165,8 @@ export default function AdminOrderPdfManager({
         {PDF_TYPES.map((pdfType) => {
           const docs = grouped[pdfType.key];
           const latest = docs[0];
-          const history = docs.slice(1);
+          const isExpanded = Boolean(expandedByType[pdfType.key]);
+          const visibleDocs = isExpanded ? docs : docs.slice(0, 1);
 
           return (
             <div key={pdfType.key} className="rounded-xl border border-slate-100 p-4">
@@ -156,24 +174,12 @@ export default function AdminOrderPdfManager({
                 <div>
                   <p className="text-sm font-semibold text-slate-900">{pdfType.label}</p>
                   {latest ? (
-                    <p className="text-xs text-slate-500">
-                      Zadnja verzija: {formatTimestamp(latest.created_at)}
-                    </p>
+                    <p className="text-xs text-slate-500">Zadnja verzija: {formatTimestamp(latest.created_at)}</p>
                   ) : (
                     <p className="text-xs text-slate-500">Dokument še ni generiran.</p>
                   )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  {latest && (
-                    <a
-                      href={latest.blob_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-brand-200 hover:text-brand-600"
-                    >
-                      Odpri
-                    </a>
-                  )}
                   <button
                     type="button"
                     onClick={() => handleGenerate(pdfType.key)}
@@ -207,21 +213,55 @@ export default function AdminOrderPdfManager({
                 </div>
               </div>
 
-              {history.length > 0 && (
+              {docs.length > 0 && (
                 <div className="mt-3 border-t border-slate-100 pt-3">
-                  <p className="text-xs font-semibold uppercase text-slate-400">Zgodovina</p>
-                  <ul className="mt-2 space-y-2 text-sm text-slate-600">
-                    {history.map((doc) => (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedByType((previousState) => ({
+                        ...previousState,
+                        [pdfType.key]: !previousState[pdfType.key]
+                      }))
+                    }
+                    disabled={docs.length < 2}
+                    className="flex w-full items-center justify-between rounded-lg px-1 py-1 text-left text-xs text-slate-500 transition hover:bg-slate-50 disabled:cursor-default disabled:hover:bg-transparent"
+                    aria-expanded={isExpanded}
+                    aria-controls={`pdf-list-${pdfType.key}`}
+                  >
+                    <span>{isExpanded ? `Prikaži manj` : `Prikaži vse verzije (${docs.length})`}</span>
+                    {docs.length > 1 ? (
+                      <span className={`text-xs transition ${isExpanded ? 'rotate-180' : ''}`}>⌄</span>
+                    ) : null}
+                  </button>
+
+                  <ul id={`pdf-list-${pdfType.key}`} className="mt-1 space-y-2 text-sm text-slate-600">
+                    {visibleDocs.map((doc, index) => (
                       <li key={`${doc.id}-${doc.created_at}`}>
-                        <a
-                          href={doc.blob_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-semibold text-brand-600 hover:text-brand-700"
-                        >
-                          {formatTimestamp(doc.created_at)}
-                        </a>{' '}
+                        <div className="flex items-center justify-between gap-2">
+                          <a
+                            href={doc.blob_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-semibold text-brand-600 hover:text-brand-700"
+                          >
+                            {formatTimestamp(doc.created_at)}
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteDocument(doc.id)}
+                            disabled={deletingDocumentId === doc.id}
+                            className="inline-flex h-6 items-center rounded-md border border-rose-200 px-1.5 text-[10px] font-medium text-rose-600 hover:bg-rose-50 disabled:text-slate-300"
+                            aria-label={`Izbriši dokument ${doc.filename}`}
+                          >
+                            {deletingDocumentId === doc.id ? '...' : 'Izbriši'}
+                          </button>
+                        </div>
                         <span className="text-xs text-slate-400">({doc.filename})</span>
+                        {index === 0 && !isExpanded ? (
+                          <span className="ml-2 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                            Najnovejše
+                          </span>
+                        ) : null}
                       </li>
                     ))}
                   </ul>

@@ -32,21 +32,35 @@ export async function DELETE(
     };
 
     if (!row.deleted_at) {
-      await pool.query('update order_documents set deleted_at = now() where id = $1 and order_id = $2', [documentId, orderId]);
+      try {
+        await pool.query('update order_documents set deleted_at = now() where id = $1 and order_id = $2', [documentId, orderId]);
+      } catch (error) {
+        if (!(error && typeof error === 'object' && 'code' in error && error.code === '42703')) {
+          throw error;
+        }
+        await pool.query('delete from order_documents where id = $1 and order_id = $2', [documentId, orderId]);
+        return NextResponse.json({ success: true });
+      }
 
-      await pool.query(
-        `
-        insert into deleted_archive_entries (item_type, order_id, document_id, label, payload)
-        values ($1, $2, $3, $4, $5::jsonb)
-        `,
-        [
-          'pdf',
-          orderId,
-          documentId,
-          row.filename,
-          JSON.stringify({ type: row.type, blobUrl: row.blob_url, blobPathname: row.blob_pathname })
-        ]
-      );
+      try {
+        await pool.query(
+          `
+          insert into deleted_archive_entries (item_type, order_id, document_id, label, payload)
+          values ($1, $2, $3, $4, $5::jsonb)
+          `,
+          [
+            'pdf',
+            orderId,
+            documentId,
+            row.filename,
+            JSON.stringify({ type: row.type, blobUrl: row.blob_url, blobPathname: row.blob_pathname })
+          ]
+        );
+      } catch (error) {
+        if (!(error && typeof error === 'object' && 'code' in error && error.code === '42P01')) {
+          throw error;
+        }
+      }
     }
 
     return NextResponse.json({ success: true });

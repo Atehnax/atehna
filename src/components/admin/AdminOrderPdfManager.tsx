@@ -252,11 +252,10 @@ export default function AdminOrderPdfManager({
                         [pdfType.key]: !previousState[pdfType.key]
                       }))
                     }
-                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:border-brand-200 hover:text-brand-700"
+                    className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-700 transition hover:bg-slate-100"
                   >
                     <span>Zgodovina</span>
-                    <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">{docs.length}</span>
-                    <span className={`text-xs text-slate-500 transition ${openHistoryByType[pdfType.key] ? 'rotate-180' : ''}`}>⌄</span>
+                    <span className="rounded-sm bg-slate-200 px-1.5 py-0.5 text-[10px] text-slate-700">{docs.length}</span>
                   </button>
 
                   {openHistoryByType[pdfType.key] && (

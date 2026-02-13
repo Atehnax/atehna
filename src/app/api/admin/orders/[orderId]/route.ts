@@ -32,20 +32,34 @@ export async function DELETE(
       return NextResponse.json({ success: true });
     }
 
-    await pool.query('update orders set deleted_at = now() where id = $1', [orderId]);
+    try {
+      await pool.query('update orders set deleted_at = now() where id = $1', [orderId]);
+    } catch (error) {
+      if (!(error && typeof error === 'object' && 'code' in error && error.code === '42703')) {
+        throw error;
+      }
+      await pool.query('delete from orders where id = $1', [orderId]);
+      return NextResponse.json({ success: true });
+    }
 
-    await pool.query(
-      `
-      insert into deleted_archive_entries (item_type, order_id, label, payload)
-      values ($1, $2, $3, $4::jsonb)
-      `,
-      [
-        'order',
-        orderId,
-        `${order.order_number || `#${orderId}`} · ${order.contact_name || 'Naročilo'}`,
-        JSON.stringify({ orderNumber: order.order_number || `#${orderId}` })
-      ]
-    );
+    try {
+      await pool.query(
+        `
+        insert into deleted_archive_entries (item_type, order_id, label, payload)
+        values ($1, $2, $3, $4::jsonb)
+        `,
+        [
+          'order',
+          orderId,
+          `${order.order_number || `#${orderId}`} · ${order.contact_name || 'Naročilo'}`,
+          JSON.stringify({ orderNumber: order.order_number || `#${orderId}` })
+        ]
+      );
+    } catch (error) {
+      if (!(error && typeof error === 'object' && 'code' in error && error.code === '42P01')) {
+        throw error;
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

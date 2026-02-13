@@ -1,6 +1,9 @@
 import { getPool } from '@/lib/server/db';
 import { deleteBlob } from '@/lib/server/blob';
 
+const isMissingRelationError = (error: unknown) =>
+  Boolean(error && typeof error === 'object' && 'code' in error && error.code === '42P01');
+
 export type ArchiveEntry = {
   id: number;
   item_type: 'order' | 'pdf';
@@ -12,26 +15,31 @@ export type ArchiveEntry = {
 };
 
 export async function fetchArchiveEntries(itemType?: 'all' | 'order' | 'pdf'): Promise<ArchiveEntry[]> {
-  const pool = await getPool();
-  const params: unknown[] = [];
-  let where = '';
+  try {
+    const pool = await getPool();
+    const params: unknown[] = [];
+    let where = '';
 
-  if (itemType && itemType !== 'all') {
-    params.push(itemType);
-    where = `where item_type = $${params.length}`;
+    if (itemType && itemType !== 'all') {
+      params.push(itemType);
+      where = `where item_type = $${params.length}`;
+    }
+
+    const result = await pool.query(
+      `
+      select id, item_type, order_id, document_id, label, deleted_at, expires_at
+      from deleted_archive_entries
+      ${where}
+      order by deleted_at desc
+      `,
+      params
+    );
+
+    return result.rows as ArchiveEntry[];
+  } catch (error) {
+    if (isMissingRelationError(error)) return [];
+    throw error;
   }
-
-  const result = await pool.query(
-    `
-    select id, item_type, order_id, document_id, label, deleted_at, expires_at
-    from deleted_archive_entries
-    ${where}
-    order by deleted_at desc
-    `,
-    params
-  );
-
-  return result.rows as ArchiveEntry[];
 }
 
 export async function permanentlyDeleteArchiveEntries(entryIds: number[]): Promise<number> {
@@ -95,12 +103,17 @@ export async function permanentlyDeleteArchiveEntries(entryIds: number[]): Promi
 }
 
 export async function cleanupExpiredArchiveEntries(): Promise<number> {
-  const pool = await getPool();
-  const result = await pool.query(
-    'select id from deleted_archive_entries where expires_at <= now() order by id asc limit 200'
-  );
+  try {
+    const pool = await getPool();
+    const result = await pool.query(
+      'select id from deleted_archive_entries where expires_at <= now() order by id asc limit 200'
+    );
 
-  const ids = result.rows.map((row) => Number(row.id)).filter((id) => Number.isFinite(id));
-  if (ids.length === 0) return 0;
-  return permanentlyDeleteArchiveEntries(ids);
+    const ids = result.rows.map((row) => Number(row.id)).filter((id) => Number.isFinite(id));
+    if (ids.length === 0) return 0;
+    return permanentlyDeleteArchiveEntries(ids);
+  } catch (error) {
+    if (isMissingRelationError(error)) return 0;
+    throw error;
+  }
 }

@@ -12,10 +12,53 @@ export async function DELETE(
     }
 
     const pool = await getPool();
-    const result = await pool.query('DELETE FROM orders WHERE id = $1', [orderId]);
+    const orderResult = await pool.query(
+      'select id, order_number, contact_name, deleted_at from orders where id = $1',
+      [orderId]
+    );
 
-    if (result.rowCount === 0) {
+    if (orderResult.rows.length === 0) {
       return NextResponse.json({ message: 'Naročilo ne obstaja.' }, { status: 404 });
+    }
+
+    const order = orderResult.rows[0] as {
+      id: number;
+      order_number: string;
+      contact_name: string;
+      deleted_at: string | null;
+    };
+
+    if (order.deleted_at) {
+      return NextResponse.json({ success: true });
+    }
+
+    try {
+      await pool.query('update orders set deleted_at = now() where id = $1', [orderId]);
+    } catch (error) {
+      if (!(error && typeof error === 'object' && 'code' in error && error.code === '42703')) {
+        throw error;
+      }
+      await pool.query('delete from orders where id = $1', [orderId]);
+      return NextResponse.json({ success: true });
+    }
+
+    try {
+      await pool.query(
+        `
+        insert into deleted_archive_entries (item_type, order_id, label, payload)
+        values ($1, $2, $3, $4::jsonb)
+        `,
+        [
+          'order',
+          orderId,
+          `${order.order_number || `#${orderId}`} · ${order.contact_name || 'Naročilo'}`,
+          JSON.stringify({ orderNumber: order.order_number || `#${orderId}` })
+        ]
+      );
+    } catch (error) {
+      if (!(error && typeof error === 'object' && 'code' in error && error.code === '42P01')) {
+        throw error;
+      }
     }
 
     return NextResponse.json({ success: true });

@@ -32,6 +32,50 @@ export type RestoreTarget = {
   document_id: number | null;
 };
 
+async function enforceParentOrderRestoreForDeletedPdfChildren(
+  client: { query: (text: string, params?: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }> },
+  selectedOrderIds: number[],
+  pdfCandidates: Array<{ order_id: number | null; document_id: number | null }>
+) {
+  const normalizedSelectedOrders = new Set(selectedOrderIds.filter((id) => Number.isFinite(id) && id > 0));
+
+  const resolvedOrderIds = new Set<number>();
+  for (const candidate of pdfCandidates) {
+    if (candidate.order_id && candidate.order_id > 0) {
+      resolvedOrderIds.add(candidate.order_id);
+      continue;
+    }
+
+    if (candidate.document_id && candidate.document_id > 0) {
+      const documentResult = await client.query('select order_id from order_documents where id = $1 limit 1', [candidate.document_id]);
+      const rawOrderId = documentResult.rows[0]?.order_id;
+      if (rawOrderId !== undefined && rawOrderId !== null) {
+        const resolved = Number(rawOrderId);
+        if (Number.isFinite(resolved) && resolved > 0) {
+          resolvedOrderIds.add(resolved);
+        }
+      }
+    }
+  }
+
+  const orderIds = Array.from(resolvedOrderIds);
+  if (orderIds.length === 0) return;
+
+  const deletedParentsResult = await client.query(
+    'select id from orders where id = any($1::bigint[]) and deleted_at is not null',
+    [orderIds]
+  );
+
+  const deletedParentIds = deletedParentsResult.rows
+    .map((row) => Number(row.id))
+    .filter((id) => Number.isFinite(id) && id > 0);
+
+  const orphanAttempt = deletedParentIds.find((orderId) => !normalizedSelectedOrders.has(orderId));
+  if (orphanAttempt) {
+    throw new Error('PDF pod izbrisanim naročilom ni mogoče obnoviti brez obnove pripadajočega naročila.');
+  }
+}
+
 async function fetchSoftDeletedFallbackEntries(
   itemType?: 'all' | 'order' | 'pdf'
 ): Promise<SoftDeletedEntry[]> {
@@ -184,6 +228,16 @@ export async function restoreArchiveEntries(entryIds: number[]): Promise<number>
       document_id: number | null;
     }>;
 
+    const selectedOrderIds = entries
+      .filter((entry) => entry.item_type === 'order' && entry.order_id)
+      .map((entry) => Number(entry.order_id));
+
+    const selectedPdfCandidates = entries
+      .filter((entry) => entry.item_type === 'pdf')
+      .map((entry) => ({ order_id: entry.order_id, document_id: entry.document_id }));
+
+    await enforceParentOrderRestoreForDeletedPdfChildren(client, selectedOrderIds, selectedPdfCandidates);
+
     for (const entry of entries) {
       if (entry.item_type === 'order' && entry.order_id) {
         await client.query('update orders set deleted_at = null where id = $1', [entry.order_id]);
@@ -213,6 +267,16 @@ export async function restoreArchiveTargets(targets: RestoreTarget[]): Promise<n
 
   try {
     await client.query('BEGIN');
+
+    const selectedOrderIds = targets
+      .filter((target) => target.item_type === 'order' && target.order_id)
+      .map((target) => Number(target.order_id));
+
+    const selectedPdfCandidates = targets
+      .filter((target) => target.item_type === 'pdf')
+      .map((target) => ({ order_id: target.order_id, document_id: target.document_id }));
+
+    await enforceParentOrderRestoreForDeletedPdfChildren(client, selectedOrderIds, selectedPdfCandidates);
 
     for (const target of targets) {
       if (target.item_type === 'order' && target.order_id) {

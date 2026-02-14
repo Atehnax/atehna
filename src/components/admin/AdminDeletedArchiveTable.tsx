@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 type ArchiveEntry = {
   id: number;
@@ -15,6 +16,7 @@ type ArchiveEntry = {
 type DisplayRow = {
   entry: ArchiveEntry;
   isChild: boolean;
+  parentOrderId: number | null;
 };
 
 const formatDateTime = (value: string) =>
@@ -28,6 +30,7 @@ export default function AdminDeletedArchiveTable({
 }: {
   initialEntries: ArchiveEntry[];
 }) {
+  const router = useRouter();
   const [entries, setEntries] = useState(initialEntries);
   const [selected, setSelected] = useState<number[]>([]);
   const [typeFilter, setTypeFilter] = useState<'all' | 'order' | 'pdf'>('all');
@@ -44,7 +47,7 @@ export default function AdminDeletedArchiveTable({
     if (typeFilter === 'pdf') {
       return filtered
         .filter((entry) => entry.item_type === 'pdf')
-        .map((entry) => ({ entry, isChild: false }));
+        .map((entry) => ({ entry, isChild: false, parentOrderId: null }));
     }
 
     const rows: DisplayRow[] = [];
@@ -64,13 +67,13 @@ export default function AdminDeletedArchiveTable({
       });
 
     orderRows.forEach((entry) => {
-      rows.push({ entry, isChild: false });
+      rows.push({ entry, isChild: false, parentOrderId: null });
       if (typeFilter !== 'all') return;
 
       const children = pdfByOrder.get(entry.order_id ?? -1) ?? [];
       children
         .sort((left, right) => new Date(right.deleted_at).getTime() - new Date(left.deleted_at).getTime())
-        .forEach((child) => rows.push({ entry: child, isChild: true }));
+        .forEach((child) => rows.push({ entry: child, isChild: true, parentOrderId: entry.order_id ?? null }));
     });
 
     if (typeFilter === 'all') {
@@ -80,7 +83,7 @@ export default function AdminDeletedArchiveTable({
             entry.item_type === 'pdf' &&
             (!entry.order_id || !deletedOrderIds.has(entry.order_id))
         )
-        .forEach((entry) => rows.push({ entry, isChild: false }));
+        .forEach((entry) => rows.push({ entry, isChild: false, parentOrderId: null }));
     }
 
     return rows;
@@ -88,6 +91,28 @@ export default function AdminDeletedArchiveTable({
 
   const visibleIds = useMemo(() => displayRows.map((row) => row.entry.id), [displayRows]);
   const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.includes(id));
+
+
+  const groupedChildIdsByOrder = useMemo(() => {
+    const map = new Map<number, number[]>();
+    displayRows.forEach((row) => {
+      if (!row.isChild || row.parentOrderId === null) return;
+      const list = map.get(row.parentOrderId) ?? [];
+      list.push(row.entry.id);
+      map.set(row.parentOrderId, list);
+    });
+    return map;
+  }, [displayRows]);
+
+  const parentRowIdByOrder = useMemo(() => {
+    const map = new Map<number, number>();
+    displayRows.forEach((row) => {
+      if (row.isChild) return;
+      if (row.entry.item_type !== 'order' || row.entry.order_id === null) return;
+      map.set(row.entry.order_id, row.entry.id);
+    });
+    return map;
+  }, [displayRows]);
 
   const selectedEntriesFromRows = useMemo(
     () =>
@@ -100,15 +125,48 @@ export default function AdminDeletedArchiveTable({
     [displayRows, selected]
   );
 
-  const toggleOne = (id: number) => {
-    setSelected((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
+  const toggleOne = (row: DisplayRow) => {
+    const { entry, isChild, parentOrderId } = row;
+
+    if (isChild && parentOrderId !== null) {
+      const parentRowId = parentRowIdByOrder.get(parentOrderId);
+      if (!parentRowId || !selected.includes(parentRowId)) return;
+    }
+
+    setSelected((prev) => {
+      if (isChild && parentOrderId !== null) {
+        return prev.includes(entry.id) ? prev.filter((item) => item !== entry.id) : [...prev, entry.id];
+      }
+
+      const next = new Set(prev);
+      const isCurrentlySelected = next.has(entry.id);
+      const childIds = entry.item_type === 'order' && entry.order_id !== null ? groupedChildIdsByOrder.get(entry.order_id) ?? [] : [];
+
+      if (isCurrentlySelected) {
+        next.delete(entry.id);
+        childIds.forEach((childId) => next.delete(childId));
+      } else {
+        next.add(entry.id);
+        childIds.forEach((childId) => next.add(childId));
+      }
+
+      return Array.from(next);
+    });
   };
 
   const toggleAll = () => {
     setSelected((prev) => {
       if (allSelected) return prev.filter((id) => !visibleIds.includes(id));
+
       const merged = new Set(prev);
-      visibleIds.forEach((id) => merged.add(id));
+      displayRows.forEach((row) => {
+        merged.add(row.entry.id);
+        if (!row.isChild && row.entry.item_type === 'order' && row.entry.order_id !== null) {
+          const childIds = groupedChildIdsByOrder.get(row.entry.order_id) ?? [];
+          childIds.forEach((childId) => merged.add(childId));
+        }
+      });
+
       return Array.from(merged);
     });
   };
@@ -146,6 +204,7 @@ export default function AdminDeletedArchiveTable({
       setEntries((prev) => prev.filter((entry) => !selected.includes(entry.id)));
       setSelected([]);
       setMessage('Izbrani zapisi so obnovljeni.');
+      router.refresh();
     } finally {
       setIsRestoring(false);
     }
@@ -233,32 +292,45 @@ export default function AdminDeletedArchiveTable({
             </tr>
           </thead>
           <tbody>
-            {displayRows.map(({ entry, isChild }) => (
-              <tr key={entry.id} className="border-b border-slate-100 hover:bg-slate-50">
-                <td className="py-2 text-center">
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(entry.id)}
-                    onChange={() => toggleOne(entry.id)}
-                    aria-label={`Izberi zapis ${entry.label}`}
-                  />
-                </td>
-                <td className="py-2 text-xs font-semibold text-slate-700">
-                  {entry.item_type === 'order' ? 'Naročilo' : 'PDF datoteka'}
-                </td>
-                <td className={`py-2 text-slate-800 ${isChild ? 'pl-6' : ''}`}>
-                  {entry.item_type === 'order' && entry.order_id ? (
-                    <a href={`/admin/orders/${entry.order_id}`} className="font-medium text-brand-700 hover:text-brand-800">
-                      {entry.label}
-                    </a>
-                  ) : (
-                    <span>{isChild ? `↳ ${entry.label}` : entry.label}</span>
-                  )}
-                </td>
-                <td className="py-2 text-xs text-slate-500">{formatDateTime(entry.deleted_at)}</td>
-                <td className="py-2 text-xs text-slate-500">{formatDateTime(entry.expires_at)}</td>
-              </tr>
-            ))}
+            {displayRows.map((row) => {
+              const { entry, isChild, parentOrderId } = row;
+              const parentSelected =
+                !isChild || parentOrderId === null
+                  ? true
+                  : (() => {
+                      const parentRowId = parentRowIdByOrder.get(parentOrderId);
+                      return parentRowId ? selected.includes(parentRowId) : false;
+                    })();
+
+              return (
+                <tr key={entry.id} className="border-b border-slate-100 hover:bg-slate-50">
+                  <td className="py-2 text-center">
+                    <input
+                      type="checkbox"
+                      className="disabled:cursor-not-allowed disabled:opacity-50"
+                      checked={selected.includes(entry.id)}
+                      onChange={() => toggleOne(row)}
+                      disabled={isChild && !parentSelected}
+                      aria-label={`Izberi zapis ${entry.label}`}
+                    />
+                  </td>
+                  <td className="py-2 text-xs font-semibold text-slate-700">
+                    {entry.item_type === 'order' ? 'Naročilo' : 'PDF datoteka'}
+                  </td>
+                  <td className={`py-2 text-slate-800 ${isChild ? 'pl-6' : ''}`}>
+                    {entry.item_type === 'order' && entry.order_id ? (
+                      <a href={`/admin/orders/${entry.order_id}`} className="font-medium text-brand-700 hover:text-brand-800">
+                        {entry.label}
+                      </a>
+                    ) : (
+                      <span>{isChild ? `↳ ${entry.label}` : entry.label}</span>
+                    )}
+                  </td>
+                  <td className="py-2 text-xs text-slate-500">{formatDateTime(entry.deleted_at)}</td>
+                  <td className="py-2 text-xs text-slate-500">{formatDateTime(entry.expires_at)}</td>
+                </tr>
+              );
+            })}
             {displayRows.length === 0 ? (
               <tr>
                 <td colSpan={5} className="py-8 text-center text-sm text-slate-500">

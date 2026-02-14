@@ -234,56 +234,68 @@ export default function AdminOrderPdfManager({
                 {docs.length > 0 ? (
                   <div id={`pdf-versions-${pdfType.key}`} className="rounded-xl border border-slate-200 bg-white p-2 text-[11px] leading-4 text-slate-600 shadow-inner">
                     <ul className="space-y-1">
-                      {visibleDocs.map((doc, index) => (
-                        <li
-                          key={`${doc.id}-${doc.created_at}`}
-                          className="rounded-lg border border-transparent px-2 py-1.5 transition hover:border-slate-200 hover:bg-slate-50"
-                        >
-                          <div className="flex min-w-0 items-center justify-between gap-2">
-                            <a
-                              href={doc.blob_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="flex min-w-0 flex-1 items-center justify-between gap-3"
-                            >
-                              <span className="truncate font-semibold text-brand-600 hover:text-brand-700">{doc.filename}</span>
-                              <span className="shrink-0 text-[11px] text-slate-500">{formatTimestamp(doc.created_at)}</span>
-                            </a>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteDocument(doc.id)}
-                              disabled={deletingDocumentId === doc.id}
-                              className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-rose-200 text-sm font-semibold leading-none text-rose-600 hover:bg-rose-50 disabled:text-slate-300"
-                              aria-label={`Izbriši dokument ${doc.filename}`}
-                              title="Izbriši"
-                            >
-                              {deletingDocumentId === doc.id ? '…' : '×'}
-                            </button>
-                            {hasMultipleVersions && index === 0 ? (
+                      {visibleDocs.map((doc, index) => {
+                        const isNewest = index === 0;
+
+                        return (
+                          <li
+                            key={`${doc.id}-${doc.created_at}`}
+                            className="rounded-lg border border-transparent px-2 py-1 transition hover:border-slate-200 hover:bg-slate-50"
+                          >
+                            <div className="grid min-w-0 grid-cols-[14px_minmax(0,1fr)_130px_24px] items-center gap-2">
+                              <span className="inline-flex h-3.5 w-3.5 items-center justify-center text-emerald-600" aria-hidden="true">
+                                {isNewest ? (
+                                  <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="currentColor">
+                                    <path d="M8 1.5a6.5 6.5 0 1 0 0 13a6.5 6.5 0 0 0 0-13Zm3.03 4.72a.75.75 0 0 1 0 1.06L7.66 10.65a.75.75 0 0 1-1.06 0L4.97 9.03a.75.75 0 1 1 1.06-1.06l1.1 1.1l2.84-2.85a.75.75 0 0 1 1.06 0Z" />
+                                  </svg>
+                                ) : null}
+                              </span>
+
+                              <div className="min-w-0 flex items-center gap-2">
+                                <a
+                                  href={doc.blob_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className={`truncate text-brand-600 hover:text-brand-700 ${isNewest ? 'font-semibold' : 'font-medium'}`}
+                                  title={doc.filename}
+                                >
+                                  {doc.filename}
+                                </a>
+                                {hasMultipleVersions && isNewest ? (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setExpandedByType((previousState) => ({
+                                        ...previousState,
+                                        [pdfType.key]: !previousState[pdfType.key]
+                                      }))
+                                    }
+                                    className="shrink-0 text-xs font-semibold text-slate-500 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
+                                    aria-label={isExpanded ? `Skrij verzije za ${pdfType.label}` : `Pokaži vse verzije za ${pdfType.label}`}
+                                    aria-expanded={isExpanded}
+                                    aria-controls={`pdf-versions-${pdfType.key}`}
+                                  >
+                                    {isExpanded ? '▲' : '▼'}
+                                  </button>
+                                ) : null}
+                              </div>
+
+                              <span className="text-right text-[11px] text-slate-500 whitespace-nowrap">{formatTimestamp(doc.created_at)}</span>
+
                               <button
                                 type="button"
-                                onClick={() =>
-                                  setExpandedByType((previousState) => ({
-                                    ...previousState,
-                                    [pdfType.key]: !previousState[pdfType.key]
-                                  }))
-                                }
-                                className="ml-0.5 text-xs font-semibold text-slate-500 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
-                                aria-label={isExpanded ? `Skrij verzije za ${pdfType.label}` : `Pokaži vse verzije za ${pdfType.label}`}
-                                aria-expanded={isExpanded}
-                                aria-controls={`pdf-versions-${pdfType.key}`}
+                                onClick={() => handleDeleteDocument(doc.id)}
+                                disabled={deletingDocumentId === doc.id}
+                                className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-rose-200 text-sm font-semibold leading-none text-rose-600 hover:bg-rose-50 disabled:text-slate-300"
+                                aria-label={`Izbriši dokument ${doc.filename}`}
+                                title="Izbriši"
                               >
-                                {isExpanded ? '▲' : '▼'}
+                                {deletingDocumentId === doc.id ? '…' : '×'}
                               </button>
-                            ) : null}
-                          </div>
-                          {index === 0 && (
-                            <span className="mt-1 inline-flex rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
-                              Najnovejše
-                            </span>
-                          )}
-                        </li>
-                      ))}
+                            </div>
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 ) : (

@@ -125,7 +125,15 @@ export async function fetchArchiveEntries(itemType?: 'all' | 'order' | 'pdf'): P
       params
     );
 
-    explicitEntries = result.rows as ArchiveEntry[];
+    explicitEntries = result.rows.map((row) => ({
+      id: Number(row.id),
+      item_type: row.item_type as 'order' | 'pdf',
+      order_id: row.order_id === null ? null : Number(row.order_id),
+      document_id: row.document_id === null ? null : Number(row.document_id),
+      label: String(row.label),
+      deleted_at: new Date(row.deleted_at).toISOString(),
+      expires_at: new Date(row.expires_at).toISOString()
+    }));
   } catch (error) {
     if (!isMissingRelationError(error)) throw error;
   }

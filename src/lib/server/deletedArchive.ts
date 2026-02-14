@@ -26,6 +26,12 @@ type SoftDeletedEntry = {
   expires_at: string;
 };
 
+export type RestoreTarget = {
+  item_type: 'order' | 'pdf';
+  order_id: number | null;
+  document_id: number | null;
+};
+
 async function fetchSoftDeletedFallbackEntries(
   itemType?: 'all' | 'order' | 'pdf'
 ): Promise<SoftDeletedEntry[]> {
@@ -145,7 +151,6 @@ export async function fetchArchiveEntries(itemType?: 'all' | 'order' | 'pdf'): P
   );
 }
 
-
 export async function restoreArchiveEntries(entryIds: number[]): Promise<number> {
   if (entryIds.length === 0) return 0;
 
@@ -184,6 +189,37 @@ export async function restoreArchiveEntries(entryIds: number[]): Promise<number>
     await client.query('delete from deleted_archive_entries where id = any($1::bigint[])', [entryIds]);
     await client.query('COMMIT');
     return entries.length;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function restoreArchiveTargets(targets: RestoreTarget[]): Promise<number> {
+  if (targets.length === 0) return 0;
+
+  const pool = await getPool();
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    for (const target of targets) {
+      if (target.item_type === 'order' && target.order_id) {
+        await client.query('update orders set deleted_at = null where id = $1', [target.order_id]);
+        await client.query('delete from deleted_archive_entries where item_type = $1 and order_id = $2', ['order', target.order_id]);
+      }
+
+      if (target.item_type === 'pdf' && target.document_id) {
+        await client.query('update order_documents set deleted_at = null where id = $1', [target.document_id]);
+        await client.query('delete from deleted_archive_entries where item_type = $1 and document_id = $2', ['pdf', target.document_id]);
+      }
+    }
+
+    await client.query('COMMIT');
+    return targets.length;
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;

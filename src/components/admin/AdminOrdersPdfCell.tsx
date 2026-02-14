@@ -153,6 +153,8 @@ export default function AdminOrdersPdfCell({
           ) : null}
         </div>
 
+        <p className="mb-2 text-[10px] text-slate-500">Skupaj verzij: {versions.length}</p>
+
         {versions.length > 0 ? (
           <ul className="max-h-56 space-y-1 overflow-y-auto pr-1">
             {versions.map((documentOption, index) => (
@@ -186,7 +188,6 @@ export default function AdminOrdersPdfCell({
   return (
     <div className="relative inline-flex items-center gap-[6px]" data-no-row-nav>
       {PDF_BUTTONS.map((button) => {
-        const versions = groupedDocuments[button.key];
         const isOpen = openType === button.key;
 
         return (
@@ -206,9 +207,6 @@ export default function AdminOrdersPdfCell({
               className="relative inline-flex h-6 items-center rounded-md border border-slate-200 bg-slate-50 px-1.5 py-1 text-[11px] font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
             >
               <span>{button.short}</span>
-              {versions.length > 0 ? (
-                <span className="absolute right-0 top-0 min-w-[11px] translate-x-1/2 -translate-y-1/2 rounded-[3px] bg-slate-300 px-[3px] text-center text-[8px] leading-3 text-slate-700">{versions.length}</span>
-              ) : null}
             </button>
           </div>
         );

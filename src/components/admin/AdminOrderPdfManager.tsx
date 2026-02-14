@@ -277,7 +277,7 @@ export default function AdminOrderPdfManager({
                                 aria-expanded={isExpanded}
                                 aria-controls={`pdf-versions-${pdfType.key}`}
                               >
-                                {isExpanded ? '^' : 'v'}
+                                {isExpanded ? '▲' : '▼'}
                               </button>
                             ) : null}
                           </div>

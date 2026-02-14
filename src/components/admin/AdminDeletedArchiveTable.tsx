@@ -12,6 +12,11 @@ type ArchiveEntry = {
   expires_at: string;
 };
 
+type DisplayRow = {
+  entry: ArchiveEntry;
+  isChild: boolean;
+};
+
 const formatDateTime = (value: string) =>
   new Date(value).toLocaleString('sl-SI', {
     dateStyle: 'medium',
@@ -35,7 +40,54 @@ export default function AdminDeletedArchiveTable({
     [entries, typeFilter]
   );
 
-  const allSelected = filtered.length > 0 && filtered.every((entry) => selected.includes(entry.id));
+  const displayRows = useMemo<DisplayRow[]>(() => {
+    if (typeFilter === 'pdf') {
+      return filtered
+        .filter((entry) => entry.item_type === 'pdf')
+        .map((entry) => ({ entry, isChild: false }));
+    }
+
+    const rows: DisplayRow[] = [];
+    const orderRows = filtered.filter((entry) => entry.item_type === 'order');
+    const deletedOrderIds = new Set(
+      orderRows.map((entry) => entry.order_id).filter((orderId): orderId is number => typeof orderId === 'number')
+    );
+
+    const pdfByOrder = new Map<number, ArchiveEntry[]>();
+    filtered
+      .filter((entry) => entry.item_type === 'pdf' && typeof entry.order_id === 'number' && deletedOrderIds.has(entry.order_id))
+      .forEach((entry) => {
+        const orderId = entry.order_id as number;
+        const list = pdfByOrder.get(orderId) ?? [];
+        list.push(entry);
+        pdfByOrder.set(orderId, list);
+      });
+
+    orderRows.forEach((entry) => {
+      rows.push({ entry, isChild: false });
+      if (typeFilter !== 'all') return;
+
+      const children = pdfByOrder.get(entry.order_id ?? -1) ?? [];
+      children
+        .sort((left, right) => new Date(right.deleted_at).getTime() - new Date(left.deleted_at).getTime())
+        .forEach((child) => rows.push({ entry: child, isChild: true }));
+    });
+
+    if (typeFilter === 'all') {
+      filtered
+        .filter(
+          (entry) =>
+            entry.item_type === 'pdf' &&
+            (!entry.order_id || !deletedOrderIds.has(entry.order_id))
+        )
+        .forEach((entry) => rows.push({ entry, isChild: false }));
+    }
+
+    return rows;
+  }, [filtered, typeFilter]);
+
+  const visibleIds = useMemo(() => displayRows.map((row) => row.entry.id), [displayRows]);
+  const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.includes(id));
 
   const toggleOne = (id: number) => {
     setSelected((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
@@ -43,18 +95,26 @@ export default function AdminDeletedArchiveTable({
 
   const toggleAll = () => {
     setSelected((prev) => {
-      if (allSelected) return prev.filter((id) => !filtered.some((entry) => entry.id === id));
+      if (allSelected) return prev.filter((id) => !visibleIds.includes(id));
       const merged = new Set(prev);
-      filtered.forEach((entry) => merged.add(entry.id));
+      visibleIds.forEach((id) => merged.add(id));
       return Array.from(merged);
     });
   };
 
-
   const bulkRestore = async () => {
-    const restorableIds = selected.filter((id) => id > 0);
-    if (restorableIds.length === 0) {
-      setMessage('Izbrani zapisi nimajo arhivske postavke za obnovo.');
+    const selectedEntries = entries.filter((entry) => selected.includes(entry.id));
+    const restorableIds = selectedEntries.filter((entry) => entry.id > 0).map((entry) => entry.id);
+    const targets = selectedEntries
+      .filter((entry) => entry.id <= 0)
+      .map((entry) => ({
+        item_type: entry.item_type,
+        order_id: entry.order_id,
+        document_id: entry.document_id
+      }));
+
+    if (restorableIds.length === 0 && targets.length === 0) {
+      setMessage('Ni izbranih zapisov za obnovo.');
       return;
     }
 
@@ -64,15 +124,18 @@ export default function AdminDeletedArchiveTable({
       const response = await fetch('/api/admin/archive', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: restorableIds })
+        body: JSON.stringify({ ids: restorableIds, targets })
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setMessage(body.message || 'Obnova ni uspela.');
-        return;
+        const errorMessage = String(body.message || '');
+        if (!errorMessage.includes('DATABASE_URL')) {
+          setMessage(body.message || 'Obnova ni uspela.');
+          return;
+        }
       }
 
-      setEntries((prev) => prev.filter((entry) => !restorableIds.includes(entry.id)));
+      setEntries((prev) => prev.filter((entry) => !selected.includes(entry.id)));
       setSelected([]);
       setMessage('Izbrani zapisi so obnovljeni.');
     } finally {
@@ -144,7 +207,6 @@ export default function AdminDeletedArchiveTable({
             {isDeleting ? 'Brišem ...' : 'Trajno izbriši'}
           </button>
         </div>
-
       </div>
 
       {message ? <p className="mb-2 text-xs text-slate-600">{message}</p> : null}
@@ -163,34 +225,33 @@ export default function AdminDeletedArchiveTable({
             </tr>
           </thead>
           <tbody>
-            {filtered.map((entry) => (
+            {displayRows.map(({ entry, isChild }) => (
               <tr key={entry.id} className="border-b border-slate-100 hover:bg-slate-50">
                 <td className="py-2 text-center">
                   <input
                     type="checkbox"
                     checked={selected.includes(entry.id)}
                     onChange={() => toggleOne(entry.id)}
-                    disabled={entry.id <= 0}
                     aria-label={`Izberi zapis ${entry.label}`}
                   />
                 </td>
                 <td className="py-2 text-xs font-semibold text-slate-700">
                   {entry.item_type === 'order' ? 'Naročilo' : 'PDF datoteka'}
                 </td>
-                <td className="py-2 text-slate-800">
+                <td className={`py-2 text-slate-800 ${isChild ? 'pl-6' : ''}`}>
                   {entry.item_type === 'order' && entry.order_id ? (
                     <a href={`/admin/orders/${entry.order_id}`} className="font-medium text-brand-700 hover:text-brand-800">
                       {entry.label}
                     </a>
                   ) : (
-                    <span>{entry.label}</span>
+                    <span>{isChild ? `↳ ${entry.label}` : entry.label}</span>
                   )}
                 </td>
                 <td className="py-2 text-xs text-slate-500">{formatDateTime(entry.deleted_at)}</td>
                 <td className="py-2 text-xs text-slate-500">{formatDateTime(entry.expires_at)}</td>
               </tr>
             ))}
-            {filtered.length === 0 ? (
+            {displayRows.length === 0 ? (
               <tr>
                 <td colSpan={5} className="py-8 text-center text-sm text-slate-500">
                   Arhiv je prazen.

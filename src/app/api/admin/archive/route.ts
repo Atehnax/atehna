@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
-import { fetchArchiveEntries, permanentlyDeleteArchiveEntries, restoreArchiveEntries } from '@/lib/server/deletedArchive';
+import {
+  fetchArchiveEntries,
+  permanentlyDeleteArchiveEntries,
+  restoreArchiveEntries,
+  restoreArchiveTargets,
+  type RestoreTarget
+} from '@/lib/server/deletedArchive';
 
 export async function GET(request: Request) {
   try {
@@ -35,17 +41,32 @@ export async function DELETE(request: Request) {
   }
 }
 
-
 export async function PATCH(request: Request) {
   try {
-    const body = (await request.json().catch(() => ({}))) as { ids?: number[] };
-    const ids = Array.isArray(body.ids) ? body.ids.filter((id) => Number.isFinite(id)) : [];
-    if (ids.length === 0) {
+    const body = (await request.json().catch(() => ({}))) as {
+      ids?: number[];
+      targets?: RestoreTarget[];
+    };
+
+    const ids = Array.isArray(body.ids) ? body.ids.filter((id) => Number.isFinite(id) && id > 0) : [];
+    const targets = Array.isArray(body.targets)
+      ? body.targets.filter(
+          (target) =>
+            target &&
+            (target.item_type === 'order' || target.item_type === 'pdf') &&
+            (target.order_id === null || Number.isFinite(target.order_id)) &&
+            (target.document_id === null || Number.isFinite(target.document_id))
+        )
+      : [];
+
+    if (ids.length === 0 && targets.length === 0) {
       return NextResponse.json({ message: 'Ni izbranih zapisov za obnovo.' }, { status: 400 });
     }
 
-    const restoredCount = await restoreArchiveEntries(ids);
-    return NextResponse.json({ success: true, restoredCount });
+    const restoredFromIds = ids.length > 0 ? await restoreArchiveEntries(ids) : 0;
+    const restoredFromTargets = targets.length > 0 ? await restoreArchiveTargets(targets) : 0;
+
+    return NextResponse.json({ success: true, restoredCount: restoredFromIds + restoredFromTargets });
   } catch (error) {
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Napaka na strežniku.' },

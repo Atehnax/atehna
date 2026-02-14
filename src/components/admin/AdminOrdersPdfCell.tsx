@@ -206,7 +206,9 @@ export default function AdminOrdersPdfCell({
               className="relative inline-flex h-6 items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-1 pr-5 text-[11px] font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
             >
               <span>{button.short}</span>
-              <span className="absolute -right-1 -top-1 min-w-[14px] rounded-[3px] bg-slate-300 px-1 text-center text-[9px] leading-4 text-slate-700">{versions.length}</span>
+              {versions.length > 0 ? (
+                <span className="absolute -right-0.5 -top-0.5 min-w-[7px] rounded-[2px] bg-slate-300 px-0.5 text-center text-[5px] leading-2 text-slate-700">{versions.length}</span>
+              ) : null}
             </button>
           </div>
         );

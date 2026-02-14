@@ -66,9 +66,16 @@ export default async function AdminOrderDetailPage({
       {
         id: 1,
         type: 'order_summary',
-        filename: '#1-order-summary.pdf',
+        filename: '#1-order-summary-v2.pdf',
         blob_url: '#',
         created_at: new Date().toISOString()
+      },
+      {
+        id: 2,
+        type: 'order_summary',
+        filename: '#1-order-summary-v1.pdf',
+        blob_url: '#',
+        created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
       }
     ];
 

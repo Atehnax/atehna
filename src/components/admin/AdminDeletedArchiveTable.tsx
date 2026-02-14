@@ -50,7 +50,11 @@ export default function AdminDeletedArchiveTable({
   };
 
   const bulkDelete = async () => {
-    if (selected.length === 0) return;
+    const deletableIds = selected.filter((id) => id > 0);
+    if (deletableIds.length === 0) {
+      setMessage('Izbrani zapisi nimajo arhivske postavke za trajni izbris.');
+      return;
+    }
     if (!window.confirm('Ali ste prepričani, da želite trajno izbrisati izbrane zapise?')) return;
 
     setIsDeleting(true);
@@ -59,7 +63,7 @@ export default function AdminDeletedArchiveTable({
       const response = await fetch('/api/admin/archive', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: selected })
+        body: JSON.stringify({ ids: deletableIds })
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -67,7 +71,7 @@ export default function AdminDeletedArchiveTable({
         return;
       }
 
-      setEntries((prev) => prev.filter((entry) => !selected.includes(entry.id)));
+      setEntries((prev) => prev.filter((entry) => !deletableIds.includes(entry.id)));
       setSelected([]);
       setMessage('Izbrani zapisi so trajno izbrisani.');
     } finally {
@@ -124,6 +128,7 @@ export default function AdminDeletedArchiveTable({
                     type="checkbox"
                     checked={selected.includes(entry.id)}
                     onChange={() => toggleOne(entry.id)}
+                    disabled={entry.id <= 0}
                     aria-label={`Izberi zapis ${entry.label}`}
                   />
                 </td>

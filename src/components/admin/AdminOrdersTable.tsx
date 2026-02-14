@@ -595,6 +595,8 @@ export default function AdminOrdersTable({
       ? `${formatSlDateFromDateInput(fromDate)} – ${formatSlDateFromDateInput(toDate)}`
       : defaultDateRangeLabel;
 
+  const hasDateValue = Boolean(fromDate || toDate);
+
 
   const dateRangeFilteredOrders = useMemo(() => {
     const fromTimestamp = fromDate ? new Date(`${fromDate}T00:00:00`).getTime() : null;
@@ -813,10 +815,10 @@ export default function AdminOrdersTable({
             <button
               type="button"
               onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-              className="h-10 min-w-[170px] rounded-xl border border-slate-300 bg-white px-2.5 pb-1 pt-4 text-left text-xs text-slate-700 hover:border-slate-400"
+              className="h-10 min-w-[170px] rounded-xl border border-slate-300 bg-white px-2.5 text-left text-xs text-slate-700 hover:border-slate-400"
             >
-              <span className="pointer-events-none absolute left-2.5 top-1.5 bg-white px-1 text-[10px] text-slate-600">Datum</span>
-              <span className="inline-flex items-center gap-1.5"> 
+              <span className={`pointer-events-none absolute left-2.5 bg-white px-1 text-slate-600 transition-all duration-150 ${isDatePopoverOpen || hasDateValue ? "top-1.5 text-[10px]" : "top-1/2 -translate-y-1/2 text-[12px]"}`}>Datum</span>
+              <span className={`inline-flex items-center gap-1.5 ${isDatePopoverOpen || hasDateValue ? "pt-2" : ""}`}> 
                 <svg
                   aria-hidden="true"
                   viewBox="0 0 24 24"
@@ -833,7 +835,7 @@ export default function AdminOrdersTable({
             </button>
 
             {isDatePopoverOpen && (
-              <div className="absolute left-0 z-20 mt-2 w-[420px] rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+              <div lang="sl-SI" className="absolute left-0 z-20 mt-2 w-[420px] rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
                 <div className="grid grid-cols-[180px_1fr] gap-4">
                   <div className="space-y-1 border-r border-slate-200 pr-3">
                     <button
@@ -963,7 +965,7 @@ export default function AdminOrdersTable({
             </div>
           </div>
 
-          <div className="relative min-w-[180px]">
+          <div className={`relative min-w-[180px] ${!isDocumentSearchEnabled ? 'opacity-60' : ''}`}>
             <select
               value={documentType}
               onChange={(event) => {

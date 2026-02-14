@@ -397,7 +397,7 @@ export default function AdminOrderEditForm({
         <div className="grid gap-4 md:grid-cols-2">
           <div className="md:col-span-1">
             <label className="text-xs font-semibold uppercase text-slate-500">Datum</label>
-            <div className="mt-1 flex items-center gap-2">
+            <div className="mt-1">
               <input
                 type="date"
                 lang="sl-SI"
@@ -408,26 +408,6 @@ export default function AdminOrderEditForm({
                 }}
                 className="h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs"
               />
-              <button
-                type="button"
-                onClick={() => {
-                  setFormData((previousValue) => ({ ...previousValue, orderDate: new Date().toISOString().slice(0, 10) }));
-                  markDirty();
-                }}
-                className="h-8 rounded-lg border border-slate-200 px-2 text-[11px] text-slate-600 hover:bg-slate-50"
-              >
-                Danes
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setFormData((previousValue) => ({ ...previousValue, orderDate: '' }));
-                  markDirty();
-                }}
-                className="h-8 rounded-lg border border-slate-200 px-2 text-[11px] text-slate-600 hover:bg-slate-50"
-              >
-                Ponastavi
-              </button>
             </div>
           </div>
 

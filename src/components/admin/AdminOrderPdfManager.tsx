@@ -178,7 +178,7 @@ export default function AdminOrderPdfManager({
   };
 
   return (
-    <section className="w-full max-w-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <h2 className="text-base font-semibold text-slate-900">PDF dokumenti</h2>
       {message ? <p className="mt-2 text-xs text-slate-600">{message}</p> : null}
 
@@ -235,9 +235,9 @@ export default function AdminOrderPdfManager({
                 </div>
               </div>
 
-              <div className="mt-3 border-t border-slate-100 pb-6 pt-3">
+              <div className="mt-3 border-t border-slate-100 pt-3">
                 {docs.length > 0 ? (
-                  <div id={`pdf-versions-${pdfType.key}`} className="rounded-xl border border-slate-200 bg-white p-2 text-[12px] text-slate-600 shadow-inner">
+                  <div id={`pdf-versions-${pdfType.key}`} className="relative rounded-xl border border-slate-200 bg-white p-2 pr-8 text-[12px] text-slate-600 shadow-inner">
                     <ul className="space-y-1.5">
                       {visibleDocs.map((doc, index) => (
                         <li
@@ -272,28 +272,28 @@ export default function AdminOrderPdfManager({
                         </li>
                       ))}
                     </ul>
+
+                    {hasMultipleVersions ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedByType((previousState) => ({
+                            ...previousState,
+                            [pdfType.key]: !previousState[pdfType.key]
+                          }))
+                        }
+                        className="absolute bottom-1.5 right-1.5 inline-flex h-5 w-5 items-center justify-center rounded-sm border border-slate-200 bg-white text-[11px] text-slate-600 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
+                        aria-label={isExpanded ? `Skrij verzije za ${pdfType.label}` : `Pokaži vse verzije za ${pdfType.label}`}
+                        aria-expanded={isExpanded}
+                        aria-controls={`pdf-versions-${pdfType.key}`}
+                      >
+                        {isExpanded ? '↑' : '↓'}
+                      </button>
+                    ) : null}
                   </div>
                 ) : (
                   <p className="text-[11px] text-slate-400">Ni shranjenih verzij.</p>
                 )}
-
-                {hasMultipleVersions ? (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setExpandedByType((previousState) => ({
-                        ...previousState,
-                        [pdfType.key]: !previousState[pdfType.key]
-                      }))
-                    }
-                    className="absolute bottom-2 right-2 inline-flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
-                    aria-label={isExpanded ? `Skrij verzije za ${pdfType.label}` : `Pokaži vse verzije za ${pdfType.label}`}
-                    aria-expanded={isExpanded}
-                    aria-controls={`pdf-versions-${pdfType.key}`}
-                  >
-                    {isExpanded ? '↑' : '↓'}
-                  </button>
-                ) : null}
               </div>
             </div>
           );

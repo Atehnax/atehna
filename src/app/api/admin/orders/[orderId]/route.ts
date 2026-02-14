@@ -1,6 +1,25 @@
 import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/server/db';
 
+async function ensureArchiveSchema() {
+  const pool = await getPool();
+  await pool.query('alter table if exists orders add column if not exists deleted_at timestamptz');
+  await pool.query('alter table if exists order_documents add column if not exists deleted_at timestamptz');
+  await pool.query(`
+    create table if not exists deleted_archive_entries (
+      id bigserial primary key,
+      item_type text not null check (item_type in ('order', 'pdf')),
+      order_id bigint,
+      document_id bigint,
+      label text not null,
+      deleted_at timestamptz not null default now(),
+      expires_at timestamptz not null default (now() + interval '60 days'),
+      payload jsonb not null default '{}'::jsonb
+    )
+  `);
+}
+
+
 async function hasOrdersDeletedAtColumn() {
   const pool = await getPool();
   const result = await pool.query(
@@ -27,6 +46,7 @@ export async function DELETE(
     }
 
     const pool = await getPool();
+    await ensureArchiveSchema();
     const supportsSoftDelete = await hasOrdersDeletedAtColumn();
 
     const orderResult = await pool.query(

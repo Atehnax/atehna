@@ -190,7 +190,7 @@ export default async function AdminOrderDetailPage({
                 />
               </div>
 
-              <aside className="space-y-5">
+              <aside className="w-full min-w-0 space-y-5">
                 <AdminOrderPdfManager orderId={1} documents={documents} />
               </aside>
             </div>
@@ -301,7 +301,7 @@ export default async function AdminOrderDetailPage({
               />
             </div>
 
-            <aside className="space-y-5">
+            <aside className="w-full min-w-0 space-y-5">
               <AdminOrderPdfManager orderId={orderId} documents={documents} />
             </aside>
           </div>

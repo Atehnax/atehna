@@ -2,16 +2,18 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import PaymentChip from '@/components/admin/PaymentChip';
+import StatusChip from '@/components/admin/StatusChip';
 import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/lib/paymentStatus';
 
 type Props = {
   orderId: number;
+  orderNumber: string;
   status: string;
   paymentStatus?: string | null;
   paymentNotes?: string | null;
 };
-
 
 const isFilled = (value: unknown) => typeof value === 'string' && value.trim().length > 0;
 
@@ -44,64 +46,89 @@ function FloatingTextarea({ id, label, value, rows = 2, onChange }: FloatingText
   );
 }
 
-export default function AdminOrderActions({
-  orderId,
-  status,
-  paymentStatus,
-  paymentNotes
-}: Props) {
+export default function AdminOrderActions({ orderId, orderNumber, status, paymentStatus, paymentNotes }: Props) {
   const router = useRouter();
   const [currentStatus, setCurrentStatus] = useState(status);
   const [currentPaymentStatus, setCurrentPaymentStatus] = useState<string>(
     isPaymentStatus(paymentStatus ?? '') ? paymentStatus ?? 'unpaid' : 'unpaid'
   );
   const [currentPaymentNote, setCurrentPaymentNote] = useState<string>(paymentNotes ?? '');
+  const [draftStatus, setDraftStatus] = useState(status);
+  const [draftPaymentStatus, setDraftPaymentStatus] = useState<string>(
+    isPaymentStatus(paymentStatus ?? '') ? paymentStatus ?? 'unpaid' : 'unpaid'
+  );
+  const [isStatusEditorOpen, setIsStatusEditorOpen] = useState(false);
+  const [isPaymentEditorOpen, setIsPaymentEditorOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [isWorking, setIsWorking] = useState(false);
+  const [isSavingStatus, setIsSavingStatus] = useState(false);
+  const [isSavingPaymentStatus, setIsSavingPaymentStatus] = useState(false);
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  const updateStatus = async () => {
-    setIsWorking(true);
+  const saveStatus = async () => {
+    setIsSavingStatus(true);
     setMessage(null);
     try {
-      const [statusResponse, paymentResponse] = await Promise.all([
-        fetch(`/api/admin/orders/${orderId}/status`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: currentStatus })
-        }),
-        fetch(`/api/admin/orders/${orderId}/payment-status`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: currentPaymentStatus, note: currentPaymentNote })
-        })
-      ]);
-
-      if (!statusResponse.ok) {
-        const error = await statusResponse.json().catch(() => ({}));
+      const response = await fetch(`/api/admin/orders/${orderId}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: draftStatus })
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
         throw new Error(error.message || 'Posodobitev statusa naročila ni uspela.');
       }
-
-      if (!paymentResponse.ok) {
-        const error = await paymentResponse.json().catch(() => ({}));
-        throw new Error(error.message || 'Posodobitev plačilnega statusa ni uspela.');
-      }
-
-      window.dispatchEvent(
-        new CustomEvent('admin-order-status-updated', {
-          detail: { status: currentStatus, paymentStatus: currentPaymentStatus }
-        })
-      );
+      setCurrentStatus(draftStatus);
+      setIsStatusEditorOpen(false);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Napaka pri posodobitvi statusov.');
+      setMessage(error instanceof Error ? error.message : 'Napaka pri posodobitvi statusa naročila.');
     } finally {
-      setIsWorking(false);
+      setIsSavingStatus(false);
     }
   };
 
-  const deleteOrder = () => {
-    setIsDeleteModalOpen(true);
+  const savePaymentStatus = async () => {
+    setIsSavingPaymentStatus(true);
+    setMessage(null);
+    try {
+      const response = await fetch(`/api/admin/orders/${orderId}/payment-status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: draftPaymentStatus, note: currentPaymentNote })
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || 'Posodobitev plačilnega statusa ni uspela.');
+      }
+      setCurrentPaymentStatus(draftPaymentStatus);
+      setIsPaymentEditorOpen(false);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Napaka pri posodobitvi plačilnega statusa.');
+    } finally {
+      setIsSavingPaymentStatus(false);
+    }
+  };
+
+  const saveNotes = async () => {
+    setIsSavingNotes(true);
+    setMessage(null);
+    try {
+      const response = await fetch(`/api/admin/orders/${orderId}/payment-status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: currentPaymentStatus, note: currentPaymentNote })
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || 'Shranjevanje opomb ni uspelo.');
+      }
+      setMessage('Opombe so shranjene.');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Napaka pri shranjevanju opomb.');
+    } finally {
+      setIsSavingNotes(false);
+    }
   };
 
   const confirmDeleteOrder = async () => {
@@ -109,9 +136,7 @@ export default function AdminOrderActions({
     setIsDeleteModalOpen(false);
     setMessage(null);
     try {
-      const response = await fetch(`/api/admin/orders/${orderId}`, {
-        method: 'DELETE'
-      });
+      const response = await fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' });
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
         throw new Error(error.message || 'Brisanje ni uspelo.');
@@ -126,76 +151,121 @@ export default function AdminOrderActions({
   };
 
   return (
-    <div className="h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-base font-semibold text-slate-900">Status naročila</h2>
-      <div className="mt-4 space-y-4">
-        <div className="grid gap-3 md:grid-cols-2">
-          <div>
-            <label className="text-xs font-medium text-slate-700" htmlFor="status">
-              Status naročila
-            </label>
-            <select
-              id="status"
-              value={currentStatus}
-              onChange={(event) => setCurrentStatus(event.target.value)}
-              className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[12px] shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{orderNumber}</h1>
+
+          <div className="relative flex items-center gap-1">
+            <StatusChip status={currentStatus} />
+            <button
+              type="button"
+              onClick={() => {
+                setDraftStatus(currentStatus);
+                setIsStatusEditorOpen((prev) => !prev);
+                setIsPaymentEditorOpen(false);
+              }}
+              className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100"
+              aria-label="Uredi status naročila"
             >
-              {ORDER_STATUS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              ✎
+            </button>
+            {isStatusEditorOpen ? (
+              <div className="absolute left-0 top-8 z-20 w-44 rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
+                <select
+                  value={draftStatus}
+                  onChange={(event) => setDraftStatus(event.target.value)}
+                  className="h-8 w-full rounded-md border border-slate-300 px-2 text-xs"
+                >
+                  {ORDER_STATUS_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={saveStatus}
+                  disabled={isSavingStatus}
+                  className="mt-2 h-7 w-full rounded-md border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  {isSavingStatus ? 'Shranjujem ...' : 'Shrani'}
+                </button>
+              </div>
+            ) : null}
           </div>
 
-          <div>
-            <label className="text-xs font-medium text-slate-700" htmlFor="paymentStatus">
-              Status plačila
-            </label>
-            <select
-              id="paymentStatus"
-              value={currentPaymentStatus}
-              onChange={(event) => setCurrentPaymentStatus(event.target.value)}
-              className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-[12px] shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+          <div className="relative flex items-center gap-1">
+            <PaymentChip status={currentPaymentStatus} />
+            <button
+              type="button"
+              onClick={() => {
+                setDraftPaymentStatus(currentPaymentStatus);
+                setIsPaymentEditorOpen((prev) => !prev);
+                setIsStatusEditorOpen(false);
+              }}
+              className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100"
+              aria-label="Uredi status plačila"
             >
-              {PAYMENT_STATUS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              ✎
+            </button>
+            {isPaymentEditorOpen ? (
+              <div className="absolute left-0 top-8 z-20 w-44 rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
+                <select
+                  value={draftPaymentStatus}
+                  onChange={(event) => setDraftPaymentStatus(event.target.value)}
+                  className="h-8 w-full rounded-md border border-slate-300 px-2 text-xs"
+                >
+                  {PAYMENT_STATUS_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={savePaymentStatus}
+                  disabled={isSavingPaymentStatus}
+                  className="mt-2 h-7 w-full rounded-md border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  {isSavingPaymentStatus ? 'Shranjujem ...' : 'Shrani'}
+                </button>
+              </div>
+            ) : null}
           </div>
-        </div>
 
-        <FloatingTextarea
-          id="paymentNote"
-          label="Opombe plačila"
-          rows={2}
-          value={currentPaymentNote ?? ''}
-          onChange={(value) => setCurrentPaymentNote(value)}
-        />
-
-        <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={updateStatus}
-            disabled={isWorking}
-            className="w-1/2 whitespace-nowrap rounded-full bg-brand-600 px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
-          >
-            Shrani status
-          </button>
-          <button
-            type="button"
-            onClick={deleteOrder}
+            onClick={() => setIsDeleteModalOpen(true)}
             disabled={isDeleting}
-            className="w-1/2 whitespace-nowrap rounded-full border border-red-200 px-4 py-2 text-[12px] font-semibold text-red-600 transition hover:border-red-300 hover:text-red-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-rose-200 text-sm font-semibold leading-none text-rose-600 hover:bg-rose-50 disabled:text-slate-300"
+            aria-label="Izbriši naročilo"
+            title="Izbriši"
           >
-            {isDeleting ? 'Brisanje...' : 'Izbriši naročilo'}
+            ×
           </button>
         </div>
 
-        {message && <p className="text-sm text-rose-600">{message}</p>}
+        <div className="w-full max-w-sm space-y-2">
+          <FloatingTextarea
+            id="paymentNote"
+            label="Opombe"
+            rows={2}
+            value={currentPaymentNote}
+            onChange={setCurrentPaymentNote}
+          />
+          <button
+            type="button"
+            onClick={saveNotes}
+            disabled={isSavingNotes}
+            className="h-8 rounded-full bg-brand-600 px-4 text-xs font-semibold text-white hover:bg-brand-700 disabled:bg-slate-200 disabled:text-slate-400"
+          >
+            {isSavingNotes ? 'Shranjujem ...' : 'Shrani'}
+          </button>
+        </div>
       </div>
+
+      {message ? <p className="mt-3 text-sm text-slate-600">{message}</p> : null}
 
       {isDeleteModalOpen ? (
         <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-900/30 px-4" role="dialog" aria-modal="true">
@@ -221,6 +291,6 @@ export default function AdminOrderActions({
           </div>
         </div>
       ) : null}
-    </div>
+    </section>
   );
 }

@@ -395,20 +395,43 @@ export default function AdminOrderEditForm({
 
       <form className="mt-4 space-y-6 text-[12px]" onSubmit={handleSubmit}>
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="md:col-span-2">
+          <div className="md:col-span-1">
             <label className="text-xs font-semibold uppercase text-slate-500">Datum</label>
-            <input
-              type="date"
-              value={formData.orderDate}
-              onChange={(event) => {
-                setFormData((previousValue) => ({ ...previousValue, orderDate: event.target.value }));
-                markDirty();
-              }}
-              className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs"
-            />
+            <div className="mt-1 flex items-center gap-2">
+              <input
+                type="date"
+                lang="sl-SI"
+                value={formData.orderDate}
+                onChange={(event) => {
+                  setFormData((previousValue) => ({ ...previousValue, orderDate: event.target.value }));
+                  markDirty();
+                }}
+                className="h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData((previousValue) => ({ ...previousValue, orderDate: new Date().toISOString().slice(0, 10) }));
+                  markDirty();
+                }}
+                className="h-8 rounded-lg border border-slate-200 px-2 text-[11px] text-slate-600 hover:bg-slate-50"
+              >
+                Danes
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData((previousValue) => ({ ...previousValue, orderDate: '' }));
+                  markDirty();
+                }}
+                className="h-8 rounded-lg border border-slate-200 px-2 text-[11px] text-slate-600 hover:bg-slate-50"
+              >
+                Ponastavi
+              </button>
+            </div>
           </div>
 
-          <div className="md:col-span-2">
+          <div className="md:col-span-1">
             <StaticFloatingSelect
               id="customerType"
               label="Tip naročila"

@@ -718,18 +718,6 @@ export default function AdminOrdersTable({
     }
   };
 
-
-  const shouldIgnoreRowNavigation = (target: EventTarget | null) => {
-    if (!(target instanceof Element)) return false;
-    return Boolean(
-      target.closest('a,button,input,select,textarea,[role=menu],[role=menuitem],[data-no-row-nav]')
-    );
-  };
-
-  const openOrderDetails = (orderId: number) => {
-    window.location.href = `/admin/orders/${orderId}`;
-  };
-
   return (
     <div className="w-full">
       <div className="mx-auto w-[72vw] min-w-[1180px] max-w-[1520px]">
@@ -821,13 +809,13 @@ export default function AdminOrdersTable({
       </div>
       <div className="mb-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
         <div className="flex flex-wrap items-end gap-2">
-          <div className="relative" ref={datePopoverRef}>
-            <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">Datum</label>
+          <div className="relative min-w-[170px]" ref={datePopoverRef}>
             <button
               type="button"
               onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-              className="h-8 min-w-[170px] rounded-lg border border-slate-300 bg-white px-2.5 text-left text-xs text-slate-700 hover:border-slate-400"
+              className="h-10 min-w-[170px] rounded-xl border border-slate-300 bg-white px-2.5 pb-1 pt-4 text-left text-xs text-slate-700 hover:border-slate-400"
             >
+              <span className="pointer-events-none absolute left-2.5 top-1.5 bg-white px-1 text-[10px] text-slate-600">Datum</span>
               <span className="inline-flex items-center gap-1.5"> 
                 <svg
                   aria-hidden="true"
@@ -845,7 +833,7 @@ export default function AdminOrdersTable({
             </button>
 
             {isDatePopoverOpen && (
-              <div className="absolute left-0 z-20 mt-2 w-[560px] rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+              <div className="absolute left-0 z-20 mt-2 w-[420px] rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
                 <div className="grid grid-cols-[180px_1fr] gap-4">
                   <div className="space-y-1 border-r border-slate-200 pr-3">
                     <button
@@ -904,6 +892,7 @@ export default function AdminOrdersTable({
                       <label className="text-xs font-semibold uppercase text-slate-500">Od</label>
                       <input
                         type="date"
+                        lang="sl-SI"
                         value={fromDate}
                         onChange={(event) => setFromDate(event.target.value)}
                         className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs"
@@ -914,6 +903,7 @@ export default function AdminOrdersTable({
                       <label className="text-xs font-semibold uppercase text-slate-500">Do</label>
                       <input
                         type="date"
+                        lang="sl-SI"
                         value={toDate}
                         onChange={(event) => setToDate(event.target.value)}
                         className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs"
@@ -929,7 +919,7 @@ export default function AdminOrdersTable({
                         }}
                         className="text-xs font-semibold text-slate-500 hover:text-slate-700"
                       >
-                        Počisti datum
+                        Ponastavi
                       </button>                    </div>
                   </div>
                 </div>
@@ -937,15 +927,15 @@ export default function AdminOrdersTable({
             )}
           </div>
 
-          <div className="min-w-[220px] flex-1">
-            <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">Iskanje</label>
+          <div className="group relative min-w-[220px] flex-1" data-filled={query.trim().length > 0 ? 'true' : 'false'}>
             <input
               type="text"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="ORD, naročnik, naslov, tip, status, plačilo..."
-              className="h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs"
+              className="h-10 w-full rounded-xl border border-slate-300 px-2.5 pb-1 pt-4 text-xs"
             />
+            <label className="pointer-events-none absolute left-2.5 top-1.5 bg-white px-1 text-[10px] text-slate-600">Iskanje</label>
           </div>
 
           <div>
@@ -973,10 +963,7 @@ export default function AdminOrdersTable({
             </div>
           </div>
 
-          <div className="min-w-[180px]">
-            <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">
-              Vrsta dokumenta
-            </label>
+          <div className="relative min-w-[180px]">
             <select
               value={documentType}
               onChange={(event) => {
@@ -987,7 +974,7 @@ export default function AdminOrdersTable({
                 }
               }}
               disabled={!isDocumentSearchEnabled}
-              className="h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs disabled:bg-slate-100 disabled:text-slate-400"
+              className="h-10 w-full rounded-xl border border-slate-300 px-2.5 pb-1 pt-4 text-xs disabled:bg-slate-100 disabled:text-slate-400"
             >
               {documentTypeOptions.map((documentTypeOption) => (
                 <option key={documentTypeOption.value} value={documentTypeOption.value}>
@@ -995,6 +982,9 @@ export default function AdminOrdersTable({
                 </option>
               ))}
             </select>
+            <label className="pointer-events-none absolute left-2.5 top-1.5 bg-white px-1 text-[10px] text-slate-600">
+              Vrsta dokumenta
+            </label>
           </div>
 
 
@@ -1013,7 +1003,7 @@ export default function AdminOrdersTable({
             disabled={documentType === 'all'}
             className="h-8 rounded-full px-3 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:ring-slate-100 disabled:hover:bg-transparent"
           >
-            Počisti
+            Ponastavi
           </button>
 
           {topAction ? <div className="ml-auto flex h-8 items-center">{topAction}</div> : null}
@@ -1056,6 +1046,7 @@ export default function AdminOrdersTable({
             <col style={{ width: columnWidths.payment }} />
             <col style={{ width: columnWidths.total }} />
             <col style={{ width: columnWidths.documents }} />
+            <col style={{ width: columnWidths.edit }} />
           </colgroup>
 
           <thead className="bg-slate-50 text-[12px] uppercase text-slate-500">
@@ -1235,6 +1226,7 @@ export default function AdminOrdersTable({
               </th>
 
               <th className="px-2 py-2 text-left normal-case">PDF datoteke</th>
+              <th className="px-2 py-2 text-center normal-case">Uredi</th>
             </tr>
           </thead>
 
@@ -1261,18 +1253,6 @@ export default function AdminOrdersTable({
                     className={`border-t border-slate-100 transition-colors duration-200 ${
                       orderIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
                     } hover:bg-[#e7efef]`}
-                    onClick={(event) => {
-                      if (shouldIgnoreRowNavigation(event.target)) return;
-                      openOrderDetails(order.id);
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key !== 'Enter' && event.key !== ' ') return;
-                      if (shouldIgnoreRowNavigation(event.target)) return;
-                      event.preventDefault();
-                      openOrderDetails(order.id);
-                    }}
-                    tabIndex={0}
-                    aria-label={`Odpri podrobnosti naročila ${toDisplayOrderNumber(order.order_number)}`}
                   >
                     <td className="px-2 py-2 align-middle">
                       <div className="flex justify-center">
@@ -1370,6 +1350,16 @@ export default function AdminOrdersTable({
                         attachments={attachmentsByOrder.get(order.id) ?? []}
                         interactionsDisabled={false}
                       />
+                    </td>
+
+                    <td className="px-2 py-2 align-middle text-center" data-no-row-nav>
+                      <a
+                        href={`/admin/orders/${order.id}`}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100"
+                        aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                      >
+                        ✎
+                      </a>
                     </td>
                   </tr>
                 );

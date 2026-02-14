@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
 import AdminOrderActions from '@/components/admin/AdminOrderActions';
 import AdminOrderEditForm from '@/components/admin/AdminOrderEditForm';
 import AdminOrderPdfManager from '@/components/admin/AdminOrderPdfManager';
-import AdminOrderHeaderChips from '@/components/admin/AdminOrderHeaderChips';
 import AdminOrderOverviewCard from '@/components/admin/AdminOrderOverviewCard';
 import { toDisplayOrderNumber } from '@/components/admin/adminOrdersTableUtils';
 import {
@@ -107,34 +106,27 @@ export default async function AdminOrderDetailPage({
           ) : null}
 
           <div className="mt-6 space-y-6">
-            <div className="grid items-stretch gap-6 lg:grid-cols-[2fr_1.5fr]">
-              <section className="h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                <AdminOrderHeaderChips
-                  orderNumber={toDisplayOrderNumber(order.order_number)}
-                  status={order.status}
-                  paymentStatus={order.payment_status ?? null}
-                />
-
-                <AdminOrderOverviewCard
-                  organizationName={order.organization_name}
-                  contactName={order.contact_name}
-                  customerType={order.customer_type}
-                  email={order.email}
-                  deliveryAddress={order.delivery_address}
-                  notes={order.notes}
-                />
-              </section>
-
-              <AdminOrderActions
-                orderId={1}
-                status={order.status}
-                paymentStatus={order.payment_status}
-                paymentNotes={order.payment_notes}
-              />
-            </div>
+            <AdminOrderActions
+              orderId={1}
+              orderNumber={toDisplayOrderNumber(order.order_number)}
+              status={order.status}
+              paymentStatus={order.payment_status}
+              paymentNotes={order.payment_notes}
+            />
 
             <div className="grid items-start gap-6 lg:grid-cols-[2fr_1.5fr]">
               <div className="space-y-6">
+                <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <AdminOrderOverviewCard
+                    organizationName={order.organization_name}
+                    contactName={order.contact_name}
+                    customerType={order.customer_type}
+                    email={order.email}
+                    deliveryAddress={order.delivery_address}
+                    notes={order.notes}
+                  />
+                </section>
+
                 <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                   <h2 className="text-lg font-semibold text-slate-900">Postavke</h2>
                   <div className="mt-4 space-y-3">
@@ -262,34 +254,27 @@ export default async function AdminOrderDetailPage({
         ) : null}
 
         <div className="mt-4 space-y-6">
-          <div className="grid items-stretch gap-6 lg:grid-cols-[2fr_1.5fr]">
-            <section className="h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                <AdminOrderHeaderChips
-                orderNumber={toDisplayOrderNumber(safeOrder.order_number)}
-                status={safeOrder.status}
-                paymentStatus={safeOrder.payment_status ?? null}
-              />
-
-              <AdminOrderOverviewCard
-                organizationName={safeOrder.organization_name}
-                contactName={safeOrder.contact_name}
-                customerType={safeOrder.customer_type}
-                email={safeOrder.email}
-                deliveryAddress={safeOrder.delivery_address}
-                notes={safeOrder.notes}
-              />
-            </section>
-
-            <AdminOrderActions
-              orderId={orderId}
-              status={safeOrder.status}
-              paymentStatus={safeOrder.payment_status ?? null}
-              paymentNotes={safeOrder.payment_notes ?? null}
-            />
-          </div>
+          <AdminOrderActions
+            orderId={orderId}
+            orderNumber={toDisplayOrderNumber(safeOrder.order_number)}
+            status={safeOrder.status}
+            paymentStatus={safeOrder.payment_status ?? null}
+            paymentNotes={safeOrder.payment_notes ?? null}
+          />
 
           <div className="grid items-start gap-6 lg:grid-cols-[2fr_1.5fr]">
             <div className="space-y-6">
+              <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <AdminOrderOverviewCard
+                  organizationName={safeOrder.organization_name}
+                  contactName={safeOrder.contact_name}
+                  customerType={safeOrder.customer_type}
+                  email={safeOrder.email}
+                  deliveryAddress={safeOrder.delivery_address}
+                  notes={safeOrder.notes}
+                />
+              </section>
+
               <AdminOrderEditForm
                 orderId={orderId}
                 customerType={safeOrder.customer_type}

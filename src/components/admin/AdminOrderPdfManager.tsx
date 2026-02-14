@@ -100,6 +100,7 @@ export default function AdminOrderPdfManager({
         return;
       }
       const payload = (await response.json()) as {
+        id: number;
         url: string;
         filename: string;
         createdAt: string;
@@ -108,7 +109,7 @@ export default function AdminOrderPdfManager({
       setMessage('PDF je uspešno ustvarjen.');
       setDocList((prev) => [
         {
-          id: Date.now(),
+          id: payload.id,
           type: payload.type,
           filename: payload.filename,
           blob_url: payload.url,
@@ -139,15 +140,15 @@ export default function AdminOrderPdfManager({
         setMessage(body.message || 'Nalaganje PDF ni uspelo.');
         return;
       }
-      const payload = (await response.json()) as { url: string; filename: string };
+      const payload = (await response.json()) as { id: number; url: string; filename: string; createdAt: string; type: string };
       setMessage('PDF je uspešno naložen.');
       setDocList((prev) => [
         {
-          id: Date.now(),
-          type,
+          id: payload.id,
+          type: payload.type,
           filename: payload.filename,
           blob_url: payload.url,
-          created_at: new Date().toISOString()
+          created_at: payload.createdAt
         },
         ...prev
       ]);
@@ -192,27 +193,26 @@ export default function AdminOrderPdfManager({
       <div className="mt-4 space-y-4">
         {PDF_TYPES.map((pdfType) => {
           const docs = grouped[pdfType.key];
-          const latest = docs[0];
           const hasMultipleVersions = docs.length > 1;
           const isExpanded = Boolean(expandedByType[pdfType.key]);
           const visibleDocs = isExpanded ? docs : docs.slice(0, 1);
 
           return (
             <div key={pdfType.key} className="relative w-full min-w-0 rounded-2xl border border-slate-200/80 p-3.5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-slate-900">{pdfType.label}</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => handleGenerate(pdfType.key)}
                     disabled={loadingType === pdfType.key}
-                    className="rounded-full bg-brand-600 px-3 py-1 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                    className="rounded-full bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
                   >
-                    {loadingType === pdfType.key ? 'Generiram ...' : 'Ustvari PDF'}
+                    {loadingType === pdfType.key ? 'Generiram ...' : 'Ustvari'}
                   </button>
-                  <label className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 hover:border-brand-200 hover:text-brand-600">
+                  <label className="rounded-full border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:border-brand-200 hover:text-brand-600">
                     <input
                       type="file"
                       accept="application/pdf"
@@ -224,15 +224,15 @@ export default function AdminOrderPdfManager({
                         }))
                       }
                     />
-                    Naloži PDF
+                    Naloži
                   </label>
                   <button
                     type="button"
                     onClick={() => handleUpload(pdfType.key)}
                     disabled={!uploadFile[pdfType.key] || uploadingType === pdfType.key}
-                    className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-brand-200 hover:text-brand-600 disabled:cursor-not-allowed disabled:text-slate-300"
+                    className="rounded-full border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 transition hover:border-brand-200 hover:text-brand-600 disabled:cursor-not-allowed disabled:text-slate-300"
                   >
-                    {uploadingType === pdfType.key ? 'Nalaganje ...' : 'Shrani PDF'}
+                    {uploadingType === pdfType.key ? 'Nalaganje ...' : 'Shrani'}
                   </button>
                 </div>
               </div>

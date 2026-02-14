@@ -132,7 +132,7 @@ export async function buildPdfContext(pool: Pool, orderId: number): Promise<Buil
       deliveryAddress: asNullableString(order.delivery_address),
       reference: asNullableString(order.reference),
       notes: asNullableString(order.notes),
-      createdAt: new Date(),
+      createdAt: order.created_at ? new Date(String(order.created_at)) : new Date(),
       subtotal,
       tax,
       total

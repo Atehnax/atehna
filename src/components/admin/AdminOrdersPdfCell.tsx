@@ -207,7 +207,7 @@ export default function AdminOrdersPdfCell({
             >
               <span>{button.short}</span>
               {versions.length > 0 ? (
-                <span className="absolute -right-0.5 -top-0.5 min-w-[11px] rounded-[3px] bg-slate-300 px-[3px] text-center text-[8px] leading-3 text-slate-700">{versions.length}</span>
+                <span className="absolute right-0 top-0 min-w-[11px] translate-x-1/2 -translate-y-1/2 rounded-[3px] bg-slate-300 px-[3px] text-center text-[8px] leading-3 text-slate-700">{versions.length}</span>
               ) : null}
             </button>
           </div>

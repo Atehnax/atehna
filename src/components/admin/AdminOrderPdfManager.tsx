@@ -237,12 +237,12 @@ export default function AdminOrderPdfManager({
 
               <div className="mt-3 border-t border-slate-100 pt-3">
                 {docs.length > 0 ? (
-                  <div id={`pdf-versions-${pdfType.key}`} className="relative rounded-xl border border-slate-200 bg-white p-2 pr-8 text-[12px] text-slate-600 shadow-inner">
-                    <ul className="space-y-1.5">
+                  <div id={`pdf-versions-${pdfType.key}`} className="rounded-xl border border-slate-200 bg-white p-2 text-[11px] leading-4 text-slate-600 shadow-inner">
+                    <ul className="space-y-1">
                       {visibleDocs.map((doc, index) => (
                         <li
                           key={`${doc.id}-${doc.created_at}`}
-                          className="rounded-lg border border-transparent px-2.5 py-2 transition hover:border-slate-200 hover:bg-slate-50"
+                          className="rounded-lg border border-transparent px-2 py-1.5 transition hover:border-slate-200 hover:bg-slate-50"
                         >
                           <div className="flex min-w-0 items-center justify-between gap-2">
                             <a
@@ -263,6 +263,23 @@ export default function AdminOrderPdfManager({
                             >
                               {deletingDocumentId === doc.id ? '...' : 'Izbriši'}
                             </button>
+                            {hasMultipleVersions && index === 0 ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setExpandedByType((previousState) => ({
+                                    ...previousState,
+                                    [pdfType.key]: !previousState[pdfType.key]
+                                  }))
+                                }
+                                className="ml-0.5 text-xs font-semibold text-slate-500 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
+                                aria-label={isExpanded ? `Skrij verzije za ${pdfType.label}` : `Pokaži vse verzije za ${pdfType.label}`}
+                                aria-expanded={isExpanded}
+                                aria-controls={`pdf-versions-${pdfType.key}`}
+                              >
+                                {isExpanded ? '^' : 'v'}
+                              </button>
+                            ) : null}
                           </div>
                           {index === 0 && (
                             <span className="mt-1 inline-flex rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
@@ -272,24 +289,6 @@ export default function AdminOrderPdfManager({
                         </li>
                       ))}
                     </ul>
-
-                    {hasMultipleVersions ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setExpandedByType((previousState) => ({
-                            ...previousState,
-                            [pdfType.key]: !previousState[pdfType.key]
-                          }))
-                        }
-                        className="absolute bottom-1.5 right-1.5 inline-flex h-5 w-5 items-center justify-center rounded-sm border border-slate-200 bg-white text-[11px] text-slate-600 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
-                        aria-label={isExpanded ? `Skrij verzije za ${pdfType.label}` : `Pokaži vse verzije za ${pdfType.label}`}
-                        aria-expanded={isExpanded}
-                        aria-controls={`pdf-versions-${pdfType.key}`}
-                      >
-                        {isExpanded ? '↑' : '↓'}
-                      </button>
-                    ) : null}
                   </div>
                 ) : (
                   <p className="text-[11px] text-slate-400">Ni shranjenih verzij.</p>

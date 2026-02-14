@@ -145,6 +145,53 @@ export async function fetchArchiveEntries(itemType?: 'all' | 'order' | 'pdf'): P
   );
 }
 
+
+export async function restoreArchiveEntries(entryIds: number[]): Promise<number> {
+  if (entryIds.length === 0) return 0;
+
+  const pool = await getPool();
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const entriesResult = await client.query(
+      `
+      select id, item_type, order_id, document_id
+      from deleted_archive_entries
+      where id = any($1::bigint[])
+      `,
+      [entryIds]
+    );
+
+    const entries = entriesResult.rows as Array<{
+      id: number;
+      item_type: 'order' | 'pdf';
+      order_id: number | null;
+      document_id: number | null;
+    }>;
+
+    for (const entry of entries) {
+      if (entry.item_type === 'order' && entry.order_id) {
+        await client.query('update orders set deleted_at = null where id = $1', [entry.order_id]);
+      }
+
+      if (entry.item_type === 'pdf' && entry.document_id) {
+        await client.query('update order_documents set deleted_at = null where id = $1', [entry.document_id]);
+      }
+    }
+
+    await client.query('delete from deleted_archive_entries where id = any($1::bigint[])', [entryIds]);
+    await client.query('COMMIT');
+    return entries.length;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export async function permanentlyDeleteArchiveEntries(entryIds: number[]): Promise<number> {
   if (entryIds.length === 0) return 0;
 

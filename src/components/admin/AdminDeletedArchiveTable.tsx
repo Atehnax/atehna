@@ -27,6 +27,7 @@ export default function AdminDeletedArchiveTable({
   const [selected, setSelected] = useState<number[]>([]);
   const [typeFilter, setTypeFilter] = useState<'all' | 'order' | 'pdf'>('all');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const filtered = useMemo(
@@ -47,6 +48,36 @@ export default function AdminDeletedArchiveTable({
       filtered.forEach((entry) => merged.add(entry.id));
       return Array.from(merged);
     });
+  };
+
+
+  const bulkRestore = async () => {
+    const restorableIds = selected.filter((id) => id > 0);
+    if (restorableIds.length === 0) {
+      setMessage('Izbrani zapisi nimajo arhivske postavke za obnovo.');
+      return;
+    }
+
+    setIsRestoring(true);
+    setMessage(null);
+    try {
+      const response = await fetch('/api/admin/archive', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: restorableIds })
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setMessage(body.message || 'Obnova ni uspela.');
+        return;
+      }
+
+      setEntries((prev) => prev.filter((entry) => !restorableIds.includes(entry.id)));
+      setSelected([]);
+      setMessage('Izbrani zapisi so obnovljeni.');
+    } finally {
+      setIsRestoring(false);
+    }
   };
 
   const bulkDelete = async () => {
@@ -95,14 +126,25 @@ export default function AdminDeletedArchiveTable({
           </select>
         </div>
 
-        <button
-          type="button"
-          onClick={bulkDelete}
-          disabled={selected.length === 0 || isDeleting}
-          className="h-8 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
-        >
-          {isDeleting ? 'Brišem ...' : 'Trajno izbriši'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={bulkRestore}
+            disabled={selected.length === 0 || isRestoring || isDeleting}
+            className="h-8 rounded-lg border border-emerald-200 px-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+          >
+            {isRestoring ? 'Obnavljam ...' : 'Obnovi'}
+          </button>
+          <button
+            type="button"
+            onClick={bulkDelete}
+            disabled={selected.length === 0 || isDeleting || isRestoring}
+            className="h-8 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+          >
+            {isDeleting ? 'Brišem ...' : 'Trajno izbriši'}
+          </button>
+        </div>
+
       </div>
 
       {message ? <p className="mb-2 text-xs text-slate-600">{message}</p> : null}

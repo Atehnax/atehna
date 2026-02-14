@@ -153,6 +153,8 @@ export default function AdminOrdersPdfCell({
           ) : null}
         </div>
 
+        <p className="mb-2 text-[10px] text-slate-500">Število verzij: {versions.length}</p>
+
         {versions.length > 0 ? (
           <ul className="max-h-56 space-y-1 overflow-y-auto pr-1">
             {versions.map((documentOption, index) => (
@@ -186,7 +188,6 @@ export default function AdminOrdersPdfCell({
   return (
     <div className="relative inline-flex items-center gap-[6px]" data-no-row-nav>
       {PDF_BUTTONS.map((button) => {
-        const versions = groupedDocuments[button.key];
         const isOpen = openType === button.key;
 
         return (
@@ -203,10 +204,9 @@ export default function AdminOrdersPdfCell({
               aria-expanded={isOpen}
               onClick={() => setOpenType((previousType) => (previousType === button.key ? null : button.key))}
               disabled={interactionsDisabled}
-              className="inline-flex h-6 items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+              className="relative inline-flex h-6 items-center rounded-md border border-slate-200 bg-slate-50 px-1.5 py-1 text-[11px] font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
             >
               <span>{button.short}</span>
-              <span className="rounded-sm bg-slate-200 px-1.5 py-0.5 text-[10px] text-slate-700">{versions.length}</span>
             </button>
           </div>
         );

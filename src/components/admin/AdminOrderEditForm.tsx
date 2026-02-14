@@ -41,6 +41,7 @@ type Props = {
   deliveryAddress: string | null;
   reference: string | null;
   notes: string | null;
+  createdAt: string;
   items: OrderItemInput[];
 };
 
@@ -77,6 +78,12 @@ const isFilled = (value: unknown) => {
   if (typeof value === 'number') return Number.isFinite(value);
   return false;
 };
+const toDateInputValue = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return new Date().toISOString().slice(0, 10);
+  return date.toISOString().slice(0, 10);
+};
+
 
 type FloatingInputProps = {
   id: string;
@@ -184,6 +191,7 @@ export default function AdminOrderEditForm({
   deliveryAddress,
   reference,
   notes,
+  createdAt,
   items
 }: Props) {
   const [formData, setFormData] = useState({
@@ -194,7 +202,8 @@ export default function AdminOrderEditForm({
     phone: phone ?? '',
     deliveryAddress: deliveryAddress ?? '',
     reference: reference ?? '',
-    notes: notes?.trim() ? notes : '/'
+    notes: notes?.trim() ? notes : '/',
+    orderDate: toDateInputValue(createdAt)
   });
   const [editableItems, setEditableItems] = useState<EditableItem[]>(
     items.map((item) => ({
@@ -387,9 +396,22 @@ export default function AdminOrderEditForm({
       <form className="mt-4 space-y-6 text-[12px]" onSubmit={handleSubmit}>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="md:col-span-2">
+            <label className="text-xs font-semibold uppercase text-slate-500">Datum</label>
+            <input
+              type="date"
+              value={formData.orderDate}
+              onChange={(event) => {
+                setFormData((previousValue) => ({ ...previousValue, orderDate: event.target.value }));
+                markDirty();
+              }}
+              className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs"
+            />
+          </div>
+
+          <div className="md:col-span-2">
             <StaticFloatingSelect
               id="customerType"
-              label="Tip naročnika"
+              label="Tip naročila"
               value={formData.customerType}
               onChange={(value) => {
                 setFormData((previousValue) => ({ ...previousValue, customerType: value }));

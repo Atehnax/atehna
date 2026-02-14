@@ -46,7 +46,8 @@ export default async function AdminOrderDetailPage({
       payment_status: 'paid',
       payment_notes: 'Plačano ob prevzemu.',
       is_draft: false,
-      deleted_at: params.orderId === '1' ? new Date().toISOString() : null
+      deleted_at: params.orderId === '1' ? new Date().toISOString() : null,
+      created_at: new Date().toISOString()
     };
 
     const items = [
@@ -66,9 +67,16 @@ export default async function AdminOrderDetailPage({
       {
         id: 1,
         type: 'order_summary',
-        filename: '#1-order-summary.pdf',
+        filename: '#1-order-summary-v2.pdf',
         blob_url: '#',
         created_at: new Date().toISOString()
+      },
+      {
+        id: 2,
+        type: 'order_summary',
+        filename: '#1-order-summary-v1.pdf',
+        blob_url: '#',
+        created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
       }
     ];
 
@@ -179,11 +187,12 @@ export default async function AdminOrderDetailPage({
                   deliveryAddress={order.delivery_address}
                   reference={order.reference}
                   notes={order.notes}
+                  createdAt={order.created_at}
                   items={items}
                 />
               </div>
 
-              <aside className="space-y-5">
+              <aside className="w-full min-w-0 space-y-5">
                 <AdminOrderPdfManager orderId={1} documents={documents} />
               </aside>
             </div>
@@ -221,7 +230,8 @@ export default async function AdminOrderDetailPage({
     notes: asText(order.notes),
     status: asText(order.status, 'received'),
     payment_status: asText(order.payment_status, 'unpaid'),
-    payment_notes: asText(order.payment_notes)
+    payment_notes: asText(order.payment_notes),
+    created_at: asText(order.created_at, new Date().toISOString())
   };
 
   const computedSubtotal = items.reduce(
@@ -290,11 +300,12 @@ export default async function AdminOrderDetailPage({
                 deliveryAddress={safeOrder.delivery_address}
                 reference={safeOrder.reference}
                 notes={safeOrder.notes}
+                createdAt={safeOrder.created_at}
                 items={items}
               />
             </div>
 
-            <aside className="space-y-5">
+            <aside className="w-full min-w-0 space-y-5">
               <AdminOrderPdfManager orderId={orderId} documents={documents} />
             </aside>
           </div>

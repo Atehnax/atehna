@@ -22,6 +22,22 @@ type AttachmentRow = {
   created_at: string;
 };
 
+
+async function hasDocumentsDeletedAtColumn() {
+  const pool = await getPool();
+  const result = await pool.query(
+    `
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'order_documents'
+      and column_name = 'deleted_at'
+    limit 1
+    `
+  );
+  return Number(result.rowCount ?? 0) > 0;
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -41,6 +57,7 @@ export async function GET(request: Request) {
     }
 
     const pool = await getPool();
+    const supportsDeletedColumn = await hasDocumentsDeletedAtColumn();
     const rows: Array<DocRow | AttachmentRow> = [];
 
     if (typeParam === 'all' || typeParam === 'purchase_order') {
@@ -69,6 +86,7 @@ export async function GET(request: Request) {
         FROM order_documents d
         JOIN orders o ON o.id = d.order_id
         WHERE d.created_at BETWEEN $1 AND $2
+          AND (not $3::boolean or d.deleted_at is null)
         ORDER BY d.created_at DESC
         `
         : `
@@ -76,12 +94,13 @@ export async function GET(request: Request) {
         FROM order_documents d
         JOIN orders o ON o.id = d.order_id
         WHERE d.created_at BETWEEN $1 AND $2 AND d.type = $3
+          AND (not $4::boolean or d.deleted_at is null)
         ORDER BY d.created_at DESC
         `;
 
       const docParams = typeParam === 'all'
-        ? [fromDate.toISOString(), toDate.toISOString()]
-        : [fromDate.toISOString(), toDate.toISOString(), typeParam];
+        ? [fromDate.toISOString(), toDate.toISOString(), supportsDeletedColumn]
+        : [fromDate.toISOString(), toDate.toISOString(), typeParam, supportsDeletedColumn];
 
       const docResult = await pool.query(docQuery, docParams);
       rows.push(...(docResult.rows as DocRow[]));

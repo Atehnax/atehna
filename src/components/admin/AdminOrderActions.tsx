@@ -59,6 +59,7 @@ export default function AdminOrderActions({
   const [message, setMessage] = useState<string | null>(null);
   const [isWorking, setIsWorking] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const updateStatus = async () => {
     setIsWorking(true);
@@ -99,10 +100,13 @@ export default function AdminOrderActions({
     }
   };
 
-  const deleteOrder = async () => {
-    const confirmed = window.confirm('Ali ste prepričani, da želite izbrisati to naročilo?');
-    if (!confirmed) return;
+  const deleteOrder = () => {
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteOrder = async () => {
     setIsDeleting(true);
+    setIsDeleteModalOpen(false);
     setMessage(null);
     try {
       const response = await fetch(`/api/admin/orders/${orderId}`, {
@@ -113,6 +117,7 @@ export default function AdminOrderActions({
         throw new Error(error.message || 'Brisanje ni uspelo.');
       }
       router.push('/admin/orders');
+      router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Napaka pri brisanju naročila.');
     } finally {
@@ -191,6 +196,31 @@ export default function AdminOrderActions({
 
         {message && <p className="text-sm text-rose-600">{message}</p>}
       </div>
+
+      {isDeleteModalOpen ? (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-900/30 px-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-4 shadow-xl">
+            <p className="text-sm font-semibold text-slate-900">Izbris naročila</p>
+            <p className="mt-2 text-xs text-slate-600">Ali ste prepričani, da želite izbrisati to naročilo?</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="h-8 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600"
+              >
+                Prekliči
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteOrder}
+                className="h-8 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-700"
+              >
+                Izbriši
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

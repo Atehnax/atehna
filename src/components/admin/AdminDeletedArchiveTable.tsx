@@ -89,6 +89,17 @@ export default function AdminDeletedArchiveTable({
   const visibleIds = useMemo(() => displayRows.map((row) => row.entry.id), [displayRows]);
   const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.includes(id));
 
+  const selectedEntriesFromRows = useMemo(
+    () =>
+      displayRows
+        .map((row) => row.entry)
+        .filter(
+          (entry, index, array) =>
+            selected.includes(entry.id) && array.findIndex((candidate) => candidate.id === entry.id) === index
+        ),
+    [displayRows, selected]
+  );
+
   const toggleOne = (id: number) => {
     setSelected((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
@@ -103,7 +114,7 @@ export default function AdminDeletedArchiveTable({
   };
 
   const bulkRestore = async () => {
-    const selectedEntries = entries.filter((entry) => selected.includes(entry.id));
+    const selectedEntries = selectedEntriesFromRows;
     const restorableIds = selectedEntries.filter((entry) => entry.id > 0).map((entry) => entry.id);
     const targets = selectedEntries
       .filter((entry) => entry.id <= 0)
@@ -128,11 +139,8 @@ export default function AdminDeletedArchiveTable({
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const errorMessage = String(body.message || '');
-        if (!errorMessage.includes('DATABASE_URL')) {
-          setMessage(body.message || 'Obnova ni uspela.');
-          return;
-        }
+        setMessage(body.message || 'Obnova ni uspela.');
+        return;
       }
 
       setEntries((prev) => prev.filter((entry) => !selected.includes(entry.id)));

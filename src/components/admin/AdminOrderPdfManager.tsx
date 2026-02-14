@@ -195,11 +195,6 @@ export default function AdminOrderPdfManager({
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-slate-900">{pdfType.label}</p>
-                  {latest ? (
-                    <p className="text-xs text-slate-500">Zadnja verzija: {formatTimestamp(latest.created_at)}</p>
-                  ) : (
-                    <p className="text-xs text-slate-500">Dokument še ni generiran.</p>
-                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
@@ -258,10 +253,11 @@ export default function AdminOrderPdfManager({
                               type="button"
                               onClick={() => handleDeleteDocument(doc.id)}
                               disabled={deletingDocumentId === doc.id}
-                              className="inline-flex h-6 items-center rounded-md border border-rose-200 px-1.5 text-[10px] font-medium text-rose-600 hover:bg-rose-50 disabled:text-slate-300"
+                              className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-rose-200 text-sm font-semibold leading-none text-rose-600 hover:bg-rose-50 disabled:text-slate-300"
                               aria-label={`Izbriši dokument ${doc.filename}`}
+                              title="Izbriši"
                             >
-                              {deletingDocumentId === doc.id ? '...' : 'Izbriši'}
+                              {deletingDocumentId === doc.id ? '…' : '×'}
                             </button>
                             {hasMultipleVersions && index === 0 ? (
                               <button

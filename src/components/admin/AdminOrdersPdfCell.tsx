@@ -153,7 +153,7 @@ export default function AdminOrdersPdfCell({
           ) : null}
         </div>
 
-        <p className="mb-2 text-[10px] text-slate-500">Skupaj verzij: {versions.length}</p>
+        <p className="mb-2 text-[10px] text-slate-500">Število verzij: {versions.length}</p>
 
         {versions.length > 0 ? (
           <ul className="max-h-56 space-y-1 overflow-y-auto pr-1">

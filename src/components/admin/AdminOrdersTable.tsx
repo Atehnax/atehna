@@ -1224,7 +1224,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-2 py-2 text-left normal-case">PDF datoteke</th>
+              <th className="min-w-[150px] px-2 py-2 text-left normal-case">PDF datoteke</th>
               <th className="px-2 py-2 text-center normal-case">Uredi</th>
             </tr>
           </thead>
@@ -1342,7 +1342,7 @@ export default function AdminOrdersTable({
                       {formatCurrency(order.total)}
                     </td>
 
-                    <td className="pl-1 pr-0 py-2 align-middle text-left" data-no-row-nav>
+                    <td className="min-w-[150px] pl-1 pr-0 py-2 align-middle text-left" data-no-row-nav>
                       <div className="flex justify-start">
                         <AdminOrdersPdfCell
                           orderId={order.id}

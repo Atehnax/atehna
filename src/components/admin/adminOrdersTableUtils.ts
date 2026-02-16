@@ -105,7 +105,7 @@ export const columnWidths = {
   payment: '120px',
   total: '85px',
   date: '104px',
-  documents: '188px',
+  documents: 'auto',
   edit: '36px'
 };
 

@@ -394,84 +394,94 @@ export default function AdminOrderEditForm({
       )}
 
       <form className="mt-4 space-y-6 text-[12px]" onSubmit={handleSubmit}>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="md:col-span-1">
-            <div className="relative">
-              <label className="pointer-events-none absolute left-2.5 top-1.5 bg-white px-1 text-[10px] text-slate-600">Datum</label>
-              <input
-                type="date"
-                lang="sl-SI"
-                value={formData.orderDate}
-                onChange={(event) => {
-                  setFormData((previousValue) => ({ ...previousValue, orderDate: event.target.value }));
-                  markDirty();
-                }}
-                className="h-10 w-full rounded-xl border border-slate-300 px-2.5 pt-4 text-xs"
-              />
-            </div>
-          </div>
-
-          <div className="md:col-span-1">
-            <StaticFloatingSelect
-              id="customerType"
-              label="Tip naročila"
-              value={formData.customerType}
-              onChange={(value) => {
-                setFormData((previousValue) => ({ ...previousValue, customerType: value }));
-                markDirty();
-              }}
-            >
-              {customerTypeOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
+        <div className="space-y-4">
+          <section className="rounded-2xl border border-slate-200 bg-slate-50/40 p-4">
+            <h3 className="text-sm font-semibold text-slate-900">Uredi naslov</h3>
+            <div className="mt-3 grid gap-4 md:grid-cols-2">
+              {[
+                ['organizationName', 'Naziv organizacije'],
+                ['contactName', 'Kontaktna oseba'],
+                ['email', 'Email']
+              ].map(([fieldName, label]) => (
+                <div key={fieldName} className={fieldName === 'organizationName' ? 'md:col-span-2' : ''}>
+                  <FloatingInput
+                    id={fieldName}
+                    type={fieldName === 'email' ? 'email' : 'text'}
+                    label={label}
+                    value={String(formData[fieldName as keyof typeof formData] ?? '')}
+                    onChange={(value) => {
+                      setFormData((previousValue) => ({ ...previousValue, [fieldName]: value }));
+                      markDirty();
+                    }}
+                  />
+                </div>
               ))}
-            </StaticFloatingSelect>
-          </div>
 
-          {[
-            ['organizationName', 'Naziv organizacije'],
-            ['contactName', 'Kontaktna oseba'],
-            ['email', 'Email']
-          ].map(([fieldName, label]) => (
-            <div key={fieldName} className={fieldName === 'organizationName' ? 'md:col-span-2' : ''}>
-              <FloatingInput
-                id={fieldName}
-                type={fieldName === 'email' ? 'email' : 'text'}
-                label={label}
-                value={String(formData[fieldName as keyof typeof formData] ?? '')}
-                onChange={(value) => {
-                  setFormData((previousValue) => ({ ...previousValue, [fieldName]: value }));
-                  markDirty();
-                }}
-              />
+              <div className="md:col-span-2">
+                <FloatingInput
+                  id="deliveryAddress"
+                  label="Naslov dostave"
+                  value={formData.deliveryAddress}
+                  onChange={(value) => {
+                    setFormData((previousValue) => ({ ...previousValue, deliveryAddress: value }));
+                    markDirty();
+                  }}
+                />
+              </div>
             </div>
-          ))}
+          </section>
 
-          <div className="md:col-span-2">
-            <FloatingInput
-              id="deliveryAddress"
-              label="Naslov dostave"
-              value={formData.deliveryAddress}
-              onChange={(value) => {
-                setFormData((previousValue) => ({ ...previousValue, deliveryAddress: value }));
-                markDirty();
-              }}
-            />
-          </div>
+          <section className="rounded-2xl border border-slate-200 bg-slate-50/40 p-4">
+            <h3 className="text-sm font-semibold text-slate-900">Uredi naročilo</h3>
+            <div className="mt-3 grid gap-4 md:grid-cols-2">
+              <div className="md:col-span-1">
+                <div className="relative">
+                  <label className="pointer-events-none absolute left-2.5 top-1.5 bg-white px-1 text-[10px] text-slate-600">Datum</label>
+                  <input
+                    type="date"
+                    lang="sl-SI"
+                    value={formData.orderDate}
+                    onChange={(event) => {
+                      setFormData((previousValue) => ({ ...previousValue, orderDate: event.target.value }));
+                      markDirty();
+                    }}
+                    className="h-10 w-full rounded-xl border border-slate-300 bg-white px-2.5 pt-4 text-xs"
+                  />
+                </div>
+              </div>
 
-          <div className="md:col-span-2">
-            <FloatingTextarea
-              id="notes"
-              label="Opombe"
-              rows={3}
-              value={formData.notes}
-              onChange={(value) => {
-                setFormData((previousValue) => ({ ...previousValue, notes: value }));
-                markDirty();
-              }}
-            />
-          </div>
+              <div className="md:col-span-1">
+                <StaticFloatingSelect
+                  id="customerType"
+                  label="Tip naročila"
+                  value={formData.customerType}
+                  onChange={(value) => {
+                    setFormData((previousValue) => ({ ...previousValue, customerType: value }));
+                    markDirty();
+                  }}
+                >
+                  {customerTypeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </StaticFloatingSelect>
+              </div>
+
+              <div className="md:col-span-2">
+                <FloatingTextarea
+                  id="notes"
+                  label="Opombe"
+                  rows={3}
+                  value={formData.notes}
+                  onChange={(value) => {
+                    setFormData((previousValue) => ({ ...previousValue, notes: value }));
+                    markDirty();
+                  }}
+                />
+              </div>
+            </div>
+          </section>
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/50">

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import AdminOrderEditForm from '@/components/admin/AdminOrderEditForm';
+import AdminOrderItemsEditor from '@/components/admin/AdminOrderItemsEditor';
 import AdminOrderPdfManager from '@/components/admin/AdminOrderPdfManager';
 import AdminOrderHeaderChips from '@/components/admin/AdminOrderHeaderChips';
 import AdminOrderOverviewCard from '@/components/admin/AdminOrderOverviewCard';
@@ -128,47 +129,7 @@ export default async function AdminOrderDetailPage({
                   </div>
                 </section>
 
-                <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <h2 className="text-lg font-semibold text-slate-900">Uredi naročilo</h2>
-                  <div className="mt-4 space-y-3">
-                    {items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div>
-                            <p className="font-semibold text-slate-900">{item.name}</p>
-                            <p className="text-slate-500">
-                              Količina: {item.quantity} {item.unit ?? ''}
-                            </p>
-                          </div>
-                          <div className="text-right text-sm text-slate-600">
-                            <p>Enota: {formatCurrency(item.unit_price)}</p>
-                            <p className="font-semibold text-slate-900">
-                              Skupaj: {formatCurrency(toAmount(item.unit_price) * item.quantity)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-
-                    <div className="rounded-xl border border-slate-100 bg-white p-4 text-sm text-slate-700">
-                      <div className="flex items-center justify-between">
-                        <span>Vmesni seštevek</span>
-                        <span className="font-semibold">{formatCurrency(subtotal)}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>DDV</span>
-                        <span className="font-semibold">{formatCurrency(tax)}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-base font-semibold text-slate-900">
-                        <span>Skupaj</span>
-                        <span>{formatCurrency(total)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </section>
+                <AdminOrderItemsEditor orderId={1} items={items} />
               </div>
 
               <aside className="w-full min-w-0 space-y-5">
@@ -183,8 +144,7 @@ export default async function AdminOrderDetailPage({
                   reference={order.reference}
                   notes={order.notes}
                   createdAt={order.created_at}
-                  items={items}
-                />
+                  />
 
                 <AdminOrderPdfManager orderId={1} documents={documents} paymentStatus={order.payment_status} paymentNotes={order.payment_notes} />
               </aside>
@@ -277,47 +237,7 @@ export default async function AdminOrderDetailPage({
                 </div>
               </section>
 
-              <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-slate-900">Uredi naročilo</h2>
-                <div className="mt-4 space-y-3">
-                  {items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <p className="font-semibold text-slate-900">{item.name}</p>
-                          <p className="text-slate-500">
-                            Količina: {item.quantity} {item.unit ?? ''}
-                          </p>
-                        </div>
-                        <div className="text-right text-sm text-slate-600">
-                          <p>Enota: {formatCurrency(item.unit_price)}</p>
-                          <p className="font-semibold text-slate-900">
-                            Skupaj: {formatCurrency(toAmount(item.unit_price) * item.quantity)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-
-                  <div className="rounded-xl border border-slate-100 bg-white p-4 text-sm text-slate-700">
-                    <div className="flex items-center justify-between">
-                      <span>Vmesni seštevek</span>
-                      <span className="font-semibold">{formatCurrency(subtotal)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>DDV</span>
-                      <span className="font-semibold">{formatCurrency(tax)}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-base font-semibold text-slate-900">
-                      <span>Skupaj</span>
-                      <span>{formatCurrency(total)}</span>
-                    </div>
-                  </div>
-                </div>
-              </section>
+              <AdminOrderItemsEditor orderId={orderId} items={items} />
             </div>
 
             <aside className="w-full min-w-0 space-y-5">
@@ -332,7 +252,6 @@ export default async function AdminOrderDetailPage({
                 reference={safeOrder.reference}
                 notes={safeOrder.notes}
                 createdAt={safeOrder.created_at}
-                items={items}
               />
 
               <AdminOrderPdfManager orderId={orderId} documents={documents} paymentStatus={safeOrder.payment_status} paymentNotes={safeOrder.payment_notes} />

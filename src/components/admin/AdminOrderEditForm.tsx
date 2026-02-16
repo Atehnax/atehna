@@ -1,28 +1,6 @@
 'use client';
 
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
-
-type OrderItemInput = {
-  id: number;
-  sku: string;
-  name: string;
-  unit: string | null;
-  quantity: number;
-  unit_price: number | null;
-  total_price: number | null;
-  discount_percentage?: number;
-};
-
-type EditableItem = {
-  id: string;
-  persistedId?: number;
-  sku: string;
-  name: string;
-  unit: string;
-  quantity: number;
-  unitPrice: number;
-  discountPercentage: number;
-};
+import { type ReactNode, useEffect, useState } from 'react';
 
 type Props = {
   orderId: number;
@@ -35,7 +13,6 @@ type Props = {
   reference: string | null;
   notes: string | null;
   createdAt: string;
-  items: OrderItemInput[];
 };
 
 const customerTypeOptions = [
@@ -162,8 +139,7 @@ export default function AdminOrderEditForm({
   deliveryAddress,
   reference,
   notes,
-  createdAt,
-  items
+  createdAt
 }: Props) {
   const [formData, setFormData] = useState({
     customerType,
@@ -176,20 +152,6 @@ export default function AdminOrderEditForm({
     notes: notes?.trim() ? notes : '/',
     orderDate: toDateInputValue(createdAt)
   });
-  const editableItems = useMemo<EditableItem[]>(
-    () =>
-      items.map((item) => ({
-        id: `saved-${item.id}`,
-        persistedId: item.id,
-        sku: item.sku,
-        name: item.name,
-        unit: item.unit ?? 'kos',
-        quantity: item.quantity,
-        unitPrice: item.unit_price ?? 0,
-        discountPercentage: item.discount_percentage ?? 0
-      })),
-    [items]
-  );
   const [message, setMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -212,11 +174,6 @@ export default function AdminOrderEditForm({
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (editableItems.length === 0) {
-      setMessage('Naročilo mora vsebovati vsaj eno postavko.');
-      return;
-    }
-
     setMessage(null);
     setIsSaving(true);
     try {
@@ -229,27 +186,6 @@ export default function AdminOrderEditForm({
       if (!detailsResponse.ok) {
         const error = await detailsResponse.json().catch(() => ({}));
         throw new Error(error.message || 'Shranjevanje kontaktnih podatkov ni uspelo.');
-      }
-
-      const itemsResponse = await fetch(`/api/admin/orders/${orderId}/items`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: editableItems.map((item) => ({
-            id: item.persistedId,
-            sku: item.sku,
-            name: item.name,
-            unit: item.unit,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            discountPercentage: item.discountPercentage
-          }))
-        })
-      });
-
-      if (!itemsResponse.ok) {
-        const error = await itemsResponse.json().catch(() => ({}));
-        throw new Error(error.message || 'Shranjevanje postavk ni uspelo.');
       }
 
       setMessage('Podatki naročila so posodobljeni. Ustvarite novo verzijo PDF dokumentov.');

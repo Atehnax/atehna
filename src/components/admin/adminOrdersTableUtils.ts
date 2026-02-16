@@ -106,7 +106,7 @@ export const columnWidths = {
   total: '85px',
   date: '104px',
   documents: 'auto',
-  edit: '36px'
+  edit: '32px'
 };
 
 const currencyFormatter = new Intl.NumberFormat('sl-SI', {

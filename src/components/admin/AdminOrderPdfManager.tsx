@@ -69,6 +69,27 @@ function PencilIcon() {
   );
 }
 
+function UploadIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M3.5 13.5v2.5h13v-2.5" />
+      <path d="M10 4v8" />
+      <path d="M6.5 7.5L10 4l3.5 3.5" />
+    </svg>
+  );
+}
+
+function GeneratePdfIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M6 2.8h6.2l3 3V17H6z" />
+      <path d="M12.2 2.8v3h3" />
+      <path d="M8 10h4" />
+      <path d="M10 8v4" />
+    </svg>
+  );
+}
+
 export default function AdminOrderPdfManager({
   orderId,
   documents,
@@ -92,8 +113,6 @@ export default function AdminOrderPdfManager({
   const [persistedNotes, setPersistedNotes] = useState<string>(paymentNotes ?? '');
   const [draftNotes, setDraftNotes] = useState<string>(paymentNotes ?? '');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
-
-  const [pdfSectionMode, setPdfSectionMode] = useState<SectionMode>('read');
 
   const [message, setMessage] = useState<string | null>(null);
 
@@ -120,7 +139,6 @@ export default function AdminOrderPdfManager({
   }, [docList]);
 
   const notesSaveDisabled = notesSectionMode === 'read' || isSavingNotes;
-  const pdfSaveDisabled = pdfSectionMode === 'read';
 
   const toggleNotesEdit = () => {
     if (notesSectionMode === 'edit') {
@@ -130,15 +148,6 @@ export default function AdminOrderPdfManager({
     }
     setDraftNotes(persistedNotes);
     setNotesSectionMode('edit');
-  };
-
-  const togglePdfEdit = () => {
-    if (pdfSectionMode === 'edit') {
-      setUploadFile({});
-      setPdfSectionMode('read');
-      return;
-    }
-    setPdfSectionMode('edit');
   };
 
   const saveNotes = async () => {
@@ -165,15 +174,7 @@ export default function AdminOrderPdfManager({
     }
   };
 
-  const savePdfSection = () => {
-    if (pdfSaveDisabled) return;
-    setPdfSectionMode('read');
-    setMessage('Spremembe PDF sekcije so shranjene.');
-  };
-
   const handleGenerate = async (type: PdfTypeKey) => {
-    if (pdfSectionMode === 'read') return;
-
     setLoadingType(type);
     setMessage(null);
     try {
@@ -209,8 +210,6 @@ export default function AdminOrderPdfManager({
   };
 
   const handleUpload = async (type: PdfTypeKey) => {
-    if (pdfSectionMode === 'read') return;
-
     const file = uploadFile[type];
     if (!file) return;
     setUploadingType(type);
@@ -253,7 +252,6 @@ export default function AdminOrderPdfManager({
   };
 
   const handleDeleteDocument = (documentId: number) => {
-    if (pdfSectionMode === 'read') return;
     setConfirmDeleteDocumentId(documentId);
   };
 
@@ -282,31 +280,7 @@ export default function AdminOrderPdfManager({
 
   return (
     <section className="w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-base font-semibold text-slate-900">PDF dokumenti</h2>
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={togglePdfEdit}
-            title="Uredi"
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100"
-            aria-label="Uredi PDF dokumente"
-          >
-            <PencilIcon />
-          </button>
-          <button
-            type="button"
-            onClick={savePdfSection}
-            disabled={pdfSaveDisabled}
-            title="Shrani"
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
-            aria-label="Shrani PDF dokumente"
-          >
-            <SaveIcon />
-          </button>
-        </div>
-      </div>
-
+      <h2 className="text-base font-semibold text-slate-900">PDF dokumenti</h2>
       {message ? <p className="mt-2 text-xs text-slate-600">{message}</p> : null}
 
       <div className="mt-4 rounded-2xl border border-slate-200/80 p-3.5">
@@ -340,10 +314,12 @@ export default function AdminOrderPdfManager({
             value={draftNotes}
             onChange={(event) => setDraftNotes(event.target.value)}
             rows={2}
-            className="mt-2 min-h-[72px] w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-[12px] leading-5 text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            className="mt-2 h-[88px] w-full resize-none overflow-y-auto rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-[12px] leading-5 text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           />
         ) : (
-          <p className="mt-2 whitespace-pre-wrap text-[12px] leading-5 text-slate-900">{persistedNotes.trim() || '/'}</p>
+          <p className="mt-2 h-[88px] overflow-y-auto whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-[12px] leading-5 text-slate-900">
+            {persistedNotes.trim() || '/'}
+          </p>
         )}
       </div>
 
@@ -364,17 +340,23 @@ export default function AdminOrderPdfManager({
                   <button
                     type="button"
                     onClick={() => void handleGenerate(pdfType.key)}
-                    disabled={pdfSectionMode === 'read' || loadingType === pdfType.key}
-                    className="rounded-full bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                    disabled={loadingType === pdfType.key}
+                    title="Ustvari"
+                    aria-label={`Ustvari ${pdfType.label}`}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-brand-600 text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
                   >
-                    {loadingType === pdfType.key ? 'Generiram ...' : 'Ustvari'}
+                    <GeneratePdfIcon />
                   </button>
-                  <label className="rounded-full border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:border-brand-200 hover:text-brand-600">
+
+                  <label
+                    title="Naloži"
+                    aria-label={`Naloži ${pdfType.label}`}
+                    className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-brand-200 hover:text-brand-600"
+                  >
                     <input
                       type="file"
                       accept="application/pdf"
                       className="hidden"
-                      disabled={pdfSectionMode === 'read'}
                       onChange={(event) =>
                         setUploadFile((prev) => ({
                           ...prev,
@@ -382,17 +364,18 @@ export default function AdminOrderPdfManager({
                         }))
                       }
                     />
-                    Naloži
+                    <UploadIcon />
                   </label>
+
                   <button
                     type="button"
                     onClick={() => void handleUpload(pdfType.key)}
-                    disabled={
-                      pdfSectionMode === 'read' || !uploadFile[pdfType.key] || uploadingType === pdfType.key
-                    }
-                    className="rounded-full border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 transition hover:border-brand-200 hover:text-brand-600 disabled:cursor-not-allowed disabled:text-slate-300"
+                    disabled={!uploadFile[pdfType.key] || uploadingType === pdfType.key}
+                    title="Shrani"
+                    aria-label={`Shrani naložen ${pdfType.label}`}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-brand-200 hover:text-brand-600 disabled:cursor-not-allowed disabled:text-slate-300"
                   >
-                    {uploadingType === pdfType.key ? 'Nalaganje ...' : 'Shrani'}
+                    <SaveIcon />
                   </button>
                 </div>
               </div>
@@ -466,7 +449,7 @@ export default function AdminOrderPdfManager({
                               <button
                                 type="button"
                                 onClick={() => handleDeleteDocument(doc.id)}
-                                disabled={pdfSectionMode === 'read' || deletingDocumentId === doc.id}
+                                disabled={deletingDocumentId === doc.id}
                                 className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-rose-200 text-sm font-semibold leading-none text-rose-600 hover:bg-rose-50 disabled:text-slate-300"
                                 aria-label={`Izbriši dokument ${doc.filename}`}
                                 title="Izbriši"

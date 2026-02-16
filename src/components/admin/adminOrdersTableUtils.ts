@@ -136,6 +136,14 @@ export const getMergedOrderStatusValue = (status: string): StatusTab | 'unknown'
 export const getOrderStatusLabelForUi = (status: string) => getStatusLabel(status);
 
 
+
+export const getNumericOrderNumber = (orderNumber: string) => {
+  const match = orderNumber.trim().match(/(\d+)(?!.*\d)/);
+  if (!match) return Number.NEGATIVE_INFINITY;
+  const parsed = Number(match[1]);
+  return Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
+};
+
 export const toDisplayOrderNumber = (orderNumber: string) => {
   const trimmed = orderNumber.trim();
   if (!trimmed) return orderNumber;

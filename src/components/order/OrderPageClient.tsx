@@ -37,7 +37,6 @@ type OrderFormData = {
   firstName: string;
   lastName: string;
   organizationName: string;
-  organizationContactName: string;
   addressLine1: string;
   city: string;
   postalCode: string;
@@ -73,7 +72,6 @@ const initialForm: OrderFormData = {
   firstName: '',
   lastName: '',
   organizationName: '',
-  organizationContactName: '',
   addressLine1: '',
   city: '',
   postalCode: '',
@@ -342,7 +340,7 @@ export default function OrderPageClient() {
       return Boolean(formData.firstName.trim() && formData.lastName.trim());
     }
 
-    return Boolean(formData.organizationName.trim() && formData.organizationContactName.trim());
+    return Boolean(formData.organizationName.trim());
   }, [
     emailIsValid,
     formData.addressLine1,
@@ -350,7 +348,6 @@ export default function OrderPageClient() {
     formData.customerType,
     formData.firstName,
     formData.lastName,
-    formData.organizationContactName,
     formData.organizationName,
     formData.postalCode,
     items.length
@@ -387,10 +384,8 @@ export default function OrderPageClient() {
     setIsSubmitting(true);
 
     try {
-      const recipientName =
-        formData.customerType === 'individual'
-          ? `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim()
-          : formData.organizationContactName.trim();
+      const individualName = `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
+      const recipientName = formData.organizationName.trim() || individualName;
 
       const deliveryAddressLines = composeDeliveryAddressLines(formData);
 
@@ -749,27 +744,13 @@ export default function OrderPageClient() {
                   <div className="md:col-span-2">
                     <FloatingInput
                       id="organizationName"
-                      label="Naziv organizacije *"
+                      label="Naročnik *"
                       disabled={shippingDetailsLocked}
                       value={formData.organizationName}
                       onChange={(event) =>
                         setFormData((previous) => ({
                           ...previous,
                           organizationName: event.target.value
-                        }))
-                      }
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <FloatingInput
-                      id="organizationContactName"
-                      label="Kontaktna oseba *"
-                      disabled={shippingDetailsLocked}
-                      value={formData.organizationContactName}
-                      onChange={(event) =>
-                        setFormData((previous) => ({
-                          ...previous,
-                          organizationContactName: event.target.value
                         }))
                       }
                     />

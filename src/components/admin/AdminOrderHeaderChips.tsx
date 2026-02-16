@@ -70,7 +70,7 @@ const asTopData = ({
 }): TopData => ({
   orderDate: toDateInputValue(createdAt),
   customerType,
-  organizationName: organizationName ?? '',
+  organizationName: organizationName?.trim() ? organizationName : contactName,
   contactName,
   email,
   deliveryAddress: deliveryAddress ?? '',
@@ -229,7 +229,13 @@ export default function AdminOrderHeaderChips(props: Props) {
   const topSaveDisabled = topSectionMode === 'read' || isTopSaving;
 
   const startEdit = () => {
-    if (topSectionMode === 'edit') return;
+    if (topSectionMode === 'edit') {
+      setDraftTopData({ ...persistedTopData });
+      setTopSectionMode('read');
+      setMessage(null);
+      return;
+    }
+
     setDraftTopData({ ...persistedTopData });
     setTopSectionMode('edit');
     setMessage(null);
@@ -263,7 +269,7 @@ export default function AdminOrderHeaderChips(props: Props) {
           body: JSON.stringify({
             customerType: draftTopData.customerType,
             organizationName: draftTopData.organizationName,
-            contactName: draftTopData.contactName,
+            contactName: draftTopData.organizationName.trim() || draftTopData.contactName.trim(),
             email: draftTopData.email,
             deliveryAddress: draftTopData.deliveryAddress,
             notes: draftTopData.notes,
@@ -283,7 +289,7 @@ export default function AdminOrderHeaderChips(props: Props) {
         new CustomEvent('admin-order-details-updated', {
           detail: {
             organizationName: draftTopData.organizationName,
-            contactName: draftTopData.contactName,
+            contactName: draftTopData.organizationName.trim() || draftTopData.contactName.trim(),
             customerType: draftTopData.customerType,
             email: draftTopData.email,
             deliveryAddress: draftTopData.deliveryAddress,
@@ -407,18 +413,10 @@ export default function AdminOrderHeaderChips(props: Props) {
             onChange={(value) => setDraftTopData((prev) => ({ ...prev, customerType: value }))}
           />
 
-          <div className="md:col-span-2">
-            <StableFloatingInput
-              label="Naročnik"
-              value={activeTopData.organizationName}
-              onChange={(value) => setDraftTopData((prev) => ({ ...prev, organizationName: value }))}
-            />
-          </div>
-
           <StableFloatingInput
-            label="Kontakt"
-            value={activeTopData.contactName}
-            onChange={(value) => setDraftTopData((prev) => ({ ...prev, contactName: value }))}
+            label="Naročnik"
+            value={activeTopData.organizationName}
+            onChange={(value) => setDraftTopData((prev) => ({ ...prev, organizationName: value }))}
           />
 
           <StableFloatingInput
@@ -428,21 +426,17 @@ export default function AdminOrderHeaderChips(props: Props) {
             onChange={(value) => setDraftTopData((prev) => ({ ...prev, email: value }))}
           />
 
-          <div className="md:col-span-2">
-            <StableFloatingInput
-              label="Naslov"
-              value={activeTopData.deliveryAddress}
-              onChange={(value) => setDraftTopData((prev) => ({ ...prev, deliveryAddress: value }))}
-            />
-          </div>
+          <StableFloatingInput
+            label="Naslov"
+            value={activeTopData.deliveryAddress}
+            onChange={(value) => setDraftTopData((prev) => ({ ...prev, deliveryAddress: value }))}
+          />
 
-          <div className="md:col-span-2">
-            <StableFloatingTextarea
-              label="Opombe"
-              value={activeTopData.notes}
-              onChange={(value) => setDraftTopData((prev) => ({ ...prev, notes: value }))}
-            />
-          </div>
+          <StableFloatingTextarea
+            label="Opombe"
+            value={activeTopData.notes}
+            onChange={(value) => setDraftTopData((prev) => ({ ...prev, notes: value }))}
+          />
         </div>
       ) : (
         <div className="mt-4 grid gap-3 text-[12px] md:grid-cols-2">
@@ -459,23 +453,19 @@ export default function AdminOrderHeaderChips(props: Props) {
               )}
             </p>
           </div>
-          <div className="md:col-span-2">
+          <div>
             <p className="text-sm font-semibold text-slate-700">Naročnik</p>
             <p className="mt-1 text-xs text-slate-900">{displayValue(activeTopData.organizationName)}</p>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-slate-700">Kontakt</p>
-            <p className="mt-1 text-xs text-slate-900">{displayValue(activeTopData.contactName)}</p>
           </div>
           <div>
             <p className="text-sm font-semibold text-slate-700">Email</p>
             <p className="mt-1 text-xs text-slate-900">{displayValue(activeTopData.email)}</p>
           </div>
-          <div className="md:col-span-2">
+          <div>
             <p className="text-sm font-semibold text-slate-700">Naslov</p>
             <p className="mt-1 text-xs text-slate-900">{displayValue(activeTopData.deliveryAddress)}</p>
           </div>
-          <div className="md:col-span-2">
+          <div>
             <p className="text-sm font-semibold text-slate-700">Opombe</p>
             <p className="mt-1 whitespace-pre-wrap text-xs text-slate-900">{displayValue(activeTopData.notes)}</p>
           </div>

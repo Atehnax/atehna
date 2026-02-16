@@ -157,7 +157,13 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
   };
 
   const startItemsEdit = () => {
-    if (itemsSectionMode === 'edit') return;
+    if (itemsSectionMode === 'edit') {
+      setDraftItems(cloneEditableItems(persistedItems));
+      setItemsSectionMode('read');
+      setMessage(null);
+      return;
+    }
+
     setDraftItems(cloneEditableItems(persistedItems));
     setItemsSectionMode('edit');
     setMessage(null);

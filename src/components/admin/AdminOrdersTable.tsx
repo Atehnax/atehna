@@ -27,6 +27,7 @@ import {
   formatOrderAddress,
   getMergedOrderStatusValue,
   getOrderStatusLabelForUi,
+  getNumericOrderNumber,
   normalizeForSearch,
   shiftDateByDays,
   statusTabs,
@@ -349,6 +350,8 @@ export default function AdminOrdersTable({
 
     const sortedOrders = [...filteredOrders].sort((leftOrder, rightOrder) => {
       const sortMultiplier = sortDirection === 'asc' ? 1 : -1;
+      const leftOrderNumber = getNumericOrderNumber(leftOrder.order_number);
+      const rightOrderNumber = getNumericOrderNumber(rightOrder.order_number);
 
       let leftValue: string | number;
       let rightValue: string | number;
@@ -383,17 +386,36 @@ export default function AdminOrdersTable({
           rightValue = toAmount(rightOrder.total);
           break;
         case 'created_at':
-        default:
-          leftValue = new Date(leftOrder.created_at).getTime();
-          rightValue = new Date(rightOrder.created_at).getTime();
+        default: {
+          const leftDate = new Date(leftOrder.created_at);
+          const rightDate = new Date(rightOrder.created_at);
+          leftDate.setHours(0, 0, 0, 0);
+          rightDate.setHours(0, 0, 0, 0);
+          leftValue = leftDate.getTime();
+          rightValue = rightDate.getTime();
           break;
+        }
       }
 
       if (typeof leftValue === 'number' && typeof rightValue === 'number') {
-        return (leftValue - rightValue) * sortMultiplier;
+        const primaryResult = (leftValue - rightValue) * sortMultiplier;
+        if (primaryResult !== 0) return primaryResult;
+
+        if (sortKey === 'created_at') {
+          return rightOrderNumber - leftOrderNumber;
+        }
+
+        return 0;
       }
 
-      return textCollator.compare(String(leftValue), String(rightValue)) * sortMultiplier;
+      const textResult = textCollator.compare(String(leftValue), String(rightValue)) * sortMultiplier;
+      if (textResult !== 0) return textResult;
+
+      if (sortKey === 'created_at') {
+        return rightOrderNumber - leftOrderNumber;
+      }
+
+      return 0;
     });
 
     return sortedOrders;

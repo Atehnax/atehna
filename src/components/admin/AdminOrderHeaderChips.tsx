@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PaymentChip from '@/components/admin/PaymentChip';
 import StatusChip from '@/components/admin/StatusChip';
@@ -137,15 +137,23 @@ function StableFloatingTextarea({
   onChange: (value: string) => void;
 }) {
   const filled = String(value ?? '').length > 0;
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    if (!textareaRef.current) return;
+    textareaRef.current.style.height = '0px';
+    textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+  }, [value]);
 
   return (
     <div className="group relative" data-filled={filled ? 'true' : 'false'}>
       <textarea
-        rows={1}
+        ref={textareaRef}
+        rows={2}
         value={value}
         placeholder=" "
         onChange={(event) => onChange(event.target.value)}
-        className="h-12 w-full resize-none overflow-visible rounded-xl border border-slate-300 bg-white px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+        className="min-h-[48px] w-full overflow-hidden rounded-xl border border-slate-300 bg-white px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
       />
       <label className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 bg-white px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600">
         {label}

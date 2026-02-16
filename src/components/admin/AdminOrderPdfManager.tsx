@@ -11,6 +11,7 @@ type PdfDocument = {
 };
 
 type PdfTypeKey = 'order_summary' | 'purchase_order' | 'predracun' | 'dobavnica' | 'invoice';
+type SectionMode = 'read' | 'edit';
 
 type PdfTypeConfig = {
   key: PdfTypeKey;
@@ -49,6 +50,25 @@ const formatTimestamp = (value: string) =>
     timeStyle: 'short'
   });
 
+function SaveIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M4 3h9l3 3v11H4z" />
+      <path d="M7 3v5h6V3" />
+      <path d="M7 13h6" />
+    </svg>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
+      <path d="M11.5 4.5l3 3" />
+    </svg>
+  );
+}
+
 export default function AdminOrderPdfManager({
   orderId,
   documents,
@@ -67,9 +87,15 @@ export default function AdminOrderPdfManager({
   const [expandedByType, setExpandedByType] = useState<Partial<Record<PdfTypeKey, boolean>>>({});
   const [deletingDocumentId, setDeletingDocumentId] = useState<number | null>(null);
   const [confirmDeleteDocumentId, setConfirmDeleteDocumentId] = useState<number | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [notes, setNotes] = useState<string>(paymentNotes ?? '');
+
+  const [notesSectionMode, setNotesSectionMode] = useState<SectionMode>('read');
+  const [persistedNotes, setPersistedNotes] = useState<string>(paymentNotes ?? '');
+  const [draftNotes, setDraftNotes] = useState<string>(paymentNotes ?? '');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+
+  const [pdfSectionMode, setPdfSectionMode] = useState<SectionMode>('read');
+
+  const [message, setMessage] = useState<string | null>(null);
 
   const grouped = useMemo(() => {
     const map: Record<PdfTypeKey, PdfDocument[]> = {
@@ -93,7 +119,61 @@ export default function AdminOrderPdfManager({
     return map;
   }, [docList]);
 
+  const notesSaveDisabled = notesSectionMode === 'read' || isSavingNotes;
+  const pdfSaveDisabled = pdfSectionMode === 'read';
+
+  const toggleNotesEdit = () => {
+    if (notesSectionMode === 'edit') {
+      setDraftNotes(persistedNotes);
+      setNotesSectionMode('read');
+      return;
+    }
+    setDraftNotes(persistedNotes);
+    setNotesSectionMode('edit');
+  };
+
+  const togglePdfEdit = () => {
+    if (pdfSectionMode === 'edit') {
+      setUploadFile({});
+      setPdfSectionMode('read');
+      return;
+    }
+    setPdfSectionMode('edit');
+  };
+
+  const saveNotes = async () => {
+    if (notesSaveDisabled) return;
+
+    setIsSavingNotes(true);
+    setMessage(null);
+    try {
+      const response = await fetch(`/api/admin/orders/${orderId}/payment-status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: paymentStatus ?? 'unpaid', note: draftNotes })
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        setMessage(body.message || 'Shranjevanje opomb ni uspelo.');
+        return;
+      }
+      setPersistedNotes(draftNotes);
+      setNotesSectionMode('read');
+      setMessage('Opombe so shranjene.');
+    } finally {
+      setIsSavingNotes(false);
+    }
+  };
+
+  const savePdfSection = () => {
+    if (pdfSaveDisabled) return;
+    setPdfSectionMode('read');
+    setMessage('Spremembe PDF sekcije so shranjene.');
+  };
+
   const handleGenerate = async (type: PdfTypeKey) => {
+    if (pdfSectionMode === 'read') return;
+
     setLoadingType(type);
     setMessage(null);
     try {
@@ -129,6 +209,8 @@ export default function AdminOrderPdfManager({
   };
 
   const handleUpload = async (type: PdfTypeKey) => {
+    if (pdfSectionMode === 'read') return;
+
     const file = uploadFile[type];
     if (!file) return;
     setUploadingType(type);
@@ -146,7 +228,13 @@ export default function AdminOrderPdfManager({
         setMessage(body.message || 'Nalaganje PDF ni uspelo.');
         return;
       }
-      const payload = (await response.json()) as { id: number; url: string; filename: string; createdAt: string; type: string };
+      const payload = (await response.json()) as {
+        id: number;
+        url: string;
+        filename: string;
+        createdAt: string;
+        type: string;
+      };
       setMessage('PDF je uspešno naložen.');
       setDocList((prev) => [
         {
@@ -165,6 +253,7 @@ export default function AdminOrderPdfManager({
   };
 
   const handleDeleteDocument = (documentId: number) => {
+    if (pdfSectionMode === 'read') return;
     setConfirmDeleteDocumentId(documentId);
   };
 
@@ -191,51 +280,71 @@ export default function AdminOrderPdfManager({
     }
   };
 
-
-  const saveNotes = async () => {
-    setIsSavingNotes(true);
-    setMessage(null);
-    try {
-      const response = await fetch(`/api/admin/orders/${orderId}/payment-status`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: paymentStatus ?? 'unpaid', note: notes })
-      });
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        setMessage(body.message || 'Shranjevanje opomb ni uspelo.');
-        return;
-      }
-      setMessage('Opombe so shranjene.');
-    } finally {
-      setIsSavingNotes(false);
-    }
-  };
-
   return (
     <section className="w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-base font-semibold text-slate-900">PDF dokumenti</h2>
-      {message ? <p className="mt-2 text-xs text-slate-600">{message}</p> : null}
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-base font-semibold text-slate-900">PDF dokumenti</h2>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={togglePdfEdit}
+            title="Uredi"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100"
+            aria-label="Uredi PDF dokumente"
+          >
+            <PencilIcon />
+          </button>
+          <button
+            type="button"
+            onClick={savePdfSection}
+            disabled={pdfSaveDisabled}
+            title="Shrani"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+            aria-label="Shrani PDF dokumente"
+          >
+            <SaveIcon />
+          </button>
+        </div>
+      </div>
 
+      {message ? <p className="mt-2 text-xs text-slate-600">{message}</p> : null}
 
       <div className="mt-4 rounded-2xl border border-slate-200/80 p-3.5">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-semibold text-slate-900">Opombe</p>
-          <button
-            type="button"
-            onClick={saveNotes}
-            disabled={isSavingNotes}
-            className="h-7 rounded-full border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:text-slate-300"
-          >
-            {isSavingNotes ? 'Shranjujem ...' : 'Shrani'}
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={toggleNotesEdit}
+              title="Uredi"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100"
+              aria-label="Uredi opombe"
+            >
+              <PencilIcon />
+            </button>
+            <button
+              type="button"
+              onClick={() => void saveNotes()}
+              disabled={notesSaveDisabled}
+              title="Shrani"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+              aria-label="Shrani opombe"
+            >
+              <SaveIcon />
+            </button>
+          </div>
         </div>
-        <textarea
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-          rows={2}
-          className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-[12px] text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-        />
+
+        {notesSectionMode === 'edit' ? (
+          <textarea
+            value={draftNotes}
+            onChange={(event) => setDraftNotes(event.target.value)}
+            rows={2}
+            className="mt-2 min-h-[72px] w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-[12px] leading-5 text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+          />
+        ) : (
+          <p className="mt-2 whitespace-pre-wrap text-[12px] leading-5 text-slate-900">{persistedNotes.trim() || '/'}</p>
+        )}
       </div>
 
       <div className="mt-4 space-y-4">
@@ -254,8 +363,8 @@ export default function AdminOrderPdfManager({
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => handleGenerate(pdfType.key)}
-                    disabled={loadingType === pdfType.key}
+                    onClick={() => void handleGenerate(pdfType.key)}
+                    disabled={pdfSectionMode === 'read' || loadingType === pdfType.key}
                     className="rounded-full bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
                   >
                     {loadingType === pdfType.key ? 'Generiram ...' : 'Ustvari'}
@@ -265,6 +374,7 @@ export default function AdminOrderPdfManager({
                       type="file"
                       accept="application/pdf"
                       className="hidden"
+                      disabled={pdfSectionMode === 'read'}
                       onChange={(event) =>
                         setUploadFile((prev) => ({
                           ...prev,
@@ -276,8 +386,10 @@ export default function AdminOrderPdfManager({
                   </label>
                   <button
                     type="button"
-                    onClick={() => handleUpload(pdfType.key)}
-                    disabled={!uploadFile[pdfType.key] || uploadingType === pdfType.key}
+                    onClick={() => void handleUpload(pdfType.key)}
+                    disabled={
+                      pdfSectionMode === 'read' || !uploadFile[pdfType.key] || uploadingType === pdfType.key
+                    }
                     className="rounded-full border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 transition hover:border-brand-200 hover:text-brand-600 disabled:cursor-not-allowed disabled:text-slate-300"
                   >
                     {uploadingType === pdfType.key ? 'Nalaganje ...' : 'Shrani'}
@@ -287,7 +399,10 @@ export default function AdminOrderPdfManager({
 
               <div className="mt-3 border-t border-slate-100 pt-3">
                 {docs.length > 0 ? (
-                  <div id={`pdf-versions-${pdfType.key}`} className="rounded-xl border border-slate-200 bg-white p-2 text-[11px] leading-4 text-slate-600 shadow-inner">
+                  <div
+                    id={`pdf-versions-${pdfType.key}`}
+                    className="rounded-xl border border-slate-200 bg-white p-2 text-[11px] leading-4 text-slate-600 shadow-inner"
+                  >
                     <ul className="space-y-1">
                       {visibleDocs.map((doc, index) => {
                         const isNewest = index === 0;
@@ -298,7 +413,10 @@ export default function AdminOrderPdfManager({
                             className="rounded-lg border border-transparent px-2 py-1 transition hover:border-slate-200 hover:bg-slate-50"
                           >
                             <div className="grid min-w-0 grid-cols-[14px_minmax(0,1fr)_130px_24px] items-center gap-2">
-                              <span className="inline-flex h-3.5 w-3.5 items-center justify-center text-emerald-600" aria-hidden="true">
+                              <span
+                                className="inline-flex h-3.5 w-3.5 items-center justify-center text-emerald-600"
+                                aria-hidden="true"
+                              >
                                 {isNewest ? (
                                   <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="currentColor">
                                     <path d="M8 1.5a6.5 6.5 0 1 0 0 13a6.5 6.5 0 0 0 0-13Zm3.03 4.72a.75.75 0 0 1 0 1.06L7.66 10.65a.75.75 0 0 1-1.06 0L4.97 9.03a.75.75 0 1 1 1.06-1.06l1.1 1.1l2.84-2.85a.75.75 0 0 1 1.06 0Z" />
@@ -311,7 +429,9 @@ export default function AdminOrderPdfManager({
                                   href={doc.blob_url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className={`truncate text-brand-600 hover:text-brand-700 ${isNewest ? 'font-semibold' : 'font-medium'}`}
+                                  className={`truncate text-brand-600 hover:text-brand-700 ${
+                                    isNewest ? 'font-semibold' : 'font-medium'
+                                  }`}
                                   title={doc.filename}
                                 >
                                   {doc.filename}
@@ -326,7 +446,11 @@ export default function AdminOrderPdfManager({
                                       }))
                                     }
                                     className="shrink-0 text-xs font-semibold text-slate-500 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
-                                    aria-label={isExpanded ? `Skrij verzije za ${pdfType.label}` : `Pokaži vse verzije za ${pdfType.label}`}
+                                    aria-label={
+                                      isExpanded
+                                        ? `Skrij verzije za ${pdfType.label}`
+                                        : `Pokaži vse verzije za ${pdfType.label}`
+                                    }
                                     aria-expanded={isExpanded}
                                     aria-controls={`pdf-versions-${pdfType.key}`}
                                   >
@@ -335,12 +459,14 @@ export default function AdminOrderPdfManager({
                                 ) : null}
                               </div>
 
-                              <span className="text-right text-[11px] text-slate-500 whitespace-nowrap">{formatTimestamp(doc.created_at)}</span>
+                              <span className="whitespace-nowrap text-right text-[11px] text-slate-500">
+                                {formatTimestamp(doc.created_at)}
+                              </span>
 
                               <button
                                 type="button"
                                 onClick={() => handleDeleteDocument(doc.id)}
-                                disabled={deletingDocumentId === doc.id}
+                                disabled={pdfSectionMode === 'read' || deletingDocumentId === doc.id}
                                 className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-rose-200 text-sm font-semibold leading-none text-rose-600 hover:bg-rose-50 disabled:text-slate-300"
                                 aria-label={`Izbriši dokument ${doc.filename}`}
                                 title="Izbriši"
@@ -363,10 +489,16 @@ export default function AdminOrderPdfManager({
       </div>
 
       {confirmDeleteDocumentId !== null ? (
-        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-900/30 px-4" role="dialog" aria-modal="true">
+        <div
+          className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-900/30 px-4"
+          role="dialog"
+          aria-modal="true"
+        >
           <div className="w-full max-w-sm rounded-2xl bg-white p-4 shadow-xl">
             <p className="text-sm font-semibold text-slate-900">Izbris verzije PDF</p>
-            <p className="mt-2 text-xs text-slate-600">Ali ste prepričani, da želite izbrisati to verzijo PDF dokumenta?</p>
+            <p className="mt-2 text-xs text-slate-600">
+              Ali ste prepričani, da želite izbrisati to verzijo PDF dokumenta?
+            </p>
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
@@ -377,7 +509,7 @@ export default function AdminOrderPdfManager({
               </button>
               <button
                 type="button"
-                onClick={confirmDeleteDocument}
+                onClick={() => void confirmDeleteDocument()}
                 className="h-8 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-700"
               >
                 Izbriši
@@ -386,7 +518,6 @@ export default function AdminOrderPdfManager({
           </div>
         </div>
       ) : null}
-
     </section>
   );
 }

@@ -812,9 +812,9 @@ export default function AdminOrdersTable({
             <button
               type="button"
               onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-              className="h-11 min-w-[220px] rounded-xl border border-slate-300 bg-white px-2.5 text-left text-xs text-slate-700 hover:border-slate-400"
+              className="h-11 min-w-[220px] rounded-xl border border-slate-300 bg-white px-3 text-left text-xs text-slate-700 hover:border-slate-400"
             >
-              <span className="pointer-events-none absolute left-2.5 top-1.5 bg-white px-1 text-[10px] text-slate-600">Datum</span>
+              <span className="pointer-events-none absolute left-3 top-1.5 bg-white px-1 text-[10px] text-slate-600">Datum</span>
               <span className="mt-3 inline-flex w-full items-center gap-1.5 leading-none"> 
                 <svg
                   aria-hidden="true"
@@ -931,10 +931,10 @@ export default function AdminOrdersTable({
               type="text"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="ORD, naročnik, naslov, tip, status, plačilo..."
-              className="h-10 w-full rounded-xl border border-slate-300 px-2.5 pb-1 pt-4 text-xs"
+              placeholder="Naročilo, naročnik, naslov, tip, status, plačilo..."
+              className="h-10 w-full rounded-xl border border-slate-300 px-3 pb-1 pt-4 text-xs"
             />
-            <label className="pointer-events-none absolute left-2.5 top-1.5 bg-white px-1 text-[10px] text-slate-600">Iskanje</label>
+            <label className="pointer-events-none absolute left-3 top-1.5 bg-white px-1 text-[10px] text-slate-600">Iskanje</label>
           </div>
 
           <div>
@@ -1224,7 +1224,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="min-w-[150px] px-2 py-2 text-left normal-case">PDF datoteke</th>
+              <th className="min-w-[120px] px-2 py-2 text-left normal-case">PDF datoteke</th>
               <th className="px-2 py-2 text-center normal-case">Uredi</th>
             </tr>
           </thead>
@@ -1342,7 +1342,7 @@ export default function AdminOrdersTable({
                       {formatCurrency(order.total)}
                     </td>
 
-                    <td className="min-w-[150px] pl-1 pr-0 py-2 align-middle text-left" data-no-row-nav>
+                    <td className="min-w-[120px] pl-1 pr-0 py-2 align-middle text-left" data-no-row-nav>
                       <div className="flex justify-start">
                         <AdminOrdersPdfCell
                           orderId={order.id}

@@ -129,7 +129,7 @@ export default async function AdminOrderDetailPage({
                 </section>
 
                 <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <h2 className="text-lg font-semibold text-slate-900">Postavke</h2>
+                  <h2 className="text-lg font-semibold text-slate-900">Uredi naročilo</h2>
                   <div className="mt-4 space-y-3">
                     {items.map((item) => (
                       <div
@@ -274,6 +274,48 @@ export default async function AdminOrderDetailPage({
                     deliveryAddress={safeOrder.delivery_address}
                     notes={safeOrder.notes}
                   />
+                </div>
+              </section>
+
+              <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 className="text-lg font-semibold text-slate-900">Uredi naročilo</h2>
+                <div className="mt-4 space-y-3">
+                  {items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-slate-900">{item.name}</p>
+                          <p className="text-slate-500">
+                            Količina: {item.quantity} {item.unit ?? ''}
+                          </p>
+                        </div>
+                        <div className="text-right text-sm text-slate-600">
+                          <p>Enota: {formatCurrency(item.unit_price)}</p>
+                          <p className="font-semibold text-slate-900">
+                            Skupaj: {formatCurrency(toAmount(item.unit_price) * item.quantity)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="rounded-xl border border-slate-100 bg-white p-4 text-sm text-slate-700">
+                    <div className="flex items-center justify-between">
+                      <span>Vmesni seštevek</span>
+                      <span className="font-semibold">{formatCurrency(subtotal)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>DDV</span>
+                      <span className="font-semibold">{formatCurrency(tax)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-base font-semibold text-slate-900">
+                      <span>Skupaj</span>
+                      <span>{formatCurrency(total)}</span>
+                    </div>
+                  </div>
                 </div>
               </section>
             </div>

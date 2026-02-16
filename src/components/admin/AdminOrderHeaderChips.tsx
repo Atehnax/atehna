@@ -120,7 +120,18 @@ export default function AdminOrderHeaderChips({ orderId, orderNumber, status, pa
             className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100"
             aria-label="Uredi statuse"
           >
-            {isEditing ? "💾" : "✎"}
+            {isEditing ? (
+              <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M4 3h9l3 3v11H4z" />
+                <path d="M7 3v5h6V3" />
+                <path d="M7 13h6" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
+                <path d="M11.5 4.5l3 3" />
+              </svg>
+            )}
           </button>
 
           <button

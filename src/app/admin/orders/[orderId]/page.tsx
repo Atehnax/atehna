@@ -106,7 +106,7 @@ export default async function AdminOrderDetailPage({
           ) : null}
 
           <div className="mt-6 space-y-6">
-            <div className="grid items-stretch gap-6 lg:grid-cols-[2fr_1.5fr]">
+            <div className="grid items-start gap-6 lg:grid-cols-[2fr_1.5fr]">
               <section className="h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <AdminOrderHeaderChips
                   orderId={1}
@@ -126,9 +126,13 @@ export default async function AdminOrderDetailPage({
                   />
                 </div>
               </section>
+
+              <aside className="w-full min-w-0 space-y-5">
+                <AdminOrderPdfManager orderId={1} documents={documents} paymentStatus={order.payment_status} paymentNotes={order.payment_notes} />
+              </aside>
             </div>
 
-            <div className="grid items-start gap-6 lg:grid-cols-[2fr_1.5fr]">
+            <div>
               <div className="space-y-6">
                 <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                   <h2 className="text-lg font-semibold text-slate-900">Postavke</h2>
@@ -186,10 +190,6 @@ export default async function AdminOrderDetailPage({
                   items={items}
                 />
               </div>
-
-              <aside className="w-full min-w-0 space-y-5">
-                <AdminOrderPdfManager orderId={1} documents={documents} paymentStatus={order.payment_status} paymentNotes={order.payment_notes} />
-              </aside>
             </div>
           </div>
         </div>
@@ -257,7 +257,7 @@ export default async function AdminOrderDetailPage({
         ) : null}
 
         <div className="mt-4 space-y-6">
-          <div className="grid items-stretch gap-6 lg:grid-cols-[2fr_1.5fr]">
+          <div className="grid items-start gap-6 lg:grid-cols-[2fr_1.5fr]">
             <section className="h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <AdminOrderHeaderChips
                 orderId={orderId}
@@ -277,9 +277,13 @@ export default async function AdminOrderDetailPage({
                 />
               </div>
             </section>
+
+            <aside className="w-full min-w-0 space-y-5">
+              <AdminOrderPdfManager orderId={orderId} documents={documents} paymentStatus={safeOrder.payment_status} paymentNotes={safeOrder.payment_notes} />
+            </aside>
           </div>
 
-          <div className="grid items-start gap-6 lg:grid-cols-[2fr_1.5fr]">
+          <div>
             <div className="space-y-6">
               <AdminOrderEditForm
                 orderId={orderId}
@@ -295,10 +299,6 @@ export default async function AdminOrderDetailPage({
                 items={items}
               />
             </div>
-
-            <aside className="w-full min-w-0 space-y-5">
-              <AdminOrderPdfManager orderId={orderId} documents={documents} paymentStatus={safeOrder.payment_status} paymentNotes={safeOrder.payment_notes} />
-            </aside>
           </div>
         </div>
       </div>

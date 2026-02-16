@@ -261,7 +261,7 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <h2 className="text-lg font-semibold text-slate-900">Uredi naročilo</h2>
 
-      <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/50">
+      <div className="mt-4 min-h-[340px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/50">
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
           <h3 className="text-sm font-semibold text-slate-900">Postavke</h3>
           <div className="ml-auto flex items-center gap-1.5">
@@ -301,7 +301,7 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full text-[11px]">
+          <table className="min-w-full text-[11px] leading-5">
             <thead className="bg-white text-slate-600">
               <tr>
                 <th className="px-3 py-2 text-left">Artikel</th>
@@ -316,37 +316,37 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
               {activeItems.map((item) => {
                 const lineTotal = toMoney(item.quantity * item.unitPrice * (1 - item.discountPercentage / 100));
                 return (
-                  <tr key={item.id} className="border-t border-slate-200/80 bg-white/80">
-                    <td className="px-3 py-2">
-                      <p className="font-medium text-slate-900">{item.name}</p>
+                  <tr key={item.id} className="border-t border-slate-200/80 bg-white/80 align-middle">
+                    <td className="px-3 py-2 align-middle">
+                      <p className="text-[11px] leading-5 font-medium text-slate-900">{item.name}</p>
                     </td>
-                    <td className="px-2 py-2 text-center">
+                    <td className="px-2 py-2 align-middle text-center">
                       {itemsEditable ? (
                         <input
                           type="number"
                           min={1}
                           value={item.quantity}
                           onChange={(event) => updateItem(item.id, { quantity: Number(event.target.value) || 1 })}
-                          className="h-9 w-16 rounded-lg border border-slate-300 bg-white px-2 text-center shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                          className="h-7 w-14 rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-5 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-100"
                         />
                       ) : (
-                        <span className="text-slate-900">{item.quantity}</span>
+                        <span className="inline-flex h-7 items-center text-[11px] leading-5 text-slate-900">{item.quantity}</span>
                       )}
                     </td>
-                    <td className="px-2 py-2 text-center">
+                    <td className="px-2 py-2 align-middle text-center">
                       {itemsEditable ? (
                         <input
                           type="text"
                           inputMode="decimal"
                           value={formatDecimalInput(item.unitPrice)}
                           onChange={(event) => updateItem(item.id, { unitPrice: parseLocaleNumber(event.target.value) })}
-                          className="h-9 w-24 rounded-lg border border-slate-300 bg-white px-2 text-center shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                          className="h-7 w-20 rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-5 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-100"
                         />
                       ) : (
-                        <span className="text-slate-900">{formatCurrency(item.unitPrice)}</span>
+                        <span className="inline-flex h-7 items-center text-[11px] leading-5 text-slate-900">{formatCurrency(item.unitPrice)}</span>
                       )}
                     </td>
-                    <td className="px-2 py-2 text-center">
+                    <td className="px-2 py-2 align-middle text-center">
                       {itemsEditable ? (
                         <input
                           type="text"
@@ -355,14 +355,14 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
                           onChange={(event) =>
                             updateItem(item.id, { discountPercentage: parseLocaleNumber(event.target.value) })
                           }
-                          className="h-9 w-20 rounded-lg border border-slate-300 bg-white px-2 text-center shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                          className="h-7 w-16 rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-5 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-100"
                         />
                       ) : (
-                        <span className="text-slate-900">{formatDecimalInput(item.discountPercentage)} %</span>
+                        <span className="inline-flex h-7 items-center text-[11px] leading-5 text-slate-900">{formatDecimalInput(item.discountPercentage)} %</span>
                       )}
                     </td>
-                    <td className="px-2 py-2 text-right font-semibold text-slate-900">{formatCurrency(lineTotal)}</td>
-                    <td className="px-2 py-2 text-right">
+                    <td className="px-2 py-2 align-middle text-right font-semibold text-slate-900">{formatCurrency(lineTotal)}</td>
+                    <td className="px-2 py-2 align-middle text-right">
                       {itemsEditable ? (
                         <button
                           type="button"

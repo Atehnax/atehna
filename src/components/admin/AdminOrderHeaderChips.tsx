@@ -118,7 +118,7 @@ function StableFloatingInput({
         value={value}
         placeholder=" "
         onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full rounded-xl border border-slate-300 bg-white px-2.5 pb-1 pt-4 text-xs text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-2.5 pb-1 pt-4 text-xs leading-5 text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
       />
       <label className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 bg-white px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600">
         {label}
@@ -141,13 +141,13 @@ function StableFloatingTextarea({
   return (
     <div className="group relative" data-filled={filled ? 'true' : 'false'}>
       <textarea
-        rows={3}
+        rows={1}
         value={value}
         placeholder=" "
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-slate-300 bg-white px-2.5 pb-2 pt-5 text-xs text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+        className="h-11 w-full resize-none rounded-xl border border-slate-300 bg-white px-2.5 pb-1 pt-4 text-xs leading-5 text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
       />
-      <label className="pointer-events-none absolute left-2.5 top-5 -translate-y-1/2 bg-white px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600">
+      <label className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 bg-white px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600">
         {label}
       </label>
     </div>
@@ -172,7 +172,7 @@ function StaticFloatingDate({
         type="date"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full rounded-xl border border-slate-300 bg-white px-2.5 pb-1 pt-4 text-xs text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-2.5 pb-1 pt-4 text-xs leading-5 text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
       />
     </div>
   );
@@ -195,7 +195,7 @@ function StaticFloatingSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full appearance-none rounded-xl border border-slate-300 bg-white px-2.5 pb-1 pt-4 text-xs text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+        className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white px-2.5 pb-1 pt-4 text-xs leading-5 text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
       >
         {customerTypeOptions.map((option) => (
           <option key={option.value} value={option.value}>
@@ -400,7 +400,7 @@ export default function AdminOrderHeaderChips(props: Props) {
       </div>
 
       {topInputsEditable ? (
-        <div className="mt-4 grid gap-3 text-[12px] md:grid-cols-2">
+        <div className="mt-4 grid min-h-[132px] gap-3 text-[12px] md:grid-cols-2">
           <StaticFloatingDate
             label="Datum"
             value={activeTopData.orderDate}
@@ -439,35 +439,35 @@ export default function AdminOrderHeaderChips(props: Props) {
           />
         </div>
       ) : (
-        <div className="mt-4 grid gap-3 text-[12px] md:grid-cols-2">
-          <div>
+        <div className="mt-4 grid min-h-[132px] gap-3 text-[12px] md:grid-cols-2">
+          <div className="min-h-11">
             <p className="text-sm font-semibold text-slate-700">Datum</p>
-            <p className="mt-1 text-xs text-slate-900">{displayValue(activeTopData.orderDate)}</p>
+            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.orderDate)}</p>
           </div>
-          <div>
+          <div className="min-h-11">
             <p className="text-sm font-semibold text-slate-700">Tip naročnika</p>
-            <p className="mt-1 text-xs text-slate-900">
+            <p className="mt-0.5 text-xs leading-5 text-slate-900">
               {displayValue(
                 customerTypeOptions.find((option) => option.value === activeTopData.customerType)?.label ??
                   activeTopData.customerType
               )}
             </p>
           </div>
-          <div>
+          <div className="min-h-11">
             <p className="text-sm font-semibold text-slate-700">Naročnik</p>
-            <p className="mt-1 text-xs text-slate-900">{displayValue(activeTopData.organizationName)}</p>
+            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.organizationName)}</p>
           </div>
-          <div>
+          <div className="min-h-11">
             <p className="text-sm font-semibold text-slate-700">Email</p>
-            <p className="mt-1 text-xs text-slate-900">{displayValue(activeTopData.email)}</p>
+            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.email)}</p>
           </div>
-          <div>
+          <div className="min-h-11">
             <p className="text-sm font-semibold text-slate-700">Naslov</p>
-            <p className="mt-1 text-xs text-slate-900">{displayValue(activeTopData.deliveryAddress)}</p>
+            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.deliveryAddress)}</p>
           </div>
-          <div>
+          <div className="min-h-11">
             <p className="text-sm font-semibold text-slate-700">Opombe</p>
-            <p className="mt-1 whitespace-pre-wrap text-xs text-slate-900">{displayValue(activeTopData.notes)}</p>
+            <p className="mt-0.5 whitespace-pre-wrap text-xs leading-5 text-slate-900">{displayValue(activeTopData.notes)}</p>
           </div>
         </div>
       )}

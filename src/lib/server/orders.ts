@@ -385,11 +385,23 @@ export async function fetchOrderDocumentsForOrders(
 
 export async function fetchOrderAttachments(orderId: number): Promise<OrderAttachmentRow[]> {
   const pool = await getPool();
-  const result = await pool.query(
-    'select * from order_attachments where order_id = $1 order by created_at desc',
-    [orderId]
-  );
-  return result.rows.map((rawRow) => mapOrderAttachmentRow(rawRow as Record<string, unknown>));
+  try {
+    const result = await pool.query(
+      'select * from order_attachments where order_id = $1 order by created_at desc',
+      [orderId]
+    );
+    return result.rows.map((rawRow) => mapOrderAttachmentRow(rawRow as Record<string, unknown>));
+  } catch (error) {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as { code?: string }).code === '42P01'
+    ) {
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function fetchOrderAttachmentsForOrders(
@@ -397,11 +409,23 @@ export async function fetchOrderAttachmentsForOrders(
 ): Promise<OrderAttachmentRow[]> {
   if (orderIds.length === 0) return [];
   const pool = await getPool();
-  const result = await pool.query(
-    'select * from order_attachments where order_id = any($1::bigint[]) order by created_at desc',
-    [orderIds]
-  );
-  return result.rows.map((rawRow) => mapOrderAttachmentRow(rawRow as Record<string, unknown>));
+  try {
+    const result = await pool.query(
+      'select * from order_attachments where order_id = any($1::bigint[]) order by created_at desc',
+      [orderIds]
+    );
+    return result.rows.map((rawRow) => mapOrderAttachmentRow(rawRow as Record<string, unknown>));
+  } catch (error) {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as { code?: string }).code === '42P01'
+    ) {
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function fetchPaymentLogs(orderId: number): Promise<PaymentLogRow[]> {

@@ -105,8 +105,8 @@ export const columnWidths = {
   payment: '120px',
   total: '85px',
   date: '104px',
-  documents: '340px',
-  edit: '34px'
+  documents: '188px',
+  edit: '36px'
 };
 
 const currencyFormatter = new Intl.NumberFormat('sl-SI', {

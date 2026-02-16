@@ -1344,16 +1344,18 @@ export default function AdminOrdersTable({
                       {formatCurrency(order.total)}
                     </td>
 
-                    <td className="px-2 py-2 align-middle text-left align-middle pr-0" data-no-row-nav>
-                      <AdminOrdersPdfCell
-                        orderId={order.id}
-                        documents={documentsByOrder.get(order.id) ?? []}
-                        attachments={attachmentsByOrder.get(order.id) ?? []}
-                        interactionsDisabled={false}
-                      />
+                    <td className="pl-1 pr-0 py-2 align-middle text-right" data-no-row-nav>
+                      <div className="flex justify-end">
+                        <AdminOrdersPdfCell
+                          orderId={order.id}
+                          documents={documentsByOrder.get(order.id) ?? []}
+                          attachments={attachmentsByOrder.get(order.id) ?? []}
+                          interactionsDisabled={false}
+                        />
+                      </div>
                     </td>
 
-                    <td className="pl-1 pr-1 py-2 align-middle text-center" data-no-row-nav>
+                    <td className="pl-2 pr-1 py-2 align-middle text-center" data-no-row-nav>
                       <a
                         href={`/admin/orders/${order.id}`}
                         className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100"

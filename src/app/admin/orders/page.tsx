@@ -119,10 +119,26 @@ export default async function AdminOrdersPage({
       });
 
       const orderIds = orders.map((order) => order.id);
-      [documents, attachments] = await Promise.all([
+      const [documentsResult, attachmentsResult] = await Promise.allSettled([
         fetchOrderDocumentsForOrders(orderIds),
         fetchOrderAttachmentsForOrders(orderIds)
       ]);
+
+      if (documentsResult.status === 'fulfilled') {
+        documents = documentsResult.value;
+      } else {
+        console.error('Failed to load /admin/orders documents', documentsResult.reason);
+        warningMessage =
+          warningMessage ?? 'Nekaterih dokumentov ni bilo mogoče naložiti. Naročila so vseeno prikazana.';
+      }
+
+      if (attachmentsResult.status === 'fulfilled') {
+        attachments = attachmentsResult.value;
+      } else {
+        console.error('Failed to load /admin/orders attachments', attachmentsResult.reason);
+        warningMessage =
+          warningMessage ?? 'Nekaterih priponk ni bilo mogoče naložiti. Naročila so vseeno prikazana.';
+      }
     } catch (error) {
       console.error('Failed to load /admin/orders data', error);
       warningMessage =

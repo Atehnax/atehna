@@ -296,7 +296,7 @@ export async function fetchOrders(options?: {
     ) as computed_totals
       on computed_totals.order_id = orders.id
     ${whereClause}
-    order by orders.created_at desc, coalesce(nullif(regexp_replace(orders.order_number, '\D', '', 'g'), ''), '0')::bigint desc
+    order by orders.created_at desc, coalesce(nullif(regexp_replace(orders.order_number, '\D', '', 'g'), ''), '0')::numeric desc
     `,
     queryParams
   );
@@ -396,7 +396,7 @@ export async function fetchOrderAttachments(orderId: number): Promise<OrderAttac
       typeof error === 'object' &&
       error !== null &&
       'code' in error &&
-      (error as { code?: string }).code === '42P01'
+      ['42P01', '42501'].includes((error as { code?: string }).code ?? '')
     ) {
       return [];
     }
@@ -420,7 +420,7 @@ export async function fetchOrderAttachmentsForOrders(
       typeof error === 'object' &&
       error !== null &&
       'code' in error &&
-      (error as { code?: string }).code === '42P01'
+      ['42P01', '42501'].includes((error as { code?: string }).code ?? '')
     ) {
       return [];
     }
@@ -441,7 +441,7 @@ export async function fetchPaymentLogs(orderId: number): Promise<PaymentLogRow[]
       typeof error === 'object' &&
       error !== null &&
       'code' in error &&
-      (error as { code?: string }).code === '42P01'
+      ['42P01', '42501'].includes((error as { code?: string }).code ?? '')
     ) {
       return [];
     }

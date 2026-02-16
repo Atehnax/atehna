@@ -33,6 +33,7 @@ type EditableItem = {
 type ItemsSectionMode = 'read' | 'edit';
 
 const TAX_RATE = 0.22;
+const SHIPPING_AMOUNT = 0;
 const toMoney = (value: number) => Math.round(value * 100) / 100;
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }).format(value);
@@ -115,9 +116,10 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
     const subtotal = toMoney(
       activeItems.reduce((sum, item) => sum + item.quantity * item.unitPrice * (1 - item.discountPercentage / 100), 0)
     );
-    const tax = toMoney(subtotal * TAX_RATE);
-    const total = toMoney(subtotal + tax);
-    return { subtotal, tax, total };
+    const taxIncludedInfo = toMoney((subtotal * TAX_RATE) / (1 + TAX_RATE));
+    const shipping = toMoney(SHIPPING_AMOUNT);
+    const total = toMoney(subtotal + shipping);
+    return { subtotal, taxIncludedInfo, shipping, total };
   }, [activeItems]);
 
   const filteredChoices = useMemo(() => {
@@ -388,8 +390,12 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
             <span className="font-semibold">{formatCurrency(totals.subtotal)}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span>DDV</span>
-            <span className="font-semibold">{formatCurrency(totals.tax)}</span>
+            <span>Poštnina</span>
+            <span className="font-semibold">{formatCurrency(totals.shipping)}</span>
+          </div>
+          <div className="flex items-center justify-between text-slate-500">
+            <span>DDV (22 %) – informativno, že vštet v cene postavk</span>
+            <span className="font-semibold">{formatCurrency(totals.taxIncludedInfo)}</span>
           </div>
           <div className="flex items-center justify-between text-sm font-semibold text-slate-900">
             <span>Skupaj</span>

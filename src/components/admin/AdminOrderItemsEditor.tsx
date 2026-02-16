@@ -30,6 +30,8 @@ type EditableItem = {
   discountPercentage: number;
 };
 
+type ItemsSectionMode = 'read' | 'edit';
+
 const TAX_RATE = 0.22;
 const toMoney = (value: number) => Math.round(value * 100) / 100;
 const formatCurrency = (value: number) =>
@@ -44,6 +46,21 @@ const parseLocaleNumber = (value: string) => {
 
 const formatDecimalInput = (value: number) =>
   new Intl.NumberFormat('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+
+const mapIncomingItems = (sourceItems: OrderItemInput[]): EditableItem[] =>
+  sourceItems.map((item) => ({
+    id: `saved-${item.id}`,
+    persistedId: item.id,
+    sku: item.sku,
+    name: item.name,
+    unit: item.unit ?? 'kos',
+    quantity: item.quantity,
+    unitPrice: item.unit_price ?? 0,
+    discountPercentage: item.discount_percentage ?? 0
+  }));
+
+const cloneEditableItems = (sourceItems: EditableItem[]): EditableItem[] =>
+  sourceItems.map((item) => ({ ...item }));
 
 function SaveIcon() {
   return (
@@ -73,33 +90,35 @@ function PlusIcon() {
 }
 
 export default function AdminOrderItemsEditor({ orderId, items }: { orderId: number; items: OrderItemInput[] }) {
-  const [editableItems, setEditableItems] = useState<EditableItem[]>(
-    items.map((item) => ({
-      id: `saved-${item.id}`,
-      persistedId: item.id,
-      sku: item.sku,
-      name: item.name,
-      unit: item.unit ?? 'kos',
-      quantity: item.quantity,
-      unitPrice: item.unit_price ?? 0,
-      discountPercentage: item.discount_percentage ?? 0
-    }))
-  );
+  const [itemsSectionMode, setItemsSectionMode] = useState<ItemsSectionMode>('read');
+  const [persistedItems, setPersistedItems] = useState<EditableItem[]>(() => mapIncomingItems(items));
+  const [draftItems, setDraftItems] = useState<EditableItem[]>(() => mapIncomingItems(items));
+  const [isItemsSaving, setIsItemsSaving] = useState(false);
+
   const [catalogChoices, setCatalogChoices] = useState<CatalogChoice[]>([]);
   const [catalogQuery, setCatalogQuery] = useState('');
   const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+
+  const isItemsDirty = useMemo(
+    () => JSON.stringify(draftItems) !== JSON.stringify(persistedItems),
+    [draftItems, persistedItems]
+  );
+
+  const itemsEditable = itemsSectionMode === 'edit';
+  const itemsSaveDisabled = itemsSectionMode === 'read' || !isItemsDirty || isItemsSaving;
+  const addItemDisabled = itemsSectionMode === 'read';
+
+  const activeItems = itemsEditable ? draftItems : persistedItems;
 
   const totals = useMemo(() => {
     const subtotal = toMoney(
-      editableItems.reduce((sum, item) => sum + item.quantity * item.unitPrice * (1 - item.discountPercentage / 100), 0)
+      activeItems.reduce((sum, item) => sum + item.quantity * item.unitPrice * (1 - item.discountPercentage / 100), 0)
     );
     const tax = toMoney(subtotal * TAX_RATE);
     const total = toMoney(subtotal + tax);
     return { subtotal, tax, total };
-  }, [editableItems]);
+  }, [activeItems]);
 
   const filteredChoices = useMemo(() => {
     const normalizedQuery = catalogQuery.trim().toLocaleLowerCase('sl');
@@ -112,7 +131,8 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
   }, [catalogChoices, catalogQuery]);
 
   const updateItem = (id: string, updates: Partial<EditableItem>) => {
-    setEditableItems((currentItems) =>
+    if (!itemsEditable) return;
+    setDraftItems((currentItems) =>
       currentItems.map((item) => {
         if (item.id !== id) return item;
         const updated = { ...item, ...updates };
@@ -120,7 +140,10 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
           ...updated,
           quantity: Math.max(1, Number.isFinite(updated.quantity) ? Math.floor(updated.quantity) : 1),
           unitPrice: Math.max(0, Number.isFinite(updated.unitPrice) ? updated.unitPrice : 0),
-          discountPercentage: Math.min(100, Math.max(0, Number.isFinite(updated.discountPercentage) ? updated.discountPercentage : 0))
+          discountPercentage: Math.min(
+            100,
+            Math.max(0, Number.isFinite(updated.discountPercentage) ? updated.discountPercentage : 0)
+          )
         };
       })
     );
@@ -128,11 +151,20 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
   };
 
   const removeItem = (id: string) => {
-    setEditableItems((currentItems) => currentItems.filter((item) => item.id !== id));
+    if (!itemsEditable) return;
+    setDraftItems((currentItems) => currentItems.filter((item) => item.id !== id));
+    setMessage(null);
+  };
+
+  const startItemsEdit = () => {
+    setDraftItems(cloneEditableItems(persistedItems));
+    setItemsSectionMode('edit');
     setMessage(null);
   };
 
   const openAddItem = async () => {
+    if (addItemDisabled) return;
+
     setIsPickerOpen(true);
     if (catalogChoices.length > 0) return;
     const response = await fetch('/api/admin/catalog-items');
@@ -142,7 +174,9 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
   };
 
   const addCatalogItem = (choice: CatalogChoice) => {
-    setEditableItems((currentItems) => {
+    if (!itemsEditable) return;
+
+    setDraftItems((currentItems) => {
       const existing = currentItems.find((item) => item.sku === choice.sku);
       if (existing) {
         return currentItems.map((item) =>
@@ -167,20 +201,22 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
     setMessage(null);
   };
 
-  const saveItems = async (): Promise<boolean> => {
-    if (editableItems.length === 0) {
+  const saveItems = async () => {
+    if (itemsSaveDisabled) return;
+
+    if (draftItems.length === 0) {
       setMessage('Naročilo mora vsebovati vsaj eno postavko.');
-      return false;
+      return;
     }
 
-    setIsSaving(true);
+    setIsItemsSaving(true);
     setMessage(null);
     try {
       const response = await fetch(`/api/admin/orders/${orderId}/items`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: editableItems.map((item) => ({
+          items: draftItems.map((item) => ({
             id: item.persistedId,
             sku: item.sku,
             name: item.name,
@@ -197,14 +233,15 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
         throw new Error(error.message || 'Shranjevanje postavk ni uspelo.');
       }
 
+      const nextItems = cloneEditableItems(draftItems);
+      setPersistedItems(nextItems);
+      setDraftItems(cloneEditableItems(nextItems));
+      setItemsSectionMode('read');
       setMessage('Postavke so posodobljene.');
-      setIsEditing(false);
-      return true;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Napaka pri shranjevanju postavk.');
-      return false;
     } finally {
-      setIsSaving(false);
+      setIsItemsSaving(false);
     }
   };
 
@@ -218,28 +255,32 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
           <div className="ml-auto flex items-center gap-1.5">
             <button
               type="button"
+              aria-label="Uredi postavke"
+              onClick={startItemsEdit}
+              disabled={itemsEditable || isItemsSaving}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+            >
+              <PencilIcon />
+            </button>
+
+            <button
+              type="button"
+              aria-label="Shrani postavke"
+              onClick={() => void saveItems()}
+              disabled={itemsSaveDisabled}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+            >
+              <SaveIcon />
+            </button>
+
+            <button
+              type="button"
               aria-label="Dodaj postavko"
-              onClick={openAddItem}
-              disabled={!isEditing}
+              onClick={() => void openAddItem()}
+              disabled={addItemDisabled}
               className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
             >
               <PlusIcon />
-            </button>
-            <button
-              type="button"
-              aria-label="Uredi postavke"
-              onClick={() => {
-                if (isEditing) {
-                  void saveItems();
-                  return;
-                }
-                setIsEditing(true);
-                setMessage(null);
-              }}
-              disabled={isSaving}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
-            >
-              {isEditing ? <SaveIcon /> : <PencilIcon />}
             </button>
           </div>
         </div>
@@ -257,7 +298,7 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
               </tr>
             </thead>
             <tbody>
-              {editableItems.map((item) => {
+              {activeItems.map((item) => {
                 const lineTotal = toMoney(item.quantity * item.unitPrice * (1 - item.discountPercentage / 100));
                 return (
                   <tr key={item.id} className="border-t border-slate-200/80 bg-white/80">
@@ -265,49 +306,59 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
                       <p className="font-medium text-slate-900">{item.name}</p>
                     </td>
                     <td className="px-2 py-2 text-center">
-                      <input
-                        type="number"
-                        min={1}
-                        value={item.quantity}
-                        disabled={!isEditing}
-                        onChange={(event) => updateItem(item.id, { quantity: Number(event.target.value) || 1 })}
-                        className="h-9 w-16 rounded-lg border border-slate-300 bg-white px-2 text-center shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                      />
+                      {itemsEditable ? (
+                        <input
+                          type="number"
+                          min={1}
+                          value={item.quantity}
+                          onChange={(event) => updateItem(item.id, { quantity: Number(event.target.value) || 1 })}
+                          className="h-9 w-16 rounded-lg border border-slate-300 bg-white px-2 text-center shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                        />
+                      ) : (
+                        <span className="text-slate-900">{item.quantity}</span>
+                      )}
                     </td>
                     <td className="px-2 py-2 text-center">
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={formatDecimalInput(item.unitPrice)}
-                        disabled={!isEditing}
-                        onChange={(event) => updateItem(item.id, { unitPrice: parseLocaleNumber(event.target.value) })}
-                        className="h-9 w-24 rounded-lg border border-slate-300 bg-white px-2 text-center shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                      />
+                      {itemsEditable ? (
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={formatDecimalInput(item.unitPrice)}
+                          onChange={(event) => updateItem(item.id, { unitPrice: parseLocaleNumber(event.target.value) })}
+                          className="h-9 w-24 rounded-lg border border-slate-300 bg-white px-2 text-center shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                        />
+                      ) : (
+                        <span className="text-slate-900">{formatCurrency(item.unitPrice)}</span>
+                      )}
                     </td>
                     <td className="px-2 py-2 text-center">
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={formatDecimalInput(item.discountPercentage)}
-                        disabled={!isEditing}
-                        onChange={(event) =>
-                          updateItem(item.id, { discountPercentage: parseLocaleNumber(event.target.value) })
-                        }
-                        className="h-9 w-20 rounded-lg border border-slate-300 bg-white px-2 text-center shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                      />
+                      {itemsEditable ? (
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={formatDecimalInput(item.discountPercentage)}
+                          onChange={(event) =>
+                            updateItem(item.id, { discountPercentage: parseLocaleNumber(event.target.value) })
+                          }
+                          className="h-9 w-20 rounded-lg border border-slate-300 bg-white px-2 text-center shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                        />
+                      ) : (
+                        <span className="text-slate-900">{formatDecimalInput(item.discountPercentage)} %</span>
+                      )}
                     </td>
                     <td className="px-2 py-2 text-right font-semibold text-slate-900">{formatCurrency(lineTotal)}</td>
                     <td className="px-2 py-2 text-right">
-                      <button
-                        type="button"
-                        onClick={() => removeItem(item.id)}
-                        disabled={!isEditing}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-rose-300 text-base font-semibold leading-none text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
-                        aria-label="Odstrani postavko"
-                        title="Odstrani"
-                      >
-                        ×
-                      </button>
+                      {itemsEditable ? (
+                        <button
+                          type="button"
+                          onClick={() => removeItem(item.id)}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-rose-300 text-base font-semibold leading-none text-rose-600 hover:bg-rose-50"
+                          aria-label="Odstrani postavko"
+                          title="Odstrani"
+                        >
+                          ×
+                        </button>
+                      ) : null}
                     </td>
                   </tr>
                 );

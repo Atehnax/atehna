@@ -557,17 +557,15 @@ export default function AdminOrdersTable({
   };
 
   const onSort = (nextSortKey: SortKey) => {
-    if (sortKey === nextSortKey) {
+    const isSameKey = sortKey === nextSortKey;
+
+    if (isSameKey) {
       setSortDirection((previousDirection) => (previousDirection === 'asc' ? 'desc' : 'asc'));
       return;
     }
 
     setSortKey(nextSortKey);
-    if (nextSortKey === 'created_at' || nextSortKey === 'total') {
-      setSortDirection('desc');
-    } else {
-      setSortDirection('asc');
-    }
+    setSortDirection(nextSortKey === 'created_at' || nextSortKey === 'total' ? 'desc' : 'asc');
   };
 
   const sortIndicator = (nextSortKey: SortKey) => {
@@ -1344,8 +1342,8 @@ export default function AdminOrdersTable({
                       {formatCurrency(order.total)}
                     </td>
 
-                    <td className="pl-1 pr-0 py-2 align-middle text-right" data-no-row-nav>
-                      <div className="flex justify-end">
+                    <td className="pl-1 pr-0 py-2 align-middle text-left" data-no-row-nav>
+                      <div className="flex justify-start">
                         <AdminOrdersPdfCell
                           orderId={order.id}
                           documents={documentsByOrder.get(order.id) ?? []}

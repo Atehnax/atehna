@@ -128,20 +128,6 @@ export default async function AdminOrderDetailPage({
                   </div>
                 </section>
 
-                <AdminOrderEditForm
-                  orderId={1}
-                  customerType={order.customer_type}
-                  organizationName={order.organization_name}
-                  contactName={order.contact_name}
-                  email={order.email}
-                  phone={order.phone}
-                  deliveryAddress={order.delivery_address}
-                  reference={order.reference}
-                  notes={order.notes}
-                  createdAt={order.created_at}
-                  items={items}
-                />
-
                 <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                   <h2 className="text-lg font-semibold text-slate-900">Postavke</h2>
                   <div className="mt-4 space-y-3">
@@ -186,6 +172,20 @@ export default async function AdminOrderDetailPage({
               </div>
 
               <aside className="w-full min-w-0 space-y-5">
+                <AdminOrderEditForm
+                  orderId={1}
+                  customerType={order.customer_type}
+                  organizationName={order.organization_name}
+                  contactName={order.contact_name}
+                  email={order.email}
+                  phone={order.phone}
+                  deliveryAddress={order.delivery_address}
+                  reference={order.reference}
+                  notes={order.notes}
+                  createdAt={order.created_at}
+                  items={items}
+                />
+
                 <AdminOrderPdfManager orderId={1} documents={documents} paymentStatus={order.payment_status} paymentNotes={order.payment_notes} />
               </aside>
             </div>
@@ -276,7 +276,9 @@ export default async function AdminOrderDetailPage({
                   />
                 </div>
               </section>
+            </div>
 
+            <aside className="w-full min-w-0 space-y-5">
               <AdminOrderEditForm
                 orderId={orderId}
                 customerType={safeOrder.customer_type}
@@ -290,9 +292,7 @@ export default async function AdminOrderDetailPage({
                 createdAt={safeOrder.created_at}
                 items={items}
               />
-            </div>
 
-            <aside className="w-full min-w-0 space-y-5">
               <AdminOrderPdfManager orderId={orderId} documents={documents} paymentStatus={safeOrder.payment_status} paymentNotes={safeOrder.payment_notes} />
             </aside>
           </div>

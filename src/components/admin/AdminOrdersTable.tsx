@@ -1353,7 +1353,7 @@ export default function AdminOrdersTable({
                       />
                     </td>
 
-                    <td className="pl-3 pr-2 py-2 align-middle text-center" data-no-row-nav>
+                    <td className="pl-1 pr-1 py-2 align-middle text-center" data-no-row-nav>
                       <a
                         href={`/admin/orders/${order.id}`}
                         className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100"

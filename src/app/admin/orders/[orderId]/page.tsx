@@ -105,35 +105,43 @@ export default async function AdminOrderDetailPage({
             </div>
           ) : null}
 
-          <div className="mt-6 space-y-6">
+          <div className="mt-6">
             <div className="grid items-start gap-6 lg:grid-cols-[2fr_1.5fr]">
-              <section className="h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                <AdminOrderHeaderChips
+              <div className="space-y-6">
+                <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <AdminOrderHeaderChips
+                    orderId={1}
+                    orderNumber={toDisplayOrderNumber(order.order_number)}
+                    status={order.status}
+                    paymentStatus={order.payment_status ?? null}
+                  />
+
+                  <div className="mt-4">
+                    <AdminOrderOverviewCard
+                      organizationName={order.organization_name}
+                      contactName={order.contact_name}
+                      customerType={order.customer_type}
+                      email={order.email}
+                      deliveryAddress={order.delivery_address}
+                      notes={order.notes}
+                    />
+                  </div>
+                </section>
+
+                <AdminOrderEditForm
                   orderId={1}
-                  orderNumber={toDisplayOrderNumber(order.order_number)}
-                  status={order.status}
-                  paymentStatus={order.payment_status ?? null}
+                  customerType={order.customer_type}
+                  organizationName={order.organization_name}
+                  contactName={order.contact_name}
+                  email={order.email}
+                  phone={order.phone}
+                  deliveryAddress={order.delivery_address}
+                  reference={order.reference}
+                  notes={order.notes}
+                  createdAt={order.created_at}
+                  items={items}
                 />
 
-                <div className="mt-4">
-                  <AdminOrderOverviewCard
-                    organizationName={order.organization_name}
-                    contactName={order.contact_name}
-                    customerType={order.customer_type}
-                    email={order.email}
-                    deliveryAddress={order.delivery_address}
-                    notes={order.notes}
-                  />
-                </div>
-              </section>
-
-              <aside className="w-full min-w-0 space-y-5">
-                <AdminOrderPdfManager orderId={1} documents={documents} paymentStatus={order.payment_status} paymentNotes={order.payment_notes} />
-              </aside>
-            </div>
-
-            <div>
-              <div className="space-y-6">
                 <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                   <h2 className="text-lg font-semibold text-slate-900">Postavke</h2>
                   <div className="mt-4 space-y-3">
@@ -175,21 +183,11 @@ export default async function AdminOrderDetailPage({
                     </div>
                   </div>
                 </section>
-
-                <AdminOrderEditForm
-                  orderId={1}
-                  customerType={order.customer_type}
-                  organizationName={order.organization_name}
-                  contactName={order.contact_name}
-                  email={order.email}
-                  phone={order.phone}
-                  deliveryAddress={order.delivery_address}
-                  reference={order.reference}
-                  notes={order.notes}
-                  createdAt={order.created_at}
-                  items={items}
-                />
               </div>
+
+              <aside className="w-full min-w-0 space-y-5">
+                <AdminOrderPdfManager orderId={1} documents={documents} paymentStatus={order.payment_status} paymentNotes={order.payment_notes} />
+              </aside>
             </div>
           </div>
         </div>
@@ -256,35 +254,29 @@ export default async function AdminOrderDetailPage({
           </div>
         ) : null}
 
-        <div className="mt-4 space-y-6">
+        <div className="mt-4">
           <div className="grid items-start gap-6 lg:grid-cols-[2fr_1.5fr]">
-            <section className="h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <AdminOrderHeaderChips
-                orderId={orderId}
-                orderNumber={toDisplayOrderNumber(safeOrder.order_number)}
-                status={safeOrder.status}
-                paymentStatus={safeOrder.payment_status ?? null}
-              />
-
-              <div className="mt-4">
-                <AdminOrderOverviewCard
-                  organizationName={safeOrder.organization_name}
-                  contactName={safeOrder.contact_name}
-                  customerType={safeOrder.customer_type}
-                  email={safeOrder.email}
-                  deliveryAddress={safeOrder.delivery_address}
-                  notes={safeOrder.notes}
-                />
-              </div>
-            </section>
-
-            <aside className="w-full min-w-0 space-y-5">
-              <AdminOrderPdfManager orderId={orderId} documents={documents} paymentStatus={safeOrder.payment_status} paymentNotes={safeOrder.payment_notes} />
-            </aside>
-          </div>
-
-          <div>
             <div className="space-y-6">
+              <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <AdminOrderHeaderChips
+                  orderId={orderId}
+                  orderNumber={toDisplayOrderNumber(safeOrder.order_number)}
+                  status={safeOrder.status}
+                  paymentStatus={safeOrder.payment_status ?? null}
+                />
+
+                <div className="mt-4">
+                  <AdminOrderOverviewCard
+                    organizationName={safeOrder.organization_name}
+                    contactName={safeOrder.contact_name}
+                    customerType={safeOrder.customer_type}
+                    email={safeOrder.email}
+                    deliveryAddress={safeOrder.delivery_address}
+                    notes={safeOrder.notes}
+                  />
+                </div>
+              </section>
+
               <AdminOrderEditForm
                 orderId={orderId}
                 customerType={safeOrder.customer_type}
@@ -299,6 +291,10 @@ export default async function AdminOrderDetailPage({
                 items={items}
               />
             </div>
+
+            <aside className="w-full min-w-0 space-y-5">
+              <AdminOrderPdfManager orderId={orderId} documents={documents} paymentStatus={safeOrder.payment_status} paymentNotes={safeOrder.payment_notes} />
+            </aside>
           </div>
         </div>
       </div>

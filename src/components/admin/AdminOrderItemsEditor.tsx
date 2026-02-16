@@ -106,7 +106,7 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
   );
 
   const itemsEditable = itemsSectionMode === 'edit';
-  const itemsSaveDisabled = itemsSectionMode === 'read' || !isItemsDirty || isItemsSaving;
+  const itemsSaveDisabled = itemsSectionMode === 'read' || isItemsSaving;
   const addItemDisabled = itemsSectionMode === 'read';
 
   const activeItems = itemsEditable ? draftItems : persistedItems;
@@ -157,6 +157,7 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
   };
 
   const startItemsEdit = () => {
+    if (itemsSectionMode === 'edit') return;
     setDraftItems(cloneEditableItems(persistedItems));
     setItemsSectionMode('edit');
     setMessage(null);
@@ -203,6 +204,11 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
 
   const saveItems = async () => {
     if (itemsSaveDisabled) return;
+
+    if (!isItemsDirty) {
+      setItemsSectionMode('read');
+      return;
+    }
 
     if (draftItems.length === 0) {
       setMessage('Naročilo mora vsebovati vsaj eno postavko.');
@@ -257,7 +263,8 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
               type="button"
               aria-label="Uredi postavke"
               onClick={startItemsEdit}
-              disabled={itemsEditable || isItemsSaving}
+              title="Uredi"
+              disabled={isItemsSaving}
               className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
             >
               <PencilIcon />
@@ -267,6 +274,7 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
               type="button"
               aria-label="Shrani postavke"
               onClick={() => void saveItems()}
+              title="Shrani"
               disabled={itemsSaveDisabled}
               className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
             >
@@ -277,6 +285,7 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
               type="button"
               aria-label="Dodaj postavko"
               onClick={() => void openAddItem()}
+              title="Dodaj"
               disabled={addItemDisabled}
               className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
             >

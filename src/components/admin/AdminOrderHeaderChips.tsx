@@ -98,7 +98,7 @@ function PencilIcon() {
   );
 }
 
-function FloatingField({
+function StableFloatingInput({
   label,
   value,
   onChange,
@@ -109,19 +109,101 @@ function FloatingField({
   onChange: (value: string) => void;
   type?: string;
 }) {
+  const filled = String(value ?? '').length > 0;
+
   return (
-    <label className="relative block">
+    <div className="group relative" data-filled={filled ? 'true' : 'false'}>
       <input
         type={type}
         value={value}
         placeholder=" "
         onChange={(event) => onChange(event.target.value)}
-        className="peer h-10 w-full rounded-xl border border-slate-300 bg-white px-2.5 pb-1 pt-4 text-xs text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+        className="h-10 w-full rounded-xl border border-slate-300 bg-white px-2.5 pb-1 pt-4 text-xs text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
       />
-      <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 bg-white px-1 text-xs text-slate-500 transition-all peer-placeholder-shown:top-1/2 peer-placeholder-shown:text-xs peer-focus:top-1.5 peer-focus:text-[10px] peer-focus:text-slate-600 peer-[:not(:placeholder-shown)]:top-1.5 peer-[:not(:placeholder-shown)]:text-[10px] peer-[:not(:placeholder-shown)]:text-slate-600">
+      <label className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 bg-white px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600">
         {label}
-      </span>
-    </label>
+      </label>
+    </div>
+  );
+}
+
+function StableFloatingTextarea({
+  label,
+  value,
+  onChange
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const filled = String(value ?? '').length > 0;
+
+  return (
+    <div className="group relative" data-filled={filled ? 'true' : 'false'}>
+      <textarea
+        rows={3}
+        value={value}
+        placeholder=" "
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-xl border border-slate-300 bg-white px-2.5 pb-2 pt-5 text-xs text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+      />
+      <label className="pointer-events-none absolute left-2.5 top-5 -translate-y-1/2 bg-white px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600">
+        {label}
+      </label>
+    </div>
+  );
+}
+
+function StaticFloatingDate({
+  label,
+  value,
+  onChange
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="relative">
+      <label className="pointer-events-none absolute left-2.5 top-1.5 z-10 bg-white px-1 text-[10px] text-slate-600">
+        {label}
+      </label>
+      <input
+        type="date"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-10 w-full rounded-xl border border-slate-300 bg-white px-2.5 pb-1 pt-4 text-xs text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+      />
+    </div>
+  );
+}
+
+function StaticFloatingSelect({
+  label,
+  value,
+  onChange
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="relative">
+      <label className="pointer-events-none absolute left-2.5 top-1.5 z-10 bg-white px-1 text-[10px] text-slate-600">
+        {label}
+      </label>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-10 w-full appearance-none rounded-xl border border-slate-300 bg-white px-2.5 pb-1 pt-4 text-xs text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+      >
+        {customerTypeOptions.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }
 
@@ -143,10 +225,11 @@ export default function AdminOrderHeaderChips(props: Props) {
     [draftTopData, persistedTopData]
   );
 
-  const topSaveDisabled = topSectionMode === 'read' || !isTopDirty || isTopSaving;
   const topInputsEditable = topSectionMode === 'edit';
+  const topSaveDisabled = topSectionMode === 'read' || isTopSaving;
 
   const startEdit = () => {
+    if (topSectionMode === 'edit') return;
     setDraftTopData({ ...persistedTopData });
     setTopSectionMode('edit');
     setMessage(null);
@@ -154,6 +237,11 @@ export default function AdminOrderHeaderChips(props: Props) {
 
   const saveTopSection = async () => {
     if (topSaveDisabled) return;
+
+    if (!isTopDirty) {
+      setTopSectionMode('read');
+      return;
+    }
 
     setIsTopSaving(true);
     setMessage(null);
@@ -230,7 +318,6 @@ export default function AdminOrderHeaderChips(props: Props) {
   };
 
   const activeTopData = topInputsEditable ? draftTopData : persistedTopData;
-
   const displayValue = (value: string) => (value?.trim() ? value : '/');
 
   return (
@@ -274,9 +361,10 @@ export default function AdminOrderHeaderChips(props: Props) {
           <button
             type="button"
             onClick={startEdit}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100"
             aria-label="Uredi naročilo"
-            disabled={topInputsEditable || isTopSaving}
+            title="Uredi"
+            disabled={isTopSaving}
           >
             <PencilIcon />
           </button>
@@ -286,6 +374,7 @@ export default function AdminOrderHeaderChips(props: Props) {
             onClick={() => void saveTopSection()}
             className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
             aria-label="Shrani naročilo"
+            title="Shrani"
             disabled={topSaveDisabled}
           >
             <SaveIcon />
@@ -306,46 +395,33 @@ export default function AdminOrderHeaderChips(props: Props) {
 
       {topInputsEditable ? (
         <div className="mt-4 grid gap-3 text-[12px] md:grid-cols-2">
-          <label className="space-y-1">
-            <span className="text-[10px] text-slate-600">Datum</span>
-            <input
-              type="date"
-              value={activeTopData.orderDate}
-              onChange={(event) => setDraftTopData((prev) => ({ ...prev, orderDate: event.target.value }))}
-              className="h-10 w-full rounded-xl border border-slate-300 bg-white px-2.5 text-xs text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-            />
-          </label>
+          <StaticFloatingDate
+            label="Datum"
+            value={activeTopData.orderDate}
+            onChange={(value) => setDraftTopData((prev) => ({ ...prev, orderDate: value }))}
+          />
 
-          <label className="space-y-1">
-            <span className="text-[10px] text-slate-600">Tip naročnika</span>
-            <select
-              value={activeTopData.customerType}
-              onChange={(event) => setDraftTopData((prev) => ({ ...prev, customerType: event.target.value }))}
-              className="h-10 w-full rounded-xl border border-slate-300 bg-white px-2.5 text-xs text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-            >
-              {customerTypeOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <StaticFloatingSelect
+            label="Tip naročnika"
+            value={activeTopData.customerType}
+            onChange={(value) => setDraftTopData((prev) => ({ ...prev, customerType: value }))}
+          />
 
           <div className="md:col-span-2">
-            <FloatingField
+            <StableFloatingInput
               label="Naročnik"
               value={activeTopData.organizationName}
               onChange={(value) => setDraftTopData((prev) => ({ ...prev, organizationName: value }))}
             />
           </div>
 
-          <FloatingField
+          <StableFloatingInput
             label="Kontakt"
             value={activeTopData.contactName}
             onChange={(value) => setDraftTopData((prev) => ({ ...prev, contactName: value }))}
           />
 
-          <FloatingField
+          <StableFloatingInput
             label="Email"
             type="email"
             value={activeTopData.email}
@@ -353,52 +429,54 @@ export default function AdminOrderHeaderChips(props: Props) {
           />
 
           <div className="md:col-span-2">
-            <FloatingField
+            <StableFloatingInput
               label="Naslov"
               value={activeTopData.deliveryAddress}
               onChange={(value) => setDraftTopData((prev) => ({ ...prev, deliveryAddress: value }))}
             />
           </div>
 
-          <label className="relative block md:col-span-2">
-            <textarea
-              rows={3}
+          <div className="md:col-span-2">
+            <StableFloatingTextarea
+              label="Opombe"
               value={activeTopData.notes}
-              placeholder=" "
-              onChange={(event) => setDraftTopData((prev) => ({ ...prev, notes: event.target.value }))}
-              className="peer w-full rounded-xl border border-slate-300 bg-white px-2.5 pb-2 pt-5 text-xs text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+              onChange={(value) => setDraftTopData((prev) => ({ ...prev, notes: value }))}
             />
-            <span className="pointer-events-none absolute left-2.5 top-1.5 bg-white px-1 text-[10px] text-slate-600">Opombe</span>
-          </label>
+          </div>
         </div>
       ) : (
         <div className="mt-4 grid gap-3 text-[12px] md:grid-cols-2">
           <div>
-            <p className="text-[10px] text-slate-500">Datum</p>
+            <p className="text-sm font-semibold text-slate-700">Datum</p>
             <p className="mt-1 text-xs text-slate-900">{displayValue(activeTopData.orderDate)}</p>
           </div>
           <div>
-            <p className="text-[10px] text-slate-500">Tip naročnika</p>
-            <p className="mt-1 text-xs text-slate-900">{displayValue(customerTypeOptions.find((option) => option.value === activeTopData.customerType)?.label ?? activeTopData.customerType)}</p>
+            <p className="text-sm font-semibold text-slate-700">Tip naročnika</p>
+            <p className="mt-1 text-xs text-slate-900">
+              {displayValue(
+                customerTypeOptions.find((option) => option.value === activeTopData.customerType)?.label ??
+                  activeTopData.customerType
+              )}
+            </p>
           </div>
           <div className="md:col-span-2">
-            <p className="text-[10px] text-slate-500">Naročnik</p>
+            <p className="text-sm font-semibold text-slate-700">Naročnik</p>
             <p className="mt-1 text-xs text-slate-900">{displayValue(activeTopData.organizationName)}</p>
           </div>
           <div>
-            <p className="text-[10px] text-slate-500">Kontakt</p>
+            <p className="text-sm font-semibold text-slate-700">Kontakt</p>
             <p className="mt-1 text-xs text-slate-900">{displayValue(activeTopData.contactName)}</p>
           </div>
           <div>
-            <p className="text-[10px] text-slate-500">Email</p>
+            <p className="text-sm font-semibold text-slate-700">Email</p>
             <p className="mt-1 text-xs text-slate-900">{displayValue(activeTopData.email)}</p>
           </div>
           <div className="md:col-span-2">
-            <p className="text-[10px] text-slate-500">Naslov</p>
+            <p className="text-sm font-semibold text-slate-700">Naslov</p>
             <p className="mt-1 text-xs text-slate-900">{displayValue(activeTopData.deliveryAddress)}</p>
           </div>
           <div className="md:col-span-2">
-            <p className="text-[10px] text-slate-500">Opombe</p>
+            <p className="text-sm font-semibold text-slate-700">Opombe</p>
             <p className="mt-1 whitespace-pre-wrap text-xs text-slate-900">{displayValue(activeTopData.notes)}</p>
           </div>
         </div>
@@ -412,10 +490,18 @@ export default function AdminOrderHeaderChips(props: Props) {
             <p className="text-sm font-semibold text-slate-900">Izbris naročila</p>
             <p className="mt-2 text-xs text-slate-600">Ali ste prepričani, da želite izbrisati to naročilo?</p>
             <div className="mt-4 flex justify-end gap-2">
-              <button type="button" onClick={() => setIsDeleteModalOpen(false)} className="h-8 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600">
+              <button
+                type="button"
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="h-8 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600"
+              >
                 Prekliči
               </button>
-              <button type="button" onClick={confirmDeleteOrder} className="h-8 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-700">
+              <button
+                type="button"
+                onClick={confirmDeleteOrder}
+                className="h-8 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-700"
+              >
                 Izbriši
               </button>
             </div>

@@ -301,7 +301,7 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full text-[11px] leading-5">
+          <table className="min-w-full text-[11px] leading-4">
             <thead className="bg-white text-slate-600">
               <tr>
                 <th className="px-3 py-2 text-left">Artikel</th>
@@ -318,7 +318,7 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
                 return (
                   <tr key={item.id} className="border-t border-slate-200/80 bg-white/80 align-middle">
                     <td className="px-3 py-2 align-middle">
-                      <p className="text-[11px] leading-5 font-medium text-slate-900">{item.name}</p>
+                      <p className="text-[11px] leading-4 font-medium text-slate-900">{item.name}</p>
                     </td>
                     <td className="px-2 py-2 align-middle text-center">
                       {itemsEditable ? (
@@ -327,10 +327,10 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
                           min={1}
                           value={item.quantity}
                           onChange={(event) => updateItem(item.id, { quantity: Number(event.target.value) || 1 })}
-                          className="h-7 w-14 rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-5 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-100"
+                          className="h-6 w-12 rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-100"
                         />
                       ) : (
-                        <span className="inline-flex h-7 items-center text-[11px] leading-5 text-slate-900">{item.quantity}</span>
+                        <span className="inline-flex h-6 items-center text-[11px] leading-4 text-slate-900">{item.quantity}</span>
                       )}
                     </td>
                     <td className="px-2 py-2 align-middle text-center">
@@ -340,10 +340,10 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
                           inputMode="decimal"
                           value={formatDecimalInput(item.unitPrice)}
                           onChange={(event) => updateItem(item.id, { unitPrice: parseLocaleNumber(event.target.value) })}
-                          className="h-7 w-20 rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-5 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-100"
+                          className="h-6 w-[4.5rem] rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-100"
                         />
                       ) : (
-                        <span className="inline-flex h-7 items-center text-[11px] leading-5 text-slate-900">{formatCurrency(item.unitPrice)}</span>
+                        <span className="inline-flex h-6 items-center text-[11px] leading-4 text-slate-900">{formatCurrency(item.unitPrice)}</span>
                       )}
                     </td>
                     <td className="px-2 py-2 align-middle text-center">
@@ -355,10 +355,10 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
                           onChange={(event) =>
                             updateItem(item.id, { discountPercentage: parseLocaleNumber(event.target.value) })
                           }
-                          className="h-7 w-16 rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-5 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-100"
+                          className="h-6 w-14 rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-100"
                         />
                       ) : (
-                        <span className="inline-flex h-7 items-center text-[11px] leading-5 text-slate-900">{formatDecimalInput(item.discountPercentage)} %</span>
+                        <span className="inline-flex h-6 items-center text-[11px] leading-4 text-slate-900">{formatDecimalInput(item.discountPercentage)} %</span>
                       )}
                     </td>
                     <td className="px-2 py-2 align-middle text-right font-semibold text-slate-900">{formatCurrency(lineTotal)}</td>
@@ -367,7 +367,7 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
                         <button
                           type="button"
                           onClick={() => removeItem(item.id)}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-rose-300 text-base font-semibold leading-none text-rose-600 hover:bg-rose-50"
+                          className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-rose-300 text-xs font-semibold leading-none text-rose-600 hover:bg-rose-50"
                           aria-label="Odstrani postavko"
                           title="Odstrani"
                         >

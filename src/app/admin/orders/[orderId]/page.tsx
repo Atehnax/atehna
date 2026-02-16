@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import AdminOrderActions from '@/components/admin/AdminOrderActions';
 import AdminOrderEditForm from '@/components/admin/AdminOrderEditForm';
 import AdminOrderPdfManager from '@/components/admin/AdminOrderPdfManager';
 import AdminOrderHeaderChips from '@/components/admin/AdminOrderHeaderChips';
@@ -127,12 +126,6 @@ export default async function AdminOrderDetailPage({
                   />
                 </div>
               </section>
-
-              <AdminOrderActions
-                orderId={1}
-                paymentStatus={order.payment_status}
-                paymentNotes={order.payment_notes}
-              />
             </div>
 
             <div className="grid items-start gap-6 lg:grid-cols-[2fr_1.5fr]">
@@ -195,7 +188,7 @@ export default async function AdminOrderDetailPage({
               </div>
 
               <aside className="w-full min-w-0 space-y-5">
-                <AdminOrderPdfManager orderId={1} documents={documents} />
+                <AdminOrderPdfManager orderId={1} documents={documents} paymentStatus={order.payment_status} paymentNotes={order.payment_notes} />
               </aside>
             </div>
           </div>
@@ -284,12 +277,6 @@ export default async function AdminOrderDetailPage({
                 />
               </div>
             </section>
-
-            <AdminOrderActions
-              orderId={orderId}
-              paymentStatus={safeOrder.payment_status ?? null}
-              paymentNotes={safeOrder.payment_notes ?? null}
-            />
           </div>
 
           <div className="grid items-start gap-6 lg:grid-cols-[2fr_1.5fr]">
@@ -310,7 +297,7 @@ export default async function AdminOrderDetailPage({
             </div>
 
             <aside className="w-full min-w-0 space-y-5">
-              <AdminOrderPdfManager orderId={orderId} documents={documents} />
+              <AdminOrderPdfManager orderId={orderId} documents={documents} paymentStatus={safeOrder.payment_status} paymentNotes={safeOrder.payment_notes} />
             </aside>
           </div>
         </div>

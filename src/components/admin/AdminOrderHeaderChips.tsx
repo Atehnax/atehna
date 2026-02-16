@@ -97,9 +97,7 @@ export default function AdminOrderHeaderChips({ orderId, orderNumber, status, pa
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </select>
-              <button type="button" onClick={saveStatuses} disabled={isSaving} className="h-8 rounded-lg border border-slate-200 px-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
-                {isSaving ? 'Shranjujem ...' : 'Shrani'}
-              </button>
+
             </>
           ) : (
             <>
@@ -111,16 +109,18 @@ export default function AdminOrderHeaderChips({ orderId, orderNumber, status, pa
           <button
             type="button"
             onClick={() => {
-              if (!isEditing) {
-                setDraftStatus(currentStatus);
-                setDraftPaymentStatus(currentPaymentStatus);
+              if (isEditing) {
+                void saveStatuses();
+                return;
               }
-              setIsEditing((prev) => !prev);
+              setDraftStatus(currentStatus);
+              setDraftPaymentStatus(currentPaymentStatus);
+              setIsEditing(true);
             }}
             className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100"
             aria-label="Uredi statuse"
           >
-            ✎
+            {isEditing ? "💾" : "✎"}
           </button>
 
           <button

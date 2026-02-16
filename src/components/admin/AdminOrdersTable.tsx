@@ -595,7 +595,6 @@ export default function AdminOrdersTable({
       ? `${formatSlDateFromDateInput(fromDate)} – ${formatSlDateFromDateInput(toDate)}`
       : defaultDateRangeLabel;
 
-  const hasDateValue = Boolean(fromDate || toDate);
 
 
   const dateRangeFilteredOrders = useMemo(() => {
@@ -817,8 +816,8 @@ export default function AdminOrdersTable({
               onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
               className="h-10 min-w-[170px] rounded-xl border border-slate-300 bg-white px-2.5 text-left text-xs text-slate-700 hover:border-slate-400"
             >
-              <span className={`pointer-events-none absolute left-2.5 bg-white px-1 text-slate-600 transition-all duration-150 ${isDatePopoverOpen || hasDateValue ? "top-1.5 text-[10px]" : "top-1/2 -translate-y-1/2 text-[12px]"}`}>Datum</span>
-              <span className={`inline-flex items-center gap-1.5 ${isDatePopoverOpen || hasDateValue ? "pt-2" : ""}`}> 
+              <span className="pointer-events-none absolute left-2.5 top-1.5 bg-white px-1 text-[10px] text-slate-600">Datum</span>
+              <span className="inline-flex items-center gap-1.5 pt-2"> 
                 <svg
                   aria-hidden="true"
                   viewBox="0 0 24 24"
@@ -984,7 +983,7 @@ export default function AdminOrdersTable({
                 </option>
               ))}
             </select>
-            <label className="pointer-events-none absolute left-2.5 top-1.5 bg-white px-1 text-[10px] text-slate-600">
+            <label className={`pointer-events-none absolute left-2.5 top-1.5 bg-white px-1 text-[10px] ${isDocumentSearchEnabled ? 'text-slate-600' : 'text-slate-400'}`}>
               Vrsta dokumenta
             </label>
           </div>
@@ -1345,7 +1344,7 @@ export default function AdminOrdersTable({
                       {formatCurrency(order.total)}
                     </td>
 
-                    <td className="px-2 py-2 align-middle text-left align-middle pr-4" data-no-row-nav>
+                    <td className="px-2 py-2 align-middle text-left align-middle pr-1" data-no-row-nav>
                       <AdminOrdersPdfCell
                         orderId={order.id}
                         documents={documentsByOrder.get(order.id) ?? []}
@@ -1354,7 +1353,7 @@ export default function AdminOrdersTable({
                       />
                     </td>
 
-                    <td className="px-2 py-2 align-middle text-center" data-no-row-nav>
+                    <td className="pl-1 pr-2 py-2 align-middle text-center" data-no-row-nav>
                       <a
                         href={`/admin/orders/${order.id}`}
                         className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100"

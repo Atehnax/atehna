@@ -51,10 +51,14 @@ const formatTimestamp = (value: string) =>
 
 export default function AdminOrderPdfManager({
   orderId,
-  documents
+  documents,
+  paymentStatus,
+  paymentNotes
 }: {
   orderId: number;
   documents: PdfDocument[];
+  paymentStatus?: string | null;
+  paymentNotes?: string | null;
 }) {
   const [docList, setDocList] = useState(documents);
   const [loadingType, setLoadingType] = useState<PdfTypeKey | null>(null);
@@ -64,6 +68,8 @@ export default function AdminOrderPdfManager({
   const [deletingDocumentId, setDeletingDocumentId] = useState<number | null>(null);
   const [confirmDeleteDocumentId, setConfirmDeleteDocumentId] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [notes, setNotes] = useState<string>(paymentNotes ?? '');
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
 
   const grouped = useMemo(() => {
     const map: Record<PdfTypeKey, PdfDocument[]> = {
@@ -185,10 +191,52 @@ export default function AdminOrderPdfManager({
     }
   };
 
+
+  const saveNotes = async () => {
+    setIsSavingNotes(true);
+    setMessage(null);
+    try {
+      const response = await fetch(`/api/admin/orders/${orderId}/payment-status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: paymentStatus ?? 'unpaid', note: notes })
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        setMessage(body.message || 'Shranjevanje opomb ni uspelo.');
+        return;
+      }
+      setMessage('Opombe so shranjene.');
+    } finally {
+      setIsSavingNotes(false);
+    }
+  };
+
   return (
     <section className="w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <h2 className="text-base font-semibold text-slate-900">PDF dokumenti</h2>
       {message ? <p className="mt-2 text-xs text-slate-600">{message}</p> : null}
+
+
+      <div className="mt-4 rounded-2xl border border-slate-200/80 p-3.5">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-slate-900">Opombe</p>
+          <button
+            type="button"
+            onClick={saveNotes}
+            disabled={isSavingNotes}
+            className="h-7 rounded-full border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:text-slate-300"
+          >
+            {isSavingNotes ? 'Shranjujem ...' : 'Shrani'}
+          </button>
+        </div>
+        <textarea
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+          rows={2}
+          className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-[12px] text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+        />
+      </div>
 
       <div className="mt-4 space-y-4">
         {PDF_TYPES.map((pdfType) => {

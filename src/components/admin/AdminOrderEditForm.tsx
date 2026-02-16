@@ -396,8 +396,8 @@ export default function AdminOrderEditForm({
       <form className="mt-4 space-y-6 text-[12px]" onSubmit={handleSubmit}>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="md:col-span-1">
-            <label className="text-xs font-semibold uppercase text-slate-500">Datum</label>
-            <div className="mt-1">
+            <div className="relative">
+              <label className="pointer-events-none absolute left-2.5 top-1.5 bg-white px-1 text-[10px] text-slate-600">Datum</label>
               <input
                 type="date"
                 lang="sl-SI"
@@ -406,7 +406,7 @@ export default function AdminOrderEditForm({
                   setFormData((previousValue) => ({ ...previousValue, orderDate: event.target.value }));
                   markDirty();
                 }}
-                className="h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs"
+                className="h-10 w-full rounded-xl border border-slate-300 px-2.5 pt-4 text-xs"
               />
             </div>
           </div>

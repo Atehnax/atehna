@@ -394,7 +394,7 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
             <span className="font-semibold">{formatCurrency(totals.shipping)}</span>
           </div>
           <div className="flex items-center justify-between text-slate-500">
-            <span>DDV (22 %) – informativno, že vštet v cene postavk</span>
+            <span>DDV (22 %)</span>
             <span className="font-semibold">{formatCurrency(totals.taxIncludedInfo)}</span>
           </div>
           <div className="flex items-center justify-between text-sm font-semibold text-slate-900">

@@ -296,7 +296,7 @@ export async function fetchOrders(options?: {
     ) as computed_totals
       on computed_totals.order_id = orders.id
     ${whereClause}
-    order by orders.created_at desc, coalesce(nullif(regexp_replace(orders.order_number, '\D', '', 'g'), ''), '0')::numeric desc
+    order by orders.created_at desc, coalesce(nullif(regexp_replace(orders.order_number::text, '\D', '', 'g'), ''), '0')::numeric desc
     `,
     queryParams
   );

@@ -45,6 +45,33 @@ const parseLocaleNumber = (value: string) => {
 const formatDecimalInput = (value: number) =>
   new Intl.NumberFormat('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
 
+function SaveIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M4 3h9l3 3v11H4z" />
+      <path d="M7 3v5h6V3" />
+      <path d="M7 13h6" />
+    </svg>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
+      <path d="M11.5 4.5l3 3" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M10 4v12M4 10h12" />
+    </svg>
+  );
+}
+
 export default function AdminOrderItemsEditor({ orderId, items }: { orderId: number; items: OrderItemInput[] }) {
   const [editableItems, setEditableItems] = useState<EditableItem[]>(
     items.map((item) => ({
@@ -62,6 +89,7 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
   const [catalogQuery, setCatalogQuery] = useState('');
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const totals = useMemo(() => {
@@ -139,10 +167,10 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
     setMessage(null);
   };
 
-  const saveItems = async () => {
+  const saveItems = async (): Promise<boolean> => {
     if (editableItems.length === 0) {
       setMessage('Naročilo mora vsebovati vsaj eno postavko.');
-      return;
+      return false;
     }
 
     setIsSaving(true);
@@ -170,8 +198,11 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
       }
 
       setMessage('Postavke so posodobljene.');
+      setIsEditing(false);
+      return true;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Napaka pri shranjevanju postavk.');
+      return false;
     } finally {
       setIsSaving(false);
     }
@@ -184,6 +215,33 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
       <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/50">
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
           <h3 className="text-sm font-semibold text-slate-900">Postavke</h3>
+          <div className="ml-auto flex items-center gap-1.5">
+            <button
+              type="button"
+              aria-label="Dodaj postavko"
+              onClick={openAddItem}
+              disabled={!isEditing}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+            >
+              <PlusIcon />
+            </button>
+            <button
+              type="button"
+              aria-label="Uredi postavke"
+              onClick={() => {
+                if (isEditing) {
+                  void saveItems();
+                  return;
+                }
+                setIsEditing(true);
+                setMessage(null);
+              }}
+              disabled={isSaving}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+            >
+              {isEditing ? <SaveIcon /> : <PencilIcon />}
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -211,6 +269,7 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
                         type="number"
                         min={1}
                         value={item.quantity}
+                        disabled={!isEditing}
                         onChange={(event) => updateItem(item.id, { quantity: Number(event.target.value) || 1 })}
                         className="h-9 w-16 rounded-lg border border-slate-300 bg-white px-2 text-center shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
                       />
@@ -220,6 +279,7 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
                         type="text"
                         inputMode="decimal"
                         value={formatDecimalInput(item.unitPrice)}
+                        disabled={!isEditing}
                         onChange={(event) => updateItem(item.id, { unitPrice: parseLocaleNumber(event.target.value) })}
                         className="h-9 w-24 rounded-lg border border-slate-300 bg-white px-2 text-center shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
                       />
@@ -229,6 +289,7 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
                         type="text"
                         inputMode="decimal"
                         value={formatDecimalInput(item.discountPercentage)}
+                        disabled={!isEditing}
                         onChange={(event) =>
                           updateItem(item.id, { discountPercentage: parseLocaleNumber(event.target.value) })
                         }
@@ -240,7 +301,8 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
                       <button
                         type="button"
                         onClick={() => removeItem(item.id)}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-rose-300 text-base font-semibold leading-none text-rose-600 hover:bg-rose-50"
+                        disabled={!isEditing}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-rose-300 text-base font-semibold leading-none text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
                         aria-label="Odstrani postavko"
                         title="Odstrani"
                       >
@@ -270,24 +332,7 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
         </div>
       </div>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        <button
-          type="button"
-          onClick={openAddItem}
-          className="w-full rounded-xl bg-brand-600 px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-brand-700"
-        >
-          Dodaj
-        </button>
-        <button
-          type="button"
-          onClick={() => void saveItems()}
-          disabled={isSaving}
-          className="w-full whitespace-nowrap rounded-xl bg-brand-600 px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
-        >
-          {isSaving ? 'Shranjevanje...' : 'Shrani spremembe'}
-        </button>
-        {message && <span className="text-[12px] text-slate-600 md:col-span-2">{message}</span>}
-      </div>
+      {message && <p className="mt-3 text-[12px] text-slate-600">{message}</p>}
 
       {isPickerOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">

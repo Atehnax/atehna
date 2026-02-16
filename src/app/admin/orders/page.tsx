@@ -8,6 +8,7 @@ import {
   fetchOrderDocumentsForOrders,
   fetchOrders
 } from '@/lib/server/orders';
+import { getDatabaseUrl } from '@/lib/server/db';
 
 export const metadata = {
   title: 'Administracija naročil'
@@ -107,8 +108,8 @@ export default async function AdminOrdersPage({
   let attachments: OrderAttachmentRow[] = demoAttachments;
   let warningMessage: string | null = null;
 
-  if (!process.env.DATABASE_URL) {
-    warningMessage = 'DATABASE_URL ni nastavljen — prikazan je demo pogled.';
+  if (!getDatabaseUrl()) {
+    warningMessage = 'Povezava z bazo ni nastavljena — prikazan je demo pogled.';
   } else {
     try {
       orders = await fetchOrders({

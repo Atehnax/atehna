@@ -104,7 +104,6 @@ export default function AdminOrderPdfManager({
   const [docList, setDocList] = useState(documents);
   const [loadingType, setLoadingType] = useState<PdfTypeKey | null>(null);
   const [uploadingType, setUploadingType] = useState<PdfTypeKey | null>(null);
-  const [uploadFile, setUploadFile] = useState<Partial<Record<PdfTypeKey, File | null>>>({});
   const [expandedByType, setExpandedByType] = useState<Partial<Record<PdfTypeKey, boolean>>>({});
   const [deletingDocumentId, setDeletingDocumentId] = useState<number | null>(null);
   const [confirmDeleteDocumentId, setConfirmDeleteDocumentId] = useState<number | null>(null);
@@ -209,9 +208,7 @@ export default function AdminOrderPdfManager({
     }
   };
 
-  const handleUpload = async (type: PdfTypeKey) => {
-    const file = uploadFile[type];
-    if (!file) return;
+  const handleUpload = async (type: PdfTypeKey, file: File) => {
     setUploadingType(type);
     setMessage(null);
     try {
@@ -245,7 +242,6 @@ export default function AdminOrderPdfManager({
         },
         ...prev
       ]);
-      setUploadFile((prev) => ({ ...prev, [type]: null }));
     } finally {
       setUploadingType(null);
     }
@@ -255,6 +251,15 @@ export default function AdminOrderPdfManager({
     setConfirmDeleteDocumentId(documentId);
   };
 
+
+  const downloadLatestByType = (type: PdfTypeKey) => {
+    const latest = grouped[type][0];
+    if (!latest) {
+      setMessage('Ni dokumenta za prenos.');
+      return;
+    }
+    window.open(latest.blob_url, '_blank', 'noopener,noreferrer');
+  };
   const confirmDeleteDocument = async () => {
     if (confirmDeleteDocumentId === null) return;
 
@@ -357,23 +362,23 @@ export default function AdminOrderPdfManager({
                       type="file"
                       accept="application/pdf"
                       className="hidden"
-                      onChange={(event) =>
-                        setUploadFile((prev) => ({
-                          ...prev,
-                          [pdfType.key]: event.target.files?.[0] ?? null
-                        }))
-                      }
+                      disabled={uploadingType === pdfType.key}
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (!file) return;
+                        void handleUpload(pdfType.key, file);
+                        event.currentTarget.value = '';
+                      }}
                     />
                     <UploadIcon />
                   </label>
 
                   <button
                     type="button"
-                    onClick={() => void handleUpload(pdfType.key)}
-                    disabled={!uploadFile[pdfType.key] || uploadingType === pdfType.key}
+                    onClick={() => downloadLatestByType(pdfType.key)}
                     title="Shrani"
-                    aria-label={`Shrani naložen ${pdfType.label}`}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-brand-200 hover:text-brand-600 disabled:cursor-not-allowed disabled:text-slate-300"
+                    aria-label={`Shrani ${pdfType.label}`}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-brand-200 hover:text-brand-600"
                   >
                     <SaveIcon />
                   </button>

@@ -514,10 +514,20 @@ export default function AdminOrdersTable({
 
     setIsDeleting(true);
     try {
-      await Promise.all(
+      const deleteResults = await Promise.allSettled(
         selected.map((orderId) => fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' }))
       );
-      setSelected([]);
+
+      const failedDeletes = deleteResults.filter(
+        (result) => result.status === 'fulfilled' && !result.value.ok
+      ).length;
+
+      if (failedDeletes === 0) {
+        setSelected([]);
+      } else {
+        setMessage(`Brisanje ni uspelo za ${failedDeletes} naročil.`);
+      }
+
       router.refresh();
     } finally {
       setIsDeleting(false);
@@ -1082,7 +1092,7 @@ export default function AdminOrdersTable({
 
 
       <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-[1180px] w-full table-fixed text-left text-[13px]">
+        <table className="min-w-[1180px] w-full table-auto text-left text-[13px]">
           <colgroup>
             <col style={{ width: columnWidths.selectAndDelete }} />
             <col style={{ width: columnWidths.order }} />
@@ -1273,7 +1283,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="min-w-[120px] px-2 py-2 text-left normal-case">PDF datoteke</th>
+              <th className="min-w-[100px] px-2 py-2 text-left normal-case">PDF datoteke</th>
               <th className="px-2 py-2 text-center normal-case">Uredi</th>
             </tr>
           </thead>
@@ -1325,10 +1335,14 @@ export default function AdminOrdersTable({
                       </div>
                     </td>
 
-                    <td className="px-2 py-2 align-middle text-center font-semibold text-slate-900">
-                      <span className="text-[13px] font-semibold text-slate-900">
+                    <td className="px-2 py-2 align-middle text-center font-semibold text-slate-900" data-no-row-nav>
+                      <a
+                        href={`/admin/orders/${order.id}`}
+                        className="inline-flex rounded-sm px-1 text-[13px] font-semibold text-brand-700 hover:text-brand-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
+                        aria-label={`Odpri naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                      >
                         {toDisplayOrderNumber(order.order_number)}
-                      </span>
+                      </a>
                     </td>
 
                     <td className="px-2 py-2 align-middle text-center whitespace-nowrap text-slate-600">
@@ -1402,8 +1416,8 @@ export default function AdminOrdersTable({
                       {formatCurrency(order.total)}
                     </td>
 
-                    <td className="min-w-[120px] pl-0 pr-0 py-2 align-middle text-right" data-no-row-nav>
-                      <div className="flex justify-end">
+                    <td className="min-w-[100px] pl-0 pr-0 py-2 align-middle text-left" data-no-row-nav>
+                      <div className="flex justify-start">
                         <AdminOrdersPdfCell
                           orderId={order.id}
                           documents={documentsByOrder.get(order.id) ?? []}

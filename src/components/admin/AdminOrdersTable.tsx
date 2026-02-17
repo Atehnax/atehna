@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
 import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
 import AdminOrderPaymentSelect from '@/components/admin/AdminOrderPaymentSelect';
@@ -91,14 +92,16 @@ export default function AdminOrdersTable({
   initialQuery?: string;
   topAction?: ReactNode;
 }) {
+  const router = useRouter();
   const [selected, setSelected] = useState<number[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deletingRowId, setDeletingRowId] = useState<number | null>(null);
   const [isBulkUpdatingStatus, setIsBulkUpdatingStatus] = useState(false);
 
   const [statusFilter, setStatusFilter] = useState<StatusTab>('all');
   const [query, setQuery] = useState(initialQuery);
 
-  const [sortKey, setSortKey] = useState<SortKey>('created_at');
+  const [sortKey, setSortKey] = useState<SortKey>('order_number');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   const [fromDate, setFromDate] = useState(initialFrom);
@@ -106,7 +109,6 @@ export default function AdminOrdersTable({
   const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
 
   const [isDocumentSearchEnabled, setIsDocumentSearchEnabled] = useState(false);
-  const [isDocumentFilterApplied, setIsDocumentFilterApplied] = useState(false);
   const [documentType, setDocumentType] = useState<DocumentType>('all');
   const [message, setMessage] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -115,6 +117,7 @@ export default function AdminOrdersTable({
   const datePopoverRef = useRef<HTMLDivElement>(null);
   const statusHeaderMenuRef = useRef<HTMLDivElement>(null);
   const paymentHeaderMenuRef = useRef<HTMLDivElement>(null);
+  const hasAutoResetFiltersRef = useRef(false);
 
   const [isStatusHeaderMenuOpen, setIsStatusHeaderMenuOpen] = useState(false);
   const [isPaymentHeaderMenuOpen, setIsPaymentHeaderMenuOpen] = useState(false);
@@ -338,7 +341,9 @@ export default function AdminOrdersTable({
         return orderMatches;
       }
 
-      if (isDocumentFilterApplied) {
+      const hasSelectedDocumentType = documentType !== 'all';
+
+      if (hasSelectedDocumentType) {
         if (documentsMatchingSelectedType.length === 0) return false;
         if (normalizedQuery && !documentsMatch) return false;
         return true;
@@ -350,14 +355,27 @@ export default function AdminOrdersTable({
 
     const sortedOrders = [...filteredOrders].sort((leftOrder, rightOrder) => {
       const sortMultiplier = sortDirection === 'asc' ? 1 : -1;
-      const leftOrderNumber = getNumericOrderNumber(leftOrder.order_number);
-      const rightOrderNumber = getNumericOrderNumber(rightOrder.order_number);
+      const leftOrderNumberNumeric = getNumericOrderNumber(leftOrder.order_number);
+      const rightOrderNumberNumeric = getNumericOrderNumber(rightOrder.order_number);
 
       let leftValue: string | number;
       let rightValue: string | number;
 
       switch (sortKey) {
         case 'order_number':
+          if (
+            Number.isFinite(leftOrderNumberNumeric) &&
+            Number.isFinite(rightOrderNumberNumeric) &&
+            leftOrderNumberNumeric !== rightOrderNumberNumeric
+          ) {
+            return (leftOrderNumberNumeric - rightOrderNumberNumeric) * sortMultiplier;
+          }
+
+          if (leftOrderNumberNumeric !== rightOrderNumberNumeric) {
+            if (!Number.isFinite(leftOrderNumberNumeric)) return 1;
+            if (!Number.isFinite(rightOrderNumberNumeric)) return -1;
+          }
+
           leftValue = leftOrder.order_number;
           rightValue = rightOrder.order_number;
           break;
@@ -402,7 +420,7 @@ export default function AdminOrdersTable({
         if (primaryResult !== 0) return primaryResult;
 
         if (sortKey === 'created_at') {
-          return rightOrderNumber - leftOrderNumber;
+          return rightOrderNumberNumeric - leftOrderNumberNumeric;
         }
 
         return 0;
@@ -412,10 +430,10 @@ export default function AdminOrdersTable({
       if (textResult !== 0) return textResult;
 
       if (sortKey === 'created_at') {
-        return rightOrderNumber - leftOrderNumber;
+        return rightOrderNumberNumeric - leftOrderNumberNumeric;
       }
 
-      return 0;
+      return leftOrder.id - rightOrder.id;
     });
 
     return sortedOrders;
@@ -426,7 +444,6 @@ export default function AdminOrdersTable({
     fromDate,
     toDate,
     isDocumentSearchEnabled,
-    isDocumentFilterApplied,
     documentType,
     latestDocumentsByOrder,
     sortKey,
@@ -466,6 +483,9 @@ export default function AdminOrdersTable({
 
   useEffect(() => {
     const validIds = new Set(orders.map((order) => order.id));
+    setSelected((previousSelected) =>
+      previousSelected.filter((selectedOrderId) => validIds.has(selectedOrderId))
+    );
     setRowStatusOverrides((previousOverrides) =>
       Object.fromEntries(
         Object.entries(previousOverrides).filter(([orderId]) => validIds.has(Number(orderId)))
@@ -511,16 +531,42 @@ export default function AdminOrdersTable({
 
     setIsDeleting(true);
     try {
-      await Promise.all(
+      const deleteResults = await Promise.allSettled(
         selected.map((orderId) => fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' }))
       );
-      setSelected([]);
-      window.location.reload();
+
+      const failedDeletes = deleteResults.filter(
+        (result) => result.status === 'fulfilled' && !result.value.ok
+      ).length;
+
+      if (failedDeletes > 0) {
+        setMessage(`Brisanje ni uspelo za ${failedDeletes} naročil.`);
+      }
+
+      router.refresh();
     } finally {
       setIsDeleting(false);
     }
   };
 
+
+  const handleDeleteRow = async (orderId: number) => {
+    const confirmed = window.confirm('Ali ste prepričani, da želite izbrisati to naročilo?');
+    if (!confirmed) return;
+
+    setDeletingRowId(orderId);
+    try {
+      const response = await fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' });
+      if (!response.ok) {
+        setMessage('Brisanje naročila ni uspelo. Poskusite znova.');
+        return;
+      }
+
+      router.refresh();
+    } finally {
+      setDeletingRowId(null);
+    }
+  };
 
   const handleBulkStatusUpdate = async (nextStatus: string) => {
     if (selected.length === 0) return;
@@ -587,7 +633,12 @@ export default function AdminOrdersTable({
     }
 
     setSortKey(nextSortKey);
-    setSortDirection(nextSortKey === 'created_at' || nextSortKey === 'total' ? 'desc' : 'asc');
+    if (nextSortKey === 'order_number' || nextSortKey === 'created_at' || nextSortKey === 'total') {
+      setSortDirection('desc');
+      return;
+    }
+
+    setSortDirection('asc');
   };
 
   const sortIndicator = (nextSortKey: SortKey) => {
@@ -616,6 +667,34 @@ export default function AdminOrdersTable({
       : defaultDateRangeLabel;
 
 
+
+  const resetAllFilters = () => {
+    setStatusFilter('all');
+    setQuery('');
+    setFromDate('');
+    setToDate('');
+    setIsDocumentSearchEnabled(false);
+    setDocumentType('all');
+    setMessage(null);
+  };
+
+  const hasActiveFilters =
+    statusFilter !== 'all' ||
+    query.trim().length > 0 ||
+    fromDate.length > 0 ||
+    toDate.length > 0 ||
+    isDocumentSearchEnabled ||
+    documentType !== 'all';
+
+  useEffect(() => {
+    if (hasAutoResetFiltersRef.current) return;
+    if (orders.length === 0) return;
+    if (!hasActiveFilters) return;
+    if (filteredAndSortedOrders.length > 0) return;
+
+    hasAutoResetFiltersRef.current = true;
+    resetAllFilters();
+  }, [orders.length, hasActiveFilters, filteredAndSortedOrders.length]);
 
   const dateRangeFilteredOrders = useMemo(() => {
     const fromTimestamp = fromDate ? new Date(`${fromDate}T00:00:00`).getTime() : null;
@@ -678,9 +757,6 @@ export default function AdminOrdersTable({
 
   const handleResetDocumentFilter = () => {
     setDocumentType('all');
-    if (isDocumentSearchEnabled) {
-      setIsDocumentFilterApplied(true);
-    }
     setMessage(null);
   };
 
@@ -971,7 +1047,6 @@ export default function AdminOrdersTable({
                 onChange={(event) => {
                   const checked = event.target.checked;
                   setIsDocumentSearchEnabled(checked);
-                  setIsDocumentFilterApplied(checked);
                   if (!checked) {
                     setMessage(null);
                   }
@@ -990,7 +1065,6 @@ export default function AdminOrdersTable({
               onChange={(event) => {
                 setDocumentType(event.target.value as DocumentType);
                 if (isDocumentSearchEnabled) {
-                  setIsDocumentFilterApplied(true);
                   setMessage(null);
                 }
               }}
@@ -1055,7 +1129,7 @@ export default function AdminOrdersTable({
 
 
       <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-[1180px] w-full table-fixed text-left text-[13px]">
+        <table className="min-w-[1180px] w-full table-auto text-left text-[13px]">
           <colgroup>
             <col style={{ width: columnWidths.selectAndDelete }} />
             <col style={{ width: columnWidths.order }} />
@@ -1236,7 +1310,7 @@ export default function AdminOrdersTable({
                 </div>
               </th>
 
-              <th className="px-2 py-2 text-right">
+              <th className="px-2 py-2 text-center">
                 <button
                   type="button"
                   onClick={() => onSort('total')}
@@ -1246,7 +1320,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="min-w-[120px] px-2 py-2 text-left normal-case">PDF datoteke</th>
+              <th className="min-w-[100px] px-2 py-2 text-center normal-case">PDF datoteke</th>
               <th className="px-2 py-2 text-center normal-case">Uredi</th>
             </tr>
           </thead>
@@ -1255,7 +1329,18 @@ export default function AdminOrdersTable({
             {filteredAndSortedOrders.length === 0 ? (
               <tr>
                 <td className="px-2 py-6 text-center text-slate-500" colSpan={10}>
-                  Ni zadetkov za izbrane filtre.
+                  <div className="flex flex-col items-center gap-2">
+                    <span>Ni zadetkov za izbrane filtre.</span>
+                    {orders.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={resetAllFilters}
+                        className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        Prikaži vsa naročila
+                      </button>
+                    ) : null}
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -1287,10 +1372,14 @@ export default function AdminOrdersTable({
                       </div>
                     </td>
 
-                    <td className="px-2 py-2 align-middle text-center font-semibold text-slate-900">
-                      <span className="text-[13px] font-semibold text-slate-900">
+                    <td className="px-2 py-2 align-middle text-center font-semibold text-slate-900" data-no-row-nav>
+                      <a
+                        href={`/admin/orders/${order.id}`}
+                        className="inline-flex rounded-sm px-1 text-[13px] font-semibold text-brand-700 hover:text-brand-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
+                        aria-label={`Odpri naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                      >
                         {toDisplayOrderNumber(order.order_number)}
-                      </span>
+                      </a>
                     </td>
 
                     <td className="px-2 py-2 align-middle text-center whitespace-nowrap text-slate-600">
@@ -1360,12 +1449,12 @@ export default function AdminOrdersTable({
                       )}
                     </td>
 
-                    <td className="px-2 py-2 align-middle text-right text-slate-700">
+                    <td className="px-2 py-2 align-middle text-center text-slate-700">
                       {formatCurrency(order.total)}
                     </td>
 
-                    <td className="min-w-[120px] pl-0 pr-0 py-2 align-middle text-right" data-no-row-nav>
-                      <div className="flex justify-end">
+                    <td className="min-w-[100px] pl-0 pr-0 py-2 align-middle text-center" data-no-row-nav>
+                      <div className="flex justify-center">
                         <AdminOrdersPdfCell
                           orderId={order.id}
                           documents={documentsByOrder.get(order.id) ?? []}
@@ -1376,13 +1465,26 @@ export default function AdminOrdersTable({
                     </td>
 
                     <td className="pl-0 pr-0 py-2 align-middle text-center" data-no-row-nav>
-                      <a
-                        href={`/admin/orders/${order.id}`}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100"
-                        aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
-                      >
-                        ✎
-                      </a>
+                      <div className="flex items-center justify-center gap-1">
+                        <a
+                          href={`/admin/orders/${order.id}`}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100"
+                          aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                          title="Uredi"
+                        >
+                          ✎
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteRow(order.id)}
+                          disabled={deletingRowId === order.id}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-rose-200 text-sm font-semibold leading-none text-rose-600 hover:bg-rose-50 disabled:text-slate-300"
+                          aria-label={`Izbriši naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                          title="Izbriši"
+                        >
+                          {deletingRowId === order.id ? '…' : '×'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

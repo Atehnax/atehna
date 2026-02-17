@@ -6,9 +6,9 @@ import { usePathname } from 'next/navigation';
 const rootLinks = [
   {
     label: 'Analitika',
-    href: '/admin/analitika/narocila',
+    href: '/admin/analitika',
     children: [
-      { href: '/admin/analitika/narocila', label: 'Naročila' },
+      { href: '/admin/analitika', label: 'Naročila' },
       { href: '/admin/analitika/splet', label: 'Splet' }
     ]
   },

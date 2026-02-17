@@ -9,6 +9,7 @@ import {
   fetchOrderDocuments,
   fetchOrderItems
 } from '@/lib/server/orders';
+import { getDatabaseUrl } from '@/lib/server/db';
 
 export const metadata = {
   title: 'Podrobnosti naročila'
@@ -24,7 +25,7 @@ export default async function AdminOrderDetailPage({
 }: {
   params: { orderId: string };
 }) {
-  if (!process.env.DATABASE_URL) {
+  if (!getDatabaseUrl()) {
     const order = {
       order_number: '#1',
       status: 'received',

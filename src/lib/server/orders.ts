@@ -2,11 +2,11 @@ import { getPool } from '@/lib/server/db';
 
 let hasOrdersDraftColumnCache: boolean | null = null;
 let hasOrdersDeletedColumnCache: boolean | null = null;
+let hasOrdersPaymentStatusColumnCache: boolean | null = null;
+let hasOrdersPaymentNotesColumnCache: boolean | null = null;
 let hasDocumentsDeletedColumnCache: boolean | null = null;
 
-async function hasOrdersDraftColumn() {
-  if (hasOrdersDraftColumnCache !== null) return hasOrdersDraftColumnCache;
-
+async function hasOrdersColumn(columnName: string) {
   const pool = await getPool();
   const result = await pool.query(
     `
@@ -14,32 +14,41 @@ async function hasOrdersDraftColumn() {
     from information_schema.columns
     where table_schema = 'public'
       and table_name = 'orders'
-      and column_name = 'is_draft'
+      and column_name = $1
     limit 1
-    `
+    `,
+    [columnName]
   );
 
-  hasOrdersDraftColumnCache = Number(result.rowCount ?? 0) > 0;
+  return Number(result.rowCount ?? 0) > 0;
+}
+
+async function hasOrdersDraftColumn() {
+  if (hasOrdersDraftColumnCache !== null) return hasOrdersDraftColumnCache;
+
+  hasOrdersDraftColumnCache = await hasOrdersColumn('is_draft');
   return hasOrdersDraftColumnCache;
 }
 
 async function hasOrdersDeletedColumn() {
   if (hasOrdersDeletedColumnCache !== null) return hasOrdersDeletedColumnCache;
 
-  const pool = await getPool();
-  const result = await pool.query(
-    `
-    select 1
-    from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'orders'
-      and column_name = 'deleted_at'
-    limit 1
-    `
-  );
-
-  hasOrdersDeletedColumnCache = Number(result.rowCount ?? 0) > 0;
+  hasOrdersDeletedColumnCache = await hasOrdersColumn('deleted_at');
   return hasOrdersDeletedColumnCache;
+}
+
+async function hasOrdersPaymentStatusColumn() {
+  if (hasOrdersPaymentStatusColumnCache !== null) return hasOrdersPaymentStatusColumnCache;
+
+  hasOrdersPaymentStatusColumnCache = await hasOrdersColumn('payment_status');
+  return hasOrdersPaymentStatusColumnCache;
+}
+
+async function hasOrdersPaymentNotesColumn() {
+  if (hasOrdersPaymentNotesColumnCache !== null) return hasOrdersPaymentNotesColumnCache;
+
+  hasOrdersPaymentNotesColumnCache = await hasOrdersColumn('payment_notes');
+  return hasOrdersPaymentNotesColumnCache;
 }
 
 async function hasDocumentsDeletedColumn() {
@@ -232,11 +241,17 @@ export async function fetchOrders(options?: {
   const pool = await getPool();
   const supportsDraftColumn = await hasOrdersDraftColumn();
   const supportsDeletedColumn = await hasOrdersDeletedColumn();
+  const supportsPaymentStatusColumn = await hasOrdersPaymentStatusColumn();
+  const supportsPaymentNotesColumn = await hasOrdersPaymentNotesColumn();
   const conditions: string[] = [];
   const queryParams: unknown[] = [];
 
   if (!options?.includeDrafts && supportsDraftColumn) {
-    conditions.push('coalesce(orders.is_draft, false) = false');
+    conditions.push(`not (
+      coalesce(orders.is_draft, false) = true
+      and coalesce(orders.email, '') = 'draft@atehna.si'
+      and coalesce(orders.contact_name, '') = 'Osnutek'
+    )`);
   }
   if (supportsDeletedColumn) {
     conditions.push('orders.deleted_at is null');
@@ -256,14 +271,21 @@ export async function fetchOrders(options?: {
     queryParams.push(`%${options.query}%`);
     const queryIndex = queryParams.length;
     conditions.push(
-      `(orders.organization_name ilike $${queryIndex} or orders.contact_name ilike $${queryIndex} or orders.delivery_address ilike $${queryIndex})`
+      `(
+        orders.order_number::text ilike $${queryIndex}
+        or orders.organization_name ilike $${queryIndex}
+        or orders.contact_name ilike $${queryIndex}
+        or orders.delivery_address ilike $${queryIndex}
+        or orders.customer_type ilike $${queryIndex}
+        or orders.status ilike $${queryIndex}
+        ${supportsPaymentStatusColumn ? `or orders.payment_status ilike $${queryIndex}` : ''}
+      )`
     );
   }
 
   const whereClause = conditions.length > 0 ? `where ${conditions.join(' and ')}` : '';
 
-  const result = await pool.query(
-    `
+  const primaryQuery = `
     select
       orders.id,
       orders.order_number,
@@ -276,11 +298,11 @@ export async function fetchOrders(options?: {
       orders.reference,
       orders.notes,
       orders.status,
-      orders.payment_status,
-      orders.payment_notes,
-      coalesce(orders.subtotal, computed_totals.subtotal, 0)::numeric as subtotal,
-      coalesce(orders.tax, computed_totals.tax, 0)::numeric as tax,
-      coalesce(orders.total, computed_totals.total, 0)::numeric as total,
+      ${supportsPaymentStatusColumn ? 'orders.payment_status' : 'null::text as payment_status'},
+      ${supportsPaymentNotesColumn ? 'orders.payment_notes' : 'null::text as payment_notes'},
+      coalesce(orders.subtotal::text, computed_totals.subtotal::text, '0') as subtotal,
+      coalesce(orders.tax::text, computed_totals.tax::text, '0') as tax,
+      coalesce(orders.total::text, computed_totals.total::text, '0') as total,
       orders.created_at,
       ${supportsDraftColumn ? 'orders.is_draft' : 'false as is_draft'},
       ${supportsDeletedColumn ? 'orders.deleted_at' : 'null::timestamptz as deleted_at'}
@@ -296,18 +318,51 @@ export async function fetchOrders(options?: {
     ) as computed_totals
       on computed_totals.order_id = orders.id
     ${whereClause}
-    order by orders.created_at desc, coalesce(nullif(regexp_replace(orders.order_number::text, '\D', '', 'g'), ''), '0')::numeric desc
-    `,
-    queryParams
-  );
+    order by orders.created_at desc, orders.id desc
+  `;
 
-  return result.rows.map((rawRow) => mapOrderRow(rawRow as Record<string, unknown>));
+  const safeFallbackQuery = `
+    select
+      orders.id,
+      orders.order_number,
+      orders.customer_type,
+      orders.organization_name,
+      orders.contact_name,
+      orders.email,
+      orders.phone,
+      orders.delivery_address,
+      orders.reference,
+      orders.notes,
+      orders.status,
+      ${supportsPaymentStatusColumn ? 'orders.payment_status' : 'null::text as payment_status'},
+      ${supportsPaymentNotesColumn ? 'orders.payment_notes' : 'null::text as payment_notes'},
+      coalesce(orders.subtotal::text, '0') as subtotal,
+      coalesce(orders.tax::text, '0') as tax,
+      coalesce(orders.total::text, '0') as total,
+      orders.created_at,
+      ${supportsDraftColumn ? 'orders.is_draft' : 'false as is_draft'},
+      ${supportsDeletedColumn ? 'orders.deleted_at' : 'null::timestamptz as deleted_at'}
+    from orders
+    ${whereClause}
+    order by orders.created_at desc, orders.id desc
+  `;
+
+  try {
+    const result = await pool.query(primaryQuery, queryParams);
+    return result.rows.map((rawRow) => mapOrderRow(rawRow as Record<string, unknown>));
+  } catch (error) {
+    console.error('fetchOrders primary query failed, retrying with safe fallback', error);
+    const fallbackResult = await pool.query(safeFallbackQuery, queryParams);
+    return fallbackResult.rows.map((rawRow) => mapOrderRow(rawRow as Record<string, unknown>));
+  }
 }
 
 export async function fetchOrderById(orderId: number): Promise<OrderRow | null> {
   const pool = await getPool();
   const supportsDraftColumn = await hasOrdersDraftColumn();
   const supportsDeletedColumn = await hasOrdersDeletedColumn();
+  const supportsPaymentStatusColumn = await hasOrdersPaymentStatusColumn();
+  const supportsPaymentNotesColumn = await hasOrdersPaymentNotesColumn();
 
   const result = await pool.query(
     `
@@ -323,11 +378,11 @@ export async function fetchOrderById(orderId: number): Promise<OrderRow | null> 
       orders.reference,
       orders.notes,
       orders.status,
-      orders.payment_status,
-      orders.payment_notes,
-      coalesce(orders.subtotal, computed_totals.subtotal, 0)::numeric as subtotal,
-      coalesce(orders.tax, computed_totals.tax, 0)::numeric as tax,
-      coalesce(orders.total, computed_totals.total, 0)::numeric as total,
+      ${supportsPaymentStatusColumn ? 'orders.payment_status' : 'null::text as payment_status'},
+      ${supportsPaymentNotesColumn ? 'orders.payment_notes' : 'null::text as payment_notes'},
+      coalesce(orders.subtotal::text, computed_totals.subtotal::text, '0') as subtotal,
+      coalesce(orders.tax::text, computed_totals.tax::text, '0') as tax,
+      coalesce(orders.total::text, computed_totals.total::text, '0') as total,
       orders.created_at,
       ${supportsDraftColumn ? 'orders.is_draft' : 'false as is_draft'},
       ${supportsDeletedColumn ? 'orders.deleted_at' : 'null::timestamptz as deleted_at'}

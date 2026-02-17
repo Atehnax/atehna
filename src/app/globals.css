@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --chart-canvas: #f3f4f6;
+  --chart-card: #ffffff;
+  --chart-border: #d1d5db;
+  --chart-text: #1f2937;
+  --chart-muted-text: #4b5563;
+  --chart-grid: rgba(209, 213, 219, 0.5);
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-border: #d1d5db;
+  --chart-series-primary: #2563eb;
+  --chart-series-secondary: #0ea5e9;
+  --chart-series-tertiary: #14b8a6;
+  --chart-series-quaternary: #f59e0b;
+  --chart-series-danger: #ef4444;
+  --chart-series-neutral: #0284c7;
+}
+
 body {
   @apply bg-slate-50 text-slate-900;
 }

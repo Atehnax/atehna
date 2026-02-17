@@ -18,7 +18,13 @@ export type OrdersAnalyticsDay = {
   order_count: number;
   revenue_total: number;
   aov: number;
+  median_order_value: number;
+  cancelled_count: number;
+  paid_count: number;
+  payment_success_rate: number;
+  cancellation_rate: number;
   status_buckets: Record<string, number>;
+  payment_status_buckets: Record<string, number>;
   customer_type_buckets: Record<'P' | 'Š' | 'F', number>;
   lead_time_p50_hours: number | null;
   lead_time_p90_hours: number | null;
@@ -48,7 +54,13 @@ export const emptyOrdersAnalyticsResponse = (range: AnalyticsRange = '90d'): Ord
         order_count: 0,
         revenue_total: 0,
         aov: 0,
+        median_order_value: 0,
+        cancelled_count: 0,
+        paid_count: 0,
+        payment_success_rate: 0,
+        cancellation_rate: 0,
         status_buckets: {},
+        payment_status_buckets: {},
         customer_type_buckets: { P: 0, Š: 0, F: 0 },
         lead_time_p50_hours: null,
         lead_time_p90_hours: null
@@ -58,7 +70,6 @@ export const emptyOrdersAnalyticsResponse = (range: AnalyticsRange = '90d'): Ord
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-
 const toYmdUtc = (value: Date) => value.toISOString().slice(0, 10);
 
 const parseYmd = (value?: string | null) => {
@@ -75,27 +86,14 @@ const normalizeRange = (value?: string | null): AnalyticsRange => {
   return '90d';
 };
 
-const rangeToDays = (range: AnalyticsRange) => {
-  if (range === '30d') return 30;
-  if (range === '180d') return 180;
-  return 90;
-};
+const rangeToDays = (range: AnalyticsRange) => (range === '30d' ? 30 : range === '180d' ? 180 : 90);
 
-const resolveWindow = ({
-  range,
-  from,
-  to
-}: {
-  range: AnalyticsRange;
-  from?: string | null;
-  to?: string | null;
-}): DateWindow => {
+const resolveWindow = ({ range, from, to }: { range: AnalyticsRange; from?: string | null; to?: string | null }): DateWindow => {
   const parsedFrom = parseYmd(from);
   const parsedTo = parseYmd(to);
 
   const toDate = parsedTo ?? new Date(new Date().toISOString().slice(0, 10));
-  const fromDate =
-    parsedFrom ?? new Date(toDate.getTime() - (rangeToDays(range) - 1) * DAY_MS);
+  const fromDate = parsedFrom ?? new Date(toDate.getTime() - (rangeToDays(range) - 1) * DAY_MS);
 
   if (fromDate.getTime() > toDate.getTime()) {
     return {
@@ -135,7 +133,6 @@ const percentile = (values: number[], percentileRank: number): number | null => 
   const weight = index - lowerIndex;
 
   if (lowerIndex === upperIndex) return sortedValues[lowerIndex] ?? null;
-
   const lower = sortedValues[lowerIndex] ?? 0;
   const upper = sortedValues[upperIndex] ?? lower;
   return lower + (upper - lower) * weight;
@@ -194,15 +191,13 @@ export async function fetchOrdersAnalytics(params?: {
   const grouping: AnalyticsGrouping = 'day';
   const window = resolveWindow({ range, from: params?.from, to: params?.to });
 
-  const orders = await fetchOrders({
-    includeDrafts: true,
-    fromDate: window.fromIso,
-    toDate: window.toIso
-  });
-
+  const orders = await fetchOrders({ includeDrafts: true, fromDate: window.fromIso, toDate: window.toIso });
   const paidAtByOrder = await fetchPaidLogTimestamps(orders.map((order) => order.id));
 
-  const bucketByDay = new Map<string, OrdersAnalyticsDay & { leadHours: number[] }>();
+  const bucketByDay = new Map<
+    string,
+    OrdersAnalyticsDay & { leadHours: number[]; orderValues: number[] }
+  >();
 
   const seedDays: string[] = [];
   let cursor = new Date(`${window.fromYmd}T00:00:00.000Z`).getTime();
@@ -216,11 +211,18 @@ export async function fetchOrdersAnalytics(params?: {
       order_count: 0,
       revenue_total: 0,
       aov: 0,
+      median_order_value: 0,
+      cancelled_count: 0,
+      paid_count: 0,
+      payment_success_rate: 0,
+      cancellation_rate: 0,
       status_buckets: {},
+      payment_status_buckets: {},
       customer_type_buckets: { P: 0, Š: 0, F: 0 },
       lead_time_p50_hours: null,
       lead_time_p90_hours: null,
-      leadHours: []
+      leadHours: [],
+      orderValues: []
     });
     cursor += DAY_MS;
   }
@@ -233,11 +235,19 @@ export async function fetchOrdersAnalytics(params?: {
     const dayBucket = bucketByDay.get(dayKey);
     if (!dayBucket) return;
 
+    const orderTotal = toFiniteNumber(order.total);
     dayBucket.order_count += 1;
-    dayBucket.revenue_total += toFiniteNumber(order.total);
+    dayBucket.revenue_total += orderTotal;
+    dayBucket.orderValues.push(orderTotal);
 
     const status = statusLabel(order.status);
     dayBucket.status_buckets[status] = (dayBucket.status_buckets[status] ?? 0) + 1;
+    if (status === 'cancelled') dayBucket.cancelled_count += 1;
+
+    const paymentStatus = statusLabel(order.payment_status);
+    dayBucket.payment_status_buckets[paymentStatus] =
+      (dayBucket.payment_status_buckets[paymentStatus] ?? 0) + 1;
+    if (paymentStatus === 'paid') dayBucket.paid_count += 1;
 
     const customer = customerBucket(order.customer_type);
     dayBucket.customer_type_buckets[customer] += 1;
@@ -247,9 +257,7 @@ export async function fetchOrdersAnalytics(params?: {
       const paidTimestamp = new Date(paidAt).getTime();
       if (!Number.isNaN(paidTimestamp)) {
         const leadHours = (paidTimestamp - createdAt.getTime()) / (1000 * 60 * 60);
-        if (Number.isFinite(leadHours) && leadHours >= 0) {
-          dayBucket.leadHours.push(leadHours);
-        }
+        if (Number.isFinite(leadHours) && leadHours >= 0) dayBucket.leadHours.push(leadHours);
       }
     }
   });
@@ -257,6 +265,9 @@ export async function fetchOrdersAnalytics(params?: {
   const days = seedDays.map((dayKey) => {
     const bucket = bucketByDay.get(dayKey)!;
     const aov = bucket.order_count > 0 ? bucket.revenue_total / bucket.order_count : 0;
+    const medianOrderValue = percentile(bucket.orderValues, 0.5) ?? 0;
+    const paymentSuccessRate = bucket.order_count > 0 ? (bucket.paid_count / bucket.order_count) * 100 : 0;
+    const cancellationRate = bucket.order_count > 0 ? (bucket.cancelled_count / bucket.order_count) * 100 : 0;
     const p50 = percentile(bucket.leadHours, 0.5);
     const p90 = percentile(bucket.leadHours, 0.9);
 
@@ -265,7 +276,13 @@ export async function fetchOrdersAnalytics(params?: {
       order_count: bucket.order_count,
       revenue_total: Number(bucket.revenue_total.toFixed(2)),
       aov: Number(aov.toFixed(2)),
+      median_order_value: Number(medianOrderValue.toFixed(2)),
+      cancelled_count: bucket.cancelled_count,
+      paid_count: bucket.paid_count,
+      payment_success_rate: Number(paymentSuccessRate.toFixed(2)),
+      cancellation_rate: Number(cancellationRate.toFixed(2)),
       status_buckets: bucket.status_buckets,
+      payment_status_buckets: bucket.payment_status_buckets,
       customer_type_buckets: bucket.customer_type_buckets,
       lead_time_p50_hours: p50 === null ? null : Number(p50.toFixed(2)),
       lead_time_p90_hours: p90 === null ? null : Number(p90.toFixed(2))

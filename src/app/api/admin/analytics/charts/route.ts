@@ -8,21 +8,48 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-const parseChartType = (value: unknown): AnalyticsChartType =>
-  value === 'bar' || value === 'area' ? value : 'line';
+const chartTypes: AnalyticsChartType[] = [
+  'line',
+  'spline',
+  'area',
+  'bar',
+  'grouped_bar',
+  'stacked_bar',
+  'stacked_area',
+  'scatter',
+  'bubble',
+  'histogram',
+  'box',
+  'heatmap',
+  'waterfall',
+  'combo'
+];
 
-const parseConfig = (value: unknown): AnalyticsChartConfig => {
-  if (!value || typeof value !== 'object') {
-    return {
-      dataset: 'orders_daily',
-      xField: 'date',
-      yFields: ['order_count'],
-      filters: { customerType: 'all', status: 'all' },
-      transforms: { movingAverage7d: false }
-    };
-  }
-  return value as AnalyticsChartConfig;
-};
+const parseChartType = (value: unknown): AnalyticsChartType =>
+  chartTypes.includes(value as AnalyticsChartType) ? (value as AnalyticsChartType) : 'line';
+
+const fallbackConfig = (): AnalyticsChartConfig => ({
+  dataset: 'orders_daily',
+  xField: 'date',
+  xTitle: 'Datum',
+  xTickFormat: '',
+  xDateFormat: '%Y-%m-%d',
+  xScale: 'linear',
+  yLeftTitle: 'Vrednost',
+  yLeftScale: 'linear',
+  yLeftTickFormat: '',
+  yRightEnabled: false,
+  yRightTitle: 'Vrednost (desno)',
+  yRightScale: 'linear',
+  yRightTickFormat: '',
+  grain: 'day',
+  quickRange: '90d',
+  filters: { customerType: 'all', status: 'all', paymentStatus: 'all', includeNulls: true },
+  series: []
+});
+
+const parseConfig = (value: unknown): AnalyticsChartConfig =>
+  value && typeof value === 'object' ? (value as AnalyticsChartConfig) : fallbackConfig();
 
 export async function GET() {
   try {
@@ -38,9 +65,7 @@ export async function POST(request: Request) {
   try {
     const payload = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     const title = typeof payload.title === 'string' ? payload.title.trim() : '';
-    if (!title) {
-      return NextResponse.json({ message: 'Naslov je obvezen.' }, { status: 400 });
-    }
+    if (!title) return NextResponse.json({ message: 'Naslov je obvezen.' }, { status: 400 });
 
     const chart = await createAnalyticsChart({
       dashboardKey: 'narocila',

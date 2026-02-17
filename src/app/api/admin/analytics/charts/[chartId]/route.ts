@@ -1,11 +1,31 @@
 import { NextResponse } from 'next/server';
-import { deleteAnalyticsChart, updateAnalyticsChart, type AnalyticsChartConfig, type AnalyticsChartType } from '@/lib/server/analyticsCharts';
+import {
+  deleteAnalyticsChart,
+  updateAnalyticsChart,
+  type AnalyticsChartConfig,
+  type AnalyticsChartType
+} from '@/lib/server/analyticsCharts';
 
 export const dynamic = 'force-dynamic';
 
 const parseChartType = (value: unknown): AnalyticsChartType | undefined => {
-  if (value === 'line' || value === 'bar' || value === 'area') return value;
-  return undefined;
+  const allowed: AnalyticsChartType[] = [
+    'line',
+    'spline',
+    'area',
+    'bar',
+    'grouped_bar',
+    'stacked_bar',
+    'stacked_area',
+    'scatter',
+    'bubble',
+    'histogram',
+    'box',
+    'heatmap',
+    'waterfall',
+    'combo'
+  ];
+  return allowed.includes(value as AnalyticsChartType) ? (value as AnalyticsChartType) : undefined;
 };
 
 export async function PATCH(request: Request, { params }: { params: { chartId: string } }) {
@@ -16,8 +36,14 @@ export async function PATCH(request: Request, { params }: { params: { chartId: s
     const payload = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     const chart = await updateAnalyticsChart(chartId, {
       title: typeof payload.title === 'string' ? payload.title : undefined,
-      description: typeof payload.description === 'string' || payload.description === null ? (payload.description as string | null) : undefined,
-      comment: typeof payload.comment === 'string' || payload.comment === null ? (payload.comment as string | null) : undefined,
+      description:
+        typeof payload.description === 'string' || payload.description === null
+          ? (payload.description as string | null)
+          : undefined,
+      comment:
+        typeof payload.comment === 'string' || payload.comment === null
+          ? (payload.comment as string | null)
+          : undefined,
       chartType: parseChartType(payload.chartType),
       config: payload.config as AnalyticsChartConfig | undefined
     });

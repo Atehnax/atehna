@@ -1,19 +1,73 @@
 import { randomUUID } from 'crypto';
 import { getPool } from '@/lib/server/db';
 
-export type AnalyticsChartType = 'line' | 'bar' | 'area';
+export type AnalyticsChartType =
+  | 'line'
+  | 'spline'
+  | 'area'
+  | 'bar'
+  | 'grouped_bar'
+  | 'stacked_bar'
+  | 'stacked_area'
+  | 'scatter'
+  | 'bubble'
+  | 'histogram'
+  | 'box'
+  | 'heatmap'
+  | 'waterfall'
+  | 'combo';
+
+export type AnalyticsMetricField =
+  | 'order_count'
+  | 'revenue_total'
+  | 'aov'
+  | 'median_order_value'
+  | 'payment_success_rate'
+  | 'cancellation_rate'
+  | 'lead_time_p50_hours'
+  | 'lead_time_p90_hours'
+  | 'paid_count'
+  | 'cancelled_count';
+
+export type AnalyticsChartSeries = {
+  id: string;
+  enabled: boolean;
+  field_key: AnalyticsMetricField;
+  aggregation: 'sum' | 'count' | 'avg' | 'median' | 'min' | 'max' | 'p90' | 'distinct_count';
+  transform: 'none' | 'moving_average_7d' | 'cumulative' | 'pct_change' | 'share_of_total';
+  chart_type: AnalyticsChartType;
+  stack_group: string;
+  axis_side: 'left' | 'right';
+  axis_label: string;
+  color: string;
+  line_width: number;
+  opacity: number;
+  label_format: string;
+};
 
 export type AnalyticsChartConfig = {
   dataset: 'orders_daily';
   xField: 'date';
-  yFields: Array<'order_count' | 'revenue_total' | 'aov'>;
-  filters?: {
-    customerType?: 'P' | 'Š' | 'F' | 'all';
-    status?: string | 'all';
+  xTitle: string;
+  xTickFormat: string;
+  xDateFormat: string;
+  xScale: 'linear' | 'log';
+  yLeftTitle: string;
+  yLeftScale: 'linear' | 'log';
+  yLeftTickFormat: string;
+  yRightEnabled: boolean;
+  yRightTitle: string;
+  yRightScale: 'linear' | 'log';
+  yRightTickFormat: string;
+  grain: 'day' | 'week' | 'month' | 'quarter';
+  quickRange: '7d' | '30d' | '90d' | '180d' | 'ytd';
+  filters: {
+    customerType: 'all' | 'P' | 'Š' | 'F';
+    status: string;
+    paymentStatus: string;
+    includeNulls: boolean;
   };
-  transforms?: {
-    movingAverage7d?: boolean;
-  };
+  series: AnalyticsChartSeries[];
 };
 
 export type AnalyticsChartRow = {
@@ -35,55 +89,148 @@ let ensured = false;
 
 const toIso = (value: unknown) => (value instanceof Date ? value.toISOString() : String(value));
 
-const parseChartType = (value: unknown): AnalyticsChartType =>
-  value === 'bar' || value === 'area' ? value : 'line';
+const isMetric = (value: unknown): value is AnalyticsMetricField =>
+  [
+    'order_count',
+    'revenue_total',
+    'aov',
+    'median_order_value',
+    'payment_success_rate',
+    'cancellation_rate',
+    'lead_time_p50_hours',
+    'lead_time_p90_hours',
+    'paid_count',
+    'cancelled_count'
+  ].includes(String(value));
+
+const parseChartType = (value: unknown): AnalyticsChartType => {
+  const allowed: AnalyticsChartType[] = [
+    'line',
+    'spline',
+    'area',
+    'bar',
+    'grouped_bar',
+    'stacked_bar',
+    'stacked_area',
+    'scatter',
+    'bubble',
+    'histogram',
+    'box',
+    'heatmap',
+    'waterfall',
+    'combo'
+  ];
+  return allowed.includes(value as AnalyticsChartType) ? (value as AnalyticsChartType) : 'line';
+};
+
+const defaultSeries = (field: AnalyticsMetricField, overrides?: Partial<AnalyticsChartSeries>): AnalyticsChartSeries => ({
+  id: randomUUID(),
+  enabled: true,
+  field_key: field,
+  aggregation: 'sum',
+  transform: 'none',
+  chart_type: 'line',
+  stack_group: 'none',
+  axis_side: 'left',
+  axis_label: '',
+  color: '#22d3ee',
+  line_width: 2,
+  opacity: 1,
+  label_format: '',
+  ...overrides
+});
+
+const defaultConfig = (): AnalyticsChartConfig => ({
+  dataset: 'orders_daily',
+  xField: 'date',
+  xTitle: 'Datum',
+  xTickFormat: '',
+  xDateFormat: '%Y-%m-%d',
+  xScale: 'linear',
+  yLeftTitle: 'Vrednost',
+  yLeftScale: 'linear',
+  yLeftTickFormat: '',
+  yRightEnabled: false,
+  yRightTitle: 'Vrednost (desno)',
+  yRightScale: 'linear',
+  yRightTickFormat: '',
+  grain: 'day',
+  quickRange: '90d',
+  filters: {
+    customerType: 'all',
+    status: 'all',
+    paymentStatus: 'all',
+    includeNulls: true
+  },
+  series: [defaultSeries('order_count')]
+});
 
 const parseConfig = (value: unknown): AnalyticsChartConfig => {
-  const fallback: AnalyticsChartConfig = {
-    dataset: 'orders_daily',
-    xField: 'date',
-    yFields: ['order_count'],
-    filters: { customerType: 'all', status: 'all' },
-    transforms: { movingAverage7d: false }
-  };
-
+  const fallback = defaultConfig();
   if (!value || typeof value !== 'object' || Array.isArray(value)) return fallback;
   const raw = value as Record<string, unknown>;
-  const rawYFields = Array.isArray(raw.yFields) ? raw.yFields : [];
-  const yFields = rawYFields
-    .filter((yField): yField is 'order_count' | 'revenue_total' | 'aov' =>
-      yField === 'order_count' || yField === 'revenue_total' || yField === 'aov'
-    )
-    .slice(0, 3);
+
+  const parsedSeries = (Array.isArray(raw.series) ? raw.series : [])
+    .map((seriesRaw): AnalyticsChartSeries | null => {
+      if (!seriesRaw || typeof seriesRaw !== 'object' || Array.isArray(seriesRaw)) return null;
+      const source = seriesRaw as Record<string, unknown>;
+      if (!isMetric(source.field_key)) return null;
+
+      return {
+        id: typeof source.id === 'string' ? source.id : randomUUID(),
+        enabled: source.enabled !== false,
+        field_key: source.field_key,
+        aggregation: ['sum', 'count', 'avg', 'median', 'min', 'max', 'p90', 'distinct_count'].includes(String(source.aggregation))
+          ? (source.aggregation as AnalyticsChartSeries['aggregation'])
+          : 'sum',
+        transform: ['none', 'moving_average_7d', 'cumulative', 'pct_change', 'share_of_total'].includes(String(source.transform))
+          ? (source.transform as AnalyticsChartSeries['transform'])
+          : 'none',
+        chart_type: parseChartType(source.chart_type),
+        stack_group: typeof source.stack_group === 'string' ? source.stack_group : 'none',
+        axis_side: source.axis_side === 'right' ? 'right' : 'left',
+        axis_label: typeof source.axis_label === 'string' ? source.axis_label : '',
+        color: typeof source.color === 'string' ? source.color : '#22d3ee',
+        line_width: Number.isFinite(Number(source.line_width)) ? Number(source.line_width) : 2,
+        opacity: Number.isFinite(Number(source.opacity)) ? Number(source.opacity) : 1,
+        label_format: typeof source.label_format === 'string' ? source.label_format : ''
+      };
+    })
+    .filter((series): series is AnalyticsChartSeries => series !== null);
 
   return {
     dataset: 'orders_daily',
     xField: 'date',
-    yFields: yFields.length > 0 ? yFields : ['order_count'],
+    xTitle: typeof raw.xTitle === 'string' ? raw.xTitle : fallback.xTitle,
+    xTickFormat: typeof raw.xTickFormat === 'string' ? raw.xTickFormat : '',
+    xDateFormat: typeof raw.xDateFormat === 'string' ? raw.xDateFormat : fallback.xDateFormat,
+    xScale: raw.xScale === 'log' ? 'log' : 'linear',
+    yLeftTitle: typeof raw.yLeftTitle === 'string' ? raw.yLeftTitle : fallback.yLeftTitle,
+    yLeftScale: raw.yLeftScale === 'log' ? 'log' : 'linear',
+    yLeftTickFormat: typeof raw.yLeftTickFormat === 'string' ? raw.yLeftTickFormat : '',
+    yRightEnabled: Boolean(raw.yRightEnabled),
+    yRightTitle: typeof raw.yRightTitle === 'string' ? raw.yRightTitle : fallback.yRightTitle,
+    yRightScale: raw.yRightScale === 'log' ? 'log' : 'linear',
+    yRightTickFormat: typeof raw.yRightTickFormat === 'string' ? raw.yRightTickFormat : '',
+    grain: raw.grain === 'week' || raw.grain === 'month' || raw.grain === 'quarter' ? raw.grain : 'day',
+    quickRange:
+      raw.quickRange === '7d' || raw.quickRange === '30d' || raw.quickRange === '180d' || raw.quickRange === 'ytd'
+        ? raw.quickRange
+        : '90d',
     filters: {
-      customerType:
-        raw.filters &&
-        typeof raw.filters === 'object' &&
-        ((raw.filters as Record<string, unknown>).customerType === 'P' ||
-          (raw.filters as Record<string, unknown>).customerType === 'Š' ||
-          (raw.filters as Record<string, unknown>).customerType === 'F')
-          ? ((raw.filters as Record<string, unknown>).customerType as 'P' | 'Š' | 'F')
-          : 'all',
-      status:
-        raw.filters &&
-        typeof raw.filters === 'object' &&
-        typeof (raw.filters as Record<string, unknown>).status === 'string'
-          ? ((raw.filters as Record<string, unknown>).status as string)
-          : 'all'
+      customerType: raw.filters && typeof raw.filters === 'object' && ['P', 'Š', 'F'].includes(String((raw.filters as Record<string, unknown>).customerType))
+        ? ((raw.filters as Record<string, unknown>).customerType as 'P' | 'Š' | 'F')
+        : 'all',
+      status: raw.filters && typeof raw.filters === 'object' && typeof (raw.filters as Record<string, unknown>).status === 'string'
+        ? String((raw.filters as Record<string, unknown>).status)
+        : 'all',
+      paymentStatus: raw.filters && typeof raw.filters === 'object' && typeof (raw.filters as Record<string, unknown>).paymentStatus === 'string'
+        ? String((raw.filters as Record<string, unknown>).paymentStatus)
+        : 'all',
+      includeNulls:
+        !(raw.filters && typeof raw.filters === 'object' && (raw.filters as Record<string, unknown>).includeNulls === false)
     },
-    transforms: {
-      movingAverage7d:
-        Boolean(
-          raw.transforms &&
-            typeof raw.transforms === 'object' &&
-            (raw.transforms as Record<string, unknown>).movingAverage7d
-        )
-    }
+    series: parsedSeries.length > 0 ? parsedSeries : fallback.series
   };
 };
 
@@ -126,40 +273,173 @@ async function ensureAnalyticsTables() {
   ensured = true;
 }
 
+const buildSystemCharts = (dashboardKey: string) => [
+  {
+    key: `${dashboardKey}-orders-ma`,
+    title: 'Orders/day + 7d MA',
+    description: 'Daily orders with moving average.',
+    comment: null,
+    chart_type: 'combo' as AnalyticsChartType,
+    position: 0,
+    config_json: {
+      ...defaultConfig(),
+      yLeftTitle: 'Orders',
+      series: [
+        defaultSeries('order_count', { chart_type: 'bar', color: '#22d3ee' }),
+        defaultSeries('order_count', {
+          transform: 'moving_average_7d',
+          chart_type: 'line',
+          color: '#f59e0b',
+          axis_label: 'Orders 7d MA'
+        })
+      ]
+    }
+  },
+  {
+    key: `${dashboardKey}-revenue-ma`,
+    title: 'Revenue/day + 7d MA',
+    description: 'Revenue in EUR with moving average.',
+    comment: null,
+    chart_type: 'combo' as AnalyticsChartType,
+    position: 1,
+    config_json: {
+      ...defaultConfig(),
+      yLeftTitle: 'Revenue (EUR)',
+      yLeftTickFormat: ',.2f',
+      series: [
+        defaultSeries('revenue_total', { chart_type: 'bar', color: '#38bdf8', axis_label: 'Revenue' }),
+        defaultSeries('revenue_total', {
+          transform: 'moving_average_7d',
+          chart_type: 'line',
+          color: '#f59e0b',
+          axis_label: 'Revenue 7d MA'
+        })
+      ]
+    }
+  },
+  {
+    key: `${dashboardKey}-aov-median`,
+    title: 'AOV vs median order value',
+    description: 'Compare average and median order value.',
+    comment: null,
+    chart_type: 'line' as AnalyticsChartType,
+    position: 2,
+    config_json: {
+      ...defaultConfig(),
+      yLeftTitle: 'EUR',
+      yLeftTickFormat: ',.2f',
+      series: [
+        defaultSeries('aov', { chart_type: 'line', color: '#a78bfa', axis_label: 'AOV' }),
+        defaultSeries('median_order_value', { chart_type: 'line', color: '#34d399', axis_label: 'Median value' })
+      ]
+    }
+  },
+  {
+    key: `${dashboardKey}-cumulative-dual`,
+    title: 'Cumulative revenue vs cumulative orders',
+    description: 'Dual axis cumulative trends.',
+    comment: null,
+    chart_type: 'combo' as AnalyticsChartType,
+    position: 3,
+    config_json: {
+      ...defaultConfig(),
+      yLeftTitle: 'Cumulative revenue (EUR)',
+      yLeftTickFormat: ',.0f',
+      yRightEnabled: true,
+      yRightTitle: 'Cumulative orders',
+      series: [
+        defaultSeries('revenue_total', {
+          transform: 'cumulative',
+          chart_type: 'line',
+          color: '#22d3ee',
+          axis_side: 'left',
+          axis_label: 'Cumulative revenue'
+        }),
+        defaultSeries('order_count', {
+          transform: 'cumulative',
+          chart_type: 'line',
+          color: '#f59e0b',
+          axis_side: 'right',
+          axis_label: 'Cumulative orders'
+        })
+      ]
+    }
+  },
+  {
+    key: `${dashboardKey}-customer-mix`,
+    title: 'Customer type mix over time',
+    description: 'P / Š / F stacked mix.',
+    comment: null,
+    chart_type: 'stacked_area' as AnalyticsChartType,
+    position: 4,
+    config_json: {
+      ...defaultConfig(),
+      yLeftTitle: 'Share (%)',
+      yLeftTickFormat: ',.1f',
+      series: [
+        defaultSeries('order_count', { chart_type: 'stacked_area', color: '#22d3ee', axis_label: 'P', stack_group: 'customer_P', transform: 'share_of_total' }),
+        defaultSeries('order_count', { chart_type: 'stacked_area', color: '#818cf8', axis_label: 'Š', stack_group: 'customer_Š', transform: 'share_of_total' }),
+        defaultSeries('order_count', { chart_type: 'stacked_area', color: '#f59e0b', axis_label: 'F', stack_group: 'customer_F', transform: 'share_of_total' })
+      ]
+    }
+  },
+  {
+    key: `${dashboardKey}-status-mix`,
+    title: 'Status mix over time',
+    description: 'Stacked status trend.',
+    comment: null,
+    chart_type: 'stacked_bar' as AnalyticsChartType,
+    position: 5,
+    config_json: {
+      ...defaultConfig(),
+      yLeftTitle: 'Orders',
+      series: [
+        defaultSeries('order_count', { chart_type: 'stacked_bar', color: '#22d3ee', axis_label: 'received', stack_group: 'status', transform: 'none' }),
+        defaultSeries('order_count', { chart_type: 'stacked_bar', color: '#34d399', axis_label: 'in_progress', stack_group: 'status', transform: 'none' }),
+        defaultSeries('order_count', { chart_type: 'stacked_bar', color: '#f59e0b', axis_label: 'cancelled', stack_group: 'status', transform: 'none' })
+      ],
+      filters: { customerType: 'all', status: 'all', paymentStatus: 'all', includeNulls: true }
+    }
+  },
+  {
+    key: `${dashboardKey}-rates`,
+    title: 'Cancellation rate + payment success rate',
+    description: 'Daily operational rates.',
+    comment: null,
+    chart_type: 'line' as AnalyticsChartType,
+    position: 6,
+    config_json: {
+      ...defaultConfig(),
+      yLeftTitle: 'Rate (%)',
+      yLeftTickFormat: ',.2f',
+      series: [
+        defaultSeries('cancellation_rate', { chart_type: 'line', color: '#f87171', axis_label: 'Cancellation %' }),
+        defaultSeries('payment_success_rate', { chart_type: 'line', color: '#22d3ee', axis_label: 'Payment success %' })
+      ]
+    }
+  },
+  {
+    key: `${dashboardKey}-lead-time`,
+    title: 'Fulfilment lead-time p50 + p90',
+    description: 'Lead times in hours.',
+    comment: null,
+    chart_type: 'line' as AnalyticsChartType,
+    position: 7,
+    config_json: {
+      ...defaultConfig(),
+      yLeftTitle: 'Hours',
+      yLeftTickFormat: ',.2f',
+      series: [
+        defaultSeries('lead_time_p50_hours', { chart_type: 'line', color: '#22d3ee', axis_label: 'p50 hours' }),
+        defaultSeries('lead_time_p90_hours', { chart_type: 'line', color: '#f59e0b', axis_label: 'p90 hours' })
+      ]
+    }
+  }
+];
+
 async function ensureSystemCharts(dashboardKey = 'narocila') {
   const pool = await getPool();
-  const systemCharts = [
-    {
-      key: `${dashboardKey}-orders-system`,
-      title: 'Naročila / dan + 7d MA',
-      description: 'Dnevno število naročil in 7-dnevno drseče povprečje.',
-      comment: null,
-      chart_type: 'line',
-      position: 0,
-      config_json: {
-        dataset: 'orders_daily',
-        xField: 'date',
-        yFields: ['order_count'],
-        filters: { customerType: 'all', status: 'all' },
-        transforms: { movingAverage7d: true }
-      }
-    },
-    {
-      key: `${dashboardKey}-revenue-system`,
-      title: 'Prihodki / dan + 7d MA',
-      description: 'Dnevni prihodki v EUR in 7-dnevno drseče povprečje.',
-      comment: null,
-      chart_type: 'line',
-      position: 1,
-      config_json: {
-        dataset: 'orders_daily',
-        xField: 'date',
-        yFields: ['revenue_total'],
-        filters: { customerType: 'all', status: 'all' },
-        transforms: { movingAverage7d: true }
-      }
-    }
-  ] as const;
+  const systemCharts = buildSystemCharts(dashboardKey);
 
   for (const chart of systemCharts) {
     await pool.query(
@@ -195,11 +475,7 @@ export async function fetchAnalyticsCharts(dashboardKey = 'narocila') {
   await ensureSystemCharts(dashboardKey);
 
   const pool = await getPool();
-  const result = await pool.query(
-    `select * from analytics_charts where dashboard_key = $1 order by position asc, id asc`,
-    [dashboardKey]
-  );
-
+  const result = await pool.query(`select * from analytics_charts where dashboard_key = $1 order by position asc, id asc`, [dashboardKey]);
   return result.rows.map((row) => mapRow(row as Record<string, unknown>));
 }
 
@@ -215,10 +491,7 @@ export async function createAnalyticsChart(input: {
 
   const pool = await getPool();
   const dashboardKey = input.dashboardKey ?? 'narocila';
-  const positionResult = await pool.query(
-    'select coalesce(max(position), -1) + 1 as next_position from analytics_charts where dashboard_key = $1',
-    [dashboardKey]
-  );
+  const positionResult = await pool.query('select coalesce(max(position), -1) + 1 as next_position from analytics_charts where dashboard_key = $1', [dashboardKey]);
   const position = Number(positionResult.rows[0]?.next_position ?? 0);
 
   const result = await pool.query(
@@ -227,16 +500,7 @@ export async function createAnalyticsChart(input: {
     values ($1,$2,$3,$4,$5,$6,$7::jsonb,$8,false)
     returning *
     `,
-    [
-      dashboardKey,
-      `${dashboardKey}-${randomUUID()}`,
-      input.title,
-      input.description ?? null,
-      input.comment ?? null,
-      input.chartType,
-      JSON.stringify(parseConfig(input.config)),
-      position
-    ]
+    [dashboardKey, `${dashboardKey}-${randomUUID()}`, input.title, input.description ?? null, input.comment ?? null, input.chartType, JSON.stringify(parseConfig(input.config)), position]
   );
 
   return mapRow(result.rows[0] as Record<string, unknown>);
@@ -285,10 +549,7 @@ export async function updateAnalyticsChart(
 export async function deleteAnalyticsChart(chartId: number) {
   await ensureAnalyticsTables();
   const pool = await getPool();
-  const result = await pool.query(
-    'delete from analytics_charts where id = $1 and is_system = false returning id',
-    [chartId]
-  );
+  const result = await pool.query('delete from analytics_charts where id = $1 and is_system = false returning id', [chartId]);
   return Number(result.rowCount ?? 0) > 0;
 }
 
@@ -299,10 +560,7 @@ export async function reorderAnalyticsCharts(chartIdsInOrder: number[], dashboar
   await pool.query('begin');
   try {
     for (let index = 0; index < chartIdsInOrder.length; index += 1) {
-      await pool.query(
-        'update analytics_charts set position = $1 where id = $2 and dashboard_key = $3',
-        [index, chartIdsInOrder[index], dashboardKey]
-      );
+      await pool.query('update analytics_charts set position = $1 where id = $2 and dashboard_key = $3', [index, chartIdsInOrder[index], dashboardKey]);
     }
     await pool.query('commit');
   } catch (error) {

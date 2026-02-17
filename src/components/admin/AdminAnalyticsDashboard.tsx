@@ -2,94 +2,155 @@
 
 import { useMemo, useState, type ReactNode } from 'react';
 import PlotlyClient from '@/components/admin/charts/PlotlyClient';
+import type { Data, Layout } from 'plotly.js';
 import type { OrdersAnalyticsResponse } from '@/lib/server/orderAnalytics';
-import type { AnalyticsChartConfig, AnalyticsChartRow, AnalyticsChartType } from '@/lib/server/analyticsCharts';
+import type {
+  AnalyticsChartConfig,
+  AnalyticsChartRow,
+  AnalyticsChartSeries,
+  AnalyticsChartType,
+  AnalyticsMetricField
+} from '@/lib/server/analyticsCharts';
 
 type RangeOption = '30d' | '90d' | '180d';
 
 type Props = {
   initialData: OrdersAnalyticsResponse;
   initialCharts: AnalyticsChartRow[];
+  initialFocusKey?: string;
 };
 
-type BuilderState = {
-  title: string;
-  description: string;
-  comment: string;
-  chartType: AnalyticsChartType;
-  yFields: Array<'order_count' | 'revenue_total' | 'aov'>;
-  customerType: 'all' | 'P' | 'Š' | 'F';
-  status: string;
-  movingAverage7d: boolean;
-};
+const theme = {
+  pageBg: '#0f172a',
+  cardBg: '#1e293b',
+  cardBorder: '#334155',
+  muted: '#94a3b8',
+  text: '#e2e8f0',
+  grid: 'rgba(148,163,184,0.18)',
+  primary: '#22d3ee',
+  secondary: '#f59e0b',
+  tertiary: '#a78bfa',
+  quaternary: '#34d399',
+  danger: '#f87171'
+} as const;
+
+const metricOptions: Array<{ value: AnalyticsMetricField; label: string; unit: 'count' | 'eur' | 'percent' | 'hours' }> = [
+  { value: 'order_count', label: 'Orders', unit: 'count' },
+  { value: 'revenue_total', label: 'Revenue', unit: 'eur' },
+  { value: 'aov', label: 'AOV', unit: 'eur' },
+  { value: 'median_order_value', label: 'Median order value', unit: 'eur' },
+  { value: 'payment_success_rate', label: 'Payment success rate', unit: 'percent' },
+  { value: 'cancellation_rate', label: 'Cancellation rate', unit: 'percent' },
+  { value: 'lead_time_p50_hours', label: 'Lead time p50', unit: 'hours' },
+  { value: 'lead_time_p90_hours', label: 'Lead time p90', unit: 'hours' },
+  { value: 'paid_count', label: 'Paid count', unit: 'count' },
+  { value: 'cancelled_count', label: 'Cancelled count', unit: 'count' }
+];
+
+const chartTypeOptions: AnalyticsChartType[] = [
+  'line',
+  'spline',
+  'area',
+  'bar',
+  'grouped_bar',
+  'stacked_bar',
+  'stacked_area',
+  'scatter',
+  'bubble',
+  'histogram',
+  'box',
+  'heatmap',
+  'waterfall',
+  'combo'
+];
+
+const transformOptions = ['none', 'moving_average_7d', 'cumulative', 'pct_change', 'share_of_total'] as const;
 
 const movingAverage = (values: number[], window = 7) =>
   values.map((_, index) => {
     const start = Math.max(0, index - (window - 1));
-    const series = values.slice(start, index + 1);
-    return series.reduce((sum, value) => sum + value, 0) / Math.max(series.length, 1);
+    const slice = values.slice(start, index + 1);
+    return slice.reduce((sum, value) => sum + value, 0) / Math.max(slice.length, 1);
   });
 
-const chartTheme = {
-  pageBg: '#0f172a',
-  panelBg: '#1e293b',
-  panelBorder: '#334155',
-  textPrimary: '#e2e8f0',
-  textSecondary: '#94a3b8',
-  grid: 'rgba(148,163,184,0.22)',
-  primarySeries: '#22d3ee',
-  secondarySeries: '#f59e0b',
-  tertiarySeries: '#a78bfa',
-  quaternarySeries: '#34d399'
-} as const;
-
-const axisBase = {
-  titlefont: { color: chartTheme.textPrimary },
-  tickfont: { color: chartTheme.textSecondary },
-  showgrid: true,
-  gridcolor: chartTheme.grid,
-  zeroline: false
+const cumulative = (values: number[]) => {
+  let sum = 0;
+  return values.map((value) => {
+    sum += value;
+    return sum;
+  });
 };
 
-const layoutBase = {
+const pctChange = (values: number[]) =>
+  values.map((value, index) => {
+    if (index === 0) return 0;
+    const previous = values[index - 1] ?? 0;
+    if (previous === 0) return 0;
+    return ((value - previous) / previous) * 100;
+  });
+
+const toSafeNumber = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : 0);
+
+const layoutBase: Partial<Layout> = {
   autosize: true,
-  paper_bgcolor: chartTheme.panelBg,
-  plot_bgcolor: chartTheme.panelBg,
-  margin: { l: 64, r: 24, t: 24, b: 56 },
-  hovermode: 'x unified' as const,
-  font: { family: 'Inter, ui-sans-serif, system-ui, sans-serif', size: 12, color: chartTheme.textPrimary },
-  legend: { orientation: 'h' as const, x: 0, y: 1.15, font: { color: chartTheme.textSecondary } },
-  xaxis: {
-    ...axisBase,
-    title: { text: 'Datum' },
-    tickangle: -25
+  paper_bgcolor: theme.cardBg,
+  plot_bgcolor: theme.cardBg,
+  margin: { l: 64, r: 64, t: 30, b: 60 },
+  hovermode: 'x unified',
+  legend: {
+    orientation: 'h',
+    y: 1.15,
+    x: 0,
+    font: { color: theme.muted }
   },
-  hoverlabel: { bgcolor: '#0b1220', font: { color: '#e2e8f0' }, bordercolor: '#334155' }
+  font: {
+    family: 'Inter, ui-sans-serif, system-ui, sans-serif',
+    color: theme.text,
+    size: 12
+  },
+  hoverlabel: {
+    bgcolor: '#0b1220',
+    bordercolor: theme.cardBorder,
+    font: { color: theme.text }
+  }
 };
 
-const metricLabels: Record<'order_count' | 'revenue_total' | 'aov', string> = {
-  order_count: 'Naročila',
-  revenue_total: 'Prihodki (EUR)',
-  aov: 'AOV (EUR)'
-};
-
-export default function AdminAnalyticsDashboard({ initialData, initialCharts }: Props) {
+export default function AdminAnalyticsDashboard({ initialData, initialCharts, initialFocusKey = '' }: Props) {
   const [range, setRange] = useState<RangeOption>(initialData.range);
   const [data, setData] = useState(initialData);
   const [charts, setCharts] = useState(initialCharts);
-  const [isLoading, setIsLoading] = useState(false);
+  const [focusedKey, setFocusedKey] = useState(initialFocusKey);
+  const [loading, setLoading] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
-  const [builder, setBuilder] = useState<BuilderState>({
-    title: 'Novi graf',
-    description: '',
-    comment: '',
-    chartType: 'line',
-    yFields: ['order_count'],
-    customerType: 'all',
-    status: 'all',
-    movingAverage7d: false
-  });
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [builderConfig, setBuilderConfig] = useState<AnalyticsChartConfig>(() => ({
+    dataset: 'orders_daily',
+    xField: 'date',
+    xTitle: 'Datum',
+    xTickFormat: '',
+    xDateFormat: '%Y-%m-%d',
+    xScale: 'linear',
+    yLeftTitle: 'Vrednost',
+    yLeftScale: 'linear',
+    yLeftTickFormat: '',
+    yRightEnabled: false,
+    yRightTitle: 'Vrednost (desno)',
+    yRightScale: 'linear',
+    yRightTickFormat: '',
+    grain: 'day',
+    quickRange: '90d',
+    filters: {
+      customerType: 'all',
+      status: 'all',
+      paymentStatus: 'all',
+      includeNulls: true
+    },
+    series: [newSeries('order_count', theme.primary)]
+  }));
+  const [builderTitle, setBuilderTitle] = useState('New chart');
+  const [builderDescription, setBuilderDescription] = useState('');
+  const [builderComment, setBuilderComment] = useState('');
+  const [builderChartType, setBuilderChartType] = useState<AnalyticsChartType>('combo');
 
   const reloadCharts = async () => {
     const response = await fetch('/api/admin/analytics/charts');
@@ -98,8 +159,8 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts }: 
     setCharts(payload.charts);
   };
 
-  const fetchRange = async (nextRange: RangeOption) => {
-    setIsLoading(true);
+  const loadRange = async (nextRange: RangeOption) => {
+    setLoading(true);
     try {
       const response = await fetch(`/api/admin/analytics/orders?range=${nextRange}&grouping=day`);
       if (!response.ok) return;
@@ -107,16 +168,26 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts }: 
       setData(payload);
       setRange(nextRange);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const saveMetadata = async (chartId: number, fields: Partial<Pick<AnalyticsChartRow, 'title' | 'description' | 'comment'>>) => {
+  const saveMetadata = async (
+    chartId: number,
+    fields: Partial<Pick<AnalyticsChartRow, 'title' | 'description' | 'comment' | 'chart_type' | 'config_json'>>
+  ) => {
     const response = await fetch(`/api/admin/analytics/charts/${chartId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(fields)
+      body: JSON.stringify({
+        title: fields.title,
+        description: fields.description,
+        comment: fields.comment,
+        chartType: fields.chart_type,
+        config: fields.config_json
+      })
     });
+
     if (response.ok) {
       await reloadCharts();
       setEditingId(null);
@@ -125,53 +196,38 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts }: 
 
   const deleteChart = async (chartId: number) => {
     const response = await fetch(`/api/admin/analytics/charts/${chartId}`, { method: 'DELETE' });
-    if (response.ok) {
-      await reloadCharts();
-    }
+    if (response.ok) await reloadCharts();
   };
 
   const reorderChart = async (chartId: number, direction: 'up' | 'down') => {
-    const currentIndex = charts.findIndex((chart) => chart.id === chartId);
-    if (currentIndex < 0) return;
-    const nextIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    if (nextIndex < 0 || nextIndex >= charts.length) return;
+    const index = charts.findIndex((chart) => chart.id === chartId);
+    if (index < 0) return;
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= charts.length) return;
 
-    const reordered = [...charts];
-    const [moved] = reordered.splice(currentIndex, 1);
-    reordered.splice(nextIndex, 0, moved);
-    setCharts(reordered);
+    const updated = [...charts];
+    const [moved] = updated.splice(index, 1);
+    updated.splice(targetIndex, 0, moved);
+    setCharts(updated);
 
     await fetch('/api/admin/analytics/charts/reorder', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids: reordered.map((chart) => chart.id) })
+      body: JSON.stringify({ ids: updated.map((chart) => chart.id) })
     });
     await reloadCharts();
   };
 
   const createChart = async () => {
-    const config: AnalyticsChartConfig = {
-      dataset: 'orders_daily',
-      xField: 'date',
-      yFields: builder.yFields,
-      filters: {
-        customerType: builder.customerType,
-        status: builder.status
-      },
-      transforms: {
-        movingAverage7d: builder.movingAverage7d
-      }
-    };
-
     const response = await fetch('/api/admin/analytics/charts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        title: builder.title,
-        description: builder.description,
-        comment: builder.comment,
-        chartType: builder.chartType,
-        config
+        title: builderTitle,
+        description: builderDescription,
+        comment: builderComment,
+        chartType: builderChartType,
+        config: builderConfig
       })
     });
 
@@ -181,125 +237,26 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts }: 
     }
   };
 
-  const renderedCharts = useMemo(() => {
-    return charts.map((chart) => {
-      const filteredDays = data.days.filter((day) => {
-        const customerType = chart.config_json.filters?.customerType ?? 'all';
-        const status = chart.config_json.filters?.status ?? 'all';
-
-        const customerAllowed =
-          customerType === 'all' ? true : (day.customer_type_buckets[customerType] ?? 0) > 0;
-        const statusAllowed = status === 'all' ? true : (day.status_buckets[status] ?? 0) > 0;
-
-        return customerAllowed && statusAllowed;
-      });
-
-      const dates = filteredDays.map((day) => day.date);
-      const traces: Array<Record<string, unknown>> = [];
-
-      chart.config_json.yFields.forEach((metric, index) => {
-        const rawValues = filteredDays.map((day) => day[metric]);
-        const values = rawValues.map((value) => (typeof value === 'number' ? value : 0));
-        const color =
-          index === 0
-            ? chartTheme.primarySeries
-            : index === 1
-              ? chartTheme.tertiarySeries
-              : chartTheme.quaternarySeries;
-
-        const baseTrace: Record<string, unknown> =
-          chart.chart_type === 'bar'
-            ? {
-                type: 'bar',
-                x: dates,
-                y: values,
-                marker: { color, opacity: 0.78 }
-              }
-            : {
-                type: 'scatter',
-                mode: 'lines+markers',
-                x: dates,
-                y: values,
-                line: { color, width: 2, shape: 'linear' },
-                marker: { color, size: 4 },
-                fill: chart.chart_type === 'area' ? 'tozeroy' : undefined
-              };
-
-        traces.push({
-          ...baseTrace,
-          name: metricLabels[metric],
-          hovertemplate:
-            metric === 'order_count'
-              ? 'Datum: %{x}<br>Naročila: %{y:d}<extra></extra>'
-              : `Datum: %{x}<br>${metricLabels[metric]}: %{y:.2f} EUR<extra></extra>`
-        });
-
-        if (chart.config_json.transforms?.movingAverage7d) {
-          const ma7 = movingAverage(values, 7);
-          traces.push({
-            type: 'scatter',
-            mode: 'lines',
-            x: dates,
-            y: ma7,
-            name: `${metricLabels[metric]} 7d MA`,
-            line: {
-              color: chartTheme.secondarySeries,
-              width: 2,
-              dash: 'dot'
-            },
-            hovertemplate:
-              metric === 'order_count'
-                ? 'Datum: %{x}<br>7d MA: %{y:.2f}<extra></extra>'
-                : `Datum: %{x}<br>7d MA: %{y:.2f} EUR<extra></extra>`
-          });
-        }
-      });
-
-      return {
-        chart,
-        dates,
-        traces
-      };
-    });
-  }, [charts, data.days]);
-
-  const builderPreviewChart: AnalyticsChartRow = {
-    id: -1,
-    dashboard_key: 'narocila',
-    key: 'preview',
-    title: builder.title,
-    description: builder.description,
-    comment: builder.comment,
-    chart_type: builder.chartType,
-    config_json: {
-      dataset: 'orders_daily',
-      xField: 'date',
-      yFields: builder.yFields,
-      filters: { customerType: builder.customerType, status: builder.status },
-      transforms: { movingAverage7d: builder.movingAverage7d }
-    },
-    position: 0,
-    is_system: false,
-    created_at: '',
-    updated_at: ''
-  };
+  const chartRenderModels = useMemo(() => {
+    return charts.map((chart) => buildChartModel(chart, data));
+  }, [charts, data]);
 
   return (
-    <div className="min-h-full rounded-2xl border border-slate-800 bg-slate-950 p-4 text-slate-100">
+    <div className="min-h-full rounded-2xl border border-slate-800 bg-slate-900 p-4 text-slate-100">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold text-slate-100">Analitika naročil</h1>
-          <p className="text-xs text-slate-400">Temni kontrastni prikaz, agregacija po dnevih (UTC).</p>
+          <h1 className="text-xl font-semibold">Analytics (Orders)</h1>
+          <p className="text-xs text-slate-400">Timezone bucketing: UTC. Dark non-black pro mode enabled.</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="inline-flex rounded-lg border border-slate-700 bg-slate-900 p-0.5">
+          <div className="inline-flex rounded-lg border border-slate-700 bg-slate-950 p-0.5">
             {(['30d', '90d', '180d'] as RangeOption[]).map((option) => (
               <button
                 key={option}
                 type="button"
-                onClick={() => void fetchRange(option)}
+                onClick={() => void loadRange(option)}
                 className={`rounded-md px-2 py-1 text-xs font-semibold ${
-                  option === range ? 'bg-cyan-600 text-white' : 'text-slate-300 hover:bg-slate-800'
+                  range === option ? 'bg-cyan-600 text-white' : 'text-slate-300 hover:bg-slate-800'
                 }`}
               >
                 {option}
@@ -311,44 +268,36 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts }: 
             onClick={() => setBuilderOpen(true)}
             className="rounded-md border border-cyan-500 bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-cyan-500"
           >
-            Create chart
+            New Chart
           </button>
         </div>
       </div>
 
-      {isLoading ? <p className="mb-2 text-xs text-slate-400">Nalagam podatke…</p> : null}
+      {loading ? <p className="mb-2 text-xs text-slate-400">Loading analytics…</p> : null}
 
       <div className="space-y-4">
-        {renderedCharts.map(({ chart, traces }) => (
+        {chartRenderModels.map((model) => (
           <ChartCard
-            key={chart.id}
-            chart={chart}
-            editing={editingId === chart.id}
-            onStartEdit={() => setEditingId(chart.id)}
-            onCancelEdit={() => setEditingId(null)}
-            onSaveMetadata={saveMetadata}
-            onDelete={deleteChart}
-            onMoveUp={() => void reorderChart(chart.id, 'up')}
-            onMoveDown={() => void reorderChart(chart.id, 'down')}
+            key={model.chart.id}
+            chart={model.chart}
+            isFocused={focusedKey === model.chart.key}
+            onFocus={() => setFocusedKey(model.chart.key)}
+            onEdit={() => setEditingId(model.chart.id)}
+            onDelete={() => void deleteChart(model.chart.id)}
+            onMoveUp={() => void reorderChart(model.chart.id, 'up')}
+            onMoveDown={() => void reorderChart(model.chart.id, 'down')}
+            onExportCsv={() => exportCsv(model.chart.title, model.x, model.exportRows)}
+            editable={editingId === model.chart.id}
+            onSave={(next) => void saveMetadata(model.chart.id, next)}
+            onCancel={() => setEditingId(null)}
           >
             <PlotlyClient
-              data={traces}
-              layout={{
-                ...layoutBase,
-                yaxis: {
-                  ...axisBase,
-                  title: {
-                    text:
-                      chart.config_json.yFields.length === 1 && chart.config_json.yFields[0] === 'order_count'
-                        ? 'Število naročil'
-                        : 'Vrednost'
-                  },
-                  rangemode: 'tozero'
-                }
-              }}
-              config={{ responsive: true, displayModeBar: false }}
+              data={model.traces}
+              layout={model.layout}
+              config={{ responsive: true, displayModeBar: true }}
               useResizeHandler
-              style={{ width: '100%', height: 360 }}
+              style={{ width: '100%', height: 370 }}
+              onClick={() => setFocusedKey(model.chart.key)}
             />
           </ChartCard>
         ))}
@@ -356,118 +305,353 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts }: 
 
       {builderOpen ? (
         <BuilderModal
-          builder={builder}
-          onChange={setBuilder}
+          title={builderTitle}
+          description={builderDescription}
+          comment={builderComment}
+          chartType={builderChartType}
+          config={builderConfig}
+          data={data}
+          onChangeTitle={setBuilderTitle}
+          onChangeDescription={setBuilderDescription}
+          onChangeComment={setBuilderComment}
+          onChangeChartType={setBuilderChartType}
+          onChangeConfig={setBuilderConfig}
           onClose={() => setBuilderOpen(false)}
           onSave={() => void createChart()}
-          previewChart={builderPreviewChart}
-          data={data}
         />
       ) : null}
     </div>
   );
 }
 
+function buildChartModel(chart: AnalyticsChartRow, data: OrdersAnalyticsResponse) {
+  const days = applyChartFiltersAndGrain(data, chart.config_json);
+  const x = days.map((day) => day.date);
+
+  const enabledSeries = chart.config_json.series.filter((series) => series.enabled);
+  const traces: Data[] = [];
+  const exportRows: Array<Record<string, string | number>> = [];
+
+  enabledSeries.forEach((series, index) => {
+    const metricValues = extractSeriesValues(days, series);
+    const trace = seriesToTrace(series, x, metricValues, index, chart.chart_type);
+    traces.push(trace);
+
+    x.forEach((date, valueIndex) => {
+      if (!exportRows[valueIndex]) exportRows[valueIndex] = { date };
+      exportRows[valueIndex][series.axis_label || series.field_key] = Number(metricValues[valueIndex] ?? 0);
+    });
+  });
+
+  const layout: Partial<Layout> = {
+    ...layoutBase,
+    xaxis: {
+      title: { text: chart.config_json.xTitle || 'Datum' },
+      tickformat: chart.config_json.xTickFormat || undefined,
+      type: chart.config_json.xScale === 'log' ? 'log' : 'date',
+      gridcolor: theme.grid,
+      tickfont: { color: theme.muted },
+    },
+    yaxis: {
+      title: { text: chart.config_json.yLeftTitle || 'Value' },
+      tickformat: chart.config_json.yLeftTickFormat || undefined,
+      type: chart.config_json.yLeftScale === 'log' ? 'log' : 'linear',
+      gridcolor: theme.grid,
+      tickfont: { color: theme.muted },
+    },
+    barmode:
+      chart.chart_type === 'stacked_bar' || chart.chart_type === 'stacked_area'
+        ? 'stack'
+        : chart.chart_type === 'grouped_bar'
+          ? 'group'
+          : 'overlay'
+  };
+
+  if (chart.config_json.yRightEnabled) {
+    layout.yaxis2 = {
+      title: { text: chart.config_json.yRightTitle || 'Right axis' },
+      overlaying: 'y',
+      side: 'right',
+      type: chart.config_json.yRightScale === 'log' ? 'log' : 'linear',
+      tickformat: chart.config_json.yRightTickFormat || undefined,
+      tickfont: { color: theme.muted },
+    };
+  }
+
+  return {
+    chart,
+    x,
+    traces,
+    layout,
+    exportRows
+  };
+}
+
+function applyChartFiltersAndGrain(data: OrdersAnalyticsResponse, config: AnalyticsChartConfig) {
+  const filtered = data.days.filter((day) => {
+    const customerPass =
+      config.filters.customerType === 'all'
+        ? true
+        : (day.customer_type_buckets[config.filters.customerType] ?? 0) > 0;
+
+    const statusPass = config.filters.status === 'all' ? true : (day.status_buckets[config.filters.status] ?? 0) > 0;
+    const paymentPass =
+      config.filters.paymentStatus === 'all'
+        ? true
+        : (day.payment_status_buckets[config.filters.paymentStatus] ?? 0) > 0;
+
+    return customerPass && statusPass && paymentPass;
+  });
+
+  if (config.grain === 'day') return filtered;
+
+  const grouped = new Map<string, typeof filtered[number][]>();
+  filtered.forEach((day) => {
+    const date = new Date(`${day.date}T00:00:00.000Z`);
+    if (Number.isNaN(date.getTime())) return;
+
+    let key = day.date;
+    if (config.grain === 'week') {
+      const weekStart = new Date(date);
+      const dow = weekStart.getUTCDay();
+      const delta = (dow + 6) % 7;
+      weekStart.setUTCDate(weekStart.getUTCDate() - delta);
+      key = weekStart.toISOString().slice(0, 10);
+    } else if (config.grain === 'month') {
+      key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-01`;
+    } else if (config.grain === 'quarter') {
+      const quarter = Math.floor(date.getUTCMonth() / 3) * 3 + 1;
+      key = `${date.getUTCFullYear()}-${String(quarter).padStart(2, '0')}-01`;
+    }
+
+    const bucket = grouped.get(key) ?? [];
+    bucket.push(day);
+    grouped.set(key, bucket);
+  });
+
+  return Array.from(grouped.entries())
+    .map(([date, rows]) => {
+      const orderCount = rows.reduce((sum, row) => sum + row.order_count, 0);
+      const revenue = rows.reduce((sum, row) => sum + row.revenue_total, 0);
+      const aov = orderCount > 0 ? revenue / orderCount : 0;
+      const median = rows.reduce((sum, row) => sum + row.median_order_value, 0) / Math.max(rows.length, 1);
+      const paymentSuccess = rows.reduce((sum, row) => sum + row.payment_success_rate, 0) / Math.max(rows.length, 1);
+      const cancelRate = rows.reduce((sum, row) => sum + row.cancellation_rate, 0) / Math.max(rows.length, 1);
+      const p50 = rows.reduce((sum, row) => sum + (row.lead_time_p50_hours ?? 0), 0) / Math.max(rows.length, 1);
+      const p90 = rows.reduce((sum, row) => sum + (row.lead_time_p90_hours ?? 0), 0) / Math.max(rows.length, 1);
+
+      return {
+        ...rows[0],
+        date,
+        order_count: orderCount,
+        revenue_total: Number(revenue.toFixed(2)),
+        aov: Number(aov.toFixed(2)),
+        median_order_value: Number(median.toFixed(2)),
+        payment_success_rate: Number(paymentSuccess.toFixed(2)),
+        cancellation_rate: Number(cancelRate.toFixed(2)),
+        lead_time_p50_hours: Number(p50.toFixed(2)),
+        lead_time_p90_hours: Number(p90.toFixed(2))
+      };
+    })
+    .sort((left, right) => left.date.localeCompare(right.date));
+}
+
+function extractSeriesValues(days: OrdersAnalyticsResponse['days'], series: AnalyticsChartSeries) {
+  const baseValues = days.map((day) => toSafeNumber(day[series.field_key]));
+
+  switch (series.transform) {
+    case 'moving_average_7d':
+      return movingAverage(baseValues, 7);
+    case 'cumulative':
+      return cumulative(baseValues);
+    case 'pct_change':
+      return pctChange(baseValues);
+    case 'share_of_total': {
+      const total = baseValues.reduce((sum, value) => sum + value, 0);
+      if (total === 0) return baseValues.map(() => 0);
+      return baseValues.map((value) => (value / total) * 100);
+    }
+    default:
+      return baseValues;
+  }
+}
+
+function seriesToTrace(
+  series: AnalyticsChartSeries,
+  x: string[],
+  y: number[],
+  index: number,
+  chartType: AnalyticsChartType
+): Data {
+  const resolvedType = chartType === 'combo' ? series.chart_type : chartType;
+  const yaxis = series.axis_side === 'right' ? 'y2' : 'y';
+  const name = series.axis_label || series.field_key;
+
+  if (resolvedType === 'bar' || resolvedType === 'grouped_bar' || resolvedType === 'stacked_bar') {
+    return {
+      type: 'bar',
+      name,
+      x,
+      y,
+      yaxis,
+      marker: { color: series.color, opacity: series.opacity },
+      hovertemplate: `Datum: %{x}<br>${name}: %{y}<extra></extra>`
+    };
+  }
+
+  if (resolvedType === 'bubble') {
+    return {
+      type: 'scatter',
+      mode: 'markers',
+      name,
+      x,
+      y,
+      yaxis,
+      marker: {
+        color: series.color,
+        opacity: series.opacity,
+        size: y.map((value) => Math.max(8, Math.sqrt(Math.abs(value)))),
+        sizemode: 'diameter'
+      },
+      hovertemplate: `Datum: %{x}<br>${name}: %{y}<extra></extra>`
+    };
+  }
+
+  if (resolvedType === 'histogram') {
+    return {
+      type: 'histogram',
+      name,
+      x: y,
+      marker: { color: series.color, opacity: series.opacity },
+      hovertemplate: `${name}: %{x}<extra></extra>`
+    };
+  }
+
+  if (resolvedType === 'box') {
+    return {
+      type: 'box',
+      name,
+      y,
+      marker: { color: series.color },
+      boxpoints: 'all',
+      jitter: 0.3,
+      pointpos: -1.8
+    };
+  }
+
+  if (resolvedType === 'heatmap') {
+    return {
+      type: 'heatmap',
+      z: [y],
+      x,
+      y: [name],
+      colorscale: 'Viridis',
+      hovertemplate: `Datum: %{x}<br>${name}: %{z}<extra></extra>`
+    };
+  }
+
+  if (resolvedType === 'waterfall') {
+    return {
+      type: 'waterfall',
+      x,
+      y,
+      name,
+      yaxis,
+    };
+  }
+
+  const mode = resolvedType === 'scatter' ? 'markers' : resolvedType === 'spline' ? 'lines+markers' : 'lines+markers';
+  return {
+    type: 'scatter',
+    mode,
+    name,
+    x,
+    y,
+    yaxis,
+    line: {
+      color: series.color,
+      width: series.line_width,
+      shape: resolvedType === 'spline' ? 'spline' : 'linear'
+    },
+    fill: resolvedType === 'area' || resolvedType === 'stacked_area' ? 'tozeroy' : undefined,
+    opacity: series.opacity,
+    hovertemplate: `Datum: %{x}<br>${name}: %{y}<extra></extra>`
+  };
+}
+
 function ChartCard({
   chart,
   children,
-  editing,
-  onStartEdit,
-  onCancelEdit,
-  onSaveMetadata,
+  onEdit,
   onDelete,
   onMoveUp,
-  onMoveDown
+  onMoveDown,
+  onExportCsv,
+  editable,
+  onSave,
+  onCancel,
+  isFocused,
+  onFocus
 }: {
   chart: AnalyticsChartRow;
   children: ReactNode;
-  editing: boolean;
-  onStartEdit: () => void;
-  onCancelEdit: () => void;
-  onSaveMetadata: (
-    chartId: number,
-    fields: Partial<Pick<AnalyticsChartRow, 'title' | 'description' | 'comment'>>
-  ) => Promise<void>;
-  onDelete: (chartId: number) => Promise<void>;
+  onEdit: () => void;
+  onDelete: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  onExportCsv: () => void;
+  editable: boolean;
+  onSave: (
+    next: Partial<Pick<AnalyticsChartRow, 'title' | 'description' | 'comment' | 'chart_type' | 'config_json'>>
+  ) => void;
+  onCancel: () => void;
+  isFocused: boolean;
+  onFocus: () => void;
 }) {
   const [title, setTitle] = useState(chart.title);
   const [description, setDescription] = useState(chart.description ?? '');
   const [comment, setComment] = useState(chart.comment ?? '');
 
   return (
-    <section className="rounded-xl border border-slate-700 bg-slate-900 p-3 shadow-lg">
+    <section
+      className={`rounded-xl border p-3 shadow-lg transition ${
+        isFocused ? 'border-cyan-500 bg-slate-800/90' : 'border-slate-700 bg-slate-800/70'
+      }`}
+      onClick={onFocus}
+    >
       <div className="mb-2 flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          {editing ? (
+          {editable ? (
             <div className="space-y-2">
-              <input
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                className="w-full rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm text-slate-100"
-              />
-              <input
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                className="w-full rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-300"
-                placeholder="Opis"
-              />
-              <textarea
-                value={comment}
-                onChange={(event) => setComment(event.target.value)}
-                className="w-full rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-300"
-                placeholder="Komentar"
-                rows={2}
-              />
+              <input value={title} onChange={(event) => setTitle(event.target.value)} className="w-full rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm" />
+              <input value={description} onChange={(event) => setDescription(event.target.value)} className="w-full rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs" placeholder="Description" />
+              <textarea value={comment} onChange={(event) => setComment(event.target.value)} className="w-full rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs" rows={2} placeholder="Comment" />
             </div>
           ) : (
             <>
               <h2 className="text-sm font-semibold text-slate-100">{chart.title}</h2>
               {chart.description ? <p className="text-xs text-slate-400">{chart.description}</p> : null}
-              {chart.comment ? <p className="mt-1 rounded bg-slate-800/60 px-2 py-1 text-xs text-slate-300">{chart.comment}</p> : null}
+              {chart.comment ? <p className="mt-1 rounded bg-slate-900/70 px-2 py-1 text-xs text-slate-300">{chart.comment}</p> : null}
             </>
           )}
         </div>
+
         <div className="flex shrink-0 items-center gap-1">
-          {editing ? (
+          {editable ? (
             <>
-              <button
-                type="button"
-                onClick={() => void onSaveMetadata(chart.id, { title, description, comment })}
-                className="rounded border border-emerald-500 px-2 py-1 text-xs text-emerald-300 hover:bg-emerald-950"
-              >
-                Save
-              </button>
-              <button
-                type="button"
-                onClick={onCancelEdit}
-                className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800"
-              >
-                Cancel
-              </button>
+              <button className="rounded border border-emerald-500 px-2 py-1 text-xs text-emerald-300" onClick={() => onSave({ title, description, comment })}>Save</button>
+              <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={onCancel}>Cancel</button>
             </>
           ) : (
-            <button
-              type="button"
-              onClick={onStartEdit}
-              className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800"
-            >
-              Edit
-            </button>
+            <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={onEdit}>Edit</button>
           )}
 
-          <button type="button" onClick={onMoveUp} className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800">↑</button>
-          <button type="button" onClick={onMoveDown} className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800">↓</button>
+          <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={onMoveUp}>↑</button>
+          <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={onMoveDown}>↓</button>
+          <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={onExportCsv}>CSV</button>
 
           {!chart.is_system ? (
-            <button
-              type="button"
-              onClick={() => void onDelete(chart.id)}
-              className="rounded border border-rose-500 px-2 py-1 text-xs text-rose-300 hover:bg-rose-950"
-            >
-              Delete
-            </button>
+            <button className="rounded border border-rose-500 px-2 py-1 text-xs text-rose-300" onClick={onDelete}>Delete</button>
           ) : null}
         </div>
       </div>
@@ -477,124 +661,253 @@ function ChartCard({
 }
 
 function BuilderModal({
-  builder,
-  onChange,
+  title,
+  description,
+  comment,
+  chartType,
+  config,
+  data,
+  onChangeTitle,
+  onChangeDescription,
+  onChangeComment,
+  onChangeChartType,
+  onChangeConfig,
   onClose,
-  onSave,
-  previewChart,
-  data
+  onSave
 }: {
-  builder: BuilderState;
-  onChange: (next: BuilderState) => void;
+  title: string;
+  description: string;
+  comment: string;
+  chartType: AnalyticsChartType;
+  config: AnalyticsChartConfig;
+  data: OrdersAnalyticsResponse;
+  onChangeTitle: (value: string) => void;
+  onChangeDescription: (value: string) => void;
+  onChangeComment: (value: string) => void;
+  onChangeChartType: (value: AnalyticsChartType) => void;
+  onChangeConfig: (value: AnalyticsChartConfig) => void;
   onClose: () => void;
   onSave: () => void;
-  previewChart: AnalyticsChartRow;
-  data: OrdersAnalyticsResponse;
 }) {
-  const previewTraceValues = data.days.map((day) => day[builder.yFields[0]] as number);
-  const previewMA = movingAverage(previewTraceValues, 7);
+  const previewChart: AnalyticsChartRow = {
+    id: -1,
+    dashboard_key: 'narocila',
+    key: 'preview',
+    title,
+    description,
+    comment,
+    chart_type: chartType,
+    config_json: config,
+    position: 0,
+    is_system: false,
+    created_at: '',
+    updated_at: ''
+  };
+
+  const preview = buildChartModel(previewChart, data);
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/70 p-4">
-      <div className="max-h-[90vh] w-[980px] overflow-auto rounded-xl border border-slate-700 bg-slate-900 p-4">
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/75 p-4">
+      <div className="max-h-[92vh] w-[1180px] overflow-auto rounded-xl border border-slate-700 bg-slate-900 p-4">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-100">Create chart</h3>
-          <button type="button" onClick={onClose} className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300">Close</button>
+          <h3 className="text-sm font-semibold text-slate-100">New Chart Builder</h3>
+          <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={onClose}>Close</button>
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
-          <label className="text-xs text-slate-300">Title
-            <input className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1" value={builder.title} onChange={(event) => onChange({ ...builder, title: event.target.value })} />
-          </label>
+          <LabeledInput label="Title" value={title} onChange={onChangeTitle} />
           <label className="text-xs text-slate-300">Chart type
-            <select className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1" value={builder.chartType} onChange={(event) => onChange({ ...builder, chartType: event.target.value as AnalyticsChartType })}>
-              <option value="line">Line</option>
-              <option value="bar">Bar</option>
-              <option value="area">Area</option>
+            <select value={chartType} onChange={(event) => onChangeChartType(event.target.value as AnalyticsChartType)} className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1">
+              {chartTypeOptions.map((typeOption) => (
+                <option key={typeOption} value={typeOption}>{typeOption}</option>
+              ))}
             </select>
           </label>
-          <label className="text-xs text-slate-300">Description
-            <input className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1" value={builder.description} onChange={(event) => onChange({ ...builder, description: event.target.value })} />
+          <LabeledInput label="Description" value={description} onChange={onChangeDescription} />
+          <LabeledInput label="Comment" value={comment} onChange={onChangeComment} />
+          <LabeledInput label="X axis title" value={config.xTitle} onChange={(value) => onChangeConfig({ ...config, xTitle: value })} />
+          <LabeledInput label="Y left title" value={config.yLeftTitle} onChange={(value) => onChangeConfig({ ...config, yLeftTitle: value })} />
+          <LabeledInput label="Y right title" value={config.yRightTitle} onChange={(value) => onChangeConfig({ ...config, yRightTitle: value })} />
+          <label className="mt-6 inline-flex items-center gap-2 text-xs text-slate-300">
+            <input type="checkbox" checked={config.yRightEnabled} onChange={(event) => onChangeConfig({ ...config, yRightEnabled: event.target.checked })} />
+            Enable right axis
           </label>
-          <label className="text-xs text-slate-300">Comment
-            <input className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1" value={builder.comment} onChange={(event) => onChange({ ...builder, comment: event.target.value })} />
-          </label>
-          <label className="text-xs text-slate-300">Y field(s)
-            <select
-              multiple
-              className="mt-1 h-24 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1"
-              value={builder.yFields}
-              onChange={(event) => {
-                const values = Array.from(event.target.selectedOptions).map((option) => option.value) as Array<'order_count' | 'revenue_total' | 'aov'>;
-                onChange({ ...builder, yFields: values.length > 0 ? values : ['order_count'] });
-              }}
-            >
-              <option value="order_count">Naročila</option>
-              <option value="revenue_total">Prihodki</option>
-              <option value="aov">AOV</option>
+
+          <label className="text-xs text-slate-300">Grouping grain
+            <select className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1" value={config.grain} onChange={(event) => onChangeConfig({ ...config, grain: event.target.value as AnalyticsChartConfig['grain'] })}>
+              <option value="day">day</option>
+              <option value="week">week</option>
+              <option value="month">month</option>
+              <option value="quarter">quarter</option>
             </select>
           </label>
+
+          <label className="text-xs text-slate-300">Left axis scale
+            <select className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1" value={config.yLeftScale} onChange={(event) => onChangeConfig({ ...config, yLeftScale: event.target.value as 'linear' | 'log' })}>
+              <option value="linear">linear</option>
+              <option value="log">log</option>
+            </select>
+          </label>
+          <label className="text-xs text-slate-300">Right axis scale
+            <select className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1" value={config.yRightScale} onChange={(event) => onChangeConfig({ ...config, yRightScale: event.target.value as 'linear' | 'log' })}>
+              <option value="linear">linear</option>
+              <option value="log">log</option>
+            </select>
+          </label>
+
           <label className="text-xs text-slate-300">Customer type filter
-            <select className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1" value={builder.customerType} onChange={(event) => onChange({ ...builder, customerType: event.target.value as BuilderState['customerType'] })}>
-              <option value="all">All</option>
+            <select className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1" value={config.filters.customerType} onChange={(event) => onChangeConfig({ ...config, filters: { ...config.filters, customerType: event.target.value as AnalyticsChartConfig['filters']['customerType'] } })}>
+              <option value="all">all</option>
               <option value="P">P</option>
               <option value="Š">Š</option>
               <option value="F">F</option>
             </select>
           </label>
-          <label className="text-xs text-slate-300">Status filter
-            <input className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1" value={builder.status} onChange={(event) => onChange({ ...builder, status: event.target.value || 'all' })} placeholder="all / status code" />
-          </label>
-          <label className="mt-6 inline-flex items-center gap-2 text-xs text-slate-300">
-            <input type="checkbox" checked={builder.movingAverage7d} onChange={(event) => onChange({ ...builder, movingAverage7d: event.target.checked })} />
-            Add 7d moving average
-          </label>
+          <LabeledInput label="Status filter" value={config.filters.status} onChange={(value) => onChangeConfig({ ...config, filters: { ...config.filters, status: value || 'all' } })} />
+        </div>
+
+        <div className="mt-4 overflow-x-auto rounded border border-slate-700">
+          <table className="min-w-full text-xs text-slate-300">
+            <thead className="bg-slate-800 text-slate-400">
+              <tr>
+                <th className="px-2 py-1 text-left">enabled</th>
+                <th className="px-2 py-1 text-left">metric</th>
+                <th className="px-2 py-1 text-left">aggregation</th>
+                <th className="px-2 py-1 text-left">transform</th>
+                <th className="px-2 py-1 text-left">chart type</th>
+                <th className="px-2 py-1 text-left">stack group</th>
+                <th className="px-2 py-1 text-left">axis side</th>
+                <th className="px-2 py-1 text-left">axis label</th>
+                <th className="px-2 py-1 text-left">color</th>
+                <th className="px-2 py-1 text-left">line width</th>
+                <th className="px-2 py-1 text-left">opacity</th>
+                <th className="px-2 py-1 text-left">label format</th>
+                <th className="px-2 py-1 text-left">action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {config.series.map((series, index) => (
+                <tr key={series.id} className="border-t border-slate-800">
+                  <td className="px-2 py-1"><input type="checkbox" checked={series.enabled} onChange={(event) => onChangeConfig(updateSeries(config, index, { enabled: event.target.checked }))} /></td>
+                  <td className="px-2 py-1">
+                    <select value={series.field_key} className="rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { field_key: event.target.value as AnalyticsMetricField }))}>
+                      {metricOptions.map((metricOption) => (
+                        <option key={metricOption.value} value={metricOption.value}>{metricOption.value}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="px-2 py-1">
+                    <select value={series.aggregation} className="rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { aggregation: event.target.value as AnalyticsChartSeries['aggregation'] }))}>
+                      <option value="sum">sum</option><option value="count">count</option><option value="avg">avg</option><option value="median">median</option><option value="min">min</option><option value="max">max</option><option value="p90">p90</option><option value="distinct_count">distinct_count</option>
+                    </select>
+                  </td>
+                  <td className="px-2 py-1">
+                    <select value={series.transform} className="rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { transform: event.target.value as AnalyticsChartSeries['transform'] }))}>
+                      {transformOptions.map((transformOption) => <option key={transformOption} value={transformOption}>{transformOption}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-2 py-1">
+                    <select value={series.chart_type} className="rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { chart_type: event.target.value as AnalyticsChartType }))}>
+                      {chartTypeOptions.map((typeOption) => <option key={typeOption} value={typeOption}>{typeOption}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-2 py-1"><input value={series.stack_group} className="w-20 rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { stack_group: event.target.value }))} /></td>
+                  <td className="px-2 py-1">
+                    <select value={series.axis_side} className="rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { axis_side: event.target.value as 'left' | 'right' }))}>
+                      <option value="left">left</option>
+                      <option value="right">right</option>
+                    </select>
+                  </td>
+                  <td className="px-2 py-1"><input value={series.axis_label} className="w-24 rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { axis_label: event.target.value }))} /></td>
+                  <td className="px-2 py-1"><input type="color" value={series.color} onChange={(event) => onChangeConfig(updateSeries(config, index, { color: event.target.value }))} /></td>
+                  <td className="px-2 py-1"><input type="number" min={1} max={8} value={series.line_width} className="w-14 rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { line_width: Number(event.target.value) }))} /></td>
+                  <td className="px-2 py-1"><input type="number" min={0.1} max={1} step={0.1} value={series.opacity} className="w-14 rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { opacity: Number(event.target.value) }))} /></td>
+                  <td className="px-2 py-1"><input value={series.label_format} className="w-16 rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { label_format: event.target.value }))} /></td>
+                  <td className="px-2 py-1">
+                    <button className="rounded border border-rose-500 px-2 py-0.5 text-[11px] text-rose-300" onClick={() => onChangeConfig({ ...config, series: config.series.filter((_, seriesIndex) => seriesIndex !== index) })}>x</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mt-2">
+          <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={() => onChangeConfig({ ...config, series: [...config.series, newSeries('order_count', theme.tertiary)] })}>+ Add series</button>
         </div>
 
         <div className="mt-4 rounded border border-slate-700 bg-slate-950 p-3">
-          <p className="mb-2 text-xs text-slate-400">Preview: {previewChart.title}</p>
-          <PlotlyClient
-            data={[
-              {
-                type: builder.chartType === 'bar' ? 'bar' : 'scatter',
-                mode: builder.chartType === 'bar' ? undefined : 'lines+markers',
-                fill: builder.chartType === 'area' ? 'tozeroy' : undefined,
-                name: metricLabels[builder.yFields[0]],
-                x: data.days.map((day) => day.date),
-                y: previewTraceValues,
-                marker: { color: chartTheme.primarySeries },
-                line: { color: chartTheme.primarySeries, width: 2 },
-                hovertemplate: 'Datum: %{x}<br>Vrednost: %{y}<extra></extra>'
-              },
-              ...(builder.movingAverage7d
-                ? [
-                    {
-                      type: 'scatter' as const,
-                      mode: 'lines' as const,
-                      name: '7d MA',
-                      x: data.days.map((day) => day.date),
-                      y: previewMA,
-                      line: { color: chartTheme.secondarySeries, width: 2, dash: 'dot' as const },
-                      hovertemplate: 'Datum: %{x}<br>7d MA: %{y:.2f}<extra></extra>'
-                    }
-                  ]
-                : [])
-            ]}
-            layout={{
-              ...layoutBase,
-              yaxis: { ...axisBase, title: { text: 'Vrednost' }, rangemode: 'tozero' }
-            }}
-            config={{ responsive: true, displayModeBar: false }}
-            style={{ width: '100%', height: 300 }}
-            useResizeHandler
-          />
+          <p className="mb-2 text-xs text-slate-400">Live preview</p>
+          <PlotlyClient data={preview.traces} layout={preview.layout} config={{ responsive: true, displayModeBar: false }} useResizeHandler style={{ width: '100%', height: 320 }} />
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded border border-slate-600 px-3 py-1.5 text-xs text-slate-300">Cancel</button>
-          <button type="button" onClick={onSave} className="rounded border border-cyan-500 bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white">Save chart</button>
+          <button className="rounded border border-slate-600 px-3 py-1.5 text-xs text-slate-300" onClick={onClose}>Cancel</button>
+          <button className="rounded border border-cyan-500 bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white" onClick={onSave}>Save chart</button>
         </div>
       </div>
     </div>
   );
+}
+
+function LabeledInput({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <label className="text-xs text-slate-300">
+      {label}
+      <input className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1" value={value} onChange={(event) => onChange(event.target.value)} />
+    </label>
+  );
+}
+
+function newSeries(metric: AnalyticsMetricField, color: string): AnalyticsChartSeries {
+  return {
+    id: crypto.randomUUID(),
+    enabled: true,
+    field_key: metric,
+    aggregation: 'sum',
+    transform: 'none',
+    chart_type: 'line',
+    stack_group: 'none',
+    axis_side: 'left',
+    axis_label: '',
+    color,
+    line_width: 2,
+    opacity: 1,
+    label_format: ''
+  };
+}
+
+function updateSeries(config: AnalyticsChartConfig, seriesIndex: number, patch: Partial<AnalyticsChartSeries>) {
+  return {
+    ...config,
+    series: config.series.map((series, index) => (index === seriesIndex ? { ...series, ...patch } : series))
+  };
+}
+
+function exportCsv(chartTitle: string, x: string[], rows: Array<Record<string, string | number>>) {
+  if (rows.length === 0) return;
+  const headers = Array.from(new Set(rows.flatMap((row) => Object.keys(row))));
+  const csvLines = [headers.join(',')];
+
+  rows.forEach((row) => {
+    csvLines.push(
+      headers
+        .map((header) => {
+          const value = row[header] ?? '';
+          const safe = String(value).replace(/"/g, '""');
+          return `"${safe}"`;
+        })
+        .join(',')
+    );
+  });
+
+  const blob = new Blob([csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const href = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = href;
+  link.download = `${chartTitle.toLowerCase().replace(/\s+/g, '-') || 'chart'}-${x.length}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(href);
 }

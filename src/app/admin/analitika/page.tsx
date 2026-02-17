@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 export default async function AdminAnalyticsIndexPage({
   searchParams
 }: {
-  searchParams?: { range?: string; from?: string; to?: string; grouping?: string; view?: string };
+  searchParams?: { range?: string; from?: string; to?: string; grouping?: string; view?: string; focus?: string };
 }) {
   const data = getDatabaseUrl()
     ? await fetchOrdersAnalytics({
@@ -27,7 +27,11 @@ export default async function AdminAnalyticsIndexPage({
 
   return (
     <div className="w-full px-6 py-12">
-      <AdminAnalyticsDashboard initialData={data} initialCharts={charts} />
+      <AdminAnalyticsDashboard
+        initialData={data}
+        initialCharts={charts}
+        initialFocusKey={searchParams?.focus ?? ''}
+      />
     </div>
   );
 }

@@ -2,30 +2,53 @@
 ### atehna
 
 # Synopsis
-Admin order management and analytics dashboard.
+Admin order management and analytics dashboards.
 
 # Description
-Atehna includes an admin orders interface and a Plotly-based analytics dashboard with system and custom charts.
+Atehna includes:
+- `/admin/orders` with compact analytics previews and order operations.
+- `/admin/analitika` with a dark pro-grade dashboard and a DB-persisted custom chart builder.
 
 ## Admin analytics extension guide
 
-### Add a new metric source
-1. Extend server aggregation in `src/lib/server/orderAnalytics.ts` by adding fields to `OrdersAnalyticsDay` and populating values in `fetchOrdersAnalytics`.
-2. Expose new fields via `GET /api/admin/analytics/orders` (`src/app/api/admin/analytics/orders/route.ts`).
-3. Add metric option labels and rendering logic in `src/components/admin/AdminAnalyticsDashboard.tsx` (map metric key to trace + axis/hover unit).
+### Add a new metric or dimension source
+1. Extend the analytics payload in `src/lib/server/orderAnalytics.ts` (`OrdersAnalyticsDay`) and compute the field in `fetchOrdersAnalytics`.
+2. Ensure `GET /api/admin/analytics/orders` returns the new field (already passes through server payload).
+3. Register the metric in builder/UI options inside `src/components/admin/AdminAnalyticsDashboard.tsx` (`metricOptions`) and (optionally) add system chart series in `src/lib/server/analyticsCharts.ts`.
 
-### Define a system chart
-1. Add chart definition inside `ensureSystemCharts` in `src/lib/server/analyticsCharts.ts`.
-2. Set `is_system: true`, `position`, and `config_json` (`dataset`, `xField`, `yFields`, `filters`, `transforms`).
-3. System charts are upserted automatically when the dashboard is loaded.
+### Define or adjust system charts
+1. Open `src/lib/server/analyticsCharts.ts`.
+2. Update `buildSystemCharts(dashboardKey)` entries.
+3. Configure per chart:
+   - `chart_type`
+   - `config_json.axes` fields (titles/scales/tick formats)
+   - `config_json.series` array (metric, aggregation, transform, per-series type, stack, axis side, color).
+4. System charts are upserted automatically when charts are fetched.
 
-### Tune theme tokens globally
-Use `chartTheme`, `axisBase`, and `layoutBase` in `src/components/admin/AdminAnalyticsDashboard.tsx`.
-These control dark-panel background, text contrast, grid opacity, legend, and hover styling for all analytics charts.
+### Extend builder capabilities
+Builder state is persisted via `config_json` in `analytics_charts`.
+Key places:
+- UI controls and series table: `src/components/admin/AdminAnalyticsDashboard.tsx` (BuilderModal).
+- CRUD/reorder APIs:
+  - `src/app/api/admin/analytics/charts/route.ts`
+  - `src/app/api/admin/analytics/charts/[chartId]/route.ts`
+  - `src/app/api/admin/analytics/charts/reorder/route.ts`
+- Validation/normalization: `src/lib/server/analyticsCharts.ts` (`parseConfig`).
+
+### Theme tokens (global chart styling)
+Use these constants in `src/components/admin/AdminAnalyticsDashboard.tsx`:
+- `theme`
+- `layoutBase`
+
+These control dark backgrounds, grid, axis/label/legend/tooltip contrast, and series palette consistency.
+
+# DB migration
+Run SQL migrations in `migrations/`, including:
+- `006_admin_analytics_charts.sql` for persisted chart metadata/config and ordering.
 
 # Example
-- `/admin/orders` shows a minimal preview chart with drilldown to `/admin/analitika?view=narocila`.
-- `/admin/analitika` provides editable chart metadata and a Dune-like custom chart builder.
+- `/admin/orders` shows 4 compact preview charts and click-through to `/admin/analitika`.
+- `/admin/analitika` contains default charts plus custom builder-created charts.
 
 # Install
 `npm install atehna`

@@ -115,7 +115,8 @@ export default async function AdminOrdersPage({
       // Always load the full active dataset on the server and let the table apply
       // date/search/document filters client-side. This avoids accidental empty states
       // caused by stale URL params or server-side filter drift.
-      orders = await fetchOrders();
+      orders = await fetchOrders({ includeDrafts: true });
+      console.info(`/admin/orders loaded rows=${orders.length}`);
 
       const orderIds = orders.map((order) => order.id);
       const [documentsResult, attachmentsResult] = await Promise.allSettled([

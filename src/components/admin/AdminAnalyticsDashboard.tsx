@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -13,15 +13,17 @@ import type {
   AnalyticsChartRow,
   AnalyticsChartSeries,
   AnalyticsChartType,
-  AnalyticsMetricField
+  AnalyticsMetricField,
+  AnalyticsGlobalAppearance
 } from '@/lib/server/analyticsCharts';
 
-type RangeOption = '30d' | '90d' | '180d';
+type RangeOption = '30d' | '90d' | '180d' | '365d';
 
 type Props = {
   initialData: OrdersAnalyticsResponse;
   initialCharts: AnalyticsChartRow[];
   initialFocusKey?: string;
+  initialAppearance: AnalyticsGlobalAppearance;
 };
 
 const metricOptions: Array<{ value: AnalyticsMetricField; label: string; unit: 'count' | 'eur' | 'percent' | 'hours' }> = [
@@ -87,7 +89,7 @@ const layoutBase = (theme: ChartTheme): Partial<Layout> => ({
   hoverlabel: { namelength: -1 }
 });
 
-export default function AdminAnalyticsDashboard({ initialData, initialCharts, initialFocusKey = '' }: Props) {
+export default function AdminAnalyticsDashboard({ initialData, initialCharts, initialFocusKey = '', initialAppearance }: Props) {
   const chartTheme = useMemo(() => getChartThemeFromCssVars(), []);
   const [range, setRange] = useState<RangeOption>(initialData.range);
   const [data, setData] = useState(initialData);
@@ -95,7 +97,8 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
   const [focusedKey, setFocusedKey] = useState(initialFocusKey);
   const [loading, setLoading] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingChartId, setEditingChartId] = useState<number | null>(null);
+  const [appearance, setAppearance] = useState<AnalyticsGlobalAppearance>(initialAppearance);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const [builderConfig, setBuilderConfig] = useState<AnalyticsChartConfig>(() => ({
     dataset: 'orders_daily',
@@ -112,7 +115,7 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
     yRightScale: 'linear',
     yRightTickFormat: '',
     grain: 'day',
-    quickRange: '90d',
+    quickRange: '365d',
     filters: {
       customerType: 'all',
       status: 'all',
@@ -129,8 +132,9 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
   const reloadCharts = async () => {
     const response = await fetch('/api/admin/analytics/charts');
     if (!response.ok) return;
-    const payload = (await response.json()) as { charts: AnalyticsChartRow[] };
+    const payload = (await response.json()) as { charts: AnalyticsChartRow[]; appearance?: AnalyticsGlobalAppearance };
     setCharts(payload.charts);
+    if (payload.appearance) setAppearance(payload.appearance);
   };
 
   const loadRange = async (nextRange: RangeOption) => {
@@ -145,6 +149,18 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem('admin-analytics-range');
+    if (saved === '30d' || saved === '90d' || saved === '180d' || saved === '365d') {
+      void loadRange(saved);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem('admin-analytics-range', range);
+  }, [range]);
 
   const saveMetadata = async (
     chartId: number,
@@ -164,13 +180,28 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
 
     if (response.ok) {
       await reloadCharts();
-      setEditingId(null);
+      setEditingChartId(null);
     }
   };
 
   const deleteChart = async (chartId: number) => {
+    const confirmed = window.confirm('Ali res želite izbrisati ta graf?');
+    if (!confirmed) return;
+
+    const previous = charts;
+    setCharts((current) => current.filter((chart) => chart.id !== chartId));
     const response = await fetch(`/api/admin/analytics/charts/${chartId}`, { method: 'DELETE' });
-    if (response.ok) await reloadCharts();
+    if (!response.ok) {
+      setCharts(previous);
+      return;
+    }
+
+    if (editingChartId === chartId) {
+      setBuilderOpen(false);
+      setEditingChartId(null);
+    }
+
+    await reloadCharts();
   };
 
   const persistOrder = async (updated: AnalyticsChartRow[], fallback?: AnalyticsChartRow[]) => {
@@ -202,9 +233,11 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
     await persistOrder(updated, previous);
   };
 
-  const createChart = async () => {
-    const response = await fetch('/api/admin/analytics/charts', {
-      method: 'POST',
+  const createOrUpdateChart = async () => {
+    const url = editingChartId ? `/api/admin/analytics/charts/${editingChartId}` : '/api/admin/analytics/charts';
+    const method = editingChartId ? 'PATCH' : 'POST';
+    const response = await fetch(url, {
+      method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title: builderTitle,
@@ -217,13 +250,14 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
 
     if (response.ok) {
       setBuilderOpen(false);
+      setEditingChartId(null);
       await reloadCharts();
     }
   };
 
   const chartRenderModels = useMemo(() => {
-    return charts.map((chart) => buildChartModel(chart, data, chartTheme));
-  }, [charts, data, chartTheme]);
+    return charts.map((chart) => buildChartModel(chart, data, chartTheme, appearance));
+  }, [charts, data, chartTheme, appearance]);
 
   return (
     <div className="min-h-full rounded-2xl border border-[var(--chart-border)] bg-[var(--chart-canvas)] p-4 text-[var(--chart-text)]">
@@ -234,7 +268,7 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
         </div>
         <div className="flex items-center gap-2">
           <div className="inline-flex rounded-lg border border-slate-700 bg-slate-950 p-0.5">
-            {(['30d', '90d', '180d'] as RangeOption[]).map((option) => (
+            {(['30d', '90d', '180d', '365d'] as RangeOption[]).map((option) => (
               <button
                 key={option}
                 type="button"
@@ -249,13 +283,25 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
           </div>
           <button
             type="button"
-            onClick={() => setBuilderOpen(true)}
+            onClick={() => { setEditingChartId(null); setBuilderTitle('New chart'); setBuilderDescription(''); setBuilderComment(''); setBuilderChartType('combo'); setBuilderOpen(true); }}
             className="rounded-md border border-cyan-500 bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-cyan-500"
           >
             New Chart
           </button>
         </div>
       </div>
+
+      <AppearancePanel
+        appearance={appearance}
+        onSave={async (nextAppearance) => {
+          setAppearance(nextAppearance);
+          await fetch('/api/admin/analytics/charts/appearance', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(nextAppearance)
+          });
+        }}
+      />
 
       {loading ? <p className="mb-2 text-xs text-slate-400">Loading analytics…</p> : null}
 
@@ -268,12 +314,17 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
             chart={model.chart}
             isFocused={focusedKey === model.chart.key}
             onFocus={() => setFocusedKey(model.chart.key)}
-            onEdit={() => setEditingId(model.chart.id)}
+            onEdit={() => {
+              setEditingChartId(model.chart.id);
+              setBuilderTitle(model.chart.title);
+              setBuilderDescription(model.chart.description ?? '');
+              setBuilderComment(model.chart.comment ?? '');
+              setBuilderChartType(model.chart.chart_type);
+              setBuilderConfig(model.chart.config_json);
+              setBuilderOpen(true);
+            }}
             onDelete={() => void deleteChart(model.chart.id)}
             onExportCsv={() => exportCsv(model.chart.title, model.x, model.exportRows)}
-            editable={editingId === model.chart.id}
-            onSave={(next) => void saveMetadata(model.chart.id, next)}
-            onCancel={() => setEditingId(null)}
           >
             <PlotlyClient
               data={model.traces}
@@ -302,16 +353,19 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
           onChangeComment={setBuilderComment}
           onChangeChartType={setBuilderChartType}
           onChangeConfig={setBuilderConfig}
-          onClose={() => setBuilderOpen(false)}
-          onSave={() => void createChart()}
+          onClose={() => { setBuilderOpen(false); setEditingChartId(null); }}
+          onSave={() => void createOrUpdateChart()}
           chartTheme={chartTheme}
+          mode={editingChartId ? 'edit' : 'create'}
+          onDelete={editingChartId ? () => void deleteChart(editingChartId) : undefined}
+          appearance={appearance}
         />
       ) : null}
     </div>
   );
 }
 
-function buildChartModel(chart: AnalyticsChartRow, data: OrdersAnalyticsResponse, theme: ChartTheme) {
+function buildChartModel(chart: AnalyticsChartRow, data: OrdersAnalyticsResponse, theme: ChartTheme, globalAppearance: AnalyticsGlobalAppearance) {
   const days = applyChartFiltersAndGrain(data, chart.config_json);
   const x = days.map((day) => day.date);
 
@@ -330,21 +384,27 @@ function buildChartModel(chart: AnalyticsChartRow, data: OrdersAnalyticsResponse
     });
   });
 
+  const chartAppearance = chart.config_json.appearance ?? {};
+  const resolvedCardBg = chartAppearance.cardBg || globalAppearance.cardBg || theme.card;
+  const resolvedPlotBg = chartAppearance.plotBg || globalAppearance.plotBg || resolvedCardBg;
+  const resolvedGrid = `rgba(148, 163, 184, ${chartAppearance.gridOpacity ?? globalAppearance.gridOpacity ?? 0.2})`;
+
   const layout: Partial<Layout> = {
     ...layoutBase(theme),
+    paper_bgcolor: resolvedCardBg,
+    plot_bgcolor: resolvedPlotBg,
     xaxis: {
       title: { text: chart.config_json.xTitle || 'Datum' },
       tickformat: chart.config_json.xTickFormat || undefined,
       type: chart.config_json.xScale === 'log' ? 'log' : 'date',
-      gridcolor: theme.grid,
+      gridcolor: resolvedGrid,
       tickfont: { color: theme.mutedText },
-      hoverformat: '%Y-%m-%d'
     },
     yaxis: {
       title: { text: chart.config_json.yLeftTitle || 'Value' },
       tickformat: chart.config_json.yLeftTickFormat || undefined,
       type: chart.config_json.yLeftScale === 'log' ? 'log' : 'linear',
-      gridcolor: theme.grid,
+      gridcolor: resolvedGrid,
       tickfont: { color: theme.mutedText },
       hoverformat: '%Y-%m-%d'
     },
@@ -574,9 +634,6 @@ function ChartCard({
   onEdit,
   onDelete,
   onExportCsv,
-  editable,
-  onSave,
-  onCancel,
   isFocused,
   onFocus
 }: {
@@ -585,19 +642,11 @@ function ChartCard({
   onEdit: () => void;
   onDelete: () => void;
   onExportCsv: () => void;
-  editable: boolean;
-  onSave: (
-    next: Partial<Pick<AnalyticsChartRow, 'title' | 'description' | 'comment' | 'chart_type' | 'config_json'>>
-  ) => void;
-  onCancel: () => void;
   isFocused: boolean;
   onFocus: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: chart.id });
   const style = { transform: CSS.Transform.toString(transform), transition };
-  const [title, setTitle] = useState(chart.title);
-  const [description, setDescription] = useState(chart.description ?? '');
-  const [comment, setComment] = useState(chart.comment ?? '');
 
   return (
     <section
@@ -611,37 +660,16 @@ function ChartCard({
     >
       <div className="mb-2 flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          {editable ? (
-            <div className="space-y-2">
-              <input value={title} onChange={(event) => setTitle(event.target.value)} className="w-full rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm" />
-              <input value={description} onChange={(event) => setDescription(event.target.value)} className="w-full rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs" placeholder="Description" />
-              <textarea value={comment} onChange={(event) => setComment(event.target.value)} className="w-full rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs" rows={2} placeholder="Comment" />
-            </div>
-          ) : (
-            <>
-              <h2 className="text-sm font-semibold text-slate-100">{chart.title}</h2>
-              {chart.description ? <p className="text-xs text-slate-400">{chart.description}</p> : null}
-              {chart.comment ? <p className="mt-1 rounded bg-slate-900/70 px-2 py-1 text-xs text-slate-300">{chart.comment}</p> : null}
-            </>
-          )}
+          <h2 className="text-sm font-semibold text-slate-100">{chart.title}</h2>
+          {chart.description ? <p className="text-xs text-slate-400">{chart.description}</p> : null}
+          {chart.comment ? <p className="mt-1 rounded bg-slate-900/70 px-2 py-1 text-xs text-slate-300">{chart.comment}</p> : null}
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
           <button className="cursor-grab rounded border border-slate-600 px-2 py-1 text-xs text-slate-300 active:cursor-grabbing" {...listeners} aria-label="Drag chart">↕</button>
-          {editable ? (
-            <>
-              <button className="rounded border border-emerald-500 px-2 py-1 text-xs text-emerald-300" onClick={() => onSave({ title, description, comment })}>Save</button>
-              <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={onCancel}>Cancel</button>
-            </>
-          ) : (
-            <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={onEdit}>Edit</button>
-          )}
-
+          <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={onEdit}>Edit</button>
           <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={onExportCsv}>CSV</button>
-
-          {!chart.is_system ? (
-            <button className="rounded border border-rose-500 px-2 py-1 text-xs text-rose-300" onClick={onDelete}>Delete</button>
-          ) : null}
+          <button className="rounded border border-rose-500 px-2 py-1 text-xs text-rose-300" onClick={onDelete}>Delete</button>
         </div>
       </div>
       {children}
@@ -663,7 +691,10 @@ function BuilderModal({
   onChangeConfig,
   onClose,
   onSave,
-  chartTheme
+  chartTheme,
+  appearance,
+  mode,
+  onDelete
 }: {
   title: string;
   description: string;
@@ -679,6 +710,9 @@ function BuilderModal({
   onClose: () => void;
   onSave: () => void;
   chartTheme: ChartTheme;
+  appearance: AnalyticsGlobalAppearance;
+  mode: 'create' | 'edit';
+  onDelete?: () => void;
 }) {
   const previewChart: AnalyticsChartRow = {
     id: -1,
@@ -695,14 +729,17 @@ function BuilderModal({
     updated_at: ''
   };
 
-  const preview = buildChartModel(previewChart, data, chartTheme);
+  const preview = buildChartModel(previewChart, data, chartTheme, appearance);
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/75 p-4">
       <div className="max-h-[92vh] w-[1180px] overflow-auto rounded-xl border border-slate-700 bg-slate-900 p-4">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-100">New Chart Builder</h3>
-          <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={onClose}>Close</button>
+          <h3 className="text-sm font-semibold text-slate-100">{mode === 'edit' ? 'Edit chart' : 'New chart'}</h3>
+          <div className="flex items-center gap-2">
+            {onDelete ? <button className="rounded border border-rose-500 px-2 py-1 text-xs text-rose-300" onClick={onDelete}>Delete</button> : null}
+            <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={onClose}>Close</button>
+          </div>
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
@@ -827,6 +864,22 @@ function BuilderModal({
           <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={() => onChangeConfig({ ...config, series: [...config.series, newSeries('order_count', chartTheme.series.tertiary)] })}>+ Add series</button>
         </div>
 
+
+        <div className="mt-3 grid gap-3 rounded border border-slate-700 bg-slate-950/60 p-3 md:grid-cols-4">
+          <label className="text-xs text-slate-300">Chart card bg
+            <input type="color" className="mt-1 h-8 w-full rounded border border-slate-700 bg-slate-950" value={config.appearance?.cardBg ?? appearance.cardBg} onChange={(event) => onChangeConfig({ ...config, appearance: { ...(config.appearance ?? {}), cardBg: event.target.value } })} />
+          </label>
+          <label className="text-xs text-slate-300">Plot area bg
+            <input type="color" className="mt-1 h-8 w-full rounded border border-slate-700 bg-slate-950" value={config.appearance?.plotBg ?? appearance.plotBg} onChange={(event) => onChangeConfig({ ...config, appearance: { ...(config.appearance ?? {}), plotBg: event.target.value } })} />
+          </label>
+          <label className="text-xs text-slate-300">Canvas bg
+            <input type="color" className="mt-1 h-8 w-full rounded border border-slate-700 bg-slate-950" value={config.appearance?.canvasBg ?? appearance.canvasBg} onChange={(event) => onChangeConfig({ ...config, appearance: { ...(config.appearance ?? {}), canvasBg: event.target.value } })} />
+          </label>
+          <label className="text-xs text-slate-300">Grid intensity
+            <input type="range" min={0} max={1} step={0.05} className="mt-2 w-full" value={config.appearance?.gridOpacity ?? appearance.gridOpacity} onChange={(event) => onChangeConfig({ ...config, appearance: { ...(config.appearance ?? {}), gridOpacity: Number(event.target.value) } })} />
+          </label>
+        </div>
+
         <div className="mt-4 rounded border border-slate-700 bg-slate-950 p-3">
           <p className="mb-2 text-xs text-slate-400">Live preview</p>
           <PlotlyClient data={preview.traces} layout={preview.layout} config={{ responsive: true, displayModeBar: false }} useResizeHandler style={{ width: '100%', height: 320 }} />
@@ -834,10 +887,48 @@ function BuilderModal({
 
         <div className="mt-4 flex justify-end gap-2">
           <button className="rounded border border-slate-600 px-3 py-1.5 text-xs text-slate-300" onClick={onClose}>Cancel</button>
-          <button className="rounded border border-cyan-500 bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white" onClick={onSave}>Save chart</button>
+          <button className="rounded border border-cyan-500 bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white" onClick={onSave}>{mode === 'edit' ? 'Save changes' : 'Save chart'}</button>
         </div>
       </div>
     </div>
+  );
+}
+
+
+function AppearancePanel({
+  appearance,
+  onSave
+}: {
+  appearance: AnalyticsGlobalAppearance;
+  onSave: (appearance: AnalyticsGlobalAppearance) => Promise<void>;
+}) {
+  const [local, setLocal] = useState(appearance);
+
+  useEffect(() => {
+    setLocal(appearance);
+  }, [appearance]);
+
+  return (
+    <details className="mb-3 rounded-lg border border-slate-700 bg-slate-900/70 p-3" open>
+      <summary className="cursor-pointer text-xs font-semibold text-slate-200">Appearance / Theme</summary>
+      <div className="mt-3 grid gap-3 md:grid-cols-4">
+        <label className="text-xs text-slate-300">Canvas background
+          <input type="color" className="mt-1 h-8 w-full rounded border border-slate-700 bg-slate-950" value={local.canvasBg} onChange={(event) => setLocal({ ...local, canvasBg: event.target.value })} />
+        </label>
+        <label className="text-xs text-slate-300">Card background
+          <input type="color" className="mt-1 h-8 w-full rounded border border-slate-700 bg-slate-950" value={local.cardBg} onChange={(event) => setLocal({ ...local, cardBg: event.target.value })} />
+        </label>
+        <label className="text-xs text-slate-300">Plot background
+          <input type="color" className="mt-1 h-8 w-full rounded border border-slate-700 bg-slate-950" value={local.plotBg} onChange={(event) => setLocal({ ...local, plotBg: event.target.value })} />
+        </label>
+        <label className="text-xs text-slate-300">Grid intensity
+          <input type="range" min={0} max={1} step={0.05} className="mt-2 w-full" value={local.gridOpacity} onChange={(event) => setLocal({ ...local, gridOpacity: Number(event.target.value) })} />
+        </label>
+      </div>
+      <div className="mt-3 flex justify-end">
+        <button className="rounded border border-cyan-500 bg-cyan-600 px-3 py-1 text-xs text-white" onClick={() => void onSave(local)}>Save appearance</button>
+      </div>
+    </details>
   );
 }
 

@@ -1,6 +1,6 @@
 import AdminAnalyticsDashboard from '@/components/admin/AdminAnalyticsDashboard';
 import { emptyOrdersAnalyticsResponse, fetchOrdersAnalytics } from '@/lib/server/orderAnalytics';
-import { fetchAnalyticsCharts } from '@/lib/server/analyticsCharts';
+import { fetchAnalyticsCharts, fetchGlobalAnalyticsAppearance } from '@/lib/server/analyticsCharts';
 import { getDatabaseUrl } from '@/lib/server/db';
 
 export const metadata = {
@@ -23,7 +23,17 @@ export default async function AdminAnalyticsIndexPage({
       }).catch(() => emptyOrdersAnalyticsResponse())
     : emptyOrdersAnalyticsResponse();
 
-  const charts = getDatabaseUrl() ? await fetchAnalyticsCharts('narocila').catch(() => []) : [];
+  const [charts, appearance] = getDatabaseUrl()
+    ? await Promise.all([
+        fetchAnalyticsCharts('narocila').catch(() => []),
+        fetchGlobalAnalyticsAppearance('narocila').catch(() => ({
+          canvasBg: '#0f172a',
+          cardBg: '#1e293b',
+          plotBg: '#1e293b',
+          gridOpacity: 0.2
+        }))
+      ])
+    : [[], { canvasBg: '#0f172a', cardBg: '#1e293b', plotBg: '#1e293b', gridOpacity: 0.2 }];
 
   return (
     <div className="w-full px-6 py-12">
@@ -31,6 +41,7 @@ export default async function AdminAnalyticsIndexPage({
         initialData={data}
         initialCharts={charts}
         initialFocusKey={searchParams?.focus ?? ''}
+        initialAppearance={appearance}
       />
     </div>
   );

@@ -29,6 +29,21 @@ export type AnalyticsMetricField =
   | 'paid_count'
   | 'cancelled_count';
 
+export type AnalyticsChartAppearance = {
+  canvasBg?: string;
+  cardBg?: string;
+  plotBg?: string;
+  gridOpacity?: number;
+};
+
+export type AnalyticsGlobalAppearance = {
+  canvasBg: string;
+  cardBg: string;
+  plotBg: string;
+  gridOpacity: number;
+  updatedAt?: string;
+};
+
 export type AnalyticsChartSeries = {
   id: string;
   enabled: boolean;
@@ -60,13 +75,15 @@ export type AnalyticsChartConfig = {
   yRightScale: 'linear' | 'log';
   yRightTickFormat: string;
   grain: 'day' | 'week' | 'month' | 'quarter';
-  quickRange: '7d' | '30d' | '90d' | '180d' | 'ytd';
+  quickRange: '7d' | '30d' | '90d' | '180d' | '365d' | 'ytd';
   filters: {
     customerType: 'all' | 'P' | 'Š' | 'F';
     status: string;
     paymentStatus: string;
     includeNulls: boolean;
   };
+  appearance?: AnalyticsChartAppearance;
+  editedAt?: string;
   series: AnalyticsChartSeries[];
 };
 
@@ -123,6 +140,8 @@ const parseChartType = (value: unknown): AnalyticsChartType => {
   return allowed.includes(value as AnalyticsChartType) ? (value as AnalyticsChartType) : 'line';
 };
 
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+
 const defaultSeries = (field: AnalyticsMetricField, overrides?: Partial<AnalyticsChartSeries>): AnalyticsChartSeries => ({
   id: randomUUID(),
   enabled: true,
@@ -162,8 +181,27 @@ const defaultConfig = (): AnalyticsChartConfig => ({
     paymentStatus: 'all',
     includeNulls: true
   },
+  appearance: {},
   series: [defaultSeries('order_count')]
 });
+
+const defaultAppearance = (): AnalyticsGlobalAppearance => ({
+  canvasBg: '#0f172a',
+  cardBg: '#1e293b',
+  plotBg: '#1e293b',
+  gridOpacity: 0.2
+});
+
+const parseAppearance = (value: unknown): AnalyticsChartAppearance => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const raw = value as Record<string, unknown>;
+  return {
+    canvasBg: typeof raw.canvasBg === 'string' ? raw.canvasBg : undefined,
+    cardBg: typeof raw.cardBg === 'string' ? raw.cardBg : undefined,
+    plotBg: typeof raw.plotBg === 'string' ? raw.plotBg : undefined,
+    gridOpacity: Number.isFinite(Number(raw.gridOpacity)) ? clamp(Number(raw.gridOpacity), 0, 1) : undefined
+  };
+};
 
 const parseConfig = (value: unknown): AnalyticsChartConfig => {
   const fallback = defaultConfig();
@@ -175,7 +213,6 @@ const parseConfig = (value: unknown): AnalyticsChartConfig => {
       if (!seriesRaw || typeof seriesRaw !== 'object' || Array.isArray(seriesRaw)) return null;
       const source = seriesRaw as Record<string, unknown>;
       if (!isMetric(source.field_key)) return null;
-
       return {
         id: typeof source.id === 'string' ? source.id : randomUUID(),
         enabled: source.enabled !== false,
@@ -214,7 +251,7 @@ const parseConfig = (value: unknown): AnalyticsChartConfig => {
     yRightTickFormat: typeof raw.yRightTickFormat === 'string' ? raw.yRightTickFormat : '',
     grain: raw.grain === 'week' || raw.grain === 'month' || raw.grain === 'quarter' ? raw.grain : 'day',
     quickRange:
-      raw.quickRange === '7d' || raw.quickRange === '30d' || raw.quickRange === '180d' || raw.quickRange === 'ytd'
+      raw.quickRange === '7d' || raw.quickRange === '30d' || raw.quickRange === '180d' || raw.quickRange === '365d' || raw.quickRange === 'ytd'
         ? raw.quickRange
         : '90d',
     filters: {
@@ -230,6 +267,8 @@ const parseConfig = (value: unknown): AnalyticsChartConfig => {
       includeNulls:
         !(raw.filters && typeof raw.filters === 'object' && (raw.filters as Record<string, unknown>).includeNulls === false)
     },
+    appearance: parseAppearance(raw.appearance),
+    editedAt: typeof raw.editedAt === 'string' ? raw.editedAt : undefined,
     series: parsedSeries.length > 0 ? parsedSeries : fallback.series
   };
 };
@@ -270,6 +309,13 @@ async function ensureAnalyticsTables() {
       updated_at timestamptz not null default now()
     )
   `);
+  await pool.query(`
+    create table if not exists analytics_chart_settings (
+      dashboard_key text primary key,
+      settings_json jsonb not null default '{}'::jsonb,
+      updated_at timestamptz not null default now()
+    )
+  `);
   ensured = true;
 }
 
@@ -286,12 +332,7 @@ const buildSystemCharts = (dashboardKey: string) => [
       yLeftTitle: 'Orders',
       series: [
         defaultSeries('order_count', { chart_type: 'bar', color: '#22d3ee' }),
-        defaultSeries('order_count', {
-          transform: 'moving_average_7d',
-          chart_type: 'line',
-          color: '#f59e0b',
-          axis_label: 'Orders 7d MA'
-        })
+        defaultSeries('order_count', { transform: 'moving_average_7d', chart_type: 'line', color: '#f59e0b', axis_label: 'Orders 7d MA' })
       ]
     }
   },
@@ -308,12 +349,7 @@ const buildSystemCharts = (dashboardKey: string) => [
       yLeftTickFormat: ',.2f',
       series: [
         defaultSeries('revenue_total', { chart_type: 'bar', color: '#38bdf8', axis_label: 'Revenue' }),
-        defaultSeries('revenue_total', {
-          transform: 'moving_average_7d',
-          chart_type: 'line',
-          color: '#f59e0b',
-          axis_label: 'Revenue 7d MA'
-        })
+        defaultSeries('revenue_total', { transform: 'moving_average_7d', chart_type: 'line', color: '#f59e0b', axis_label: 'Revenue 7d MA' })
       ]
     }
   },
@@ -348,20 +384,8 @@ const buildSystemCharts = (dashboardKey: string) => [
       yRightEnabled: true,
       yRightTitle: 'Cumulative orders',
       series: [
-        defaultSeries('revenue_total', {
-          transform: 'cumulative',
-          chart_type: 'line',
-          color: '#22d3ee',
-          axis_side: 'left',
-          axis_label: 'Cumulative revenue'
-        }),
-        defaultSeries('order_count', {
-          transform: 'cumulative',
-          chart_type: 'line',
-          color: '#f59e0b',
-          axis_side: 'right',
-          axis_label: 'Cumulative orders'
-        })
+        defaultSeries('revenue_total', { transform: 'cumulative', chart_type: 'line', color: '#22d3ee', axis_side: 'left', axis_label: 'Cumulative revenue' }),
+        defaultSeries('order_count', { transform: 'cumulative', chart_type: 'line', color: '#f59e0b', axis_side: 'right', axis_label: 'Cumulative orders' })
       ]
     }
   },
@@ -397,8 +421,7 @@ const buildSystemCharts = (dashboardKey: string) => [
         defaultSeries('order_count', { chart_type: 'stacked_bar', color: '#22d3ee', axis_label: 'received', stack_group: 'status', transform: 'none' }),
         defaultSeries('order_count', { chart_type: 'stacked_bar', color: '#34d399', axis_label: 'in_progress', stack_group: 'status', transform: 'none' }),
         defaultSeries('order_count', { chart_type: 'stacked_bar', color: '#f59e0b', axis_label: 'cancelled', stack_group: 'status', transform: 'none' })
-      ],
-      filters: { customerType: 'all', status: 'all', paymentStatus: 'all', includeNulls: true }
+      ]
     }
   },
   {
@@ -437,42 +460,24 @@ const buildSystemCharts = (dashboardKey: string) => [
   }
 ];
 
-async function ensureSystemCharts(dashboardKey = 'narocila') {
+async function ensureDefaultChartsIfEmpty(dashboardKey = 'narocila') {
   const pool = await getPool();
-  const systemCharts = buildSystemCharts(dashboardKey);
+  const existing = await pool.query('select count(*)::int as count from analytics_charts where dashboard_key = $1', [dashboardKey]);
+  if (Number(existing.rows[0]?.count ?? 0) > 0) return;
 
-  for (const chart of systemCharts) {
+  const defaults = buildSystemCharts(dashboardKey);
+  for (const chart of defaults) {
     await pool.query(
-      `
-      insert into analytics_charts (dashboard_key, key, title, description, comment, chart_type, config_json, position, is_system)
-      values ($1,$2,$3,$4,$5,$6,$7::jsonb,$8,true)
-      on conflict (key)
-      do update set
-        dashboard_key = excluded.dashboard_key,
-        title = excluded.title,
-        description = excluded.description,
-        chart_type = excluded.chart_type,
-        config_json = excluded.config_json,
-        position = excluded.position,
-        is_system = true
-      `,
-      [
-        dashboardKey,
-        chart.key,
-        chart.title,
-        chart.description,
-        chart.comment,
-        chart.chart_type,
-        JSON.stringify(chart.config_json),
-        chart.position
-      ]
+      `insert into analytics_charts (dashboard_key, key, title, description, comment, chart_type, config_json, position, is_system)
+       values ($1,$2,$3,$4,$5,$6,$7::jsonb,$8,false)`,
+      [dashboardKey, chart.key, chart.title, chart.description, chart.comment, chart.chart_type, JSON.stringify(chart.config_json), chart.position]
     );
   }
 }
 
 export async function fetchAnalyticsCharts(dashboardKey = 'narocila') {
   await ensureAnalyticsTables();
-  await ensureSystemCharts(dashboardKey);
+  await ensureDefaultChartsIfEmpty(dashboardKey);
 
   const pool = await getPool();
   const result = await pool.query(`select * from analytics_charts where dashboard_key = $1 order by position asc, id asc`, [dashboardKey]);
@@ -493,14 +498,13 @@ export async function createAnalyticsChart(input: {
   const dashboardKey = input.dashboardKey ?? 'narocila';
   const positionResult = await pool.query('select coalesce(max(position), -1) + 1 as next_position from analytics_charts where dashboard_key = $1', [dashboardKey]);
   const position = Number(positionResult.rows[0]?.next_position ?? 0);
+  const nextConfig = parseConfig({ ...input.config, editedAt: new Date().toISOString() });
 
   const result = await pool.query(
-    `
-    insert into analytics_charts (dashboard_key, key, title, description, comment, chart_type, config_json, position, is_system)
-    values ($1,$2,$3,$4,$5,$6,$7::jsonb,$8,false)
-    returning *
-    `,
-    [dashboardKey, `${dashboardKey}-${randomUUID()}`, input.title, input.description ?? null, input.comment ?? null, input.chartType, JSON.stringify(parseConfig(input.config)), position]
+    `insert into analytics_charts (dashboard_key, key, title, description, comment, chart_type, config_json, position, is_system)
+     values ($1,$2,$3,$4,$5,$6,$7::jsonb,$8,false)
+     returning *`,
+    [dashboardKey, `${dashboardKey}-${randomUUID()}`, input.title, input.description ?? null, input.comment ?? null, input.chartType, JSON.stringify(nextConfig), position]
   );
 
   return mapRow(result.rows[0] as Record<string, unknown>);
@@ -527,19 +531,13 @@ export async function updateAnalyticsChart(
   const nextDescription = input.description === undefined ? (typeof row.description === 'string' ? row.description : null) : input.description;
   const nextComment = input.comment === undefined ? (typeof row.comment === 'string' ? row.comment : null) : input.comment;
   const nextChartType = input.chartType ?? parseChartType(row.chart_type);
-  const nextConfig = input.config ? parseConfig(input.config) : parseConfig(row.config_json);
+  const nextConfig = parseConfig({ ...(input.config ? input.config : parseConfig(row.config_json)), editedAt: new Date().toISOString() });
 
   const result = await pool.query(
-    `
-    update analytics_charts
-    set title = $2,
-        description = $3,
-        comment = $4,
-        chart_type = $5,
-        config_json = $6::jsonb
-    where id = $1
-    returning *
-    `,
+    `update analytics_charts
+     set title = $2, description = $3, comment = $4, chart_type = $5, config_json = $6::jsonb
+     where id = $1
+     returning *`,
     [chartId, nextTitle, nextDescription, nextComment, nextChartType, JSON.stringify(nextConfig)]
   );
 
@@ -549,7 +547,7 @@ export async function updateAnalyticsChart(
 export async function deleteAnalyticsChart(chartId: number) {
   await ensureAnalyticsTables();
   const pool = await getPool();
-  const result = await pool.query('delete from analytics_charts where id = $1 and is_system = false returning id', [chartId]);
+  const result = await pool.query('delete from analytics_charts where id = $1 returning id', [chartId]);
   return Number(result.rowCount ?? 0) > 0;
 }
 
@@ -567,4 +565,42 @@ export async function reorderAnalyticsCharts(chartIdsInOrder: number[], dashboar
     await pool.query('rollback');
     throw error;
   }
+}
+
+export async function fetchGlobalAnalyticsAppearance(dashboardKey = 'narocila'): Promise<AnalyticsGlobalAppearance> {
+  await ensureAnalyticsTables();
+  const pool = await getPool();
+  const result = await pool.query('select settings_json, updated_at from analytics_chart_settings where dashboard_key = $1 limit 1', [dashboardKey]);
+  if (!result.rows[0]) return defaultAppearance();
+  const row = result.rows[0] as Record<string, unknown>;
+  const raw = (row.settings_json && typeof row.settings_json === 'object' ? row.settings_json : {}) as Record<string, unknown>;
+  return {
+    canvasBg: typeof raw.canvasBg === 'string' ? raw.canvasBg : defaultAppearance().canvasBg,
+    cardBg: typeof raw.cardBg === 'string' ? raw.cardBg : defaultAppearance().cardBg,
+    plotBg: typeof raw.plotBg === 'string' ? raw.plotBg : defaultAppearance().plotBg,
+    gridOpacity: Number.isFinite(Number(raw.gridOpacity)) ? clamp(Number(raw.gridOpacity), 0, 1) : defaultAppearance().gridOpacity,
+    updatedAt: toIso(row.updated_at)
+  };
+}
+
+export async function updateGlobalAnalyticsAppearance(input: Partial<AnalyticsGlobalAppearance>, dashboardKey = 'narocila') {
+  await ensureAnalyticsTables();
+  const current = await fetchGlobalAnalyticsAppearance(dashboardKey);
+  const next: AnalyticsGlobalAppearance = {
+    canvasBg: input.canvasBg ?? current.canvasBg,
+    cardBg: input.cardBg ?? current.cardBg,
+    plotBg: input.plotBg ?? current.plotBg,
+    gridOpacity: input.gridOpacity === undefined ? current.gridOpacity : clamp(input.gridOpacity, 0, 1)
+  };
+
+  const pool = await getPool();
+  await pool.query(
+    `insert into analytics_chart_settings (dashboard_key, settings_json, updated_at)
+     values ($1, $2::jsonb, now())
+     on conflict (dashboard_key)
+     do update set settings_json = excluded.settings_json, updated_at = now()`,
+    [dashboardKey, JSON.stringify(next)]
+  );
+
+  return fetchGlobalAnalyticsAppearance(dashboardKey);
 }

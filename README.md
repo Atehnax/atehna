@@ -23,7 +23,7 @@ Atehna includes:
    - `chart_type`
    - `config_json.axes` fields (titles/scales/tick formats)
    - `config_json.series` array (metric, aggregation, transform, per-series type, stack, axis side, color).
-4. System charts are upserted automatically when charts are fetched.
+4. Default charts are seeded only when the dashboard is empty; every chart can be edited or deleted afterwards.
 
 ### Extend builder capabilities
 Builder state is persisted via `config_json` in `analytics_charts`.
@@ -35,16 +35,18 @@ Key places:
   - `src/app/api/admin/analytics/charts/reorder/route.ts`
 - Validation/normalization: `src/lib/server/analyticsCharts.ts` (`parseConfig`).
 
-### Theme tokens (global chart styling)
-Use these constants in `src/components/admin/AdminAnalyticsDashboard.tsx`:
-- `theme`
-- `layoutBase`
+### Theme tokens (global + per-chart appearance)
+Global chart appearance is stored in DB and edited from the `Appearance / Theme` panel on `/admin/analitika` (API: `/api/admin/analytics/charts/appearance`).
 
-These control dark backgrounds, grid, axis/label/legend/tooltip contrast, and series palette consistency.
+Key places:
+- CSS defaults: `src/app/globals.css` (`--chart-*` variables).
+- Runtime adapter: `src/components/admin/charts/chartTheme.ts` (`getChartThemeFromCssVars`).
+- Per-chart overrides persisted in `config_json.appearance` via `src/lib/server/analyticsCharts.ts`.
 
 # DB migration
 Run SQL migrations in `migrations/`, including:
 - `006_admin_analytics_charts.sql` for persisted chart metadata/config and ordering.
+- `007_admin_analytics_appearance.sql` for global chart appearance settings.
 
 # Example
 - `/admin/orders` shows 4 compact preview charts and click-through to `/admin/analitika`.

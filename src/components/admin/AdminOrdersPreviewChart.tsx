@@ -1,26 +1,19 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Data, Layout } from 'plotly.js';
 import PlotlyClient from '@/components/admin/charts/PlotlyClient';
 import { getBaseChartLayout, getChartThemeFromCssVars } from '@/components/admin/charts/chartTheme';
 import type { OrderRow } from '@/components/admin/adminOrdersTableUtils';
 
-type Daily = {
-  date: string;
-  orders: number;
-  revenue: number;
-  values: number[];
-  statuses: Record<string, number>;
-};
+type Daily = { date: string; orders: number; revenue: number; values: number[]; statuses: Record<string, number> };
+type PreviewRange = 30 | 90 | 180 | 365;
 
-const movingAverage = (values: number[], window = 7) =>
-  values.map((_, index) => {
-    const start = Math.max(0, index - (window - 1));
-    const slice = values.slice(start, index + 1);
-    return slice.reduce((sum, value) => sum + value, 0) / Math.max(slice.length, 1);
-  });
+const movingAverage = (values: number[], window = 7) => values.map((_, i) => {
+  const slice = values.slice(Math.max(0, i - (window - 1)), i + 1);
+  return slice.reduce((sum, value) => sum + value, 0) / Math.max(slice.length, 1);
+});
 
 const median = (values: number[]) => {
   if (values.length === 0) return 0;
@@ -33,15 +26,25 @@ const valueLine = (label: string, format: string) => `${label}: %{y${format}}`;
 
 export default function AdminOrdersPreviewChart({ orders }: { orders: OrderRow[] }) {
   const router = useRouter();
+  const [rangeDays, setRangeDays] = useState<PreviewRange>(90);
   const chartTheme = getChartThemeFromCssVars();
   const layoutBase = getBaseChartLayout(chartTheme);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem('admin-orders-preview-range');
+    if (saved === '30' || saved === '90' || saved === '180' || saved === '365') setRangeDays(Number(saved) as PreviewRange);
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem('admin-orders-preview-range', String(rangeDays));
+  }, [rangeDays]);
 
   const data = useMemo(() => {
     const days = new Map<string, Daily>();
     const now = new Date();
     now.setUTCHours(0, 0, 0, 0);
 
-    for (let i = 89; i >= 0; i -= 1) {
+    for (let i = rangeDays - 1; i >= 0; i -= 1) {
       const d = new Date(now);
       d.setUTCDate(d.getUTCDate() - i);
       const key = d.toISOString().slice(0, 10);
@@ -52,7 +55,6 @@ export default function AdminOrdersPreviewChart({ orders }: { orders: OrderRow[]
       const key = new Date(order.created_at).toISOString().slice(0, 10);
       const day = days.get(key);
       if (!day) return;
-
       const total = typeof order.total === 'number' ? order.total : Number(order.total ?? 0);
       const safeTotal = Number.isFinite(total) ? total : 0;
       day.orders += 1;
@@ -80,83 +82,54 @@ export default function AdminOrdersPreviewChart({ orders }: { orders: OrderRow[]
         { status: 'cancelled', color: chartTheme.series.danger, y: rows.map((row) => row.statuses.cancelled ?? 0) }
       ]
     };
-  }, [orders, chartTheme.series.danger, chartTheme.series.primary, chartTheme.series.tertiary]);
+  }, [orders, rangeDays, chartTheme.series.danger, chartTheme.series.primary, chartTheme.series.tertiary]);
 
   const charts: Array<{ key: string; focusKey: string; title: string; traces: Data[]; layout: Partial<Layout> }> = [
     {
-      key: 'orders-ma',
-      focusKey: 'narocila-orders-ma',
-      title: 'Orders/day + 7d MA',
+      key: 'orders-ma', focusKey: 'narocila-orders-ma', title: 'Orders/day + 7d MA',
       traces: [
         { type: 'bar', name: 'Orders', x: data.x, y: data.ordersSeries, marker: { color: chartTheme.series.primary, opacity: 0.6 }, hovertemplate: `${valueLine('Orders', ':,.0f')}<extra></extra>` },
         { type: 'scatter', mode: 'lines', name: '7d MA', x: data.x, y: data.ordersMa, line: { color: chartTheme.series.secondary, width: 2 }, hovertemplate: `${valueLine('7d MA', ':,.2f')}<extra></extra>` }
       ],
-      layout: {
-        ...layoutBase,
-        xaxis: { title: { text: 'Datum' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, hoverformat: '%Y-%m-%d' },
-        yaxis: { title: { text: 'Število naročil' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, rangemode: 'tozero' },
-        hovermode: 'x unified',
-        showlegend: false
-      }
+      layout: { ...layoutBase, xaxis: { title: { text: 'Datum' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, hoverformat: '%Y-%m-%d' }, yaxis: { title: { text: 'Število naročil' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, rangemode: 'tozero' }, showlegend: false }
     },
     {
-      key: 'revenue-ma',
-      focusKey: 'narocila-revenue-ma',
-      title: 'Revenue/day + 7d MA',
+      key: 'revenue-ma', focusKey: 'narocila-revenue-ma', title: 'Revenue/day + 7d MA',
       traces: [
         { type: 'bar', name: 'Revenue', x: data.x, y: data.revenueSeries, marker: { color: chartTheme.series.neutral, opacity: 0.6 }, hovertemplate: `${valueLine('Revenue', ':,.2f')} EUR<extra></extra>` },
         { type: 'scatter', mode: 'lines', name: '7d MA', x: data.x, y: data.revenueMa, line: { color: chartTheme.series.secondary, width: 2 }, hovertemplate: `${valueLine('7d MA', ':,.2f')} EUR<extra></extra>` }
       ],
-      layout: {
-        ...layoutBase,
-        xaxis: { title: { text: 'Datum' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, hoverformat: '%Y-%m-%d' },
-        yaxis: { title: { text: 'Prihodki (EUR)' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, rangemode: 'tozero' },
-        showlegend: false
-      }
+      layout: { ...layoutBase, xaxis: { title: { text: 'Datum' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, hoverformat: '%Y-%m-%d' }, yaxis: { title: { text: 'Prihodki (EUR)' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, rangemode: 'tozero' }, showlegend: false }
     },
     {
-      key: 'aov-median',
-      focusKey: 'narocila-aov-median',
-      title: 'AOV + median order value',
+      key: 'aov-median', focusKey: 'narocila-aov-median', title: 'AOV + median order value',
       traces: [
         { type: 'scatter', mode: 'lines', name: 'AOV', x: data.x, y: data.aovSeries, line: { color: chartTheme.series.tertiary, width: 2 }, hovertemplate: `${valueLine('AOV', ':,.2f')} EUR<extra></extra>` },
         { type: 'scatter', mode: 'lines', name: 'Median', x: data.x, y: data.medianSeries, line: { color: chartTheme.series.quaternary, width: 2 }, hovertemplate: `${valueLine('Median', ':,.2f')} EUR<extra></extra>` }
       ],
-      layout: {
-        ...layoutBase,
-        xaxis: { title: { text: 'Datum' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, hoverformat: '%Y-%m-%d' },
-        yaxis: { title: { text: 'EUR' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, rangemode: 'tozero' },
-        showlegend: false
-      }
+      layout: { ...layoutBase, xaxis: { title: { text: 'Datum' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, hoverformat: '%Y-%m-%d' }, yaxis: { title: { text: 'EUR' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, rangemode: 'tozero' }, showlegend: false }
     },
     {
-      key: 'status-mix',
-      focusKey: 'narocila-status-mix',
-      title: 'Status mix over time',
+      key: 'status-mix', focusKey: 'narocila-status-mix', title: 'Status mix over time',
       traces: data.statusTraces.map((trace) => ({ type: 'bar', name: trace.status, x: data.x, y: trace.y, marker: { color: trace.color }, hovertemplate: `${valueLine(trace.status, ':,.0f')}<extra></extra>` })),
-      layout: {
-        ...layoutBase,
-        barmode: 'stack',
-        xaxis: { title: { text: 'Datum' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, hoverformat: '%Y-%m-%d' },
-        yaxis: { title: { text: 'Število naročil' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, rangemode: 'tozero' },
-        showlegend: false
-      }
+      layout: { ...layoutBase, barmode: 'stack', xaxis: { title: { text: 'Datum' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, hoverformat: '%Y-%m-%d' }, yaxis: { title: { text: 'Število naročil' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, rangemode: 'tozero' }, showlegend: false }
     }
   ];
 
   return (
     <section className="mb-3 rounded-2xl border border-[var(--chart-border)] bg-[var(--chart-canvas)] p-3 shadow-sm" aria-label="Orders analytics previews">
+      <div className="mb-2 inline-flex rounded-md border border-slate-700 bg-slate-900 p-0.5">
+        {[30, 90, 180, 365].map((value) => (
+          <button key={value} type="button" onClick={() => setRangeDays(value as PreviewRange)} className={`rounded px-2 py-1 text-[11px] ${rangeDays === value ? 'bg-cyan-600 text-white' : 'text-slate-300'}`}>
+            {value}d
+          </button>
+        ))}
+      </div>
       <div className="grid gap-3 md:grid-cols-2">
         {charts.map((chart) => (
           <button key={chart.key} type="button" onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(chart.focusKey)}`)} className="rounded-xl border border-[var(--chart-border)] bg-[var(--chart-card)] p-2 text-left transition hover:border-cyan-500">
             <p className="mb-1 text-xs font-semibold text-[var(--chart-text)]">{chart.title}</p>
-            <PlotlyClient
-              data={chart.traces}
-              layout={chart.layout}
-              config={{ responsive: true, displayModeBar: false }}
-              style={{ width: '100%', height: 210 }}
-              useResizeHandler
-            />
+            <PlotlyClient data={chart.traces} layout={chart.layout} config={{ responsive: true, displayModeBar: false }} style={{ width: '100%', height: 210 }} useResizeHandler />
           </button>
         ))}
       </div>

@@ -3,7 +3,7 @@ import { fetchOrders, type OrderRow } from '@/lib/server/orders';
 
 export const ANALYTICS_TIMEZONE = 'UTC';
 
-export type AnalyticsRange = '30d' | '90d' | '180d';
+export type AnalyticsRange = '30d' | '90d' | '180d' | '365d';
 export type AnalyticsGrouping = 'day';
 
 type DateWindow = {
@@ -82,11 +82,11 @@ const parseYmd = (value?: string | null) => {
 };
 
 const normalizeRange = (value?: string | null): AnalyticsRange => {
-  if (value === '30d' || value === '180d') return value;
+  if (value === '30d' || value === '180d' || value === '365d') return value;
   return '90d';
 };
 
-const rangeToDays = (range: AnalyticsRange) => (range === '30d' ? 30 : range === '180d' ? 180 : 90);
+const rangeToDays = (range: AnalyticsRange) => (range === '30d' ? 30 : range === '180d' ? 180 : range === '365d' ? 365 : 90);
 
 const resolveWindow = ({ range, from, to }: { range: AnalyticsRange; from?: string | null; to?: string | null }): DateWindow => {
   const parsedFrom = parseYmd(from);

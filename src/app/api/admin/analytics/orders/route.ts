@@ -13,7 +13,7 @@ const normalizeDateParam = (value: string | null) => {
 };
 
 const normalizeRange = (value: string | null) => {
-  if (value === '30d' || value === '90d' || value === '180d') return value;
+  if (value === '30d' || value === '90d' || value === '180d' || value === '365d') return value;
   return '90d';
 };
 

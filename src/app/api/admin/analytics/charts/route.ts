@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import {
   createAnalyticsChart,
   fetchAnalyticsCharts,
+  fetchGlobalAnalyticsAppearance,
   type AnalyticsChartConfig,
   type AnalyticsChartType
 } from '@/lib/server/analyticsCharts';
@@ -53,8 +54,11 @@ const parseConfig = (value: unknown): AnalyticsChartConfig =>
 
 export async function GET() {
   try {
-    const charts = await fetchAnalyticsCharts('narocila');
-    return NextResponse.json({ charts });
+    const [charts, appearance] = await Promise.all([
+      fetchAnalyticsCharts('narocila'),
+      fetchGlobalAnalyticsAppearance('narocila')
+    ]);
+    return NextResponse.json({ charts, appearance });
   } catch (error) {
     console.error('Failed to fetch analytics charts', error);
     return NextResponse.json({ message: 'Ni mogoče naložiti grafov.' }, { status: 500 });

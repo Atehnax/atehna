@@ -61,7 +61,7 @@ export async function DELETE(_: Request, { params }: { params: { chartId: string
     const chartId = Number(params.chartId);
     if (!Number.isFinite(chartId)) return NextResponse.json({ message: 'Neveljaven ID.' }, { status: 400 });
     const deleted = await deleteAnalyticsChart(chartId);
-    if (!deleted) return NextResponse.json({ message: 'Graf ni bil izbrisan (morda je sistemski).' }, { status: 400 });
+    if (!deleted) return NextResponse.json({ message: 'Graf ni bil izbrisan.' }, { status: 400 });
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('Failed to delete analytics chart', error);

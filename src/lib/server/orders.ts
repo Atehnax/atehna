@@ -247,7 +247,11 @@ export async function fetchOrders(options?: {
   const queryParams: unknown[] = [];
 
   if (!options?.includeDrafts && supportsDraftColumn) {
-    conditions.push('coalesce(orders.is_draft, false) = false');
+    conditions.push(`not (
+      coalesce(orders.is_draft, false) = true
+      and coalesce(orders.email, '') = 'draft@atehna.si'
+      and coalesce(orders.contact_name, '') = 'Osnutek'
+    )`);
   }
   if (supportsDeletedColumn) {
     conditions.push('orders.deleted_at is null');

@@ -301,9 +301,9 @@ export async function fetchOrders(options?: {
       orders.status,
       ${supportsPaymentStatusColumn ? 'orders.payment_status' : 'null::text as payment_status'},
       ${supportsPaymentNotesColumn ? 'orders.payment_notes' : 'null::text as payment_notes'},
-      coalesce(orders.subtotal, computed_totals.subtotal, 0)::numeric as subtotal,
-      coalesce(orders.tax, computed_totals.tax, 0)::numeric as tax,
-      coalesce(orders.total, computed_totals.total, 0)::numeric as total,
+      coalesce(orders.subtotal::text, computed_totals.subtotal::text, '0') as subtotal,
+      coalesce(orders.tax::text, computed_totals.tax::text, '0') as tax,
+      coalesce(orders.total::text, computed_totals.total::text, '0') as total,
       orders.created_at,
       ${supportsDraftColumn ? 'orders.is_draft' : 'false as is_draft'},
       ${supportsDeletedColumn ? 'orders.deleted_at' : 'null::timestamptz as deleted_at'}
@@ -319,7 +319,7 @@ export async function fetchOrders(options?: {
     ) as computed_totals
       on computed_totals.order_id = orders.id
     ${whereClause}
-    order by orders.created_at desc, coalesce(nullif(regexp_replace(orders.order_number::text, '[^0-9]', '', 'g'), ''), '0')::numeric desc
+    order by orders.created_at desc, orders.id desc
     `,
     queryParams
   );
@@ -350,9 +350,9 @@ export async function fetchOrderById(orderId: number): Promise<OrderRow | null> 
       orders.status,
       ${supportsPaymentStatusColumn ? 'orders.payment_status' : 'null::text as payment_status'},
       ${supportsPaymentNotesColumn ? 'orders.payment_notes' : 'null::text as payment_notes'},
-      coalesce(orders.subtotal, computed_totals.subtotal, 0)::numeric as subtotal,
-      coalesce(orders.tax, computed_totals.tax, 0)::numeric as tax,
-      coalesce(orders.total, computed_totals.total, 0)::numeric as total,
+      coalesce(orders.subtotal::text, computed_totals.subtotal::text, '0') as subtotal,
+      coalesce(orders.tax::text, computed_totals.tax::text, '0') as tax,
+      coalesce(orders.total::text, computed_totals.total::text, '0') as total,
       orders.created_at,
       ${supportsDraftColumn ? 'orders.is_draft' : 'false as is_draft'},
       ${supportsDeletedColumn ? 'orders.deleted_at' : 'null::timestamptz as deleted_at'}

@@ -60,7 +60,7 @@ export default function AdminOrdersPreviewChart({ orders }: { orders: OrderRow[]
   }, [orders, range]);
 
   const navigateToAnalytics = () => {
-    router.push(`/admin/analitika?view=narocila&range=${range}`);
+    router.push('/admin/analitika?view=narocila');
   };
 
   return (

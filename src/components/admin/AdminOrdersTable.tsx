@@ -676,7 +676,6 @@ export default function AdminOrdersTable({
 
     hasAutoResetFiltersRef.current = true;
     resetAllFilters();
-    setMessage('Filtri niso vrnili zadetkov, zato je prikazan celoten seznam naročil.');
   }, [orders.length, hasActiveFilters, filteredAndSortedOrders.length]);
 
   const dateRangeFilteredOrders = useMemo(() => {
@@ -1293,7 +1292,7 @@ export default function AdminOrdersTable({
                 </div>
               </th>
 
-              <th className="px-2 py-2 text-right">
+              <th className="px-2 py-2 text-center">
                 <button
                   type="button"
                   onClick={() => onSort('total')}
@@ -1432,7 +1431,7 @@ export default function AdminOrdersTable({
                       )}
                     </td>
 
-                    <td className="px-2 py-2 align-middle text-right text-slate-700">
+                    <td className="px-2 py-2 align-middle text-center text-slate-700">
                       {formatCurrency(order.total)}
                     </td>
 

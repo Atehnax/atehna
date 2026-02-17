@@ -95,6 +95,7 @@ export default function AdminOrdersTable({
   const router = useRouter();
   const [selected, setSelected] = useState<number[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deletingRowId, setDeletingRowId] = useState<number | null>(null);
   const [isBulkUpdatingStatus, setIsBulkUpdatingStatus] = useState(false);
 
   const [statusFilter, setStatusFilter] = useState<StatusTab>('all');
@@ -534,6 +535,25 @@ export default function AdminOrdersTable({
     }
   };
 
+
+  const handleDeleteRow = async (orderId: number) => {
+    const confirmed = window.confirm('Ali ste prepričani, da želite izbrisati to naročilo?');
+    if (!confirmed) return;
+
+    setDeletingRowId(orderId);
+    try {
+      const response = await fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' });
+      if (!response.ok) {
+        setMessage('Brisanje naročila ni uspelo. Poskusite znova.');
+        return;
+      }
+
+      setSelected((previousSelected) => previousSelected.filter((selectedId) => selectedId !== orderId));
+      router.refresh();
+    } finally {
+      setDeletingRowId(null);
+    }
+  };
 
   const handleBulkStatusUpdate = async (nextStatus: string) => {
     if (selected.length === 0) return;
@@ -1428,13 +1448,26 @@ export default function AdminOrdersTable({
                     </td>
 
                     <td className="pl-0 pr-0 py-2 align-middle text-center" data-no-row-nav>
-                      <a
-                        href={`/admin/orders/${order.id}`}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100"
-                        aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
-                      >
-                        ✎
-                      </a>
+                      <div className="flex items-center justify-center gap-1">
+                        <a
+                          href={`/admin/orders/${order.id}`}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100"
+                          aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                          title="Uredi"
+                        >
+                          ✎
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteRow(order.id)}
+                          disabled={deletingRowId === order.id}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-rose-200 text-sm font-semibold leading-none text-rose-600 hover:bg-rose-50 disabled:text-slate-300"
+                          aria-label={`Izbriši naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                          title="Izbriši"
+                        >
+                          {deletingRowId === order.id ? '…' : '×'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

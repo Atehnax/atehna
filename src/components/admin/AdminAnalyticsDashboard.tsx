@@ -1,7 +1,11 @@
 'use client';
 
 import { useMemo, useState, type ReactNode } from 'react';
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import PlotlyClient from '@/components/admin/charts/PlotlyClient';
+import { getBaseChartLayout, getChartThemeFromCssVars, type ChartTheme } from '@/components/admin/charts/chartTheme';
 import type { Data, Layout } from 'plotly.js';
 import type { OrdersAnalyticsResponse } from '@/lib/server/orderAnalytics';
 import type {
@@ -19,20 +23,6 @@ type Props = {
   initialCharts: AnalyticsChartRow[];
   initialFocusKey?: string;
 };
-
-const theme = {
-  pageBg: '#0f172a',
-  cardBg: '#1e293b',
-  cardBorder: '#334155',
-  muted: '#94a3b8',
-  text: '#e2e8f0',
-  grid: 'rgba(148,163,184,0.18)',
-  primary: '#22d3ee',
-  secondary: '#f59e0b',
-  tertiary: '#a78bfa',
-  quaternary: '#34d399',
-  danger: '#f87171'
-} as const;
 
 const metricOptions: Array<{ value: AnalyticsMetricField; label: string; unit: 'count' | 'eur' | 'percent' | 'hours' }> = [
   { value: 'order_count', label: 'Orders', unit: 'count' },
@@ -91,31 +81,14 @@ const pctChange = (values: number[]) =>
 
 const toSafeNumber = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : 0);
 
-const layoutBase: Partial<Layout> = {
-  autosize: true,
-  paper_bgcolor: theme.cardBg,
-  plot_bgcolor: theme.cardBg,
-  margin: { l: 64, r: 64, t: 30, b: 60 },
-  hovermode: 'x unified',
-  legend: {
-    orientation: 'h',
-    y: 1.15,
-    x: 0,
-    font: { color: theme.muted }
-  },
-  font: {
-    family: 'Inter, ui-sans-serif, system-ui, sans-serif',
-    color: theme.text,
-    size: 12
-  },
-  hoverlabel: {
-    bgcolor: '#0b1220',
-    bordercolor: theme.cardBorder,
-    font: { color: theme.text }
-  }
-};
+const layoutBase = (theme: ChartTheme): Partial<Layout> => ({
+  ...getBaseChartLayout(theme),
+  margin: { l: 56, r: 24, t: 28, b: 52 },
+  hoverlabel: { namelength: -1 }
+});
 
 export default function AdminAnalyticsDashboard({ initialData, initialCharts, initialFocusKey = '' }: Props) {
+  const chartTheme = useMemo(() => getChartThemeFromCssVars(), []);
   const [range, setRange] = useState<RangeOption>(initialData.range);
   const [data, setData] = useState(initialData);
   const [charts, setCharts] = useState(initialCharts);
@@ -123,6 +96,7 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
   const [loading, setLoading] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const [builderConfig, setBuilderConfig] = useState<AnalyticsChartConfig>(() => ({
     dataset: 'orders_daily',
     xField: 'date',
@@ -145,7 +119,7 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
       paymentStatus: 'all',
       includeNulls: true
     },
-    series: [newSeries('order_count', theme.primary)]
+    series: [newSeries('order_count', chartTheme.series.primary)]
   }));
   const [builderTitle, setBuilderTitle] = useState('New chart');
   const [builderDescription, setBuilderDescription] = useState('');
@@ -199,23 +173,33 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
     if (response.ok) await reloadCharts();
   };
 
-  const reorderChart = async (chartId: number, direction: 'up' | 'down') => {
-    const index = charts.findIndex((chart) => chart.id === chartId);
-    if (index < 0) return;
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= charts.length) return;
-
-    const updated = [...charts];
-    const [moved] = updated.splice(index, 1);
-    updated.splice(targetIndex, 0, moved);
-    setCharts(updated);
-
-    await fetch('/api/admin/analytics/charts/reorder', {
+  const persistOrder = async (updated: AnalyticsChartRow[], fallback?: AnalyticsChartRow[]) => {
+    const response = await fetch('/api/admin/analytics/charts/reorder', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ids: updated.map((chart) => chart.id) })
     });
+
+    if (!response.ok && fallback) {
+      setCharts(fallback);
+      return;
+    }
+
     await reloadCharts();
+  };
+
+  const onDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = charts.findIndex((chart) => chart.id === Number(active.id));
+    const newIndex = charts.findIndex((chart) => chart.id === Number(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+
+    const previous = charts;
+    const updated = arrayMove(charts, oldIndex, newIndex);
+    setCharts(updated);
+    await persistOrder(updated, previous);
   };
 
   const createChart = async () => {
@@ -238,11 +222,11 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
   };
 
   const chartRenderModels = useMemo(() => {
-    return charts.map((chart) => buildChartModel(chart, data));
-  }, [charts, data]);
+    return charts.map((chart) => buildChartModel(chart, data, chartTheme));
+  }, [charts, data, chartTheme]);
 
   return (
-    <div className="min-h-full rounded-2xl border border-slate-800 bg-slate-900 p-4 text-slate-100">
+    <div className="min-h-full rounded-2xl border border-[var(--chart-border)] bg-[var(--chart-canvas)] p-4 text-[var(--chart-text)]">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-xl font-semibold">Analytics (Orders)</h1>
@@ -275,8 +259,10 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
 
       {loading ? <p className="mb-2 text-xs text-slate-400">Loading analytics…</p> : null}
 
-      <div className="space-y-4">
-        {chartRenderModels.map((model) => (
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(event) => void onDragEnd(event)}>
+        <SortableContext items={chartRenderModels.map((model) => model.chart.id)} strategy={rectSortingStrategy}>
+          <div className="grid gap-4 md:grid-cols-2">
+            {chartRenderModels.map((model) => (
           <ChartCard
             key={model.chart.id}
             chart={model.chart}
@@ -284,8 +270,6 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
             onFocus={() => setFocusedKey(model.chart.key)}
             onEdit={() => setEditingId(model.chart.id)}
             onDelete={() => void deleteChart(model.chart.id)}
-            onMoveUp={() => void reorderChart(model.chart.id, 'up')}
-            onMoveDown={() => void reorderChart(model.chart.id, 'down')}
             onExportCsv={() => exportCsv(model.chart.title, model.x, model.exportRows)}
             editable={editingId === model.chart.id}
             onSave={(next) => void saveMetadata(model.chart.id, next)}
@@ -296,12 +280,14 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
               layout={model.layout}
               config={{ responsive: true, displayModeBar: true }}
               useResizeHandler
-              style={{ width: '100%', height: 370 }}
+              style={{ width: '100%', height: 300 }}
               onClick={() => setFocusedKey(model.chart.key)}
             />
           </ChartCard>
-        ))}
-      </div>
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       {builderOpen ? (
         <BuilderModal
@@ -318,13 +304,14 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
           onChangeConfig={setBuilderConfig}
           onClose={() => setBuilderOpen(false)}
           onSave={() => void createChart()}
+          chartTheme={chartTheme}
         />
       ) : null}
     </div>
   );
 }
 
-function buildChartModel(chart: AnalyticsChartRow, data: OrdersAnalyticsResponse) {
+function buildChartModel(chart: AnalyticsChartRow, data: OrdersAnalyticsResponse, theme: ChartTheme) {
   const days = applyChartFiltersAndGrain(data, chart.config_json);
   const x = days.map((day) => day.date);
 
@@ -344,20 +331,22 @@ function buildChartModel(chart: AnalyticsChartRow, data: OrdersAnalyticsResponse
   });
 
   const layout: Partial<Layout> = {
-    ...layoutBase,
+    ...layoutBase(theme),
     xaxis: {
       title: { text: chart.config_json.xTitle || 'Datum' },
       tickformat: chart.config_json.xTickFormat || undefined,
       type: chart.config_json.xScale === 'log' ? 'log' : 'date',
       gridcolor: theme.grid,
-      tickfont: { color: theme.muted },
+      tickfont: { color: theme.mutedText },
+      hoverformat: '%Y-%m-%d'
     },
     yaxis: {
       title: { text: chart.config_json.yLeftTitle || 'Value' },
       tickformat: chart.config_json.yLeftTickFormat || undefined,
       type: chart.config_json.yLeftScale === 'log' ? 'log' : 'linear',
       gridcolor: theme.grid,
-      tickfont: { color: theme.muted },
+      tickfont: { color: theme.mutedText },
+      hoverformat: '%Y-%m-%d'
     },
     barmode:
       chart.chart_type === 'stacked_bar' || chart.chart_type === 'stacked_area'
@@ -374,7 +363,7 @@ function buildChartModel(chart: AnalyticsChartRow, data: OrdersAnalyticsResponse
       side: 'right',
       type: chart.config_json.yRightScale === 'log' ? 'log' : 'linear',
       tickformat: chart.config_json.yRightTickFormat || undefined,
-      tickfont: { color: theme.muted },
+      tickfont: { color: theme.mutedText },
     };
   }
 
@@ -495,7 +484,7 @@ function seriesToTrace(
       y,
       yaxis,
       marker: { color: series.color, opacity: series.opacity },
-      hovertemplate: `Datum: %{x}<br>${name}: %{y}<extra></extra>`
+      hovertemplate: `${name}: %{y:,.2f}<extra></extra>`
     };
   }
 
@@ -513,7 +502,7 @@ function seriesToTrace(
         size: y.map((value) => Math.max(8, Math.sqrt(Math.abs(value)))),
         sizemode: 'diameter'
       },
-      hovertemplate: `Datum: %{x}<br>${name}: %{y}<extra></extra>`
+      hovertemplate: `${name}: %{y:,.2f}<extra></extra>`
     };
   }
 
@@ -523,7 +512,7 @@ function seriesToTrace(
       name,
       x: y,
       marker: { color: series.color, opacity: series.opacity },
-      hovertemplate: `${name}: %{x}<extra></extra>`
+      hovertemplate: `${name}: %{x:,.2f}<extra></extra>`
     };
   }
 
@@ -546,7 +535,7 @@ function seriesToTrace(
       x,
       y: [name],
       colorscale: 'Viridis',
-      hovertemplate: `Datum: %{x}<br>${name}: %{z}<extra></extra>`
+      hovertemplate: `${name}: %{z:,.2f}<extra></extra>`
     };
   }
 
@@ -575,7 +564,7 @@ function seriesToTrace(
     },
     fill: resolvedType === 'area' || resolvedType === 'stacked_area' ? 'tozeroy' : undefined,
     opacity: series.opacity,
-    hovertemplate: `Datum: %{x}<br>${name}: %{y}<extra></extra>`
+    hovertemplate: `${name}: %{y:,.2f}<extra></extra>`
   };
 }
 
@@ -584,8 +573,6 @@ function ChartCard({
   children,
   onEdit,
   onDelete,
-  onMoveUp,
-  onMoveDown,
   onExportCsv,
   editable,
   onSave,
@@ -597,8 +584,6 @@ function ChartCard({
   children: ReactNode;
   onEdit: () => void;
   onDelete: () => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
   onExportCsv: () => void;
   editable: boolean;
   onSave: (
@@ -608,16 +593,21 @@ function ChartCard({
   isFocused: boolean;
   onFocus: () => void;
 }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: chart.id });
+  const style = { transform: CSS.Transform.toString(transform), transition };
   const [title, setTitle] = useState(chart.title);
   const [description, setDescription] = useState(chart.description ?? '');
   const [comment, setComment] = useState(chart.comment ?? '');
 
   return (
     <section
+      ref={setNodeRef}
+      style={style}
       className={`rounded-xl border p-3 shadow-lg transition ${
-        isFocused ? 'border-cyan-500 bg-slate-800/90' : 'border-slate-700 bg-slate-800/70'
-      }`}
+        isDragging ? 'opacity-80 ring-2 ring-cyan-500' : ''
+      } ${isFocused ? 'border-cyan-500 bg-[var(--chart-card)]' : 'border-[var(--chart-border)] bg-[var(--chart-card)]'}`}
       onClick={onFocus}
+      {...attributes}
     >
       <div className="mb-2 flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
@@ -637,6 +627,7 @@ function ChartCard({
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
+          <button className="cursor-grab rounded border border-slate-600 px-2 py-1 text-xs text-slate-300 active:cursor-grabbing" {...listeners} aria-label="Drag chart">↕</button>
           {editable ? (
             <>
               <button className="rounded border border-emerald-500 px-2 py-1 text-xs text-emerald-300" onClick={() => onSave({ title, description, comment })}>Save</button>
@@ -646,8 +637,6 @@ function ChartCard({
             <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={onEdit}>Edit</button>
           )}
 
-          <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={onMoveUp}>↑</button>
-          <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={onMoveDown}>↓</button>
           <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={onExportCsv}>CSV</button>
 
           {!chart.is_system ? (
@@ -673,7 +662,8 @@ function BuilderModal({
   onChangeChartType,
   onChangeConfig,
   onClose,
-  onSave
+  onSave,
+  chartTheme
 }: {
   title: string;
   description: string;
@@ -688,6 +678,7 @@ function BuilderModal({
   onChangeConfig: (value: AnalyticsChartConfig) => void;
   onClose: () => void;
   onSave: () => void;
+  chartTheme: ChartTheme;
 }) {
   const previewChart: AnalyticsChartRow = {
     id: -1,
@@ -704,7 +695,7 @@ function BuilderModal({
     updated_at: ''
   };
 
-  const preview = buildChartModel(previewChart, data);
+  const preview = buildChartModel(previewChart, data, chartTheme);
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/75 p-4">
@@ -833,7 +824,7 @@ function BuilderModal({
         </div>
 
         <div className="mt-2">
-          <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={() => onChangeConfig({ ...config, series: [...config.series, newSeries('order_count', theme.tertiary)] })}>+ Add series</button>
+          <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={() => onChangeConfig({ ...config, series: [...config.series, newSeries('order_count', chartTheme.series.tertiary)] })}>+ Add series</button>
         </div>
 
         <div className="mt-4 rounded border border-slate-700 bg-slate-950 p-3">

@@ -101,7 +101,7 @@ export default function AdminOrdersTable({
   const [statusFilter, setStatusFilter] = useState<StatusTab>('all');
   const [query, setQuery] = useState(initialQuery);
 
-  const [sortKey, setSortKey] = useState<SortKey>('created_at');
+  const [sortKey, setSortKey] = useState<SortKey>('order_number');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   const [fromDate, setFromDate] = useState(initialFrom);
@@ -355,14 +355,27 @@ export default function AdminOrdersTable({
 
     const sortedOrders = [...filteredOrders].sort((leftOrder, rightOrder) => {
       const sortMultiplier = sortDirection === 'asc' ? 1 : -1;
-      const leftOrderNumber = getNumericOrderNumber(leftOrder.order_number);
-      const rightOrderNumber = getNumericOrderNumber(rightOrder.order_number);
+      const leftOrderNumberNumeric = getNumericOrderNumber(leftOrder.order_number);
+      const rightOrderNumberNumeric = getNumericOrderNumber(rightOrder.order_number);
 
       let leftValue: string | number;
       let rightValue: string | number;
 
       switch (sortKey) {
         case 'order_number':
+          if (
+            Number.isFinite(leftOrderNumberNumeric) &&
+            Number.isFinite(rightOrderNumberNumeric) &&
+            leftOrderNumberNumeric !== rightOrderNumberNumeric
+          ) {
+            return (leftOrderNumberNumeric - rightOrderNumberNumeric) * sortMultiplier;
+          }
+
+          if (leftOrderNumberNumeric !== rightOrderNumberNumeric) {
+            if (!Number.isFinite(leftOrderNumberNumeric)) return 1;
+            if (!Number.isFinite(rightOrderNumberNumeric)) return -1;
+          }
+
           leftValue = leftOrder.order_number;
           rightValue = rightOrder.order_number;
           break;
@@ -407,7 +420,7 @@ export default function AdminOrdersTable({
         if (primaryResult !== 0) return primaryResult;
 
         if (sortKey === 'created_at') {
-          return rightOrderNumber - leftOrderNumber;
+          return rightOrderNumberNumeric - leftOrderNumberNumeric;
         }
 
         return 0;
@@ -417,10 +430,10 @@ export default function AdminOrdersTable({
       if (textResult !== 0) return textResult;
 
       if (sortKey === 'created_at') {
-        return rightOrderNumber - leftOrderNumber;
+        return rightOrderNumberNumeric - leftOrderNumberNumeric;
       }
 
-      return 0;
+      return leftOrder.id - rightOrder.id;
     });
 
     return sortedOrders;
@@ -620,7 +633,12 @@ export default function AdminOrdersTable({
     }
 
     setSortKey(nextSortKey);
-    setSortDirection(nextSortKey === 'created_at' || nextSortKey === 'total' ? 'desc' : 'asc');
+    if (nextSortKey === 'order_number' || nextSortKey === 'created_at' || nextSortKey === 'total') {
+      setSortDirection('desc');
+      return;
+    }
+
+    setSortDirection('asc');
   };
 
   const sortIndicator = (nextSortKey: SortKey) => {

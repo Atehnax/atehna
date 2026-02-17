@@ -3,7 +3,7 @@ import { fetchOrders, type OrderRow } from '@/lib/server/orders';
 
 export const ANALYTICS_TIMEZONE = 'UTC';
 
-export type AnalyticsRange = '30d' | '90d' | '180d' | '365d';
+export type AnalyticsRange = '7d' | '30d' | '90d' | '180d' | '365d' | 'ytd';
 export type AnalyticsGrouping = 'day';
 
 type DateWindow = {
@@ -82,18 +82,19 @@ const parseYmd = (value?: string | null) => {
 };
 
 const normalizeRange = (value?: string | null): AnalyticsRange => {
-  if (value === '30d' || value === '180d' || value === '365d') return value;
+if (value === '7d' || value === '30d' || value === '180d' || value === '365d' || value === 'ytd') return value;
   return '90d';
 };
 
-const rangeToDays = (range: AnalyticsRange) => (range === '30d' ? 30 : range === '180d' ? 180 : range === '365d' ? 365 : 90);
+const rangeToDays = (range: AnalyticsRange) => (range === '7d' ? 7 : range === '30d' ? 30 : range === '180d' ? 180 : range === '365d' ? 365 : 90);
 
 const resolveWindow = ({ range, from, to }: { range: AnalyticsRange; from?: string | null; to?: string | null }): DateWindow => {
   const parsedFrom = parseYmd(from);
   const parsedTo = parseYmd(to);
 
   const toDate = parsedTo ?? new Date(new Date().toISOString().slice(0, 10));
-  const fromDate = parsedFrom ?? new Date(toDate.getTime() - (rangeToDays(range) - 1) * DAY_MS);
+  const ytdStart = new Date(Date.UTC(toDate.getUTCFullYear(), 0, 1));
+  const fromDate = parsedFrom ?? (range === 'ytd' ? ytdStart : new Date(toDate.getTime() - (rangeToDays(range) - 1) * DAY_MS));
 
   if (fromDate.getTime() > toDate.getTime()) {
     return {

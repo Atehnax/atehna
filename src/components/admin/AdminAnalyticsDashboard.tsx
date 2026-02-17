@@ -17,7 +17,7 @@ import type {
   AnalyticsGlobalAppearance
 } from '@/lib/server/analyticsCharts';
 
-type RangeOption = '30d' | '90d' | '180d' | '365d';
+type RangeOption = '7d' | '30d' | '90d' | '180d' | '365d' | 'ytd';
 
 type Props = {
   initialData: OrdersAnalyticsResponse;
@@ -83,6 +83,17 @@ const pctChange = (values: number[]) =>
 
 const toSafeNumber = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : 0);
 
+const legacyPalette = new Set(['#22d3ee', '#f59e0b', '#a78bfa', '#34d399', '#60a5fa', '#38bdf8', '#f87171', '#818cf8']);
+
+const hexToRgba = (hexColor: string, alpha: number) => {
+  const hex = hexColor.replace('#', '').trim();
+  if (!/^[0-9a-fA-F]{6}$/.test(hex)) return `rgba(148, 163, 184, ${alpha})`;
+  const r = Number.parseInt(hex.slice(0, 2), 16);
+  const g = Number.parseInt(hex.slice(2, 4), 16);
+  const b = Number.parseInt(hex.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 const layoutBase = (theme: ChartTheme): Partial<Layout> => ({
   ...getBaseChartLayout(theme),
   margin: { l: 56, r: 24, t: 28, b: 52 },
@@ -91,7 +102,7 @@ const layoutBase = (theme: ChartTheme): Partial<Layout> => ({
 
 export default function AdminAnalyticsDashboard({ initialData, initialCharts, initialFocusKey = '', initialAppearance }: Props) {
   const chartTheme = useMemo(() => getChartThemeFromCssVars(), []);
-  const [range, setRange] = useState<RangeOption>(initialData.range);
+  const [range, setRange] = useState<RangeOption>('30d');
   const [data, setData] = useState(initialData);
   const [charts, setCharts] = useState(initialCharts);
   const [focusedKey, setFocusedKey] = useState(initialFocusKey);
@@ -115,7 +126,7 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
     yRightScale: 'linear',
     yRightTickFormat: '',
     grain: 'day',
-    quickRange: '365d',
+    quickRange: '30d',
     filters: {
       customerType: 'all',
       status: 'all',
@@ -152,8 +163,10 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
 
   useEffect(() => {
     const saved = window.localStorage.getItem('admin-analytics-range');
-    if (saved === '30d' || saved === '90d' || saved === '180d' || saved === '365d') {
+    if (saved === '7d' || saved === '30d' || saved === '90d' || saved === '180d' || saved === '365d' || saved === 'ytd') {
       void loadRange(saved);
+    } else {
+      void loadRange('30d');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -260,7 +273,7 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
   }, [charts, data, chartTheme, appearance]);
 
   return (
-    <div className="min-h-full rounded-2xl border border-[var(--chart-border)] bg-[var(--chart-canvas)] p-4 text-[var(--chart-text)]">
+    <div className="min-h-full rounded-2xl border border-[var(--chart-border)] p-4 text-[var(--chart-text)]" style={{ backgroundColor: appearance.sectionBg }}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-xl font-semibold">Analytics (Orders)</h1>
@@ -268,7 +281,7 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
         </div>
         <div className="flex items-center gap-2">
           <div className="inline-flex rounded-lg border border-slate-700 bg-slate-950 p-0.5">
-            {(['30d', '90d', '180d', '365d'] as RangeOption[]).map((option) => (
+            {(['7d', '30d', '90d', '180d', '365d', 'ytd'] as RangeOption[]).map((option) => (
               <button
                 key={option}
                 type="button"
@@ -277,7 +290,7 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
                   range === option ? 'bg-cyan-600 text-white' : 'text-slate-300 hover:bg-slate-800'
                 }`}
               >
-                {option}
+                {option === 'ytd' ? 'YTD' : option}
               </button>
             ))}
           </div>
@@ -325,6 +338,7 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
             }}
             onDelete={() => void deleteChart(model.chart.id)}
             onExportCsv={() => exportCsv(model.chart.title, model.x, model.exportRows)}
+            appearance={appearance}
           >
             <PlotlyClient
               data={model.traces}
@@ -373,9 +387,12 @@ function buildChartModel(chart: AnalyticsChartRow, data: OrdersAnalyticsResponse
   const traces: Data[] = [];
   const exportRows: Array<Record<string, string | number>> = [];
 
+  const palette = chart.config_json.appearance?.seriesPalette ?? globalAppearance.seriesPalette;
+
   enabledSeries.forEach((series, index) => {
     const metricValues = extractSeriesValues(days, series);
-    const trace = seriesToTrace(series, x, metricValues, index, chart.chart_type);
+    const effectiveColor = legacyPalette.has(series.color) ? (palette[index % palette.length] ?? series.color) : series.color;
+    const trace = seriesToTrace({ ...series, color: effectiveColor }, x, metricValues, index, chart.chart_type);
     traces.push(trace);
 
     x.forEach((date, valueIndex) => {
@@ -387,26 +404,27 @@ function buildChartModel(chart: AnalyticsChartRow, data: OrdersAnalyticsResponse
   const chartAppearance = chart.config_json.appearance ?? {};
   const resolvedCardBg = chartAppearance.cardBg || globalAppearance.cardBg || theme.card;
   const resolvedPlotBg = chartAppearance.plotBg || globalAppearance.plotBg || resolvedCardBg;
-  const resolvedGrid = `rgba(148, 163, 184, ${chartAppearance.gridOpacity ?? globalAppearance.gridOpacity ?? 0.2})`;
+  const resolvedGridColor = chartAppearance.gridColor || globalAppearance.gridColor;
+  const resolvedGrid = hexToRgba(resolvedGridColor, chartAppearance.gridOpacity ?? globalAppearance.gridOpacity ?? 0.2);
+  const resolvedAxisText = chartAppearance.axisTextColor || globalAppearance.axisTextColor;
 
   const layout: Partial<Layout> = {
     ...layoutBase(theme),
     paper_bgcolor: resolvedCardBg,
     plot_bgcolor: resolvedPlotBg,
     xaxis: {
-      title: { text: chart.config_json.xTitle || 'Datum' },
+      title: { text: chart.config_json.xTitle || 'Datum', font: { size: chart.config_json.xTitleFontSize ?? 12, color: resolvedAxisText } },
       tickformat: chart.config_json.xTickFormat || undefined,
       type: chart.config_json.xScale === 'log' ? 'log' : 'date',
       gridcolor: resolvedGrid,
-      tickfont: { color: theme.mutedText },
+      tickfont: { color: resolvedAxisText, size: chart.config_json.xTickFontSize ?? 10 },
     },
     yaxis: {
-      title: { text: chart.config_json.yLeftTitle || 'Value' },
+      title: { text: chart.config_json.yLeftTitle || 'Value', font: { size: chart.config_json.yTitleFontSize ?? 12, color: resolvedAxisText } },
       tickformat: chart.config_json.yLeftTickFormat || undefined,
       type: chart.config_json.yLeftScale === 'log' ? 'log' : 'linear',
       gridcolor: resolvedGrid,
-      tickfont: { color: theme.mutedText },
-      hoverformat: '%Y-%m-%d'
+      tickfont: { color: resolvedAxisText, size: chart.config_json.xTickFontSize ?? 10 },
     },
     barmode:
       chart.chart_type === 'stacked_bar' || chart.chart_type === 'stacked_area'
@@ -423,7 +441,7 @@ function buildChartModel(chart: AnalyticsChartRow, data: OrdersAnalyticsResponse
       side: 'right',
       type: chart.config_json.yRightScale === 'log' ? 'log' : 'linear',
       tickformat: chart.config_json.yRightTickFormat || undefined,
-      tickfont: { color: theme.mutedText },
+      tickfont: { color: resolvedAxisText, size: chart.config_json.xTickFontSize ?? 10 },
     };
   }
 
@@ -635,7 +653,8 @@ function ChartCard({
   onDelete,
   onExportCsv,
   isFocused,
-  onFocus
+  onFocus,
+  appearance
 }: {
   chart: AnalyticsChartRow;
   children: ReactNode;
@@ -644,6 +663,7 @@ function ChartCard({
   onExportCsv: () => void;
   isFocused: boolean;
   onFocus: () => void;
+  appearance: AnalyticsGlobalAppearance;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: chart.id });
   const style = { transform: CSS.Transform.toString(transform), transition };
@@ -651,7 +671,7 @@ function ChartCard({
   return (
     <section
       ref={setNodeRef}
-      style={style}
+      style={{ ...style, backgroundColor: chart.config_json.appearance?.cardBg || appearance.cardBg }}
       className={`rounded-xl border p-3 shadow-lg transition ${
         isDragging ? 'opacity-80 ring-2 ring-cyan-500' : ''
       } ${isFocused ? 'border-cyan-500 bg-[var(--chart-card)]' : 'border-[var(--chart-border)] bg-[var(--chart-card)]'}`}
@@ -756,6 +776,10 @@ function BuilderModal({
           <LabeledInput label="X axis title" value={config.xTitle} onChange={(value) => onChangeConfig({ ...config, xTitle: value })} />
           <LabeledInput label="Y left title" value={config.yLeftTitle} onChange={(value) => onChangeConfig({ ...config, yLeftTitle: value })} />
           <LabeledInput label="Y right title" value={config.yRightTitle} onChange={(value) => onChangeConfig({ ...config, yRightTitle: value })} />
+          <LabeledNumberInput label="X title size" value={config.xTitleFontSize ?? 12} onChange={(value) => onChangeConfig({ ...config, xTitleFontSize: value })} />
+          <LabeledNumberInput label="Y title size" value={config.yTitleFontSize ?? 12} onChange={(value) => onChangeConfig({ ...config, yTitleFontSize: value })} />
+          <LabeledNumberInput label="X tick size" value={config.xTickFontSize ?? 10} onChange={(value) => onChangeConfig({ ...config, xTickFontSize: value })} />
+          <LabeledNumberInput label="Y tick size" value={config.yTickFontSize ?? 10} onChange={(value) => onChangeConfig({ ...config, yTickFontSize: value })} />
           <label className="mt-6 inline-flex items-center gap-2 text-xs text-slate-300">
             <input type="checkbox" checked={config.yRightEnabled} onChange={(event) => onChangeConfig({ ...config, yRightEnabled: event.target.checked })} />
             Enable right axis
@@ -912,6 +936,9 @@ function AppearancePanel({
     <details className="mb-3 rounded-lg border border-slate-700 bg-slate-900/70 p-3" open>
       <summary className="cursor-pointer text-xs font-semibold text-slate-200">Appearance / Theme</summary>
       <div className="mt-3 grid gap-3 md:grid-cols-4">
+        <label className="text-xs text-slate-300">Analytics section background
+          <input type="color" className="mt-1 h-8 w-full rounded border border-slate-700 bg-slate-950" value={local.sectionBg} onChange={(event) => setLocal({ ...local, sectionBg: event.target.value })} />
+        </label>
         <label className="text-xs text-slate-300">Canvas background
           <input type="color" className="mt-1 h-8 w-full rounded border border-slate-700 bg-slate-950" value={local.canvasBg} onChange={(event) => setLocal({ ...local, canvasBg: event.target.value })} />
         </label>
@@ -921,14 +948,37 @@ function AppearancePanel({
         <label className="text-xs text-slate-300">Plot background
           <input type="color" className="mt-1 h-8 w-full rounded border border-slate-700 bg-slate-950" value={local.plotBg} onChange={(event) => setLocal({ ...local, plotBg: event.target.value })} />
         </label>
+        <label className="text-xs text-slate-300">Axis text color
+          <input type="color" className="mt-1 h-8 w-full rounded border border-slate-700 bg-slate-950" value={local.axisTextColor} onChange={(event) => setLocal({ ...local, axisTextColor: event.target.value })} />
+        </label>
+        <label className="text-xs text-slate-300">Grid color
+          <input type="color" className="mt-1 h-8 w-full rounded border border-slate-700 bg-slate-950" value={local.gridColor} onChange={(event) => setLocal({ ...local, gridColor: event.target.value })} />
+        </label>
         <label className="text-xs text-slate-300">Grid intensity
           <input type="range" min={0} max={1} step={0.05} className="mt-2 w-full" value={local.gridOpacity} onChange={(event) => setLocal({ ...local, gridOpacity: Number(event.target.value) })} />
         </label>
+      </div>
+
+      <div className="mt-3 grid gap-2 md:grid-cols-5">
+        {local.seriesPalette.map((color, index) => (
+          <label key={index} className="text-xs text-slate-300">Series {index + 1}
+            <input type="color" className="mt-1 h-8 w-full rounded border border-slate-700 bg-slate-950" value={color} onChange={(event) => setLocal({ ...local, seriesPalette: local.seriesPalette.map((entry, entryIndex) => (entryIndex === index ? event.target.value : entry)) })} />
+          </label>
+        ))}
       </div>
       <div className="mt-3 flex justify-end">
         <button className="rounded border border-cyan-500 bg-cyan-600 px-3 py-1 text-xs text-white" onClick={() => void onSave(local)}>Save appearance</button>
       </div>
     </details>
+  );
+}
+
+function LabeledNumberInput({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
+  return (
+    <label className="text-xs text-slate-300">
+      {label}
+      <input type="number" min={8} max={24} className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1" value={value} onChange={(event) => onChange(Number(event.target.value))} />
+    </label>
   );
 }
 

@@ -27,13 +27,17 @@ export default async function AdminAnalyticsIndexPage({
     ? await Promise.all([
         fetchAnalyticsCharts('narocila').catch(() => []),
         fetchGlobalAnalyticsAppearance('narocila').catch(() => ({
+          sectionBg: '#0b1220',
           canvasBg: '#0f172a',
           cardBg: '#1e293b',
           plotBg: '#1e293b',
+          axisTextColor: '#94a3b8',
+          seriesPalette: ['#22d3ee', '#f59e0b', '#a78bfa', '#34d399', '#60a5fa'],
+          gridColor: '#94a3b8',
           gridOpacity: 0.2
         }))
       ])
-    : [[], { canvasBg: '#0f172a', cardBg: '#1e293b', plotBg: '#1e293b', gridOpacity: 0.2 }];
+    : [[], { sectionBg: '#0b1220', canvasBg: '#0f172a', cardBg: '#1e293b', plotBg: '#1e293b', axisTextColor: '#94a3b8', seriesPalette: ['#22d3ee', '#f59e0b', '#a78bfa', '#34d399', '#60a5fa'], gridColor: '#94a3b8', gridOpacity: 0.2 }];
 
   return (
     <div className="w-full px-6 py-12">

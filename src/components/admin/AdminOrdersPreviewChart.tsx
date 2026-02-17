@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Data, Layout } from 'plotly.js';
 import PlotlyClient from '@/components/admin/charts/PlotlyClient';
@@ -8,12 +8,12 @@ import { getBaseChartLayout, getChartThemeFromCssVars } from '@/components/admin
 import type { OrderRow } from '@/components/admin/adminOrdersTableUtils';
 
 type Daily = { date: string; orders: number; revenue: number; values: number[]; statuses: Record<string, number> };
-type PreviewRange = 30 | 90 | 180 | 365;
 
-const movingAverage = (values: number[], window = 7) => values.map((_, i) => {
-  const slice = values.slice(Math.max(0, i - (window - 1)), i + 1);
-  return slice.reduce((sum, value) => sum + value, 0) / Math.max(slice.length, 1);
-});
+const movingAverage = (values: number[], window = 7) =>
+  values.map((_, i) => {
+    const slice = values.slice(Math.max(0, i - (window - 1)), i + 1);
+    return slice.reduce((sum, value) => sum + value, 0) / Math.max(slice.length, 1);
+  });
 
 const median = (values: number[]) => {
   if (values.length === 0) return 0;
@@ -22,29 +22,23 @@ const median = (values: number[]) => {
   return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
 };
 
-const valueLine = (label: string, format: string) => `${label}: %{y${format}}`;
+const compactHover = (label: string, valueFormat: string, suffix = '') =>
+  '%{x|%Y-%m-%d}<br>' +
+  `<span style="display:flex;justify-content:space-between;gap:10px;min-width:150px;"><span>${label}</span><span>%{y${valueFormat}}${suffix}</span></span><extra></extra>`;
+
+const stat = (value: number, suffix = '') => `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 2 }).format(value)}${suffix}`;
 
 export default function AdminOrdersPreviewChart({ orders }: { orders: OrderRow[] }) {
   const router = useRouter();
-  const [rangeDays, setRangeDays] = useState<PreviewRange>(90);
   const chartTheme = getChartThemeFromCssVars();
   const layoutBase = getBaseChartLayout(chartTheme);
-
-  useEffect(() => {
-    const saved = window.localStorage.getItem('admin-orders-preview-range');
-    if (saved === '30' || saved === '90' || saved === '180' || saved === '365') setRangeDays(Number(saved) as PreviewRange);
-  }, []);
-
-  useEffect(() => {
-    window.localStorage.setItem('admin-orders-preview-range', String(rangeDays));
-  }, [rangeDays]);
 
   const data = useMemo(() => {
     const days = new Map<string, Daily>();
     const now = new Date();
     now.setUTCHours(0, 0, 0, 0);
 
-    for (let i = rangeDays - 1; i >= 0; i -= 1) {
+    for (let i = 29; i >= 0; i -= 1) {
       const d = new Date(now);
       d.setUTCDate(d.getUTCDate() - i);
       const key = d.toISOString().slice(0, 10);
@@ -67,6 +61,8 @@ export default function AdminOrdersPreviewChart({ orders }: { orders: OrderRow[]
     const x = rows.map((row) => row.date);
     const ordersSeries = rows.map((row) => row.orders);
     const revenueSeries = rows.map((row) => Number(row.revenue.toFixed(2)));
+    const aovSeries = rows.map((row) => (row.orders > 0 ? row.revenue / row.orders : 0));
+    const medianSeries = rows.map((row) => median(row.values));
 
     return {
       x,
@@ -74,62 +70,79 @@ export default function AdminOrdersPreviewChart({ orders }: { orders: OrderRow[]
       ordersMa: movingAverage(ordersSeries, 7),
       revenueSeries,
       revenueMa: movingAverage(revenueSeries, 7),
-      aovSeries: rows.map((row) => (row.orders > 0 ? row.revenue / row.orders : 0)),
-      medianSeries: rows.map((row) => median(row.values)),
+      aovSeries,
+      medianSeries,
+      latest: {
+        orders: ordersSeries[ordersSeries.length - 1] ?? 0,
+        revenue: revenueSeries[revenueSeries.length - 1] ?? 0,
+        aov: aovSeries[aovSeries.length - 1] ?? 0,
+        statusMix: (rows[rows.length - 1]?.statuses.received ?? 0) + (rows[rows.length - 1]?.statuses.in_progress ?? 0) + (rows[rows.length - 1]?.statuses.cancelled ?? 0)
+      },
       statusTraces: [
         { status: 'received', color: chartTheme.series.primary, y: rows.map((row) => row.statuses.received ?? 0) },
         { status: 'in_progress', color: chartTheme.series.tertiary, y: rows.map((row) => row.statuses.in_progress ?? 0) },
         { status: 'cancelled', color: chartTheme.series.danger, y: rows.map((row) => row.statuses.cancelled ?? 0) }
       ]
     };
-  }, [orders, rangeDays, chartTheme.series.danger, chartTheme.series.primary, chartTheme.series.tertiary]);
+  }, [orders, chartTheme.series.danger, chartTheme.series.primary, chartTheme.series.tertiary]);
 
-  const charts: Array<{ key: string; focusKey: string; title: string; traces: Data[]; layout: Partial<Layout> }> = [
+  const miniLayout = (isStacked = false): Partial<Layout> => ({
+    ...layoutBase,
+    margin: { l: 8, r: 8, t: 8, b: 8 },
+    showlegend: false,
+    hovermode: 'x',
+    paper_bgcolor: chartTheme.card,
+    plot_bgcolor: chartTheme.card,
+    xaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, fixedrange: true },
+    yaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, rangemode: 'tozero', fixedrange: true },
+    barmode: isStacked ? 'stack' : undefined,
+    hoverlabel: { bgcolor: chartTheme.tooltipBg, bordercolor: chartTheme.tooltipBorder, font: { color: chartTheme.text, size: 11 }, align: 'left' }
+  });
+
+  const charts: Array<{ key: string; focusKey: string; title: string; value: string; traces: Data[]; layout: Partial<Layout> }> = [
     {
-      key: 'orders-ma', focusKey: 'narocila-orders-ma', title: 'Orders/day + 7d MA',
+      key: 'orders-ma', focusKey: 'narocila-orders-ma', title: 'Orders/day', value: stat(data.latest.orders),
       traces: [
-        { type: 'bar', name: 'Orders', x: data.x, y: data.ordersSeries, marker: { color: chartTheme.series.primary, opacity: 0.6 }, hovertemplate: `${valueLine('Orders', ':,.0f')}<extra></extra>` },
-        { type: 'scatter', mode: 'lines', name: '7d MA', x: data.x, y: data.ordersMa, line: { color: chartTheme.series.secondary, width: 2 }, hovertemplate: `${valueLine('7d MA', ':,.2f')}<extra></extra>` }
+        { type: 'scatter', mode: 'lines', name: 'Orders', x: data.x, y: data.ordersSeries, line: { color: chartTheme.series.primary, width: 1.8 }, hovertemplate: compactHover('Orders', ':,.0f') },
+        { type: 'scatter', mode: 'lines', name: 'MA', x: data.x, y: data.ordersMa, line: { color: chartTheme.series.secondary, width: 1.4, dash: 'dot' }, hoverinfo: 'skip' }
       ],
-      layout: { ...layoutBase, xaxis: { title: { text: 'Datum' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, hoverformat: '%Y-%m-%d' }, yaxis: { title: { text: 'Število naročil' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, rangemode: 'tozero' }, showlegend: false }
+      layout: miniLayout(false)
     },
     {
-      key: 'revenue-ma', focusKey: 'narocila-revenue-ma', title: 'Revenue/day + 7d MA',
+      key: 'revenue-ma', focusKey: 'narocila-revenue-ma', title: 'Revenue/day', value: `${stat(data.latest.revenue)} €`,
       traces: [
-        { type: 'bar', name: 'Revenue', x: data.x, y: data.revenueSeries, marker: { color: chartTheme.series.neutral, opacity: 0.6 }, hovertemplate: `${valueLine('Revenue', ':,.2f')} EUR<extra></extra>` },
-        { type: 'scatter', mode: 'lines', name: '7d MA', x: data.x, y: data.revenueMa, line: { color: chartTheme.series.secondary, width: 2 }, hovertemplate: `${valueLine('7d MA', ':,.2f')} EUR<extra></extra>` }
+        { type: 'scatter', mode: 'lines', name: 'Revenue', x: data.x, y: data.revenueSeries, line: { color: chartTheme.series.neutral, width: 1.8 }, hovertemplate: compactHover('Revenue', ':,.2f', ' EUR') },
+        { type: 'scatter', mode: 'lines', name: 'MA', x: data.x, y: data.revenueMa, line: { color: chartTheme.series.secondary, width: 1.4, dash: 'dot' }, hoverinfo: 'skip' }
       ],
-      layout: { ...layoutBase, xaxis: { title: { text: 'Datum' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, hoverformat: '%Y-%m-%d' }, yaxis: { title: { text: 'Prihodki (EUR)' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, rangemode: 'tozero' }, showlegend: false }
+      layout: miniLayout(false)
     },
     {
-      key: 'aov-median', focusKey: 'narocila-aov-median', title: 'AOV + median order value',
+      key: 'aov-median', focusKey: 'narocila-aov-median', title: 'AOV', value: `${stat(data.latest.aov)} €`,
       traces: [
-        { type: 'scatter', mode: 'lines', name: 'AOV', x: data.x, y: data.aovSeries, line: { color: chartTheme.series.tertiary, width: 2 }, hovertemplate: `${valueLine('AOV', ':,.2f')} EUR<extra></extra>` },
-        { type: 'scatter', mode: 'lines', name: 'Median', x: data.x, y: data.medianSeries, line: { color: chartTheme.series.quaternary, width: 2 }, hovertemplate: `${valueLine('Median', ':,.2f')} EUR<extra></extra>` }
+        { type: 'scatter', mode: 'lines', name: 'AOV', x: data.x, y: data.aovSeries, line: { color: chartTheme.series.tertiary, width: 1.8 }, hovertemplate: compactHover('AOV', ':,.2f', ' EUR') },
+        { type: 'scatter', mode: 'lines', name: 'Median', x: data.x, y: data.medianSeries, line: { color: chartTheme.series.quaternary, width: 1.4, dash: 'dot' }, hoverinfo: 'skip' }
       ],
-      layout: { ...layoutBase, xaxis: { title: { text: 'Datum' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, hoverformat: '%Y-%m-%d' }, yaxis: { title: { text: 'EUR' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, rangemode: 'tozero' }, showlegend: false }
+      layout: miniLayout(false)
     },
     {
-      key: 'status-mix', focusKey: 'narocila-status-mix', title: 'Status mix over time',
-      traces: data.statusTraces.map((trace) => ({ type: 'bar', name: trace.status, x: data.x, y: trace.y, marker: { color: trace.color }, hovertemplate: `${valueLine(trace.status, ':,.0f')}<extra></extra>` })),
-      layout: { ...layoutBase, barmode: 'stack', xaxis: { title: { text: 'Datum' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, hoverformat: '%Y-%m-%d' }, yaxis: { title: { text: 'Število naročil' }, tickfont: { color: chartTheme.mutedText }, gridcolor: chartTheme.grid, rangemode: 'tozero' }, showlegend: false }
+      key: 'status-mix', focusKey: 'narocila-status-mix', title: 'Status mix', value: stat(data.latest.statusMix),
+      traces: data.statusTraces.map((trace) => ({ type: 'bar', name: trace.status, x: data.x, y: trace.y, marker: { color: trace.color }, hovertemplate: compactHover(trace.status, ':,.0f') })),
+      layout: miniLayout(true)
     }
   ];
 
   return (
     <section className="mb-3 rounded-2xl border border-[var(--chart-border)] bg-[var(--chart-canvas)] p-3 shadow-sm" aria-label="Orders analytics previews">
-      <div className="mb-2 inline-flex rounded-md border border-slate-700 bg-slate-900 p-0.5">
-        {[30, 90, 180, 365].map((value) => (
-          <button key={value} type="button" onClick={() => setRangeDays(value as PreviewRange)} className={`rounded px-2 py-1 text-[11px] ${rangeDays === value ? 'bg-cyan-600 text-white' : 'text-slate-300'}`}>
-            {value}d
-          </button>
-        ))}
-      </div>
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {charts.map((chart) => (
-          <button key={chart.key} type="button" onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(chart.focusKey)}`)} className="rounded-xl border border-[var(--chart-border)] bg-[var(--chart-card)] p-2 text-left transition hover:border-cyan-500">
-            <p className="mb-1 text-xs font-semibold text-[var(--chart-text)]">{chart.title}</p>
-            <PlotlyClient data={chart.traces} layout={chart.layout} config={{ responsive: true, displayModeBar: false }} style={{ width: '100%', height: 210 }} useResizeHandler />
+          <button key={chart.key} type="button" onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(chart.focusKey)}`)} className="flex min-h-[110px] items-center justify-between rounded-xl border border-[var(--chart-border)] bg-[var(--chart-card)] px-2 py-1.5 text-left transition hover:border-cyan-500">
+            <div className="flex h-full min-w-[88px] flex-col justify-center pr-2">
+              <p className="text-[11px] font-medium text-slate-300">{chart.title}</p>
+              <p className="mt-1 text-lg font-semibold text-[var(--chart-text)]">{chart.value}</p>
+            </div>
+            <div className="w-[145px]">
+              <PlotlyClient data={chart.traces} layout={chart.layout} config={{ responsive: true, displayModeBar: false }} style={{ width: '100%', height: 105 }} useResizeHandler />
+            </div>
           </button>
         ))}
       </div>

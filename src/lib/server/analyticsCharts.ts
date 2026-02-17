@@ -30,16 +30,24 @@ export type AnalyticsMetricField =
   | 'cancelled_count';
 
 export type AnalyticsChartAppearance = {
+  sectionBg?: string;
   canvasBg?: string;
   cardBg?: string;
   plotBg?: string;
+  axisTextColor?: string;
+  seriesPalette?: string[];
+  gridColor?: string;
   gridOpacity?: number;
 };
 
 export type AnalyticsGlobalAppearance = {
+  sectionBg: string;
   canvasBg: string;
   cardBg: string;
   plotBg: string;
+  axisTextColor: string;
+  seriesPalette: string[];
+  gridColor: string;
   gridOpacity: number;
   updatedAt?: string;
 };
@@ -67,6 +75,10 @@ export type AnalyticsChartConfig = {
   xTickFormat: string;
   xDateFormat: string;
   xScale: 'linear' | 'log';
+  xTitleFontSize?: number;
+  yTitleFontSize?: number;
+  xTickFontSize?: number;
+  yTickFontSize?: number;
   yLeftTitle: string;
   yLeftScale: 'linear' | 'log';
   yLeftTickFormat: string;
@@ -166,6 +178,10 @@ const defaultConfig = (): AnalyticsChartConfig => ({
   xTickFormat: '',
   xDateFormat: '%Y-%m-%d',
   xScale: 'linear',
+  xTitleFontSize: 12,
+  yTitleFontSize: 12,
+  xTickFontSize: 10,
+  yTickFontSize: 10,
   yLeftTitle: 'Vrednost',
   yLeftScale: 'linear',
   yLeftTickFormat: '',
@@ -174,7 +190,7 @@ const defaultConfig = (): AnalyticsChartConfig => ({
   yRightScale: 'linear',
   yRightTickFormat: '',
   grain: 'day',
-  quickRange: '90d',
+  quickRange: '30d',
   filters: {
     customerType: 'all',
     status: 'all',
@@ -186,9 +202,13 @@ const defaultConfig = (): AnalyticsChartConfig => ({
 });
 
 const defaultAppearance = (): AnalyticsGlobalAppearance => ({
+  sectionBg: '#0b1220',
   canvasBg: '#0f172a',
   cardBg: '#1e293b',
   plotBg: '#1e293b',
+  axisTextColor: '#94a3b8',
+  seriesPalette: ['#22d3ee', '#f59e0b', '#a78bfa', '#34d399', '#60a5fa'],
+  gridColor: '#94a3b8',
   gridOpacity: 0.2
 });
 
@@ -196,9 +216,13 @@ const parseAppearance = (value: unknown): AnalyticsChartAppearance => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
   const raw = value as Record<string, unknown>;
   return {
+    sectionBg: typeof raw.sectionBg === 'string' ? raw.sectionBg : undefined,
     canvasBg: typeof raw.canvasBg === 'string' ? raw.canvasBg : undefined,
     cardBg: typeof raw.cardBg === 'string' ? raw.cardBg : undefined,
     plotBg: typeof raw.plotBg === 'string' ? raw.plotBg : undefined,
+    axisTextColor: typeof raw.axisTextColor === 'string' ? raw.axisTextColor : undefined,
+    seriesPalette: Array.isArray(raw.seriesPalette) ? raw.seriesPalette.filter((value): value is string => typeof value === 'string') : undefined,
+    gridColor: typeof raw.gridColor === 'string' ? raw.gridColor : undefined,
     gridOpacity: Number.isFinite(Number(raw.gridOpacity)) ? clamp(Number(raw.gridOpacity), 0, 1) : undefined
   };
 };
@@ -242,6 +266,10 @@ const parseConfig = (value: unknown): AnalyticsChartConfig => {
     xTickFormat: typeof raw.xTickFormat === 'string' ? raw.xTickFormat : '',
     xDateFormat: typeof raw.xDateFormat === 'string' ? raw.xDateFormat : fallback.xDateFormat,
     xScale: raw.xScale === 'log' ? 'log' : 'linear',
+    xTitleFontSize: Number.isFinite(Number(raw.xTitleFontSize)) ? Number(raw.xTitleFontSize) : fallback.xTitleFontSize,
+    yTitleFontSize: Number.isFinite(Number(raw.yTitleFontSize)) ? Number(raw.yTitleFontSize) : fallback.yTitleFontSize,
+    xTickFontSize: Number.isFinite(Number(raw.xTickFontSize)) ? Number(raw.xTickFontSize) : fallback.xTickFontSize,
+    yTickFontSize: Number.isFinite(Number(raw.yTickFontSize)) ? Number(raw.yTickFontSize) : fallback.yTickFontSize,
     yLeftTitle: typeof raw.yLeftTitle === 'string' ? raw.yLeftTitle : fallback.yLeftTitle,
     yLeftScale: raw.yLeftScale === 'log' ? 'log' : 'linear',
     yLeftTickFormat: typeof raw.yLeftTickFormat === 'string' ? raw.yLeftTickFormat : '',
@@ -575,9 +603,13 @@ export async function fetchGlobalAnalyticsAppearance(dashboardKey = 'narocila'):
   const row = result.rows[0] as Record<string, unknown>;
   const raw = (row.settings_json && typeof row.settings_json === 'object' ? row.settings_json : {}) as Record<string, unknown>;
   return {
+    sectionBg: typeof raw.sectionBg === 'string' ? raw.sectionBg : defaultAppearance().sectionBg,
     canvasBg: typeof raw.canvasBg === 'string' ? raw.canvasBg : defaultAppearance().canvasBg,
     cardBg: typeof raw.cardBg === 'string' ? raw.cardBg : defaultAppearance().cardBg,
     plotBg: typeof raw.plotBg === 'string' ? raw.plotBg : defaultAppearance().plotBg,
+    axisTextColor: typeof raw.axisTextColor === 'string' ? raw.axisTextColor : defaultAppearance().axisTextColor,
+    seriesPalette: Array.isArray(raw.seriesPalette) ? raw.seriesPalette.filter((value): value is string => typeof value === 'string') : defaultAppearance().seriesPalette,
+    gridColor: typeof raw.gridColor === 'string' ? raw.gridColor : defaultAppearance().gridColor,
     gridOpacity: Number.isFinite(Number(raw.gridOpacity)) ? clamp(Number(raw.gridOpacity), 0, 1) : defaultAppearance().gridOpacity,
     updatedAt: toIso(row.updated_at)
   };
@@ -587,9 +619,13 @@ export async function updateGlobalAnalyticsAppearance(input: Partial<AnalyticsGl
   await ensureAnalyticsTables();
   const current = await fetchGlobalAnalyticsAppearance(dashboardKey);
   const next: AnalyticsGlobalAppearance = {
+    sectionBg: input.sectionBg ?? current.sectionBg,
     canvasBg: input.canvasBg ?? current.canvasBg,
     cardBg: input.cardBg ?? current.cardBg,
     plotBg: input.plotBg ?? current.plotBg,
+    axisTextColor: input.axisTextColor ?? current.axisTextColor,
+    seriesPalette: input.seriesPalette ?? current.seriesPalette,
+    gridColor: input.gridColor ?? current.gridColor,
     gridOpacity: input.gridOpacity === undefined ? current.gridOpacity : clamp(input.gridOpacity, 0, 1)
   };
 

@@ -21,9 +21,13 @@ export async function PATCH(request: Request) {
     const payload = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     const appearance = await updateGlobalAnalyticsAppearance(
       {
+        sectionBg: typeof payload.sectionBg === 'string' ? payload.sectionBg : undefined,
         canvasBg: typeof payload.canvasBg === 'string' ? payload.canvasBg : undefined,
         cardBg: typeof payload.cardBg === 'string' ? payload.cardBg : undefined,
         plotBg: typeof payload.plotBg === 'string' ? payload.plotBg : undefined,
+        axisTextColor: typeof payload.axisTextColor === 'string' ? payload.axisTextColor : undefined,
+        seriesPalette: Array.isArray(payload.seriesPalette) ? payload.seriesPalette.filter((v): v is string => typeof v === 'string') : undefined,
+        gridColor: typeof payload.gridColor === 'string' ? payload.gridColor : undefined,
         gridOpacity: Number.isFinite(Number(payload.gridOpacity)) ? Number(payload.gridOpacity) : undefined
       },
       'narocila'

@@ -1,5 +1,6 @@
 import AdminAnalyticsDashboard from '@/components/admin/AdminAnalyticsDashboard';
 import { fetchOrders } from '@/lib/server/orders';
+import { getDatabaseUrl } from '@/lib/server/db';
 
 export const metadata = {
   title: 'Administracija analitika'
@@ -22,7 +23,7 @@ export default async function AdminAnalyticsPage({
   const from = searchParams?.from ?? '';
   const to = searchParams?.to ?? '';
 
-  const orders = process.env.DATABASE_URL
+  const orders = getDatabaseUrl()
     ? await fetchOrders({ fromDate: toIsoOrNull(from), toDate: toIsoOrNull(to) })
     : [];
 

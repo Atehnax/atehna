@@ -285,8 +285,7 @@ export async function fetchOrders(options?: {
 
   const whereClause = conditions.length > 0 ? `where ${conditions.join(' and ')}` : '';
 
-  const result = await pool.query(
-    `
+  const primaryQuery = `
     select
       orders.id,
       orders.order_number,
@@ -320,11 +319,42 @@ export async function fetchOrders(options?: {
       on computed_totals.order_id = orders.id
     ${whereClause}
     order by orders.created_at desc, orders.id desc
-    `,
-    queryParams
-  );
+  `;
 
-  return result.rows.map((rawRow) => mapOrderRow(rawRow as Record<string, unknown>));
+  const safeFallbackQuery = `
+    select
+      orders.id,
+      orders.order_number,
+      orders.customer_type,
+      orders.organization_name,
+      orders.contact_name,
+      orders.email,
+      orders.phone,
+      orders.delivery_address,
+      orders.reference,
+      orders.notes,
+      orders.status,
+      ${supportsPaymentStatusColumn ? 'orders.payment_status' : 'null::text as payment_status'},
+      ${supportsPaymentNotesColumn ? 'orders.payment_notes' : 'null::text as payment_notes'},
+      coalesce(orders.subtotal::text, '0') as subtotal,
+      coalesce(orders.tax::text, '0') as tax,
+      coalesce(orders.total::text, '0') as total,
+      orders.created_at,
+      ${supportsDraftColumn ? 'orders.is_draft' : 'false as is_draft'},
+      ${supportsDeletedColumn ? 'orders.deleted_at' : 'null::timestamptz as deleted_at'}
+    from orders
+    ${whereClause}
+    order by orders.created_at desc, orders.id desc
+  `;
+
+  try {
+    const result = await pool.query(primaryQuery, queryParams);
+    return result.rows.map((rawRow) => mapOrderRow(rawRow as Record<string, unknown>));
+  } catch (error) {
+    console.error('fetchOrders primary query failed, retrying with safe fallback', error);
+    const fallbackResult = await pool.query(safeFallbackQuery, queryParams);
+    return fallbackResult.rows.map((rawRow) => mapOrderRow(rawRow as Record<string, unknown>));
+  }
 }
 
 export async function fetchOrderById(orderId: number): Promise<OrderRow | null> {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
 import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
 import AdminOrderPaymentSelect from '@/components/admin/AdminOrderPaymentSelect';
@@ -91,6 +92,7 @@ export default function AdminOrdersTable({
   initialQuery?: string;
   topAction?: ReactNode;
 }) {
+  const router = useRouter();
   const [selected, setSelected] = useState<number[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isBulkUpdatingStatus, setIsBulkUpdatingStatus] = useState(false);
@@ -106,7 +108,6 @@ export default function AdminOrdersTable({
   const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
 
   const [isDocumentSearchEnabled, setIsDocumentSearchEnabled] = useState(false);
-  const [isDocumentFilterApplied, setIsDocumentFilterApplied] = useState(false);
   const [documentType, setDocumentType] = useState<DocumentType>('all');
   const [message, setMessage] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -338,7 +339,9 @@ export default function AdminOrdersTable({
         return orderMatches;
       }
 
-      if (isDocumentFilterApplied) {
+      const hasSelectedDocumentType = documentType !== 'all';
+
+      if (hasSelectedDocumentType) {
         if (documentsMatchingSelectedType.length === 0) return false;
         if (normalizedQuery && !documentsMatch) return false;
         return true;
@@ -426,7 +429,6 @@ export default function AdminOrdersTable({
     fromDate,
     toDate,
     isDocumentSearchEnabled,
-    isDocumentFilterApplied,
     documentType,
     latestDocumentsByOrder,
     sortKey,
@@ -515,7 +517,7 @@ export default function AdminOrdersTable({
         selected.map((orderId) => fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' }))
       );
       setSelected([]);
-      window.location.reload();
+      router.refresh();
     } finally {
       setIsDeleting(false);
     }
@@ -678,9 +680,6 @@ export default function AdminOrdersTable({
 
   const handleResetDocumentFilter = () => {
     setDocumentType('all');
-    if (isDocumentSearchEnabled) {
-      setIsDocumentFilterApplied(true);
-    }
     setMessage(null);
   };
 
@@ -971,7 +970,6 @@ export default function AdminOrdersTable({
                 onChange={(event) => {
                   const checked = event.target.checked;
                   setIsDocumentSearchEnabled(checked);
-                  setIsDocumentFilterApplied(checked);
                   if (!checked) {
                     setMessage(null);
                   }
@@ -990,7 +988,6 @@ export default function AdminOrdersTable({
               onChange={(event) => {
                 setDocumentType(event.target.value as DocumentType);
                 if (isDocumentSearchEnabled) {
-                  setIsDocumentFilterApplied(true);
                   setMessage(null);
                 }
               }}

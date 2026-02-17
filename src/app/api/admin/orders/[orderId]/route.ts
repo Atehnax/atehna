@@ -1,3 +1,4 @@
+import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/server/db';
 
@@ -19,7 +20,6 @@ async function ensureArchiveSchema() {
   `);
 }
 
-
 async function hasOrdersDeletedAtColumn() {
   const pool = await getPool();
   const result = await pool.query(
@@ -33,6 +33,15 @@ async function hasOrdersDeletedAtColumn() {
     `
   );
   return Number(result.rowCount ?? 0) > 0;
+}
+
+function revalidateAdminOrderPaths(orderId?: number) {
+  revalidatePath('/admin/orders');
+  revalidatePath('/admin/arhiv-izbrisanih');
+  if (typeof orderId === 'number' && Number.isFinite(orderId)) {
+    revalidatePath(`/admin/orders/${orderId}`);
+    revalidatePath('/admin/orders/[orderId]', 'page');
+  }
 }
 
 export async function DELETE(
@@ -68,6 +77,7 @@ export async function DELETE(
     };
 
     if (order.deleted_at) {
+      revalidateAdminOrderPaths(orderId);
       return NextResponse.json({ success: true });
     }
 
@@ -93,10 +103,12 @@ export async function DELETE(
         }
       }
 
+      revalidateAdminOrderPaths(orderId);
       return NextResponse.json({ success: true });
     }
 
     await pool.query('delete from orders where id = $1', [orderId]);
+    revalidateAdminOrderPaths(orderId);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(

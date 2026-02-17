@@ -483,6 +483,9 @@ export default function AdminOrdersTable({
 
   useEffect(() => {
     const validIds = new Set(orders.map((order) => order.id));
+    setSelected((previousSelected) =>
+      previousSelected.filter((selectedOrderId) => validIds.has(selectedOrderId))
+    );
     setRowStatusOverrides((previousOverrides) =>
       Object.fromEntries(
         Object.entries(previousOverrides).filter(([orderId]) => validIds.has(Number(orderId)))
@@ -536,9 +539,7 @@ export default function AdminOrdersTable({
         (result) => result.status === 'fulfilled' && !result.value.ok
       ).length;
 
-      if (failedDeletes === 0) {
-        setSelected([]);
-      } else {
+      if (failedDeletes > 0) {
         setMessage(`Brisanje ni uspelo za ${failedDeletes} naročil.`);
       }
 
@@ -561,7 +562,6 @@ export default function AdminOrdersTable({
         return;
       }
 
-      setSelected((previousSelected) => previousSelected.filter((selectedId) => selectedId !== orderId));
       router.refresh();
     } finally {
       setDeletingRowId(null);
@@ -1320,7 +1320,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="min-w-[100px] px-2 py-2 text-left normal-case">PDF datoteke</th>
+              <th className="min-w-[100px] px-2 py-2 text-center normal-case">PDF datoteke</th>
               <th className="px-2 py-2 text-center normal-case">Uredi</th>
             </tr>
           </thead>
@@ -1453,8 +1453,8 @@ export default function AdminOrdersTable({
                       {formatCurrency(order.total)}
                     </td>
 
-                    <td className="min-w-[100px] pl-0 pr-0 py-2 align-middle text-left" data-no-row-nav>
-                      <div className="flex justify-start">
+                    <td className="min-w-[100px] pl-0 pr-0 py-2 align-middle text-center" data-no-row-nav>
+                      <div className="flex justify-center">
                         <AdminOrdersPdfCell
                           orderId={order.id}
                           documents={documentsByOrder.get(order.id) ?? []}

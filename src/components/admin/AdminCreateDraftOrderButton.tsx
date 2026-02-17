@@ -25,7 +25,6 @@ export default function AdminCreateDraftOrderButton({ className }: Props) {
       router.push(`/admin/orders/${payload.orderId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Napaka pri ustvarjanju osnutka.');
-    } finally {
       setIsCreating(false);
     }
   };

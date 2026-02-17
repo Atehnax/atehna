@@ -116,6 +116,7 @@ export default function AdminOrdersTable({
   const datePopoverRef = useRef<HTMLDivElement>(null);
   const statusHeaderMenuRef = useRef<HTMLDivElement>(null);
   const paymentHeaderMenuRef = useRef<HTMLDivElement>(null);
+  const hasAutoResetFiltersRef = useRef(false);
 
   const [isStatusHeaderMenuOpen, setIsStatusHeaderMenuOpen] = useState(false);
   const [isPaymentHeaderMenuOpen, setIsPaymentHeaderMenuOpen] = useState(false);
@@ -618,6 +619,35 @@ export default function AdminOrdersTable({
       : defaultDateRangeLabel;
 
 
+
+  const resetAllFilters = () => {
+    setStatusFilter('all');
+    setQuery('');
+    setFromDate('');
+    setToDate('');
+    setIsDocumentSearchEnabled(false);
+    setDocumentType('all');
+    setMessage(null);
+  };
+
+  const hasActiveFilters =
+    statusFilter !== 'all' ||
+    query.trim().length > 0 ||
+    fromDate.length > 0 ||
+    toDate.length > 0 ||
+    isDocumentSearchEnabled ||
+    documentType !== 'all';
+
+  useEffect(() => {
+    if (hasAutoResetFiltersRef.current) return;
+    if (orders.length === 0) return;
+    if (!hasActiveFilters) return;
+    if (filteredAndSortedOrders.length > 0) return;
+
+    hasAutoResetFiltersRef.current = true;
+    resetAllFilters();
+    setMessage('Filtri niso vrnili zadetkov, zato je prikazan celoten seznam naročil.');
+  }, [orders.length, hasActiveFilters, filteredAndSortedOrders.length]);
 
   const dateRangeFilteredOrders = useMemo(() => {
     const fromTimestamp = fromDate ? new Date(`${fromDate}T00:00:00`).getTime() : null;
@@ -1252,7 +1282,18 @@ export default function AdminOrdersTable({
             {filteredAndSortedOrders.length === 0 ? (
               <tr>
                 <td className="px-2 py-6 text-center text-slate-500" colSpan={10}>
-                  Ni zadetkov za izbrane filtre.
+                  <div className="flex flex-col items-center gap-2">
+                    <span>Ni zadetkov za izbrane filtre.</span>
+                    {orders.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={resetAllFilters}
+                        className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        Prikaži vsa naročila
+                      </button>
+                    ) : null}
+                  </div>
                 </td>
               </tr>
             ) : (

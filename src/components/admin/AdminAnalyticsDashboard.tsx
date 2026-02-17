@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -329,7 +329,7 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
         <SortableContext items={chartRenderModels.map((model) => model.chart.id)} strategy={rectSortingStrategy}>
           <div className="grid gap-4 md:grid-cols-2">
             {chartRenderModels.map((model) => (
-          <ChartCard
+          <MemoChartCard
             key={model.chart.id}
             chart={model.chart}
             isFocused={focusedKey === model.chart.key}
@@ -355,7 +355,7 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
               style={{ width: '100%', height: 300 }}
               onClick={() => setFocusedKey(model.chart.key)}
             />
-          </ChartCard>
+          </MemoChartCard>
             ))}
           </div>
         </SortableContext>
@@ -432,7 +432,7 @@ function buildChartModel(chart: AnalyticsChartRow, data: OrdersAnalyticsResponse
       tickformat: chart.config_json.yLeftTickFormat || undefined,
       type: chart.config_json.yLeftScale === 'log' ? 'log' : 'linear',
       gridcolor: resolvedGrid,
-      tickfont: { color: resolvedAxisText, size: chart.config_json.xTickFontSize ?? 10 },
+      tickfont: { color: resolvedAxisText, size: chart.config_json.yTickFontSize ?? 10 },
     },
     barmode:
       chart.chart_type === 'stacked_bar' || chart.chart_type === 'stacked_area'
@@ -449,7 +449,7 @@ function buildChartModel(chart: AnalyticsChartRow, data: OrdersAnalyticsResponse
       side: 'right',
       type: chart.config_json.yRightScale === 'log' ? 'log' : 'linear',
       tickformat: chart.config_json.yRightTickFormat || undefined,
-      tickfont: { color: resolvedAxisText, size: chart.config_json.xTickFontSize ?? 10 },
+      tickfont: { color: resolvedAxisText, size: chart.config_json.yTickFontSize ?? 10 },
     };
   }
 
@@ -551,6 +551,9 @@ function extractSeriesValues(days: OrdersAnalyticsResponse['days'], series: Anal
   }
 }
 
+const metricHoverRow = (label: string, valueToken: string) =>
+  `%{x|%Y-%m-%d}<br><span style="display:flex;justify-content:space-between;align-items:center;gap:12px;min-width:190px;"><span>${label}</span><span style="font-variant-numeric:tabular-nums;">${valueToken}</span></span><extra></extra>`;
+
 function seriesToTrace(
   series: AnalyticsChartSeries,
   x: string[],
@@ -570,7 +573,7 @@ function seriesToTrace(
       y,
       yaxis,
       marker: { color: series.color, opacity: series.opacity },
-      hovertemplate: `${name}: %{y:,.2f}<extra></extra>`
+      hovertemplate: metricHoverRow(name, '%{y:,.2f}')
     };
   }
 
@@ -588,7 +591,7 @@ function seriesToTrace(
         size: y.map((value) => Math.max(8, Math.sqrt(Math.abs(value)))),
         sizemode: 'diameter'
       },
-      hovertemplate: `${name}: %{y:,.2f}<extra></extra>`
+      hovertemplate: metricHoverRow(name, '%{y:,.2f}')
     };
   }
 
@@ -598,7 +601,7 @@ function seriesToTrace(
       name,
       x: y,
       marker: { color: series.color, opacity: series.opacity },
-      hovertemplate: `${name}: %{x:,.2f}<extra></extra>`
+      hovertemplate: metricHoverRow(name, '%{x:,.2f}')
     };
   }
 
@@ -621,7 +624,7 @@ function seriesToTrace(
       x,
       y: [name],
       colorscale: 'Viridis',
-      hovertemplate: `${name}: %{z:,.2f}<extra></extra>`
+      hovertemplate: metricHoverRow(name, '%{z:,.2f}')
     };
   }
 
@@ -650,7 +653,7 @@ function seriesToTrace(
     },
     fill: resolvedType === 'area' || resolvedType === 'stacked_area' ? 'tozeroy' : undefined,
     opacity: series.opacity,
-    hovertemplate: `${name}: %{y:,.2f}<extra></extra>`
+    hovertemplate: metricHoverRow(name, '%{y:,.2f}')
   };
 }
 
@@ -704,6 +707,8 @@ function ChartCard({
     </section>
   );
 }
+
+const MemoChartCard = memo(ChartCard);
 
 function BuilderModal({
   title,
@@ -931,7 +936,7 @@ function isHexColor(value: string) {
   return /^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/.test(value.trim());
 }
 
-function AppearanceHexField({
+function ColorPopoverField({
   label,
   value,
   onChange
@@ -941,17 +946,25 @@ function AppearanceHexField({
   onChange: (value: string) => void;
 }) {
   const isValid = isHexColor(value);
+  const safeValue = isValid ? value : '#000000';
+
   return (
-    <label className="text-xs text-slate-600">
-      {label}
-      <input
-        className={`mt-1 w-full rounded border px-2 py-1 font-mono text-xs ${isValid ? 'border-slate-300 bg-white' : 'border-rose-300 bg-rose-50'}`}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder="#RRGGBB"
-      />
-      {!isValid ? <span className="mt-1 block text-[11px] text-rose-500">Use HEX like #RRGGBB.</span> : null}
-    </label>
+    <div className="text-xs text-slate-600">
+      <span>{label}</span>
+      <details className="relative mt-1">
+        <summary className="list-none cursor-pointer">
+          <span className={`inline-flex h-8 w-full items-center justify-between rounded border px-2 ${isValid ? 'border-slate-300 bg-white' : 'border-rose-300 bg-rose-50'}`}>
+            <span className="font-mono text-xs">{value}</span>
+            <span className="h-4 w-4 rounded border border-slate-300" style={{ backgroundColor: safeValue }} />
+          </span>
+        </summary>
+        <div className="absolute z-20 mt-1 w-56 rounded-md border border-slate-200 bg-white p-2 shadow-lg">
+          <input type="color" className="h-8 w-full cursor-pointer rounded border border-slate-200" value={safeValue} onChange={(event) => onChange(event.target.value)} />
+          <input className={`mt-2 w-full rounded border px-2 py-1 font-mono text-xs ${isValid ? 'border-slate-300' : 'border-rose-300 bg-rose-50'}`} value={value} onChange={(event) => onChange(event.target.value)} placeholder="#RRGGBB" />
+          {!isValid ? <span className="mt-1 block text-[11px] text-rose-500">Use HEX like #RRGGBB.</span> : null}
+        </div>
+      </details>
+    </div>
   );
 }
 
@@ -971,8 +984,7 @@ function AppearancePanel({
   const dirty = JSON.stringify(appearance) !== JSON.stringify(savedAppearance);
 
   const canSave =
-    [appearance.sectionBg, appearance.canvasBg, appearance.cardBg, appearance.plotBg, appearance.axisTextColor, appearance.gridColor]
-      .every(isHexColor) &&
+    [appearance.sectionBg, appearance.canvasBg, appearance.cardBg, appearance.plotBg, appearance.axisTextColor, appearance.gridColor].every(isHexColor) &&
     appearance.seriesPalette.every(isHexColor);
 
   return (
@@ -981,12 +993,12 @@ function AppearancePanel({
         Appearance / Theme {dirty ? <span className="ml-2 text-amber-600">• Unsaved changes</span> : null}
       </summary>
       <div className="mt-3 grid gap-3 md:grid-cols-3">
-        <AppearanceHexField label="Analytics section background" value={appearance.sectionBg} onChange={(value) => onChange({ ...appearance, sectionBg: value })} />
-        <AppearanceHexField label="Canvas background (paper_bgcolor)" value={appearance.canvasBg} onChange={(value) => onChange({ ...appearance, canvasBg: value })} />
-        <AppearanceHexField label="Card background" value={appearance.cardBg} onChange={(value) => onChange({ ...appearance, cardBg: value })} />
-        <AppearanceHexField label="Plot area background (plot_bgcolor)" value={appearance.plotBg} onChange={(value) => onChange({ ...appearance, plotBg: value })} />
-        <AppearanceHexField label="Axis text color" value={appearance.axisTextColor} onChange={(value) => onChange({ ...appearance, axisTextColor: value })} />
-        <AppearanceHexField label="Grid color" value={appearance.gridColor} onChange={(value) => onChange({ ...appearance, gridColor: value })} />
+        <ColorPopoverField label="Analytics section background" value={appearance.sectionBg} onChange={(value) => onChange({ ...appearance, sectionBg: value })} />
+        <ColorPopoverField label="Canvas background (paper_bgcolor)" value={appearance.canvasBg} onChange={(value) => onChange({ ...appearance, canvasBg: value })} />
+        <ColorPopoverField label="Card background" value={appearance.cardBg} onChange={(value) => onChange({ ...appearance, cardBg: value })} />
+        <ColorPopoverField label="Plot area background (plot_bgcolor)" value={appearance.plotBg} onChange={(value) => onChange({ ...appearance, plotBg: value })} />
+        <ColorPopoverField label="Axis text color" value={appearance.axisTextColor} onChange={(value) => onChange({ ...appearance, axisTextColor: value })} />
+        <ColorPopoverField label="Grid color" value={appearance.gridColor} onChange={(value) => onChange({ ...appearance, gridColor: value })} />
         <label className="text-xs text-slate-600">Grid intensity ({Math.round(appearance.gridOpacity * 100)}%)
           <input type="range" min={0} max={1} step={0.01} className="mt-2 w-full" value={appearance.gridOpacity} onChange={(event) => onChange({ ...appearance, gridOpacity: Number(event.target.value) })} />
         </label>
@@ -994,7 +1006,7 @@ function AppearancePanel({
 
       <div className="mt-3 grid gap-2 md:grid-cols-5">
         {appearance.seriesPalette.map((color, index) => (
-          <AppearanceHexField
+          <ColorPopoverField
             key={index}
             label={`Series ${index + 1}`}
             value={color}

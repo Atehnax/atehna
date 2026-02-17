@@ -73,6 +73,9 @@ export default function AdminOrdersTable({
 
   const [fromDate, setFromDate] = useState(initialFrom);
   const [toDate, setToDate] = useState(initialTo);
+  const debouncedQuery = useDebouncedValue(query, 200);
+  const debouncedFromDate = useDebouncedValue(fromDate, 200);
+  const debouncedToDate = useDebouncedValue(toDate, 200);
   const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
 
   const [isDocumentSearchEnabled, setIsDocumentSearchEnabled] = useState(false);
@@ -242,7 +245,7 @@ export default function AdminOrdersTable({
   }, [documents, attachments]);
 
   const filteredAndSortedOrders = useMemo(() => {
-    const normalizedQuery = normalizeForSearch(query);
+    const normalizedQuery = normalizeForSearch(debouncedQuery);
 
     const filteredOrders = orders.filter((order) => {
       const mergedStatusValue = getMergedOrderStatusValue(order.status);
@@ -253,8 +256,8 @@ export default function AdminOrdersTable({
 
       const orderTimestamp = new Date(order.created_at).getTime();
 
-      if (fromDate) {
-        const fromTimestamp = new Date(`${fromDate}T00:00:00`).getTime();
+      if (debouncedFromDate) {
+        const fromTimestamp = new Date(`${debouncedFromDate}T00:00:00`).getTime();
         if (
           !Number.isNaN(fromTimestamp) &&
           !Number.isNaN(orderTimestamp) &&
@@ -264,8 +267,8 @@ export default function AdminOrdersTable({
         }
       }
 
-      if (toDate) {
-        const toTimestamp = new Date(`${toDate}T23:59:59.999`).getTime();
+      if (debouncedToDate) {
+        const toTimestamp = new Date(`${debouncedToDate}T23:59:59.999`).getTime();
         if (
           !Number.isNaN(toTimestamp) &&
           !Number.isNaN(orderTimestamp) &&
@@ -406,9 +409,9 @@ export default function AdminOrdersTable({
   }, [
     orders,
     statusFilter,
-    query,
-    fromDate,
-    toDate,
+    debouncedQuery,
+    debouncedFromDate,
+    debouncedToDate,
     isDocumentSearchEnabled,
     documentType,
     latestDocumentsByOrder,
@@ -725,7 +728,12 @@ export default function AdminOrdersTable({
   return (
     <div className="w-full">
       <div className="mx-auto w-[72vw] min-w-[1180px] max-w-[1520px]">
-      <AdminOrdersPreviewChart orders={orders} appearance={analyticsAppearance} />
+      <AdminOrdersPreviewChart
+        orders={orders}
+        appearance={analyticsAppearance}
+        fromDate={debouncedFromDate}
+        toDate={debouncedToDate}
+      />
       <div className="mb-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
         <div className="flex flex-wrap items-end gap-2">
           <div className="relative min-w-[170px]" ref={datePopoverRef}>
@@ -1318,4 +1326,15 @@ export default function AdminOrdersTable({
       </div>
     </div>
   );
+}
+
+function useDebouncedValue<T>(value: T, delayMs: number) {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setDebounced(value), delayMs);
+    return () => window.clearTimeout(timeoutId);
+  }, [value, delayMs]);
+
+  return debounced;
 }

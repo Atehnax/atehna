@@ -112,11 +112,11 @@ export default async function AdminOrdersPage({
     warningMessage = 'Povezava z bazo ni nastavljena — prikazan je demo pogled.';
   } else {
     try {
-      orders = await fetchOrders({
-        fromDate: toIsoOrNull(from),
-        toDate: getToDateIsoOrNull(to),
-        query: query || null
-      });
+      // Always load the full active dataset on the server and let the table apply
+      // date/search/document filters client-side. This avoids accidental empty states
+      // caused by stale URL params or server-side filter drift.
+      orders = await fetchOrders({ includeDrafts: true });
+      console.info(`/admin/orders loaded rows=${orders.length}`);
 
       const orderIds = orders.map((order) => order.id);
       const [documentsResult, attachmentsResult] = await Promise.allSettled([

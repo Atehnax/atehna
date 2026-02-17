@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
+import { revalidateAdminOrderPaths } from '@/lib/server/revalidateAdminOrders';
 import { getPool } from '@/lib/server/db';
+
 
 export async function POST(
   request: Request,
@@ -98,6 +100,7 @@ export async function POST(
       );
     }
 
+    revalidateAdminOrderPaths(orderId);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(

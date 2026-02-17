@@ -1,5 +1,6 @@
 import AdminDeletedArchiveTable from '@/components/admin/AdminDeletedArchiveTable';
 import { fetchArchiveEntries } from '@/lib/server/deletedArchive';
+import { getDatabaseUrl } from '@/lib/server/db';
 
 export const metadata = {
   title: 'Arhiv izbrisanih'
@@ -8,7 +9,7 @@ export const metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function AdminDeletedArchivePage() {
-  const entries = process.env.DATABASE_URL
+  const entries = getDatabaseUrl()
     ? await fetchArchiveEntries('all')
     : [
         {

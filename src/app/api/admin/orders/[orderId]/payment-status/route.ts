@@ -1,16 +1,7 @@
-import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
+import { revalidateAdminOrderPaths } from '@/lib/server/revalidateAdminOrders';
 import { isPaymentStatus } from '@/lib/paymentStatus';
 import { getPool } from '@/lib/server/db';
-function revalidateAdminOrderPaths(orderId?: number) {
-  revalidatePath('/admin/orders');
-  revalidatePath('/admin/arhiv-izbrisanih');
-  if (typeof orderId === 'number' && Number.isFinite(orderId)) {
-    revalidatePath(`/admin/orders/${orderId}`);
-    revalidatePath('/admin/orders/[orderId]', 'page');
-  }
-}
-
 
 
 export async function POST(

@@ -22,21 +22,21 @@ export type ChartTheme = {
 };
 
 const fallbackTheme: ChartTheme = {
-  canvas: '#0f172a',
-  card: '#1e293b',
-  border: '#334155',
-  text: '#e2e8f0',
-  mutedText: '#94a3b8',
-  grid: 'rgba(148, 163, 184, 0.22)',
-  tooltipBg: '#0b1220',
-  tooltipBorder: '#334155',
+  canvas: '#f3f4f6',
+  card: '#ffffff',
+  border: '#d1d5db',
+  text: '#1f2937',
+  mutedText: '#4b5563',
+  grid: 'rgba(209, 213, 219, 0.5)',
+  tooltipBg: '#ffffff',
+  tooltipBorder: '#d1d5db',
   series: {
-    primary: '#22d3ee',
-    secondary: '#f59e0b',
-    tertiary: '#a78bfa',
-    quaternary: '#34d399',
-    danger: '#f87171',
-    neutral: '#60a5fa'
+    primary: '#2563eb',
+    secondary: '#0ea5e9',
+    tertiary: '#14b8a6',
+    quaternary: '#f59e0b',
+    danger: '#ef4444',
+    neutral: '#0284c7'
   }
 };
 

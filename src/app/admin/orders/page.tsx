@@ -9,6 +9,7 @@ import {
   fetchOrders
 } from '@/lib/server/orders';
 import { getDatabaseUrl } from '@/lib/server/db';
+import { fetchGlobalAnalyticsAppearance, type AnalyticsGlobalAppearance } from '@/lib/server/analyticsCharts';
 
 export const metadata = {
   title: 'Administracija naročil'
@@ -108,6 +109,19 @@ export default async function AdminOrdersPage({
   let attachments: OrderAttachmentRow[] = demoAttachments;
   let warningMessage: string | null = null;
 
+  const fallbackAppearance: AnalyticsGlobalAppearance = {
+    sectionBg: '#f3f4f6',
+    canvasBg: '#ffffff',
+    cardBg: '#ffffff',
+    plotBg: '#ffffff',
+    axisTextColor: '#1f2937',
+    seriesPalette: ['#2563eb', '#0ea5e9', '#14b8a6', '#f59e0b', '#ef4444'],
+    gridColor: '#d1d5db',
+    gridOpacity: 0.35
+  };
+  let analyticsAppearance = fallbackAppearance;
+
+
   if (!getDatabaseUrl()) {
     warningMessage = 'Povezava z bazo ni nastavljena — prikazan je demo pogled.';
   } else {
@@ -116,6 +130,7 @@ export default async function AdminOrdersPage({
       // date/search/document filters client-side. This avoids accidental empty states
       // caused by stale URL params or server-side filter drift.
       orders = await fetchOrders({ includeDrafts: true });
+      analyticsAppearance = await fetchGlobalAnalyticsAppearance('narocila').catch(() => fallbackAppearance);
       console.info(`/admin/orders loaded rows=${orders.length}`);
 
       const orderIds = orders.map((order) => order.id);
@@ -172,6 +187,7 @@ export default async function AdminOrdersPage({
           initialTo={to}
           initialQuery={query}
           topAction={<AdminCreateDraftOrderButton />}
+          analyticsAppearance={analyticsAppearance}
         />
       </div>
     </div>

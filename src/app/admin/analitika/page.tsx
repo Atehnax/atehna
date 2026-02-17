@@ -27,17 +27,17 @@ export default async function AdminAnalyticsIndexPage({
     ? await Promise.all([
         fetchAnalyticsCharts('narocila').catch(() => []),
         fetchGlobalAnalyticsAppearance('narocila').catch(() => ({
-          sectionBg: '#0b1220',
-          canvasBg: '#0f172a',
-          cardBg: '#1e293b',
-          plotBg: '#1e293b',
-          axisTextColor: '#94a3b8',
-          seriesPalette: ['#22d3ee', '#f59e0b', '#a78bfa', '#34d399', '#60a5fa'],
-          gridColor: '#94a3b8',
-          gridOpacity: 0.2
+          sectionBg: '#f3f4f6',
+          canvasBg: '#ffffff',
+          cardBg: '#ffffff',
+          plotBg: '#ffffff',
+          axisTextColor: '#1f2937',
+          seriesPalette: ['#2563eb', '#0ea5e9', '#14b8a6', '#f59e0b', '#ef4444'],
+          gridColor: '#d1d5db',
+          gridOpacity: 0.35
         }))
       ])
-    : [[], { sectionBg: '#0b1220', canvasBg: '#0f172a', cardBg: '#1e293b', plotBg: '#1e293b', axisTextColor: '#94a3b8', seriesPalette: ['#22d3ee', '#f59e0b', '#a78bfa', '#34d399', '#60a5fa'], gridColor: '#94a3b8', gridOpacity: 0.2 }];
+    : [[], { sectionBg: '#f3f4f6', canvasBg: '#ffffff', cardBg: '#ffffff', plotBg: '#ffffff', axisTextColor: '#1f2937', seriesPalette: ['#2563eb', '#0ea5e9', '#14b8a6', '#f59e0b', '#ef4444'], gridColor: '#d1d5db', gridOpacity: 0.35 }];
 
   return (
     <div className="w-full px-6 py-12">

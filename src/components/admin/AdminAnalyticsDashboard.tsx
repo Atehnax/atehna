@@ -109,7 +109,8 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
   const [loading, setLoading] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
   const [editingChartId, setEditingChartId] = useState<number | null>(null);
-  const [appearance, setAppearance] = useState<AnalyticsGlobalAppearance>(initialAppearance);
+  const [savedAppearance, setSavedAppearance] = useState<AnalyticsGlobalAppearance>(initialAppearance);
+  const [previewAppearance, setPreviewAppearance] = useState<AnalyticsGlobalAppearance>(initialAppearance);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const [builderConfig, setBuilderConfig] = useState<AnalyticsChartConfig>(() => ({
     dataset: 'orders_daily',
@@ -145,7 +146,10 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
     if (!response.ok) return;
     const payload = (await response.json()) as { charts: AnalyticsChartRow[]; appearance?: AnalyticsGlobalAppearance };
     setCharts(payload.charts);
-    if (payload.appearance) setAppearance(payload.appearance);
+    if (payload.appearance) {
+      setSavedAppearance(payload.appearance);
+      setPreviewAppearance(payload.appearance);
+    }
   };
 
   const loadRange = async (nextRange: RangeOption) => {
@@ -269,25 +273,25 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
   };
 
   const chartRenderModels = useMemo(() => {
-    return charts.map((chart) => buildChartModel(chart, data, chartTheme, appearance));
-  }, [charts, data, chartTheme, appearance]);
+    return charts.map((chart) => buildChartModel(chart, data, chartTheme, previewAppearance));
+  }, [charts, data, chartTheme, previewAppearance]);
 
   return (
-    <div className="min-h-full rounded-2xl border border-[var(--chart-border)] p-4 text-[var(--chart-text)]" style={{ backgroundColor: appearance.sectionBg }}>
+    <div className="min-h-full rounded-2xl border border-slate-200 p-4 text-slate-900" style={{ backgroundColor: previewAppearance.sectionBg }}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-xl font-semibold">Analytics (Orders)</h1>
-          <p className="text-xs text-slate-400">Timezone bucketing: UTC. Dark non-black pro mode enabled.</p>
+          <p className="text-xs text-slate-500">Timezone bucketing: UTC.</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="inline-flex rounded-lg border border-slate-700 bg-slate-950 p-0.5">
+          <div className="inline-flex rounded-lg border border-slate-300 bg-slate-100 p-0.5">
             {(['7d', '30d', '90d', '180d', '365d', 'ytd'] as RangeOption[]).map((option) => (
               <button
                 key={option}
                 type="button"
                 onClick={() => void loadRange(option)}
                 className={`rounded-md px-2 py-1 text-xs font-semibold ${
-                  range === option ? 'bg-cyan-600 text-white' : 'text-slate-300 hover:bg-slate-800'
+                  range === option ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:bg-slate-200'
                 }`}
               >
                 {option === 'ytd' ? 'YTD' : option}
@@ -305,20 +309,23 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
       </div>
 
       <AppearancePanel
-        appearance={appearance}
-        onSave={async (nextAppearance) => {
-          setAppearance(nextAppearance);
+        appearance={previewAppearance}
+        savedAppearance={savedAppearance}
+        onChange={setPreviewAppearance}
+        onReset={() => setPreviewAppearance(savedAppearance)}
+        onSave={async () => {
           await fetch('/api/admin/analytics/charts/appearance', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(nextAppearance)
+            body: JSON.stringify(previewAppearance)
           });
+          setSavedAppearance(previewAppearance);
         }}
       />
 
-      {loading ? <p className="mb-2 text-xs text-slate-400">Loading analytics…</p> : null}
+      {loading ? <p className="mb-2 text-xs text-slate-500">Loading analytics…</p> : null}
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(event) => void onDragEnd(event)}>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(event: DragEndEvent) => void onDragEnd(event)}>
         <SortableContext items={chartRenderModels.map((model) => model.chart.id)} strategy={rectSortingStrategy}>
           <div className="grid gap-4 md:grid-cols-2">
             {chartRenderModels.map((model) => (
@@ -338,7 +345,7 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
             }}
             onDelete={() => void deleteChart(model.chart.id)}
             onExportCsv={() => exportCsv(model.chart.title, model.x, model.exportRows)}
-            appearance={appearance}
+            appearance={previewAppearance}
           >
             <PlotlyClient
               data={model.traces}
@@ -372,7 +379,7 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
           chartTheme={chartTheme}
           mode={editingChartId ? 'edit' : 'create'}
           onDelete={editingChartId ? () => void deleteChart(editingChartId) : undefined}
-          appearance={appearance}
+          appearance={previewAppearance}
         />
       ) : null}
     </div>
@@ -402,22 +409,23 @@ function buildChartModel(chart: AnalyticsChartRow, data: OrdersAnalyticsResponse
   });
 
   const chartAppearance = chart.config_json.appearance ?? {};
-  const resolvedCardBg = chartAppearance.cardBg || globalAppearance.cardBg || theme.card;
-  const resolvedPlotBg = chartAppearance.plotBg || globalAppearance.plotBg || resolvedCardBg;
+  const resolvedCanvasBg = chartAppearance.canvasBg || globalAppearance.canvasBg || theme.card;
+  const resolvedCardBg = chartAppearance.cardBg || globalAppearance.cardBg || resolvedCanvasBg;
+  const resolvedPlotBg = chartAppearance.plotBg || globalAppearance.plotBg || resolvedCanvasBg;
   const resolvedGridColor = chartAppearance.gridColor || globalAppearance.gridColor;
   const resolvedGrid = hexToRgba(resolvedGridColor, chartAppearance.gridOpacity ?? globalAppearance.gridOpacity ?? 0.2);
   const resolvedAxisText = chartAppearance.axisTextColor || globalAppearance.axisTextColor;
 
   const layout: Partial<Layout> = {
     ...layoutBase(theme),
-    paper_bgcolor: resolvedCardBg,
+    paper_bgcolor: resolvedCanvasBg,
     plot_bgcolor: resolvedPlotBg,
     xaxis: {
       title: { text: chart.config_json.xTitle || 'Datum', font: { size: chart.config_json.xTitleFontSize ?? 12, color: resolvedAxisText } },
       tickformat: chart.config_json.xTickFormat || undefined,
       type: chart.config_json.xScale === 'log' ? 'log' : 'date',
       gridcolor: resolvedGrid,
-      tickfont: { color: resolvedAxisText, size: chart.config_json.xTickFontSize ?? 10 },
+      tickfont: { color: resolvedAxisText, size: chart.config_json.yTickFontSize ?? 10 },
     },
     yaxis: {
       title: { text: chart.config_json.yLeftTitle || 'Value', font: { size: chart.config_json.yTitleFontSize ?? 12, color: resolvedAxisText } },
@@ -436,7 +444,7 @@ function buildChartModel(chart: AnalyticsChartRow, data: OrdersAnalyticsResponse
 
   if (chart.config_json.yRightEnabled) {
     layout.yaxis2 = {
-      title: { text: chart.config_json.yRightTitle || 'Right axis' },
+      title: { text: chart.config_json.yRightTitle || 'Right axis', font: { size: chart.config_json.yTitleFontSize ?? 12, color: resolvedAxisText } },
       overlaying: 'y',
       side: 'right',
       type: chart.config_json.yRightScale === 'log' ? 'log' : 'linear',
@@ -671,17 +679,17 @@ function ChartCard({
   return (
     <section
       ref={setNodeRef}
-      style={{ ...style, backgroundColor: chart.config_json.appearance?.cardBg || appearance.cardBg }}
+      style={{ ...style, backgroundColor: chart.config_json.appearance?.cardBg || appearance.cardBg, boxShadow: '0 1px 2px rgba(15,23,42,0.06)' }}
       className={`rounded-xl border p-3 shadow-lg transition ${
         isDragging ? 'opacity-80 ring-2 ring-cyan-500' : ''
-      } ${isFocused ? 'border-cyan-500 bg-[var(--chart-card)]' : 'border-[var(--chart-border)] bg-[var(--chart-card)]'}`}
+      } ${isFocused ? 'border-slate-400' : 'border-slate-200'}`}
       onClick={onFocus}
       {...attributes}
     >
       <div className="mb-2 flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-semibold text-slate-100">{chart.title}</h2>
-          {chart.description ? <p className="text-xs text-slate-400">{chart.description}</p> : null}
+          <h2 className="text-sm font-semibold text-slate-900">{chart.title}</h2>
+          {chart.description ? <p className="text-xs text-slate-500">{chart.description}</p> : null}
           {chart.comment ? <p className="mt-1 rounded bg-slate-900/70 px-2 py-1 text-xs text-slate-300">{chart.comment}</p> : null}
         </div>
 
@@ -820,7 +828,7 @@ function BuilderModal({
 
         <div className="mt-4 overflow-x-auto rounded border border-slate-700">
           <table className="min-w-full text-xs text-slate-300">
-            <thead className="bg-slate-800 text-slate-400">
+            <thead className="bg-slate-800 text-slate-500">
               <tr>
                 <th className="px-2 py-1 text-left">enabled</th>
                 <th className="px-2 py-1 text-left">metric</th>
@@ -890,22 +898,22 @@ function BuilderModal({
 
 
         <div className="mt-3 grid gap-3 rounded border border-slate-700 bg-slate-950/60 p-3 md:grid-cols-4">
-          <label className="text-xs text-slate-300">Chart card bg
-            <input type="color" className="mt-1 h-8 w-full rounded border border-slate-700 bg-slate-950" value={config.appearance?.cardBg ?? appearance.cardBg} onChange={(event) => onChangeConfig({ ...config, appearance: { ...(config.appearance ?? {}), cardBg: event.target.value } })} />
+          <label className="text-xs text-slate-600">Chart card bg (HEX)
+            <input className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 font-mono text-xs" value={config.appearance?.cardBg ?? appearance.cardBg} onChange={(event) => onChangeConfig({ ...config, appearance: { ...(config.appearance ?? {}), cardBg: event.target.value } })} />
           </label>
-          <label className="text-xs text-slate-300">Plot area bg
-            <input type="color" className="mt-1 h-8 w-full rounded border border-slate-700 bg-slate-950" value={config.appearance?.plotBg ?? appearance.plotBg} onChange={(event) => onChangeConfig({ ...config, appearance: { ...(config.appearance ?? {}), plotBg: event.target.value } })} />
+          <label className="text-xs text-slate-600">Plot area bg (HEX)
+            <input className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 font-mono text-xs" value={config.appearance?.plotBg ?? appearance.plotBg} onChange={(event) => onChangeConfig({ ...config, appearance: { ...(config.appearance ?? {}), plotBg: event.target.value } })} />
           </label>
-          <label className="text-xs text-slate-300">Canvas bg
-            <input type="color" className="mt-1 h-8 w-full rounded border border-slate-700 bg-slate-950" value={config.appearance?.canvasBg ?? appearance.canvasBg} onChange={(event) => onChangeConfig({ ...config, appearance: { ...(config.appearance ?? {}), canvasBg: event.target.value } })} />
+          <label className="text-xs text-slate-600">Canvas bg (HEX)
+            <input className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 font-mono text-xs" value={config.appearance?.canvasBg ?? appearance.canvasBg} onChange={(event) => onChangeConfig({ ...config, appearance: { ...(config.appearance ?? {}), canvasBg: event.target.value } })} />
           </label>
-          <label className="text-xs text-slate-300">Grid intensity
-            <input type="range" min={0} max={1} step={0.05} className="mt-2 w-full" value={config.appearance?.gridOpacity ?? appearance.gridOpacity} onChange={(event) => onChangeConfig({ ...config, appearance: { ...(config.appearance ?? {}), gridOpacity: Number(event.target.value) } })} />
+          <label className="text-xs text-slate-600">Grid intensity
+            <input type="range" min={0} max={1} step={0.01} className="mt-2 w-full" value={config.appearance?.gridOpacity ?? appearance.gridOpacity} onChange={(event) => onChangeConfig({ ...config, appearance: { ...(config.appearance ?? {}), gridOpacity: Number(event.target.value) } })} />
           </label>
         </div>
 
         <div className="mt-4 rounded border border-slate-700 bg-slate-950 p-3">
-          <p className="mb-2 text-xs text-slate-400">Live preview</p>
+          <p className="mb-2 text-xs text-slate-500">Live preview</p>
           <PlotlyClient data={preview.traces} layout={preview.layout} config={{ responsive: true, displayModeBar: false }} useResizeHandler style={{ width: '100%', height: 320 }} />
         </div>
 
@@ -919,55 +927,90 @@ function BuilderModal({
 }
 
 
+function isHexColor(value: string) {
+  return /^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/.test(value.trim());
+}
+
+function AppearanceHexField({
+  label,
+  value,
+  onChange
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const isValid = isHexColor(value);
+  return (
+    <label className="text-xs text-slate-600">
+      {label}
+      <input
+        className={`mt-1 w-full rounded border px-2 py-1 font-mono text-xs ${isValid ? 'border-slate-300 bg-white' : 'border-rose-300 bg-rose-50'}`}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="#RRGGBB"
+      />
+      {!isValid ? <span className="mt-1 block text-[11px] text-rose-500">Use HEX like #RRGGBB.</span> : null}
+    </label>
+  );
+}
+
 function AppearancePanel({
   appearance,
-  onSave
+  savedAppearance,
+  onChange,
+  onSave,
+  onReset
 }: {
   appearance: AnalyticsGlobalAppearance;
-  onSave: (appearance: AnalyticsGlobalAppearance) => Promise<void>;
+  savedAppearance: AnalyticsGlobalAppearance;
+  onChange: (appearance: AnalyticsGlobalAppearance) => void;
+  onSave: () => Promise<void>;
+  onReset: () => void;
 }) {
-  const [local, setLocal] = useState(appearance);
+  const dirty = JSON.stringify(appearance) !== JSON.stringify(savedAppearance);
 
-  useEffect(() => {
-    setLocal(appearance);
-  }, [appearance]);
+  const canSave =
+    [appearance.sectionBg, appearance.canvasBg, appearance.cardBg, appearance.plotBg, appearance.axisTextColor, appearance.gridColor]
+      .every(isHexColor) &&
+    appearance.seriesPalette.every(isHexColor);
 
   return (
-    <details className="mb-3 rounded-lg border border-slate-700 bg-slate-900/70 p-3" open>
-      <summary className="cursor-pointer text-xs font-semibold text-slate-200">Appearance / Theme</summary>
-      <div className="mt-3 grid gap-3 md:grid-cols-4">
-        <label className="text-xs text-slate-300">Analytics section background
-          <input type="color" className="mt-1 h-8 w-full rounded border border-slate-700 bg-slate-950" value={local.sectionBg} onChange={(event) => setLocal({ ...local, sectionBg: event.target.value })} />
-        </label>
-        <label className="text-xs text-slate-300">Canvas background
-          <input type="color" className="mt-1 h-8 w-full rounded border border-slate-700 bg-slate-950" value={local.canvasBg} onChange={(event) => setLocal({ ...local, canvasBg: event.target.value })} />
-        </label>
-        <label className="text-xs text-slate-300">Card background
-          <input type="color" className="mt-1 h-8 w-full rounded border border-slate-700 bg-slate-950" value={local.cardBg} onChange={(event) => setLocal({ ...local, cardBg: event.target.value })} />
-        </label>
-        <label className="text-xs text-slate-300">Plot background
-          <input type="color" className="mt-1 h-8 w-full rounded border border-slate-700 bg-slate-950" value={local.plotBg} onChange={(event) => setLocal({ ...local, plotBg: event.target.value })} />
-        </label>
-        <label className="text-xs text-slate-300">Axis text color
-          <input type="color" className="mt-1 h-8 w-full rounded border border-slate-700 bg-slate-950" value={local.axisTextColor} onChange={(event) => setLocal({ ...local, axisTextColor: event.target.value })} />
-        </label>
-        <label className="text-xs text-slate-300">Grid color
-          <input type="color" className="mt-1 h-8 w-full rounded border border-slate-700 bg-slate-950" value={local.gridColor} onChange={(event) => setLocal({ ...local, gridColor: event.target.value })} />
-        </label>
-        <label className="text-xs text-slate-300">Grid intensity
-          <input type="range" min={0} max={1} step={0.05} className="mt-2 w-full" value={local.gridOpacity} onChange={(event) => setLocal({ ...local, gridOpacity: Number(event.target.value) })} />
+    <details className="mb-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm" open>
+      <summary className="cursor-pointer text-xs font-semibold text-slate-700">
+        Appearance / Theme {dirty ? <span className="ml-2 text-amber-600">• Unsaved changes</span> : null}
+      </summary>
+      <div className="mt-3 grid gap-3 md:grid-cols-3">
+        <AppearanceHexField label="Analytics section background" value={appearance.sectionBg} onChange={(value) => onChange({ ...appearance, sectionBg: value })} />
+        <AppearanceHexField label="Canvas background (paper_bgcolor)" value={appearance.canvasBg} onChange={(value) => onChange({ ...appearance, canvasBg: value })} />
+        <AppearanceHexField label="Card background" value={appearance.cardBg} onChange={(value) => onChange({ ...appearance, cardBg: value })} />
+        <AppearanceHexField label="Plot area background (plot_bgcolor)" value={appearance.plotBg} onChange={(value) => onChange({ ...appearance, plotBg: value })} />
+        <AppearanceHexField label="Axis text color" value={appearance.axisTextColor} onChange={(value) => onChange({ ...appearance, axisTextColor: value })} />
+        <AppearanceHexField label="Grid color" value={appearance.gridColor} onChange={(value) => onChange({ ...appearance, gridColor: value })} />
+        <label className="text-xs text-slate-600">Grid intensity ({Math.round(appearance.gridOpacity * 100)}%)
+          <input type="range" min={0} max={1} step={0.01} className="mt-2 w-full" value={appearance.gridOpacity} onChange={(event) => onChange({ ...appearance, gridOpacity: Number(event.target.value) })} />
         </label>
       </div>
 
       <div className="mt-3 grid gap-2 md:grid-cols-5">
-        {local.seriesPalette.map((color, index) => (
-          <label key={index} className="text-xs text-slate-300">Series {index + 1}
-            <input type="color" className="mt-1 h-8 w-full rounded border border-slate-700 bg-slate-950" value={color} onChange={(event) => setLocal({ ...local, seriesPalette: local.seriesPalette.map((entry, entryIndex) => (entryIndex === index ? event.target.value : entry)) })} />
-          </label>
+        {appearance.seriesPalette.map((color, index) => (
+          <AppearanceHexField
+            key={index}
+            label={`Series ${index + 1}`}
+            value={color}
+            onChange={(value) =>
+              onChange({
+                ...appearance,
+                seriesPalette: appearance.seriesPalette.map((entry, entryIndex) => (entryIndex === index ? value : entry))
+              })
+            }
+          />
         ))}
       </div>
-      <div className="mt-3 flex justify-end">
-        <button className="rounded border border-cyan-500 bg-cyan-600 px-3 py-1 text-xs text-white" onClick={() => void onSave(local)}>Save appearance</button>
+
+      <div className="mt-3 flex justify-end gap-2">
+        <button className="rounded border border-slate-300 bg-white px-3 py-1 text-xs text-slate-700" onClick={onReset} disabled={!dirty}>Reset</button>
+        <button className="rounded border border-sky-500 bg-sky-600 px-3 py-1 text-xs text-white disabled:opacity-50" onClick={() => void onSave()} disabled={!dirty || !canSave}>Save appearance</button>
       </div>
     </details>
   );

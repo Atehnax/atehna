@@ -12,6 +12,7 @@ import { getCustomerTypeLabel } from '@/lib/customerType';
 import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 import { formatSlDate, formatSlDateFromDateInput, formatSlDateTime } from '@/lib/format/dateTime';
 import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, isPaymentStatus } from '@/lib/paymentStatus';
+import type { AnalyticsGlobalAppearance } from '@/lib/server/analyticsCharts';
 
 import {
   type Attachment,
@@ -46,7 +47,8 @@ export default function AdminOrdersTable({
   initialFrom = '',
   initialTo = '',
   initialQuery = '',
-  topAction
+  topAction,
+  analyticsAppearance
 }: {
   orders: OrderRow[];
   documents: PdfDoc[];
@@ -55,6 +57,7 @@ export default function AdminOrdersTable({
   initialTo?: string;
   initialQuery?: string;
   topAction?: ReactNode;
+  analyticsAppearance?: AnalyticsGlobalAppearance;
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<number[]>([]);
@@ -722,7 +725,7 @@ export default function AdminOrdersTable({
   return (
     <div className="w-full">
       <div className="mx-auto w-[72vw] min-w-[1180px] max-w-[1520px]">
-      <AdminOrdersPreviewChart orders={orders} />
+      <AdminOrdersPreviewChart orders={orders} appearance={analyticsAppearance} />
       <div className="mb-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
         <div className="flex flex-wrap items-end gap-2">
           <div className="relative min-w-[170px]" ref={datePopoverRef}>

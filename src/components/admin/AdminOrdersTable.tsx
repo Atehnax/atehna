@@ -27,6 +27,7 @@ import {
   formatOrderAddress,
   getMergedOrderStatusValue,
   getOrderStatusLabelForUi,
+  getNumericOrderNumber,
   normalizeForSearch,
   shiftDateByDays,
   statusTabs,
@@ -349,6 +350,8 @@ export default function AdminOrdersTable({
 
     const sortedOrders = [...filteredOrders].sort((leftOrder, rightOrder) => {
       const sortMultiplier = sortDirection === 'asc' ? 1 : -1;
+      const leftOrderNumber = getNumericOrderNumber(leftOrder.order_number);
+      const rightOrderNumber = getNumericOrderNumber(rightOrder.order_number);
 
       let leftValue: string | number;
       let rightValue: string | number;
@@ -383,17 +386,36 @@ export default function AdminOrdersTable({
           rightValue = toAmount(rightOrder.total);
           break;
         case 'created_at':
-        default:
-          leftValue = new Date(leftOrder.created_at).getTime();
-          rightValue = new Date(rightOrder.created_at).getTime();
+        default: {
+          const leftDate = new Date(leftOrder.created_at);
+          const rightDate = new Date(rightOrder.created_at);
+          leftDate.setHours(0, 0, 0, 0);
+          rightDate.setHours(0, 0, 0, 0);
+          leftValue = leftDate.getTime();
+          rightValue = rightDate.getTime();
           break;
+        }
       }
 
       if (typeof leftValue === 'number' && typeof rightValue === 'number') {
-        return (leftValue - rightValue) * sortMultiplier;
+        const primaryResult = (leftValue - rightValue) * sortMultiplier;
+        if (primaryResult !== 0) return primaryResult;
+
+        if (sortKey === 'created_at') {
+          return rightOrderNumber - leftOrderNumber;
+        }
+
+        return 0;
       }
 
-      return textCollator.compare(String(leftValue), String(rightValue)) * sortMultiplier;
+      const textResult = textCollator.compare(String(leftValue), String(rightValue)) * sortMultiplier;
+      if (textResult !== 0) return textResult;
+
+      if (sortKey === 'created_at') {
+        return rightOrderNumber - leftOrderNumber;
+      }
+
+      return 0;
     });
 
     return sortedOrders;
@@ -557,17 +579,15 @@ export default function AdminOrdersTable({
   };
 
   const onSort = (nextSortKey: SortKey) => {
-    if (sortKey === nextSortKey) {
+    const isSameKey = sortKey === nextSortKey;
+
+    if (isSameKey) {
       setSortDirection((previousDirection) => (previousDirection === 'asc' ? 'desc' : 'asc'));
       return;
     }
 
     setSortKey(nextSortKey);
-    if (nextSortKey === 'created_at' || nextSortKey === 'total') {
-      setSortDirection('desc');
-    } else {
-      setSortDirection('asc');
-    }
+    setSortDirection(nextSortKey === 'created_at' || nextSortKey === 'total' ? 'desc' : 'asc');
   };
 
   const sortIndicator = (nextSortKey: SortKey) => {
@@ -594,6 +614,7 @@ export default function AdminOrdersTable({
     fromDate || toDate
       ? `${formatSlDateFromDateInput(fromDate)} – ${formatSlDateFromDateInput(toDate)}`
       : defaultDateRangeLabel;
+
 
 
   const dateRangeFilteredOrders = useMemo(() => {
@@ -656,7 +677,10 @@ export default function AdminOrdersTable({
 
 
   const handleResetDocumentFilter = () => {
-    setIsDocumentFilterApplied(false);
+    setDocumentType('all');
+    if (isDocumentSearchEnabled) {
+      setIsDocumentFilterApplied(true);
+    }
     setMessage(null);
   };
 
@@ -713,18 +737,6 @@ export default function AdminOrdersTable({
     } finally {
       setIsDownloading(false);
     }
-  };
-
-
-  const shouldIgnoreRowNavigation = (target: EventTarget | null) => {
-    if (!(target instanceof Element)) return false;
-    return Boolean(
-      target.closest('a,button,input,select,textarea,[role=menu],[role=menuitem],[data-no-row-nav]')
-    );
-  };
-
-  const openOrderDetails = (orderId: number) => {
-    window.location.href = `/admin/orders/${orderId}`;
   };
 
   return (
@@ -818,14 +830,14 @@ export default function AdminOrdersTable({
       </div>
       <div className="mb-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
         <div className="flex flex-wrap items-end gap-2">
-          <div className="relative" ref={datePopoverRef}>
-            <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">Datum</label>
+          <div className="relative min-w-[170px]" ref={datePopoverRef}>
             <button
               type="button"
               onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-              className="h-8 min-w-[170px] rounded-lg border border-slate-300 bg-white px-2.5 text-left text-xs text-slate-700 hover:border-slate-400"
+              className="h-11 min-w-[220px] rounded-xl border border-slate-300 bg-white px-3 text-left text-xs text-slate-700 hover:border-slate-400"
             >
-              <span className="inline-flex items-center gap-1.5"> 
+              <span className="pointer-events-none absolute left-3 top-1.5 bg-white px-1 text-[10px] text-slate-600">Datum</span>
+              <span className="mt-3 inline-flex w-full items-center gap-1.5 leading-none"> 
                 <svg
                   aria-hidden="true"
                   viewBox="0 0 24 24"
@@ -837,12 +849,12 @@ export default function AdminOrdersTable({
                   <rect x="3" y="5" width="18" height="16" rx="2" />
                   <path d="M16 3v4M8 3v4M3 10h18" />
                 </svg>
-                <span>{dateRangeLabel}</span>
+                <span className="truncate">{dateRangeLabel}</span>
               </span>
             </button>
 
             {isDatePopoverOpen && (
-              <div className="absolute left-0 z-20 mt-2 w-[560px] rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+              <div lang="sl-SI" className="absolute left-0 z-20 mt-2 w-[420px] rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
                 <div className="grid grid-cols-[180px_1fr] gap-4">
                   <div className="space-y-1 border-r border-slate-200 pr-3">
                     <button
@@ -901,6 +913,7 @@ export default function AdminOrdersTable({
                       <label className="text-xs font-semibold uppercase text-slate-500">Od</label>
                       <input
                         type="date"
+                        lang="sl-SI"
                         value={fromDate}
                         onChange={(event) => setFromDate(event.target.value)}
                         className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs"
@@ -911,6 +924,7 @@ export default function AdminOrdersTable({
                       <label className="text-xs font-semibold uppercase text-slate-500">Do</label>
                       <input
                         type="date"
+                        lang="sl-SI"
                         value={toDate}
                         onChange={(event) => setToDate(event.target.value)}
                         className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs"
@@ -926,7 +940,7 @@ export default function AdminOrdersTable({
                         }}
                         className="text-xs font-semibold text-slate-500 hover:text-slate-700"
                       >
-                        Počisti datum
+                        Ponastavi
                       </button>                    </div>
                   </div>
                 </div>
@@ -934,15 +948,15 @@ export default function AdminOrdersTable({
             )}
           </div>
 
-          <div className="min-w-[220px] flex-1">
-            <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">Iskanje</label>
+          <div className="group relative min-w-[220px] flex-1" data-filled={query.trim().length > 0 ? 'true' : 'false'}>
             <input
               type="text"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="ORD, naročnik, naslov, tip, status, plačilo..."
-              className="h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs"
+              placeholder="Naročilo, naročnik, naslov, tip, status, plačilo..."
+              className="h-10 w-full rounded-xl border border-slate-300 px-3 pb-1 pt-4 text-xs"
             />
+            <label className="pointer-events-none absolute left-3 top-1.5 bg-white px-1 text-[10px] text-slate-600">Iskanje</label>
           </div>
 
           <div>
@@ -970,10 +984,7 @@ export default function AdminOrdersTable({
             </div>
           </div>
 
-          <div className="min-w-[180px]">
-            <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">
-              Vrsta dokumenta
-            </label>
+          <div className={`relative min-w-[180px] ${!isDocumentSearchEnabled ? 'opacity-60' : ''}`}>
             <select
               value={documentType}
               onChange={(event) => {
@@ -984,7 +995,7 @@ export default function AdminOrdersTable({
                 }
               }}
               disabled={!isDocumentSearchEnabled}
-              className="h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs disabled:bg-slate-100 disabled:text-slate-400"
+              className="h-10 w-full rounded-xl border border-slate-300 px-2.5 pb-1 pt-4 text-xs disabled:bg-slate-100 disabled:text-slate-400"
             >
               {documentTypeOptions.map((documentTypeOption) => (
                 <option key={documentTypeOption.value} value={documentTypeOption.value}>
@@ -992,6 +1003,9 @@ export default function AdminOrdersTable({
                 </option>
               ))}
             </select>
+            <label className={`pointer-events-none absolute left-2.5 top-1.5 px-1 text-[10px] ${isDocumentSearchEnabled ? 'bg-white text-slate-600' : 'bg-slate-100 text-slate-400'}`}>
+              Vrsta dokumenta
+            </label>
           </div>
 
 
@@ -1004,15 +1018,14 @@ export default function AdminOrdersTable({
             {isDownloading ? 'Prenos...' : 'Prenesi vse'}
           </button>
 
-          {isDocumentFilterApplied && (
-            <button
-              type="button"
-              onClick={handleResetDocumentFilter}
-              className="h-8 rounded-full px-3 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
-            >
-              Počisti
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handleResetDocumentFilter}
+            disabled={documentType === 'all'}
+            className="h-8 rounded-full px-3 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:ring-slate-100 disabled:hover:bg-transparent"
+          >
+            Ponastavi
+          </button>
 
           {topAction ? <div className="ml-auto flex h-8 items-center">{topAction}</div> : null}
         </div>
@@ -1054,6 +1067,7 @@ export default function AdminOrdersTable({
             <col style={{ width: columnWidths.payment }} />
             <col style={{ width: columnWidths.total }} />
             <col style={{ width: columnWidths.documents }} />
+            <col style={{ width: columnWidths.edit }} />
           </colgroup>
 
           <thead className="bg-slate-50 text-[12px] uppercase text-slate-500">
@@ -1232,7 +1246,8 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-2 py-2 text-left normal-case">PDF datoteke</th>
+              <th className="min-w-[120px] px-2 py-2 text-left normal-case">PDF datoteke</th>
+              <th className="px-2 py-2 text-center normal-case">Uredi</th>
             </tr>
           </thead>
 
@@ -1259,18 +1274,6 @@ export default function AdminOrdersTable({
                     className={`border-t border-slate-100 transition-colors duration-200 ${
                       orderIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
                     } hover:bg-[#e7efef]`}
-                    onClick={(event) => {
-                      if (shouldIgnoreRowNavigation(event.target)) return;
-                      openOrderDetails(order.id);
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key !== 'Enter' && event.key !== ' ') return;
-                      if (shouldIgnoreRowNavigation(event.target)) return;
-                      event.preventDefault();
-                      openOrderDetails(order.id);
-                    }}
-                    tabIndex={0}
-                    aria-label={`Odpri podrobnosti naročila ${toDisplayOrderNumber(order.order_number)}`}
                   >
                     <td className="px-2 py-2 align-middle">
                       <div className="flex justify-center">
@@ -1361,13 +1364,25 @@ export default function AdminOrdersTable({
                       {formatCurrency(order.total)}
                     </td>
 
-                    <td className="px-2 py-2 align-middle text-left align-middle pr-4" data-no-row-nav>
-                      <AdminOrdersPdfCell
-                        orderId={order.id}
-                        documents={documentsByOrder.get(order.id) ?? []}
-                        attachments={attachmentsByOrder.get(order.id) ?? []}
-                        interactionsDisabled={false}
-                      />
+                    <td className="min-w-[120px] pl-0 pr-0 py-2 align-middle text-right" data-no-row-nav>
+                      <div className="flex justify-end">
+                        <AdminOrdersPdfCell
+                          orderId={order.id}
+                          documents={documentsByOrder.get(order.id) ?? []}
+                          attachments={attachmentsByOrder.get(order.id) ?? []}
+                          interactionsDisabled={false}
+                        />
+                      </div>
+                    </td>
+
+                    <td className="pl-0 pr-0 py-2 align-middle text-center" data-no-row-nav>
+                      <a
+                        href={`/admin/orders/${order.id}`}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100"
+                        aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                      >
+                        ✎
+                      </a>
                     </td>
                   </tr>
                 );

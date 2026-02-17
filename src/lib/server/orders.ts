@@ -296,7 +296,7 @@ export async function fetchOrders(options?: {
     ) as computed_totals
       on computed_totals.order_id = orders.id
     ${whereClause}
-    order by orders.created_at desc
+    order by orders.created_at desc, coalesce(nullif(regexp_replace(orders.order_number::text, '\D', '', 'g'), ''), '0')::numeric desc
     `,
     queryParams
   );
@@ -385,11 +385,23 @@ export async function fetchOrderDocumentsForOrders(
 
 export async function fetchOrderAttachments(orderId: number): Promise<OrderAttachmentRow[]> {
   const pool = await getPool();
-  const result = await pool.query(
-    'select * from order_attachments where order_id = $1 order by created_at desc',
-    [orderId]
-  );
-  return result.rows.map((rawRow) => mapOrderAttachmentRow(rawRow as Record<string, unknown>));
+  try {
+    const result = await pool.query(
+      'select * from order_attachments where order_id = $1 order by created_at desc',
+      [orderId]
+    );
+    return result.rows.map((rawRow) => mapOrderAttachmentRow(rawRow as Record<string, unknown>));
+  } catch (error) {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      ['42P01', '42501'].includes((error as { code?: string }).code ?? '')
+    ) {
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function fetchOrderAttachmentsForOrders(
@@ -397,11 +409,23 @@ export async function fetchOrderAttachmentsForOrders(
 ): Promise<OrderAttachmentRow[]> {
   if (orderIds.length === 0) return [];
   const pool = await getPool();
-  const result = await pool.query(
-    'select * from order_attachments where order_id = any($1::bigint[]) order by created_at desc',
-    [orderIds]
-  );
-  return result.rows.map((rawRow) => mapOrderAttachmentRow(rawRow as Record<string, unknown>));
+  try {
+    const result = await pool.query(
+      'select * from order_attachments where order_id = any($1::bigint[]) order by created_at desc',
+      [orderIds]
+    );
+    return result.rows.map((rawRow) => mapOrderAttachmentRow(rawRow as Record<string, unknown>));
+  } catch (error) {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      ['42P01', '42501'].includes((error as { code?: string }).code ?? '')
+    ) {
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function fetchPaymentLogs(orderId: number): Promise<PaymentLogRow[]> {
@@ -417,7 +441,7 @@ export async function fetchPaymentLogs(orderId: number): Promise<PaymentLogRow[]
       typeof error === 'object' &&
       error !== null &&
       'code' in error &&
-      (error as { code?: string }).code === '42P01'
+      ['42P01', '42501'].includes((error as { code?: string }).code ?? '')
     ) {
       return [];
     }

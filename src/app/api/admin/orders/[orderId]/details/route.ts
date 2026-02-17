@@ -20,12 +20,19 @@ export async function POST(
       phone,
       deliveryAddress,
       reference,
-      notes
+      notes,
+      orderDate
     } = body ?? {};
 
     if (!contactName || !email || !customerType) {
       return NextResponse.json({ message: 'Manjkajo obvezni podatki.' }, { status: 400 });
     }
+
+
+    const normalizedOrderDate =
+      typeof orderDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(orderDate)
+        ? `${orderDate}T00:00:00.000Z`
+        : null;
 
     const pool = await getPool();
     try {
@@ -40,8 +47,9 @@ export async function POST(
             delivery_address = $6,
             reference = $7,
             notes = $8,
+            created_at = coalesce($9::timestamptz, created_at),
             is_draft = false
-        WHERE id = $9
+        WHERE id = $10
         `,
         [
           customerType,
@@ -52,6 +60,7 @@ export async function POST(
           deliveryAddress || null,
           reference || null,
           notes || null,
+          normalizedOrderDate,
           orderId
         ]
       );
@@ -70,8 +79,9 @@ export async function POST(
             phone = $5,
             delivery_address = $6,
             reference = $7,
-            notes = $8
-        WHERE id = $9
+            notes = $8,
+            created_at = coalesce($9::timestamptz, created_at)
+        WHERE id = $10
         `,
         [
           customerType,
@@ -82,6 +92,7 @@ export async function POST(
           deliveryAddress || null,
           reference || null,
           notes || null,
+          normalizedOrderDate,
           orderId
         ]
       );

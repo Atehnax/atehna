@@ -1,6 +1,40 @@
 import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/server/db';
 
+async function ensureArchiveSchema() {
+  const pool = await getPool();
+  await pool.query('alter table if exists orders add column if not exists deleted_at timestamptz');
+  await pool.query('alter table if exists order_documents add column if not exists deleted_at timestamptz');
+  await pool.query(`
+    create table if not exists deleted_archive_entries (
+      id bigserial primary key,
+      item_type text not null check (item_type in ('order', 'pdf')),
+      order_id bigint,
+      document_id bigint,
+      label text not null,
+      deleted_at timestamptz not null default now(),
+      expires_at timestamptz not null default (now() + interval '60 days'),
+      payload jsonb not null default '{}'::jsonb
+    )
+  `);
+}
+
+
+async function hasDocumentsDeletedAtColumn() {
+  const pool = await getPool();
+  const result = await pool.query(
+    `
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'order_documents'
+      and column_name = 'deleted_at'
+    limit 1
+    `
+  );
+  return Number(result.rowCount ?? 0) > 0;
+}
+
 export async function DELETE(
   _request: Request,
   { params }: { params: { orderId: string; documentId: string } }
@@ -14,8 +48,13 @@ export async function DELETE(
     }
 
     const pool = await getPool();
+    await ensureArchiveSchema();
+    const supportsSoftDelete = await hasDocumentsDeletedAtColumn();
+
     const documentResult = await pool.query(
-      'select id, type, filename, blob_url, blob_pathname, deleted_at from order_documents where id = $1 and order_id = $2',
+      supportsSoftDelete
+        ? 'select id, type, filename, blob_url, blob_pathname, deleted_at from order_documents where id = $1 and order_id = $2'
+        : 'select id, type, filename, blob_url, blob_pathname, null::timestamptz as deleted_at from order_documents where id = $1 and order_id = $2',
       [documentId, orderId]
     );
 
@@ -31,16 +70,12 @@ export async function DELETE(
       deleted_at: string | null;
     };
 
-    if (!row.deleted_at) {
-      try {
-        await pool.query('update order_documents set deleted_at = now() where id = $1 and order_id = $2', [documentId, orderId]);
-      } catch (error) {
-        if (!(error && typeof error === 'object' && 'code' in error && error.code === '42703')) {
-          throw error;
-        }
-        await pool.query('delete from order_documents where id = $1 and order_id = $2', [documentId, orderId]);
-        return NextResponse.json({ success: true });
-      }
+    if (row.deleted_at) {
+      return NextResponse.json({ success: true });
+    }
+
+    if (supportsSoftDelete) {
+      await pool.query('update order_documents set deleted_at = now() where id = $1 and order_id = $2', [documentId, orderId]);
 
       try {
         await pool.query(
@@ -61,8 +96,11 @@ export async function DELETE(
           throw error;
         }
       }
+
+      return NextResponse.json({ success: true });
     }
 
+    await pool.query('delete from order_documents where id = $1 and order_id = $2', [documentId, orderId]);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(

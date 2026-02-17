@@ -8,6 +8,7 @@ import {
   fetchOrderDocumentsForOrders,
   fetchOrders
 } from '@/lib/server/orders';
+import { getDatabaseUrl } from '@/lib/server/db';
 
 export const metadata = {
   title: 'Administracija naročil'
@@ -107,8 +108,8 @@ export default async function AdminOrdersPage({
   let attachments: OrderAttachmentRow[] = demoAttachments;
   let warningMessage: string | null = null;
 
-  if (!process.env.DATABASE_URL) {
-    warningMessage = 'DATABASE_URL ni nastavljen — prikazan je demo pogled.';
+  if (!getDatabaseUrl()) {
+    warningMessage = 'Povezava z bazo ni nastavljena — prikazan je demo pogled.';
   } else {
     try {
       orders = await fetchOrders({
@@ -118,10 +119,26 @@ export default async function AdminOrdersPage({
       });
 
       const orderIds = orders.map((order) => order.id);
-      [documents, attachments] = await Promise.all([
+      const [documentsResult, attachmentsResult] = await Promise.allSettled([
         fetchOrderDocumentsForOrders(orderIds),
         fetchOrderAttachmentsForOrders(orderIds)
       ]);
+
+      if (documentsResult.status === 'fulfilled') {
+        documents = documentsResult.value;
+      } else {
+        console.error('Failed to load /admin/orders documents', documentsResult.reason);
+        warningMessage =
+          warningMessage ?? 'Nekaterih dokumentov ni bilo mogoče naložiti. Naročila so vseeno prikazana.';
+      }
+
+      if (attachmentsResult.status === 'fulfilled') {
+        attachments = attachmentsResult.value;
+      } else {
+        console.error('Failed to load /admin/orders attachments', attachmentsResult.reason);
+        warningMessage =
+          warningMessage ?? 'Nekaterih priponk ni bilo mogoče naložiti. Naročila so vseeno prikazana.';
+      }
     } catch (error) {
       console.error('Failed to load /admin/orders data', error);
       warningMessage =

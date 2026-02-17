@@ -72,9 +72,11 @@ export async function POST(
     // force correct metadata, never pass browser mime directly
     const blob = await uploadBlob(blobPath, fileBuffer, 'application/pdf');
 
+    let insertResult;
+
     try {
-      await pool.query(
-        'INSERT INTO order_documents (order_id, type, filename, blob_url, blob_pathname) VALUES ($1, $2, $3, $4, $5)',
+      insertResult = await pool.query(
+        'INSERT INTO order_documents (order_id, type, filename, blob_url, blob_pathname) VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at',
         [orderId, normalizedType, fileName, blob.url, blob.pathname]
       );
     } catch (error) {
@@ -87,13 +89,19 @@ export async function POST(
         throw error;
       }
 
-      await pool.query(
-        'INSERT INTO order_documents (order_id, type, filename, blob_url) VALUES ($1, $2, $3, $4)',
+      insertResult = await pool.query(
+        'INSERT INTO order_documents (order_id, type, filename, blob_url) VALUES ($1, $2, $3, $4) RETURNING id, created_at',
         [orderId, normalizedType, fileName, blob.url]
       );
     }
 
-    return NextResponse.json({ url: blob.url, filename: fileName });
+    return NextResponse.json({
+      id: Number(insertResult.rows[0].id),
+      url: blob.url,
+      filename: fileName,
+      createdAt: insertResult.rows[0].created_at,
+      type: normalizedType
+    });
   } catch (error) {
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Napaka na strežniku.' },

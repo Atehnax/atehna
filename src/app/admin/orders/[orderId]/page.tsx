@@ -1,10 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import AdminOrderActions from '@/components/admin/AdminOrderActions';
-import AdminOrderEditForm from '@/components/admin/AdminOrderEditForm';
+import AdminOrderItemsEditor from '@/components/admin/AdminOrderItemsEditor';
 import AdminOrderPdfManager from '@/components/admin/AdminOrderPdfManager';
 import AdminOrderHeaderChips from '@/components/admin/AdminOrderHeaderChips';
-import AdminOrderOverviewCard from '@/components/admin/AdminOrderOverviewCard';
 import { toDisplayOrderNumber } from '@/components/admin/adminOrdersTableUtils';
 import {
   fetchOrderById,
@@ -18,11 +16,6 @@ export const metadata = {
 
 export const dynamic = 'force-dynamic';
 
-const toAmount = (value: number | null | undefined) =>
-  typeof value === 'number' && Number.isFinite(value) ? value : 0;
-
-const formatCurrency = (value: number | null | undefined) =>
-  new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }).format(toAmount(value));
 
 const asText = (value: unknown, fallback = '') => (typeof value === 'string' ? value : fallback);
 
@@ -46,7 +39,8 @@ export default async function AdminOrderDetailPage({
       payment_status: 'paid',
       payment_notes: 'Plačano ob prevzemu.',
       is_draft: false,
-      deleted_at: params.orderId === '1' ? new Date().toISOString() : null
+      deleted_at: params.orderId === '1' ? new Date().toISOString() : null,
+      created_at: new Date().toISOString()
     };
 
     const items = [
@@ -66,18 +60,19 @@ export default async function AdminOrderDetailPage({
       {
         id: 1,
         type: 'order_summary',
-        filename: '#1-order-summary.pdf',
+        filename: '#1-order-summary-v2.pdf',
         blob_url: '#',
         created_at: new Date().toISOString()
+      },
+      {
+        id: 2,
+        type: 'order_summary',
+        filename: '#1-order-summary-v1.pdf',
+        blob_url: '#',
+        created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
       }
     ];
 
-    const subtotal = items.reduce(
-      (sum, item) => sum + toAmount(item.unit_price) * item.quantity,
-      0
-    );
-    const tax = subtotal * 0.22;
-    const total = subtotal + tax;
 
     return (
       <div className="container-base py-12">
@@ -98,93 +93,28 @@ export default async function AdminOrderDetailPage({
             </div>
           ) : null}
 
-          <div className="mt-6 space-y-6">
-            <div className="grid items-stretch gap-6 lg:grid-cols-[2fr_1.5fr]">
-              <section className="h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mt-6">
+            <div className="grid items-start gap-6 lg:grid-cols-[2fr_1.5fr]">
+              <div className="space-y-6">
                 <AdminOrderHeaderChips
+                  orderId={1}
                   orderNumber={toDisplayOrderNumber(order.order_number)}
                   status={order.status}
                   paymentStatus={order.payment_status ?? null}
-                />
-
-                <AdminOrderOverviewCard
-                  organizationName={order.organization_name}
-                  contactName={order.contact_name}
-                  customerType={order.customer_type}
-                  email={order.email}
-                  deliveryAddress={order.delivery_address}
-                  notes={order.notes}
-                />
-              </section>
-
-              <AdminOrderActions
-                orderId={1}
-                status={order.status}
-                paymentStatus={order.payment_status}
-                paymentNotes={order.payment_notes}
-              />
-            </div>
-
-            <div className="grid items-start gap-6 lg:grid-cols-[2fr_1.5fr]">
-              <div className="space-y-6">
-                <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <h2 className="text-lg font-semibold text-slate-900">Postavke</h2>
-                  <div className="mt-4 space-y-3">
-                    {items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div>
-                            <p className="font-semibold text-slate-900">{item.name}</p>
-                            <p className="text-slate-500">
-                              Količina: {item.quantity} {item.unit ?? ''}
-                            </p>
-                          </div>
-                          <div className="text-right text-sm text-slate-600">
-                            <p>Enota: {formatCurrency(item.unit_price)}</p>
-                            <p className="font-semibold text-slate-900">
-                              Skupaj: {formatCurrency(toAmount(item.unit_price) * item.quantity)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-
-                    <div className="rounded-xl border border-slate-100 bg-white p-4 text-sm text-slate-700">
-                      <div className="flex items-center justify-between">
-                        <span>Vmesni seštevek</span>
-                        <span className="font-semibold">{formatCurrency(subtotal)}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>DDV</span>
-                        <span className="font-semibold">{formatCurrency(tax)}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-base font-semibold text-slate-900">
-                        <span>Skupaj</span>
-                        <span>{formatCurrency(total)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-
-                <AdminOrderEditForm
-                  orderId={1}
                   customerType={order.customer_type}
                   organizationName={order.organization_name}
                   contactName={order.contact_name}
                   email={order.email}
-                  phone={order.phone}
                   deliveryAddress={order.delivery_address}
-                  reference={order.reference}
                   notes={order.notes}
-                  items={items}
+                  createdAt={order.created_at}
                 />
+
+                <AdminOrderItemsEditor orderId={1} items={items} />
               </div>
 
-              <aside className="space-y-5">
-                <AdminOrderPdfManager orderId={1} documents={documents} />
+              <aside className="w-full min-w-0 space-y-5">
+                <AdminOrderPdfManager orderId={1} documents={documents} paymentStatus={order.payment_status} paymentNotes={order.payment_notes} />
               </aside>
             </div>
           </div>
@@ -221,16 +151,10 @@ export default async function AdminOrderDetailPage({
     notes: asText(order.notes),
     status: asText(order.status, 'received'),
     payment_status: asText(order.payment_status, 'unpaid'),
-    payment_notes: asText(order.payment_notes)
+    payment_notes: asText(order.payment_notes),
+    created_at: asText(order.created_at, new Date().toISOString())
   };
 
-  const computedSubtotal = items.reduce(
-    (sum, item) => sum + toAmount(item.unit_price) * item.quantity,
-    0
-  );
-  const subtotal = typeof order.subtotal === 'number' ? order.subtotal : computedSubtotal;
-  const tax = typeof order.tax === 'number' ? order.tax : subtotal * 0.22;
-  const total = typeof order.total === 'number' ? order.total : subtotal + tax;
 
   return (
     <div className="container-base py-12">
@@ -251,51 +175,28 @@ export default async function AdminOrderDetailPage({
           </div>
         ) : null}
 
-        <div className="mt-4 space-y-6">
-          <div className="grid items-stretch gap-6 lg:grid-cols-[2fr_1.5fr]">
-            <section className="h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                <AdminOrderHeaderChips
+        <div className="mt-4">
+          <div className="grid items-start gap-6 lg:grid-cols-[2fr_1.5fr]">
+            <div className="space-y-6">
+              <AdminOrderHeaderChips
+                orderId={orderId}
                 orderNumber={toDisplayOrderNumber(safeOrder.order_number)}
                 status={safeOrder.status}
                 paymentStatus={safeOrder.payment_status ?? null}
-              />
-
-              <AdminOrderOverviewCard
-                organizationName={safeOrder.organization_name}
-                contactName={safeOrder.contact_name}
-                customerType={safeOrder.customer_type}
-                email={safeOrder.email}
-                deliveryAddress={safeOrder.delivery_address}
-                notes={safeOrder.notes}
-              />
-            </section>
-
-            <AdminOrderActions
-              orderId={orderId}
-              status={safeOrder.status}
-              paymentStatus={safeOrder.payment_status ?? null}
-              paymentNotes={safeOrder.payment_notes ?? null}
-            />
-          </div>
-
-          <div className="grid items-start gap-6 lg:grid-cols-[2fr_1.5fr]">
-            <div className="space-y-6">
-              <AdminOrderEditForm
-                orderId={orderId}
                 customerType={safeOrder.customer_type}
                 organizationName={safeOrder.organization_name}
                 contactName={safeOrder.contact_name}
                 email={safeOrder.email}
-                phone={safeOrder.phone}
                 deliveryAddress={safeOrder.delivery_address}
-                reference={safeOrder.reference}
                 notes={safeOrder.notes}
-                items={items}
+                createdAt={safeOrder.created_at}
               />
+
+              <AdminOrderItemsEditor orderId={orderId} items={items} />
             </div>
 
-            <aside className="space-y-5">
-              <AdminOrderPdfManager orderId={orderId} documents={documents} />
+            <aside className="w-full min-w-0 space-y-5">
+              <AdminOrderPdfManager orderId={orderId} documents={documents} paymentStatus={safeOrder.payment_status} paymentNotes={safeOrder.payment_notes} />
             </aside>
           </div>
         </div>

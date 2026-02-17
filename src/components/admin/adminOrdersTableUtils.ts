@@ -105,7 +105,8 @@ export const columnWidths = {
   payment: '120px',
   total: '85px',
   date: '104px',
-  documents: '440px'
+  documents: 'auto',
+  edit: '32px'
 };
 
 const currencyFormatter = new Intl.NumberFormat('sl-SI', {
@@ -134,6 +135,14 @@ export const getMergedOrderStatusValue = (status: string): StatusTab | 'unknown'
 
 export const getOrderStatusLabelForUi = (status: string) => getStatusLabel(status);
 
+
+
+export const getNumericOrderNumber = (orderNumber: string) => {
+  const match = orderNumber.trim().match(/(\d+)(?!.*\d)/);
+  if (!match) return Number.NEGATIVE_INFINITY;
+  const parsed = Number(match[1]);
+  return Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
+};
 
 export const toDisplayOrderNumber = (orderNumber: string) => {
   const trimmed = orderNumber.trim();

@@ -112,27 +112,10 @@ export default async function AdminOrdersPage({
     warningMessage = 'Povezava z bazo ni nastavljena — prikazan je demo pogled.';
   } else {
     try {
-      orders = await fetchOrders({
-        fromDate: toIsoOrNull(from),
-        toDate: getToDateIsoOrNull(to),
-        query: query || null
-      });
-
-      if (orders.length === 0) {
-        const ordersIncludingDrafts = await fetchOrders({
-          fromDate: toIsoOrNull(from),
-          toDate: getToDateIsoOrNull(to),
-          query: query || null,
-          includeDrafts: true
-        });
-
-        if (ordersIncludingDrafts.length > 0) {
-          console.warn(
-            'Fallback to includeDrafts=true on /admin/orders because default draft filter returned 0 rows.'
-          );
-          orders = ordersIncludingDrafts;
-        }
-      }
+      // Always load the full active dataset on the server and let the table apply
+      // date/search/document filters client-side. This avoids accidental empty states
+      // caused by stale URL params or server-side filter drift.
+      orders = await fetchOrders();
 
       const orderIds = orders.map((order) => order.id);
       const [documentsResult, attachmentsResult] = await Promise.allSettled([

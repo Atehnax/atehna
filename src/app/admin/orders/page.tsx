@@ -118,6 +118,22 @@ export default async function AdminOrdersPage({
         query: query || null
       });
 
+      if (orders.length === 0) {
+        const ordersIncludingDrafts = await fetchOrders({
+          fromDate: toIsoOrNull(from),
+          toDate: getToDateIsoOrNull(to),
+          query: query || null,
+          includeDrafts: true
+        });
+
+        if (ordersIncludingDrafts.length > 0) {
+          console.warn(
+            'Fallback to includeDrafts=true on /admin/orders because default draft filter returned 0 rows.'
+          );
+          orders = ordersIncludingDrafts;
+        }
+      }
+
       const orderIds = orders.map((order) => order.id);
       const [documentsResult, attachmentsResult] = await Promise.allSettled([
         fetchOrderDocumentsForOrders(orderIds),

@@ -1,5 +1,16 @@
+import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/server/db';
+function revalidateAdminOrderPaths(orderId?: number) {
+  revalidatePath('/admin/orders');
+  revalidatePath('/admin/arhiv-izbrisanih');
+  if (typeof orderId === 'number' && Number.isFinite(orderId)) {
+    revalidatePath(`/admin/orders/${orderId}`);
+    revalidatePath('/admin/orders/[orderId]', 'page');
+  }
+}
+
+
 
 export async function POST() {
   try {
@@ -73,6 +84,7 @@ export async function POST() {
       return NextResponse.json({ message: 'Osnutka ni bilo mogoče ustvariti.' }, { status: 500 });
     }
 
+    revalidateAdminOrderPaths(row.id);
     return NextResponse.json({ orderId: row.id });
   } catch (error) {
     return NextResponse.json(

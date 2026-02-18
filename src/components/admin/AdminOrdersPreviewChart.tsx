@@ -8,7 +8,26 @@ import { getBaseChartLayout, getChartThemeFromCssVars } from '@/components/admin
 import type { OrderRow } from '@/components/admin/adminOrdersTableUtils';
 import type { AnalyticsGlobalAppearance } from '@/lib/server/analyticsCharts';
 
-type Daily = { date: string; orders: number; revenue: number; values: number[]; statuses: Record<string, number> };
+type RangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'custom';
+type CustomerBucketKey = 'company' | 'school' | 'individual';
+
+type Daily = {
+  date: string;
+  orders: number;
+  revenue: number;
+  companyOrders: number;
+  schoolOrders: number;
+  individualOrders: number;
+};
+
+const rangeOptions: Array<{ key: Exclude<RangePreset, 'custom'>; label: string }> = [
+  { key: '7d', label: '7d' },
+  { key: '1m', label: '1m' },
+  { key: '3m', label: '3m' },
+  { key: '6m', label: '6m' },
+  { key: '1y', label: '1y' },
+  { key: 'ytd', label: 'YTD' }
+];
 
 const movingAverage = (values: number[], window = 7) =>
   values.map((_, i) => {
@@ -16,27 +35,53 @@ const movingAverage = (values: number[], window = 7) =>
     return slice.reduce((sum, value) => sum + value, 0) / Math.max(slice.length, 1);
   });
 
-const median = (values: number[]) => {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
+const movingAverageNullable = (values: Array<number | null>, window = 7) =>
+  values.map((_, i) => {
+    const slice = values.slice(Math.max(0, i - (window - 1)), i + 1).filter((value): value is number => value !== null);
+    if (slice.length === 0) return null;
+    return slice.reduce((sum, value) => sum + value, 0) / slice.length;
+  });
+
+const cumulative = (values: number[]) => {
+  let running = 0;
+  return values.map((value) => {
+    running += value;
+    return running;
+  });
 };
 
-const compactHover = (label: string, valueFormat: string, suffix = '') =>
-  '%{x|%Y-%m-%d}<br>' +
-  `<span style="display:flex;justify-content:space-between;align-items:center;gap:10px;min-width:180px;"><span>${label}</span><span style="font-variant-numeric:tabular-nums;">%{y${valueFormat}}${suffix}</span></span><extra></extra>`;
+const toCustomerBucket = (customerType: string): CustomerBucketKey => {
+  const normalized = customerType.toLowerCase();
+  if (normalized.includes('podjet') || normalized.includes('org') || normalized.includes('company') || normalized.includes('business')) {
+    return 'company';
+  }
+  if (normalized.includes('šol') || normalized.includes('sol') || normalized.includes('school')) {
+    return 'school';
+  }
+  return 'individual';
+};
+
+const hoverRows = (rows: Array<{ label: string; valueToken: string; suffix?: string }>) => {
+  const body = rows
+    .map(
+      ({ label, valueToken, suffix = '' }) =>
+        `<span style="display:flex;justify-content:space-between;align-items:center;gap:18px;min-width:230px;"><span>${label}</span><span style="font-variant-numeric:tabular-nums;font-weight:700;">${valueToken}${suffix}</span></span>`
+    )
+    .join('<br>');
+
+  return `%{x|%Y-%m-%d}<br>${body}<extra></extra>`;
+};
 
 const stat = (value: number, suffix = '') => `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 2 }).format(value)}${suffix}`;
 
 const fallbackAppearance: AnalyticsGlobalAppearance = {
-  sectionBg: '#f3f4f6',
+  sectionBg: '#f1f0ec',
   canvasBg: '#ffffff',
   cardBg: '#ffffff',
   plotBg: '#ffffff',
-  axisTextColor: '#1f2937',
-  seriesPalette: ['#2563eb', '#0ea5e9', '#14b8a6', '#f59e0b', '#ef4444'],
-  gridColor: '#d1d5db',
+  axisTextColor: '#111827',
+  seriesPalette: ['#65c8cc', '#5fb6ba', '#7a8f6a', '#b08968', '#a24a45'],
+  gridColor: '#d8d6cf',
   gridOpacity: 0.35
 };
 
@@ -44,12 +89,16 @@ function AdminOrdersPreviewChart({
   orders,
   appearance = fallbackAppearance,
   fromDate,
-  toDate
+  toDate,
+  activeRange = '1m',
+  onRangeChange
 }: {
   orders: OrderRow[];
   appearance?: AnalyticsGlobalAppearance;
   fromDate?: string;
   toDate?: string;
+  activeRange?: RangePreset;
+  onRangeChange?: (range: Exclude<RangePreset, 'custom'>) => void;
 }) {
   const router = useRouter();
   const chartTheme = getChartThemeFromCssVars();
@@ -81,14 +130,22 @@ function AdminOrdersPreviewChart({
 
     const fallbackDate = new Date();
     fallbackDate.setUTCHours(0, 0, 0, 0);
-    const start = allDates[0] ?? fallbackDate;
-    const end = allDates[allDates.length - 1] ?? fallbackDate;
+
+    const start = allDates[0] ?? (fromDate ? new Date(`${fromDate}T00:00:00`) : fallbackDate);
+    const end = allDates[allDates.length - 1] ?? (toDate ? new Date(`${toDate}T00:00:00`) : fallbackDate);
 
     const days = new Map<string, Daily>();
     const cursor = new Date(start);
     while (cursor.getTime() <= end.getTime()) {
       const key = cursor.toISOString().slice(0, 10);
-      days.set(key, { date: key, orders: 0, revenue: 0, values: [], statuses: {} });
+      days.set(key, {
+        date: key,
+        orders: 0,
+        revenue: 0,
+        companyOrders: 0,
+        schoolOrders: 0,
+        individualOrders: 0
+      });
       cursor.setUTCDate(cursor.getUTCDate() + 1);
     }
 
@@ -100,92 +157,84 @@ function AdminOrdersPreviewChart({
       const safeTotal = Number.isFinite(total) ? total : 0;
       day.orders += 1;
       day.revenue += safeTotal;
-      day.values.push(safeTotal);
-      day.statuses[order.status] = (day.statuses[order.status] ?? 0) + 1;
+
+      const bucket = toCustomerBucket(order.customer_type);
+      if (bucket === 'company') day.companyOrders += 1;
+      if (bucket === 'school') day.schoolOrders += 1;
+      if (bucket === 'individual') day.individualOrders += 1;
     });
 
     const rows = Array.from(days.values());
     const x = rows.map((row) => row.date);
     const ordersSeries = rows.map((row) => row.orders);
     const revenueSeries = rows.map((row) => Number(row.revenue.toFixed(2)));
-    const aovSeries = rows.map((row) => (row.orders > 0 ? row.revenue / row.orders : 0));
-    const medianSeries = rows.map((row) => median(row.values));
+
+    const dailyAov = rows.map((row) => (row.orders > 0 ? Number((row.revenue / row.orders).toFixed(2)) : null));
+    const dailyAovMa = movingAverageNullable(dailyAov, 7);
+
+    const totalOrders = ordersSeries.reduce((sum, value) => sum + value, 0);
+    const totalRevenue = revenueSeries.reduce((sum, value) => sum + value, 0);
+    const rangeAov = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+    const companyDaily = rows.map((row) => row.companyOrders);
+    const schoolDaily = rows.map((row) => row.schoolOrders);
+    const individualDaily = rows.map((row) => row.individualOrders);
 
     return {
       x,
+      totalOrders,
+      totalRevenue,
+      rangeAov,
       ordersSeries,
       ordersMa: movingAverage(ordersSeries, 7),
       revenueSeries,
       revenueMa: movingAverage(revenueSeries, 7),
-      aovSeries,
-      medianSeries,
-      latest: {
-        orders: ordersSeries[ordersSeries.length - 1] ?? 0,
-        revenue: revenueSeries[revenueSeries.length - 1] ?? 0,
-        aov: aovSeries[aovSeries.length - 1] ?? 0,
-        statusMix:
-          (rows[rows.length - 1]?.statuses.received ?? 0) +
-          (rows[rows.length - 1]?.statuses.in_progress ?? 0) +
-          (rows[rows.length - 1]?.statuses.cancelled ?? 0)
-      },
-      statusTraces: [
-        {
-          status: 'received',
-          color: appearance.seriesPalette[0] ?? chartTheme.series.primary,
-          y: rows.map((row) => row.statuses.received ?? 0)
-        },
-        {
-          status: 'in_progress',
-          color: appearance.seriesPalette[2] ?? chartTheme.series.tertiary,
-          y: rows.map((row) => row.statuses.in_progress ?? 0)
-        },
-        {
-          status: 'cancelled',
-          color: appearance.seriesPalette[4] ?? chartTheme.series.danger,
-          y: rows.map((row) => row.statuses.cancelled ?? 0)
-        }
-      ]
+      dailyAov,
+      dailyAovMa,
+      companyCum: cumulative(companyDaily),
+      schoolCum: cumulative(schoolDaily),
+      individualCum: cumulative(individualDaily)
     };
-  }, [orders, appearance, fromDate, toDate, chartTheme.series.danger, chartTheme.series.primary, chartTheme.series.tertiary]);
+  }, [orders, fromDate, toDate]);
 
-  const miniLayout = (isStacked = false): Partial<Layout> => ({
+  const miniLayout = (isAreaStacked = false): Partial<Layout> => ({
     ...layoutBase,
     margin: { l: 8, r: 8, t: 8, b: 8 },
     showlegend: false,
-    hovermode: 'x',
+    hovermode: 'x unified',
     paper_bgcolor: appearance.canvasBg,
     plot_bgcolor: appearance.plotBg,
     xaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, fixedrange: true, hoverformat: '%Y-%m-%d' },
     yaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, rangemode: 'tozero', fixedrange: true },
-    barmode: isStacked ? 'stack' : undefined,
     hoverlabel: {
       bgcolor: appearance.canvasBg,
       bordercolor: appearance.gridColor,
-      font: { color: appearance.axisTextColor, size: 11 },
+      font: { color: appearance.axisTextColor, size: 12, family: 'Inter, system-ui, sans-serif' },
       align: 'left'
-    }
+    },
+    barmode: isAreaStacked ? 'stack' : undefined
   });
 
   const charts: Array<{ key: string; focusKey: string; title: string; value: string; traces: Data[]; layout: Partial<Layout> }> = [
     {
       key: 'orders-ma',
       focusKey: 'narocila-orders-ma',
-      title: 'Orders/day',
-      value: stat(data.latest.orders),
+      title: 'Število naročil',
+      value: stat(data.totalOrders),
       traces: [
         {
           type: 'scatter',
           mode: 'lines',
-          name: 'Orders',
+          name: 'Naročila / dan',
           x: data.x,
           y: data.ordersSeries,
-          line: { color: appearance.seriesPalette[0], width: 1.8 },
-          hovertemplate: compactHover('Orders', ':,.0f')
+          line: { color: appearance.seriesPalette[0], width: 1.9 },
+          hovertemplate: hoverRows([{ label: 'Naročila', valueToken: '%{y:,.0f}' }])
         },
         {
           type: 'scatter',
           mode: 'lines',
-          name: 'MA',
+          name: '7DMA',
           x: data.x,
           y: data.ordersMa,
           line: { color: appearance.seriesPalette[3], width: 1.4, dash: 'dot' },
@@ -197,22 +246,22 @@ function AdminOrdersPreviewChart({
     {
       key: 'revenue-ma',
       focusKey: 'narocila-revenue-ma',
-      title: 'Revenue/day',
-      value: `${stat(data.latest.revenue)} €`,
+      title: 'Prihodki',
+      value: `${stat(data.totalRevenue)} €`,
       traces: [
         {
           type: 'scatter',
           mode: 'lines',
-          name: 'Revenue',
+          name: 'Prihodki / dan',
           x: data.x,
           y: data.revenueSeries,
-          line: { color: appearance.seriesPalette[1], width: 1.8 },
-          hovertemplate: compactHover('Revenue', ':,.2f', ' EUR')
+          line: { color: appearance.seriesPalette[1], width: 1.9 },
+          hovertemplate: hoverRows([{ label: 'Prihodki', valueToken: '%{y:,.2f}', suffix: ' EUR' }])
         },
         {
           type: 'scatter',
           mode: 'lines',
-          name: 'MA',
+          name: '7DMA',
           x: data.x,
           y: data.revenueMa,
           line: { color: appearance.seriesPalette[3], width: 1.4, dash: 'dot' },
@@ -222,63 +271,109 @@ function AdminOrdersPreviewChart({
       layout: miniLayout(false)
     },
     {
-      key: 'aov-median',
+      key: 'aov-ma',
       focusKey: 'narocila-aov-median',
-      title: 'AOV',
-      value: `${stat(data.latest.aov)} €`,
+      title: 'Povprečna vrednost naročila',
+      value: `${stat(data.rangeAov)} €`,
       traces: [
         {
           type: 'scatter',
           mode: 'lines',
-          name: 'AOV',
+          name: 'AOV / dan',
           x: data.x,
-          y: data.aovSeries,
-          line: { color: appearance.seriesPalette[2], width: 1.8 },
-          hovertemplate: compactHover('AOV', ':,.2f', ' EUR')
+          y: data.dailyAov,
+          line: { color: appearance.seriesPalette[2], width: 1.9 },
+          connectgaps: false,
+          hovertemplate: hoverRows([{ label: 'AOV', valueToken: '%{y:,.2f}', suffix: ' EUR' }])
         },
         {
           type: 'scatter',
           mode: 'lines',
-          name: 'Median',
+          name: '7DMA',
           x: data.x,
-          y: data.medianSeries,
+          y: data.dailyAovMa,
           line: { color: appearance.seriesPalette[4], width: 1.4, dash: 'dot' },
+          connectgaps: false,
           hoverinfo: 'skip'
         }
       ],
       layout: miniLayout(false)
     },
     {
-      key: 'status-mix',
+      key: 'customer-type-cumulative',
       focusKey: 'narocila-status-mix',
-      title: 'Status mix',
-      value: stat(data.latest.statusMix),
-      traces: data.statusTraces.map((trace) => ({
-        type: 'bar',
-        name: trace.status,
-        x: data.x,
-        y: trace.y,
-        marker: { color: trace.color },
-        hovertemplate: compactHover(trace.status, ':,.0f')
-      })),
+      title: 'Kumulativno po tipu kupca',
+      value: stat(data.totalOrders),
+      traces: [
+        {
+          type: 'scatter',
+          mode: 'lines',
+          name: 'Podjetje',
+          x: data.x,
+          y: data.companyCum,
+          stackgroup: 'customers',
+          fill: 'tozeroy',
+          line: { color: appearance.seriesPalette[0], width: 1.2 },
+          hovertemplate: hoverRows([{ label: 'Podjetje', valueToken: '%{y:,.0f}' }])
+        },
+        {
+          type: 'scatter',
+          mode: 'lines',
+          name: 'Šola',
+          x: data.x,
+          y: data.schoolCum,
+          stackgroup: 'customers',
+          fill: 'tonexty',
+          line: { color: appearance.seriesPalette[2], width: 1.2 },
+          hovertemplate: hoverRows([{ label: 'Šola', valueToken: '%{y:,.0f}' }])
+        },
+        {
+          type: 'scatter',
+          mode: 'lines',
+          name: 'Fizična oseba',
+          x: data.x,
+          y: data.individualCum,
+          stackgroup: 'customers',
+          fill: 'tonexty',
+          line: { color: appearance.seriesPalette[3], width: 1.2 },
+          hovertemplate: hoverRows([{ label: 'Fizična oseba', valueToken: '%{y:,.0f}' }])
+        }
+      ],
       layout: miniLayout(true)
     }
   ];
 
+  const resolvedSectionBg = appearance.sectionBg.toLowerCase() === appearance.cardBg.toLowerCase() ? 'var(--surface-2)' : appearance.sectionBg;
+
   return (
     <section
       className="mb-3 rounded-2xl border p-3 shadow-sm"
-      style={{ backgroundColor: appearance.sectionBg, borderColor: appearance.gridColor }}
+      style={{ backgroundColor: resolvedSectionBg, borderColor: appearance.gridColor }}
       aria-label="Orders analytics previews"
     >
+      <div className="mb-2 flex items-center justify-end">
+        <div className="inline-flex rounded-md border border-slate-300 bg-white p-0.5 text-[11px] shadow-sm">
+          {rangeOptions.map((option) => (
+            <button
+              key={option.key}
+              type="button"
+              onClick={() => onRangeChange?.(option.key)}
+              className={`rounded px-2 py-0.5 transition ${activeRange === option.key ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {charts.map((chart) => (
           <button
             key={chart.key}
             type="button"
             onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(chart.focusKey)}`)}
-            className="flex min-h-[110px] items-center justify-between rounded-xl border px-2 py-1.5 text-left transition hover:border-slate-400"
-            style={{ backgroundColor: appearance.cardBg, borderColor: appearance.gridColor }}
+            className="flex min-h-[110px] items-center justify-between rounded-xl border px-2 py-1.5 text-left shadow-sm transition hover:border-slate-400"
+            style={{ backgroundColor: appearance.cardBg || 'var(--surface-1)', borderColor: appearance.gridColor }}
           >
             <div className="flex h-full min-w-[88px] flex-col justify-center pr-2">
               <p className="text-[11px] font-medium" style={{ color: appearance.axisTextColor }}>

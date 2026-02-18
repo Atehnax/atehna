@@ -12,7 +12,7 @@ import { getDatabaseUrl } from '@/lib/server/db';
 import { fetchGlobalAnalyticsAppearance, type AnalyticsGlobalAppearance } from '@/lib/server/analyticsCharts';
 
 export const metadata = {
-  title: 'Administracija naročil'
+  title: 'Pregled naročil'
 };
 
 export const dynamic = 'force-dynamic';
@@ -110,13 +110,13 @@ export default async function AdminOrdersPage({
   let warningMessage: string | null = null;
 
   const fallbackAppearance: AnalyticsGlobalAppearance = {
-    sectionBg: '#f3f4f6',
+    sectionBg: '#f1f0ec',
     canvasBg: '#ffffff',
     cardBg: '#ffffff',
     plotBg: '#ffffff',
-    axisTextColor: '#1f2937',
-    seriesPalette: ['#2563eb', '#0ea5e9', '#14b8a6', '#f59e0b', '#ef4444'],
-    gridColor: '#d1d5db',
+    axisTextColor: '#111827',
+    seriesPalette: ['#65c8cc', '#5fb6ba', '#7a8f6a', '#b08968', '#a24a45'],
+    gridColor: '#d8d6cf',
     gridOpacity: 0.35
   };
   let analyticsAppearance = fallbackAppearance;
@@ -166,10 +166,7 @@ export default async function AdminOrdersPage({
       <div className="flex flex-col gap-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-semibold text-slate-900">Administracija naročil</h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Pregled oddanih naročil, statusov in dokumentov.
-            </p>
+            <h1 className="text-3xl font-semibold text-slate-900">Pregled naročil</h1>
           </div>
         </div>
 

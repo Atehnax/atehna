@@ -10,9 +10,9 @@
   --text: #111827;
   --text-muted: #4b5563;
 
-  --primary: #64a5a7;
-  --primary-hover: #558f91;
-  --primary-active: #4a7b7d;
+  --primary: #65c8cc;
+  --primary-hover: #56adb0;
+  --primary-active: #4a9497;
   --primary-soft: #e7eeee;
   --primary-foreground: #ffffff;
 
@@ -23,7 +23,7 @@
   --danger: #a24a45;
   --info: #375a7a;
 
-  --ring: #64a5a7;
+  --ring: #65c8cc;
   --shadow-soft: 0 1px 2px rgba(17, 24, 39, 0.06), 0 8px 24px rgba(17, 24, 39, 0.05);
 
   --chart-canvas: #ffffff;
@@ -34,8 +34,8 @@
   --chart-grid: rgba(216, 214, 207, 0.65);
   --chart-tooltip-bg: #ffffff;
   --chart-tooltip-border: #d8d6cf;
-  --chart-series-primary: #64a5a7;
-  --chart-series-secondary: #76b1b3;
+  --chart-series-primary: #65c8cc;
+  --chart-series-secondary: #5fb6ba;
   --chart-series-tertiary: #7a8f6a;
   --chart-series-quaternary: #b08968;
   --chart-series-danger: #a24a45;

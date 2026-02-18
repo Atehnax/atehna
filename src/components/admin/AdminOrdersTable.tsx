@@ -40,6 +40,9 @@ import {
   toDisplayOrderNumber
 } from '@/components/admin/adminOrdersTableUtils';
 
+
+type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'custom';
+
 export default function AdminOrdersTable({
   orders,
   documents,
@@ -73,6 +76,7 @@ export default function AdminOrdersTable({
 
   const [fromDate, setFromDate] = useState(initialFrom);
   const [toDate, setToDate] = useState(initialTo);
+  const [rangePreset, setRangePreset] = useState<OrdersRangePreset>('1m');
   const debouncedQuery = useDebouncedValue(query, 200);
   const debouncedFromDate = useDebouncedValue(fromDate, 200);
   const debouncedToDate = useDebouncedValue(toDate, 200);
@@ -139,6 +143,42 @@ export default function AdminOrdersTable({
     };
   }, [isPaymentHeaderMenuOpen, isStatusHeaderMenuOpen]);
 
+
+  const applyAnalyticsRangePreset = (range: Exclude<OrdersRangePreset, 'custom'>) => {
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+    const todayAsInput = toDateInputValue(todayDate);
+
+    if (range === 'ytd') {
+      const ytdStart = new Date(todayDate.getFullYear(), 0, 1);
+      setFromDate(toDateInputValue(ytdStart));
+      setToDate(todayAsInput);
+      setRangePreset('ytd');
+      return;
+    }
+
+    const dayCountByRange: Record<Exclude<OrdersRangePreset, 'custom' | 'ytd'>, number> = {
+      '7d': 6,
+      '1m': 29,
+      '3m': 89,
+      '6m': 179,
+      '1y': 364
+    };
+
+    const fromDateValue = shiftDateByDays(todayDate, -dayCountByRange[range]);
+    setFromDate(toDateInputValue(fromDateValue));
+    setToDate(todayAsInput);
+    setRangePreset('custom');
+    setRangePreset(range);
+  };
+
+  useEffect(() => {
+    if (!initialFrom && !initialTo) {
+      applyAnalyticsRangePreset('1m');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const applyQuickDateRange = (range: 'today' | 'yesterday' | '7d' | '30d' | '3m' | '6m' | '1y') => {
     const todayDate = new Date();
     const todayAsInput = toDateInputValue(todayDate);
@@ -146,6 +186,7 @@ export default function AdminOrdersTable({
     if (range === 'today') {
       setFromDate(todayAsInput);
       setToDate(todayAsInput);
+      setRangePreset('custom');
       return;
     }
 
@@ -154,6 +195,7 @@ export default function AdminOrdersTable({
       const yesterdayAsInput = toDateInputValue(yesterdayDate);
       setFromDate(yesterdayAsInput);
       setToDate(yesterdayAsInput);
+      setRangePreset('custom');
       return;
     }
 
@@ -168,6 +210,7 @@ export default function AdminOrdersTable({
     const fromDateValue = shiftDateByDays(todayDate, -dayCountByRange[range]);
     setFromDate(toDateInputValue(fromDateValue));
     setToDate(todayAsInput);
+    setRangePreset('custom');
   };
 
   const documentsByOrder = useMemo(() => {
@@ -733,6 +776,8 @@ export default function AdminOrdersTable({
         appearance={analyticsAppearance}
         fromDate={debouncedFromDate}
         toDate={debouncedToDate}
+        activeRange={rangePreset}
+        onRangeChange={applyAnalyticsRangePreset}
       />
       <div className="mb-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
         <div className="flex flex-wrap items-end gap-2">
@@ -821,7 +866,7 @@ export default function AdminOrdersTable({
                         type="date"
                         lang="sl-SI"
                         value={fromDate}
-                        onChange={(event) => setFromDate(event.target.value)}
+                        onChange={(event) => { setFromDate(event.target.value); setRangePreset('custom'); }}
                         className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs"
                       />
                     </div>
@@ -832,7 +877,7 @@ export default function AdminOrdersTable({
                         type="date"
                         lang="sl-SI"
                         value={toDate}
-                        onChange={(event) => setToDate(event.target.value)}
+                        onChange={(event) => { setToDate(event.target.value); setRangePreset('custom'); }}
                         className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs"
                       />
                     </div>

@@ -33,7 +33,6 @@ type EditableItem = {
 type ItemsSectionMode = 'read' | 'edit';
 
 const TAX_RATE = 0.22;
-const SHIPPING_AMOUNT = 0;
 const toMoney = (value: number) => Math.round(value * 100) / 100;
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }).format(value);
@@ -90,10 +89,25 @@ function PlusIcon() {
   );
 }
 
-export default function AdminOrderItemsEditor({ orderId, items }: { orderId: number; items: OrderItemInput[] }) {
+export default function AdminOrderItemsEditor({
+  orderId,
+  items,
+  initialSubtotal = 0,
+  initialTax = 0,
+  initialTotal = 0
+}: {
+  orderId: number;
+  items: OrderItemInput[];
+  initialSubtotal?: number;
+  initialTax?: number;
+  initialTotal?: number;
+}) {
   const [itemsSectionMode, setItemsSectionMode] = useState<ItemsSectionMode>('read');
   const [persistedItems, setPersistedItems] = useState<EditableItem[]>(() => mapIncomingItems(items));
   const [draftItems, setDraftItems] = useState<EditableItem[]>(() => mapIncomingItems(items));
+  const initialShipping = Math.max(0, toMoney(initialTotal - initialSubtotal - initialTax));
+  const [persistedShipping, setPersistedShipping] = useState(initialShipping);
+  const [draftShipping, setDraftShipping] = useState(initialShipping);
   const [isItemsSaving, setIsItemsSaving] = useState(false);
 
   const [catalogChoices, setCatalogChoices] = useState<CatalogChoice[]>([]);
@@ -102,8 +116,8 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
   const [message, setMessage] = useState<string | null>(null);
 
   const isItemsDirty = useMemo(
-    () => JSON.stringify(draftItems) !== JSON.stringify(persistedItems),
-    [draftItems, persistedItems]
+    () => JSON.stringify(draftItems) !== JSON.stringify(persistedItems) || toMoney(draftShipping) !== toMoney(persistedShipping),
+    [draftItems, persistedItems, draftShipping, persistedShipping]
   );
 
   const itemsEditable = itemsSectionMode === 'edit';
@@ -117,10 +131,10 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
       activeItems.reduce((sum, item) => sum + item.quantity * item.unitPrice * (1 - item.discountPercentage / 100), 0)
     );
     const taxIncludedInfo = toMoney((subtotal * TAX_RATE) / (1 + TAX_RATE));
-    const shipping = toMoney(SHIPPING_AMOUNT);
+    const shipping = toMoney(itemsEditable ? draftShipping : persistedShipping);
     const total = toMoney(subtotal + shipping);
     return { subtotal, taxIncludedInfo, shipping, total };
-  }, [activeItems]);
+  }, [activeItems, draftShipping, itemsEditable, persistedShipping]);
 
   const filteredChoices = useMemo(() => {
     const normalizedQuery = catalogQuery.trim().toLocaleLowerCase('sl');
@@ -161,12 +175,14 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
   const startItemsEdit = () => {
     if (itemsSectionMode === 'edit') {
       setDraftItems(cloneEditableItems(persistedItems));
+      setDraftShipping(persistedShipping);
       setItemsSectionMode('read');
       setMessage(null);
       return;
     }
 
     setDraftItems(cloneEditableItems(persistedItems));
+    setDraftShipping(persistedShipping);
     setItemsSectionMode('edit');
     setMessage(null);
   };
@@ -230,6 +246,7 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          shipping: toMoney(draftShipping),
           items: draftItems.map((item) => ({
             id: item.persistedId,
             sku: item.sku,
@@ -249,6 +266,7 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
 
       const nextItems = cloneEditableItems(draftItems);
       setPersistedItems(nextItems);
+      setPersistedShipping(toMoney(draftShipping));
       setDraftItems(cloneEditableItems(nextItems));
       setItemsSectionMode('read');
       setMessage('Postavke so posodobljene.');
@@ -391,7 +409,17 @@ export default function AdminOrderItemsEditor({ orderId, items }: { orderId: num
           </div>
           <div className="flex items-center justify-between">
             <span>Poštnina</span>
-            <span className="font-semibold">{formatCurrency(totals.shipping)}</span>
+            {itemsEditable ? (
+              <input
+                type="text"
+                inputMode="decimal"
+                value={formatDecimalInput(draftShipping)}
+                onChange={(event) => setDraftShipping(Math.max(0, parseLocaleNumber(event.target.value)))}
+                className="h-6 w-20 rounded-md border border-slate-300 bg-white px-1 text-right text-[11px] leading-4 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-100"
+              />
+            ) : (
+              <span className="font-semibold">{formatCurrency(totals.shipping)}</span>
+            )}
           </div>
           <div className="flex items-center justify-between text-slate-500">
             <span>DDV (22 %)</span>

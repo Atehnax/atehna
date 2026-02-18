@@ -323,7 +323,7 @@ export default function AdminOrderPdfManager({
           />
         ) : (
           <p className="mt-2 h-[88px] overflow-y-auto whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-[12px] leading-5 text-slate-900">
-            {persistedNotes.trim() || '/'}
+            {persistedNotes.trim()}
           </p>
         )}
       </div>

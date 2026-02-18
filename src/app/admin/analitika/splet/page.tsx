@@ -24,9 +24,10 @@ export default async function AdminWebsiteAnalyticsPage({
   const from = searchParams?.from ?? '';
   const to = searchParams?.to ?? '';
 
+  const fallbackAnalytics = { visitsByDay: [], topPages: [], topProducts: [], returningVisitors7d: 0, retentionByDay: [] };
   const analytics = getDatabaseUrl()
-    ? await fetchWebsiteAnalytics({ fromDate: toIsoOrNull(from), toDate: toIsoOrNull(to) })
-    : { visitsByDay: [], topPages: [], topProducts: [], returningVisitors7d: 0, retentionByDay: [] };
+    ? await fetchWebsiteAnalytics({ fromDate: toIsoOrNull(from), toDate: toIsoOrNull(to) }).catch(() => fallbackAnalytics)
+    : fallbackAnalytics;
 
   return (
     <div className="w-full px-6 py-12">

@@ -67,6 +67,31 @@ const compactHover = (valueToken: string, suffix = '') =>
 
 const stat = (value: number, suffix = '') => `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 2 }).format(value)}${suffix}`;
 
+const sevenDayChange = (series: Array<number | null>) => {
+  if (series.length === 0) return null;
+  const currentIndex = series.length - 1;
+  const current = series[currentIndex];
+  if (current === null || !Number.isFinite(current)) return null;
+
+  for (let i = currentIndex - 7; i >= 0; i -= 1) {
+    const previous = series[i];
+    if (previous === null || !Number.isFinite(previous) || previous === 0) continue;
+    return ((current - previous) / previous) * 100;
+  }
+
+  return null;
+};
+
+const formatDelta = (value: number | null) => {
+  if (value === null || !Number.isFinite(value)) {
+    return { text: '7d: —', className: 'text-slate-500' };
+  }
+
+  const sign = value > 0 ? '+' : '';
+  const className = value >= 0 ? 'text-emerald-700' : 'text-rose-700';
+  return { text: `7d: ${sign}${value.toFixed(1)}%`, className };
+};
+
 const fallbackAppearance: AnalyticsGlobalAppearance = {
   sectionBg: '#f1f0ec',
   canvasBg: '#ffffff',
@@ -195,8 +220,8 @@ function AdminOrdersPreviewChart({
     margin: { l: 8, r: 8, t: 8, b: 8 },
     showlegend: false,
     hovermode: 'closest',
-    paper_bgcolor: '#1f2937',
-    plot_bgcolor: appearance.plotBg,
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
     xaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, fixedrange: true, hoverformat: '%Y-%m-%d' },
     yaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, rangemode: 'tozero', fixedrange: true },
     hoverlabel: {
@@ -208,12 +233,16 @@ function AdminOrdersPreviewChart({
     barmode: isAreaStacked ? 'stack' : undefined
   });
 
-  const charts: Array<{ key: string; focusKey: string; title: string; value: string; traces: Data[]; layout: Partial<Layout> }> = [
+  const charts: Array<{ key: string; focusKey: string; title: string; value: string; delta: string; deltaClassName: string; traces: Data[]; layout: Partial<Layout> }> = [
     {
       key: 'orders-ma',
       focusKey: 'narocila-orders-ma',
       title: 'Število naročil',
       value: stat(data.totalOrders),
+      ...(() => {
+        const delta = formatDelta(sevenDayChange(data.ordersSeries));
+        return { delta: delta.text, deltaClassName: delta.className };
+      })(),
       traces: [
         {
           type: 'scatter',
@@ -241,6 +270,10 @@ function AdminOrdersPreviewChart({
       focusKey: 'narocila-revenue-ma',
       title: 'Prihodki',
       value: `${stat(data.totalRevenue)} €`,
+      ...(() => {
+        const delta = formatDelta(sevenDayChange(data.revenueSeries));
+        return { delta: delta.text, deltaClassName: delta.className };
+      })(),
       traces: [
         {
           type: 'scatter',
@@ -268,6 +301,10 @@ function AdminOrdersPreviewChart({
       focusKey: 'narocila-aov-median',
       title: 'Povprečna vrednost naročila',
       value: `${stat(data.rangeAov)} €`,
+      ...(() => {
+        const delta = formatDelta(sevenDayChange(data.dailyAov));
+        return { delta: delta.text, deltaClassName: delta.className };
+      })(),
       traces: [
         {
           type: 'scatter',
@@ -297,6 +334,10 @@ function AdminOrdersPreviewChart({
       focusKey: 'narocila-status-mix',
       title: 'Tipi kupcev',
       value: stat(data.totalOrders),
+      ...(() => {
+        const delta = formatDelta(sevenDayChange(data.companyCum.map((value, index) => value + data.schoolCum[index] + data.individualCum[index])));
+        return { delta: delta.text, deltaClassName: delta.className };
+      })(),
       traces: [
         {
           type: 'scatter',
@@ -375,8 +416,9 @@ function AdminOrdersPreviewChart({
               <p className="mt-1 text-lg font-semibold" style={{ color: appearance.axisTextColor }}>
                 {chart.value}
               </p>
+              <p className={`mt-0.5 text-[11px] font-medium ${chart.deltaClassName}`}>{chart.delta}</p>
             </div>
-            <div className="w-[145px]">
+            <div className="w-[145px] rounded-md" style={{ backgroundColor: 'transparent' }}>
               <PlotlyClient
                 data={chart.traces}
                 layout={chart.layout}

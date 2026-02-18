@@ -1033,7 +1033,7 @@ export default function AdminOrdersTable({
                     type="button"
                     onClick={handleDelete}
                     disabled={selected.length === 0 || isDeleting}
-                    className="text-[10px] font-semibold text-rose-700/80 underline-offset-2 hover:text-rose-700 disabled:cursor-not-allowed disabled:text-slate-500/70"
+                    className={`text-[10px] font-semibold underline-offset-2 ${selected.length > 0 && !isDeleting ? 'text-rose-700/85 hover:text-rose-700' : 'text-slate-500/75'} disabled:cursor-not-allowed`}
                   >
                     {isDeleting ? 'Brisanje...' : 'Izbriši'}
                   </button>

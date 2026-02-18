@@ -168,7 +168,6 @@ export default function AdminOrdersTable({
     const fromDateValue = shiftDateByDays(todayDate, -dayCountByRange[range]);
     setFromDate(toDateInputValue(fromDateValue));
     setToDate(todayAsInput);
-    setRangePreset('custom');
     setRangePreset(range);
   };
 
@@ -1034,7 +1033,7 @@ export default function AdminOrdersTable({
                     type="button"
                     onClick={handleDelete}
                     disabled={selected.length === 0 || isDeleting}
-                    className="text-[10px] font-semibold text-rose-600 disabled:text-slate-300"
+                    className="rounded-md border border-rose-300 bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-700 shadow-sm disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-100 disabled:text-slate-400"
                   >
                     {isDeleting ? 'Brisanje...' : 'Izbriši'}
                   </button>
@@ -1347,7 +1346,10 @@ export default function AdminOrdersTable({
                           aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
                           title="Uredi"
                         >
-                          ✎
+                          <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                            <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
+                            <path d="M11.5 4.5l3 3" />
+                          </svg>
                         </a>
                         <button
                           type="button"

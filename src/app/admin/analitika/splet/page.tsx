@@ -1,4 +1,5 @@
 import AdminWebsiteAnalyticsDashboard from '@/components/admin/AdminWebsiteAnalyticsDashboard';
+import AdminAnalyticsTopTabs from '@/components/admin/AdminAnalyticsTopTabs';
 import { fetchWebsiteAnalytics } from '@/lib/server/websiteAnalytics';
 import { getDatabaseUrl } from '@/lib/server/db';
 
@@ -28,7 +29,9 @@ export default async function AdminWebsiteAnalyticsPage({
     : { visitsByDay: [], topPages: [], topProducts: [], returningVisitors7d: 0, retentionByDay: [] };
 
   return (
-    <AdminWebsiteAnalyticsDashboard
+    <div className="w-full px-6 py-12">
+      <AdminAnalyticsTopTabs />
+      <AdminWebsiteAnalyticsDashboard
       visitsByDay={analytics.visitsByDay}
       topPages={analytics.topPages}
       topProducts={analytics.topProducts}
@@ -36,6 +39,7 @@ export default async function AdminWebsiteAnalyticsPage({
       retentionByDay={analytics.retentionByDay}
       initialFrom={from}
       initialTo={to}
-    />
+      />
+    </div>
   );
 }

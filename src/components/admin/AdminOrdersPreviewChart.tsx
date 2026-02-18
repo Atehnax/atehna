@@ -61,16 +61,9 @@ const toCustomerBucket = (customerType: string): CustomerBucketKey => {
   return 'individual';
 };
 
-const hoverRows = (rows: Array<{ label: string; valueToken: string; suffix?: string }>) => {
-  const body = rows
-    .map(
-      ({ label, valueToken, suffix = '' }) =>
-        `<span style="display:flex;justify-content:space-between;align-items:center;gap:18px;min-width:230px;"><span>${label}</span><span style="font-variant-numeric:tabular-nums;font-weight:700;">${valueToken}${suffix}</span></span>`
-    )
-    .join('<br>');
-
-  return `%{x|%Y-%m-%d}<br>${body}<extra></extra>`;
-};
+const compactHover = (valueToken: string, suffix = '', label = 'Vrednost') =>
+  `<span style=\"display:block;min-width:180px;font-size:16px;font-weight:700;line-height:1.25;font-variant-numeric:tabular-nums;\">${valueToken}${suffix}</span>` +
+  `<span style=\"display:block;margin-top:6px;font-size:11px;opacity:0.92;\">${label} · %{x|%Y-%m-%d}</span><extra></extra>`;
 
 const stat = (value: number, suffix = '') => `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 2 }).format(value)}${suffix}`;
 
@@ -201,15 +194,15 @@ function AdminOrdersPreviewChart({
     ...layoutBase,
     margin: { l: 8, r: 8, t: 8, b: 8 },
     showlegend: false,
-    hovermode: 'x unified',
-    paper_bgcolor: appearance.canvasBg,
+    hovermode: 'closest',
+    paper_bgcolor: '#1f2937',
     plot_bgcolor: appearance.plotBg,
     xaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, fixedrange: true, hoverformat: '%Y-%m-%d' },
     yaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, rangemode: 'tozero', fixedrange: true },
     hoverlabel: {
-      bgcolor: appearance.canvasBg,
-      bordercolor: appearance.gridColor,
-      font: { color: appearance.axisTextColor, size: 12, family: 'Inter, system-ui, sans-serif' },
+      bgcolor: '#1f2937',
+      bordercolor: '#334155',
+      font: { color: '#f8fafc', size: 13, family: 'Inter, system-ui, sans-serif' },
       align: 'left'
     },
     barmode: isAreaStacked ? 'stack' : undefined
@@ -229,7 +222,7 @@ function AdminOrdersPreviewChart({
           x: data.x,
           y: data.ordersSeries,
           line: { color: appearance.seriesPalette[0], width: 1.9 },
-          hovertemplate: hoverRows([{ label: 'Naročila', valueToken: '%{y:,.0f}' }])
+          hovertemplate: compactHover('%{y:,.0f}', '', 'Naročila')
         },
         {
           type: 'scatter',
@@ -256,7 +249,7 @@ function AdminOrdersPreviewChart({
           x: data.x,
           y: data.revenueSeries,
           line: { color: appearance.seriesPalette[1], width: 1.9 },
-          hovertemplate: hoverRows([{ label: 'Prihodki', valueToken: '%{y:,.2f}', suffix: ' EUR' }])
+          hovertemplate: compactHover('%{y:,.2f}', ' EUR', 'Prihodki')
         },
         {
           type: 'scatter',
@@ -284,7 +277,7 @@ function AdminOrdersPreviewChart({
           y: data.dailyAov,
           line: { color: appearance.seriesPalette[2], width: 1.9 },
           connectgaps: false,
-          hovertemplate: hoverRows([{ label: 'AOV', valueToken: '%{y:,.2f}', suffix: ' EUR' }])
+          hovertemplate: compactHover('%{y:,.2f}', ' EUR', 'Povprečje')
         },
         {
           type: 'scatter',
@@ -302,7 +295,7 @@ function AdminOrdersPreviewChart({
     {
       key: 'customer-type-cumulative',
       focusKey: 'narocila-status-mix',
-      title: 'Kumulativno po tipu kupca',
+      title: 'Tipi kupcev',
       value: stat(data.totalOrders),
       traces: [
         {
@@ -314,7 +307,7 @@ function AdminOrdersPreviewChart({
           stackgroup: 'customers',
           fill: 'tozeroy',
           line: { color: appearance.seriesPalette[0], width: 1.2 },
-          hovertemplate: hoverRows([{ label: 'Podjetje', valueToken: '%{y:,.0f}' }])
+          hovertemplate: compactHover('%{y:,.0f}', '', 'Podjetje')
         },
         {
           type: 'scatter',
@@ -325,7 +318,7 @@ function AdminOrdersPreviewChart({
           stackgroup: 'customers',
           fill: 'tonexty',
           line: { color: appearance.seriesPalette[2], width: 1.2 },
-          hovertemplate: hoverRows([{ label: 'Šola', valueToken: '%{y:,.0f}' }])
+          hovertemplate: compactHover('%{y:,.0f}', '', 'Šola')
         },
         {
           type: 'scatter',
@@ -336,7 +329,7 @@ function AdminOrdersPreviewChart({
           stackgroup: 'customers',
           fill: 'tonexty',
           line: { color: appearance.seriesPalette[3], width: 1.2 },
-          hovertemplate: hoverRows([{ label: 'Fizična oseba', valueToken: '%{y:,.0f}' }])
+          hovertemplate: compactHover('%{y:,.0f}', '', 'Fizična oseba')
         }
       ],
       layout: miniLayout(true)
@@ -375,8 +368,8 @@ function AdminOrdersPreviewChart({
             className="flex min-h-[110px] items-center justify-between rounded-xl border px-2 py-1.5 text-left shadow-sm transition hover:border-slate-400"
             style={{ backgroundColor: appearance.cardBg || 'var(--surface-1)', borderColor: appearance.gridColor }}
           >
-            <div className="flex h-full min-w-[88px] flex-col justify-center pr-2">
-              <p className="text-[11px] font-medium" style={{ color: appearance.axisTextColor }}>
+            <div className="flex h-full min-w-[88px] flex-col items-center justify-center pr-2 text-center">
+              <p className="text-sm font-semibold" style={{ color: appearance.axisTextColor }}>
                 {chart.title}
               </p>
               <p className="mt-1 text-lg font-semibold" style={{ color: appearance.axisTextColor }}>

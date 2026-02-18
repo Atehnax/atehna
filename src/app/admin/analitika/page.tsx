@@ -1,4 +1,5 @@
 import AdminAnalyticsDashboard from '@/components/admin/AdminAnalyticsDashboard';
+import AdminAnalyticsTopTabs from '@/components/admin/AdminAnalyticsTopTabs';
 import { emptyOrdersAnalyticsResponse, fetchOrdersAnalytics } from '@/lib/server/orderAnalytics';
 import { fetchAnalyticsCharts, fetchGlobalAnalyticsAppearance } from '@/lib/server/analyticsCharts';
 import { getDatabaseUrl } from '@/lib/server/db';
@@ -41,6 +42,7 @@ export default async function AdminAnalyticsIndexPage({
 
   return (
     <div className="w-full px-6 py-12">
+      <AdminAnalyticsTopTabs />
       <AdminAnalyticsDashboard
         initialData={data}
         initialCharts={charts}

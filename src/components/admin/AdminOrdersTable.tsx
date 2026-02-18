@@ -1,15 +1,18 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
 import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
 import AdminOrderPaymentSelect from '@/components/admin/AdminOrderPaymentSelect';
+import AdminOrdersPreviewChart from '@/components/admin/AdminOrdersPreviewChart';
 import StatusChip from '@/components/admin/StatusChip';
 import PaymentChip from '@/components/admin/PaymentChip';
 import { getCustomerTypeLabel } from '@/lib/customerType';
 import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 import { formatSlDate, formatSlDateFromDateInput, formatSlDateTime } from '@/lib/format/dateTime';
 import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, isPaymentStatus } from '@/lib/paymentStatus';
+import type { AnalyticsGlobalAppearance } from '@/lib/server/analyticsCharts';
 
 import {
   type Attachment,
@@ -37,43 +40,6 @@ import {
   toDisplayOrderNumber
 } from '@/components/admin/adminOrdersTableUtils';
 
-type DailyPoint = {
-  day: string;
-  revenue: number;
-  orders: number;
-  averageOrderValue: number;
-  paidShare: number;
-};
-
-type SparkPoint = {
-  x: number;
-  y: number;
-  value: number;
-  index: number;
-};
-
-function buildSparklinePoints(values: number[], width = 120, height = 28): SparkPoint[] {
-  if (values.length === 0) return [];
-
-  const maxValue = Math.max(...values, 1);
-  const step = values.length === 1 ? width : width / (values.length - 1);
-
-  return values.map((value, index) => {
-    const normalized = maxValue === 0 ? 0 : value / maxValue;
-    const x = index * step;
-    const y = height - normalized * height;
-    return { x, y, value, index };
-  });
-}
-
-const pointsToPolyline = (points: SparkPoint[]) => points.map((point) => `${point.x},${point.y}`).join(' ');
-
-const pointsToArea = (points: SparkPoint[], width = 120, height = 28) => {
-  if (points.length === 0) return `M0,${height} L${width},${height}`;
-  const linePath = points.map((point) => `L${point.x},${point.y}`).join(' ');
-  return `M0,${height} ${linePath} L${width},${height} Z`;
-};
-
 export default function AdminOrdersTable({
   orders,
   documents,
@@ -81,7 +47,8 @@ export default function AdminOrdersTable({
   initialFrom = '',
   initialTo = '',
   initialQuery = '',
-  topAction
+  topAction,
+  analyticsAppearance
 }: {
   orders: OrderRow[];
   documents: PdfDoc[];
@@ -90,23 +57,28 @@ export default function AdminOrdersTable({
   initialTo?: string;
   initialQuery?: string;
   topAction?: ReactNode;
+  analyticsAppearance?: AnalyticsGlobalAppearance;
 }) {
+  const router = useRouter();
   const [selected, setSelected] = useState<number[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deletingRowId, setDeletingRowId] = useState<number | null>(null);
   const [isBulkUpdatingStatus, setIsBulkUpdatingStatus] = useState(false);
 
   const [statusFilter, setStatusFilter] = useState<StatusTab>('all');
   const [query, setQuery] = useState(initialQuery);
 
-  const [sortKey, setSortKey] = useState<SortKey>('created_at');
+  const [sortKey, setSortKey] = useState<SortKey>('order_number');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   const [fromDate, setFromDate] = useState(initialFrom);
   const [toDate, setToDate] = useState(initialTo);
+  const debouncedQuery = useDebouncedValue(query, 200);
+  const debouncedFromDate = useDebouncedValue(fromDate, 200);
+  const debouncedToDate = useDebouncedValue(toDate, 200);
   const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
 
   const [isDocumentSearchEnabled, setIsDocumentSearchEnabled] = useState(false);
-  const [isDocumentFilterApplied, setIsDocumentFilterApplied] = useState(false);
   const [documentType, setDocumentType] = useState<DocumentType>('all');
   const [message, setMessage] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -115,10 +87,10 @@ export default function AdminOrdersTable({
   const datePopoverRef = useRef<HTMLDivElement>(null);
   const statusHeaderMenuRef = useRef<HTMLDivElement>(null);
   const paymentHeaderMenuRef = useRef<HTMLDivElement>(null);
+  const hasAutoResetFiltersRef = useRef(false);
 
   const [isStatusHeaderMenuOpen, setIsStatusHeaderMenuOpen] = useState(false);
   const [isPaymentHeaderMenuOpen, setIsPaymentHeaderMenuOpen] = useState(false);
-  const [hoveredKpi, setHoveredKpi] = useState<{ label: string; index: number } | null>(null);
 
   useEffect(() => {
     const closeOnOutsideClick = (mouseEvent: MouseEvent) => {
@@ -273,7 +245,7 @@ export default function AdminOrdersTable({
   }, [documents, attachments]);
 
   const filteredAndSortedOrders = useMemo(() => {
-    const normalizedQuery = normalizeForSearch(query);
+    const normalizedQuery = normalizeForSearch(debouncedQuery);
 
     const filteredOrders = orders.filter((order) => {
       const mergedStatusValue = getMergedOrderStatusValue(order.status);
@@ -284,8 +256,8 @@ export default function AdminOrdersTable({
 
       const orderTimestamp = new Date(order.created_at).getTime();
 
-      if (fromDate) {
-        const fromTimestamp = new Date(`${fromDate}T00:00:00`).getTime();
+      if (debouncedFromDate) {
+        const fromTimestamp = new Date(`${debouncedFromDate}T00:00:00`).getTime();
         if (
           !Number.isNaN(fromTimestamp) &&
           !Number.isNaN(orderTimestamp) &&
@@ -295,8 +267,8 @@ export default function AdminOrdersTable({
         }
       }
 
-      if (toDate) {
-        const toTimestamp = new Date(`${toDate}T23:59:59.999`).getTime();
+      if (debouncedToDate) {
+        const toTimestamp = new Date(`${debouncedToDate}T23:59:59.999`).getTime();
         if (
           !Number.isNaN(toTimestamp) &&
           !Number.isNaN(orderTimestamp) &&
@@ -338,7 +310,9 @@ export default function AdminOrdersTable({
         return orderMatches;
       }
 
-      if (isDocumentFilterApplied) {
+      const hasSelectedDocumentType = documentType !== 'all';
+
+      if (hasSelectedDocumentType) {
         if (documentsMatchingSelectedType.length === 0) return false;
         if (normalizedQuery && !documentsMatch) return false;
         return true;
@@ -350,14 +324,27 @@ export default function AdminOrdersTable({
 
     const sortedOrders = [...filteredOrders].sort((leftOrder, rightOrder) => {
       const sortMultiplier = sortDirection === 'asc' ? 1 : -1;
-      const leftOrderNumber = getNumericOrderNumber(leftOrder.order_number);
-      const rightOrderNumber = getNumericOrderNumber(rightOrder.order_number);
+      const leftOrderNumberNumeric = getNumericOrderNumber(leftOrder.order_number);
+      const rightOrderNumberNumeric = getNumericOrderNumber(rightOrder.order_number);
 
       let leftValue: string | number;
       let rightValue: string | number;
 
       switch (sortKey) {
         case 'order_number':
+          if (
+            Number.isFinite(leftOrderNumberNumeric) &&
+            Number.isFinite(rightOrderNumberNumeric) &&
+            leftOrderNumberNumeric !== rightOrderNumberNumeric
+          ) {
+            return (leftOrderNumberNumeric - rightOrderNumberNumeric) * sortMultiplier;
+          }
+
+          if (leftOrderNumberNumeric !== rightOrderNumberNumeric) {
+            if (!Number.isFinite(leftOrderNumberNumeric)) return 1;
+            if (!Number.isFinite(rightOrderNumberNumeric)) return -1;
+          }
+
           leftValue = leftOrder.order_number;
           rightValue = rightOrder.order_number;
           break;
@@ -402,7 +389,7 @@ export default function AdminOrdersTable({
         if (primaryResult !== 0) return primaryResult;
 
         if (sortKey === 'created_at') {
-          return rightOrderNumber - leftOrderNumber;
+          return rightOrderNumberNumeric - leftOrderNumberNumeric;
         }
 
         return 0;
@@ -412,21 +399,20 @@ export default function AdminOrdersTable({
       if (textResult !== 0) return textResult;
 
       if (sortKey === 'created_at') {
-        return rightOrderNumber - leftOrderNumber;
+        return rightOrderNumberNumeric - leftOrderNumberNumeric;
       }
 
-      return 0;
+      return leftOrder.id - rightOrder.id;
     });
 
     return sortedOrders;
   }, [
     orders,
     statusFilter,
-    query,
-    fromDate,
-    toDate,
+    debouncedQuery,
+    debouncedFromDate,
+    debouncedToDate,
     isDocumentSearchEnabled,
-    isDocumentFilterApplied,
     documentType,
     latestDocumentsByOrder,
     sortKey,
@@ -466,6 +452,9 @@ export default function AdminOrdersTable({
 
   useEffect(() => {
     const validIds = new Set(orders.map((order) => order.id));
+    setSelected((previousSelected) =>
+      previousSelected.filter((selectedOrderId) => validIds.has(selectedOrderId))
+    );
     setRowStatusOverrides((previousOverrides) =>
       Object.fromEntries(
         Object.entries(previousOverrides).filter(([orderId]) => validIds.has(Number(orderId)))
@@ -511,16 +500,42 @@ export default function AdminOrdersTable({
 
     setIsDeleting(true);
     try {
-      await Promise.all(
+      const deleteResults = await Promise.allSettled(
         selected.map((orderId) => fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' }))
       );
-      setSelected([]);
-      window.location.reload();
+
+      const failedDeletes = deleteResults.filter(
+        (result) => result.status === 'fulfilled' && !result.value.ok
+      ).length;
+
+      if (failedDeletes > 0) {
+        setMessage(`Brisanje ni uspelo za ${failedDeletes} naročil.`);
+      }
+
+      router.refresh();
     } finally {
       setIsDeleting(false);
     }
   };
 
+
+  const handleDeleteRow = async (orderId: number) => {
+    const confirmed = window.confirm('Ali ste prepričani, da želite izbrisati to naročilo?');
+    if (!confirmed) return;
+
+    setDeletingRowId(orderId);
+    try {
+      const response = await fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' });
+      if (!response.ok) {
+        setMessage('Brisanje naročila ni uspelo. Poskusite znova.');
+        return;
+      }
+
+      router.refresh();
+    } finally {
+      setDeletingRowId(null);
+    }
+  };
 
   const handleBulkStatusUpdate = async (nextStatus: string) => {
     if (selected.length === 0) return;
@@ -587,7 +602,12 @@ export default function AdminOrdersTable({
     }
 
     setSortKey(nextSortKey);
-    setSortDirection(nextSortKey === 'created_at' || nextSortKey === 'total' ? 'desc' : 'asc');
+    if (nextSortKey === 'order_number' || nextSortKey === 'created_at' || nextSortKey === 'total') {
+      setSortDirection('desc');
+      return;
+    }
+
+    setSortDirection('asc');
   };
 
   const sortIndicator = (nextSortKey: SortKey) => {
@@ -617,70 +637,36 @@ export default function AdminOrdersTable({
 
 
 
-  const dateRangeFilteredOrders = useMemo(() => {
-    const fromTimestamp = fromDate ? new Date(`${fromDate}T00:00:00`).getTime() : null;
-    const toTimestamp = toDate ? new Date(`${toDate}T23:59:59`).getTime() : null;
+  const resetAllFilters = () => {
+    setStatusFilter('all');
+    setQuery('');
+    setFromDate('');
+    setToDate('');
+    setIsDocumentSearchEnabled(false);
+    setDocumentType('all');
+    setMessage(null);
+  };
 
-    return orders.filter((order) => {
-      const createdTimestamp = new Date(order.created_at).getTime();
-      if (Number.isNaN(createdTimestamp)) return false;
-      if (fromTimestamp !== null && createdTimestamp < fromTimestamp) return false;
-      if (toTimestamp !== null && createdTimestamp > toTimestamp) return false;
-      return true;
-    });
-  }, [orders, fromDate, toDate]);
+  const hasActiveFilters =
+    statusFilter !== 'all' ||
+    query.trim().length > 0 ||
+    fromDate.length > 0 ||
+    toDate.length > 0 ||
+    isDocumentSearchEnabled ||
+    documentType !== 'all';
 
-  const kpiMetrics = useMemo(() => {
-    const totalRevenue = dateRangeFilteredOrders.reduce((sum, order) => sum + toAmount(order.total), 0);
-    const totalOrders = dateRangeFilteredOrders.length;
-    const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-    const paidOrdersCount = dateRangeFilteredOrders.filter((order) => order.payment_status === 'paid').length;
-    const paidShare = totalOrders > 0 ? (paidOrdersCount / totalOrders) * 100 : 0;
+  useEffect(() => {
+    if (hasAutoResetFiltersRef.current) return;
+    if (orders.length === 0) return;
+    if (!hasActiveFilters) return;
+    if (filteredAndSortedOrders.length > 0) return;
 
-    return {
-      totalRevenue,
-      totalOrders,
-      averageOrderValue,
-      paidShare
-    };
-  }, [dateRangeFilteredOrders]);
-
-  const dailyKpiSeries = useMemo<DailyPoint[]>(() => {
-    const perDay = new Map<string, { revenue: number; orders: number; paid: number }>();
-
-    dateRangeFilteredOrders.forEach((order) => {
-      const day = order.created_at.slice(0, 10);
-      const row = perDay.get(day) ?? { revenue: 0, orders: 0, paid: 0 };
-      row.revenue += toAmount(order.total);
-      row.orders += 1;
-      if (order.payment_status === 'paid') row.paid += 1;
-      perDay.set(day, row);
-    });
-
-    return Array.from(perDay.entries())
-      .map(([day, row]) => ({
-        day,
-        revenue: row.revenue,
-        orders: row.orders,
-        averageOrderValue: row.orders > 0 ? row.revenue / row.orders : 0,
-        paidShare: row.orders > 0 ? (row.paid / row.orders) * 100 : 0
-      }))
-      .sort((left, right) => left.day.localeCompare(right.day));
-  }, [dateRangeFilteredOrders]);
-
-  const analyticsHref = useMemo(() => {
-    const params = new URLSearchParams();
-    if (fromDate) params.set('from', fromDate);
-    if (toDate) params.set('to', toDate);
-    return `/admin/analitika/narocila${params.toString() ? `?${params.toString()}` : ''}`;
-  }, [fromDate, toDate]);
-
+    hasAutoResetFiltersRef.current = true;
+    resetAllFilters();
+  }, [orders.length, hasActiveFilters, filteredAndSortedOrders.length]);
 
   const handleResetDocumentFilter = () => {
     setDocumentType('all');
-    if (isDocumentSearchEnabled) {
-      setIsDocumentFilterApplied(true);
-    }
     setMessage(null);
   };
 
@@ -742,92 +728,12 @@ export default function AdminOrdersTable({
   return (
     <div className="w-full">
       <div className="mx-auto w-[72vw] min-w-[1180px] max-w-[1520px]">
-      <div className="mb-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-        {[
-          {
-            label: 'Skupni prihodki',
-            value: formatCurrency(kpiMetrics.totalRevenue),
-            points: buildSparklinePoints(dailyKpiSeries.map((item) => item.revenue)),
-            stroke: '#0f766e'
-          },
-          {
-            label: 'Število naročil',
-            value: String(kpiMetrics.totalOrders),
-            points: buildSparklinePoints(dailyKpiSeries.map((item) => item.orders)),
-            stroke: '#475569'
-          },
-          {
-            label: 'Povprečna vrednost naročila',
-            value: formatCurrency(kpiMetrics.averageOrderValue),
-            points: buildSparklinePoints(dailyKpiSeries.map((item) => item.averageOrderValue)),
-            stroke: '#334155'
-          },
-          {
-            label: 'Delež plačanih naročil',
-            value: `${kpiMetrics.paidShare.toFixed(1).replace('.', ',')} %`,
-            points: buildSparklinePoints(dailyKpiSeries.map((item) => item.paidShare)),
-            stroke: '#155e75'
-          }
-        ].map((kpi) => (
-          <button
-            key={kpi.label}
-            type="button"
-            onClick={() => {
-              window.location.href = analyticsHref;
-            }}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-left shadow-sm transition hover:border-teal-200 hover:bg-white"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{kpi.label}</p>
-                <p className="mt-1 text-lg font-semibold text-slate-900">{kpi.value}</p>
-              </div>
-              <div className="relative w-[46%]">
-              <svg viewBox="0 0 120 30" className="h-8 w-full rounded px-1 py-0.5">
-                <path d={pointsToArea(kpi.points)} fill={kpi.stroke} opacity="0.12" />
-                <polyline fill="none" stroke={kpi.stroke} strokeWidth="1.6" points={pointsToPolyline(kpi.points)} />
-                {hoveredKpi?.label === kpi.label ? (
-                  <line
-                    x1={kpi.points[hoveredKpi.index]?.x ?? 0}
-                    x2={kpi.points[hoveredKpi.index]?.x ?? 0}
-                    y1="0"
-                    y2="30"
-                    stroke={kpi.stroke}
-                    strokeWidth="1"
-                    opacity="0.3"
-                  />
-                ) : null}
-                {kpi.points.map((point) => (
-                  <circle
-                    key={`${kpi.label}-${point.index}`}
-                    cx={point.x}
-                    cy={point.y}
-                    r="2.1"
-                    fill={kpi.stroke}
-                    opacity={hoveredKpi?.label === kpi.label && hoveredKpi.index === point.index ? 1 : 0.35}
-                    onMouseEnter={() => setHoveredKpi({ label: kpi.label, index: point.index })}
-                    onMouseLeave={() => setHoveredKpi(null)}
-                  />
-                ))}
-                {kpi.points.length > 0 ? (
-                  <circle
-                    cx={kpi.points[kpi.points.length - 1]?.x}
-                    cy={kpi.points[kpi.points.length - 1]?.y}
-                    r="2.7"
-                    fill={kpi.stroke}
-                  />
-                ) : null}
-              </svg>
-              {hoveredKpi?.label === kpi.label && dailyKpiSeries[hoveredKpi.index] ? (
-                <div className="pointer-events-none absolute -top-7 left-0 rounded bg-slate-900 px-1.5 py-0.5 text-[9px] text-white">
-                  {dailyKpiSeries[hoveredKpi.index]?.day}: {kpi.label === 'Skupni prihodki' || kpi.label === 'Povprečna vrednost naročila' ? formatCurrency(kpi.points[hoveredKpi.index]?.value ?? 0) : kpi.label === 'Delež plačanih naročil' ? `${(kpi.points[hoveredKpi.index]?.value ?? 0).toFixed(1).replace('.', ',')} %` : Math.round(kpi.points[hoveredKpi.index]?.value ?? 0)}
-                </div>
-              ) : null}
-              </div>
-            </div>
-          </button>
-        ))}
-      </div>
+      <AdminOrdersPreviewChart
+        orders={orders}
+        appearance={analyticsAppearance}
+        fromDate={debouncedFromDate}
+        toDate={debouncedToDate}
+      />
       <div className="mb-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
         <div className="flex flex-wrap items-end gap-2">
           <div className="relative min-w-[170px]" ref={datePopoverRef}>
@@ -971,7 +877,6 @@ export default function AdminOrdersTable({
                 onChange={(event) => {
                   const checked = event.target.checked;
                   setIsDocumentSearchEnabled(checked);
-                  setIsDocumentFilterApplied(checked);
                   if (!checked) {
                     setMessage(null);
                   }
@@ -990,7 +895,6 @@ export default function AdminOrdersTable({
               onChange={(event) => {
                 setDocumentType(event.target.value as DocumentType);
                 if (isDocumentSearchEnabled) {
-                  setIsDocumentFilterApplied(true);
                   setMessage(null);
                 }
               }}
@@ -1055,7 +959,7 @@ export default function AdminOrdersTable({
 
 
       <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-[1180px] w-full table-fixed text-left text-[13px]">
+        <table className="min-w-[1180px] w-full table-auto text-left text-[13px]">
           <colgroup>
             <col style={{ width: columnWidths.selectAndDelete }} />
             <col style={{ width: columnWidths.order }} />
@@ -1236,7 +1140,7 @@ export default function AdminOrdersTable({
                 </div>
               </th>
 
-              <th className="px-2 py-2 text-right">
+              <th className="px-2 py-2 text-center">
                 <button
                   type="button"
                   onClick={() => onSort('total')}
@@ -1246,7 +1150,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="min-w-[120px] px-2 py-2 text-left normal-case">PDF datoteke</th>
+              <th className="min-w-[100px] px-2 py-2 text-center normal-case">PDF datoteke</th>
               <th className="px-2 py-2 text-center normal-case">Uredi</th>
             </tr>
           </thead>
@@ -1255,7 +1159,18 @@ export default function AdminOrdersTable({
             {filteredAndSortedOrders.length === 0 ? (
               <tr>
                 <td className="px-2 py-6 text-center text-slate-500" colSpan={10}>
-                  Ni zadetkov za izbrane filtre.
+                  <div className="flex flex-col items-center gap-2">
+                    <span>Ni zadetkov za izbrane filtre.</span>
+                    {orders.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={resetAllFilters}
+                        className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        Prikaži vsa naročila
+                      </button>
+                    ) : null}
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -1287,10 +1202,14 @@ export default function AdminOrdersTable({
                       </div>
                     </td>
 
-                    <td className="px-2 py-2 align-middle text-center font-semibold text-slate-900">
-                      <span className="text-[13px] font-semibold text-slate-900">
+                    <td className="px-2 py-2 align-middle text-center font-semibold text-slate-900" data-no-row-nav>
+                      <a
+                        href={`/admin/orders/${order.id}`}
+                        className="inline-flex rounded-sm px-1 text-[13px] font-semibold text-brand-700 hover:text-brand-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
+                        aria-label={`Odpri naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                      >
                         {toDisplayOrderNumber(order.order_number)}
-                      </span>
+                      </a>
                     </td>
 
                     <td className="px-2 py-2 align-middle text-center whitespace-nowrap text-slate-600">
@@ -1360,12 +1279,12 @@ export default function AdminOrdersTable({
                       )}
                     </td>
 
-                    <td className="px-2 py-2 align-middle text-right text-slate-700">
+                    <td className="px-2 py-2 align-middle text-center text-slate-700">
                       {formatCurrency(order.total)}
                     </td>
 
-                    <td className="min-w-[120px] pl-0 pr-0 py-2 align-middle text-right" data-no-row-nav>
-                      <div className="flex justify-end">
+                    <td className="min-w-[100px] pl-0 pr-0 py-2 align-middle text-center" data-no-row-nav>
+                      <div className="flex justify-center">
                         <AdminOrdersPdfCell
                           orderId={order.id}
                           documents={documentsByOrder.get(order.id) ?? []}
@@ -1376,13 +1295,26 @@ export default function AdminOrdersTable({
                     </td>
 
                     <td className="pl-0 pr-0 py-2 align-middle text-center" data-no-row-nav>
-                      <a
-                        href={`/admin/orders/${order.id}`}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100"
-                        aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
-                      >
-                        ✎
-                      </a>
+                      <div className="flex items-center justify-center gap-1">
+                        <a
+                          href={`/admin/orders/${order.id}`}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100"
+                          aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                          title="Uredi"
+                        >
+                          ✎
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteRow(order.id)}
+                          disabled={deletingRowId === order.id}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-rose-200 text-sm font-semibold leading-none text-rose-600 hover:bg-rose-50 disabled:text-slate-300"
+                          aria-label={`Izbriši naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                          title="Izbriši"
+                        >
+                          {deletingRowId === order.id ? '…' : '×'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -1394,4 +1326,15 @@ export default function AdminOrdersTable({
       </div>
     </div>
   );
+}
+
+function useDebouncedValue<T>(value: T, delayMs: number) {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setDebounced(value), delayMs);
+    return () => window.clearTimeout(timeoutId);
+  }, [value, delayMs]);
+
+  return debounced;
 }

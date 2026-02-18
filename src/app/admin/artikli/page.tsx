@@ -20,7 +20,8 @@ type SeedItem = {
   unit: string;
   sku: string;
   active: boolean;
-  image?: string;
+  images: string[];
+  discountPct: number;
   updatedAt: string;
 };
 
@@ -39,7 +40,8 @@ function buildSeedItems(): SeedItem[] {
         unit: 'kos',
         sku: getCatalogCategoryItemSku(category.slug, item.slug),
         active: true,
-        image: item.image,
+        images: item.images?.length ? item.images : item.image ? [item.image] : [],
+        discountPct: item.discountPct ?? 0,
         updatedAt: now
       });
     }
@@ -55,7 +57,8 @@ function buildSeedItems(): SeedItem[] {
           unit: 'kos',
           sku: getCatalogItemSku(category.slug, sub.slug, item.slug),
           active: true,
-          image: item.image,
+          images: item.images?.length ? item.images : item.image ? [item.image] : [],
+          discountPct: item.discountPct ?? 0,
           updatedAt: now
         });
       }

@@ -319,7 +319,7 @@ export default function AdminOrderPdfManager({
             value={draftNotes}
             onChange={(event) => setDraftNotes(event.target.value)}
             rows={2}
-            className="mt-2 h-[88px] w-full resize-none overflow-y-auto rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-[12px] leading-5 text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            className="mt-2 h-[44px] w-full resize-none overflow-y-auto rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-[12px] leading-5 text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           />
         ) : (
           <p className="mt-2 h-[88px] overflow-y-auto whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-[12px] leading-5 text-slate-900">

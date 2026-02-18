@@ -217,11 +217,13 @@ function StaticFloatingSelect({
 
 export default function AdminOrderHeaderChips(props: Props) {
   const { orderId, orderNumber } = props;
+  const [displayOrderNumber, setDisplayOrderNumber] = useState(orderNumber);
   const router = useRouter();
 
   const [topSectionMode, setTopSectionMode] = useState<TopSectionMode>('read');
   const [persistedTopData, setPersistedTopData] = useState<TopData>(() => asTopData(props));
   const [draftTopData, setDraftTopData] = useState<TopData>(() => asTopData(props));
+  const [draftOrderNumber, setDraftOrderNumber] = useState(orderNumber);
   const [isTopSaving, setIsTopSaving] = useState(false);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -229,8 +231,8 @@ export default function AdminOrderHeaderChips(props: Props) {
   const [message, setMessage] = useState<string | null>(null);
 
   const isTopDirty = useMemo(
-    () => JSON.stringify(draftTopData) !== JSON.stringify(persistedTopData),
-    [draftTopData, persistedTopData]
+    () => JSON.stringify(draftTopData) !== JSON.stringify(persistedTopData) || draftOrderNumber.trim() !== displayOrderNumber.trim(),
+    [draftTopData, persistedTopData, draftOrderNumber, displayOrderNumber]
   );
 
   const topInputsEditable = topSectionMode === 'edit';
@@ -239,12 +241,14 @@ export default function AdminOrderHeaderChips(props: Props) {
   const startEdit = () => {
     if (topSectionMode === 'edit') {
       setDraftTopData({ ...persistedTopData });
+      setDraftOrderNumber(displayOrderNumber);
       setTopSectionMode('read');
       setMessage(null);
       return;
     }
 
     setDraftTopData({ ...persistedTopData });
+    setDraftOrderNumber(displayOrderNumber);
     setTopSectionMode('edit');
     setMessage(null);
   };
@@ -275,6 +279,7 @@ export default function AdminOrderHeaderChips(props: Props) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            orderNumber: draftOrderNumber,
             customerType: draftTopData.customerType,
             organizationName: draftTopData.organizationName,
             contactName: draftTopData.organizationName.trim() || draftTopData.contactName.trim(),
@@ -291,7 +296,9 @@ export default function AdminOrderHeaderChips(props: Props) {
         throw new Error(error.message || 'Shranjevanje ni uspelo.');
       }
 
+      const resolvedOrderNumber = draftOrderNumber.trim() || displayOrderNumber;
       setPersistedTopData({ ...draftTopData });
+      setDisplayOrderNumber(resolvedOrderNumber);
       setTopSectionMode('read');
       window.dispatchEvent(
         new CustomEvent('admin-order-details-updated', {
@@ -301,7 +308,8 @@ export default function AdminOrderHeaderChips(props: Props) {
             customerType: draftTopData.customerType,
             email: draftTopData.email,
             deliveryAddress: draftTopData.deliveryAddress,
-            notes: draftTopData.notes
+            notes: draftTopData.notes,
+            orderNumber: resolvedOrderNumber
           }
         })
       );
@@ -337,7 +345,16 @@ export default function AdminOrderHeaderChips(props: Props) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-4 py-3 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">{orderNumber}</h1>
+        {topInputsEditable ? (
+          <input
+            value={draftOrderNumber}
+            onChange={(event) => setDraftOrderNumber(event.target.value)}
+            className="h-9 min-w-[4ch] max-w-[10ch] rounded-md border border-slate-300 bg-white px-1 text-2xl font-bold tracking-tight text-slate-900"
+            aria-label="Številka naročila"
+          />
+        ) : (
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{displayOrderNumber}</h1>
+        )}
 
         <div className="ml-auto flex items-center gap-1.5">
           {topInputsEditable ? (

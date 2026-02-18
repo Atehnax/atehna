@@ -23,6 +23,7 @@ type SeedItem = {
   images: string[];
   discountPct: number;
   updatedAt: string;
+  archivedAt: string | null;
 };
 
 function buildSeedItems(): SeedItem[] {
@@ -42,7 +43,8 @@ function buildSeedItems(): SeedItem[] {
         active: true,
         images: item.images?.length ? item.images : item.image ? [item.image] : [],
         discountPct: item.discountPct ?? 0,
-        updatedAt: now
+        updatedAt: now,
+        archivedAt: null
       });
     }
 
@@ -59,7 +61,8 @@ function buildSeedItems(): SeedItem[] {
           active: true,
           images: item.images?.length ? item.images : item.image ? [item.image] : [],
           discountPct: item.discountPct ?? 0,
-          updatedAt: now
+          updatedAt: now,
+          archivedAt: null
         });
       }
     }

@@ -349,7 +349,7 @@ export default function AdminOrderHeaderChips(props: Props) {
           <input
             value={draftOrderNumber}
             onChange={(event) => setDraftOrderNumber(event.target.value)}
-            className="h-9 min-w-[4ch] max-w-[10ch] rounded-md border border-slate-300 bg-white px-1 text-2xl font-bold tracking-tight text-slate-900"
+            className="h-9 w-full max-w-none rounded-md border border-slate-300 bg-white px-1 text-2xl font-bold tracking-tight text-slate-900 sm:max-w-[5ch]"
             aria-label="Številka naročila"
           />
         ) : (

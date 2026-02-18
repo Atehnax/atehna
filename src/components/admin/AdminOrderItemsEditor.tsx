@@ -415,7 +415,7 @@ export default function AdminOrderItemsEditor({
                 inputMode="decimal"
                 value={formatDecimalInput(draftShipping)}
                 onChange={(event) => setDraftShipping(Math.max(0, parseLocaleNumber(event.target.value)))}
-                className="h-6 w-20 rounded-md border border-slate-300 bg-white px-1 text-right text-[11px] leading-4 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-100"
+                className="h-6 w-full max-w-none rounded-md border border-slate-300 bg-white px-1 text-right text-[11px] leading-4 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-100 sm:max-w-[60px]"
               />
             ) : (
               <span className="font-semibold">{formatCurrency(totals.shipping)}</span>

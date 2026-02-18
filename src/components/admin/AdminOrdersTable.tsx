@@ -769,7 +769,7 @@ export default function AdminOrdersTable({
 
   return (
     <div className="w-full">
-      <div className="mx-auto w-[72vw] min-w-[1180px] max-w-[1520px]">
+      <div className="mx-auto w-full max-w-[1600px]">
       <AdminOrdersPreviewChart
         orders={orders}
         appearance={analyticsAppearance}
@@ -778,7 +778,7 @@ export default function AdminOrdersTable({
         activeRange={rangePreset}
         onRangeChange={applyAnalyticsRangePreset}
       />
-      <div className="mb-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="mb-2 rounded-2xl border p-3 shadow-sm" style={{ backgroundColor: analyticsAppearance?.sectionBg ?? 'var(--surface-2)', borderColor: analyticsAppearance?.gridColor ?? '#e2e8f0' }}>
         <div className="flex flex-wrap items-end gap-2">
           <div className="relative min-w-[170px]" ref={datePopoverRef}>
             <button
@@ -961,7 +961,7 @@ export default function AdminOrdersTable({
             type="button"
             onClick={handleDownloadAllDocuments}
             disabled={!isDocumentSearchEnabled || isDownloading}
-            className="h-8 rounded-full border border-slate-300 px-3 text-xs font-semibold text-slate-700 transition hover:border-brand-300 hover:text-brand-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
+            className="h-8 rounded-full border border-slate-300 px-3 text-xs font-semibold text-slate-700 transition hover:border-brand-300 hover:text-brand-700 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45"
           >
             {isDownloading ? 'Prenos...' : 'Prenesi vse'}
           </button>
@@ -970,7 +970,7 @@ export default function AdminOrdersTable({
             type="button"
             onClick={handleResetDocumentFilter}
             disabled={documentType === 'all'}
-            className="h-8 rounded-full px-3 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:ring-slate-100 disabled:hover:bg-transparent"
+            className="h-8 rounded-full px-3 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45"
           >
             Ponastavi
           </button>

@@ -222,7 +222,7 @@ function AdminOrdersPreviewChart({
     hovermode: 'closest',
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
-    xaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, fixedrange: true, hoverformat: '%Y-%m-%d' },
+    xaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, fixedrange: true, hoverformat: '%Y-%m-%d', rangeslider: { visible: true, thickness: 0.18, bgcolor: 'rgba(148,163,184,0.18)', bordercolor: 'rgba(148,163,184,0.35)', borderwidth: 1 } },
     yaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, rangemode: 'tozero', fixedrange: true },
     hoverlabel: {
       bgcolor: '#1f2937',
@@ -385,7 +385,8 @@ function AdminOrdersPreviewChart({
       style={{ backgroundColor: resolvedSectionBg, borderColor: appearance.gridColor }}
       aria-label="Orders analytics previews"
     >
-      <div className="mb-2 flex items-center justify-end">
+      <div className="mb-2 flex min-h-[30px] items-center justify-between gap-3">
+        <h2 className="text-xs font-semibold tracking-wide" style={{ color: appearance.axisTextColor }}>Hitra analitika naročil</h2>
         <div className="inline-flex rounded-md border border-slate-300 bg-white p-0.5 text-[11px] shadow-sm">
           {rangeOptions.map((option) => (
             <button
@@ -406,24 +407,24 @@ function AdminOrdersPreviewChart({
             key={chart.key}
             type="button"
             onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(chart.focusKey)}`)}
-            className="flex min-h-[110px] items-center justify-between rounded-xl border px-2 py-1.5 text-left shadow-sm transition hover:border-slate-400"
+            className="flex min-h-[124px] items-center justify-between rounded-xl border px-2.5 py-2 text-left shadow-sm transition hover:border-slate-400"
             style={{ backgroundColor: appearance.cardBg || 'var(--surface-1)', borderColor: appearance.gridColor }}
           >
             <div className="flex h-full min-w-[88px] flex-col items-center justify-center pr-2 text-center">
-              <p className="text-sm font-semibold" style={{ color: appearance.axisTextColor }}>
+              <p className="text-xs font-semibold tracking-wide" style={{ color: appearance.axisTextColor }}>
                 {chart.title}
               </p>
-              <p className="mt-1 text-lg font-semibold" style={{ color: appearance.axisTextColor }}>
+              <p className="mt-1 text-base font-semibold" style={{ color: appearance.axisTextColor }}>
                 {chart.value}
               </p>
               <p className={`mt-0.5 text-[11px] font-medium ${chart.deltaClassName}`}>{chart.delta}</p>
             </div>
-            <div className="w-[145px] rounded-md" style={{ backgroundColor: 'transparent' }}>
+            <div className="w-[190px] rounded-md" style={{ backgroundColor: 'transparent' }}>
               <PlotlyClient
                 data={chart.traces}
                 layout={chart.layout}
                 config={{ responsive: true, displayModeBar: false }}
-                style={{ width: '100%', height: 105 }}
+                style={{ width: '100%', height: 118 }}
                 useResizeHandler
               />
             </div>

@@ -1,4 +1,5 @@
 import AdminDeletedArchiveTable from '@/components/admin/AdminDeletedArchiveTable';
+import AdminArchiveTabs from '@/components/admin/AdminArchiveTabs';
 import { fetchArchiveEntries } from '@/lib/server/deletedArchive';
 import { getDatabaseUrl } from '@/lib/server/db';
 
@@ -38,6 +39,7 @@ export default async function AdminArchivePage() {
         <h1 className="text-2xl font-semibold text-slate-900">Arhiv</h1>
         <p className="mt-1 text-sm text-slate-600">Izbrisani zapisi se hranijo 60 dni, nato se trajno odstranijo.</p>
       </div>
+      <AdminArchiveTabs />
       <AdminDeletedArchiveTable initialEntries={entries} />
     </div>
   );

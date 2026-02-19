@@ -324,23 +324,23 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Poišči po nazivu, SKU ali kategoriji …"
-            className="h-10 rounded-xl border border-slate-300 px-3 text-xs focus:border-brand-500 focus:ring-1 focus:ring-brand-300"
+            className="h-8 rounded-xl border border-slate-300 px-3 text-xs focus:border-brand-500 focus:ring-1 focus:ring-brand-300"
           />
-          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-10 rounded-xl border border-slate-300 px-3 text-xs focus:border-brand-500 focus:ring-1 focus:ring-brand-300">
+          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-8 rounded-xl border border-slate-300 px-3 text-xs focus:border-brand-500 focus:ring-1 focus:ring-brand-300">
             <option value="all">Vse kategorije</option>
             {categories.map((category) => (
               <option key={category} value={category}>{category}</option>
             ))}
           </select>
-          <select value={statusTab} onChange={(event) => setStatusTab(event.target.value as StatusTab)} className="h-10 rounded-xl border border-slate-300 px-3 text-xs focus:border-brand-500 focus:ring-1 focus:ring-brand-300">
-            <option value="active">Aktivni</option>
-            <option value="inactive">Neaktivni</option>
+          <select value={statusTab} onChange={(event) => setStatusTab(event.target.value as StatusTab)} className="h-8 rounded-xl border border-slate-300 px-3 text-xs focus:border-brand-500 focus:ring-1 focus:ring-brand-300">
+            <option value="active">Aktivni artikli</option>
+            <option value="inactive">Neaktivni artikli</option>
           </select>
           <button
             type="button"
             onClick={archiveSelected}
             disabled={selectedIds.length === 0}
-            className="h-10 rounded-xl border border-amber-300 px-3 text-xs font-semibold text-amber-700 transition hover:bg-amber-50 disabled:pointer-events-none disabled:opacity-45"
+            className="h-8 rounded-xl border border-amber-300 px-3 text-xs font-semibold text-amber-700 transition hover:bg-amber-50 disabled:pointer-events-none disabled:opacity-45"
           >
             Arhiviraj
           </button>
@@ -370,12 +370,12 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                 <th className="px-3 py-2 text-center">
                   <button type="button" onClick={() => handleSort('price')} className="inline-flex items-center font-semibold hover:text-slate-700">Cena <SortIndicator active={sortKey === 'price'} direction={sortDirection} /></button>
                 </th>
-                <th className="px-3 py-2 text-center">Popust</th>
-                <th className="px-3 py-2 text-center">Sedanja cena</th>
+                <th className="px-3 py-2 text-center normal-case">Popust</th>
+                <th className="px-3 py-2 text-center normal-case">Akc. cena</th>
                 <th className="px-3 py-2 text-center">
                   <button type="button" onClick={() => handleSort('status')} className="inline-flex items-center font-semibold hover:text-slate-700">Status <SortIndicator active={sortKey === 'status'} direction={sortDirection} /></button>
                 </th>
-                <th className="px-3 py-2 text-left">Uredi</th>
+                <th className="px-3 py-2 text-left normal-case">Uredi</th>
               </tr>
             </thead>
             <tbody>

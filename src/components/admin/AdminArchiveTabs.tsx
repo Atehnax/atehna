@@ -19,7 +19,7 @@ export default function AdminArchiveTabs() {
           <Link
             key={tab.href}
             href={tab.href}
-            className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${isActive ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-300 text-slate-600 hover:bg-slate-50'}`}
+            className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${isActive ? 'border-brand-500 bg-[#f8f7fc] text-brand-700' : 'border-slate-300 bg-[#f8f7fc] text-slate-600 hover:bg-[#f2f0fb]'}`}
           >
             {tab.label}
           </Link>

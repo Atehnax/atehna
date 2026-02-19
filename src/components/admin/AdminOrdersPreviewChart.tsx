@@ -62,7 +62,7 @@ const toCustomerBucket = (customerType: string): CustomerBucketKey => {
 };
 
 const compactHover = (valueToken: string, suffix = "") =>
-  `<span style=\"display:block;min-width:180px;font-size:13px;font-weight:600;line-height:1.4;\">%{fullData.name}: ${valueToken}${suffix}</span>` +
+  `<span style=\"display:block;min-width:180px;font-size:12px;font-weight:600;line-height:1.45;padding:0 2px;\">%{fullData.name}: ${valueToken}${suffix}</span>` +
   `<span style=\"display:block;margin-top:10px;font-size:12px;font-weight:500;line-height:1.4;\">Datum: %{x|%Y-%m-%d}</span><extra></extra>`;
 
 const stat = (value: number, suffix = '') => `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 2 }).format(value)}${suffix}`;
@@ -333,7 +333,7 @@ function AdminOrdersPreviewChart({
       key: 'customer-type-cumulative',
       focusKey: 'narocila-status-mix',
       title: 'F | P | Š',
-      value: `${data.individualCum.at(-1) ?? 0} | ${data.companyCum.at(-1) ?? 0} | ${data.schoolCum.at(-1) ?? 0}`,
+      value: `${data.individualCum.at(-1) ?? 0}  |  ${data.companyCum.at(-1) ?? 0}  |  ${data.schoolCum.at(-1) ?? 0}`,
       ...(() => {
         const delta = formatDelta(sevenDayChange(data.companyCum.map((value, index) => value + data.schoolCum[index] + data.individualCum[index])));
         return { delta: delta.text, deltaClassName: delta.className };
@@ -407,14 +407,14 @@ function AdminOrdersPreviewChart({
               {chart.key === 'customer-type-cumulative' ? (
                 <div className="w-full">
                   <p className="absolute left-0 top-0 whitespace-nowrap text-sm font-semibold tracking-wide text-[#111827]">{chart.title}</p>
-                  <p className="whitespace-nowrap text-2xl font-bold leading-none text-[#111827]">{chart.value}</p>
+                  <p className="whitespace-nowrap text-[30px] font-bold leading-none text-[#111827]"><span>{data.individualCum.at(-1) ?? 0}</span><span className="mx-2 font-normal text-slate-500">|</span><span>{data.companyCum.at(-1) ?? 0}</span><span className="mx-2 font-normal text-slate-500">|</span><span>{data.schoolCum.at(-1) ?? 0}</span></p>
                 </div>
               ) : (
                 <>
                   <p className="absolute left-0 top-0 whitespace-nowrap text-sm font-semibold tracking-wide" style={{ color: "#111827" }}>
                     {chart.title}
                   </p>
-                  <p className="whitespace-nowrap text-2xl font-bold leading-none" style={{ color: "#111827" }}>
+                  <p className="whitespace-nowrap text-[30px] font-bold leading-none" style={{ color: "#111827" }}>
                     {chart.value}
                   </p>
                 </>

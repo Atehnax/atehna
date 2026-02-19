@@ -243,14 +243,13 @@ export default function AdminDeletedArchiveTable({
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="relative min-w-[160px]">
-          <label className="pointer-events-none absolute left-3 top-1 bg-white px-1 text-[10px] font-semibold uppercase text-slate-500">Vrsta</label>
+        <div className="min-w-[160px]">
           <select
             value={typeFilter}
             onChange={(event) => setTypeFilter(event.target.value as 'all' | 'order' | 'pdf')}
-            className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 pb-1 pt-4 text-xs"
+            className="h-8 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs focus:border-brand-500 focus:ring-1 focus:ring-brand-300"
           >
-            <option value="all">Vse</option>
+            <option value="all">Vse vrste</option>
             <option value="order">Naročila</option>
             <option value="pdf">PDF datoteke</option>
           </select>
@@ -261,7 +260,7 @@ export default function AdminDeletedArchiveTable({
             type="button"
             onClick={bulkRestore}
             disabled={selected.length === 0 || isRestoring || isDeleting}
-            className="h-8 rounded-lg border border-emerald-200 px-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+            className="h-8 rounded-lg border border-emerald-200 bg-[#f8f7fc] px-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
           >
             {isRestoring ? 'Obnavljam ...' : 'Obnovi'}
           </button>
@@ -269,7 +268,7 @@ export default function AdminDeletedArchiveTable({
             type="button"
             onClick={bulkDelete}
             disabled={selected.length === 0 || isDeleting || isRestoring}
-            className="h-8 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+            className="h-8 rounded-lg border border-rose-200 bg-[#f8f7fc] px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
           >
             {isDeleting ? 'Brišem ...' : 'Trajno izbriši'}
           </button>

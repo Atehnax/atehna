@@ -299,7 +299,7 @@ function AdminOrdersPreviewChart({
     {
       key: 'aov-ma',
       focusKey: 'narocila-aov-median',
-      title: 'Povprečna vrednost naročila',
+      title: 'Povp. €/naročilo',
       value: `${stat(data.rangeAov)} €`,
       ...(() => {
         const delta = formatDelta(sevenDayChange(data.dailyAov));
@@ -407,8 +407,8 @@ function AdminOrdersPreviewChart({
             key={chart.key}
             type="button"
             onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(chart.focusKey)}`)}
-            className="flex min-h-[124px] items-center justify-between rounded-xl border px-2.5 py-2 text-left shadow-sm transition hover:border-slate-400"
-            style={{ backgroundColor: appearance.cardBg || 'var(--surface-1)', borderColor: appearance.gridColor }}
+            className="flex min-h-[124px] items-center justify-between rounded-2xl border px-3 py-2 text-left shadow-sm transition hover:border-slate-400"
+            style={{ background: `linear-gradient(180deg, ${appearance.cardBg || 'var(--surface-1)'} 0%, rgba(248,250,252,0.92) 100%)`, borderColor: appearance.gridColor }}
           >
             <div className="flex h-full min-w-[88px] flex-col items-center justify-center pr-2 text-center">
               <p className="text-xs font-semibold tracking-wide" style={{ color: appearance.axisTextColor }}>

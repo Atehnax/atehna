@@ -82,7 +82,6 @@ export default function AdminOrdersTable({
   const debouncedToDate = useDebouncedValue(toDate, 200);
   const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
 
-  const [isDocumentSearchEnabled, setIsDocumentSearchEnabled] = useState(false);
   const [documentType, setDocumentType] = useState<DocumentType>('all');
   const [message, setMessage] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -348,20 +347,15 @@ export default function AdminOrdersTable({
 
       const documentsMatch = !normalizedQuery || documentsSearchBlob.includes(normalizedQuery);
 
-      if (!isDocumentSearchEnabled) {
-        return orderMatches;
-      }
-
       const hasSelectedDocumentType = documentType !== 'all';
 
       if (hasSelectedDocumentType) {
         if (documentsMatchingSelectedType.length === 0) return false;
-        if (normalizedQuery && !documentsMatch) return false;
-        return true;
+        if (!normalizedQuery) return true;
+        return documentsMatch || orderMatches;
       }
 
-      if (!normalizedQuery) return true;
-      return orderMatches || documentsMatch;
+      return orderMatches;
     });
 
     const sortedOrders = [...filteredOrders].sort((leftOrder, rightOrder) => {
@@ -454,7 +448,6 @@ export default function AdminOrdersTable({
     debouncedQuery,
     debouncedFromDate,
     debouncedToDate,
-    isDocumentSearchEnabled,
     documentType,
     latestDocumentsByOrder,
     sortKey,
@@ -684,7 +677,6 @@ export default function AdminOrdersTable({
     setQuery('');
     setFromDate('');
     setToDate('');
-    setIsDocumentSearchEnabled(false);
     setDocumentType('all');
     setMessage(null);
   };
@@ -694,7 +686,6 @@ export default function AdminOrdersTable({
     query.trim().length > 0 ||
     fromDate.length > 0 ||
     toDate.length > 0 ||
-    isDocumentSearchEnabled ||
     documentType !== 'all';
 
   useEffect(() => {
@@ -729,15 +720,17 @@ export default function AdminOrdersTable({
   };
 
   const handleDownloadAllDocuments = async () => {
-    if (!isDocumentSearchEnabled) return;
-
     setIsDownloading(true);
     setMessage(null);
 
     try {
       const filesToDownload: Array<{ url: string; filename: string }> = [];
 
-      filteredAndSortedOrders.forEach((order) => {
+      const downloadSourceOrders = selected.length > 0
+        ? filteredAndSortedOrders.filter((order) => selected.includes(order.id))
+        : filteredAndSortedOrders;
+
+      downloadSourceOrders.forEach((order) => {
         const latestDocumentsForOrder = latestDocumentsByOrder.get(order.id) ?? [];
         const documentsBySelectedType =
           documentType === 'all'
@@ -909,73 +902,52 @@ export default function AdminOrdersTable({
             <label className="pointer-events-none absolute left-3 top-1.5 bg-white px-1 text-[10px] text-slate-600">Iskanje</label>
           </div>
 
-          <div>
-            <label className="mb-1 block select-none text-xs font-semibold uppercase text-transparent">
-              Dokumenti
-            </label>
-            <div className="flex h-8 items-center gap-2">
-              <input
-                id="search-documents"
-                type="checkbox"
-                checked={isDocumentSearchEnabled}
+          <div className="ml-auto inline-flex h-8 items-center overflow-hidden rounded-full border border-slate-300 bg-white shadow-sm">
+            <div className="relative">
+              <select
+                value={documentType}
                 onChange={(event) => {
-                  const checked = event.target.checked;
-                  setIsDocumentSearchEnabled(checked);
-                  if (!checked) {
-                    setMessage(null);
-                  }
-                }}
-                className="h-4 w-4 rounded border-slate-300"
-              />
-              <label htmlFor="search-documents" className="text-xs text-slate-700">
-                Išči dokumente
-              </label>
-            </div>
-          </div>
-
-          <div className={`relative min-w-[180px] ${!isDocumentSearchEnabled ? 'opacity-60' : ''}`}>
-            <select
-              value={documentType}
-              onChange={(event) => {
-                setDocumentType(event.target.value as DocumentType);
-                if (isDocumentSearchEnabled) {
+                  setDocumentType(event.target.value as DocumentType);
                   setMessage(null);
-                }
-              }}
-              disabled={!isDocumentSearchEnabled}
-              className="h-10 w-full rounded-xl border border-slate-300 px-2.5 pb-1 pt-4 text-xs disabled:bg-slate-100 disabled:text-slate-400"
+                }}
+                className="h-8 min-w-[180px] appearance-none border-0 bg-transparent px-3 pr-7 text-xs font-semibold text-slate-700 outline-none"
+              >
+                {documentTypeOptions.map((documentTypeOption) => (
+                  <option key={documentTypeOption.value} value={documentTypeOption.value}>
+                    {documentTypeOption.label}
+                  </option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-500">▾</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleResetDocumentFilter}
+              disabled={documentType === 'all'}
+              className="h-8 border-l border-slate-200 px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:pointer-events-none disabled:opacity-45"
             >
-              {documentTypeOptions.map((documentTypeOption) => (
-                <option key={documentTypeOption.value} value={documentTypeOption.value}>
-                  {documentTypeOption.label}
-                </option>
-              ))}
-            </select>
-            <label className={`pointer-events-none absolute left-2.5 top-1.5 px-1 text-[10px] ${isDocumentSearchEnabled ? 'bg-white text-slate-600' : 'bg-slate-100 text-slate-400'}`}>
-              Vrsta dokumenta
-            </label>
+              Ponastavi
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadAllDocuments}
+              disabled={isDownloading}
+              className="h-8 border-l border-slate-200 px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:pointer-events-none disabled:opacity-45"
+            >
+              {isDownloading ? 'Prenos...' : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
+            </button>
           </div>
 
-
           <button
             type="button"
-            onClick={handleDownloadAllDocuments}
-            disabled={!isDocumentSearchEnabled || isDownloading}
-            className="h-8 rounded-full border border-slate-300 px-3 text-xs font-semibold text-slate-700 transition hover:border-brand-300 hover:text-brand-700 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45"
+            onClick={handleDelete}
+            disabled={selected.length === 0 || isDeleting}
+            className="h-8 rounded-full border border-rose-300 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:pointer-events-none disabled:opacity-45"
           >
-            {isDownloading ? 'Prenos...' : 'Prenesi vse'}
+            {isDeleting ? 'Brisanje...' : 'Izbriši'}
           </button>
 
-          <button
-            type="button"
-            onClick={handleResetDocumentFilter}
-            disabled={documentType === 'all'}
-            className="h-8 rounded-full px-3 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            Ponastavi
-          </button>
-
-          {topAction ? <div className="ml-auto flex h-8 items-center">{topAction}</div> : null}
+          {topAction ? <div className="flex h-10 items-center">{topAction}</div> : null}
         </div>
 
         {message && <p className="mt-2 text-xs text-slate-600">{message}</p>}
@@ -1020,24 +992,14 @@ export default function AdminOrdersTable({
 
           <thead className="bg-slate-50 text-[12px] uppercase text-slate-500">
             <tr>
-              <th className="px-2 py-2">
-                <div className="flex flex-col items-center gap-1">
-                  <input
-                    type="checkbox"
-                    ref={selectAllRef}
-                    checked={allSelected}
-                    onChange={toggleAll}
-                    aria-label="Izberi vse"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleDelete}
-                    disabled={selected.length === 0 || isDeleting}
-                    className={`text-[10px] font-semibold underline-offset-2 ${selected.length > 0 && !isDeleting ? 'text-rose-700/85 hover:text-rose-700' : 'text-slate-500/75'} disabled:cursor-not-allowed`}
-                  >
-                    {isDeleting ? 'Brisanje...' : 'Izbriši'}
-                  </button>
-                </div>
+              <th className="px-2 py-2 text-center">
+                <input
+                  type="checkbox"
+                  ref={selectAllRef}
+                  checked={allSelected}
+                  onChange={toggleAll}
+                  aria-label="Izberi vse"
+                />
               </th>
 
               <th className="px-2 py-2 text-center">

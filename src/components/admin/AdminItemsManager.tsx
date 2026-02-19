@@ -344,7 +344,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
           >
             Arhiviraj
           </button>
-          <button type="button" onClick={openCreate} className="h-8 rounded-xl border border-brand-600/70 bg-brand-600/85 px-3 text-xs font-semibold text-white hover:bg-brand-700/85">
+          <button type="button" onClick={openCreate} className="h-8 rounded-xl border border-[#d6ccfb] bg-[#ede8fe] px-3 text-xs font-semibold text-[#5a3fda] hover:bg-[#e2dafd]">
             + Dodaj artikel
           </button>
         </div>
@@ -371,11 +371,11 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                   <button type="button" onClick={() => handleSort('price')} className="inline-flex items-center font-semibold hover:text-slate-700">Cena <SortIndicator active={sortKey === 'price'} direction={sortDirection} /></button>
                 </th>
                 <th className="px-3 py-2 text-center normal-case">Popust</th>
-                <th className="px-3 py-2 text-center normal-case">Akc. cena</th>
+                <th className="px-3 py-2 text-center normal-case whitespace-nowrap">Akc. cena</th>
                 <th className="px-3 py-2 text-center">
                   <button type="button" onClick={() => handleSort('status')} className="inline-flex items-center font-semibold hover:text-slate-700">Status <SortIndicator active={sortKey === 'status'} direction={sortDirection} /></button>
                 </th>
-                <th className="px-3 py-2 text-left normal-case">Uredi</th>
+                <th className="px-3 py-2 text-center normal-case">Uredi</th>
               </tr>
             </thead>
             <tbody>
@@ -389,7 +389,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                   <td className="px-3 py-2 text-center text-slate-600">{item.discountPct}%</td>
                   <td className="px-3 py-2 text-center font-semibold text-slate-900">{formatCurrency(discountedPrice(item.price, item.discountPct))}</td>
                   <td className="px-3 py-2 text-center"><span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-semibold ${item.active ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'}`}>{item.active ? 'Aktiven' : 'Neaktiven'}</span></td>
-                  <td className="px-3 py-2"><div className="flex items-center gap-1.5"><button type="button" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"><ActionIcon type="edit" /></button><button type="button" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"><ActionIcon type="copy" /></button><button type="button" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-amber-200 text-amber-700 hover:bg-amber-50"><ActionIcon type="archive" /></button></div></td>
+                  <td className="px-3 py-2"><div className="flex items-center justify-center gap-1.5"><button type="button" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"><ActionIcon type="edit" /></button><button type="button" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"><ActionIcon type="copy" /></button><button type="button" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-amber-200 text-amber-700 hover:bg-amber-50"><ActionIcon type="archive" /></button></div></td>
                 </tr>
               ))}
             </tbody>

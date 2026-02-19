@@ -961,7 +961,7 @@ export default function AdminOrdersTable({
               onClick={() => setStatusFilter(tab.value)}
               className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
                 isActive
-                  ? 'bg-slate-900 text-white'
+                  ? 'bg-[#ede8fe] text-[#5a3fda]'
                   : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50'
               }`}
             >

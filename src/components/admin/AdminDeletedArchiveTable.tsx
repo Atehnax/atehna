@@ -243,7 +243,7 @@ export default function AdminDeletedArchiveTable({
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-[160px]">
+        <div className="min-w-[112px]">
           <select
             value={typeFilter}
             onChange={(event) => setTypeFilter(event.target.value as 'all' | 'order' | 'pdf')}

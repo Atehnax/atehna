@@ -332,8 +332,8 @@ function AdminOrdersPreviewChart({
     {
       key: 'customer-type-cumulative',
       focusKey: 'narocila-status-mix',
-      title: '',
-      value: '',
+      title: 'F | P | Š',
+      value: `${data.individualCum.at(-1) ?? 0} | ${data.companyCum.at(-1) ?? 0} | ${data.schoolCum.at(-1) ?? 0}`,
       ...(() => {
         const delta = formatDelta(sevenDayChange(data.companyCum.map((value, index) => value + data.schoolCum[index] + data.individualCum[index])));
         return { delta: delta.text, deltaClassName: delta.className };
@@ -342,12 +342,12 @@ function AdminOrdersPreviewChart({
         {
           type: 'scatter',
           mode: 'lines',
-          name: 'Fiz. os.',
+          name: 'Šole',
           x: data.x,
-          y: data.individualCum,
+          y: data.schoolCum,
           stackgroup: 'customers',
           fill: 'tozeroy',
-          line: { color: appearance.seriesPalette[3], width: 1.2 },
+          line: { color: appearance.seriesPalette[2], width: 1.2 },
           hovertemplate: compactHover('%{y:,.0f}')
         },
         {
@@ -364,12 +364,12 @@ function AdminOrdersPreviewChart({
         {
           type: 'scatter',
           mode: 'lines',
-          name: 'Šole',
+          name: 'Fiz. os.',
           x: data.x,
-          y: data.schoolCum,
+          y: data.individualCum,
           stackgroup: 'customers',
           fill: 'tonexty',
-          line: { color: appearance.seriesPalette[2], width: 1.2 },
+          line: { color: appearance.seriesPalette[3], width: 1.2 },
           hovertemplate: compactHover('%{y:,.0f}')
         }
       ],
@@ -403,19 +403,18 @@ function AdminOrdersPreviewChart({
             className="flex min-h-[124px] items-center justify-between rounded-xl border px-3 py-2 text-left shadow-sm transition hover:border-slate-400"
             style={{ background: `linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,248,251,0.96) 100%)`, borderColor: appearance.gridColor }}
           >
-            <div className="relative flex h-full min-w-[88px] flex-1 flex-col items-center justify-center pr-2 text-center">
+            <div className="relative flex h-full min-w-[88px] flex-1 items-center justify-center pr-2 text-center">
               {chart.key === 'customer-type-cumulative' ? (
-                <div className="flex h-full w-full flex-col justify-center gap-1 text-xs font-semibold text-[#111827]">
-                  <p className="whitespace-nowrap">Fiz. os.: {data.individualCum.at(-1) ?? 0}</p>
-                  <p className="whitespace-nowrap">Podjetja: {data.companyCum.at(-1) ?? 0}</p>
-                  <p className="whitespace-nowrap">Šole: {data.schoolCum.at(-1) ?? 0}</p>
+                <div className="w-full">
+                  <p className="absolute left-0 top-0 whitespace-nowrap text-sm font-semibold tracking-wide text-[#111827]">{chart.title}</p>
+                  <p className="whitespace-nowrap text-2xl font-bold leading-none text-[#111827]">{chart.value}</p>
                 </div>
               ) : (
                 <>
-                  <p className="whitespace-nowrap text-sm font-semibold tracking-wide" style={{ color: "#111827" }}>
+                  <p className="absolute left-0 top-0 whitespace-nowrap text-sm font-semibold tracking-wide" style={{ color: "#111827" }}>
                     {chart.title}
                   </p>
-                  <p className="mt-1 whitespace-nowrap text-2xl font-bold leading-none" style={{ color: "#111827" }}>
+                  <p className="whitespace-nowrap text-2xl font-bold leading-none" style={{ color: "#111827" }}>
                     {chart.value}
                   </p>
                 </>

@@ -162,7 +162,7 @@ export default async function AdminOrdersPage({
   }
 
   return (
-    <div className="w-full px-6 py-8">
+    <div className="w-full">
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>

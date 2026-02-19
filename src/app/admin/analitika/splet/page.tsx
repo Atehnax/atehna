@@ -30,7 +30,7 @@ export default async function AdminWebsiteAnalyticsPage({
     : fallbackAnalytics;
 
   return (
-    <div className="w-full px-6 py-12">
+    <div className="w-full">
       <AdminAnalyticsTopTabs />
       <AdminWebsiteAnalyticsDashboard
       visitsByDay={analytics.visitsByDay}

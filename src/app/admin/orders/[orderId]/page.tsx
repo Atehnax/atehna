@@ -87,7 +87,7 @@ export default async function AdminOrderDetailPage({
 
 
     return (
-      <div className="container-base py-12">
+      <div className="w-full">
         <div className="mx-auto max-w-7xl">
           <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-6 text-sm text-amber-700">
             DATABASE_URL ni nastavljen — prikazan je demo pogled.
@@ -172,7 +172,7 @@ export default async function AdminOrderDetailPage({
 
 
   return (
-    <div className="container-base py-12">
+    <div className="w-full">
       <div className="mx-auto max-w-7xl">
         <Link href="/admin/orders" className="text-sm font-semibold text-brand-600">
           ← Nazaj na seznam

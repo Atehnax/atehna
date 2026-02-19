@@ -90,7 +90,7 @@ function GeneratePdfIcon() {
   );
 }
 
-const notesBoxClass = 'mt-2 h-[44px] overflow-y-auto whitespace-pre-wrap rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-[12px] leading-5 text-slate-900 shadow-sm';
+const notesBoxClass = 'mt-2 h-[44px] overflow-y-auto whitespace-pre-wrap rounded-xl border border-slate-300 px-3 py-1.5 text-[12px] leading-5 text-slate-900 shadow-sm';
 
 export default function AdminOrderPdfManager({
   orderId,
@@ -321,10 +321,10 @@ export default function AdminOrderPdfManager({
             value={draftNotes}
             onChange={(event) => setDraftNotes(event.target.value)}
             rows={2}
-            className={`${notesBoxClass} w-full resize-none outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100`}
+            className={`${notesBoxClass} w-full resize-none bg-white outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-300`}
           />
         ) : (
-          <p className={notesBoxClass}>
+          <p className={`${notesBoxClass} bg-slate-100 text-slate-600`}>
             {persistedNotes.trim()}
           </p>
         )}

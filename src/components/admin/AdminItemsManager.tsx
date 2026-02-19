@@ -319,22 +319,6 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-3">
-        <div className="flex flex-wrap items-center gap-2">
-          {statusTabs.map((tab) => {
-            const active = statusTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => setStatusTab(tab.key)}
-                className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${active ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-300 text-slate-600 hover:bg-slate-50'}`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-
         <div className="mt-3 grid gap-2 md:grid-cols-[minmax(280px,1fr)_220px_220px_auto_auto] md:items-center">
           <input
             value={search}
@@ -360,7 +344,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
           >
             Arhiviraj
           </button>
-          <button type="button" onClick={openCreate} className="h-8 rounded-xl border border-brand-600 bg-brand-600 px-3 text-xs font-semibold text-white hover:bg-brand-700">
+          <button type="button" onClick={openCreate} className="h-8 rounded-xl border border-brand-600/70 bg-brand-600/85 px-3 text-xs font-semibold text-white hover:bg-brand-700/85">
             + Dodaj artikel
           </button>
         </div>

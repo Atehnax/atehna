@@ -27,13 +27,13 @@ export default function AdminSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <aside className={`sticky top-0 h-screen shrink-0 transition-all duration-300 ${isCollapsed ? 'w-8' : 'w-64'}`}>
-      <div className="relative h-full overflow-hidden border-r border-slate-200 bg-[#f8f7fc] shadow-sm">
+    <aside className={`sticky top-0 h-screen shrink-0 transition-all duration-300 ${isCollapsed ? 'w-10' : 'w-[21rem]'}`}>
+      <div className="relative h-full overflow-visible border-r border-slate-200 bg-[#f8f7fc] shadow-sm">
         <button
           type="button"
           aria-label={isCollapsed ? 'Odpri meni' : 'Skrij meni'}
           onClick={() => setIsCollapsed((current) => !current)}
-          className="absolute right-3 top-3 z-20 inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-300 bg-white text-sm text-slate-600 shadow-sm transition hover:bg-slate-50"
+          className="absolute right-[-14px] top-3 z-20 inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-300 bg-white text-sm text-slate-600 shadow-sm transition hover:bg-slate-50"
         >
           <span aria-hidden="true">{isCollapsed ? '❯' : '❮'}</span>
         </button>

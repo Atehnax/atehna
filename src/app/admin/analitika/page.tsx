@@ -41,7 +41,7 @@ export default async function AdminAnalyticsIndexPage({
     : [[], { sectionBg: '#f3f4f6', canvasBg: '#ffffff', cardBg: '#ffffff', plotBg: '#ffffff', axisTextColor: '#1f2937', seriesPalette: ['#2563eb', '#0ea5e9', '#14b8a6', '#f59e0b', '#ef4444'], gridColor: '#d1d5db', gridOpacity: 0.35 }];
 
   return (
-    <div className="w-full px-6 py-12">
+    <div className="w-full">
       <AdminAnalyticsTopTabs />
       <AdminAnalyticsDashboard
         initialData={data}

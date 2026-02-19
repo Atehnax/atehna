@@ -382,7 +382,7 @@ function AdminOrdersPreviewChart({
   return (
     <section
       className="mb-3 rounded-2xl border p-3 shadow-sm"
-      style={{ backgroundColor: resolvedSectionBg, borderColor: appearance.gridColor }}
+      style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)', borderColor: appearance.gridColor, boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
       aria-label="Orders analytics previews"
     >
       <div className="mb-2 flex min-h-[30px] items-center justify-between gap-3">
@@ -408,7 +408,7 @@ function AdminOrdersPreviewChart({
             type="button"
             onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(chart.focusKey)}`)}
             className="flex min-h-[124px] items-center justify-between rounded-2xl border px-3 py-2 text-left shadow-sm transition hover:border-slate-400"
-            style={{ background: `linear-gradient(180deg, ${appearance.cardBg || 'var(--surface-1)'} 0%, rgba(248,250,252,0.92) 100%)`, borderColor: appearance.gridColor }}
+            style={{ background: `linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,248,251,0.96) 100%)`, borderColor: appearance.gridColor }}
           >
             <div className="flex h-full min-w-[88px] flex-col items-center justify-center pr-2 text-center">
               <p className="text-xs font-semibold tracking-wide" style={{ color: appearance.axisTextColor }}>

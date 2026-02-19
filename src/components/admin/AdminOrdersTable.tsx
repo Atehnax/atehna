@@ -771,7 +771,7 @@ export default function AdminOrdersTable({
         activeRange={rangePreset}
         onRangeChange={applyAnalyticsRangePreset}
       />
-      <div className="mb-2 rounded-2xl border p-3 shadow-sm" style={{ backgroundColor: analyticsAppearance?.sectionBg ?? 'var(--surface-2)', borderColor: analyticsAppearance?.gridColor ?? '#e2e8f0' }}>
+      <div className="mb-2 rounded-2xl border p-3 shadow-sm" style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)', borderColor: analyticsAppearance?.gridColor ?? '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}>
         <div className="flex flex-wrap items-end gap-2">
           <div className="relative min-w-[170px]" ref={datePopoverRef}>
             <button

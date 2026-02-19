@@ -777,7 +777,7 @@ export default function AdminOrdersTable({
             <button
               type="button"
               onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-              className="h-11 min-w-[200px] rounded-xl border border-slate-300 bg-white px-3 text-left text-xs text-slate-700 hover:border-slate-400"
+              className="h-10 min-w-[200px] rounded-xl border border-slate-300 bg-white px-3 text-left text-xs text-slate-700 hover:border-slate-400"
             >
               <span className="inline-flex w-full items-center gap-1.5 leading-none"> 
                 <svg
@@ -896,11 +896,11 @@ export default function AdminOrdersTable({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Poišči naročilo, naročnik, naslov, tip, status, plačilo..."
-              className="h-10 w-full rounded-xl border border-slate-300 px-3 text-xs"
+              className="h-10 w-full rounded-xl border border-slate-300 px-3 text-xs focus:border-brand-500 focus:ring-1 focus:ring-brand-300"
             />
           </div>
 
-          <div className="ml-auto inline-flex h-8 items-center overflow-hidden rounded-full border border-slate-300 bg-white shadow-sm">
+          <div className="ml-auto inline-flex h-10 items-center overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm">
             <div className="relative">
               <select
                 value={documentType}
@@ -908,7 +908,7 @@ export default function AdminOrdersTable({
                   setDocumentType(event.target.value as DocumentType);
                   setMessage(null);
                 }}
-                className="h-8 min-w-[180px] appearance-none border-0 bg-transparent px-3 pr-7 text-xs font-semibold text-slate-700 outline-none"
+                className="h-10 min-w-[180px] appearance-none border-0 bg-transparent px-3 pr-7 text-xs font-semibold text-slate-700 outline-none"
               >
                 {documentTypeOptions.map((documentTypeOption) => (
                   <option key={documentTypeOption.value} value={documentTypeOption.value}>
@@ -922,7 +922,7 @@ export default function AdminOrdersTable({
               type="button"
               onClick={handleResetDocumentFilter}
               disabled={documentType === 'all'}
-              className="h-8 border-l border-slate-200 px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:pointer-events-none disabled:opacity-45"
+              className="h-10 border-l border-slate-200 px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:pointer-events-none disabled:opacity-45"
             >
               Ponastavi
             </button>
@@ -930,7 +930,7 @@ export default function AdminOrdersTable({
               type="button"
               onClick={handleDownloadAllDocuments}
               disabled={isDownloading}
-              className="h-8 border-l border-slate-200 px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:pointer-events-none disabled:opacity-45"
+              className="h-10 border-l border-slate-200 px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:pointer-events-none disabled:opacity-45"
             >
               {isDownloading ? 'Prenos...' : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
             </button>
@@ -940,7 +940,7 @@ export default function AdminOrdersTable({
             type="button"
             onClick={handleDelete}
             disabled={selected.length === 0 || isDeleting}
-            className="h-8 rounded-full border border-rose-300 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:pointer-events-none disabled:opacity-45"
+            className="h-10 rounded-xl border border-rose-300 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:pointer-events-none disabled:opacity-45"
           >
             {isDeleting ? 'Brisanje...' : 'Izbriši'}
           </button>
@@ -990,7 +990,7 @@ export default function AdminOrdersTable({
 
           <thead className="bg-slate-50 text-[12px] uppercase text-slate-500">
             <tr>
-              <th className="px-2 py-2 text-center">
+              <th className="h-11 px-2 py-2 text-center">
                 <input
                   type="checkbox"
                   ref={selectAllRef}
@@ -1000,7 +1000,7 @@ export default function AdminOrdersTable({
                 />
               </th>
 
-              <th className="px-2 py-2 text-center">
+              <th className="h-11 px-2 py-2 text-center">
                 <button
                   type="button"
                   onClick={() => onSort('order_number')}
@@ -1010,7 +1010,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-2 py-2 text-center">
+              <th className="h-11 px-2 py-2 text-center">
                 <button
                   type="button"
                   onClick={() => onSort('created_at')}
@@ -1040,7 +1040,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-2 py-2 text-center">
+              <th className="h-11 px-2 py-2 text-center">
                 <button
                   type="button"
                   onClick={() => onSort('type')}
@@ -1050,7 +1050,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-2 py-2 text-center">
+              <th className="h-11 px-2 py-2 text-center">
                 <div className="relative inline-flex" ref={statusHeaderMenuRef}>
                   {selectedCount > 0 ? (
                     <>
@@ -1097,7 +1097,7 @@ export default function AdminOrdersTable({
                 </div>
               </th>
 
-              <th className="px-2 py-2 text-center">
+              <th className="h-11 px-2 py-2 text-center">
                 <div className="relative inline-flex" ref={paymentHeaderMenuRef}>
                   {selectedCount > 0 ? (
                     <>
@@ -1144,7 +1144,7 @@ export default function AdminOrdersTable({
                 </div>
               </th>
 
-              <th className="px-2 py-2 text-center">
+              <th className="h-11 px-2 py-2 text-center">
                 <button
                   type="button"
                   onClick={() => onSort('total')}

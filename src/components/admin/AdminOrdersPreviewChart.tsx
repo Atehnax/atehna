@@ -61,9 +61,9 @@ const toCustomerBucket = (customerType: string): CustomerBucketKey => {
   return 'individual';
 };
 
-const compactHover = (valueToken: string, suffix = '') =>
-  `<span style=\"display:block;min-width:180px;font-size:17px;font-weight:700;line-height:1.25;font-variant-numeric:tabular-nums;\">${valueToken}${suffix}</span>` +
-  `<span style=\"display:block;margin-top:7px;font-size:11px;opacity:0.92;\">%{x|%Y-%m-%d}</span><extra></extra>`;
+const compactHover = (valueToken: string, suffix = "") =>
+  `<span style=\"display:block;min-width:180px;font-size:13px;font-weight:600;line-height:1.4;\">%{fullData.name}: ${valueToken}${suffix}</span>` +
+  `<span style=\"display:block;margin-top:10px;font-size:12px;font-weight:500;line-height:1.4;\">Datum: %{x|%Y-%m-%d}</span><extra></extra>`;
 
 const stat = (value: number, suffix = '') => `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 2 }).format(value)}${suffix}`;
 
@@ -219,15 +219,15 @@ function AdminOrdersPreviewChart({
     ...layoutBase,
     margin: { l: 8, r: 8, t: 8, b: 8 },
     showlegend: false,
-    hovermode: 'closest',
+    hovermode: 'x unified',
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
     xaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, fixedrange: true, hoverformat: '%Y-%m-%d', rangeslider: { visible: true, thickness: 0.18, bgcolor: 'rgba(148,163,184,0.18)', bordercolor: 'rgba(148,163,184,0.35)', borderwidth: 1 } },
     yaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, rangemode: 'tozero', fixedrange: true },
     hoverlabel: {
-      bgcolor: '#1f2937',
-      bordercolor: '#334155',
-      font: { color: '#f8fafc', size: 13, family: 'Inter, system-ui, sans-serif' },
+      bgcolor: '#f8f7fc',
+      bordercolor: '#d8d6cf',
+      font: { color: '#111827', size: 13, family: 'Inter, system-ui, sans-serif' },
       align: 'left'
     },
     barmode: isAreaStacked ? 'stack' : undefined
@@ -269,7 +269,7 @@ function AdminOrdersPreviewChart({
       key: 'revenue-ma',
       focusKey: 'narocila-revenue-ma',
       title: 'Prihodki',
-      value: `${stat(data.totalRevenue)} €`,
+      value: `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 1, minimumFractionDigits: 1 }).format(data.totalRevenue)} €`,
       ...(() => {
         const delta = formatDelta(sevenDayChange(data.revenueSeries));
         return { delta: delta.text, deltaClassName: delta.className };
@@ -332,8 +332,8 @@ function AdminOrdersPreviewChart({
     {
       key: 'customer-type-cumulative',
       focusKey: 'narocila-status-mix',
-      title: 'Tipi kupcev',
-      value: stat(data.totalOrders),
+      title: '',
+      value: '',
       ...(() => {
         const delta = formatDelta(sevenDayChange(data.companyCum.map((value, index) => value + data.schoolCum[index] + data.individualCum[index])));
         return { delta: delta.text, deltaClassName: delta.className };
@@ -342,34 +342,34 @@ function AdminOrdersPreviewChart({
         {
           type: 'scatter',
           mode: 'lines',
-          name: 'Podjetje',
+          name: 'Fiz. os.',
+          x: data.x,
+          y: data.individualCum,
+          stackgroup: 'customers',
+          fill: 'tozeroy',
+          line: { color: appearance.seriesPalette[3], width: 1.2 },
+          hovertemplate: compactHover('%{y:,.0f}')
+        },
+        {
+          type: 'scatter',
+          mode: 'lines',
+          name: 'Podjetja',
           x: data.x,
           y: data.companyCum,
           stackgroup: 'customers',
-          fill: 'tozeroy',
+          fill: 'tonexty',
           line: { color: appearance.seriesPalette[0], width: 1.2 },
           hovertemplate: compactHover('%{y:,.0f}')
         },
         {
           type: 'scatter',
           mode: 'lines',
-          name: 'Šola',
+          name: 'Šole',
           x: data.x,
           y: data.schoolCum,
           stackgroup: 'customers',
           fill: 'tonexty',
           line: { color: appearance.seriesPalette[2], width: 1.2 },
-          hovertemplate: compactHover('%{y:,.0f}')
-        },
-        {
-          type: 'scatter',
-          mode: 'lines',
-          name: 'Fizična oseba',
-          x: data.x,
-          y: data.individualCum,
-          stackgroup: 'customers',
-          fill: 'tonexty',
-          line: { color: appearance.seriesPalette[3], width: 1.2 },
           hovertemplate: compactHover('%{y:,.0f}')
         }
       ],
@@ -403,14 +403,24 @@ function AdminOrdersPreviewChart({
             className="flex min-h-[124px] items-center justify-between rounded-xl border px-3 py-2 text-left shadow-sm transition hover:border-slate-400"
             style={{ background: `linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,248,251,0.96) 100%)`, borderColor: appearance.gridColor }}
           >
-            <div className="flex h-full min-w-[88px] flex-col items-start justify-between pr-2 text-left">
-              <p className="text-sm font-semibold tracking-wide" style={{ color: appearance.axisTextColor }}>
-                {chart.title}
-              </p>
-              <p className="mt-1 text-2xl font-bold leading-none" style={{ color: appearance.axisTextColor }}>
-                {chart.value}
-              </p>
-              <p className={`mt-auto self-start text-[11px] font-medium ${chart.deltaClassName}`}>{chart.delta}</p>
+            <div className="relative flex h-full min-w-[88px] flex-1 flex-col items-center justify-center pr-2 text-center">
+              {chart.key === 'customer-type-cumulative' ? (
+                <div className="flex h-full w-full flex-col justify-center gap-1 text-xs font-semibold text-[#111827]">
+                  <p className="whitespace-nowrap">Fiz. os.: {data.individualCum.at(-1) ?? 0}</p>
+                  <p className="whitespace-nowrap">Podjetja: {data.companyCum.at(-1) ?? 0}</p>
+                  <p className="whitespace-nowrap">Šole: {data.schoolCum.at(-1) ?? 0}</p>
+                </div>
+              ) : (
+                <>
+                  <p className="whitespace-nowrap text-sm font-semibold tracking-wide" style={{ color: "#111827" }}>
+                    {chart.title}
+                  </p>
+                  <p className="mt-1 whitespace-nowrap text-2xl font-bold leading-none" style={{ color: "#111827" }}>
+                    {chart.value}
+                  </p>
+                </>
+              )}
+              <p className={`absolute bottom-0 left-0 text-[11px] font-medium ${chart.deltaClassName}`}>{chart.delta}</p>
             </div>
             <div className="w-[190px] rounded-md" style={{ backgroundColor: 'transparent' }}>
               <PlotlyClient

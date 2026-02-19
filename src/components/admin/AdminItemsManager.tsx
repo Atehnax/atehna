@@ -56,6 +56,12 @@ function SortIndicator({ active, direction }: { active: boolean; direction: 'asc
   return <span className="ml-1 text-slate-500">{direction === 'asc' ? '↑' : '↓'}</span>;
 }
 
+function ActionIcon({ type }: { type: 'edit' | 'copy' | 'archive' }) {
+  if (type === 'edit') return <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 14.8V17h2.2L15.8 6.4l-2.2-2.2L3 14.8z"/><path d="M12.9 3.1l2.2 2.2"/></svg>;
+  if (type === 'copy') return <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="7" y="7" width="10" height="10" rx="2"/><rect x="3" y="3" width="10" height="10" rx="2"/></svg>;
+  return <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 6h14v11H3z"/><path d="M7 6V4h6v2"/></svg>;
+}
+
 function FloatingInput({
   label,
   value,
@@ -89,7 +95,7 @@ function FloatingInput({
         disabled={disabled}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:bg-slate-100 disabled:text-slate-400"
+        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-300 disabled:bg-slate-100 disabled:text-slate-400"
       />
       <label className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600 ${disabled ? 'bg-slate-100' : 'bg-white'}`}>
         {label}
@@ -117,7 +123,7 @@ function FloatingSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+        className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-300"
       >
         {children}
       </select>
@@ -334,15 +340,15 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Poišči po nazivu, SKU ali kategoriji …"
-            className="h-10 rounded-xl border border-slate-300 px-3 text-xs"
+            className="h-10 rounded-xl border border-slate-300 px-3 text-xs focus:border-brand-500 focus:ring-1 focus:ring-brand-300"
           />
-          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-10 rounded-xl border border-slate-300 px-3 text-xs">
+          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-10 rounded-xl border border-slate-300 px-3 text-xs focus:border-brand-500 focus:ring-1 focus:ring-brand-300">
             <option value="all">Vse kategorije</option>
             {categories.map((category) => (
               <option key={category} value={category}>{category}</option>
             ))}
           </select>
-          <select value={statusTab} onChange={(event) => setStatusTab(event.target.value as StatusTab)} className="h-10 rounded-xl border border-slate-300 px-3 text-xs">
+          <select value={statusTab} onChange={(event) => setStatusTab(event.target.value as StatusTab)} className="h-10 rounded-xl border border-slate-300 px-3 text-xs focus:border-brand-500 focus:ring-1 focus:ring-brand-300">
             <option value="active">Aktivni</option>
             <option value="inactive">Neaktivni</option>
           </select>
@@ -354,7 +360,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
           >
             Arhiviraj
           </button>
-          <button type="button" onClick={openCreate} className="h-10 rounded-xl border border-brand-600 bg-brand-600 px-3 text-sm font-semibold text-white hover:bg-brand-700">
+          <button type="button" onClick={openCreate} className="h-8 rounded-xl border border-brand-600 bg-brand-600 px-3 text-xs font-semibold text-white hover:bg-brand-700">
             + Dodaj artikel
           </button>
         </div>
@@ -398,8 +404,8 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                   <td className="px-3 py-2 text-center text-slate-600">{formatCurrency(item.price)}</td>
                   <td className="px-3 py-2 text-center text-slate-600">{item.discountPct}%</td>
                   <td className="px-3 py-2 text-center font-semibold text-slate-900">{formatCurrency(discountedPrice(item.price, item.discountPct))}</td>
-                  <td className="px-3 py-2 text-center"><span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${item.active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>{item.active ? 'Aktiven' : 'Neaktiven'}</span></td>
-                  <td className="px-3 py-2"><div className="flex items-center gap-2"><button type="button" onClick={() => openEdit(item)} className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50">Uredi</button><button type="button" onClick={() => duplicate(item)} className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50">Podvoji</button><button type="button" onClick={() => archive(item)} className="rounded-md border border-amber-200 px-2 py-1 text-xs text-amber-700 hover:bg-amber-50">Arhiviraj</button></div></td>
+                  <td className="px-3 py-2 text-center"><span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-semibold ${item.active ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'}`}>{item.active ? 'Aktiven' : 'Neaktiven'}</span></td>
+                  <td className="px-3 py-2"><div className="flex items-center gap-1.5"><button type="button" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"><ActionIcon type="edit" /></button><button type="button" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"><ActionIcon type="copy" /></button><button type="button" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-amber-200 text-amber-700 hover:bg-amber-50"><ActionIcon type="archive" /></button></div></td>
                 </tr>
               ))}
             </tbody>
@@ -418,7 +424,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             <div className="space-y-3 text-sm">
               <FloatingInput label="Naziv" value={draft.name} onChange={(value) => setDraft((prev) => ({ ...prev, name: value }))} />
               <div className="group relative" data-filled={draft.description ? 'true' : 'false'}>
-                <textarea value={draft.description} onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))} placeholder=" " className="min-h-[90px] w-full rounded-xl border border-slate-300 bg-white px-3 pb-2 pt-5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+                <textarea value={draft.description} onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))} placeholder=" " className="min-h-[90px] w-full rounded-xl border border-slate-300 bg-white px-3 pb-2 pt-5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-300" />
                 <label className="pointer-events-none absolute left-3 top-1.5 bg-white px-1 text-[10px] text-slate-600">Opis</label>
               </div>
 

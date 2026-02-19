@@ -9,7 +9,7 @@ const rootLinks = [
   { href: '/admin/artikli', label: 'Artikli', icon: 'box' },
   { href: '/admin/orders', label: 'Naročila', icon: 'cart' },
   { href: '/admin/kupci', label: 'Seznam kupcev', icon: 'users' },
-  { href: '/admin/celostna-podoba', label: 'Celostna podoba', icon: 'palette' },
+  { href: '/admin/celostna-podoba', label: 'Vizualna podoba', icon: 'palette' },
   { href: '/admin/arhiv', label: 'Arhiv', icon: 'archive' }
 ] as const;
 
@@ -33,9 +33,9 @@ export default function AdminSidebar() {
           type="button"
           aria-label={isCollapsed ? 'Odpri meni' : 'Skrij meni'}
           onClick={() => setIsCollapsed((current) => !current)}
-          className="absolute right-2 top-2 z-20 inline-flex h-5 w-5 items-center justify-center rounded-md border border-slate-300 bg-white text-[10px] text-slate-500 hover:bg-slate-50"
+          className="absolute right-3 top-3 z-20 inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-300 bg-white text-sm text-slate-600 shadow-sm transition hover:bg-slate-50"
         >
-          {isCollapsed ? '»' : '«'}
+          <span aria-hidden="true">{isCollapsed ? '❯' : '❮'}</span>
         </button>
 
         <div className={`relative z-10 h-full px-3 py-10 transition-opacity duration-200 ${isCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100'}`}>

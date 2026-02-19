@@ -68,7 +68,7 @@ body {
   textarea:focus-visible,
   summary:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 26%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 22%, transparent);
   }
 }
 

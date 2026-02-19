@@ -779,8 +779,7 @@ export default function AdminOrdersTable({
               onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
               className="h-11 min-w-[220px] rounded-xl border border-slate-300 bg-white px-3 text-left text-xs text-slate-700 hover:border-slate-400"
             >
-              <span className="pointer-events-none absolute left-3 top-1.5 bg-white px-1 text-[10px] text-slate-600">Datum</span>
-              <span className="mt-3 inline-flex w-full items-center gap-1.5 leading-none"> 
+              <span className="inline-flex w-full items-center gap-1.5 leading-none"> 
                 <svg
                   aria-hidden="true"
                   viewBox="0 0 24 24"
@@ -891,15 +890,14 @@ export default function AdminOrdersTable({
             )}
           </div>
 
-          <div className="group relative min-w-[220px] flex-1" data-filled={query.trim().length > 0 ? 'true' : 'false'}>
+          <div className="min-w-[220px] flex-1">
             <input
               type="text"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Naročilo, naročnik, naslov, tip, status, plačilo..."
-              className="h-10 w-full rounded-xl border border-slate-300 px-3 pb-1 pt-4 text-xs"
+              placeholder="Poišči naročilo, naročnik, naslov, tip, status, plačilo..."
+              className="h-10 w-full rounded-xl border border-slate-300 px-3 text-xs"
             />
-            <label className="pointer-events-none absolute left-3 top-1.5 bg-white px-1 text-[10px] text-slate-600">Iskanje</label>
           </div>
 
           <div className="ml-auto inline-flex h-8 items-center overflow-hidden rounded-full border border-slate-300 bg-white shadow-sm">
@@ -974,7 +972,7 @@ export default function AdminOrdersTable({
       </div>
 
 
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-2xl border shadow-sm" style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)', borderColor: analyticsAppearance?.gridColor ?? '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}>
         <table className="min-w-[1180px] w-full table-auto text-left text-[13px]">
           <colgroup>
             <col style={{ width: columnWidths.selectAndDelete }} />

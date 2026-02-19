@@ -377,16 +377,13 @@ function AdminOrdersPreviewChart({
     }
   ];
 
-  const resolvedSectionBg = appearance.sectionBg.toLowerCase() === appearance.cardBg.toLowerCase() ? 'var(--surface-2)' : appearance.sectionBg;
-
   return (
     <section
       className="mb-3 rounded-2xl border p-3 shadow-sm"
       style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)', borderColor: appearance.gridColor, boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
       aria-label="Orders analytics previews"
     >
-      <div className="mb-2 flex min-h-[30px] items-center justify-between gap-3">
-        <h2 className="text-xs font-semibold tracking-wide" style={{ color: appearance.axisTextColor }}>Hitra analitika naročil</h2>
+      <div className="mb-2 flex min-h-[30px] items-center justify-end gap-3">
         <div className="inline-flex rounded-md border border-slate-300 bg-white p-0.5 text-[11px] shadow-sm">
           {rangeOptions.map((option) => (
             <button

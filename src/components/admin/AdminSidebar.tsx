@@ -29,8 +29,8 @@ export default function AdminSidebar() {
   return (
     <aside className={`sticky top-0 h-screen shrink-0 transition-all duration-300 ${isCollapsed ? 'w-7' : 'w-64'}`}>
       <div className="relative h-full overflow-hidden border-r border-black/40 shadow-[inset_-1px_0_0_rgba(255,255,255,0.06)]">
-        <div className="absolute inset-y-0 left-0 w-6 bg-[#2a3542]" />
-        <div className="absolute inset-y-0 left-6 right-0 bg-gradient-to-b from-[#1d2632] via-[#161f29] to-[#121922]" />
+        <div className="absolute inset-y-0 left-0 w-6 bg-[#3a4654]" />
+        <div className="absolute inset-y-0 left-6 right-0 bg-gradient-to-b from-[#1a2430] via-[#151e28] to-[#111821]" />
         <button
           type="button"
           aria-label={isCollapsed ? 'Odpri meni' : 'Skrij meni'}
@@ -42,7 +42,7 @@ export default function AdminSidebar() {
 
         <div className={`relative z-10 h-full px-3 py-10 transition-opacity duration-200 ${isCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100'}`}>
           <div className="mb-5 px-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.09em] text-slate-400">Administracija</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-cyan-100/90">Administracija</p>
           </div>
           <nav className="space-y-1">
             {rootLinks.map((link) => {

@@ -243,12 +243,12 @@ export default function AdminDeletedArchiveTable({
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-semibold uppercase text-slate-500">Filter vrste</label>
+        <div className="relative min-w-[160px]">
+          <label className="pointer-events-none absolute left-3 top-1 bg-white px-1 text-[10px] font-semibold uppercase text-slate-500">Vrsta</label>
           <select
             value={typeFilter}
             onChange={(event) => setTypeFilter(event.target.value as 'all' | 'order' | 'pdf')}
-            className="h-8 rounded-lg border border-slate-300 px-2 text-xs"
+            className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 pb-1 pt-4 text-xs"
           >
             <option value="all">Vse</option>
             <option value="order">Naročila</option>

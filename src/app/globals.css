@@ -10,10 +10,10 @@
   --text: #111827;
   --text-muted: #4b5563;
 
-  --primary: #65c8cc;
-  --primary-hover: #56adb0;
-  --primary-active: #4a9497;
-  --primary-soft: #e7eeee;
+  --primary: #7c5cff;
+  --primary-hover: #6a4df0;
+  --primary-active: #5a3fda;
+  --primary-soft: #efeafe;
   --primary-foreground: #ffffff;
 
   --accent: #b08968;
@@ -23,7 +23,7 @@
   --danger: #a24a45;
   --info: #375a7a;
 
-  --ring: #65c8cc;
+  --ring: #7c5cff;
   --shadow-soft: 0 1px 2px rgba(17, 24, 39, 0.06), 0 8px 24px rgba(17, 24, 39, 0.05);
 
   --chart-canvas: #ffffff;

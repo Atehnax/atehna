@@ -378,11 +378,7 @@ function AdminOrdersPreviewChart({
   ];
 
   return (
-    <section
-      className="mb-3 rounded-2xl border p-3 shadow-sm"
-      style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)', borderColor: appearance.gridColor, boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
-      aria-label="Orders analytics previews"
-    >
+    <section className="mb-3" aria-label="Orders analytics previews">
       <div className="mb-2 flex min-h-[30px] items-center justify-end gap-3">
         <div className="inline-flex rounded-md border border-slate-300 bg-white p-0.5 text-[11px] shadow-sm">
           {rangeOptions.map((option) => (
@@ -404,17 +400,17 @@ function AdminOrdersPreviewChart({
             key={chart.key}
             type="button"
             onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(chart.focusKey)}`)}
-            className="flex min-h-[124px] items-center justify-between rounded-2xl border px-3 py-2 text-left shadow-sm transition hover:border-slate-400"
+            className="flex min-h-[124px] items-center justify-between rounded-xl border px-3 py-2 text-left shadow-sm transition hover:border-slate-400"
             style={{ background: `linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,248,251,0.96) 100%)`, borderColor: appearance.gridColor }}
           >
-            <div className="flex h-full min-w-[88px] flex-col items-center justify-center pr-2 text-center">
-              <p className="text-xs font-semibold tracking-wide" style={{ color: appearance.axisTextColor }}>
+            <div className="flex h-full min-w-[88px] flex-col items-start justify-between pr-2 text-left">
+              <p className="text-sm font-semibold tracking-wide" style={{ color: appearance.axisTextColor }}>
                 {chart.title}
               </p>
-              <p className="mt-1 text-base font-semibold" style={{ color: appearance.axisTextColor }}>
+              <p className="mt-1 text-2xl font-bold leading-none" style={{ color: appearance.axisTextColor }}>
                 {chart.value}
               </p>
-              <p className={`mt-0.5 text-[11px] font-medium ${chart.deltaClassName}`}>{chart.delta}</p>
+              <p className={`mt-auto self-start text-[11px] font-medium ${chart.deltaClassName}`}>{chart.delta}</p>
             </div>
             <div className="w-[190px] rounded-md" style={{ backgroundColor: 'transparent' }}>
               <PlotlyClient

@@ -52,21 +52,44 @@ export default function AdminArchivedItemsTable() {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   };
 
-  const restore = (id: string) => {
-    const next = items.map((item) => (item.id === id ? { ...item, archivedAt: null } : item));
+  const restoreSelected = () => {
+    if (selectedIds.length === 0) return;
+    const selectedSet = new Set(selectedIds);
+    const next = items.map((item) => (selectedSet.has(item.id) ? { ...item, archivedAt: null } : item));
     persist(next);
-    setSelectedIds((current) => current.filter((entry) => entry !== id));
+    setSelectedIds([]);
   };
 
-  const hardDelete = (id: string) => {
-    if (!window.confirm('Trajno izbrišem artikel?')) return;
-    const next = items.filter((item) => item.id !== id);
+  const hardDeleteSelected = () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm('Trajno izbrišem izbrane artikle?')) return;
+    const selectedSet = new Set(selectedIds);
+    const next = items.filter((item) => !selectedSet.has(item.id));
     persist(next);
-    setSelectedIds((current) => current.filter((entry) => entry !== id));
+    setSelectedIds([]);
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3">
+    <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="mb-3 flex items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={restoreSelected}
+          disabled={selectedIds.length === 0}
+          className="h-8 rounded-xl border border-emerald-200 px-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+        >
+          Obnovi
+        </button>
+        <button
+          type="button"
+          onClick={hardDeleteSelected}
+          disabled={selectedIds.length === 0}
+          className="h-8 rounded-xl border border-rose-200 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+        >
+          Trajno izbriši
+        </button>
+      </div>
+
       <div className="overflow-x-auto">
         <table className="w-full min-w-[860px] text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase text-slate-500">
@@ -77,7 +100,6 @@ export default function AdminArchivedItemsTable() {
               <th className="px-3 py-2">Kategorija</th>
               <th className="px-3 py-2">Cena</th>
               <th className="px-3 py-2">Arhivirano</th>
-              <th className="px-3 py-2">Akcije</th>
             </tr>
           </thead>
           <tbody>
@@ -89,12 +111,6 @@ export default function AdminArchivedItemsTable() {
                 <td className="px-3 py-2 text-slate-600">{item.category}</td>
                 <td className="px-3 py-2 text-slate-600">{formatCurrency(item.price * (1 - (item.discountPct ?? 0) / 100))}</td>
                 <td className="px-3 py-2 text-slate-600">{formatDateTime(item.archivedAt)}</td>
-                <td className="px-3 py-2">
-                  <div className="flex items-center gap-2">
-                    <button type="button" onClick={() => restore(item.id)} className="rounded-md border border-emerald-200 px-2 py-1 text-xs text-emerald-700 hover:bg-emerald-50">Obnovi</button>
-                    <button type="button" onClick={() => hardDelete(item.id)} className="rounded-md border border-rose-200 px-2 py-1 text-xs text-rose-700 hover:bg-rose-50">Trajno izbriši</button>
-                  </div>
-                </td>
               </tr>
             ))}
           </tbody>

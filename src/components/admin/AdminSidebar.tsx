@@ -27,22 +27,20 @@ export default function AdminSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <aside className={`sticky top-0 h-screen shrink-0 transition-all duration-300 ${isCollapsed ? 'w-7' : 'w-64'}`}>
-      <div className="relative h-full overflow-hidden border-r border-black/40 shadow-[inset_-1px_0_0_rgba(255,255,255,0.06)]">
-        <div className="absolute inset-y-0 left-0 w-6 bg-[#3a4654]" />
-        <div className="absolute inset-y-0 left-6 right-0 bg-gradient-to-b from-[#1a2430] via-[#151e28] to-[#111821]" />
+    <aside className={`sticky top-0 h-screen shrink-0 transition-all duration-300 ${isCollapsed ? 'w-8' : 'w-64'}`}>
+      <div className="relative h-full overflow-hidden border-r border-slate-200 bg-[#f8f7fc] shadow-sm">
         <button
           type="button"
           aria-label={isCollapsed ? 'Odpri meni' : 'Skrij meni'}
           onClick={() => setIsCollapsed((current) => !current)}
-          className="absolute right-1 top-2 z-20 inline-flex h-5 w-5 items-center justify-center rounded-sm border border-white/10 bg-black/15 text-[10px] text-slate-300 hover:bg-white/10"
+          className="absolute right-2 top-2 z-20 inline-flex h-5 w-5 items-center justify-center rounded-md border border-slate-300 bg-white text-[10px] text-slate-500 hover:bg-slate-50"
         >
           {isCollapsed ? '»' : '«'}
         </button>
 
         <div className={`relative z-10 h-full px-3 py-10 transition-opacity duration-200 ${isCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100'}`}>
-          <div className="mb-5 px-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-cyan-100/90">Administracija</p>
+          <div className="mb-5 px-2 pr-4">
+            <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#4d2fd1]">Administracija</p>
           </div>
           <nav className="space-y-1">
             {rootLinks.map((link) => {
@@ -51,10 +49,10 @@ export default function AdminSidebar() {
                 <div key={link.href}>
                   <Link
                     href={link.href}
-                    className={`flex items-center gap-2 rounded-md px-2.5 py-2 text-xs transition ${
+                    className={`flex items-center gap-2 rounded-xl px-2.5 py-2 pr-4 text-xs transition ${
                       isActive
-                        ? 'bg-gradient-to-r from-[#2d3d4e] to-[#263646] font-semibold text-cyan-100 shadow-[inset_0_0_0_1px_rgba(167,214,232,0.14)]'
-                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                        ? 'bg-[#ede8ff] font-semibold text-[#5a3fda]'
+                        : 'text-slate-600 hover:bg-white hover:text-slate-900'
                     }`}
                   >
                     <SidebarIcon type={link.icon} />

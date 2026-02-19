@@ -4,7 +4,7 @@ import { fetchArchiveEntries } from '@/lib/server/deletedArchive';
 import { getDatabaseUrl } from '@/lib/server/db';
 
 export const metadata = {
-  title: 'Arhiv'
+  title: 'Arhiv naročil'
 };
 
 export const dynamic = 'force-dynamic';
@@ -36,7 +36,7 @@ export default async function AdminArchivePage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Arhiv</h1>
+        <h1 className="text-2xl font-semibold text-slate-900">Arhiv naročil</h1>
         <p className="mt-1 text-sm text-slate-600">Izbrisani zapisi se hranijo 60 dni, nato se trajno odstranijo.</p>
       </div>
       <AdminArchiveTabs />

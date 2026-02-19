@@ -777,7 +777,7 @@ export default function AdminOrdersTable({
             <button
               type="button"
               onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-              className="h-11 min-w-[220px] rounded-xl border border-slate-300 bg-white px-3 text-left text-xs text-slate-700 hover:border-slate-400"
+              className="h-11 min-w-[200px] rounded-xl border border-slate-300 bg-white px-3 text-left text-xs text-slate-700 hover:border-slate-400"
             >
               <span className="inline-flex w-full items-center gap-1.5 leading-none"> 
                 <svg

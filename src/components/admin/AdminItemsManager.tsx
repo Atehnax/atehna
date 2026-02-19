@@ -329,37 +329,37 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
           })}
         </div>
 
-        <div className="mt-3 grid gap-2 md:grid-cols-[minmax(280px,1fr)_220px_220px_auto] md:items-center">
+        <div className="mt-3 grid gap-2 md:grid-cols-[minmax(280px,1fr)_220px_220px_auto_auto] md:items-center">
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Poišči po nazivu, SKU ali kategoriji …"
-            className="h-10 rounded-lg border border-slate-300 px-3 text-sm"
+            className="h-10 rounded-xl border border-slate-300 px-3 text-xs"
           />
-          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-10 rounded-lg border border-slate-300 px-2 text-sm">
+          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-10 rounded-xl border border-slate-300 px-3 text-xs">
             <option value="all">Vse kategorije</option>
             {categories.map((category) => (
               <option key={category} value={category}>{category}</option>
             ))}
           </select>
-          <select value={statusTab} onChange={(event) => setStatusTab(event.target.value as StatusTab)} className="h-10 rounded-lg border border-slate-300 px-2 text-sm">
+          <select value={statusTab} onChange={(event) => setStatusTab(event.target.value as StatusTab)} className="h-10 rounded-xl border border-slate-300 px-3 text-xs">
             <option value="active">Aktivni</option>
             <option value="inactive">Neaktivni</option>
           </select>
-          <button type="button" onClick={openCreate} className="h-10 rounded-lg border border-brand-600 bg-brand-600 px-3 text-sm font-semibold text-white hover:bg-brand-700">
-            + Dodaj artikel
-          </button>
-        </div>
-
-        <div className="mt-3 flex items-center justify-between">
           <button
             type="button"
             onClick={archiveSelected}
             disabled={selectedIds.length === 0}
-            className="text-xs font-semibold text-amber-700 underline-offset-2 disabled:pointer-events-none disabled:opacity-45"
+            className="h-10 rounded-xl border border-amber-300 px-3 text-xs font-semibold text-amber-700 transition hover:bg-amber-50 disabled:pointer-events-none disabled:opacity-45"
           >
-            Arhiviraj izbrane
+            Arhiviraj
           </button>
+          <button type="button" onClick={openCreate} className="h-10 rounded-xl border border-brand-600 bg-brand-600 px-3 text-sm font-semibold text-white hover:bg-brand-700">
+            + Dodaj artikel
+          </button>
+        </div>
+
+        <div className="mt-3 flex items-center justify-end">
           <p className="text-xs text-slate-500">Izbranih: {selectedIds.length}</p>
         </div>
 

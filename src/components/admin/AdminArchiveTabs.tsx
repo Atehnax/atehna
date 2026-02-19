@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const tabs = [
-  { href: '/admin/arhiv', label: 'Arhiv (naročila + PDF)' },
+  { href: '/admin/arhiv', label: 'Arhiv naročil' },
   { href: '/admin/arhiv/artikli', label: 'Arhiv artiklov' }
 ];
 

@@ -349,7 +349,7 @@ export default function AdminOrderHeaderChips(props: Props) {
           <input
             value={draftOrderNumber}
             onChange={(event) => setDraftOrderNumber(event.target.value)}
-            className="h-9 w-full max-w-none rounded-md border border-slate-300 bg-white px-1 text-2xl font-bold tracking-tight text-slate-900 sm:max-w-[5ch]"
+            className="h-9 w-full max-w-none rounded-md border border-slate-300 bg-white px-1 text-2xl font-bold tracking-tight text-slate-900 outline-none transition focus:border-[#8269e1] focus:ring-0 sm:max-w-[5ch]"
             aria-label="Številka naročila"
           />
         ) : (
@@ -362,7 +362,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               <select
                 value={draftTopData.status}
                 onChange={(event) => setDraftTopData((prev) => ({ ...prev, status: event.target.value }))}
-                className="h-8 rounded-lg border border-slate-300 px-2 text-xs"
+                className="h-8 rounded-lg border border-slate-300 px-2 text-xs outline-none transition focus:border-[#8269e1] focus:ring-0"
               >
                 {ORDER_STATUS_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -373,7 +373,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               <select
                 value={draftTopData.paymentStatus}
                 onChange={(event) => setDraftTopData((prev) => ({ ...prev, paymentStatus: event.target.value }))}
-                className="h-8 rounded-lg border border-slate-300 px-2 text-xs"
+                className="h-8 rounded-lg border border-slate-300 px-2 text-xs outline-none transition focus:border-[#8269e1] focus:ring-0"
               >
                 {PAYMENT_STATUS_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>

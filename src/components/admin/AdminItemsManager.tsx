@@ -319,7 +319,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-3">
-        <div className="mt-3 grid gap-2 md:grid-cols-[minmax(280px,1fr)_220px_220px_auto_auto] md:items-center">
+        <div className="mt-3 grid gap-2 md:grid-cols-[minmax(280px,1fr)_220px_110px_auto_auto] md:items-center">
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -340,12 +340,12 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             type="button"
             onClick={archiveSelected}
             disabled={selectedIds.length === 0}
-            className="h-8 rounded-xl border border-amber-300 px-3 text-xs font-semibold text-amber-700 transition hover:bg-amber-50 disabled:pointer-events-none disabled:opacity-45"
+            className="h-8 rounded-xl border border-[#b49ff8] bg-[#f3efff] px-3 text-xs font-semibold text-[#4b34b9] transition hover:bg-[#ece5ff] disabled:pointer-events-none disabled:opacity-45"
           >
             Arhiviraj
           </button>
           <button type="button" onClick={openCreate} className="h-8 rounded-xl border border-[#d6ccfb] bg-[#ede8fe] px-3 text-xs font-semibold text-[#5a3fda] hover:bg-[#e2dafd]">
-            + Dodaj artikel
+            + Nov artikel
           </button>
         </div>
 
@@ -371,7 +371,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                   <button type="button" onClick={() => handleSort('price')} className="inline-flex items-center font-semibold hover:text-slate-700">Cena <SortIndicator active={sortKey === 'price'} direction={sortDirection} /></button>
                 </th>
                 <th className="px-3 py-2 text-center normal-case">Popust</th>
-                <th className="px-3 py-2 text-center normal-case whitespace-nowrap">Akc. cena</th>
+                <th className="px-3 py-2 text-center normal-case whitespace-nowrap">Akcijska cena</th>
                 <th className="px-3 py-2 text-center">
                   <button type="button" onClick={() => handleSort('status')} className="inline-flex items-center font-semibold hover:text-slate-700">Status <SortIndicator active={sortKey === 'status'} direction={sortDirection} /></button>
                 </th>

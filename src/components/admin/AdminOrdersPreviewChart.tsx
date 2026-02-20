@@ -62,10 +62,7 @@ const toCustomerBucket = (customerType: string): CustomerBucketKey => {
 };
 
 const compactHover = (valueToken: string, suffix = "") =>
-  `<div style=\"min-width:260px;padding:10px 12px;border:1px solid #5a3fda55;border-radius:10px;background:#f8f7fc;display:grid;row-gap:8px;\">` +
-  `<div style=\"display:grid;grid-template-columns:auto 1fr;column-gap:20px;align-items:start;\"><span style=\"font-size:12px;color:#475569;\">%{fullData.name}:</span><span style=\"font-size:13px;font-weight:700;color:#111827;justify-self:end;white-space:nowrap;\">${valueToken}${suffix}</span></div>` +
-  `<div style=\"display:grid;grid-template-columns:auto 1fr;column-gap:20px;align-items:start;\"><span style=\"font-size:12px;color:#475569;\">Datum:</span><span style=\"font-size:12px;font-weight:600;color:#111827;justify-self:end;white-space:nowrap;\">%{x|%Y-%m-%d}</span></div>` +
-  `</div><extra></extra>`;
+  `%{fullData.name}: ${valueToken}${suffix}<br>Datum: %{x|%Y-%m-%d}<extra></extra>`;
 
 const stat = (value: number, suffix = '') => `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 2 }).format(value)}${suffix}`;
 
@@ -227,9 +224,9 @@ function AdminOrdersPreviewChart({
     xaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, fixedrange: true, hoverformat: '%Y-%m-%d', rangeslider: { visible: true, thickness: 0.18, bgcolor: 'rgba(148,163,184,0.18)', bordercolor: 'rgba(148,163,184,0.35)', borderwidth: 1 } },
     yaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, rangemode: 'tozero', fixedrange: true },
     hoverlabel: {
-      bgcolor: 'rgba(248,247,252,0.98)',
+      bgcolor: '#f8f7fc',
       bordercolor: '#d8d6cf',
-      font: { color: '#111827', size: 13, family: 'Inter, system-ui, sans-serif' },
+      font: { color: '#111827', size: 12, family: 'Inter, system-ui, sans-serif' },
       align: 'left'
     },
     barmode: isAreaStacked ? 'stack' : undefined
@@ -409,7 +406,7 @@ function AdminOrdersPreviewChart({
               {chart.key === 'customer-type-cumulative' ? (
                 <div className="w-full">
                   <p className="absolute left-0 top-0 whitespace-nowrap text-sm font-semibold tracking-wide text-[#111827]">{chart.title}</p>
-                  <p className="whitespace-nowrap text-[34px] font-bold leading-none text-[#111827]"><span>{data.individualCum.at(-1) ?? 0}</span><span className="mx-2 font-light text-slate-400">|</span><span>{data.companyCum.at(-1) ?? 0}</span><span className="mx-2 font-light text-slate-400">|</span><span>{data.schoolCum.at(-1) ?? 0}</span></p>
+                  <p className="whitespace-nowrap text-[34px] font-bold leading-none text-[#111827]"><span>{data.individualCum.at(-1) ?? 0}</span><span className="mx-2 font-thin text-slate-300">|</span><span>{data.companyCum.at(-1) ?? 0}</span><span className="mx-2 font-thin text-slate-300">|</span><span>{data.schoolCum.at(-1) ?? 0}</span></p>
                 </div>
               ) : (
                 <>

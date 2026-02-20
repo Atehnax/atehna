@@ -427,6 +427,7 @@ function AdminOrdersPreviewChart({
                 config={{ responsive: true, displayModeBar: false }}
                 style={{ width: '100%', height: 118 }}
                 useResizeHandler
+                className="admin-orders-preview-plot"
               />
             </div>
           </button>

@@ -111,3 +111,16 @@ body {
     box-shadow: var(--shadow-soft);
   }
 }
+
+
+/* Orders preview hover card polish */
+.admin-orders-preview-plot .hoverlayer .legendlines,
+.admin-orders-preview-plot .hoverlayer .legendpoints,
+.admin-orders-preview-plot .hoverlayer .legendtoggle,
+.admin-orders-preview-plot .hoverlayer .legendfill {
+  display: none !important;
+}
+
+.admin-orders-preview-plot .hoverlayer .hovertext {
+  filter: drop-shadow(0 6px 18px rgba(2, 6, 23, 0.35));
+}

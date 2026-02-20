@@ -1208,7 +1208,7 @@ export default function AdminOrdersTable({
                     <td className="px-2 py-2 align-middle text-center font-semibold text-slate-900" data-no-row-nav>
                       <a
                         href={`/admin/orders/${order.id}`}
-                        className="inline-flex rounded-sm px-1 text-[13px] font-semibold text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8269e1]"
+                        className="inline-flex rounded-sm px-1 text-[13px] font-semibold text-brand-700 focus-visible:outline-none focus-visible:ring-[0.5px] focus-visible:ring-[#8269e1]"
                         aria-label={`Odpri naročilo ${toDisplayOrderNumber(order.order_number)}`}
                       >
                         {toDisplayOrderNumber(order.order_number)}
@@ -1217,7 +1217,7 @@ export default function AdminOrdersTable({
 
                     <td className="px-2 py-2 align-middle text-center whitespace-nowrap text-slate-600">
                       <span
-                        className="inline-block rounded-sm px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8269e1]"
+                        className="inline-block rounded-sm px-1 focus-visible:outline-none focus-visible:ring-[0.5px] focus-visible:ring-[#8269e1]"
                         title={formatSlDateTime(order.created_at)}
                         aria-label={`Datum naročila ${formatSlDateTime(order.created_at)}`}
                         tabIndex={0}

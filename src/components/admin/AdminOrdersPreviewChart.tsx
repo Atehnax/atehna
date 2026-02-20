@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Data, Layout } from 'plotly.js';
 import PlotlyClient from '@/components/admin/charts/PlotlyClient';
@@ -20,6 +20,21 @@ type Daily = {
   individualOrders: number;
 };
 
+type TooltipRow = { label: string; value: string; color: string; highlight?: boolean };
+type HoverCard = { xLabel: string; rows: TooltipRow[]; left: number; top: number };
+
+type ChartCard = {
+  key: string;
+  focusKey: string;
+  title: string;
+  value: string;
+  delta: string;
+  deltaClassName: string;
+  traces: Data[];
+  layout: Partial<Layout>;
+  tooltipRowsAt: (index: number) => TooltipRow[];
+};
+
 const rangeOptions: Array<{ key: Exclude<RangePreset, 'custom'>; label: string }> = [
   { key: '7d', label: '7d' },
   { key: '1m', label: '1m' },
@@ -37,7 +52,9 @@ const movingAverage = (values: number[], window = 7) =>
 
 const movingAverageNullable = (values: Array<number | null>, window = 7) =>
   values.map((_, i) => {
-    const slice = values.slice(Math.max(0, i - (window - 1)), i + 1).filter((value): value is number => value !== null);
+    const slice = values
+      .slice(Math.max(0, i - (window - 1)), i + 1)
+      .filter((value): value is number => value !== null);
     if (slice.length === 0) return null;
     return slice.reduce((sum, value) => sum + value, 0) / slice.length;
   });
@@ -52,7 +69,12 @@ const cumulative = (values: number[]) => {
 
 const toCustomerBucket = (customerType: string): CustomerBucketKey => {
   const normalized = customerType.toLowerCase();
-  if (normalized.includes('podjet') || normalized.includes('org') || normalized.includes('company') || normalized.includes('business')) {
+  if (
+    normalized.includes('podjet') ||
+    normalized.includes('org') ||
+    normalized.includes('company') ||
+    normalized.includes('business')
+  ) {
     return 'company';
   }
   if (normalized.includes('šol') || normalized.includes('sol') || normalized.includes('school')) {
@@ -61,9 +83,18 @@ const toCustomerBucket = (customerType: string): CustomerBucketKey => {
   return 'individual';
 };
 
-const compactHover = (label: string, color: string, valueToken: string, suffix = "") => `<span style="display:grid;grid-template-columns:minmax(120px,1fr)_auto;align-items:center;column-gap:16px;min-width:240px;"><span style="color:${color};font-weight:600;">● <span style="color:#e5e7eb;">${label}</span></span><span style="text-align:right;font-weight:600;color:#e5e7eb;">${valueToken}${suffix}</span></span><extra></extra>`;
+const stat = (value: number, suffix = '') =>
+  `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 2 }).format(value)}${suffix}`;
 
-const stat = (value: number, suffix = '') => `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 2 }).format(value)}${suffix}`;
+const formatInt = (value: number | null | undefined) =>
+  value === null || value === undefined || !Number.isFinite(value)
+    ? '—'
+    : Intl.NumberFormat('sl-SI', { maximumFractionDigits: 0 }).format(value);
+
+const formatCurrency = (value: number | null | undefined) =>
+  value === null || value === undefined || !Number.isFinite(value)
+    ? '—'
+    : `${Intl.NumberFormat('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)} EUR`;
 
 const sevenDayChange = (series: Array<number | null>) => {
   if (series.length === 0) return null;
@@ -119,6 +150,7 @@ function AdminOrdersPreviewChart({
   const router = useRouter();
   const chartTheme = getChartThemeFromCssVars();
   const layoutBase = getBaseChartLayout(chartTheme);
+  const [hoverCards, setHoverCards] = useState<Record<string, HoverCard>>({});
 
   const data = useMemo(() => {
     const selectedOrders = orders.filter((order) => {
@@ -220,19 +252,26 @@ function AdminOrdersPreviewChart({
     hovermode: 'x unified',
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
-    xaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, fixedrange: true, hoverformat: '%Y-%m-%d', rangeslider: { visible: true, thickness: 0.18, bgcolor: 'rgba(148,163,184,0.18)', bordercolor: 'rgba(148,163,184,0.35)', borderwidth: 1 } },
-    yaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, rangemode: 'tozero', fixedrange: true },
-    hoverlabel: {
-      bgcolor: '#0b1020',
-      bordercolor: '#cdd2df',
-      font: { color: '#e5e7eb', size: 14, family: 'Inter, system-ui, sans-serif' },
-      align: 'left',
-      namelength: -1
+    xaxis: {
+      showgrid: false,
+      showticklabels: false,
+      zeroline: false,
+      showline: false,
+      fixedrange: true,
+      hoverformat: '%Y-%m-%d',
+      rangeslider: {
+        visible: true,
+        thickness: 0.18,
+        bgcolor: 'rgba(148,163,184,0.18)',
+        bordercolor: 'rgba(148,163,184,0.35)',
+        borderwidth: 1
+      }
     },
+    yaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, rangemode: 'tozero', fixedrange: true },
     barmode: isAreaStacked ? 'stack' : undefined
   });
 
-  const charts: Array<{ key: string; focusKey: string; title: string; value: string; delta: string; deltaClassName: string; traces: Data[]; layout: Partial<Layout> }> = [
+  const charts: ChartCard[] = [
     {
       key: 'orders-ma',
       focusKey: 'narocila-orders-ma',
@@ -246,21 +285,17 @@ function AdminOrdersPreviewChart({
         {
           type: 'scatter',
           mode: 'lines',
-          name: '',
+          name: 'Število naročil',
           x: data.x,
           y: data.ordersSeries,
           line: { color: appearance.seriesPalette[0], width: 1.9 },
-          hovertemplate: compactHover('Število naročil', appearance.seriesPalette[0], '%{y:,.0f}')
-        },
-        {
-          type: 'scatter',
-          mode: 'lines',
-          name: '7DMA',
-          x: data.x,
-          y: data.ordersMa,
-          line: { color: appearance.seriesPalette[3], width: 1.4, dash: 'dot' },
-          hoverinfo: 'skip'
+          hoverinfo: 'none'
         }
+      ],
+      tooltipRowsAt: (i) => [
+        { label: '30-Day MA', value: formatInt(data.ordersMa[i]), color: '#d7a0ff' },
+        { label: 'Daily Claimed', value: formatInt(data.ordersSeries[i]), color: '#2d8f73' },
+        { label: 'Cuml. Claimed', value: formatInt(data.ordersSeries.slice(0, i + 1).reduce((a, b) => a + b, 0)), color: '#49d6a6', highlight: true }
       ],
       layout: miniLayout(false)
     },
@@ -268,7 +303,7 @@ function AdminOrdersPreviewChart({
       key: 'revenue-ma',
       focusKey: 'narocila-revenue-ma',
       title: 'Prihodki',
-      value: `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 1, minimumFractionDigits: 1 }).format(data.totalRevenue)} €`,
+      value: `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 1, minimumFractionDigits: 1 }).format(data.totalRevenue)} €`,
       ...(() => {
         const delta = formatDelta(sevenDayChange(data.revenueSeries));
         return { delta: delta.text, deltaClassName: delta.className };
@@ -277,21 +312,17 @@ function AdminOrdersPreviewChart({
         {
           type: 'scatter',
           mode: 'lines',
-          name: '',
+          name: 'Prihodki',
           x: data.x,
           y: data.revenueSeries,
           line: { color: appearance.seriesPalette[1], width: 1.9 },
-          hovertemplate: compactHover('Prihodki', appearance.seriesPalette[1], '%{y:,.2f}', ' EUR')
-        },
-        {
-          type: 'scatter',
-          mode: 'lines',
-          name: '7DMA',
-          x: data.x,
-          y: data.revenueMa,
-          line: { color: appearance.seriesPalette[3], width: 1.4, dash: 'dot' },
-          hoverinfo: 'skip'
+          hoverinfo: 'none'
         }
+      ],
+      tooltipRowsAt: (i) => [
+        { label: '30-Day MA', value: formatCurrency(data.revenueMa[i]), color: '#d7a0ff' },
+        { label: 'Daily Claimed', value: formatCurrency(data.revenueSeries[i]), color: '#2d8f73' },
+        { label: 'Cuml. Claimed', value: formatCurrency(data.revenueSeries.slice(0, i + 1).reduce((a, b) => a + b, 0)), color: '#49d6a6', highlight: true }
       ],
       layout: miniLayout(false)
     },
@@ -308,23 +339,18 @@ function AdminOrdersPreviewChart({
         {
           type: 'scatter',
           mode: 'lines',
-          name: '',
+          name: 'AOV',
           x: data.x,
           y: data.dailyAov,
           line: { color: appearance.seriesPalette[2], width: 1.9 },
           connectgaps: false,
-          hovertemplate: compactHover('AOV', appearance.seriesPalette[2], '%{y:,.2f}', ' EUR')
-        },
-        {
-          type: 'scatter',
-          mode: 'lines',
-          name: '7DMA',
-          x: data.x,
-          y: data.dailyAovMa,
-          line: { color: appearance.seriesPalette[4], width: 1.4, dash: 'dot' },
-          connectgaps: false,
-          hoverinfo: 'skip'
+          hoverinfo: 'none'
         }
+      ],
+      tooltipRowsAt: (i) => [
+        { label: '30-Day MA', value: formatCurrency(data.dailyAovMa[i]), color: '#d7a0ff' },
+        { label: 'Daily Claimed', value: formatCurrency(data.dailyAov[i]), color: '#2d8f73' },
+        { label: 'Cuml. Claimed', value: formatCurrency(data.dailyAov.slice(0, i + 1).filter((v): v is number => v !== null).reduce((a, b) => a + b, 0)), color: '#49d6a6', highlight: true }
       ],
       layout: miniLayout(false)
     },
@@ -334,47 +360,68 @@ function AdminOrdersPreviewChart({
       title: 'F | P | Š',
       value: `${data.individualCum.at(-1) ?? 0}  |  ${data.companyCum.at(-1) ?? 0}  |  ${data.schoolCum.at(-1) ?? 0}`,
       ...(() => {
-        const delta = formatDelta(sevenDayChange(data.companyCum.map((value, index) => value + data.schoolCum[index] + data.individualCum[index])));
+        const delta = formatDelta(
+          sevenDayChange(
+            data.companyCum.map((value, index) => value + data.schoolCum[index] + data.individualCum[index])
+          )
+        );
         return { delta: delta.text, deltaClassName: delta.className };
       })(),
       traces: [
         {
           type: 'scatter',
           mode: 'lines',
-          name: '',
+          name: 'Kupci',
           x: data.x,
-          y: data.schoolCum,
-          stackgroup: 'customers',
-          fill: 'tozeroy',
-          line: { color: appearance.seriesPalette[2], width: 1.2 },
-          hovertemplate: compactHover('Šole', appearance.seriesPalette[2], '%{y:,.0f}')
-        },
-        {
-          type: 'scatter',
-          mode: 'lines',
-          name: '',
-          x: data.x,
-          y: data.companyCum,
-          stackgroup: 'customers',
-          fill: 'tonexty',
-          line: { color: appearance.seriesPalette[0], width: 1.2 },
-          hovertemplate: compactHover('Podjetja', appearance.seriesPalette[0], '%{y:,.0f}')
-        },
-        {
-          type: 'scatter',
-          mode: 'lines',
-          name: '',
-          x: data.x,
-          y: data.individualCum,
-          stackgroup: 'customers',
-          fill: 'tonexty',
-          line: { color: appearance.seriesPalette[3], width: 1.2 },
-          hovertemplate: compactHover('Fiz. os.', appearance.seriesPalette[3], '%{y:,.0f}')
+          y: data.companyCum.map((value, index) => value + data.schoolCum[index] + data.individualCum[index]),
+          line: { color: appearance.seriesPalette[0], width: 1.4 },
+          hoverinfo: 'none'
         }
+      ],
+      tooltipRowsAt: (i) => [
+        { label: 'Šole', value: formatInt(data.schoolCum[i]), color: appearance.seriesPalette[2] },
+        { label: 'Podjetja', value: formatInt(data.companyCum[i]), color: appearance.seriesPalette[0] },
+        { label: 'Fiz. os.', value: formatInt(data.individualCum[i]), color: appearance.seriesPalette[3], highlight: true }
       ],
       layout: miniLayout(true)
     }
   ];
+
+  const handleHover = (chart: ChartCard, eventData: any) => {
+    const point = eventData?.points?.[0];
+    const domEvent = eventData?.event;
+    if (!point || !domEvent?.currentTarget) return;
+
+    const pointIndex = typeof point.pointIndex === 'number' ? point.pointIndex : point.pointNumber;
+    if (typeof pointIndex !== 'number') return;
+
+    const rows = chart.tooltipRowsAt(pointIndex);
+    const rect = (domEvent.currentTarget as HTMLElement).getBoundingClientRect();
+    const localX = Math.max(0, domEvent.clientX - rect.left);
+    const localY = Math.max(0, domEvent.clientY - rect.top);
+    const tooltipWidth = 320;
+    const tooltipHeight = 170;
+    const left = Math.max(8, Math.min(localX + 14, rect.width - tooltipWidth - 8));
+    const top = Math.max(8, Math.min(localY + 14, rect.height - tooltipHeight - 8));
+
+    setHoverCards((prev) => ({
+      ...prev,
+      [chart.key]: {
+        xLabel: String(point.x ?? ''),
+        rows,
+        left,
+        top
+      }
+    }));
+  };
+
+  const hideHover = (chartKey: string) => {
+    setHoverCards((prev) => {
+      const next = { ...prev };
+      delete next[chartKey];
+      return next;
+    });
+  };
 
   return (
     <section className="mb-3" aria-label="Orders analytics previews">
@@ -394,44 +441,86 @@ function AdminOrdersPreviewChart({
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        {charts.map((chart) => (
-          <button
-            key={chart.key}
-            type="button"
-            onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(chart.focusKey)}`)}
-            className="flex min-h-[124px] items-center justify-between rounded-xl border px-3 py-2 text-left shadow-sm transition hover:border-slate-400"
-            style={{ background: `linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,248,251,0.96) 100%)`, borderColor: appearance.gridColor }}
-          >
-            <div className="relative flex h-full min-w-[88px] flex-1 items-center justify-center pr-2 text-center">
-              {chart.key === 'customer-type-cumulative' ? (
-                <div className="w-full">
-                  <p className="absolute left-0 top-0 whitespace-nowrap text-sm font-semibold tracking-wide text-[#111827]">{chart.title}</p>
-                  <p className="whitespace-nowrap text-[34px] font-bold leading-none text-[#111827]"><span>{data.individualCum.at(-1) ?? 0}</span><span className="mx-2 font-thin text-slate-300">|</span><span>{data.companyCum.at(-1) ?? 0}</span><span className="mx-2 font-thin text-slate-300">|</span><span>{data.schoolCum.at(-1) ?? 0}</span></p>
-                </div>
-              ) : (
-                <>
-                  <p className="absolute left-0 top-0 whitespace-nowrap text-sm font-semibold tracking-wide" style={{ color: "#111827" }}>
-                    {chart.title}
-                  </p>
-                  <p className="whitespace-nowrap text-[34px] font-bold leading-none" style={{ color: "#111827" }}>
-                    {chart.value}
-                  </p>
-                </>
-              )}
-              <p className={`absolute bottom-0 left-0 text-[11px] font-medium ${chart.deltaClassName}`}>{chart.delta}</p>
-            </div>
-            <div className="w-[190px] rounded-md" style={{ backgroundColor: 'transparent' }}>
-              <PlotlyClient
-                data={chart.traces}
-                layout={chart.layout}
-                config={{ responsive: true, displayModeBar: false }}
-                style={{ width: '100%', height: 118 }}
-                useResizeHandler
-                className="admin-orders-preview-plot"
-              />
-            </div>
-          </button>
-        ))}
+        {charts.map((chart) => {
+          const hoverCard = hoverCards[chart.key];
+          return (
+            <button
+              key={chart.key}
+              type="button"
+              onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(chart.focusKey)}`)}
+              className="flex min-h-[124px] items-center justify-between rounded-xl border px-3 py-2 text-left shadow-sm transition hover:border-slate-400"
+              style={{
+                background: `linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,248,251,0.96) 100%)`,
+                borderColor: appearance.gridColor
+              }}
+            >
+              <div className="relative flex h-full min-w-[88px] flex-1 items-center justify-center pr-2 text-center">
+                {chart.key === 'customer-type-cumulative' ? (
+                  <div className="w-full">
+                    <p className="absolute left-0 top-0 whitespace-nowrap text-sm font-semibold tracking-wide text-[#111827]">
+                      {chart.title}
+                    </p>
+                    <p className="whitespace-nowrap text-[34px] font-bold leading-none text-[#111827]">
+                      <span>{data.individualCum.at(-1) ?? 0}</span>
+                      <span className="mx-2 font-thin text-slate-300">|</span>
+                      <span>{data.companyCum.at(-1) ?? 0}</span>
+                      <span className="mx-2 font-thin text-slate-300">|</span>
+                      <span>{data.schoolCum.at(-1) ?? 0}</span>
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="absolute left-0 top-0 whitespace-nowrap text-sm font-semibold tracking-wide text-[#111827]">
+                      {chart.title}
+                    </p>
+                    <p className="whitespace-nowrap text-[34px] font-bold leading-none text-[#111827]">{chart.value}</p>
+                  </>
+                )}
+                <p className={`absolute bottom-0 left-0 text-[11px] font-medium ${chart.deltaClassName}`}>{chart.delta}</p>
+              </div>
+
+              <div className="relative w-[190px] rounded-md" style={{ backgroundColor: 'transparent' }}>
+                <PlotlyClient
+                  data={chart.traces}
+                  layout={chart.layout}
+                  config={{ responsive: true, displayModeBar: false }}
+                  style={{ width: '100%', height: 118 }}
+                  useResizeHandler
+                  onHover={(eventData: any) => handleHover(chart, eventData)}
+                  onUnhover={() => hideHover(chart.key)}
+                  className="admin-orders-preview-plot"
+                />
+
+                {hoverCard ? (
+                  <div
+                    className="pointer-events-none absolute z-30 w-[min(320px,calc(100%-8px))] rounded-xl border border-white/20 bg-[#0b0f1a] px-3 py-3 text-left shadow-[0_10px_30px_rgba(2,6,23,0.45)]"
+                    style={{ left: hoverCard.left, top: hoverCard.top }}
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="truncate pr-3 text-[16px] font-semibold leading-none text-[#f3f4f6]">{hoverCard.xLabel} 00:00</p>
+                      <span className="rounded-full bg-white/10 px-2 py-0.5 text-[12px] font-semibold text-[#d1d5db]">1/1</span>
+                    </div>
+                    <div className="mb-2 h-px w-full bg-white/15" />
+                    <div className="space-y-2">
+                      {hoverCard.rows.map((row, index) => (
+                        <div
+                          key={`${row.label}-${index}`}
+                          className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 ${row.highlight ? 'rounded-md bg-white/10 px-2 py-1.5' : ''}`}
+                        >
+                          <div className="flex min-w-0 items-center gap-2 text-[#e5e7eb]">
+                            <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: row.color }} />
+                            <span className="truncate text-[13px] font-semibold">{row.label}</span>
+                          </div>
+                          <span className="whitespace-nowrap text-right text-[13px] font-semibold text-[#e5e7eb]">{row.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </button>
+          );
+        })}
       </div>
     </section>
   );

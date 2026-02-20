@@ -9,7 +9,8 @@ import {
   getCatalogItemSlugs,
   formatCatalogPrice,
   getCatalogSubcategory,
-  getCatalogSubcategorySlugs
+  getCatalogSubcategorySlugs,
+  getDiscountedPrice
 } from '@/lib/catalog';
 import AddToCartButton from '@/components/products/AddToCartButton';
 
@@ -46,9 +47,9 @@ export default function ItemPage({
   const subcategory = getCatalogSubcategory(params.category, params.subcategory);
   const item = getCatalogItem(params.category, params.subcategory, params.item);
   const itemSku = getCatalogItemSku(category.slug, subcategory.slug, item.slug);
-  const price = formatCatalogPrice(
-    item.price ?? getCatalogItemPrice(category.slug, subcategory.slug, item.slug)
-  );
+  const basePrice = item.price ?? getCatalogItemPrice(category.slug, subcategory.slug, item.slug);
+  const effectivePrice = getDiscountedPrice(basePrice, item.discountPct);
+  const images = item.images?.length ? item.images : item.image ? [item.image] : [];
 
   return (
     <div className="container-base py-12">
@@ -58,16 +59,30 @@ export default function ItemPage({
         </p>
         <h1 className="mt-3 text-3xl font-semibold text-slate-900">{item.name}</h1>
         <p className="mt-4 text-lg text-slate-600">{item.description}</p>
-        {item.image && (
+        {images[0] && (
           <div className="relative mt-6 h-64 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-            <Image src={item.image} alt={item.name} fill className="object-contain p-8" />
+            <Image src={images[0]} alt={item.name} fill className="object-contain p-8" />
           </div>
         )}
-        <p className="mt-4 text-xl font-semibold text-slate-900">{price}</p>
+        {images.length > 1 ? (
+          <div className="mt-3 grid grid-cols-5 gap-2">
+            {images.slice(1).map((img) => (
+              <div key={img} className="relative h-14 overflow-hidden rounded border border-slate-200 bg-slate-50">
+                <Image src={img} alt={`${item.name} dodatna slika`} fill className="object-cover" />
+              </div>
+            ))}
+          </div>
+        ) : null}
+        <p className="mt-4 text-xl font-semibold text-slate-900">{formatCatalogPrice(effectivePrice)}</p>
+        {item.discountPct && item.discountPct > 0 ? (
+          <p className="mt-1 text-sm text-slate-500">
+            <span className="line-through">{formatCatalogPrice(basePrice)}</span> · Popust {item.discountPct}%
+          </p>
+        ) : null}
         <AddToCartButton
           sku={itemSku}
           name={item.name}
-          price={item.price ?? getCatalogItemPrice(category.slug, subcategory.slug, item.slug)}
+          price={effectivePrice}
           category={`${category.title} / ${subcategory.title}`}
           className="mt-6"
         />
@@ -78,10 +93,7 @@ export default function ItemPage({
       </div>
 
       <div className="mt-10 flex flex-wrap gap-4">
-        <Link
-          href={`/products/${category.slug}/${subcategory.slug}`}
-          className="text-sm font-semibold text-brand-600"
-        >
+        <Link href={`/products/${category.slug}/${subcategory.slug}`} className="text-sm font-semibold text-brand-600">
           ← Nazaj na {subcategory.title}
         </Link>
         <Link href={`/products/${category.slug}`} className="text-sm font-semibold text-brand-600">

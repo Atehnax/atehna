@@ -90,6 +90,8 @@ function GeneratePdfIcon() {
   );
 }
 
+const notesBoxClass = 'mt-2 h-[44px] overflow-y-auto whitespace-pre-wrap rounded-xl border border-slate-300 px-3 py-1.5 text-[12px] leading-5 text-slate-900 shadow-sm';
+
 export default function AdminOrderPdfManager({
   orderId,
   documents,
@@ -319,11 +321,11 @@ export default function AdminOrderPdfManager({
             value={draftNotes}
             onChange={(event) => setDraftNotes(event.target.value)}
             rows={2}
-            className="mt-2 h-[88px] w-full resize-none overflow-y-auto rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-[12px] leading-5 text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            className={`${notesBoxClass} w-full resize-none bg-white outline-none transition focus:border-[#6244d8] focus:ring-1 focus:ring-[#6244d8]`}
           />
         ) : (
-          <p className="mt-2 h-[88px] overflow-y-auto whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-[12px] leading-5 text-slate-900">
-            {persistedNotes.trim() || '/'}
+          <p className={`${notesBoxClass} bg-slate-100 text-slate-600`}>
+            {persistedNotes.trim()}
           </p>
         )}
       </div>
@@ -348,7 +350,7 @@ export default function AdminOrderPdfManager({
                     disabled={loadingType === pdfType.key}
                     title="Ustvari"
                     aria-label={`Ustvari ${pdfType.label}`}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-brand-600 text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#d6ccfb] bg-[#ede8fe] text-[#5a3fda] shadow-sm transition hover:bg-[#e2dafd] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
                   >
                     <GeneratePdfIcon />
                   </button>
@@ -433,7 +435,7 @@ export default function AdminOrderPdfManager({
                                         [pdfType.key]: !previousState[pdfType.key]
                                       }))
                                     }
-                                    className="shrink-0 text-xs font-semibold text-slate-500 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
+                                    className="shrink-0 text-xs font-semibold text-slate-500 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6244d8]"
                                     aria-label={
                                       isExpanded
                                         ? `Skrij verzije za ${pdfType.label}`

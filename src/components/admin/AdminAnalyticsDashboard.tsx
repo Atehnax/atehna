@@ -1,383 +1,1100 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import type { OrderRow } from '@/lib/server/orders';
-import { getStatusLabel, isOrderStatus } from '@/lib/orderStatus';
-import { getPaymentLabel } from '@/lib/paymentStatus';
+import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import PlotlyClient from '@/components/admin/charts/PlotlyClient';
+import { getBaseChartLayout, getChartThemeFromCssVars, type ChartTheme } from '@/components/admin/charts/chartTheme';
+import type { Data, Layout } from 'plotly.js';
+import type { OrdersAnalyticsResponse } from '@/lib/server/orderAnalytics';
+import type {
+  AnalyticsChartConfig,
+  AnalyticsChartRow,
+  AnalyticsChartSeries,
+  AnalyticsChartType,
+  AnalyticsMetricField,
+  AnalyticsGlobalAppearance
+} from '@/lib/server/analyticsCharts';
 
-const CHART_WIDTH = 760;
-const CHART_HEIGHT = 260;
-const CHART_INNER_HEIGHT = 220;
+type RangeOption = '7d' | '30d' | '90d' | '180d' | '365d' | 'ytd';
 
-const toAmount = (value: number | null | undefined) =>
-  typeof value === 'number' && Number.isFinite(value) ? value : 0;
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(
-    value
-  );
-
-const formatPercent = (value: number) => `${value.toFixed(1).replace('.', ',')} %`;
-
-const dayKey = (iso: string) => iso.slice(0, 10);
-
-const statusPalette = ['#0f766e', '#334155', '#0ea5e9', '#16a34a', '#f97316', '#a855f7'] as const;
-const paymentPalette = ['#0f766e', '#64748b', '#8b5cf6'] as const;
-
-type DayPoint = {
-  day: string;
-  revenue: number;
-  orders: number;
-  statuses: Record<string, number>;
+type Props = {
+  initialData: OrdersAnalyticsResponse;
+  initialCharts: AnalyticsChartRow[];
+  initialFocusKey?: string;
+  initialAppearance: AnalyticsGlobalAppearance;
 };
 
-type DotPoint = { x: number; y: number; value: number; day: string };
+const metricOptions: Array<{ value: AnalyticsMetricField; label: string; unit: 'count' | 'eur' | 'percent' | 'hours' }> = [
+  { value: 'order_count', label: 'Orders', unit: 'count' },
+  { value: 'revenue_total', label: 'Revenue', unit: 'eur' },
+  { value: 'aov', label: 'AOV', unit: 'eur' },
+  { value: 'median_order_value', label: 'Median order value', unit: 'eur' },
+  { value: 'payment_success_rate', label: 'Payment success rate', unit: 'percent' },
+  { value: 'cancellation_rate', label: 'Cancellation rate', unit: 'percent' },
+  { value: 'lead_time_p50_hours', label: 'Lead time p50', unit: 'hours' },
+  { value: 'lead_time_p90_hours', label: 'Lead time p90', unit: 'hours' },
+  { value: 'paid_count', label: 'Paid count', unit: 'count' },
+  { value: 'cancelled_count', label: 'Cancelled count', unit: 'count' }
+];
 
-const buildLinePoints = (values: number[], days: string[]): DotPoint[] => {
-  if (values.length === 0) return [];
-  const maxValue = Math.max(...values, 1);
-  const step = values.length === 1 ? CHART_WIDTH : CHART_WIDTH / (values.length - 1);
-  return values.map((value, index) => ({
-    x: index * step,
-    y: CHART_INNER_HEIGHT - (value / maxValue) * CHART_INNER_HEIGHT,
-    value,
-    day: days[index] ?? ''
+const chartTypeOptions: AnalyticsChartType[] = [
+  'line',
+  'spline',
+  'area',
+  'bar',
+  'grouped_bar',
+  'stacked_bar',
+  'stacked_area',
+  'scatter',
+  'bubble',
+  'histogram',
+  'box',
+  'heatmap',
+  'waterfall',
+  'combo'
+];
+
+const transformOptions = ['none', 'moving_average_7d', 'cumulative', 'pct_change', 'share_of_total'] as const;
+
+const movingAverage = (values: number[], window = 7) =>
+  values.map((_, index) => {
+    const start = Math.max(0, index - (window - 1));
+    const slice = values.slice(start, index + 1);
+    return slice.reduce((sum, value) => sum + value, 0) / Math.max(slice.length, 1);
+  });
+
+const cumulative = (values: number[]) => {
+  let sum = 0;
+  return values.map((value) => {
+    sum += value;
+    return sum;
+  });
+};
+
+const pctChange = (values: number[]) =>
+  values.map((value, index) => {
+    if (index === 0) return 0;
+    const previous = values[index - 1] ?? 0;
+    if (previous === 0) return 0;
+    return ((value - previous) / previous) * 100;
+  });
+
+const toSafeNumber = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : 0);
+
+const legacyPalette = new Set(['#22d3ee', '#f59e0b', '#a78bfa', '#34d399', '#60a5fa', '#38bdf8', '#f87171', '#818cf8']);
+
+const hexToRgba = (hexColor: string, alpha: number) => {
+  const hex = hexColor.replace('#', '').trim();
+  if (!/^[0-9a-fA-F]{6}$/.test(hex)) return `rgba(148, 163, 184, ${alpha})`;
+  const r = Number.parseInt(hex.slice(0, 2), 16);
+  const g = Number.parseInt(hex.slice(2, 4), 16);
+  const b = Number.parseInt(hex.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+const layoutBase = (theme: ChartTheme): Partial<Layout> => ({
+  ...getBaseChartLayout(theme),
+  margin: { l: 56, r: 24, t: 28, b: 52 },
+  hoverlabel: { namelength: -1 }
+});
+
+export default function AdminAnalyticsDashboard({ initialData, initialCharts, initialFocusKey = '', initialAppearance }: Props) {
+  const chartTheme = useMemo(() => getChartThemeFromCssVars(), []);
+  const [range, setRange] = useState<RangeOption>('30d');
+  const [data, setData] = useState(initialData);
+  const [charts, setCharts] = useState(initialCharts);
+  const [focusedKey, setFocusedKey] = useState(initialFocusKey);
+  const [loading, setLoading] = useState(false);
+  const [builderOpen, setBuilderOpen] = useState(false);
+  const [editingChartId, setEditingChartId] = useState<number | null>(null);
+  const [savedAppearance, setSavedAppearance] = useState<AnalyticsGlobalAppearance>(initialAppearance);
+  const [previewAppearance, setPreviewAppearance] = useState<AnalyticsGlobalAppearance>(initialAppearance);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  const [builderConfig, setBuilderConfig] = useState<AnalyticsChartConfig>(() => ({
+    dataset: 'orders_daily',
+    xField: 'date',
+    xTitle: 'Datum',
+    xTickFormat: '',
+    xDateFormat: '%Y-%m-%d',
+    xScale: 'linear',
+    yLeftTitle: 'Vrednost',
+    yLeftScale: 'linear',
+    yLeftTickFormat: '',
+    yRightEnabled: false,
+    yRightTitle: 'Vrednost (desno)',
+    yRightScale: 'linear',
+    yRightTickFormat: '',
+    grain: 'day',
+    quickRange: '30d',
+    filters: {
+      customerType: 'all',
+      status: 'all',
+      paymentStatus: 'all',
+      includeNulls: true
+    },
+    series: [newSeries('order_count', chartTheme.series.primary)]
   }));
-};
+  const [builderTitle, setBuilderTitle] = useState('New chart');
+  const [builderDescription, setBuilderDescription] = useState('');
+  const [builderComment, setBuilderComment] = useState('');
+  const [builderChartType, setBuilderChartType] = useState<AnalyticsChartType>('combo');
 
-const polyline = (points: DotPoint[]) => points.map((point) => `${point.x},${point.y}`).join(' ');
-
-const donutSegment = (cx: number, cy: number, radius: number, start: number, end: number) => {
-  const startX = cx + radius * Math.cos(start);
-  const startY = cy + radius * Math.sin(start);
-  const endX = cx + radius * Math.cos(end);
-  const endY = cy + radius * Math.sin(end);
-  const largeArc = end - start > Math.PI ? 1 : 0;
-  return `M ${cx} ${cy} L ${startX} ${startY} A ${radius} ${radius} 0 ${largeArc} 1 ${endX} ${endY} Z`;
-};
-
-export default function AdminAnalyticsDashboard({
-  orders,
-  initialFrom,
-  initialTo
-}: {
-  orders: OrderRow[];
-  initialFrom: string;
-  initialTo: string;
-}) {
-  const router = useRouter();
-  const [fromDate, setFromDate] = useState(initialFrom);
-  const [toDate, setToDate] = useState(initialTo);
-  const [hoveredRevenue, setHoveredRevenue] = useState<number | null>(null);
-  const [hoveredOrders, setHoveredOrders] = useState<number | null>(null);
-  const [hoveredStatus, setHoveredStatus] = useState<{ day: string; status: string; count: number } | null>(null);
-  const [hoveredPayment, setHoveredPayment] = useState<{ label: string; count: number; share: number } | null>(null);
-  const [hiddenSeries, setHiddenSeries] = useState<Record<string, boolean>>({});
-
-  const metrics = useMemo(() => {
-    const totalRevenue = orders.reduce((sum, order) => sum + toAmount(order.total), 0);
-    const totalOrders = orders.length;
-    const paidCount = orders.filter((order) => order.payment_status === 'paid').length;
-    const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-    const paidShare = totalOrders > 0 ? (paidCount / totalOrders) * 100 : 0;
-
-    return { totalRevenue, totalOrders, averageOrderValue, paidShare };
-  }, [orders]);
-
-  const byDay = useMemo(() => {
-    const buckets = new Map<string, DayPoint>();
-    orders.forEach((order) => {
-      const key = dayKey(order.created_at);
-      const safeStatus = isOrderStatus(order.status) ? order.status : 'unknown';
-      const current = buckets.get(key) ?? { day: key, revenue: 0, orders: 0, statuses: {} };
-      current.revenue += toAmount(order.total);
-      current.orders += 1;
-      current.statuses[safeStatus] = (current.statuses[safeStatus] ?? 0) + 1;
-      buckets.set(key, current);
-    });
-
-    return Array.from(buckets.values()).sort((a, b) => a.day.localeCompare(b.day));
-  }, [orders]);
-
-  const statusKeys = useMemo(() => {
-    const set = new Set<string>();
-    byDay.forEach((point) => Object.keys(point.statuses).forEach((status) => set.add(status)));
-    return Array.from(set.values());
-  }, [byDay]);
-
-  const paymentDistribution = useMemo(() => {
-    const total = Math.max(orders.length, 1);
-    const groups = ['paid', 'unpaid', 'refunded'];
-
-    return groups.map((group, index) => {
-      const count = orders.filter((order) => (order.payment_status ?? 'unpaid') === group).length;
-      return {
-        key: group,
-        label: getPaymentLabel(group),
-        count,
-        share: (count / total) * 100,
-        color: paymentPalette[index] ?? '#64748b'
-      };
-    });
-  }, [orders]);
-
-  const revenuePoints = useMemo(
-    () => buildLinePoints(byDay.map((item) => item.revenue), byDay.map((item) => item.day)),
-    [byDay]
-  );
-  const orderPoints = useMemo(
-    () => buildLinePoints(byDay.map((item) => item.orders), byDay.map((item) => item.day)),
-    [byDay]
-  );
-
-  const applyRange = () => {
-    const params = new URLSearchParams();
-    if (fromDate) params.set('from', fromDate);
-    if (toDate) params.set('to', toDate);
-    router.push(`/admin/analitika/narocila${params.toString() ? `?${params.toString()}` : ''}`);
+  const reloadCharts = async () => {
+    const response = await fetch('/api/admin/analytics/charts');
+    if (!response.ok) return;
+    const payload = (await response.json()) as { charts: AnalyticsChartRow[]; appearance?: AnalyticsGlobalAppearance };
+    setCharts(payload.charts);
+    if (payload.appearance) {
+      setSavedAppearance(payload.appearance);
+      setPreviewAppearance(payload.appearance);
+    }
   };
 
-  const toggleLegend = (key: string) => {
-    setHiddenSeries((current) => ({ ...current, [key]: !current[key] }));
+  const loadRange = async (nextRange: RangeOption) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/admin/analytics/orders?range=${nextRange}&grouping=day`);
+      if (!response.ok) return;
+      const payload = (await response.json()) as OrdersAnalyticsResponse;
+      setData(payload);
+      setRange(nextRange);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem('admin-analytics-range');
+    if (saved === '7d' || saved === '30d' || saved === '90d' || saved === '180d' || saved === '365d' || saved === 'ytd') {
+      void loadRange(saved);
+    } else {
+      void loadRange('30d');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem('admin-analytics-range', range);
+  }, [range]);
+
+  const saveMetadata = async (
+    chartId: number,
+    fields: Partial<Pick<AnalyticsChartRow, 'title' | 'description' | 'comment' | 'chart_type' | 'config_json'>>
+  ) => {
+    const response = await fetch(`/api/admin/analytics/charts/${chartId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: fields.title,
+        description: fields.description,
+        comment: fields.comment,
+        chartType: fields.chart_type,
+        config: fields.config_json
+      })
+    });
+
+    if (response.ok) {
+      await reloadCharts();
+      setEditingChartId(null);
+    }
+  };
+
+  const deleteChart = async (chartId: number) => {
+    const confirmed = window.confirm('Ali res želite izbrisati ta graf?');
+    if (!confirmed) return;
+
+    const previous = charts;
+    setCharts((current) => current.filter((chart) => chart.id !== chartId));
+    const response = await fetch(`/api/admin/analytics/charts/${chartId}`, { method: 'DELETE' });
+    if (!response.ok) {
+      setCharts(previous);
+      return;
+    }
+
+    if (editingChartId === chartId) {
+      setBuilderOpen(false);
+      setEditingChartId(null);
+    }
+
+    await reloadCharts();
+  };
+
+  const persistOrder = async (updated: AnalyticsChartRow[], fallback?: AnalyticsChartRow[]) => {
+    const response = await fetch('/api/admin/analytics/charts/reorder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: updated.map((chart) => chart.id) })
+    });
+
+    if (!response.ok && fallback) {
+      setCharts(fallback);
+      return;
+    }
+
+    await reloadCharts();
+  };
+
+  const onDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = charts.findIndex((chart) => chart.id === Number(active.id));
+    const newIndex = charts.findIndex((chart) => chart.id === Number(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+
+    const previous = charts;
+    const updated = arrayMove(charts, oldIndex, newIndex);
+    setCharts(updated);
+    await persistOrder(updated, previous);
+  };
+
+  const createOrUpdateChart = async () => {
+    const url = editingChartId ? `/api/admin/analytics/charts/${editingChartId}` : '/api/admin/analytics/charts';
+    const method = editingChartId ? 'PATCH' : 'POST';
+    const response = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: builderTitle,
+        description: builderDescription,
+        comment: builderComment,
+        chartType: builderChartType,
+        config: builderConfig
+      })
+    });
+
+    if (response.ok) {
+      setBuilderOpen(false);
+      setEditingChartId(null);
+      await reloadCharts();
+    }
+  };
+
+  const chartRenderModels = useMemo(() => {
+    return charts.map((chart) => buildChartModel(chart, data, chartTheme, previewAppearance));
+  }, [charts, data, chartTheme, previewAppearance]);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Analitika naročil</h1>
-        <p className="mt-1 text-sm text-slate-600">Povzetki in trendi za izbrano obdobje.</p>
-      </div>
-
-      <div className="rounded-xl border border-slate-200 bg-white p-3">
-        <div className="flex flex-wrap items-end gap-3">
-          <div>
-            <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">Od</label>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(event) => setFromDate(event.target.value)}
-              className="h-9 rounded-lg border border-slate-300 px-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">Do</label>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(event) => setToDate(event.target.value)}
-              className="h-9 rounded-lg border border-slate-300 px-2 text-sm"
-            />
+    <div className="min-h-full rounded-2xl border border-slate-200 p-4 text-slate-900" style={{ backgroundColor: previewAppearance.sectionBg }}>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h1 className="text-xl font-semibold">Analytics (Orders)</h1>
+          <p className="text-xs text-slate-500">Timezone bucketing: UTC.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex rounded-lg border border-slate-300 bg-slate-100 p-0.5">
+            {(['7d', '30d', '90d', '180d', '365d', 'ytd'] as RangeOption[]).map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => void loadRange(option)}
+                className={`rounded-md px-2 py-1 text-xs font-semibold ${
+                  range === option ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:bg-slate-200'
+                }`}
+              >
+                {option === 'ytd' ? 'YTD' : option}
+              </button>
+            ))}
           </div>
           <button
             type="button"
-            onClick={applyRange}
-            className="h-9 rounded-lg border border-slate-300 bg-slate-100 px-3 text-sm font-medium text-slate-700 hover:bg-slate-200"
+            onClick={() => { setEditingChartId(null); setBuilderTitle('New chart'); setBuilderDescription(''); setBuilderComment(''); setBuilderChartType('combo'); setBuilderOpen(true); }}
+            className="rounded-md border border-cyan-500 bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-cyan-500"
           >
-            Uporabi obdobje
+            New Chart
           </button>
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <article className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-xs uppercase text-slate-500">Skupni prihodki</p>
-          <p className="mt-1 text-xl font-semibold text-slate-900">{formatCurrency(metrics.totalRevenue)}</p>
-        </article>
-        <article className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-xs uppercase text-slate-500">Število naročil</p>
-          <p className="mt-1 text-xl font-semibold text-slate-900">{metrics.totalOrders}</p>
-        </article>
-        <article className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-xs uppercase text-slate-500">Povprečna vrednost naročila</p>
-          <p className="mt-1 text-xl font-semibold text-slate-900">{formatCurrency(metrics.averageOrderValue)}</p>
-        </article>
-        <article className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-xs uppercase text-slate-500">Delež plačanih naročil</p>
-          <p className="mt-1 text-xl font-semibold text-slate-900">{formatPercent(metrics.paidShare)}</p>
-        </article>
-      </div>
+      <AppearancePanel
+        appearance={previewAppearance}
+        savedAppearance={savedAppearance}
+        onChange={setPreviewAppearance}
+        onReset={() => setPreviewAppearance(savedAppearance)}
+        onSave={async () => {
+          await fetch('/api/admin/analytics/charts/appearance', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(previewAppearance)
+          });
+          setSavedAppearance(previewAppearance);
+        }}
+      />
 
-      <section className="rounded-xl border border-slate-200 bg-white p-4">
-        <h2 className="text-sm font-semibold text-slate-900">Prihodki po dneh</h2>
-        <p className="text-xs text-slate-500">X os: Datum · Y os: Prihodki (€)</p>
-        <svg viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} className="mt-3 w-full overflow-visible rounded bg-slate-50 p-2">
-          <line x1="0" y1={CHART_INNER_HEIGHT} x2={CHART_WIDTH} y2={CHART_INNER_HEIGHT} stroke="#cbd5e1" strokeWidth="1" />
-          <line x1="0" y1="0" x2="0" y2={CHART_INNER_HEIGHT} stroke="#cbd5e1" strokeWidth="1" />
-          <polyline fill="none" stroke="#0f766e" strokeWidth="2.4" points={polyline(revenuePoints)} />
-          {hoveredRevenue !== null && revenuePoints[hoveredRevenue] ? (
-            <line
-              x1={revenuePoints[hoveredRevenue]?.x}
-              x2={revenuePoints[hoveredRevenue]?.x}
-              y1="0"
-              y2={CHART_INNER_HEIGHT}
-              stroke="#0f766e"
-              strokeWidth="1"
-              opacity="0.35"
+      {loading ? <p className="mb-2 text-xs text-slate-500">Loading analytics…</p> : null}
+
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(event: DragEndEvent) => void onDragEnd(event)}>
+        <SortableContext items={chartRenderModels.map((model) => model.chart.id)} strategy={rectSortingStrategy}>
+          <div className="grid gap-4 md:grid-cols-2">
+            {chartRenderModels.map((model) => (
+          <MemoChartCard
+            key={model.chart.id}
+            chart={model.chart}
+            isFocused={focusedKey === model.chart.key}
+            onFocus={() => setFocusedKey(model.chart.key)}
+            onEdit={() => {
+              setEditingChartId(model.chart.id);
+              setBuilderTitle(model.chart.title);
+              setBuilderDescription(model.chart.description ?? '');
+              setBuilderComment(model.chart.comment ?? '');
+              setBuilderChartType(model.chart.chart_type);
+              setBuilderConfig(model.chart.config_json);
+              setBuilderOpen(true);
+            }}
+            onDelete={() => void deleteChart(model.chart.id)}
+            onExportCsv={() => exportCsv(model.chart.title, model.x, model.exportRows)}
+            appearance={previewAppearance}
+          >
+            <PlotlyClient
+              data={model.traces}
+              layout={model.layout}
+              config={{ responsive: true, displayModeBar: true }}
+              useResizeHandler
+              style={{ width: '100%', height: 300 }}
+              onClick={() => setFocusedKey(model.chart.key)}
             />
-          ) : null}
-          {revenuePoints.map((point, index) => (
-            <circle
-              key={`rev-${point.day}`}
-              cx={point.x}
-              cy={point.y}
-              r="3"
-              fill="#0f766e"
-              onMouseEnter={() => setHoveredRevenue(index)}
-              onMouseLeave={() => setHoveredRevenue(null)}
-            />
-          ))}
-          {hoveredRevenue !== null && revenuePoints[hoveredRevenue] ? (
-            <g>
-              <rect x="12" y="10" width="280" height="42" rx="6" fill="#0f172a" opacity="0.9" />
-              <text x="20" y="28" fill="#fff" fontSize="11">{`Datum: ${revenuePoints[hoveredRevenue]?.day}`}</text>
-              <text x="20" y="42" fill="#fff" fontSize="11">{`Prihodki: ${formatCurrency(revenuePoints[hoveredRevenue]?.value ?? 0)}`}</text>
-            </g>
-          ) : null}
-        </svg>
-      </section>
-
-      <section className="rounded-xl border border-slate-200 bg-white p-4">
-        <h2 className="text-sm font-semibold text-slate-900">Naročila po dneh</h2>
-        <p className="text-xs text-slate-500">X os: Datum · Y os: Število naročil</p>
-        <svg viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} className="mt-3 w-full overflow-visible rounded bg-slate-50 p-2">
-          <line x1="0" y1={CHART_INNER_HEIGHT} x2={CHART_WIDTH} y2={CHART_INNER_HEIGHT} stroke="#cbd5e1" strokeWidth="1" />
-          <line x1="0" y1="0" x2="0" y2={CHART_INNER_HEIGHT} stroke="#cbd5e1" strokeWidth="1" />
-          {orderPoints.map((point, index) => (
-            <rect
-              key={`order-${point.day}`}
-              x={Math.max(0, point.x - 6)}
-              y={point.y}
-              width="12"
-              height={CHART_INNER_HEIGHT - point.y}
-              rx="2"
-              fill="#334155"
-              opacity="0.8"
-              onMouseEnter={() => setHoveredOrders(index)}
-              onMouseLeave={() => setHoveredOrders(null)}
-            />
-          ))}
-          {hoveredOrders !== null && orderPoints[hoveredOrders] ? (
-            <line
-              x1={orderPoints[hoveredOrders]?.x}
-              x2={orderPoints[hoveredOrders]?.x}
-              y1="0"
-              y2={CHART_INNER_HEIGHT}
-              stroke="#334155"
-              strokeWidth="1"
-              opacity="0.35"
-            />
-          ) : null}
-          {hoveredOrders !== null && orderPoints[hoveredOrders] ? (
-            <g>
-              <rect x="12" y="10" width="280" height="42" rx="6" fill="#0f172a" opacity="0.9" />
-              <text x="20" y="28" fill="#fff" fontSize="11">{`Datum: ${orderPoints[hoveredOrders]?.day}`}</text>
-              <text x="20" y="42" fill="#fff" fontSize="11">{`Naročila: ${Math.round(orderPoints[hoveredOrders]?.value ?? 0)}`}</text>
-            </g>
-          ) : null}
-        </svg>
-      </section>
-
-      <section className="rounded-xl border border-slate-200 bg-white p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold text-slate-900">Naročila po statusih skozi čas</h2>
-          <div className="flex flex-wrap gap-2 text-xs">
-            {statusKeys.map((status, index) => {
-              const hidden = Boolean(hiddenSeries[status]);
-              return (
-                <button
-                  key={status}
-                  type="button"
-                  onClick={() => toggleLegend(status)}
-                  className={`rounded-full border px-2 py-1 ${hidden ? 'border-slate-300 text-slate-400' : 'border-slate-400 text-slate-700'}`}
-                >
-                  {getStatusLabel(status)}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-        <p className="text-xs text-slate-500">X os: Datum · Y os: Število naročil</p>
-        <div className="mt-3 space-y-2">
-          {byDay.map((point) => {
-            const total = statusKeys.reduce((sum, status) => sum + (hiddenSeries[status] ? 0 : point.statuses[status] ?? 0), 0);
-            return (
-              <div key={point.day} className="flex items-center gap-3 text-xs">
-                <span className="w-28 text-slate-500">{point.day}</span>
-                <div className="flex h-3 flex-1 overflow-hidden rounded bg-slate-100">
-                  {statusKeys.map((status, index) => {
-                    if (hiddenSeries[status]) return null;
-                    const count = point.statuses[status] ?? 0;
-                    const width = total > 0 ? (count / total) * 100 : 0;
-                    return (
-                      <div
-                        key={`${point.day}-${status}`}
-                        style={{ width: `${width}%`, backgroundColor: statusPalette[index % statusPalette.length] }}
-                        title={`${point.day} · ${getStatusLabel(status)}: ${count}`}
-                        onMouseEnter={() => setHoveredStatus({ day: point.day, status, count })}
-                        onMouseLeave={() => setHoveredStatus(null)}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        {hoveredStatus ? (
-          <p className="mt-2 text-xs text-slate-500">
-            {hoveredStatus.day} · {getStatusLabel(hoveredStatus.status)}: {hoveredStatus.count}
-          </p>
-        ) : null}
-      </section>
-
-      <section className="rounded-xl border border-slate-200 bg-white p-4">
-        <h2 className="text-sm font-semibold text-slate-900">Plačilni statusi</h2>
-        <p className="text-xs text-slate-500">Delež po plačilnih statusih (%)</p>
-        <div className="mt-4 grid gap-4 md:grid-cols-[260px_1fr] md:items-center">
-          <svg viewBox="0 0 220 220" className="mx-auto h-56 w-56">
-            {paymentDistribution.reduce<{ angle: number; nodes: JSX.Element[] }>(
-              (acc, row, index) => {
-                const segmentAngle = (row.share / 100) * Math.PI * 2;
-                const start = acc.angle;
-                const end = start + segmentAngle;
-                acc.nodes.push(
-                  <path
-                    key={row.key}
-                    d={donutSegment(110, 110, 90, start, end)}
-                    fill={row.color}
-                    opacity="0.85"
-                    onMouseEnter={() => setHoveredPayment({ label: row.label, count: row.count, share: row.share })}
-                    onMouseLeave={() => setHoveredPayment(null)}
-                  />
-                );
-                acc.angle = end;
-                return acc;
-              },
-              { angle: -Math.PI / 2, nodes: [] }
-            ).nodes}
-            <circle cx="110" cy="110" r="52" fill="#fff" />
-            <text x="110" y="110" textAnchor="middle" dominantBaseline="middle" className="fill-slate-600 text-[12px]">Plačila</text>
-          </svg>
-
-          <div className="space-y-2">
-            {paymentDistribution.map((item) => (
-              <div key={item.key} className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="text-slate-700">{item.label}</span>
-                </div>
-                <span className="text-slate-500">{item.count} · {formatPercent(item.share)}</span>
-              </div>
+          </MemoChartCard>
             ))}
           </div>
-        </div>
-        {hoveredPayment ? (
-          <p className="mt-3 text-xs text-slate-500">
-            {hoveredPayment.label}: {hoveredPayment.count} ({formatPercent(hoveredPayment.share)})
-          </p>
-        ) : null}
-      </section>
+        </SortableContext>
+      </DndContext>
+
+      {builderOpen ? (
+        <BuilderModal
+          title={builderTitle}
+          description={builderDescription}
+          comment={builderComment}
+          chartType={builderChartType}
+          config={builderConfig}
+          data={data}
+          onChangeTitle={setBuilderTitle}
+          onChangeDescription={setBuilderDescription}
+          onChangeComment={setBuilderComment}
+          onChangeChartType={setBuilderChartType}
+          onChangeConfig={setBuilderConfig}
+          onClose={() => { setBuilderOpen(false); setEditingChartId(null); }}
+          onSave={() => void createOrUpdateChart()}
+          chartTheme={chartTheme}
+          mode={editingChartId ? 'edit' : 'create'}
+          onDelete={editingChartId ? () => void deleteChart(editingChartId) : undefined}
+          appearance={previewAppearance}
+        />
+      ) : null}
     </div>
   );
+}
+
+function buildChartModel(chart: AnalyticsChartRow, data: OrdersAnalyticsResponse, theme: ChartTheme, globalAppearance: AnalyticsGlobalAppearance) {
+  const days = applyChartFiltersAndGrain(data, chart.config_json);
+  const x = days.map((day) => day.date);
+
+  const enabledSeries = chart.config_json.series.filter((series) => series.enabled);
+  const traces: Data[] = [];
+  const exportRows: Array<Record<string, string | number>> = [];
+
+  const palette = chart.config_json.appearance?.seriesPalette ?? globalAppearance.seriesPalette;
+
+  enabledSeries.forEach((series, index) => {
+    const metricValues = extractSeriesValues(days, series);
+    const effectiveColor = legacyPalette.has(series.color) ? (palette[index % palette.length] ?? series.color) : series.color;
+    const trace = seriesToTrace({ ...series, color: effectiveColor }, x, metricValues, index, chart.chart_type);
+    traces.push(trace);
+
+    x.forEach((date, valueIndex) => {
+      if (!exportRows[valueIndex]) exportRows[valueIndex] = { date };
+      exportRows[valueIndex][series.axis_label || series.field_key] = Number(metricValues[valueIndex] ?? 0);
+    });
+  });
+
+  const chartAppearance = chart.config_json.appearance ?? {};
+  const resolvedCanvasBg = chartAppearance.canvasBg || globalAppearance.canvasBg || theme.card;
+  const resolvedCardBg = chartAppearance.cardBg || globalAppearance.cardBg || resolvedCanvasBg;
+  const resolvedPlotBg = chartAppearance.plotBg || globalAppearance.plotBg || resolvedCanvasBg;
+  const resolvedGridColor = chartAppearance.gridColor || globalAppearance.gridColor;
+  const resolvedGrid = hexToRgba(resolvedGridColor, chartAppearance.gridOpacity ?? globalAppearance.gridOpacity ?? 0.2);
+  const resolvedAxisText = chartAppearance.axisTextColor || globalAppearance.axisTextColor;
+
+  const layout: Partial<Layout> = {
+    ...layoutBase(theme),
+    paper_bgcolor: resolvedCanvasBg,
+    plot_bgcolor: resolvedPlotBg,
+    xaxis: {
+      title: { text: chart.config_json.xTitle || 'Datum', font: { size: chart.config_json.xTitleFontSize ?? 12, color: resolvedAxisText } },
+      tickformat: chart.config_json.xTickFormat || undefined,
+      type: chart.config_json.xScale === 'log' ? 'log' : 'date',
+      gridcolor: resolvedGrid,
+      tickfont: { color: resolvedAxisText, size: chart.config_json.yTickFontSize ?? 10 },
+    },
+    yaxis: {
+      title: { text: chart.config_json.yLeftTitle || 'Value', font: { size: chart.config_json.yTitleFontSize ?? 12, color: resolvedAxisText } },
+      tickformat: chart.config_json.yLeftTickFormat || undefined,
+      type: chart.config_json.yLeftScale === 'log' ? 'log' : 'linear',
+      gridcolor: resolvedGrid,
+      tickfont: { color: resolvedAxisText, size: chart.config_json.yTickFontSize ?? 10 },
+    },
+    barmode:
+      chart.chart_type === 'stacked_bar' || chart.chart_type === 'stacked_area'
+        ? 'stack'
+        : chart.chart_type === 'grouped_bar'
+          ? 'group'
+          : 'overlay'
+  };
+
+  if (chart.config_json.yRightEnabled) {
+    layout.yaxis2 = {
+      title: { text: chart.config_json.yRightTitle || 'Right axis', font: { size: chart.config_json.yTitleFontSize ?? 12, color: resolvedAxisText } },
+      overlaying: 'y',
+      side: 'right',
+      type: chart.config_json.yRightScale === 'log' ? 'log' : 'linear',
+      tickformat: chart.config_json.yRightTickFormat || undefined,
+      tickfont: { color: resolvedAxisText, size: chart.config_json.yTickFontSize ?? 10 },
+    };
+  }
+
+  return {
+    chart,
+    x,
+    traces,
+    layout,
+    exportRows
+  };
+}
+
+function applyChartFiltersAndGrain(data: OrdersAnalyticsResponse, config: AnalyticsChartConfig) {
+  const filtered = data.days.filter((day) => {
+    const customerPass =
+      config.filters.customerType === 'all'
+        ? true
+        : (day.customer_type_buckets[config.filters.customerType] ?? 0) > 0;
+
+    const statusPass = config.filters.status === 'all' ? true : (day.status_buckets[config.filters.status] ?? 0) > 0;
+    const paymentPass =
+      config.filters.paymentStatus === 'all'
+        ? true
+        : (day.payment_status_buckets[config.filters.paymentStatus] ?? 0) > 0;
+
+    return customerPass && statusPass && paymentPass;
+  });
+
+  if (config.grain === 'day') return filtered;
+
+  const grouped = new Map<string, typeof filtered[number][]>();
+  filtered.forEach((day) => {
+    const date = new Date(`${day.date}T00:00:00.000Z`);
+    if (Number.isNaN(date.getTime())) return;
+
+    let key = day.date;
+    if (config.grain === 'week') {
+      const weekStart = new Date(date);
+      const dow = weekStart.getUTCDay();
+      const delta = (dow + 6) % 7;
+      weekStart.setUTCDate(weekStart.getUTCDate() - delta);
+      key = weekStart.toISOString().slice(0, 10);
+    } else if (config.grain === 'month') {
+      key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-01`;
+    } else if (config.grain === 'quarter') {
+      const quarter = Math.floor(date.getUTCMonth() / 3) * 3 + 1;
+      key = `${date.getUTCFullYear()}-${String(quarter).padStart(2, '0')}-01`;
+    }
+
+    const bucket = grouped.get(key) ?? [];
+    bucket.push(day);
+    grouped.set(key, bucket);
+  });
+
+  return Array.from(grouped.entries())
+    .map(([date, rows]) => {
+      const orderCount = rows.reduce((sum, row) => sum + row.order_count, 0);
+      const revenue = rows.reduce((sum, row) => sum + row.revenue_total, 0);
+      const aov = orderCount > 0 ? revenue / orderCount : 0;
+      const median = rows.reduce((sum, row) => sum + row.median_order_value, 0) / Math.max(rows.length, 1);
+      const paymentSuccess = rows.reduce((sum, row) => sum + row.payment_success_rate, 0) / Math.max(rows.length, 1);
+      const cancelRate = rows.reduce((sum, row) => sum + row.cancellation_rate, 0) / Math.max(rows.length, 1);
+      const p50 = rows.reduce((sum, row) => sum + (row.lead_time_p50_hours ?? 0), 0) / Math.max(rows.length, 1);
+      const p90 = rows.reduce((sum, row) => sum + (row.lead_time_p90_hours ?? 0), 0) / Math.max(rows.length, 1);
+
+      return {
+        ...rows[0],
+        date,
+        order_count: orderCount,
+        revenue_total: Number(revenue.toFixed(2)),
+        aov: Number(aov.toFixed(2)),
+        median_order_value: Number(median.toFixed(2)),
+        payment_success_rate: Number(paymentSuccess.toFixed(2)),
+        cancellation_rate: Number(cancelRate.toFixed(2)),
+        lead_time_p50_hours: Number(p50.toFixed(2)),
+        lead_time_p90_hours: Number(p90.toFixed(2))
+      };
+    })
+    .sort((left, right) => left.date.localeCompare(right.date));
+}
+
+function extractSeriesValues(days: OrdersAnalyticsResponse['days'], series: AnalyticsChartSeries) {
+  const baseValues = days.map((day) => toSafeNumber(day[series.field_key]));
+
+  switch (series.transform) {
+    case 'moving_average_7d':
+      return movingAverage(baseValues, 7);
+    case 'cumulative':
+      return cumulative(baseValues);
+    case 'pct_change':
+      return pctChange(baseValues);
+    case 'share_of_total': {
+      const total = baseValues.reduce((sum, value) => sum + value, 0);
+      if (total === 0) return baseValues.map(() => 0);
+      return baseValues.map((value) => (value / total) * 100);
+    }
+    default:
+      return baseValues;
+  }
+}
+
+const metricHoverRow = (label: string, valueToken: string) =>
+  `%{x|%Y-%m-%d}<br><span style="display:flex;justify-content:space-between;align-items:center;gap:12px;min-width:190px;"><span>${label}</span><span style="font-variant-numeric:tabular-nums;">${valueToken}</span></span><extra></extra>`;
+
+function seriesToTrace(
+  series: AnalyticsChartSeries,
+  x: string[],
+  y: number[],
+  index: number,
+  chartType: AnalyticsChartType
+): Data {
+  const resolvedType = chartType === 'combo' ? series.chart_type : chartType;
+  const yaxis = series.axis_side === 'right' ? 'y2' : 'y';
+  const name = series.axis_label || series.field_key;
+
+  if (resolvedType === 'bar' || resolvedType === 'grouped_bar' || resolvedType === 'stacked_bar') {
+    return {
+      type: 'bar',
+      name,
+      x,
+      y,
+      yaxis,
+      marker: { color: series.color, opacity: series.opacity },
+      hovertemplate: metricHoverRow(name, '%{y:,.2f}')
+    };
+  }
+
+  if (resolvedType === 'bubble') {
+    return {
+      type: 'scatter',
+      mode: 'markers',
+      name,
+      x,
+      y,
+      yaxis,
+      marker: {
+        color: series.color,
+        opacity: series.opacity,
+        size: y.map((value) => Math.max(8, Math.sqrt(Math.abs(value)))),
+        sizemode: 'diameter'
+      },
+      hovertemplate: metricHoverRow(name, '%{y:,.2f}')
+    };
+  }
+
+  if (resolvedType === 'histogram') {
+    return {
+      type: 'histogram',
+      name,
+      x: y,
+      marker: { color: series.color, opacity: series.opacity },
+      hovertemplate: metricHoverRow(name, '%{x:,.2f}')
+    };
+  }
+
+  if (resolvedType === 'box') {
+    return {
+      type: 'box',
+      name,
+      y,
+      marker: { color: series.color },
+      boxpoints: 'all',
+      jitter: 0.3,
+      pointpos: -1.8
+    };
+  }
+
+  if (resolvedType === 'heatmap') {
+    return {
+      type: 'heatmap',
+      z: [y],
+      x,
+      y: [name],
+      colorscale: 'Viridis',
+      hovertemplate: metricHoverRow(name, '%{z:,.2f}')
+    };
+  }
+
+  if (resolvedType === 'waterfall') {
+    return {
+      type: 'waterfall',
+      x,
+      y,
+      name,
+      yaxis,
+    };
+  }
+
+  const mode = resolvedType === 'scatter' ? 'markers' : resolvedType === 'spline' ? 'lines+markers' : 'lines+markers';
+  return {
+    type: 'scatter',
+    mode,
+    name,
+    x,
+    y,
+    yaxis,
+    line: {
+      color: series.color,
+      width: series.line_width,
+      shape: resolvedType === 'spline' ? 'spline' : 'linear'
+    },
+    fill: resolvedType === 'area' || resolvedType === 'stacked_area' ? 'tozeroy' : undefined,
+    opacity: series.opacity,
+    hovertemplate: metricHoverRow(name, '%{y:,.2f}')
+  };
+}
+
+function ChartCard({
+  chart,
+  children,
+  onEdit,
+  onDelete,
+  onExportCsv,
+  isFocused,
+  onFocus,
+  appearance
+}: {
+  chart: AnalyticsChartRow;
+  children: ReactNode;
+  onEdit: () => void;
+  onDelete: () => void;
+  onExportCsv: () => void;
+  isFocused: boolean;
+  onFocus: () => void;
+  appearance: AnalyticsGlobalAppearance;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: chart.id });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+
+  return (
+    <section
+      ref={setNodeRef}
+      style={{ ...style, backgroundColor: chart.config_json.appearance?.cardBg || appearance.cardBg, boxShadow: '0 1px 2px rgba(15,23,42,0.06)' }}
+      className={`rounded-xl border p-3 shadow-lg transition ${
+        isDragging ? 'opacity-80 ring-2 ring-cyan-500' : ''
+      } ${isFocused ? 'border-slate-400' : 'border-slate-200'}`}
+      onClick={onFocus}
+      {...attributes}
+    >
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-sm font-semibold text-slate-900">{chart.title}</h2>
+          {chart.description ? <p className="text-xs text-slate-500">{chart.description}</p> : null}
+          {chart.comment ? <p className="mt-1 rounded bg-slate-900/70 px-2 py-1 text-xs text-slate-300">{chart.comment}</p> : null}
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1">
+          <button className="cursor-grab rounded border border-slate-600 px-2 py-1 text-xs text-slate-300 active:cursor-grabbing" {...listeners} aria-label="Drag chart">↕</button>
+          <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={onEdit}>Edit</button>
+          <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={onExportCsv}>CSV</button>
+          <button className="rounded border border-rose-500 px-2 py-1 text-xs text-rose-300" onClick={onDelete}>Delete</button>
+        </div>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+const MemoChartCard = memo(ChartCard);
+
+function BuilderModal({
+  title,
+  description,
+  comment,
+  chartType,
+  config,
+  data,
+  onChangeTitle,
+  onChangeDescription,
+  onChangeComment,
+  onChangeChartType,
+  onChangeConfig,
+  onClose,
+  onSave,
+  chartTheme,
+  appearance,
+  mode,
+  onDelete
+}: {
+  title: string;
+  description: string;
+  comment: string;
+  chartType: AnalyticsChartType;
+  config: AnalyticsChartConfig;
+  data: OrdersAnalyticsResponse;
+  onChangeTitle: (value: string) => void;
+  onChangeDescription: (value: string) => void;
+  onChangeComment: (value: string) => void;
+  onChangeChartType: (value: AnalyticsChartType) => void;
+  onChangeConfig: (value: AnalyticsChartConfig) => void;
+  onClose: () => void;
+  onSave: () => void;
+  chartTheme: ChartTheme;
+  appearance: AnalyticsGlobalAppearance;
+  mode: 'create' | 'edit';
+  onDelete?: () => void;
+}) {
+  const previewChart: AnalyticsChartRow = {
+    id: -1,
+    dashboard_key: 'narocila',
+    key: 'preview',
+    title,
+    description,
+    comment,
+    chart_type: chartType,
+    config_json: config,
+    position: 0,
+    is_system: false,
+    created_at: '',
+    updated_at: ''
+  };
+
+  const preview = buildChartModel(previewChart, data, chartTheme, appearance);
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/75 p-4">
+      <div className="max-h-[92vh] w-[1180px] overflow-auto rounded-xl border border-slate-700 bg-slate-900 p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-100">{mode === 'edit' ? 'Edit chart' : 'New chart'}</h3>
+          <div className="flex items-center gap-2">
+            {onDelete ? <button className="rounded border border-rose-500 px-2 py-1 text-xs text-rose-300" onClick={onDelete}>Delete</button> : null}
+            <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={onClose}>Close</button>
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <LabeledInput label="Title" value={title} onChange={onChangeTitle} />
+          <label className="text-xs text-slate-300">Chart type
+            <select value={chartType} onChange={(event) => onChangeChartType(event.target.value as AnalyticsChartType)} className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1">
+              {chartTypeOptions.map((typeOption) => (
+                <option key={typeOption} value={typeOption}>{typeOption}</option>
+              ))}
+            </select>
+          </label>
+          <LabeledInput label="Description" value={description} onChange={onChangeDescription} />
+          <LabeledInput label="Comment" value={comment} onChange={onChangeComment} />
+          <LabeledInput label="X axis title" value={config.xTitle} onChange={(value) => onChangeConfig({ ...config, xTitle: value })} />
+          <LabeledInput label="Y left title" value={config.yLeftTitle} onChange={(value) => onChangeConfig({ ...config, yLeftTitle: value })} />
+          <LabeledInput label="Y right title" value={config.yRightTitle} onChange={(value) => onChangeConfig({ ...config, yRightTitle: value })} />
+          <LabeledNumberInput label="X title size" value={config.xTitleFontSize ?? 12} onChange={(value) => onChangeConfig({ ...config, xTitleFontSize: value })} />
+          <LabeledNumberInput label="Y title size" value={config.yTitleFontSize ?? 12} onChange={(value) => onChangeConfig({ ...config, yTitleFontSize: value })} />
+          <LabeledNumberInput label="X tick size" value={config.xTickFontSize ?? 10} onChange={(value) => onChangeConfig({ ...config, xTickFontSize: value })} />
+          <LabeledNumberInput label="Y tick size" value={config.yTickFontSize ?? 10} onChange={(value) => onChangeConfig({ ...config, yTickFontSize: value })} />
+          <label className="mt-6 inline-flex items-center gap-2 text-xs text-slate-300">
+            <input type="checkbox" checked={config.yRightEnabled} onChange={(event) => onChangeConfig({ ...config, yRightEnabled: event.target.checked })} />
+            Enable right axis
+          </label>
+
+          <label className="text-xs text-slate-300">Grouping grain
+            <select className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1" value={config.grain} onChange={(event) => onChangeConfig({ ...config, grain: event.target.value as AnalyticsChartConfig['grain'] })}>
+              <option value="day">day</option>
+              <option value="week">week</option>
+              <option value="month">month</option>
+              <option value="quarter">quarter</option>
+            </select>
+          </label>
+
+          <label className="text-xs text-slate-300">Left axis scale
+            <select className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1" value={config.yLeftScale} onChange={(event) => onChangeConfig({ ...config, yLeftScale: event.target.value as 'linear' | 'log' })}>
+              <option value="linear">linear</option>
+              <option value="log">log</option>
+            </select>
+          </label>
+          <label className="text-xs text-slate-300">Right axis scale
+            <select className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1" value={config.yRightScale} onChange={(event) => onChangeConfig({ ...config, yRightScale: event.target.value as 'linear' | 'log' })}>
+              <option value="linear">linear</option>
+              <option value="log">log</option>
+            </select>
+          </label>
+
+          <label className="text-xs text-slate-300">Customer type filter
+            <select className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1" value={config.filters.customerType} onChange={(event) => onChangeConfig({ ...config, filters: { ...config.filters, customerType: event.target.value as AnalyticsChartConfig['filters']['customerType'] } })}>
+              <option value="all">all</option>
+              <option value="P">P</option>
+              <option value="Š">Š</option>
+              <option value="F">F</option>
+            </select>
+          </label>
+          <LabeledInput label="Status filter" value={config.filters.status} onChange={(value) => onChangeConfig({ ...config, filters: { ...config.filters, status: value || 'all' } })} />
+        </div>
+
+        <div className="mt-4 overflow-x-auto rounded border border-slate-700">
+          <table className="min-w-full text-xs text-slate-300">
+            <thead className="bg-slate-800 text-slate-500">
+              <tr>
+                <th className="px-2 py-1 text-left">enabled</th>
+                <th className="px-2 py-1 text-left">metric</th>
+                <th className="px-2 py-1 text-left">aggregation</th>
+                <th className="px-2 py-1 text-left">transform</th>
+                <th className="px-2 py-1 text-left">chart type</th>
+                <th className="px-2 py-1 text-left">stack group</th>
+                <th className="px-2 py-1 text-left">axis side</th>
+                <th className="px-2 py-1 text-left">axis label</th>
+                <th className="px-2 py-1 text-left">color</th>
+                <th className="px-2 py-1 text-left">line width</th>
+                <th className="px-2 py-1 text-left">opacity</th>
+                <th className="px-2 py-1 text-left">label format</th>
+                <th className="px-2 py-1 text-left">action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {config.series.map((series, index) => (
+                <tr key={series.id} className="border-t border-slate-800">
+                  <td className="px-2 py-1"><input type="checkbox" checked={series.enabled} onChange={(event) => onChangeConfig(updateSeries(config, index, { enabled: event.target.checked }))} /></td>
+                  <td className="px-2 py-1">
+                    <select value={series.field_key} className="rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { field_key: event.target.value as AnalyticsMetricField }))}>
+                      {metricOptions.map((metricOption) => (
+                        <option key={metricOption.value} value={metricOption.value}>{metricOption.value}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="px-2 py-1">
+                    <select value={series.aggregation} className="rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { aggregation: event.target.value as AnalyticsChartSeries['aggregation'] }))}>
+                      <option value="sum">sum</option><option value="count">count</option><option value="avg">avg</option><option value="median">median</option><option value="min">min</option><option value="max">max</option><option value="p90">p90</option><option value="distinct_count">distinct_count</option>
+                    </select>
+                  </td>
+                  <td className="px-2 py-1">
+                    <select value={series.transform} className="rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { transform: event.target.value as AnalyticsChartSeries['transform'] }))}>
+                      {transformOptions.map((transformOption) => <option key={transformOption} value={transformOption}>{transformOption}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-2 py-1">
+                    <select value={series.chart_type} className="rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { chart_type: event.target.value as AnalyticsChartType }))}>
+                      {chartTypeOptions.map((typeOption) => <option key={typeOption} value={typeOption}>{typeOption}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-2 py-1"><input value={series.stack_group} className="w-20 rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { stack_group: event.target.value }))} /></td>
+                  <td className="px-2 py-1">
+                    <select value={series.axis_side} className="rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { axis_side: event.target.value as 'left' | 'right' }))}>
+                      <option value="left">left</option>
+                      <option value="right">right</option>
+                    </select>
+                  </td>
+                  <td className="px-2 py-1"><input value={series.axis_label} className="w-24 rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { axis_label: event.target.value }))} /></td>
+                  <td className="px-2 py-1"><input type="color" value={series.color} onChange={(event) => onChangeConfig(updateSeries(config, index, { color: event.target.value }))} /></td>
+                  <td className="px-2 py-1"><input type="number" min={1} max={8} value={series.line_width} className="w-14 rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { line_width: Number(event.target.value) }))} /></td>
+                  <td className="px-2 py-1"><input type="number" min={0.1} max={1} step={0.1} value={series.opacity} className="w-14 rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { opacity: Number(event.target.value) }))} /></td>
+                  <td className="px-2 py-1"><input value={series.label_format} className="w-16 rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { label_format: event.target.value }))} /></td>
+                  <td className="px-2 py-1">
+                    <button className="rounded border border-rose-500 px-2 py-0.5 text-[11px] text-rose-300" onClick={() => onChangeConfig({ ...config, series: config.series.filter((_, seriesIndex) => seriesIndex !== index) })}>x</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mt-2">
+          <button className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300" onClick={() => onChangeConfig({ ...config, series: [...config.series, newSeries('order_count', chartTheme.series.tertiary)] })}>+ Add series</button>
+        </div>
+
+
+        <div className="mt-3 grid gap-3 rounded border border-slate-700 bg-slate-950/60 p-3 md:grid-cols-4">
+          <label className="text-xs text-slate-600">Chart card bg (HEX)
+            <input className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 font-mono text-xs" value={config.appearance?.cardBg ?? appearance.cardBg} onChange={(event) => onChangeConfig({ ...config, appearance: { ...(config.appearance ?? {}), cardBg: event.target.value } })} />
+          </label>
+          <label className="text-xs text-slate-600">Plot area bg (HEX)
+            <input className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 font-mono text-xs" value={config.appearance?.plotBg ?? appearance.plotBg} onChange={(event) => onChangeConfig({ ...config, appearance: { ...(config.appearance ?? {}), plotBg: event.target.value } })} />
+          </label>
+          <label className="text-xs text-slate-600">Canvas bg (HEX)
+            <input className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 font-mono text-xs" value={config.appearance?.canvasBg ?? appearance.canvasBg} onChange={(event) => onChangeConfig({ ...config, appearance: { ...(config.appearance ?? {}), canvasBg: event.target.value } })} />
+          </label>
+          <label className="text-xs text-slate-600">Grid intensity
+            <input type="range" min={0} max={1} step={0.01} className="mt-2 w-full" value={config.appearance?.gridOpacity ?? appearance.gridOpacity} onChange={(event) => onChangeConfig({ ...config, appearance: { ...(config.appearance ?? {}), gridOpacity: Number(event.target.value) } })} />
+          </label>
+        </div>
+
+        <div className="mt-4 rounded border border-slate-700 bg-slate-950 p-3">
+          <p className="mb-2 text-xs text-slate-500">Live preview</p>
+          <PlotlyClient data={preview.traces} layout={preview.layout} config={{ responsive: true, displayModeBar: false }} useResizeHandler style={{ width: '100%', height: 320 }} />
+        </div>
+
+        <div className="mt-4 flex justify-end gap-2">
+          <button className="rounded border border-slate-600 px-3 py-1.5 text-xs text-slate-300" onClick={onClose}>Cancel</button>
+          <button className="rounded border border-cyan-500 bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white" onClick={onSave}>{mode === 'edit' ? 'Save changes' : 'Save chart'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function isHexColor(value: string) {
+  return /^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/.test(value.trim());
+}
+
+function ColorPopoverField({
+  label,
+  value,
+  onChange
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const isValid = isHexColor(value);
+  const safeValue = isValid ? value : '#000000';
+
+  return (
+    <div className="text-xs text-slate-600">
+      <span>{label}</span>
+      <details className="relative mt-1">
+        <summary className="list-none cursor-pointer">
+          <span className={`inline-flex h-8 w-full items-center justify-between rounded border px-2 ${isValid ? 'border-slate-300 bg-white' : 'border-rose-300 bg-rose-50'}`}>
+            <span className="font-mono text-xs">{value}</span>
+            <span className="h-4 w-4 rounded border border-slate-300" style={{ backgroundColor: safeValue }} />
+          </span>
+        </summary>
+        <div className="absolute z-20 mt-1 w-56 rounded-md border border-slate-200 bg-white p-2 shadow-lg">
+          <input type="color" className="h-8 w-full cursor-pointer rounded border border-slate-200" value={safeValue} onChange={(event) => onChange(event.target.value)} />
+          <input className={`mt-2 w-full rounded border px-2 py-1 font-mono text-xs ${isValid ? 'border-slate-300' : 'border-rose-300 bg-rose-50'}`} value={value} onChange={(event) => onChange(event.target.value)} placeholder="#RRGGBB" />
+          {!isValid ? <span className="mt-1 block text-[11px] text-rose-500">Use HEX like #RRGGBB.</span> : null}
+        </div>
+      </details>
+    </div>
+  );
+}
+
+function AppearancePanel({
+  appearance,
+  savedAppearance,
+  onChange,
+  onSave,
+  onReset
+}: {
+  appearance: AnalyticsGlobalAppearance;
+  savedAppearance: AnalyticsGlobalAppearance;
+  onChange: (appearance: AnalyticsGlobalAppearance) => void;
+  onSave: () => Promise<void>;
+  onReset: () => void;
+}) {
+  const dirty = JSON.stringify(appearance) !== JSON.stringify(savedAppearance);
+
+  const canSave =
+    [appearance.sectionBg, appearance.canvasBg, appearance.cardBg, appearance.plotBg, appearance.axisTextColor, appearance.gridColor].every(isHexColor) &&
+    appearance.seriesPalette.every(isHexColor);
+
+  return (
+    <details className="mb-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm" open>
+      <summary className="cursor-pointer text-xs font-semibold text-slate-700">
+        Appearance / Theme {dirty ? <span className="ml-2 text-amber-600">• Unsaved changes</span> : null}
+      </summary>
+      <div className="mt-3 grid gap-3 md:grid-cols-3">
+        <ColorPopoverField label="Analytics section background" value={appearance.sectionBg} onChange={(value) => onChange({ ...appearance, sectionBg: value })} />
+        <ColorPopoverField label="Canvas background (paper_bgcolor)" value={appearance.canvasBg} onChange={(value) => onChange({ ...appearance, canvasBg: value })} />
+        <ColorPopoverField label="Card background" value={appearance.cardBg} onChange={(value) => onChange({ ...appearance, cardBg: value })} />
+        <ColorPopoverField label="Plot area background (plot_bgcolor)" value={appearance.plotBg} onChange={(value) => onChange({ ...appearance, plotBg: value })} />
+        <ColorPopoverField label="Axis text color" value={appearance.axisTextColor} onChange={(value) => onChange({ ...appearance, axisTextColor: value })} />
+        <ColorPopoverField label="Grid color" value={appearance.gridColor} onChange={(value) => onChange({ ...appearance, gridColor: value })} />
+        <label className="text-xs text-slate-600">Grid intensity ({Math.round(appearance.gridOpacity * 100)}%)
+          <input type="range" min={0} max={1} step={0.01} className="mt-2 w-full" value={appearance.gridOpacity} onChange={(event) => onChange({ ...appearance, gridOpacity: Number(event.target.value) })} />
+        </label>
+      </div>
+
+      <div className="mt-3 grid gap-2 md:grid-cols-5">
+        {appearance.seriesPalette.map((color, index) => (
+          <ColorPopoverField
+            key={index}
+            label={`Series ${index + 1}`}
+            value={color}
+            onChange={(value) =>
+              onChange({
+                ...appearance,
+                seriesPalette: appearance.seriesPalette.map((entry, entryIndex) => (entryIndex === index ? value : entry))
+              })
+            }
+          />
+        ))}
+      </div>
+
+      <div className="mt-3 flex justify-end gap-2">
+        <button className="rounded border border-slate-300 bg-white px-3 py-1 text-xs text-slate-700" onClick={onReset} disabled={!dirty}>Reset</button>
+        <button className="rounded border border-sky-500 bg-sky-600 px-3 py-1 text-xs text-white disabled:opacity-50" onClick={() => void onSave()} disabled={!dirty || !canSave}>Save appearance</button>
+      </div>
+    </details>
+  );
+}
+
+function LabeledNumberInput({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
+  return (
+    <label className="text-xs text-slate-300">
+      {label}
+      <input type="number" min={8} max={24} className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1" value={value} onChange={(event) => onChange(Number(event.target.value))} />
+    </label>
+  );
+}
+
+function LabeledInput({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <label className="text-xs text-slate-300">
+      {label}
+      <input className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1" value={value} onChange={(event) => onChange(event.target.value)} />
+    </label>
+  );
+}
+
+function newSeries(metric: AnalyticsMetricField, color: string): AnalyticsChartSeries {
+  return {
+    id: crypto.randomUUID(),
+    enabled: true,
+    field_key: metric,
+    aggregation: 'sum',
+    transform: 'none',
+    chart_type: 'line',
+    stack_group: 'none',
+    axis_side: 'left',
+    axis_label: '',
+    color,
+    line_width: 2,
+    opacity: 1,
+    label_format: ''
+  };
+}
+
+function updateSeries(config: AnalyticsChartConfig, seriesIndex: number, patch: Partial<AnalyticsChartSeries>) {
+  return {
+    ...config,
+    series: config.series.map((series, index) => (index === seriesIndex ? { ...series, ...patch } : series))
+  };
+}
+
+function exportCsv(chartTitle: string, x: string[], rows: Array<Record<string, string | number>>) {
+  if (rows.length === 0) return;
+  const headers = Array.from(new Set(rows.flatMap((row) => Object.keys(row))));
+  const csvLines = [headers.join(',')];
+
+  rows.forEach((row) => {
+    csvLines.push(
+      headers
+        .map((header) => {
+          const value = row[header] ?? '';
+          const safe = String(value).replace(/"/g, '""');
+          return `"${safe}"`;
+        })
+        .join(',')
+    );
+  });
+
+  const blob = new Blob([csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const href = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = href;
+  link.download = `${chartTitle.toLowerCase().replace(/\s+/g, '-') || 'chart'}-${x.length}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(href);
 }

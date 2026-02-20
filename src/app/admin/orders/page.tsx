@@ -9,9 +9,10 @@ import {
   fetchOrders
 } from '@/lib/server/orders';
 import { getDatabaseUrl } from '@/lib/server/db';
+import { fetchGlobalAnalyticsAppearance, type AnalyticsGlobalAppearance } from '@/lib/server/analyticsCharts';
 
 export const metadata = {
-  title: 'Administracija naročil'
+  title: 'Pregled naročil'
 };
 
 export const dynamic = 'force-dynamic';
@@ -108,15 +109,29 @@ export default async function AdminOrdersPage({
   let attachments: OrderAttachmentRow[] = demoAttachments;
   let warningMessage: string | null = null;
 
+  const fallbackAppearance: AnalyticsGlobalAppearance = {
+    sectionBg: '#f1f0ec',
+    canvasBg: '#ffffff',
+    cardBg: '#ffffff',
+    plotBg: '#ffffff',
+    axisTextColor: '#111827',
+    seriesPalette: ['#65c8cc', '#5fb6ba', '#7a8f6a', '#b08968', '#a24a45'],
+    gridColor: '#d8d6cf',
+    gridOpacity: 0.35
+  };
+  let analyticsAppearance = fallbackAppearance;
+
+
   if (!getDatabaseUrl()) {
     warningMessage = 'Povezava z bazo ni nastavljena — prikazan je demo pogled.';
   } else {
     try {
-      orders = await fetchOrders({
-        fromDate: toIsoOrNull(from),
-        toDate: getToDateIsoOrNull(to),
-        query: query || null
-      });
+      // Always load the full active dataset on the server and let the table apply
+      // date/search/document filters client-side. This avoids accidental empty states
+      // caused by stale URL params or server-side filter drift.
+      orders = await fetchOrders({ includeDrafts: true });
+      analyticsAppearance = await fetchGlobalAnalyticsAppearance('narocila').catch(() => fallbackAppearance);
+      console.info(`/admin/orders loaded rows=${orders.length}`);
 
       const orderIds = orders.map((order) => order.id);
       const [documentsResult, attachmentsResult] = await Promise.allSettled([
@@ -147,14 +162,12 @@ export default async function AdminOrdersPage({
   }
 
   return (
-    <div className="w-full px-6 py-12">
-      <div className="flex flex-col gap-6">
+    <div className="w-full">
+      <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-semibold text-slate-900">Administracija naročil</h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Pregled oddanih naročil, statusov in dokumentov.
-            </p>
+            <h1 className="text-2xl font-semibold text-slate-900">Pregled naročil</h1>
+            <p className="mt-1 text-sm text-slate-500">pregled in urejanje naročil</p>
           </div>
         </div>
 
@@ -172,6 +185,7 @@ export default async function AdminOrdersPage({
           initialTo={to}
           initialQuery={query}
           topAction={<AdminCreateDraftOrderButton />}
+          analyticsAppearance={analyticsAppearance}
         />
       </div>
     </div>

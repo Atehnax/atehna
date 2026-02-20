@@ -27,7 +27,7 @@ function FloatingTextarea({ id, label, value, rows = 3, onChange }: FloatingText
         value={value}
         placeholder=" "
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-slate-300 bg-white px-3 pb-2 pt-5 text-[12px] text-slate-900 shadow-sm outline-none transition focus:border-[#6244d8] focus:ring-1 focus:ring-[#6244d8]"
+        className="w-full rounded-xl border border-slate-300 bg-white px-3 pb-2 pt-5 text-[12px] text-slate-900 shadow-sm outline-none transition focus:border-[#8269e1] focus:ring-[0.5px] focus:ring-[#8269e1]"
       />
       <label
         htmlFor={id}

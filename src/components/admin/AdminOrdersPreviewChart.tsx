@@ -223,10 +223,11 @@ function AdminOrdersPreviewChart({
     xaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, fixedrange: true, hoverformat: '%Y-%m-%d', rangeslider: { visible: true, thickness: 0.18, bgcolor: 'rgba(148,163,184,0.18)', bordercolor: 'rgba(148,163,184,0.35)', borderwidth: 1 } },
     yaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, rangemode: 'tozero', fixedrange: true },
     hoverlabel: {
-      bgcolor: '#f8f7fc',
-      bordercolor: '#d8d6cf',
-      font: { color: '#111827', size: 14, family: 'Inter, system-ui, sans-serif' },
-      align: 'left'
+      bgcolor: '#0b1020',
+      bordercolor: '#3f465a',
+      font: { color: '#e5e7eb', size: 13, family: 'Inter, system-ui, sans-serif' },
+      align: 'left',
+      namelength: -1
     },
     barmode: isAreaStacked ? 'stack' : undefined
   });
@@ -378,13 +379,13 @@ function AdminOrdersPreviewChart({
   return (
     <section className="mb-3" aria-label="Orders analytics previews">
       <div className="mb-2 flex min-h-[30px] items-center justify-end gap-3">
-        <div className="inline-flex rounded-md border border-[#d6ccfb] bg-[#ede8fe] p-0.5 text-[11px] shadow-sm">
+        <div className="inline-flex items-center gap-1 rounded-full border border-[#d8ccfb] bg-[#f3efff] p-1 text-[11px] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_6px_18px_rgba(31,41,55,0.08)]">
           {rangeOptions.map((option) => (
             <button
               key={option.key}
               type="button"
               onClick={() => onRangeChange?.(option.key)}
-              className={`rounded border border-transparent bg-[#ede8fe] px-2 py-0.5 transition ${activeRange === option.key ? 'text-[#5a3fda] shadow-sm' : 'text-slate-700 hover:bg-[#e2dafd]'}`}
+              className={`rounded-full border border-transparent px-2.5 py-1 transition ${activeRange === option.key ? 'bg-white text-[#5a3fda] shadow-sm' : 'text-slate-700 hover:bg-white/70'}`}
             >
               {option.label}
             </button>

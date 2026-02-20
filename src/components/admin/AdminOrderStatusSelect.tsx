@@ -82,7 +82,7 @@ export default function AdminOrderStatusSelect({
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="rounded-full focus:outline-none focus-visible:ring-1 focus-visible:ring-[#6244d8]"
+        className="rounded-full focus:outline-none focus-visible:ring-[0.5px] focus-visible:ring-[#8269e1]"
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-label={`Spremeni status naročila ${orderId}`}

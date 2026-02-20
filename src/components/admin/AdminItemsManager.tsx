@@ -95,7 +95,7 @@ function FloatingInput({
         disabled={disabled}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#6244d8] focus:ring-1 focus:ring-[#6244d8] disabled:bg-slate-100 disabled:text-slate-400"
+        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#8269e1] focus:ring-[0.5px] focus:ring-[#8269e1] disabled:bg-slate-100 disabled:text-slate-400"
       />
       <label className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600 ${disabled ? 'bg-slate-100' : 'bg-white'}`}>
         {label}
@@ -123,7 +123,7 @@ function FloatingSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#6244d8] focus:ring-1 focus:ring-[#6244d8]"
+        className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#8269e1] focus:ring-[0.5px] focus:ring-[#8269e1]"
       >
         {children}
       </select>
@@ -318,15 +318,16 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
         <h1 className="text-2xl font-semibold text-slate-900">Artikli</h1>
       </div>
 
-      <div className="rounded-t-2xl border border-b-0 p-3 shadow-sm" style={{ background: "linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)", borderColor: "#e2e8f0", boxShadow: "0 10px 24px rgba(15,23,42,0.06)" }}>
-        <div className="mt-1 grid gap-2 md:grid-cols-[minmax(280px,1fr)_220px_auto_auto] md:items-center">
+      <div className="overflow-hidden rounded-2xl border shadow-sm" style={{ background: "linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)", borderColor: "#e2e8f0", boxShadow: "0 10px 24px rgba(15,23,42,0.06)" }}>
+        <div className="p-3">
+          <div className="mt-1 grid gap-2 md:grid-cols-[minmax(280px,1fr)_220px_auto_auto] md:items-center">
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Poišči po nazivu, SKU ali kategoriji …"
-            className="h-8 rounded-xl border border-slate-300 px-3 text-xs focus:border-[#6244d8] focus:ring-1 focus:ring-[#6244d8]"
+            className="h-8 rounded-xl border border-slate-300 px-3 text-xs focus:border-[#8269e1] focus:ring-[0.5px] focus:ring-[#8269e1]"
           />
-          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-8 rounded-xl border border-slate-300 px-3 text-xs focus:border-[#6244d8] focus:ring-1 focus:ring-[#6244d8]">
+          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-8 rounded-xl border border-slate-300 px-3 text-xs focus:border-[#8269e1] focus:ring-[0.5px] focus:ring-[#8269e1]">
             <option value="all">Vse kategorije</option>
             {categories.map((category) => (
               <option key={category} value={category}>{category}</option>
@@ -344,11 +345,10 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M10 4v12M4 10h12" /></svg>
             Nov artikel
           </button>
+          </div>
         </div>
 
-      </div>
-
-      <div className="flex items-center gap-2 border-x border-slate-200 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
+      <div className="flex items-center gap-2 border-t border-slate-200 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
         <div className="inline-flex h-8 items-center gap-1 rounded-full border border-slate-300 bg-white px-1">
           {statusTabs.map((tab) => {
             const isActive = statusTab === tab.key;
@@ -370,7 +370,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-b-2xl border border-t-0 shadow-sm" style={{ background: "linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)", borderColor: "#e2e8f0", boxShadow: "0 10px 24px rgba(15,23,42,0.06)" }}>
+      <div className="overflow-x-auto border-t border-slate-200" style={{ background: "linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)" }}>
           <table className="w-full min-w-[1000px] text-left text-sm">
             <thead className="bg-slate-50 text-xs text-slate-500">
               <tr>
@@ -412,6 +412,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             </tbody>
           </table>
         </div>
+      </div>
 
       {editorOpen ? (
         <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/30">
@@ -424,7 +425,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             <div className="space-y-3 text-sm">
               <FloatingInput label="Naziv" value={draft.name} onChange={(value) => setDraft((prev) => ({ ...prev, name: value }))} />
               <div className="group relative" data-filled={draft.description ? 'true' : 'false'}>
-                <textarea value={draft.description} onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))} placeholder=" " className="min-h-[90px] w-full rounded-xl border border-slate-300 bg-white px-3 pb-2 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#6244d8] focus:ring-1 focus:ring-[#6244d8]" />
+                <textarea value={draft.description} onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))} placeholder=" " className="min-h-[90px] w-full rounded-xl border border-slate-300 bg-white px-3 pb-2 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#8269e1] focus:ring-[0.5px] focus:ring-[#8269e1]" />
                 <label className="pointer-events-none absolute left-3 top-1.5 bg-white px-1 text-[10px] text-slate-600">Opis</label>
               </div>
 

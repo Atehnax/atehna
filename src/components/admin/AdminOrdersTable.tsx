@@ -778,7 +778,7 @@ export default function AdminOrdersTable({
             <button
               type="button"
               onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-              className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 text-left text-xs text-slate-700 hover:border-slate-400 focus:border-[#8269e1] focus:ring-[0.5px] focus:ring-[#8269e1]"
+              className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 text-left text-xs text-slate-700 hover:border-slate-400 focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]"
             >
               <span className="inline-flex w-full items-center gap-1.5 leading-none"> 
                 <svg
@@ -859,7 +859,7 @@ export default function AdminOrdersTable({
                         lang="sl-SI"
                         value={fromDate}
                         onChange={(event) => { setFromDate(event.target.value); setRangePreset('custom'); }}
-                        className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs outline-none focus:border-[#8269e1] focus:ring-[0.5px] focus:ring-[#8269e1]"
+                        className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs outline-none focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]"
                       />
                     </div>
 
@@ -870,7 +870,7 @@ export default function AdminOrdersTable({
                         lang="sl-SI"
                         value={toDate}
                         onChange={(event) => { setToDate(event.target.value); setRangePreset('custom'); }}
-                        className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs outline-none focus:border-[#8269e1] focus:ring-[0.5px] focus:ring-[#8269e1]"
+                        className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs outline-none focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]"
                       />
                     </div>
 
@@ -897,7 +897,7 @@ export default function AdminOrdersTable({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Poišči naročilo, naročnika, naslov, tip, status, plačilo..."
-              className="h-8 w-full rounded-xl border border-slate-300 px-3 text-xs focus:border-[#8269e1] focus:ring-[0.5px] focus:ring-[#8269e1]"
+              className="h-8 w-full rounded-xl border border-slate-300 px-3 text-xs focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]"
             />
           </div>
 
@@ -1208,7 +1208,7 @@ export default function AdminOrdersTable({
                     <td className="px-2 py-2 align-middle text-center font-semibold text-slate-900" data-no-row-nav>
                       <a
                         href={`/admin/orders/${order.id}`}
-                        className="inline-flex rounded-sm px-1 text-[13px] font-semibold text-brand-700 focus-visible:outline-none focus-visible:ring-[0.5px] focus-visible:ring-[#8269e1]"
+                        className="inline-flex rounded-sm px-1 text-[13px] font-semibold text-brand-700 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#8269e1]"
                         aria-label={`Odpri naročilo ${toDisplayOrderNumber(order.order_number)}`}
                       >
                         {toDisplayOrderNumber(order.order_number)}
@@ -1217,7 +1217,7 @@ export default function AdminOrdersTable({
 
                     <td className="px-2 py-2 align-middle text-center whitespace-nowrap text-slate-600">
                       <span
-                        className="inline-block rounded-sm px-1 focus-visible:outline-none focus-visible:ring-[0.5px] focus-visible:ring-[#8269e1]"
+                        className="inline-block rounded-sm px-1 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#8269e1]"
                         title={formatSlDateTime(order.created_at)}
                         aria-label={`Datum naročila ${formatSlDateTime(order.created_at)}`}
                         tabIndex={0}

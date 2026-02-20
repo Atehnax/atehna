@@ -61,7 +61,7 @@ const toCustomerBucket = (customerType: string): CustomerBucketKey => {
   return 'individual';
 };
 
-const compactHover = (label: string, color: string, valueToken: string, suffix = "") => `<span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:9999px;background:${color};display:inline-block;"></span><span style="font-weight:600;color:#e5e7eb;">${label}</span></span><span style="float:right;margin-left:16px;color:#e5e7eb;">${valueToken}${suffix}</span><extra></extra>`;
+const compactHover = (label: string, color: string, valueToken: string, suffix = "") => `<span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:9999px;background:${color};display:inline-block;"></span><span style="font-weight:600;color:#e5e7eb;">${label}</span><span style="display:inline-block;min-width:18px;"></span><span style="font-weight:600;color:#e5e7eb;">${valueToken}${suffix}</span></span><extra></extra>`;
 
 const stat = (value: number, suffix = '') => `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 2 }).format(value)}${suffix}`;
 

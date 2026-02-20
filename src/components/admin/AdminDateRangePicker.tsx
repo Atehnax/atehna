@@ -197,7 +197,7 @@ export default function AdminDateRangePicker() {
                     type="date"
                     value={draftFrom}
                     onChange={(event) => setDraftFrom(event.target.value)}
-                    className="h-8 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-[#8269e1] focus:ring-[0.5px] focus:ring-[#8269e1]"
+                    className="h-8 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]"
                   />
                 </div>
 
@@ -207,7 +207,7 @@ export default function AdminDateRangePicker() {
                     type="date"
                     value={draftTo}
                     onChange={(event) => setDraftTo(event.target.value)}
-                    className="h-8 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-[#8269e1] focus:ring-[0.5px] focus:ring-[#8269e1]"
+                    className="h-8 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]"
                   />
                 </div>
               </div>

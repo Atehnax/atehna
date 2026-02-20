@@ -1,5 +1,7 @@
 import AdminWebsiteAnalyticsDashboard from '@/components/admin/AdminWebsiteAnalyticsDashboard';
+import AdminAnalyticsTopTabs from '@/components/admin/AdminAnalyticsTopTabs';
 import { fetchWebsiteAnalytics } from '@/lib/server/websiteAnalytics';
+import { getDatabaseUrl } from '@/lib/server/db';
 
 export const metadata = {
   title: 'Administracija analitika splet'
@@ -22,12 +24,15 @@ export default async function AdminWebsiteAnalyticsPage({
   const from = searchParams?.from ?? '';
   const to = searchParams?.to ?? '';
 
-  const analytics = process.env.DATABASE_URL
-    ? await fetchWebsiteAnalytics({ fromDate: toIsoOrNull(from), toDate: toIsoOrNull(to) })
-    : { visitsByDay: [], topPages: [], topProducts: [], returningVisitors7d: 0, retentionByDay: [] };
+  const fallbackAnalytics = { visitsByDay: [], topPages: [], topProducts: [], returningVisitors7d: 0, retentionByDay: [] };
+  const analytics = getDatabaseUrl()
+    ? await fetchWebsiteAnalytics({ fromDate: toIsoOrNull(from), toDate: toIsoOrNull(to) }).catch(() => fallbackAnalytics)
+    : fallbackAnalytics;
 
   return (
-    <AdminWebsiteAnalyticsDashboard
+    <div className="w-full">
+      <AdminAnalyticsTopTabs />
+      <AdminWebsiteAnalyticsDashboard
       visitsByDay={analytics.visitsByDay}
       topPages={analytics.topPages}
       topProducts={analytics.topProducts}
@@ -35,6 +40,7 @@ export default async function AdminWebsiteAnalyticsPage({
       retentionByDay={analytics.retentionByDay}
       initialFrom={from}
       initialTo={to}
-    />
+      />
+    </div>
   );
 }

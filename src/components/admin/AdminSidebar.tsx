@@ -27,7 +27,7 @@ export default function AdminSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <aside className={`sticky top-0 h-screen shrink-0 transition-all duration-300 ${isCollapsed ? 'w-10' : 'w-[21rem]'}`}>
+    <aside className={`sticky top-0 h-screen shrink-0 transition-all duration-300 ${isCollapsed ? 'w-10' : 'w-[19rem]'}`}>
       <div className="relative h-full overflow-visible border-r border-slate-200 bg-[#f8f7fc] shadow-sm">
         <button
           type="button"

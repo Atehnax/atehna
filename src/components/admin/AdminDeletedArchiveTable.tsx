@@ -247,7 +247,7 @@ export default function AdminDeletedArchiveTable({
           <select
             value={typeFilter}
             onChange={(event) => setTypeFilter(event.target.value as 'all' | 'order' | 'pdf')}
-            className="h-8 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs focus:border-brand-500 focus:ring-1 focus:ring-brand-300"
+            className="h-8 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs focus:border-[#ede8fe] focus:ring-1 focus:ring-[#ede8fe]"
           >
             <option value="all">Vse vrste</option>
             <option value="order">Naročila</option>

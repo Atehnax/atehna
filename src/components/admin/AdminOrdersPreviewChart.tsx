@@ -61,7 +61,7 @@ const toCustomerBucket = (customerType: string): CustomerBucketKey => {
   return 'individual';
 };
 
-const compactHover = (valueToken: string, suffix = "") => `%{fullData.name}: ${valueToken}${suffix}<extra></extra>`;
+const compactHover = (valueToken: string, suffix = "") => `${valueToken}${suffix}<extra></extra>`;
 
 const stat = (value: number, suffix = '') => `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 2 }).format(value)}${suffix}`;
 
@@ -217,7 +217,7 @@ function AdminOrdersPreviewChart({
     ...layoutBase,
     margin: { l: 8, r: 8, t: 8, b: 8 },
     showlegend: false,
-    hovermode: 'closest',
+    hovermode: 'x unified',
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
     xaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, fixedrange: true, hoverformat: '%Y-%m-%d', rangeslider: { visible: true, thickness: 0.18, bgcolor: 'rgba(148,163,184,0.18)', bordercolor: 'rgba(148,163,184,0.35)', borderwidth: 1 } },
@@ -225,7 +225,7 @@ function AdminOrdersPreviewChart({
     hoverlabel: {
       bgcolor: '#f8f7fc',
       bordercolor: '#d8d6cf',
-      font: { color: '#111827', size: 13, family: 'Inter, system-ui, sans-serif' },
+      font: { color: '#111827', size: 14, family: 'Inter, system-ui, sans-serif' },
       align: 'left'
     },
     barmode: isAreaStacked ? 'stack' : undefined
@@ -245,7 +245,7 @@ function AdminOrdersPreviewChart({
         {
           type: 'scatter',
           mode: 'lines',
-          name: 'Naročila / dan',
+          name: 'Število naročil',
           x: data.x,
           y: data.ordersSeries,
           line: { color: appearance.seriesPalette[0], width: 1.9 },
@@ -276,7 +276,7 @@ function AdminOrdersPreviewChart({
         {
           type: 'scatter',
           mode: 'lines',
-          name: 'Prihodki / dan',
+          name: 'Prihodki',
           x: data.x,
           y: data.revenueSeries,
           line: { color: appearance.seriesPalette[1], width: 1.9 },
@@ -307,7 +307,7 @@ function AdminOrdersPreviewChart({
         {
           type: 'scatter',
           mode: 'lines',
-          name: 'AOV / dan',
+          name: 'AOV',
           x: data.x,
           y: data.dailyAov,
           line: { color: appearance.seriesPalette[2], width: 1.9 },
@@ -378,7 +378,7 @@ function AdminOrdersPreviewChart({
   return (
     <section className="mb-3" aria-label="Orders analytics previews">
       <div className="mb-2 flex min-h-[30px] items-center justify-end gap-3">
-        <div className="inline-flex rounded-md border border-slate-300 bg-white p-0.5 text-[11px] shadow-sm">
+        <div className="inline-flex rounded-md border border-[#d6ccfb] bg-[#ede8fe] p-0.5 text-[11px] shadow-sm">
           {rangeOptions.map((option) => (
             <button
               key={option.key}

@@ -771,13 +771,13 @@ export default function AdminOrdersTable({
         activeRange={rangePreset}
         onRangeChange={applyAnalyticsRangePreset}
       />
-      <div className="mb-2 rounded-2xl border p-3 shadow-sm" style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)', borderColor: analyticsAppearance?.gridColor ?? '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}>
+      <div className="mb-0 rounded-t-2xl border border-b-0 p-3 shadow-sm" style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)', borderColor: analyticsAppearance?.gridColor ?? '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}>
         <div className="flex flex-wrap items-end gap-2">
           <div className="relative min-w-[170px]" ref={datePopoverRef}>
             <button
               type="button"
               onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-              className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 text-left text-xs text-slate-700 hover:border-slate-400 focus:border-brand-500 focus:ring-1 focus:ring-[#ede8fe]"
+              className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 text-left text-xs text-slate-700 hover:border-slate-400 focus:border-[#ede8fe] focus:ring-1 focus:ring-[#ede8fe]"
             >
               <span className="inline-flex w-full items-center gap-1.5 leading-none"> 
                 <svg
@@ -858,7 +858,7 @@ export default function AdminOrdersTable({
                         lang="sl-SI"
                         value={fromDate}
                         onChange={(event) => { setFromDate(event.target.value); setRangePreset('custom'); }}
-                        className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs outline-none focus:border-brand-500 focus:ring-1 focus:ring-[#ede8fe]"
+                        className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs outline-none focus:border-[#ede8fe] focus:ring-1 focus:ring-[#ede8fe]"
                       />
                     </div>
 
@@ -869,7 +869,7 @@ export default function AdminOrdersTable({
                         lang="sl-SI"
                         value={toDate}
                         onChange={(event) => { setToDate(event.target.value); setRangePreset('custom'); }}
-                        className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs outline-none focus:border-brand-500 focus:ring-1 focus:ring-[#ede8fe]"
+                        className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs outline-none focus:border-[#ede8fe] focus:ring-1 focus:ring-[#ede8fe]"
                       />
                     </div>
 
@@ -896,7 +896,7 @@ export default function AdminOrdersTable({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Poišči naročilo, naročnik, naslov, tip, status, plačilo..."
-              className="h-8 w-full rounded-xl border border-slate-300 px-3 text-xs focus:border-brand-500 focus:ring-1 focus:ring-[#ede8fe]"
+              className="h-8 w-full rounded-xl border border-slate-300 px-3 text-xs focus:border-[#ede8fe] focus:ring-1 focus:ring-[#ede8fe]"
             />
           </div>
 
@@ -951,7 +951,7 @@ export default function AdminOrdersTable({
         {message && <p className="mt-2 text-xs text-slate-600">{message}</p>}
       </div>
 
-      <div className="mb-2 flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 border-x border-slate-200 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
         {statusTabs.map((tab) => {
           const isActive = statusFilter === tab.value;
           return (
@@ -972,7 +972,7 @@ export default function AdminOrdersTable({
       </div>
 
 
-      <div className="overflow-x-auto rounded-2xl border shadow-sm" style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)', borderColor: analyticsAppearance?.gridColor ?? '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}>
+      <div className="overflow-x-auto rounded-b-2xl border border-t-0 shadow-sm" style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)', borderColor: analyticsAppearance?.gridColor ?? '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}>
         <table className="min-w-[1180px] w-full table-auto text-left text-[13px]">
           <colgroup>
             <col style={{ width: columnWidths.selectAndDelete }} />
@@ -1192,7 +1192,7 @@ export default function AdminOrdersTable({
                     key={order.id}
                     className={`border-t border-slate-100 transition-colors duration-200 ${
                       orderIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-                    } hover:bg-[#e7efef]`}
+                    } hover:bg-[#ede8fe]`}
                   >
                     <td className="px-2 py-2 align-middle">
                       <div className="flex justify-center">
@@ -1209,7 +1209,7 @@ export default function AdminOrdersTable({
                     <td className="px-2 py-2 align-middle text-center font-semibold text-slate-900" data-no-row-nav>
                       <a
                         href={`/admin/orders/${order.id}`}
-                        className="inline-flex rounded-sm px-1 text-[13px] font-semibold text-brand-700 hover:text-brand-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
+                        className="inline-flex rounded-sm px-1 text-[13px] font-semibold text-brand-700 hover:text-brand-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ede8fe]"
                         aria-label={`Odpri naročilo ${toDisplayOrderNumber(order.order_number)}`}
                       >
                         {toDisplayOrderNumber(order.order_number)}
@@ -1218,7 +1218,7 @@ export default function AdminOrdersTable({
 
                     <td className="px-2 py-2 align-middle text-center whitespace-nowrap text-slate-600">
                       <span
-                        className="inline-block rounded-sm px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+                        className="inline-block rounded-sm px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ede8fe]"
                         title={formatSlDateTime(order.created_at)}
                         aria-label={`Datum naročila ${formatSlDateTime(order.created_at)}`}
                         tabIndex={0}

@@ -121,15 +121,22 @@ export async function POST(
         );
       }
 
-      try {
+      const hasShippingColumnResult = await client.query(
+        `
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'orders' AND column_name = 'shipping'
+        LIMIT 1
+        `
+      );
+      const hasShippingColumn = (hasShippingColumnResult.rowCount ?? 0) > 0;
+
+      if (hasShippingColumn) {
         await client.query(
           'UPDATE orders SET subtotal = $1, tax = $2, shipping = $3, total = $4 WHERE id = $5',
           [subtotal, tax, shipping, total, orderId]
         );
-      } catch (error) {
-        if (!(error && typeof error === 'object' && 'code' in error && error.code === '42703')) {
-          throw error;
-        }
+      } else {
         await client.query(
           'UPDATE orders SET subtotal = $1, tax = $2, total = $3 WHERE id = $4',
           [subtotal, tax, total, orderId]

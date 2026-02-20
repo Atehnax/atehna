@@ -61,7 +61,7 @@ const toCustomerBucket = (customerType: string): CustomerBucketKey => {
   return 'individual';
 };
 
-const compactHover = (label: string, valueToken: string, suffix = "") => `${label}: ${valueToken}${suffix}<extra></extra>`;
+const compactHover = (label: string, color: string, valueToken: string, suffix = "") => `<span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:9999px;background:${color};display:inline-block;"></span><span style="font-weight:600;color:#e5e7eb;">${label}</span></span><span style="float:right;margin-left:16px;color:#e5e7eb;">${valueToken}${suffix}</span><extra></extra>`;
 
 const stat = (value: number, suffix = '') => `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 2 }).format(value)}${suffix}`;
 
@@ -224,8 +224,8 @@ function AdminOrdersPreviewChart({
     yaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, rangemode: 'tozero', fixedrange: true },
     hoverlabel: {
       bgcolor: '#0b1020',
-      bordercolor: '#3f465a',
-      font: { color: '#e5e7eb', size: 13, family: 'Inter, system-ui, sans-serif' },
+      bordercolor: '#cdd2df',
+      font: { color: '#e5e7eb', size: 14, family: 'Inter, system-ui, sans-serif' },
       align: 'left',
       namelength: -1
     },
@@ -250,7 +250,7 @@ function AdminOrdersPreviewChart({
           x: data.x,
           y: data.ordersSeries,
           line: { color: appearance.seriesPalette[0], width: 1.9 },
-          hovertemplate: compactHover('Število naročil', '%{y:,.0f}')
+          hovertemplate: compactHover('Število naročil', appearance.seriesPalette[0], '%{y:,.0f}')
         },
         {
           type: 'scatter',
@@ -281,7 +281,7 @@ function AdminOrdersPreviewChart({
           x: data.x,
           y: data.revenueSeries,
           line: { color: appearance.seriesPalette[1], width: 1.9 },
-          hovertemplate: compactHover('Prihodki', '%{y:,.2f}', ' EUR')
+          hovertemplate: compactHover('Prihodki', appearance.seriesPalette[1], '%{y:,.2f}', ' EUR')
         },
         {
           type: 'scatter',
@@ -313,7 +313,7 @@ function AdminOrdersPreviewChart({
           y: data.dailyAov,
           line: { color: appearance.seriesPalette[2], width: 1.9 },
           connectgaps: false,
-          hovertemplate: compactHover('AOV', '%{y:,.2f}', ' EUR')
+          hovertemplate: compactHover('AOV', appearance.seriesPalette[2], '%{y:,.2f}', ' EUR')
         },
         {
           type: 'scatter',
@@ -347,7 +347,7 @@ function AdminOrdersPreviewChart({
           stackgroup: 'customers',
           fill: 'tozeroy',
           line: { color: appearance.seriesPalette[2], width: 1.2 },
-          hovertemplate: compactHover('Šole', '%{y:,.0f}')
+          hovertemplate: compactHover('Šole', appearance.seriesPalette[2], '%{y:,.0f}')
         },
         {
           type: 'scatter',
@@ -358,7 +358,7 @@ function AdminOrdersPreviewChart({
           stackgroup: 'customers',
           fill: 'tonexty',
           line: { color: appearance.seriesPalette[0], width: 1.2 },
-          hovertemplate: compactHover('Podjetja', '%{y:,.0f}')
+          hovertemplate: compactHover('Podjetja', appearance.seriesPalette[0], '%{y:,.0f}')
         },
         {
           type: 'scatter',
@@ -369,7 +369,7 @@ function AdminOrdersPreviewChart({
           stackgroup: 'customers',
           fill: 'tonexty',
           line: { color: appearance.seriesPalette[3], width: 1.2 },
-          hovertemplate: compactHover('Fiz. os.', '%{y:,.0f}')
+          hovertemplate: compactHover('Fiz. os.', appearance.seriesPalette[3], '%{y:,.0f}')
         }
       ],
       layout: miniLayout(true)

@@ -50,7 +50,7 @@ function FloatingInput({ id, label, type = 'text', value, onChange }: FloatingIn
         value={value}
         placeholder=" "
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 pb-1 pt-4 text-[12px] text-slate-900 shadow-sm outline-none transition focus:border-[#8269e1] focus:ring-[0.5px] focus:ring-[#8269e1]"
+        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 pb-1 pt-4 text-[12px] text-slate-900 shadow-sm outline-none transition focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]"
       />
       <label
         htmlFor={id}
@@ -79,7 +79,7 @@ function FloatingTextarea({ id, label, value, rows = 3, onChange }: FloatingText
         value={value}
         placeholder=" "
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-slate-300 bg-white px-3 pb-2 pt-5 text-[12px] text-slate-900 shadow-sm outline-none transition focus:border-[#8269e1] focus:ring-[0.5px] focus:ring-[#8269e1]"
+        className="w-full rounded-xl border border-slate-300 bg-white px-3 pb-2 pt-5 text-[12px] text-slate-900 shadow-sm outline-none transition focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]"
       />
       <label
         htmlFor={id}
@@ -105,7 +105,7 @@ function StaticFloatingSelect({ id, label, value, onChange, children }: StaticFl
         id={id}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 pb-1 pt-4 text-[12px] text-slate-900 shadow-sm outline-none transition focus:border-[#8269e1] focus:ring-[0.5px] focus:ring-[#8269e1]"
+        className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 pb-1 pt-4 text-[12px] text-slate-900 shadow-sm outline-none transition focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]"
       >
         {children}
       </select>

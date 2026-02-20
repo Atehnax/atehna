@@ -952,7 +952,7 @@ export default function AdminOrdersTable({
         {message && <p className="mt-2 text-xs text-slate-600">{message}</p>}
         </div>
 
-      <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
+      <div className="flex flex-wrap items-center gap-2 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
         <div className="inline-flex h-8 items-center gap-1 rounded-full border border-slate-300 bg-white px-1">
           {statusTabs.map((tab) => {
             const isActive = statusFilter === tab.value;
@@ -971,7 +971,7 @@ export default function AdminOrdersTable({
       </div>
 
 
-      <div className="overflow-x-auto border-t border-slate-200" style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)' }}>
+      <div className="overflow-x-auto" style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)' }}>
         <table className="min-w-[1180px] w-full table-auto text-left text-[13px]">
           <colgroup>
             <col style={{ width: columnWidths.selectAndDelete }} />
@@ -987,7 +987,7 @@ export default function AdminOrdersTable({
             <col style={{ width: columnWidths.edit }} />
           </colgroup>
 
-          <thead className="bg-slate-50 text-[12px] uppercase text-slate-500">
+          <thead className="text-[12px] uppercase text-slate-600">
             <tr>
               <th className="h-11 px-2 py-2 text-center">
                 <input

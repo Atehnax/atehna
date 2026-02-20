@@ -61,7 +61,7 @@ const toCustomerBucket = (customerType: string): CustomerBucketKey => {
   return 'individual';
 };
 
-const compactHover = (valueToken: string, suffix = "") => `%{fullData.name}: ${valueToken}${suffix}<extra></extra>`;
+const compactHover = (label: string, valueToken: string, suffix = "") => `${label}: ${valueToken}${suffix}<extra></extra>`;
 
 const stat = (value: number, suffix = '') => `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 2 }).format(value)}${suffix}`;
 
@@ -246,11 +246,11 @@ function AdminOrdersPreviewChart({
         {
           type: 'scatter',
           mode: 'lines',
-          name: 'Število naročil',
+          name: '',
           x: data.x,
           y: data.ordersSeries,
           line: { color: appearance.seriesPalette[0], width: 1.9 },
-          hovertemplate: compactHover('%{y:,.0f}')
+          hovertemplate: compactHover('Število naročil', '%{y:,.0f}')
         },
         {
           type: 'scatter',
@@ -277,11 +277,11 @@ function AdminOrdersPreviewChart({
         {
           type: 'scatter',
           mode: 'lines',
-          name: 'Prihodki',
+          name: '',
           x: data.x,
           y: data.revenueSeries,
           line: { color: appearance.seriesPalette[1], width: 1.9 },
-          hovertemplate: compactHover('%{y:,.2f}', ' EUR')
+          hovertemplate: compactHover('Prihodki', '%{y:,.2f}', ' EUR')
         },
         {
           type: 'scatter',
@@ -308,12 +308,12 @@ function AdminOrdersPreviewChart({
         {
           type: 'scatter',
           mode: 'lines',
-          name: 'AOV',
+          name: '',
           x: data.x,
           y: data.dailyAov,
           line: { color: appearance.seriesPalette[2], width: 1.9 },
           connectgaps: false,
-          hovertemplate: compactHover('%{y:,.2f}', ' EUR')
+          hovertemplate: compactHover('AOV', '%{y:,.2f}', ' EUR')
         },
         {
           type: 'scatter',
@@ -341,35 +341,35 @@ function AdminOrdersPreviewChart({
         {
           type: 'scatter',
           mode: 'lines',
-          name: 'Šole',
+          name: '',
           x: data.x,
           y: data.schoolCum,
           stackgroup: 'customers',
           fill: 'tozeroy',
           line: { color: appearance.seriesPalette[2], width: 1.2 },
-          hovertemplate: compactHover('%{y:,.0f}')
+          hovertemplate: compactHover('Šole', '%{y:,.0f}')
         },
         {
           type: 'scatter',
           mode: 'lines',
-          name: 'Podjetja',
+          name: '',
           x: data.x,
           y: data.companyCum,
           stackgroup: 'customers',
           fill: 'tonexty',
           line: { color: appearance.seriesPalette[0], width: 1.2 },
-          hovertemplate: compactHover('%{y:,.0f}')
+          hovertemplate: compactHover('Podjetja', '%{y:,.0f}')
         },
         {
           type: 'scatter',
           mode: 'lines',
-          name: 'Fiz. os.',
+          name: '',
           x: data.x,
           y: data.individualCum,
           stackgroup: 'customers',
           fill: 'tonexty',
           line: { color: appearance.seriesPalette[3], width: 1.2 },
-          hovertemplate: compactHover('%{y:,.0f}')
+          hovertemplate: compactHover('Fiz. os.', '%{y:,.0f}')
         }
       ],
       layout: miniLayout(true)

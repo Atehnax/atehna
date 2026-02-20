@@ -348,7 +348,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
           </div>
         </div>
 
-      <div className="flex items-center gap-2 border-t border-slate-200 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
+      <div className="flex items-center gap-2 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
         <div className="inline-flex h-8 items-center gap-1 rounded-full border border-slate-300 bg-white px-1">
           {statusTabs.map((tab) => {
             const isActive = statusTab === tab.key;
@@ -370,9 +370,9 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
         </div>
       </div>
 
-      <div className="overflow-x-auto border-t border-slate-200" style={{ background: "linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)" }}>
+      <div className="overflow-x-auto" style={{ background: "linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)" }}>
           <table className="w-full min-w-[1000px] text-left text-sm">
-            <thead className="bg-slate-50 text-xs text-slate-500">
+            <thead className="text-xs text-slate-600">
               <tr>
                 <th className="px-3 py-2 text-center"><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" /></th>
                 <th className="px-3 py-2">
@@ -396,8 +396,8 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
               </tr>
             </thead>
             <tbody>
-              {filteredItems.map((item) => (
-                <tr key={item.id} className="border-t border-slate-200 hover:bg-[#ede8fe]">
+              {filteredItems.map((item, index) => (
+                <tr key={item.id} className={`border-t border-slate-200 transition-colors ${index % 2 === 0 ? "bg-white/70" : "bg-slate-50/60"} hover:bg-[#ede8fe]`}>
                   <td className="px-3 py-2 text-center"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleOne(item.id)} aria-label={`Izberi ${item.name}`} /></td>
                   <td className="px-3 py-2 font-medium text-slate-900">{item.name}</td>
                   <td className="px-3 py-2 text-slate-600">{item.sku}</td>

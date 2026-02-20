@@ -35,13 +35,13 @@ export default function AdminCreateDraftOrderButton({ className }: Props) {
         type="button"
         onClick={createDraft}
         disabled={isCreating}
-        aria-label="+ Novo Naročilo"
-        className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#d6ccfb] bg-[#ede8fe] px-3 text-xs font-semibold text-[#5a3fda] shadow-sm transition hover:bg-[#e2dafd] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-300 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-400"
+        aria-label="Novo Naročilo"
+        className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#d6ccfb] bg-[#ede8fe] px-3 text-xs font-semibold text-[#5a3fda] shadow-sm transition hover:bg-[#e2dafd] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#ede8fe] disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-400"
       >
         <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
           <path d="M10 4v12M4 10h12" />
         </svg>
-        {isCreating ? 'Ustvarjam ...' : '+ Novo Naročilo'}
+        {isCreating ? 'Ustvarjam ...' : 'Novo Naročilo'}
       </button>
       {error && <p className="text-xs text-rose-600">{error}</p>}
     </div>

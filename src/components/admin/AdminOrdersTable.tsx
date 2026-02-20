@@ -777,7 +777,7 @@ export default function AdminOrdersTable({
             <button
               type="button"
               onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-              className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 text-left text-xs text-slate-700 hover:border-slate-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-300"
+              className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 text-left text-xs text-slate-700 hover:border-slate-400 focus:border-brand-500 focus:ring-1 focus:ring-[#ede8fe]"
             >
               <span className="inline-flex w-full items-center gap-1.5 leading-none"> 
                 <svg
@@ -858,7 +858,7 @@ export default function AdminOrdersTable({
                         lang="sl-SI"
                         value={fromDate}
                         onChange={(event) => { setFromDate(event.target.value); setRangePreset('custom'); }}
-                        className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-300"
+                        className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs outline-none focus:border-brand-500 focus:ring-1 focus:ring-[#ede8fe]"
                       />
                     </div>
 
@@ -869,7 +869,7 @@ export default function AdminOrdersTable({
                         lang="sl-SI"
                         value={toDate}
                         onChange={(event) => { setToDate(event.target.value); setRangePreset('custom'); }}
-                        className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-300"
+                        className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs outline-none focus:border-brand-500 focus:ring-1 focus:ring-[#ede8fe]"
                       />
                     </div>
 
@@ -896,7 +896,7 @@ export default function AdminOrdersTable({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Poišči naročilo, naročnik, naslov, tip, status, plačilo..."
-              className="h-8 w-full rounded-xl border border-slate-300 px-3 text-xs focus:border-brand-500 focus:ring-1 focus:ring-brand-300"
+              className="h-8 w-full rounded-xl border border-slate-300 px-3 text-xs focus:border-brand-500 focus:ring-1 focus:ring-[#ede8fe]"
             />
           </div>
 

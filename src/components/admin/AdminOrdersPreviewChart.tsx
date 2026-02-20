@@ -61,8 +61,7 @@ const toCustomerBucket = (customerType: string): CustomerBucketKey => {
   return 'individual';
 };
 
-const compactHover = (valueToken: string, suffix = "") =>
-  `%{fullData.name}: ${valueToken}${suffix}<br>Datum: %{x|%Y-%m-%d}<extra></extra>`;
+const compactHover = (valueToken: string, suffix = "") => `%{fullData.name}: ${valueToken}${suffix}<extra></extra>`;
 
 const stat = (value: number, suffix = '') => `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 2 }).format(value)}${suffix}`;
 
@@ -218,7 +217,7 @@ function AdminOrdersPreviewChart({
     ...layoutBase,
     margin: { l: 8, r: 8, t: 8, b: 8 },
     showlegend: false,
-    hovermode: 'x unified',
+    hovermode: 'closest',
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
     xaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, fixedrange: true, hoverformat: '%Y-%m-%d', rangeslider: { visible: true, thickness: 0.18, bgcolor: 'rgba(148,163,184,0.18)', bordercolor: 'rgba(148,163,184,0.35)', borderwidth: 1 } },
@@ -226,7 +225,7 @@ function AdminOrdersPreviewChart({
     hoverlabel: {
       bgcolor: '#f8f7fc',
       bordercolor: '#d8d6cf',
-      font: { color: '#111827', size: 12, family: 'Inter, system-ui, sans-serif' },
+      font: { color: '#111827', size: 13, family: 'Inter, system-ui, sans-serif' },
       align: 'left'
     },
     barmode: isAreaStacked ? 'stack' : undefined
@@ -385,7 +384,7 @@ function AdminOrdersPreviewChart({
               key={option.key}
               type="button"
               onClick={() => onRangeChange?.(option.key)}
-              className={`rounded px-2 py-0.5 transition ${activeRange === option.key ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+              className={`rounded border border-[#d6ccfb] bg-[#ede8fe] px-2 py-0.5 transition ${activeRange === option.key ? 'text-[#5a3fda] shadow-sm' : 'text-slate-700 hover:bg-[#e2dafd]'}`}
             >
               {option.label}
             </button>

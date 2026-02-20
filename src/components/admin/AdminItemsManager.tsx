@@ -95,7 +95,7 @@ function FloatingInput({
         disabled={disabled}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-300 disabled:bg-slate-100 disabled:text-slate-400"
+        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-[#ede8fe] disabled:bg-slate-100 disabled:text-slate-400"
       />
       <label className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600 ${disabled ? 'bg-slate-100' : 'bg-white'}`}>
         {label}
@@ -123,7 +123,7 @@ function FloatingSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-300"
+        className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-[#ede8fe]"
       >
         {children}
       </select>
@@ -318,42 +318,51 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
         <h1 className="text-2xl font-semibold text-slate-900">Artikli</h1>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-3">
+      <div className="rounded-2xl border p-3 shadow-sm" style={{ background: "linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)", borderColor: "#e2e8f0", boxShadow: "0 10px 24px rgba(15,23,42,0.06)" }}>
         <div className="mt-3 grid gap-2 md:grid-cols-[minmax(280px,1fr)_220px_110px_auto_auto] md:items-center">
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Poišči po nazivu, SKU ali kategoriji …"
-            className="h-8 rounded-xl border border-slate-300 px-3 text-xs focus:border-brand-500 focus:ring-1 focus:ring-brand-300"
+            className="h-8 rounded-xl border border-slate-300 px-3 text-xs focus:border-brand-500 focus:ring-1 focus:ring-[#ede8fe]"
           />
-          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-8 rounded-xl border border-slate-300 px-3 text-xs focus:border-brand-500 focus:ring-1 focus:ring-brand-300">
+          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-8 rounded-xl border border-slate-300 px-3 text-xs focus:border-brand-500 focus:ring-1 focus:ring-[#ede8fe]">
             <option value="all">Vse kategorije</option>
             {categories.map((category) => (
               <option key={category} value={category}>{category}</option>
             ))}
           </select>
-          <select value={statusTab} onChange={(event) => setStatusTab(event.target.value as StatusTab)} className="h-8 rounded-xl border border-slate-300 px-3 text-xs focus:border-brand-500 focus:ring-1 focus:ring-brand-300">
-            <option value="active">Aktivni artikli</option>
-            <option value="inactive">Neaktivni artikli</option>
-          </select>
+          <div className="inline-flex h-8 items-center gap-1 rounded-full border border-slate-300 bg-white px-1">
+            {statusTabs.map((tab) => {
+              const isActive = statusTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setStatusTab(tab.key)}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold transition ${isActive ? 'bg-[#ede8fe] text-[#5a3fda]' : 'text-slate-700 hover:bg-slate-50'}`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
           <button
             type="button"
             onClick={archiveSelected}
             disabled={selectedIds.length === 0}
-            className="h-8 rounded-xl border border-[#b49ff8] bg-[#f3efff] px-3 text-xs font-semibold text-[#4b34b9] transition hover:bg-[#ece5ff] disabled:pointer-events-none disabled:opacity-45"
+            className="h-8 rounded-xl border border-amber-400 bg-amber-100 px-3 text-xs font-semibold text-amber-900 transition hover:bg-amber-200 disabled:pointer-events-none disabled:opacity-45"
           >
             Arhiviraj
           </button>
-          <button type="button" onClick={openCreate} className="h-8 rounded-xl border border-[#d6ccfb] bg-[#ede8fe] px-3 text-xs font-semibold text-[#5a3fda] hover:bg-[#e2dafd]">
-            + Nov artikel
+          <button type="button" onClick={openCreate} className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#d6ccfb] bg-[#ede8fe] px-3 text-xs font-semibold text-[#5a3fda] hover:bg-[#e2dafd]">
+            <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true"><path d="M10 4v12M4 10h12" /></svg>
+            Nov artikel
           </button>
         </div>
 
-        <div className="mt-3 flex items-center justify-end">
-          <p className="text-xs text-slate-500">Izbranih: {selectedIds.length}</p>
-        </div>
 
-        <div className="mt-3 overflow-x-auto">
+        <div className="mt-3 overflow-x-auto rounded-2xl border shadow-sm" style={{ background: "linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)", borderColor: "#e2e8f0", boxShadow: "0 10px 24px rgba(15,23,42,0.06)" }}>
           <table className="w-full min-w-[1000px] text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase text-slate-500">
               <tr>
@@ -387,7 +396,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                   <td className="px-3 py-2 text-slate-600">{item.category}</td>
                   <td className="px-3 py-2 text-center text-slate-600">{formatCurrency(item.price)}</td>
                   <td className="px-3 py-2 text-center text-slate-600">{item.discountPct}%</td>
-                  <td className="px-3 py-2 text-center font-semibold text-slate-900">{formatCurrency(discountedPrice(item.price, item.discountPct))}</td>
+                  <td className="px-3 py-2 text-center text-slate-900">{formatCurrency(discountedPrice(item.price, item.discountPct))}</td>
                   <td className="px-3 py-2 text-center"><span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-semibold ${item.active ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'}`}>{item.active ? 'Aktiven' : 'Neaktiven'}</span></td>
                   <td className="px-3 py-2"><div className="flex items-center justify-center gap-1.5"><button type="button" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"><ActionIcon type="edit" /></button><button type="button" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"><ActionIcon type="copy" /></button><button type="button" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-amber-200 text-amber-700 hover:bg-amber-50"><ActionIcon type="archive" /></button></div></td>
                 </tr>
@@ -408,7 +417,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             <div className="space-y-3 text-sm">
               <FloatingInput label="Naziv" value={draft.name} onChange={(value) => setDraft((prev) => ({ ...prev, name: value }))} />
               <div className="group relative" data-filled={draft.description ? 'true' : 'false'}>
-                <textarea value={draft.description} onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))} placeholder=" " className="min-h-[90px] w-full rounded-xl border border-slate-300 bg-white px-3 pb-2 pt-5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-300" />
+                <textarea value={draft.description} onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))} placeholder=" " className="min-h-[90px] w-full rounded-xl border border-slate-300 bg-white px-3 pb-2 pt-5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-[#ede8fe]" />
                 <label className="pointer-events-none absolute left-3 top-1.5 bg-white px-1 text-[10px] text-slate-600">Opis</label>
               </div>
 

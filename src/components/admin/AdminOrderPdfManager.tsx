@@ -321,7 +321,7 @@ export default function AdminOrderPdfManager({
             value={draftNotes}
             onChange={(event) => setDraftNotes(event.target.value)}
             rows={2}
-            className={`${notesBoxClass} w-full resize-none bg-white outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-300`}
+            className={`${notesBoxClass} w-full resize-none bg-white outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-[#ede8fe]`}
           />
         ) : (
           <p className={`${notesBoxClass} bg-slate-100 text-slate-600`}>

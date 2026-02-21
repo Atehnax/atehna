@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
+import { revalidateAdminOrderPaths } from '@/lib/server/revalidateAdminOrders';
 import { getPool } from '@/lib/server/db';
+
 
 export async function POST() {
   try {
@@ -73,6 +75,7 @@ export async function POST() {
       return NextResponse.json({ message: 'Osnutka ni bilo mogoče ustvariti.' }, { status: 500 });
     }
 
+    revalidateAdminOrderPaths(row.id);
     return NextResponse.json({ orderId: row.id });
   } catch (error) {
     return NextResponse.json(

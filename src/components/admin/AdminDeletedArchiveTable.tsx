@@ -247,7 +247,7 @@ export default function AdminDeletedArchiveTable({
           <select
             value={typeFilter}
             onChange={(event) => setTypeFilter(event.target.value as 'all' | 'order' | 'pdf')}
-            className="h-8 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]"
+            className="h-8 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
           >
             <option value="all">Vse vrste</option>
             <option value="order">Naročila</option>
@@ -302,7 +302,7 @@ export default function AdminDeletedArchiveTable({
                     })();
 
               return (
-                <tr key={entry.id} className="border-b border-slate-100 hover:bg-slate-50">
+                <tr key={entry.id} className="border-b border-slate-100 hover:bg-[#ede8ff]">
                   <td className="py-2 text-center">
                     <input
                       type="checkbox"

@@ -291,7 +291,7 @@ export default function AdminOrderItemsEditor({
               onClick={startItemsEdit}
               title="Uredi"
               disabled={isItemsSaving}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
             >
               <PencilIcon />
             </button>
@@ -302,7 +302,7 @@ export default function AdminOrderItemsEditor({
               onClick={() => void saveItems()}
               title="Shrani"
               disabled={itemsSaveDisabled}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
             >
               <SaveIcon />
             </button>
@@ -313,7 +313,7 @@ export default function AdminOrderItemsEditor({
               onClick={() => void openAddItem()}
               title="Dodaj"
               disabled={addItemDisabled}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
             >
               <PlusIcon />
             </button>
@@ -347,7 +347,7 @@ export default function AdminOrderItemsEditor({
                           min={1}
                           value={item.quantity}
                           onChange={(event) => updateItem(item.id, { quantity: Number(event.target.value) || 1 })}
-                          className="h-6 w-12 rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]"
+                          className="h-6 w-12 rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
                         />
                       ) : (
                         <span className="inline-flex h-6 items-center text-[11px] leading-4 text-slate-900">{item.quantity}</span>
@@ -360,7 +360,7 @@ export default function AdminOrderItemsEditor({
                           inputMode="decimal"
                           value={formatDecimalInput(item.unitPrice)}
                           onChange={(event) => updateItem(item.id, { unitPrice: parseLocaleNumber(event.target.value) })}
-                          className="h-6 w-[4.5rem] rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]"
+                          className="h-6 w-[4.5rem] rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
                         />
                       ) : (
                         <span className="inline-flex h-6 items-center text-[11px] leading-4 text-slate-900">{formatCurrency(item.unitPrice)}</span>
@@ -375,7 +375,7 @@ export default function AdminOrderItemsEditor({
                           onChange={(event) =>
                             updateItem(item.id, { discountPercentage: parseLocaleNumber(event.target.value) })
                           }
-                          className="h-6 w-14 rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]"
+                          className="h-6 w-14 rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
                         />
                       ) : (
                         <span className="inline-flex h-6 items-center text-[11px] leading-4 text-slate-900">{formatDecimalInput(item.discountPercentage)} %</span>
@@ -415,7 +415,7 @@ export default function AdminOrderItemsEditor({
                 inputMode="decimal"
                 value={formatDecimalInput(draftShipping)}
                 onChange={(event) => setDraftShipping(Math.max(0, parseLocaleNumber(event.target.value)))}
-                className="h-6 w-full max-w-none rounded-md border border-slate-300 bg-white px-1 text-right text-[11px] leading-4 outline-none transition focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1] sm:max-w-[60px]"
+                className="h-6 w-full max-w-none rounded-md border border-slate-300 bg-white px-1 text-right text-[11px] leading-4 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6] sm:max-w-[60px]"
               />
             ) : (
               <span className="font-semibold">{formatCurrency(totals.shipping)}</span>
@@ -459,7 +459,7 @@ export default function AdminOrderItemsEditor({
                   key={choice.sku}
                   type="button"
                   onClick={() => addCatalogItem(choice)}
-                  className="flex w-full items-center justify-between border-b border-slate-100 px-3 py-2 text-left text-sm hover:bg-slate-50"
+                  className="flex w-full items-center justify-between border-b border-slate-100 px-3 py-2 text-left text-sm hover:bg-[#ede8ff]"
                 >
                   <span className="font-medium text-slate-900">{choice.name}</span>
                   <span className="text-xs text-slate-600">{formatCurrency(choice.unitPrice)}</span>

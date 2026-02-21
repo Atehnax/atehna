@@ -118,7 +118,7 @@ function StableFloatingInput({
         value={value}
         placeholder=" "
         onChange={(event) => onChange(event.target.value)}
-        className="h-12 w-full overflow-visible rounded-xl border border-slate-300 bg-white px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]"
+        className="h-12 w-full overflow-visible rounded-xl border border-slate-300 bg-white px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
       />
       <label className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 bg-white px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600">
         {label}
@@ -153,7 +153,7 @@ function StableFloatingTextarea({
         value={value}
         placeholder=" "
         onChange={(event) => onChange(event.target.value)}
-        className="min-h-[48px] w-full overflow-hidden rounded-xl border border-slate-300 bg-white px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]"
+        className="min-h-[48px] w-full overflow-hidden rounded-xl border border-slate-300 bg-white px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
       />
       <label className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 bg-white px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600">
         {label}
@@ -180,7 +180,7 @@ function StaticFloatingDate({
         type="date"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-12 w-full overflow-visible rounded-xl border border-slate-300 bg-white px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]"
+        className="h-12 w-full overflow-visible rounded-xl border border-slate-300 bg-white px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
       />
     </div>
   );
@@ -203,7 +203,7 @@ function StaticFloatingSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-12 w-full appearance-none overflow-visible rounded-xl border border-slate-300 bg-white px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]"
+        className="h-12 w-full appearance-none overflow-visible rounded-xl border border-slate-300 bg-white px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
       >
         {customerTypeOptions.map((option) => (
           <option key={option.value} value={option.value}>
@@ -349,7 +349,7 @@ export default function AdminOrderHeaderChips(props: Props) {
           <input
             value={draftOrderNumber}
             onChange={(event) => setDraftOrderNumber(event.target.value)}
-            className="h-9 w-full max-w-none rounded-md border border-slate-300 bg-white px-1 text-2xl font-bold tracking-tight text-slate-900 outline-none transition focus:border-[#8269e1] focus:ring-0 sm:max-w-[5ch]"
+            className="h-9 w-full max-w-none rounded-md border border-slate-300 bg-white px-1 text-2xl font-bold tracking-tight text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 sm:max-w-[5ch]"
             aria-label="Številka naročila"
           />
         ) : (
@@ -362,7 +362,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               <select
                 value={draftTopData.status}
                 onChange={(event) => setDraftTopData((prev) => ({ ...prev, status: event.target.value }))}
-                className="h-8 rounded-lg border border-slate-300 px-2 text-xs outline-none transition focus:border-[#8269e1] focus:ring-0"
+                className="h-8 rounded-lg border border-slate-300 px-2 text-xs outline-none transition focus:border-[#5d3ed6] focus:ring-0"
               >
                 {ORDER_STATUS_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -373,7 +373,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               <select
                 value={draftTopData.paymentStatus}
                 onChange={(event) => setDraftTopData((prev) => ({ ...prev, paymentStatus: event.target.value }))}
-                className="h-8 rounded-lg border border-slate-300 px-2 text-xs outline-none transition focus:border-[#8269e1] focus:ring-0"
+                className="h-8 rounded-lg border border-slate-300 px-2 text-xs outline-none transition focus:border-[#5d3ed6] focus:ring-0"
               >
                 {PAYMENT_STATUS_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -392,7 +392,7 @@ export default function AdminOrderHeaderChips(props: Props) {
           <button
             type="button"
             onClick={startEdit}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-[#ede8ff]"
             aria-label="Uredi naročilo"
             title="Uredi"
             disabled={isTopSaving}
@@ -403,7 +403,7 @@ export default function AdminOrderHeaderChips(props: Props) {
           <button
             type="button"
             onClick={() => void saveTopSection()}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
             aria-label="Shrani naročilo"
             title="Shrani"
             disabled={topSaveDisabled}

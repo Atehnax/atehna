@@ -10,10 +10,10 @@
   --text: #111827;
   --text-muted: #4b5563;
 
-  --primary: #7c5cff;
-  --primary-hover: #6a4df0;
-  --primary-active: #5a3fda;
-  --primary-soft: #efeafe;
+  --primary: #5d3ed6;
+  --primary-hover: #5d3ed6;
+  --primary-active: #5d3ed6;
+  --primary-soft: #ede8ff;
   --primary-foreground: #ffffff;
 
   --accent: #b08968;
@@ -23,7 +23,10 @@
   --danger: #a24a45;
   --info: #375a7a;
 
-  --ring: #7c5cff;
+  --ring: #5d3ed6;
+  --admin-bg: #f8f7fc;
+  --admin-accent: #5d3ed6;
+  --admin-hover: #ede8ff;
   --shadow-soft: 0 1px 2px rgba(17, 24, 39, 0.06), 0 8px 24px rgba(17, 24, 39, 0.05);
 
   --chart-canvas: #ffffff;
@@ -34,8 +37,8 @@
   --chart-grid: rgba(216, 214, 207, 0.65);
   --chart-tooltip-bg: #ffffff;
   --chart-tooltip-border: #d8d6cf;
-  --chart-series-primary: #65c8cc;
-  --chart-series-secondary: #5fb6ba;
+  --chart-series-primary: #5d3ed6;
+  --chart-series-secondary: #5d3ed6;
   --chart-series-tertiary: #7a8f6a;
   --chart-series-quaternary: #b08968;
   --chart-series-danger: #a24a45;
@@ -127,4 +130,21 @@ body {
 
 .admin-scope table tbody tr:hover {
   background-color: #f8f7fc !important;
+}
+
+
+.admin-scope h1 {
+  color: var(--admin-accent);
+}
+
+.admin-scope .admin-pill,
+.admin-scope .admin-button-surface {
+  background-color: var(--admin-bg);
+  color: var(--admin-accent);
+  border-color: var(--admin-hover);
+}
+
+.admin-scope .admin-pill:hover,
+.admin-scope .admin-button-surface:hover {
+  background-color: var(--admin-hover);
 }

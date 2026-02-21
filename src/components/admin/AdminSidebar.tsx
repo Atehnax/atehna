@@ -33,14 +33,14 @@ export default function AdminSidebar() {
           type="button"
           aria-label={isCollapsed ? 'Odpri meni' : 'Skrij meni'}
           onClick={() => setIsCollapsed((current) => !current)}
-          className="absolute right-[-14px] top-3 z-20 inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-300 bg-white text-sm text-slate-600 shadow-sm transition hover:bg-slate-50"
+          className="absolute right-[-14px] top-3 z-20 inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-300 bg-white text-sm text-slate-600 shadow-sm transition hover:bg-[#ede8ff]"
         >
           <span aria-hidden="true">{isCollapsed ? '❯' : '❮'}</span>
         </button>
 
         <div className={`relative z-10 h-full px-3 py-10 transition-opacity duration-200 ${isCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100'}`}>
           <div className="mb-5 px-2 pr-4">
-            <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#4d2fd1]">Administracija</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#5d3ed6]">Administracija</p>
           </div>
           <nav className="space-y-1">
             {rootLinks.map((link) => {
@@ -51,8 +51,8 @@ export default function AdminSidebar() {
                     href={link.href}
                     className={`flex items-center gap-2 rounded-xl px-2.5 py-2 pr-4 text-xs transition ${
                       isActive
-                        ? 'bg-[#ede8ff] font-semibold text-[#5a3fda]'
-                        : 'text-slate-600 hover:bg-white hover:text-slate-900'
+                        ? 'bg-[#ede8ff] font-semibold text-[#5d3ed6]'
+                        : 'text-[#5d3ed6] hover:bg-[#ede8ff] hover:text-[#5d3ed6]'
                     }`}
                   >
                     <SidebarIcon type={link.icon} />

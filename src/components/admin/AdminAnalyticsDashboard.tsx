@@ -83,7 +83,7 @@ const pctChange = (values: number[]) =>
 
 const toSafeNumber = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : 0);
 
-const legacyPalette = new Set(['#22d3ee', '#f59e0b', '#a78bfa', '#34d399', '#60a5fa', '#38bdf8', '#f87171', '#818cf8']);
+const legacyPalette = new Set(['#22d3ee', '#f59e0b', '#34d399', '#60a5fa', '#38bdf8', '#f87171', '#5d3ed6']);
 
 const hexToRgba = (hexColor: string, alpha: number) => {
   const hex = hexColor.replace('#', '').trim();

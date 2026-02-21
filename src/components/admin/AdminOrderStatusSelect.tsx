@@ -82,7 +82,7 @@ export default function AdminOrderStatusSelect({
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="rounded-full focus:outline-none focus-visible:ring-0 focus-visible:ring-[#8269e1]"
+        className="rounded-full focus:outline-none focus-visible:ring-0 focus-visible:ring-[#5d3ed6]"
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-label={`Spremeni status naročila ${orderId}`}
@@ -102,7 +102,7 @@ export default function AdminOrderStatusSelect({
               role="menuitem"
               onClick={() => handleChange(option.value)}
               disabled={isSaving || option.value === currentStatus}
-              className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+              className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
             >
               <span>{option.label}</span>
               {option.value === currentStatus && <span aria-hidden>✓</span>}

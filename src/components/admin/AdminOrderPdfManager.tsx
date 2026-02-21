@@ -298,7 +298,7 @@ export default function AdminOrderPdfManager({
               type="button"
               onClick={toggleNotesEdit}
               title="Uredi"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-[#ede8ff]"
               aria-label="Uredi opombe"
             >
               <PencilIcon />
@@ -308,7 +308,7 @@ export default function AdminOrderPdfManager({
               onClick={() => void saveNotes()}
               disabled={notesSaveDisabled}
               title="Shrani"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
               aria-label="Shrani opombe"
             >
               <SaveIcon />
@@ -321,7 +321,7 @@ export default function AdminOrderPdfManager({
             value={draftNotes}
             onChange={(event) => setDraftNotes(event.target.value)}
             rows={2}
-            className={`${notesBoxClass} w-full resize-none bg-white outline-none transition focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]`}
+            className={`${notesBoxClass} w-full resize-none bg-white outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]`}
           />
         ) : (
           <p className={`${notesBoxClass} bg-slate-100 text-slate-600`}>
@@ -350,7 +350,7 @@ export default function AdminOrderPdfManager({
                     disabled={loadingType === pdfType.key}
                     title="Ustvari"
                     aria-label={`Ustvari ${pdfType.label}`}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#d6ccfb] bg-[#f8f7fc] text-[#5a3fda] shadow-sm transition hover:bg-[#f1eefc] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#ede8ff] bg-[#f8f7fc] text-[#5d3ed6] shadow-sm transition hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
                   >
                     <GeneratePdfIcon />
                   </button>
@@ -400,7 +400,7 @@ export default function AdminOrderPdfManager({
                         return (
                           <li
                             key={`${doc.id}-${doc.created_at}`}
-                            className="rounded-lg border border-transparent px-2 py-1 transition hover:border-slate-200 hover:bg-slate-50"
+                            className="rounded-lg border border-transparent px-2 py-1 transition hover:border-slate-200 hover:bg-[#ede8ff]"
                           >
                             <div className="grid min-w-0 grid-cols-[14px_minmax(0,1fr)_130px_24px] items-center gap-2">
                               <span
@@ -435,7 +435,7 @@ export default function AdminOrderPdfManager({
                                         [pdfType.key]: !previousState[pdfType.key]
                                       }))
                                     }
-                                    className="shrink-0 text-xs font-semibold text-slate-500 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8269e1]"
+                                    className="shrink-0 text-xs font-semibold text-slate-500 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5d3ed6]"
                                     aria-label={
                                       isExpanded
                                         ? `Skrij verzije za ${pdfType.label}`

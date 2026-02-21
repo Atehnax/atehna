@@ -170,7 +170,7 @@ export default function AdminDateRangePicker() {
                   key={preset.key}
                   type="button"
                   onClick={() => applyPreset(preset.key)}
-                  className="block w-full rounded-md px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100"
+                  className="block w-full rounded-md px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-[#ede8ff]"
                 >
                   {preset.label}
                 </button>
@@ -179,7 +179,7 @@ export default function AdminDateRangePicker() {
               <button
                 type="button"
                 onClick={clearRange}
-                className="mt-2 block w-full rounded-md px-2 py-1.5 text-left text-sm font-semibold text-slate-600 hover:bg-slate-100"
+                className="mt-2 block w-full rounded-md px-2 py-1.5 text-left text-sm font-semibold text-slate-600 hover:bg-[#ede8ff]"
               >
                 Počisti datum
               </button>
@@ -197,7 +197,7 @@ export default function AdminDateRangePicker() {
                     type="date"
                     value={draftFrom}
                     onChange={(event) => setDraftFrom(event.target.value)}
-                    className="h-8 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]"
+                    className="h-8 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
                   />
                 </div>
 
@@ -207,7 +207,7 @@ export default function AdminDateRangePicker() {
                     type="date"
                     value={draftTo}
                     onChange={(event) => setDraftTo(event.target.value)}
-                    className="h-8 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]"
+                    className="h-8 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
                   />
                 </div>
               </div>
@@ -216,7 +216,7 @@ export default function AdminDateRangePicker() {
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-[#ede8ff]"
                 >
                   Prekliči
                 </button>

@@ -143,7 +143,7 @@ const fallbackAppearance: AnalyticsGlobalAppearance = {
   cardBg: '#ffffff',
   plotBg: '#ffffff',
   axisTextColor: '#111827',
-  seriesPalette: ['#65c8cc', '#5fb6ba', '#7a8f6a', '#b08968', '#a24a45'],
+  seriesPalette: ['#5d3ed6', '#5d3ed6', '#5d3ed6', '#5d3ed6', '#5d3ed6'],
   gridColor: '#d8d6cf',
   gridOpacity: 0.35
 };
@@ -303,7 +303,7 @@ function AdminOrdersPreviewChart({
           name: 'Število naročil',
           x: data.x,
           y: data.ordersSeries,
-          marker: { color: '#8269e1' },
+          marker: { color: '#5d3ed6' },
           hoverinfo: 'none'
         },
         {
@@ -312,13 +312,13 @@ function AdminOrdersPreviewChart({
           name: '7d MA',
           x: data.x,
           y: data.ordersMa,
-          line: { color: '#5a3fda', width: 2 },
+          line: { color: '#5d3ed6', width: 2 },
           hoverinfo: 'none'
         }
       ],
       tooltipRowsAt: (i) => [
-        { label: 'Število naročil', value: formatInt(data.ordersSeries[i]), color: appearance.seriesPalette[0], numericValue: data.ordersSeries[i] ?? null },
-        { label: '7d MA', value: formatInt(data.ordersMa[i]), color: '#d7a0ff', numericValue: data.ordersMa[i] ?? null }
+        { label: 'Število naročil', value: formatInt(data.ordersSeries[i]), color: '#5d3ed6', numericValue: data.ordersSeries[i] ?? null },
+        { label: '7d MA', value: formatInt(data.ordersMa[i]), color: '#5d3ed6', numericValue: data.ordersMa[i] ?? null }
       ],
       enforceTopDownTooltipOrder: true,
       layout: miniLayout(false)
@@ -338,7 +338,7 @@ function AdminOrdersPreviewChart({
           name: 'Prihodki',
           x: data.x,
           y: data.revenueSeries,
-          marker: { color: '#8269e1' },
+          marker: { color: '#5d3ed6' },
           hoverinfo: 'none'
         },
         {
@@ -347,13 +347,13 @@ function AdminOrdersPreviewChart({
           name: '7d MA',
           x: data.x,
           y: data.revenueMa,
-          line: { color: '#5a3fda', width: 2 },
+          line: { color: '#5d3ed6', width: 2 },
           hoverinfo: 'none'
         }
       ],
       tooltipRowsAt: (i) => [
-        { label: 'Prihodki', value: formatCurrency(data.revenueSeries[i]), color: appearance.seriesPalette[1], numericValue: data.revenueSeries[i] ?? null },
-        { label: '7d MA', value: formatCurrency(data.revenueMa[i]), color: '#d7a0ff', numericValue: data.revenueMa[i] ?? null }
+        { label: 'Prihodki', value: formatCurrency(data.revenueSeries[i]), color: '#5d3ed6', numericValue: data.revenueSeries[i] ?? null },
+        { label: '7d MA', value: formatCurrency(data.revenueMa[i]), color: '#5d3ed6', numericValue: data.revenueMa[i] ?? null }
       ],
       enforceTopDownTooltipOrder: true,
       layout: miniLayout(false)
@@ -373,7 +373,7 @@ function AdminOrdersPreviewChart({
           name: 'Povp. €/naročilo',
           x: data.x,
           y: data.dailyAov,
-          marker: { color: '#8269e1' },
+          marker: { color: '#5d3ed6' },
           connectgaps: false,
           hoverinfo: 'none'
         },
@@ -383,14 +383,14 @@ function AdminOrdersPreviewChart({
           name: '7d MA',
           x: data.x,
           y: data.dailyAovMa,
-          line: { color: '#5a3fda', width: 2 },
+          line: { color: '#5d3ed6', width: 2 },
           connectgaps: false,
           hoverinfo: 'none'
         }
       ],
       tooltipRowsAt: (i) => [
-        { label: 'Povp. €/naročilo', value: formatCurrency(data.dailyAov[i]), color: appearance.seriesPalette[2], numericValue: data.dailyAov[i] ?? null },
-        { label: '7d MA', value: formatCurrency(data.dailyAovMa[i]), color: '#d7a0ff', numericValue: data.dailyAovMa[i] ?? null }
+        { label: 'Povp. €/naročilo', value: formatCurrency(data.dailyAov[i]), color: '#5d3ed6', numericValue: data.dailyAov[i] ?? null },
+        { label: '7d MA', value: formatCurrency(data.dailyAovMa[i]), color: '#5d3ed6', numericValue: data.dailyAovMa[i] ?? null }
       ],
       enforceTopDownTooltipOrder: true,
       layout: miniLayout(false)
@@ -416,8 +416,8 @@ function AdminOrdersPreviewChart({
           name: 'Šola',
           x: data.x,
           y: data.schoolDaily,
-          line: { color: '#5a3fda', width: 1.2 },
-          fillcolor: 'rgba(90,63,218,0.45)',
+          line: { color: '#5d3ed6', width: 1.2 },
+          fillcolor: 'rgba(93,62,214,0.55)',
           fill: 'tozeroy',
           hoverinfo: 'none'
         },
@@ -428,8 +428,8 @@ function AdminOrdersPreviewChart({
           name: 'Podjetje',
           x: data.x,
           y: data.companyDaily,
-          line: { color: '#8269e1', width: 1.2 },
-          fillcolor: 'rgba(130,105,225,0.35)',
+          line: { color: '#5d3ed6', width: 1.2 },
+          fillcolor: 'rgba(93,62,214,0.38)',
           fill: 'tonexty',
           hoverinfo: 'none'
         },
@@ -440,16 +440,16 @@ function AdminOrdersPreviewChart({
           name: 'Fizična oseba',
           x: data.x,
           y: data.individualDaily,
-          line: { color: '#c4b5fd', width: 1.2 },
-          fillcolor: 'rgba(196,181,253,0.45)',
+          line: { color: '#5d3ed6', width: 1.2 },
+          fillcolor: 'rgba(93,62,214,0.22)',
           fill: 'tonexty',
           hoverinfo: 'none'
         }
       ],
       tooltipRowsAt: (i) => [
-        { label: 'Fizična oseba', value: formatInt(data.individualDaily[i]), color: appearance.seriesPalette[3], numericValue: data.individualDaily[i] ?? null },
-        { label: 'Podjetje', value: formatInt(data.companyDaily[i]), color: appearance.seriesPalette[0], numericValue: data.companyDaily[i] ?? null },
-        { label: 'Šola', value: formatInt(data.schoolDaily[i]), color: appearance.seriesPalette[2], numericValue: data.schoolDaily[i] ?? null }
+        { label: 'Fizična oseba', value: formatInt(data.individualDaily[i]), color: '#5d3ed6', numericValue: data.individualDaily[i] ?? null },
+        { label: 'Podjetje', value: formatInt(data.companyDaily[i]), color: '#5d3ed6', numericValue: data.companyDaily[i] ?? null },
+        { label: 'Šola', value: formatInt(data.schoolDaily[i]), color: '#5d3ed6', numericValue: data.schoolDaily[i] ?? null }
       ],
       enforceTopDownTooltipOrder: false,
       layout: miniLayout(true)
@@ -505,13 +505,13 @@ function AdminOrdersPreviewChart({
   return (
     <section className="mb-3" aria-label="Orders analytics previews">
       <div className="mb-0 flex min-h-[24px] items-end justify-end gap-3">
-        <div className="inline-flex items-center gap-1 rounded-full border border-[#d8ccfb] bg-[#f3efff] p-1 text-[11px] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_6px_18px_rgba(31,41,55,0.08)]">
+        <div className="inline-flex items-center gap-1 rounded-full border border-[#ede8ff] bg-[#f8f7fc] p-1 text-[11px] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_6px_18px_rgba(31,41,55,0.08)]">
           {rangeOptions.map((option) => (
             <button
               key={option.key}
               type="button"
               onClick={() => onRangeChange?.(option.key)}
-              className={`rounded-full border border-transparent bg-[#f8f7fc] px-2.5 py-1 transition ${activeRange === option.key ? 'bg-[#f5f4f0] text-[#5a3fda] shadow-sm' : 'text-slate-700 hover:bg-[#f2f0fa]'}`}
+              className={`rounded-full border border-transparent bg-[#f8f7fc] px-2.5 py-1 transition ${activeRange === option.key ? 'bg-[#f8f7fc] text-[#5d3ed6] shadow-sm' : 'text-[#5d3ed6] hover:bg-[#ede8ff]'}`}
             >
               {option.label}
             </button>
@@ -536,10 +536,10 @@ function AdminOrdersPreviewChart({
               <div className="relative flex h-full min-w-[88px] flex-1 items-center justify-center pr-2 text-center">
                 {chart.key === 'customer-type-cumulative' ? (
                   <div className="w-full">
-                    <p className="absolute left-0 top-0 whitespace-nowrap text-sm font-semibold tracking-wide text-[#111827]">
+                    <p className="absolute left-0 top-0 whitespace-nowrap text-sm font-semibold tracking-wide text-[#5d3ed6]">
                       {chart.title}
                     </p>
-                    <p className="whitespace-nowrap text-[34px] font-bold leading-none text-[#111827]">
+                    <p className="whitespace-nowrap text-[34px] font-bold leading-none text-[#5d3ed6]">
                       <span>{data.individualDaily.reduce((sum, value) => sum + value, 0)}</span>
                       <span className="mx-2 font-thin text-slate-300">|</span>
                       <span>{data.companyDaily.reduce((sum, value) => sum + value, 0)}</span>
@@ -549,10 +549,10 @@ function AdminOrdersPreviewChart({
                   </div>
                 ) : (
                   <>
-                    <p className="absolute left-0 top-0 whitespace-nowrap text-sm font-semibold tracking-wide text-[#111827]">
+                    <p className="absolute left-0 top-0 whitespace-nowrap text-sm font-semibold tracking-wide text-[#5d3ed6]">
                       {chart.title}
                     </p>
-                    <p className="whitespace-nowrap text-[34px] font-bold leading-none text-[#111827]">{chart.value}</p>
+                    <p className="whitespace-nowrap text-[34px] font-bold leading-none text-[#5d3ed6]">{chart.value}</p>
                   </>
                 )}
                 <p className={`absolute bottom-0 left-0 text-[11px] font-medium ${chart.deltaClassName}`}>{chart.delta}</p>
@@ -572,11 +572,11 @@ function AdminOrdersPreviewChart({
 
                 {hoverCard ? (
                   <div
-                    className="pointer-events-none absolute z-30 min-w-[340px] max-w-[420px] rounded-xl border border-black bg-[#f8f7fc] px-[14px] py-3 text-left shadow-[0_10px_24px_rgba(15,23,42,0.15)]"
+                    className="pointer-events-none absolute z-30 min-w-[360px] max-w-[460px] rounded-xl border border-[#5d3ed6] bg-[#f8f7fc] px-[14px] py-3 text-left shadow-[0_10px_24px_rgba(15,23,42,0.15)]"
                     style={{ left: hoverCard.left, top: hoverCard.top }}
                   >
                     <div className="mb-2 flex items-center justify-between">
-                      <p className="pr-3 text-[15px] font-semibold leading-none text-[#111827]">{hoverCard.xLabel} 00:00</p>
+                      <p className="pr-3 text-[15px] font-semibold leading-none text-[#5d3ed6]">{hoverCard.xLabel} 00:00</p>
                     </div>
                     <div className="mb-2 h-px w-full bg-black/15" />
                     <div className="space-y-2.5">
@@ -589,7 +589,7 @@ function AdminOrdersPreviewChart({
                             <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: row.color }} />
                             <span className="text-[13px] font-semibold">{row.label}</span>
                           </div>
-                          <span className="whitespace-nowrap text-right text-[13px] font-semibold text-[#111827]">{row.value}</span>
+                          <span className="whitespace-nowrap text-right text-[13px] font-semibold text-[#5d3ed6]">{row.value}</span>
                         </div>
                       ))}
                     </div>

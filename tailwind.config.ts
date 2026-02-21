@@ -28,6 +28,11 @@ export default {
         warning: 'var(--warning)',
         danger: 'var(--danger)',
         info: 'var(--info)',
+        admin: {
+          bg: 'var(--admin-bg)',
+          accent: 'var(--admin-accent)',
+          hover: 'var(--admin-hover)'
+        },
         brand: {
           50: '#edf9f9',
           100: '#d6f0f1',

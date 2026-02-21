@@ -95,7 +95,7 @@ function FloatingInput({
         disabled={disabled}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1] disabled:bg-slate-100 disabled:text-slate-400"
+        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6] disabled:bg-slate-100 disabled:text-slate-400"
       />
       <label className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600 ${disabled ? 'bg-slate-100' : 'bg-white'}`}>
         {label}
@@ -123,7 +123,7 @@ function FloatingSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]"
+        className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
       >
         {children}
       </select>
@@ -325,9 +325,9 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Poišči po nazivu, SKU ali kategoriji …"
-            className="h-8 rounded-xl border border-slate-300 px-3 text-xs focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]"
+            className="h-8 rounded-xl border border-slate-300 px-3 text-xs focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
           />
-          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-8 rounded-xl border border-slate-300 px-3 text-xs focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]">
+          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-8 rounded-xl border border-slate-300 px-3 text-xs focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]">
             <option value="all">Vse kategorije</option>
             {categories.map((category) => (
               <option key={category} value={category}>{category}</option>
@@ -337,11 +337,11 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             type="button"
             onClick={archiveSelected}
             disabled={selectedIds.length === 0}
-            className="h-8 rounded-xl border border-amber-500 bg-amber-200 px-3 text-xs font-semibold text-amber-800 transition hover:bg-amber-300 disabled:pointer-events-none disabled:opacity-45"
+            className="h-8 rounded-xl border border-[#ede8ff] bg-[#f8f7fc] px-3 text-xs font-semibold text-[#5d3ed6] transition hover:bg-[#ede8ff] disabled:pointer-events-none disabled:opacity-45"
           >
             Arhiviraj
           </button>
-          <button type="button" onClick={openCreate} className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#d6ccfb] bg-[#f8f7fc] px-3 text-xs font-semibold text-[#5a3fda] hover:bg-[#f1eefc]">
+          <button type="button" onClick={openCreate} className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#ede8ff] bg-[#f8f7fc] px-3 text-xs font-semibold text-[#5d3ed6] hover:bg-[#ede8ff]">
             <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M10 4v12M4 10h12" /></svg>
             Nov artikel
           </button>
@@ -349,19 +349,19 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
         </div>
 
       <div className="flex items-center gap-2 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
-        <div className="inline-flex h-8 items-center gap-1 rounded-full border border-slate-300 bg-white px-1">
+        <div className="inline-flex h-8 items-center gap-1 rounded-full border border-[#ede8ff] bg-[#f8f7fc] px-1">
           {statusTabs.map((tab) => {
             const isActive = statusTab === tab.key;
             const activeClass =
               tab.key === 'active'
                 ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
-                : 'bg-slate-100 text-slate-700 ring-1 ring-slate-200';
+                : 'bg-[#f8f7fc] text-[#5d3ed6] ring-1 ring-[#ede8ff]';
             return (
               <button
                 key={tab.key}
                 type="button"
                 onClick={() => setStatusTab(tab.key)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition ${isActive ? activeClass : 'text-slate-700 hover:bg-slate-50'}`}
+                className={`rounded-full px-3 py-1 text-xs font-semibold transition ${isActive ? activeClass : 'text-[#5d3ed6] hover:bg-[#ede8ff]'}`}
               >
                 {tab.label}
               </button>
@@ -397,7 +397,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             </thead>
             <tbody>
               {filteredItems.map((item, index) => (
-                <tr key={item.id} className={`border-t border-slate-200 transition-colors ${index % 2 === 0 ? "bg-white/70" : "bg-slate-50/60"} hover:bg-[#ede8fe]`}>
+                <tr key={item.id} className={`border-t border-slate-200 transition-colors ${index % 2 === 0 ? "bg-white/70" : "bg-slate-50/60"} hover:bg-[#f8f7fc]`}>
                   <td className="px-3 py-2 text-center"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleOne(item.id)} aria-label={`Izberi ${item.name}`} /></td>
                   <td className="px-3 py-2 font-medium text-slate-900">{item.name}</td>
                   <td className="px-3 py-2 text-slate-600">{item.sku}</td>
@@ -406,7 +406,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                   <td className="px-3 py-2 text-center text-slate-600">{item.discountPct}%</td>
                   <td className="px-3 py-2 text-center text-slate-600">{formatCurrency(discountedPrice(item.price, item.discountPct))}</td>
                   <td className="px-3 py-2 text-center"><span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-semibold ${item.active ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'}`}>{item.active ? 'Aktiven' : 'Neaktiven'}</span></td>
-                  <td className="px-3 py-2"><div className="flex items-center justify-center gap-1.5"><button type="button" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"><ActionIcon type="edit" /></button><button type="button" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"><ActionIcon type="copy" /></button><button type="button" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-amber-200 text-amber-700 hover:bg-amber-50"><ActionIcon type="archive" /></button></div></td>
+                  <td className="px-3 py-2"><div className="flex items-center justify-center gap-1.5"><button type="button" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-[#5d3ed6] hover:bg-[#ede8ff]"><ActionIcon type="edit" /></button><button type="button" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-[#5d3ed6] hover:bg-[#ede8ff]"><ActionIcon type="copy" /></button><button type="button" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-[#ede8ff] text-[#5d3ed6] hover:bg-[#ede8ff]"><ActionIcon type="archive" /></button></div></td>
                 </tr>
               ))}
             </tbody>
@@ -425,7 +425,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             <div className="space-y-3 text-sm">
               <FloatingInput label="Naziv" value={draft.name} onChange={(value) => setDraft((prev) => ({ ...prev, name: value }))} />
               <div className="group relative" data-filled={draft.description ? 'true' : 'false'}>
-                <textarea value={draft.description} onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))} placeholder=" " className="min-h-[90px] w-full rounded-xl border border-slate-300 bg-white px-3 pb-2 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#8269e1] focus:ring-0 focus:ring-[#8269e1]" />
+                <textarea value={draft.description} onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))} placeholder=" " className="min-h-[90px] w-full rounded-xl border border-slate-300 bg-white px-3 pb-2 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]" />
                 <label className="pointer-events-none absolute left-3 top-1.5 bg-white px-1 text-[10px] text-slate-600">Opis</label>
               </div>
 

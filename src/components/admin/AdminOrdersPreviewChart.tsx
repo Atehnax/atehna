@@ -20,8 +20,8 @@ type Daily = {
   individualOrders: number;
 };
 
-type TooltipRow = { label: string; value: string; color: string; highlight?: boolean };
-type HoverCard = { xLabel: string; rows: TooltipRow[]; left: number; top: number };
+type TooltipRow = { label: string; value: string; color: string; numericValue: number | null };
+type HoverCard = { xLabel: string; rows: TooltipRow[]; left: number; top: number; activeRowIndex: number };
 
 type ChartCard = {
   key: string;
@@ -293,9 +293,14 @@ function AdminOrdersPreviewChart({
         }
       ],
       tooltipRowsAt: (i) => [
-        { label: '30-Day MA', value: formatInt(data.ordersMa[i]), color: '#d7a0ff' },
-        { label: 'Daily Claimed', value: formatInt(data.ordersSeries[i]), color: '#2d8f73' },
-        { label: 'Cuml. Claimed', value: formatInt(data.ordersSeries.slice(0, i + 1).reduce((a, b) => a + b, 0)), color: '#49d6a6', highlight: true }
+        { label: '30-Day MA', value: formatInt(data.ordersMa[i]), color: '#d7a0ff', numericValue: data.ordersMa[i] ?? null },
+        { label: 'Daily Claimed', value: formatInt(data.ordersSeries[i]), color: '#2d8f73', numericValue: data.ordersSeries[i] ?? null },
+        {
+          label: 'Cuml. Claimed',
+          value: formatInt(data.ordersSeries.slice(0, i + 1).reduce((a, b) => a + b, 0)),
+          color: '#49d6a6',
+          numericValue: data.ordersSeries.slice(0, i + 1).reduce((a, b) => a + b, 0)
+        }
       ],
       layout: miniLayout(false)
     },
@@ -320,9 +325,14 @@ function AdminOrdersPreviewChart({
         }
       ],
       tooltipRowsAt: (i) => [
-        { label: '30-Day MA', value: formatCurrency(data.revenueMa[i]), color: '#d7a0ff' },
-        { label: 'Daily Claimed', value: formatCurrency(data.revenueSeries[i]), color: '#2d8f73' },
-        { label: 'Cuml. Claimed', value: formatCurrency(data.revenueSeries.slice(0, i + 1).reduce((a, b) => a + b, 0)), color: '#49d6a6', highlight: true }
+        { label: '30-Day MA', value: formatCurrency(data.revenueMa[i]), color: '#d7a0ff', numericValue: data.revenueMa[i] ?? null },
+        { label: 'Daily Claimed', value: formatCurrency(data.revenueSeries[i]), color: '#2d8f73', numericValue: data.revenueSeries[i] ?? null },
+        {
+          label: 'Cuml. Claimed',
+          value: formatCurrency(data.revenueSeries.slice(0, i + 1).reduce((a, b) => a + b, 0)),
+          color: '#49d6a6',
+          numericValue: data.revenueSeries.slice(0, i + 1).reduce((a, b) => a + b, 0)
+        }
       ],
       layout: miniLayout(false)
     },
@@ -348,9 +358,14 @@ function AdminOrdersPreviewChart({
         }
       ],
       tooltipRowsAt: (i) => [
-        { label: '30-Day MA', value: formatCurrency(data.dailyAovMa[i]), color: '#d7a0ff' },
-        { label: 'Daily Claimed', value: formatCurrency(data.dailyAov[i]), color: '#2d8f73' },
-        { label: 'Cuml. Claimed', value: formatCurrency(data.dailyAov.slice(0, i + 1).filter((v): v is number => v !== null).reduce((a, b) => a + b, 0)), color: '#49d6a6', highlight: true }
+        { label: '30-Day MA', value: formatCurrency(data.dailyAovMa[i]), color: '#d7a0ff', numericValue: data.dailyAovMa[i] ?? null },
+        { label: 'Daily Claimed', value: formatCurrency(data.dailyAov[i]), color: '#2d8f73', numericValue: data.dailyAov[i] ?? null },
+        {
+          label: 'Cuml. Claimed',
+          value: formatCurrency(data.dailyAov.slice(0, i + 1).filter((v): v is number => v !== null).reduce((a, b) => a + b, 0)),
+          color: '#49d6a6',
+          numericValue: data.dailyAov.slice(0, i + 1).filter((v): v is number => v !== null).reduce((a, b) => a + b, 0)
+        }
       ],
       layout: miniLayout(false)
     },
@@ -379,9 +394,9 @@ function AdminOrdersPreviewChart({
         }
       ],
       tooltipRowsAt: (i) => [
-        { label: 'Šole', value: formatInt(data.schoolCum[i]), color: appearance.seriesPalette[2] },
-        { label: 'Podjetja', value: formatInt(data.companyCum[i]), color: appearance.seriesPalette[0] },
-        { label: 'Fiz. os.', value: formatInt(data.individualCum[i]), color: appearance.seriesPalette[3], highlight: true }
+        { label: 'Šole', value: formatInt(data.schoolCum[i]), color: appearance.seriesPalette[2], numericValue: data.schoolCum[i] ?? null },
+        { label: 'Podjetja', value: formatInt(data.companyCum[i]), color: appearance.seriesPalette[0], numericValue: data.companyCum[i] ?? null },
+        { label: 'Fiz. os.', value: formatInt(data.individualCum[i]), color: appearance.seriesPalette[3], numericValue: data.individualCum[i] ?? null }
       ],
       layout: miniLayout(true)
     }
@@ -396,13 +411,30 @@ function AdminOrdersPreviewChart({
     if (typeof pointIndex !== 'number') return;
 
     const rows = chart.tooltipRowsAt(pointIndex);
+    const pointY = typeof point.y === 'number' ? point.y : Number(point.y);
+    const activeRowIndex = rows.reduce((bestIndex, row, index) => {
+      if (!Number.isFinite(pointY) || row.numericValue === null || !Number.isFinite(row.numericValue)) {
+        return bestIndex;
+      }
+      if (bestIndex === -1) return index;
+      const bestValue = rows[bestIndex]?.numericValue;
+      if (bestValue === null || !Number.isFinite(bestValue)) return index;
+      return Math.abs(row.numericValue - pointY) < Math.abs(bestValue - pointY) ? index : bestIndex;
+    }, -1);
+
     const rect = (domEvent.currentTarget as HTMLElement).getBoundingClientRect();
-    const localX = Math.max(0, domEvent.clientX - rect.left);
-    const localY = Math.max(0, domEvent.clientY - rect.top);
-    const tooltipWidth = 320;
-    const tooltipHeight = 170;
-    const left = Math.max(8, Math.min(localX + 14, rect.width - tooltipWidth - 8));
-    const top = Math.max(8, Math.min(localY + 14, rect.height - tooltipHeight - 8));
+    const tooltipWidth = 380;
+    const tooltipHeight = Math.max(176, 74 + rows.length * 34);
+    const viewportLeft = Math.min(
+      window.innerWidth - tooltipWidth - 12,
+      Math.max(12, domEvent.clientX + 18)
+    );
+    const viewportTop = Math.min(
+      window.innerHeight - tooltipHeight - 12,
+      Math.max(12, domEvent.clientY + 16)
+    );
+    const left = viewportLeft - rect.left;
+    const top = viewportTop - rect.top;
 
     setHoverCards((prev) => ({
       ...prev,
@@ -410,7 +442,8 @@ function AdminOrdersPreviewChart({
         xLabel: String(point.x ?? ''),
         rows,
         left,
-        top
+        top,
+        activeRowIndex: activeRowIndex === -1 ? 0 : activeRowIndex
       }
     }));
   };
@@ -426,13 +459,13 @@ function AdminOrdersPreviewChart({
   return (
     <section className="mb-3" aria-label="Orders analytics previews">
       <div className="mb-2 flex min-h-[30px] items-center justify-end gap-3">
-        <div className="inline-flex items-center gap-1 rounded-full border border-[#d8ccfb] bg-[#f3efff] p-1 text-[11px] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_6px_18px_rgba(31,41,55,0.08)]">
+        <div className="inline-flex items-center gap-1 rounded-full border border-[#d8ccfb] bg-[#f8f7fc] p-1 text-[11px] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_6px_18px_rgba(31,41,55,0.08)]">
           {rangeOptions.map((option) => (
             <button
               key={option.key}
               type="button"
               onClick={() => onRangeChange?.(option.key)}
-              className={`rounded-full border border-transparent px-2.5 py-1 transition ${activeRange === option.key ? 'bg-white text-[#5a3fda] shadow-sm' : 'text-slate-700 hover:bg-white/70'}`}
+              className={`rounded-full border border-transparent px-2.5 py-1 transition ${activeRange === option.key ? 'bg-[#efebfb] text-[#5a3fda] shadow-sm' : 'text-slate-700 hover:bg-[#f1eefc]'}`}
             >
               {option.label}
             </button>
@@ -493,25 +526,25 @@ function AdminOrdersPreviewChart({
 
                 {hoverCard ? (
                   <div
-                    className="pointer-events-none absolute z-30 w-[min(320px,calc(100%-8px))] rounded-xl border border-white/20 bg-[#0b0f1a] px-3 py-3 text-left shadow-[0_10px_30px_rgba(2,6,23,0.45)]"
+                    className="pointer-events-none absolute z-30 min-w-[340px] max-w-[420px] rounded-xl border border-black bg-[#f8f7fc] px-[14px] py-3 text-left shadow-[0_10px_24px_rgba(15,23,42,0.15)]"
                     style={{ left: hoverCard.left, top: hoverCard.top }}
                   >
                     <div className="mb-2 flex items-center justify-between">
-                      <p className="truncate pr-3 text-[16px] font-semibold leading-none text-[#f3f4f6]">{hoverCard.xLabel} 00:00</p>
-                      <span className="rounded-full bg-white/10 px-2 py-0.5 text-[12px] font-semibold text-[#d1d5db]">1/1</span>
+                      <p className="pr-3 text-[15px] font-semibold leading-none text-[#111827]">{hoverCard.xLabel} 00:00</p>
+                      <span className="rounded-full border border-black/20 bg-[#f8f7fc] px-2 py-0.5 text-[12px] font-semibold text-[#374151]">1/1</span>
                     </div>
-                    <div className="mb-2 h-px w-full bg-white/15" />
-                    <div className="space-y-2">
+                    <div className="mb-2 h-px w-full bg-black/15" />
+                    <div className="space-y-2.5">
                       {hoverCard.rows.map((row, index) => (
                         <div
                           key={`${row.label}-${index}`}
-                          className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 ${row.highlight ? 'rounded-md bg-white/10 px-2 py-1.5' : ''}`}
+                          className={`grid grid-cols-[minmax(180px,1fr)_auto] items-center gap-5 px-1 py-1 ${hoverCard.activeRowIndex === index ? 'rounded-lg bg-black/5 px-2.5 py-2' : ''}`}
                         >
-                          <div className="flex min-w-0 items-center gap-2 text-[#e5e7eb]">
+                          <div className="flex items-center gap-2 text-[#374151]">
                             <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: row.color }} />
-                            <span className="truncate text-[13px] font-semibold">{row.label}</span>
+                            <span className="text-[13px] font-semibold">{row.label}</span>
                           </div>
-                          <span className="whitespace-nowrap text-right text-[13px] font-semibold text-[#e5e7eb]">{row.value}</span>
+                          <span className="whitespace-nowrap text-right text-[13px] font-semibold text-[#111827]">{row.value}</span>
                         </div>
                       ))}
                     </div>

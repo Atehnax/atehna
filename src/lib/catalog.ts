@@ -5,7 +5,9 @@ export type CatalogItem = {
   name: string;
   description: string;
   image?: string;
+  images?: string[];
   price?: number;
+  discountPct?: number;
 };
 
 export type CatalogSubcategory = {
@@ -155,4 +157,9 @@ export function getCatalogSearchItems(): CatalogSearchItem[] {
 
     return [...directItems, ...subcategoryItems];
   });
+}
+
+export function getDiscountedPrice(price: number, discountPct?: number): number {
+  const safe = Math.max(0, Math.min(100, Number(discountPct ?? 0)));
+  return Number((price * (1 - safe / 100)).toFixed(2));
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidateAdminOrderPaths } from '@/lib/server/revalidateAdminOrders';
 import { getPool } from '@/lib/server/db';
 
 async function ensureArchiveSchema() {
@@ -18,7 +19,6 @@ async function ensureArchiveSchema() {
     )
   `);
 }
-
 
 async function hasOrdersDeletedAtColumn() {
   const pool = await getPool();
@@ -68,6 +68,7 @@ export async function DELETE(
     };
 
     if (order.deleted_at) {
+      revalidateAdminOrderPaths(orderId);
       return NextResponse.json({ success: true });
     }
 
@@ -93,10 +94,12 @@ export async function DELETE(
         }
       }
 
+      revalidateAdminOrderPaths(orderId);
       return NextResponse.json({ success: true });
     }
 
     await pool.query('delete from orders where id = $1', [orderId]);
+    revalidateAdminOrderPaths(orderId);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(

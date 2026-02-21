@@ -74,7 +74,7 @@ export default function AdminOrderActions({ paymentStatus, paymentNotes, orderId
           type="button"
           onClick={saveNotes}
           disabled={isSavingNotes}
-          className="h-8 rounded-full bg-brand-600 px-4 text-xs font-semibold text-white hover:bg-brand-700 disabled:bg-slate-200 disabled:text-slate-400"
+          className="h-8 rounded-full bg-slate-700 px-4 text-xs font-semibold text-white hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400"
         >
           {isSavingNotes ? 'Shranjujem ...' : 'Shrani'}
         </button>

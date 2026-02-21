@@ -318,7 +318,7 @@ export default function AdminOrderEditForm({
         <button
           type="submit"
           disabled={isSaving}
-          className="w-full whitespace-nowrap rounded-xl bg-brand-600 px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+          className="w-full whitespace-nowrap rounded-xl bg-brand-600 px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
         >
           {isSaving ? 'Shranjevanje...' : 'Shrani spremembe'}
         </button>

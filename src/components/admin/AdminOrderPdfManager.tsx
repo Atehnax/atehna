@@ -298,7 +298,7 @@ export default function AdminOrderPdfManager({
               type="button"
               onClick={toggleNotesEdit}
               title="Uredi"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-[#ede8ff]"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100"
               aria-label="Uredi opombe"
             >
               <PencilIcon />
@@ -308,7 +308,7 @@ export default function AdminOrderPdfManager({
               onClick={() => void saveNotes()}
               disabled={notesSaveDisabled}
               title="Shrani"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
               aria-label="Shrani opombe"
             >
               <SaveIcon />
@@ -350,7 +350,7 @@ export default function AdminOrderPdfManager({
                     disabled={loadingType === pdfType.key}
                     title="Ustvari"
                     aria-label={`Ustvari ${pdfType.label}`}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#ede8ff] bg-[#f8f7fc] text-[#5d3ed6] shadow-sm transition hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#ede8ff] bg-[#f8f7fc] text-[#5d3ed6] shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
                   >
                     <GeneratePdfIcon />
                   </button>
@@ -358,7 +358,7 @@ export default function AdminOrderPdfManager({
                   <label
                     title="Naloži"
                     aria-label={`Naloži ${pdfType.label}`}
-                    className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-brand-200 hover:text-brand-600"
+                    className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:text-slate-700"
                   >
                     <input
                       type="file"
@@ -380,7 +380,7 @@ export default function AdminOrderPdfManager({
                     onClick={() => downloadLatestByType(pdfType.key)}
                     title="Shrani"
                     aria-label={`Shrani ${pdfType.label}`}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-brand-200 hover:text-brand-600"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:text-slate-700"
                   >
                     <SaveIcon />
                   </button>
@@ -400,7 +400,7 @@ export default function AdminOrderPdfManager({
                         return (
                           <li
                             key={`${doc.id}-${doc.created_at}`}
-                            className="rounded-lg border border-transparent px-2 py-1 transition hover:border-slate-200 hover:bg-[#ede8ff]"
+                            className="rounded-lg border border-transparent px-2 py-1 transition hover:border-slate-200 hover:bg-slate-100"
                           >
                             <div className="grid min-w-0 grid-cols-[14px_minmax(0,1fr)_130px_24px] items-center gap-2">
                               <span

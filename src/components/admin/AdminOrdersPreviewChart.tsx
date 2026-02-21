@@ -119,13 +119,13 @@ const formatCurrency = (value: number | null | undefined) =>
     ? '—'
     : `${Intl.NumberFormat('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)} EUR`;
 
-const sevenDayChange = (series: Array<number | null>) => {
+const periodChange = (series: Array<number | null>, lookbackDays: number) => {
   if (series.length === 0) return null;
   const currentIndex = series.length - 1;
   const current = series[currentIndex];
   if (current === null || !Number.isFinite(current)) return null;
 
-  for (let i = currentIndex - 7; i >= 0; i -= 1) {
+  for (let i = currentIndex - lookbackDays; i >= 0; i -= 1) {
     const previous = series[i];
     if (previous === null || !Number.isFinite(previous) || previous === 0) continue;
     return ((current - previous) / previous) * 100;
@@ -134,14 +134,20 @@ const sevenDayChange = (series: Array<number | null>) => {
   return null;
 };
 
-const formatDelta = (value: number | null) => {
-  if (value === null || !Number.isFinite(value)) {
-    return { text: '7d: —', className: 'text-slate-500' };
+const formatDeltaPair = (sevenDay: number | null, thirtyDay: number | null) => {
+  const fmt = (label: string, value: number | null) => {
+    if (value === null || !Number.isFinite(value)) return `${label}: —`;
+    const sign = value > 0 ? '+' : '';
+    return `${label}: ${sign}${value.toFixed(1)}%`;
+  };
+
+  if ((sevenDay === null || !Number.isFinite(sevenDay)) && (thirtyDay === null || !Number.isFinite(thirtyDay))) {
+    return { text: `${fmt('7d', sevenDay)}  ${fmt('30d', thirtyDay)}`, className: 'text-slate-500' };
   }
 
-  const sign = value > 0 ? '+' : '';
-  const className = value >= 0 ? 'text-emerald-700' : 'text-rose-700';
-  return { text: `7d: ${sign}${value.toFixed(1)}%`, className };
+  const reference = sevenDay ?? thirtyDay ?? 0;
+  const className = reference >= 0 ? 'text-emerald-700' : 'text-rose-700';
+  return { text: `${fmt('7d', sevenDay)}  ${fmt('30d', thirtyDay)}`, className };
 };
 
 const fallbackAppearance: AnalyticsGlobalAppearance = {
@@ -301,7 +307,7 @@ function AdminOrdersPreviewChart({
       title: 'Število naročil',
       value: stat(data.totalOrders),
       ...(() => {
-        const delta = formatDelta(sevenDayChange(data.ordersSeries));
+        const delta = formatDeltaPair(periodChange(data.ordersSeries, 7), periodChange(data.ordersSeries, 30));
         return { delta: delta.text, deltaClassName: delta.className };
       })(),
       traces: [
@@ -336,7 +342,7 @@ function AdminOrdersPreviewChart({
       title: 'Prihodki',
       value: `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 1, minimumFractionDigits: 1 }).format(data.totalRevenue)} €`,
       ...(() => {
-        const delta = formatDelta(sevenDayChange(data.revenueSeries));
+        const delta = formatDeltaPair(periodChange(data.revenueSeries, 7), periodChange(data.revenueSeries, 30));
         return { delta: delta.text, deltaClassName: delta.className };
       })(),
       traces: [
@@ -371,7 +377,7 @@ function AdminOrdersPreviewChart({
       title: 'Povp. €/naročilo',
       value: `${stat(data.rangeAov)} €`,
       ...(() => {
-        const delta = formatDelta(sevenDayChange(data.dailyAov));
+        const delta = formatDeltaPair(periodChange(data.dailyAov, 7), periodChange(data.dailyAov, 30));
         return { delta: delta.text, deltaClassName: delta.className };
       })(),
       traces: [
@@ -408,11 +414,8 @@ function AdminOrdersPreviewChart({
       title: 'F | P | Š',
       value: `${data.individualDaily.reduce((sum, value) => sum + value, 0)}  |  ${data.companyDaily.reduce((sum, value) => sum + value, 0)}  |  ${data.schoolDaily.reduce((sum, value) => sum + value, 0)}`,
       ...(() => {
-        const delta = formatDelta(
-          sevenDayChange(
-            data.companyDaily.map((value, index) => value + data.schoolDaily[index] + data.individualDaily[index])
-          )
-        );
+        const totalsSeries = data.companyDaily.map((value, index) => value + data.schoolDaily[index] + data.individualDaily[index]);
+        const delta = formatDeltaPair(periodChange(totalsSeries, 7), periodChange(totalsSeries, 30));
         return { delta: delta.text, deltaClassName: delta.className };
       })(),
       traces: [
@@ -511,14 +514,14 @@ function AdminOrdersPreviewChart({
 
   return (
     <section className="mb-3" aria-label="Orders analytics previews">
-      <div className="mb-0 -mt-[20px] flex min-h-[24px] items-end justify-end gap-3">
+      <div className="mb-0 -mt-[10px] flex min-h-[24px] items-end justify-end gap-3">
         <div className="inline-flex h-8 items-center gap-1 rounded-full border border-slate-300 bg-white px-1">
           {rangeOptions.map((option) => (
             <button
               key={option.key}
               type="button"
               onClick={() => onRangeChange?.(option.key)}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition ${activeRange === option.key ? 'bg-[#ede8ff] text-[#5d3ed6]' : 'text-slate-700 hover:bg-slate-100'}`}
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:border focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 ${activeRange === option.key ? 'border border-[#5d3ed6] bg-[#ede8ff] text-[#5d3ed6]' : 'text-slate-700 hover:bg-slate-100'}`}
             >
               {option.label}
             </button>
@@ -586,7 +589,7 @@ function AdminOrdersPreviewChart({
                       <p className="pr-3 text-[15px] font-semibold leading-none text-black">{hoverCard.xLabel} 00:00</p>
                     </div>
                     <div className="mb-2 h-px w-full bg-black/15" />
-                    <div className="space-y-2.5">
+                    <div className="space-y-1">
                       {hoverCard.rows.map((row, index) => (
                         <div
                           key={`${row.label}-${index}`}
@@ -596,7 +599,7 @@ function AdminOrdersPreviewChart({
                             <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: row.color }} />
                             <span className="text-[13px] font-semibold">{row.label}</span>
                           </div>
-                          <span className="whitespace-nowrap text-right text-[13px] font-semibold text-[#5d3ed6]">{row.value}</span>
+                          <span className="whitespace-nowrap text-right text-[13px] font-semibold text-black">{row.value}</span>
                         </div>
                       ))}
                     </div>

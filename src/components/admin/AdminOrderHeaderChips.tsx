@@ -392,7 +392,7 @@ export default function AdminOrderHeaderChips(props: Props) {
           <button
             type="button"
             onClick={startEdit}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-[#ede8ff]"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100"
             aria-label="Uredi naročilo"
             title="Uredi"
             disabled={isTopSaving}
@@ -403,7 +403,7 @@ export default function AdminOrderHeaderChips(props: Props) {
           <button
             type="button"
             onClick={() => void saveTopSection()}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
             aria-label="Shrani naročilo"
             title="Shrani"
             disabled={topSaveDisabled}

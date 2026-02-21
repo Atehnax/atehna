@@ -977,7 +977,7 @@ export default function AdminOrdersTable({
             type="button"
             onClick={handleDelete}
             disabled={selected.length === 0 || isDeleting}
-            className={`${DANGER_OUTLINE_BUTTON_CLASS} focus-visible:border-rose-300 focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none`}
+            className={`${DANGER_OUTLINE_BUTTON_CLASS} focus-visible:border-rose-300 focus-visible:outline-none focus-visible:ring-0`}
           >
             {isDeleting ? 'Brisanje...' : 'Izbriši'}
           </button>

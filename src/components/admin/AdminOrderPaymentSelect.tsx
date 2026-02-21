@@ -85,7 +85,7 @@ export default function AdminOrderPaymentSelect({
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
+        className="rounded-full focus:outline-none focus-visible:ring-0 focus-visible:ring-[#5d3ed6]"
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-label={`Spremeni plačilni status naročila ${orderId}`}
@@ -105,7 +105,7 @@ export default function AdminOrderPaymentSelect({
               role="menuitem"
               onClick={() => handleChange(option.value)}
               disabled={isSaving || option.value === currentStatus}
-              className="block w-full rounded-md px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+              className="block w-full rounded-md px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
             >
               {option.label}
             </button>

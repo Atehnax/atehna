@@ -142,12 +142,12 @@ const formatDeltaPair = (sevenDay: number | null, thirtyDay: number | null) => {
   };
 
   if ((sevenDay === null || !Number.isFinite(sevenDay)) && (thirtyDay === null || !Number.isFinite(thirtyDay))) {
-    return { text: `${fmt('7d', sevenDay)}  ${fmt('30d', thirtyDay)}`, className: 'text-slate-500' };
+    return { text: `${fmt('7d', sevenDay)}   ${fmt('30d', thirtyDay)}`, className: 'text-slate-500' };
   }
 
   const reference = sevenDay ?? thirtyDay ?? 0;
   const className = reference >= 0 ? 'text-emerald-700' : 'text-rose-700';
-  return { text: `${fmt('7d', sevenDay)}  ${fmt('30d', thirtyDay)}`, className };
+  return { text: `${fmt('7d', sevenDay)}   ${fmt('30d', thirtyDay)}`, className };
 };
 
 const fallbackAppearance: AnalyticsGlobalAppearance = {
@@ -514,14 +514,14 @@ function AdminOrdersPreviewChart({
 
   return (
     <section className="mb-3" aria-label="Orders analytics previews">
-      <div className="mb-[15px] flex min-h-[18px] items-end justify-end gap-2">
-        <div className="inline-flex h-6 items-center gap-0.5 rounded-full border border-slate-300 bg-white px-0.5">
+      <div className="mb-[15px] flex items-end justify-end gap-2">
+        <div className="inline-flex h-8 items-center gap-1 rounded-full border border-slate-300 bg-white px-1">
           {rangeOptions.map((option) => (
             <button
               key={option.key}
               type="button"
               onClick={() => onRangeChange?.(option.key)}
-              className={`rounded-full px-2 py-0.5 text-[9px] font-semibold leading-none transition focus-visible:border focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 ${activeRange === option.key ? 'border border-[#5d3ed6] bg-[#ede8ff] text-[#5d3ed6]' : 'text-slate-700 hover:bg-slate-100'}`}
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:border focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 ${activeRange === option.key ? 'border border-[#5d3ed6] bg-[#ede8ff] text-[#5d3ed6]' : 'text-slate-700 hover:bg-slate-100'}`}
             >
               {option.label}
             </button>

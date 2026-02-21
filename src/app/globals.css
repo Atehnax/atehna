@@ -131,20 +131,3 @@ body {
 .admin-scope table tbody tr:hover {
   background-color: #f8f7fc !important;
 }
-
-
-.admin-scope h1 {
-  color: var(--admin-accent);
-}
-
-.admin-scope .admin-pill,
-.admin-scope .admin-button-surface {
-  background-color: var(--admin-bg);
-  color: var(--admin-accent);
-  border-color: var(--admin-hover);
-}
-
-.admin-scope .admin-pill:hover,
-.admin-scope .admin-button-surface:hover {
-  background-color: var(--admin-hover);
-}

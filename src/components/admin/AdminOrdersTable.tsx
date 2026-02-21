@@ -813,7 +813,7 @@ export default function AdminOrdersTable({
             <button
               type="button"
               onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-              className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 text-left text-xs text-[#5d3ed6] hover:border-slate-400 focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+              className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 text-left text-xs text-slate-700 hover:border-slate-400 focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
             >
               <span className="inline-flex w-full items-center gap-1.5 leading-none"> 
                 <svg
@@ -838,49 +838,49 @@ export default function AdminOrdersTable({
                     <button
                       type="button"
                       onClick={() => applyQuickDateRange('today')}
-                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-[#5d3ed6] hover:bg-[#ede8ff]"
+                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-[#ede8ff]"
                     >
                       Danes
                     </button>
                     <button
                       type="button"
                       onClick={() => applyQuickDateRange('yesterday')}
-                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-[#5d3ed6] hover:bg-[#ede8ff]"
+                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-[#ede8ff]"
                     >
                       Včeraj
                     </button>
                     <button
                       type="button"
                       onClick={() => applyQuickDateRange('7d')}
-                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-[#5d3ed6] hover:bg-[#ede8ff]"
+                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-[#ede8ff]"
                     >
                       Zadnjih 7 dni
                     </button>
                     <button
                       type="button"
                       onClick={() => applyQuickDateRange('30d')}
-                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-[#5d3ed6] hover:bg-[#ede8ff]"
+                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-[#ede8ff]"
                     >
                       Zadnjih 30 dni
                     </button>
                     <button
                       type="button"
                       onClick={() => applyQuickDateRange('3m')}
-                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-[#5d3ed6] hover:bg-[#ede8ff]"
+                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-[#ede8ff]"
                     >
                       Zadnje 3 mesece
                     </button>
                     <button
                       type="button"
                       onClick={() => applyQuickDateRange('6m')}
-                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-[#5d3ed6] hover:bg-[#ede8ff]"
+                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-[#ede8ff]"
                     >
                       Zadnjih 6 mesecev
                     </button>
                     <button
                       type="button"
                       onClick={() => applyQuickDateRange('1y')}
-                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-[#5d3ed6] hover:bg-[#ede8ff]"
+                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-[#ede8ff]"
                     >
                       Zadnje leto
                     </button>
@@ -916,7 +916,7 @@ export default function AdminOrdersTable({
                           setFromDate('');
                           setToDate('');
                         }}
-                        className="text-xs font-semibold text-slate-500 hover:text-[#5d3ed6]"
+                        className="text-xs font-semibold text-slate-500 hover:text-slate-700"
                       >
                         Ponastavi
                       </button>                    </div>
@@ -958,7 +958,7 @@ export default function AdminOrdersTable({
               type="button"
               onClick={handleResetDocumentFilter}
               disabled={documentType === 'all'}
-              className="h-8 border-l border-slate-200 px-3 text-xs font-semibold text-[#5d3ed6] transition hover:bg-[#ede8ff] focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
+              className="h-8 border-l border-slate-200 px-3 text-xs font-semibold text-slate-700 transition hover:bg-[#ede8ff] focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
             >
               Ponastavi
             </button>
@@ -966,7 +966,7 @@ export default function AdminOrdersTable({
               type="button"
               onClick={handleDownloadAllDocuments}
               disabled={isDownloading}
-              className="h-8 border-l border-slate-200 px-3 text-xs font-semibold text-[#5d3ed6] transition hover:bg-[#ede8ff] focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
+              className="h-8 border-l border-slate-200 px-3 text-xs font-semibold text-slate-700 transition hover:bg-[#ede8ff] focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
             >
               {isDownloading ? 'Prenos...' : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
             </button>
@@ -976,7 +976,7 @@ export default function AdminOrdersTable({
             type="button"
             onClick={handleDelete}
             disabled={selected.length === 0 || isDeleting}
-            className="h-8 rounded-xl border border-[#ede8ff] bg-[#f8f7fc] px-3 text-xs font-semibold text-[#5d3ed6] transition hover:bg-[#ede8ff] focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
+            className="h-8 rounded-xl border border-[#ede8ff] bg-[#f8f7fc] px-3 text-xs font-semibold text-slate-700 transition hover:bg-[#ede8ff] focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
           >
             {isDeleting ? 'Brisanje...' : 'Izbriši'}
           </button>
@@ -984,7 +984,7 @@ export default function AdminOrdersTable({
           {topAction ? <div className="flex h-8 items-center">{topAction}</div> : null}
         </div>
 
-        {message && <p className="mt-2 text-xs text-[#5d3ed6]">{message}</p>}
+        {message && <p className="mt-2 text-xs text-slate-600">{message}</p>}
         </div>
 
       <div className="flex flex-wrap items-center gap-2 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
@@ -1022,7 +1022,7 @@ export default function AdminOrdersTable({
             <col style={{ width: columnWidths.edit }} />
           </colgroup>
 
-          <thead className="text-[12px] uppercase text-[#5d3ed6]">
+          <thead className="text-[12px] uppercase text-slate-600">
             <tr>
               <th className="h-11 px-2 py-2 text-center">
                 <input
@@ -1038,7 +1038,7 @@ export default function AdminOrdersTable({
                 <button
                   type="button"
                   onClick={() => onSort('order_number')}
-                  className="inline-flex items-center text-xs font-semibold hover:text-[#5d3ed6]"
+                  className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
                 >
                   Naročilo {sortIndicator('order_number')}
                 </button>
@@ -1048,7 +1048,7 @@ export default function AdminOrdersTable({
                 <button
                   type="button"
                   onClick={() => onSort('created_at')}
-                  className="inline-flex items-center text-xs font-semibold hover:text-[#5d3ed6]"
+                  className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
                 >
                   Datum {sortIndicator('created_at')}
                 </button>
@@ -1058,7 +1058,7 @@ export default function AdminOrdersTable({
                 <button
                   type="button"
                   onClick={() => onSort('customer')}
-                  className="inline-flex items-center text-xs font-semibold hover:text-[#5d3ed6]"
+                  className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
                 >
                   Naročnik {sortIndicator('customer')}
                 </button>
@@ -1068,7 +1068,7 @@ export default function AdminOrdersTable({
                 <button
                   type="button"
                   onClick={() => onSort('address')}
-                  className="inline-flex items-center text-xs font-semibold hover:text-[#5d3ed6]"
+                  className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
                 >
                   Naslov {sortIndicator('address')}
                 </button>
@@ -1078,7 +1078,7 @@ export default function AdminOrdersTable({
                 <button
                   type="button"
                   onClick={() => onSort('type')}
-                  className="inline-flex items-center text-xs font-semibold hover:text-[#5d3ed6]"
+                  className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
                 >
                   Tip {sortIndicator('type')}
                 </button>
@@ -1092,7 +1092,7 @@ export default function AdminOrdersTable({
                         type="button"
                         onClick={() => setIsStatusHeaderMenuOpen((previousOpen) => !previousOpen)}
                         disabled={isBulkUpdatingStatus}
-                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-[#5d3ed6] hover:border-slate-400 disabled:cursor-not-allowed disabled:text-slate-300"
+                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:border-slate-400 disabled:cursor-not-allowed disabled:text-slate-300"
                         aria-haspopup="menu"
                         aria-expanded={isStatusHeaderMenuOpen}
                       >
@@ -1111,7 +1111,7 @@ export default function AdminOrdersTable({
                               role="menuitem"
                               onClick={() => handleBulkStatusUpdate(option.value)}
                               disabled={isBulkUpdatingStatus}
-                              className="block w-full rounded-md px-2 py-1.5 text-left text-xs text-[#5d3ed6] hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
+                              className="block w-full rounded-md px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
                             >
                               {option.label}
                             </button>
@@ -1123,7 +1123,7 @@ export default function AdminOrdersTable({
                     <button
                       type="button"
                       onClick={() => onSort('status')}
-                      className="inline-flex items-center text-xs font-semibold hover:text-[#5d3ed6]"
+                      className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
                     >
                       Status {sortIndicator('status')}
                     </button>
@@ -1139,7 +1139,7 @@ export default function AdminOrdersTable({
                         type="button"
                         onClick={() => setIsPaymentHeaderMenuOpen((previousOpen) => !previousOpen)}
                         disabled={isBulkUpdatingStatus}
-                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-[#5d3ed6] hover:border-slate-400 disabled:cursor-not-allowed disabled:text-slate-300"
+                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:border-slate-400 disabled:cursor-not-allowed disabled:text-slate-300"
                         aria-haspopup="menu"
                         aria-expanded={isPaymentHeaderMenuOpen}
                       >
@@ -1158,7 +1158,7 @@ export default function AdminOrdersTable({
                               role="menuitem"
                               onClick={() => handleBulkPaymentUpdate(option.value)}
                               disabled={isBulkUpdatingStatus}
-                              className="block w-full rounded-md px-2 py-1.5 text-left text-xs text-[#5d3ed6] hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
+                              className="block w-full rounded-md px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
                             >
                               {option.label}
                             </button>
@@ -1170,7 +1170,7 @@ export default function AdminOrdersTable({
                     <button
                       type="button"
                       onClick={() => onSort('payment')}
-                      className="inline-flex items-center text-xs font-semibold hover:text-[#5d3ed6]"
+                      className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
                     >
                       Plačilo {sortIndicator('payment')}
                     </button>
@@ -1182,7 +1182,7 @@ export default function AdminOrdersTable({
                 <button
                   type="button"
                   onClick={() => onSort('total')}
-                  className="inline-flex items-center text-xs font-semibold hover:text-[#5d3ed6]"
+                  className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
                 >
                   Skupaj {sortIndicator('total')}
                 </button>
@@ -1261,21 +1261,21 @@ export default function AdminOrdersTable({
                       </span>
                     </td>
 
-                    <td className="px-2 py-2 align-middle text-[#5d3ed6]">
+                    <td className="px-2 py-2 align-middle text-slate-700">
                       <span className="block truncate" title={order.organization_name || order.contact_name}>
                         {order.organization_name || order.contact_name}
                       </span>
                     </td>
 
-                    <td className="px-2 py-2 align-middle text-[#5d3ed6]">
+                    <td className="px-2 py-2 align-middle text-slate-700">
                       <span className="block truncate" title={orderAddress || '—'}>
                         {orderAddress || '—'}
                       </span>
                     </td>
 
-                    <td className="px-2 py-2 align-middle text-center text-[#5d3ed6]">{typeLabel}</td>
+                    <td className="px-2 py-2 align-middle text-center text-slate-700">{typeLabel}</td>
 
-                    <td className="px-2 py-2 align-middle text-center text-[#5d3ed6]">
+                    <td className="px-2 py-2 align-middle text-center text-slate-700">
                       {selectedCount > 1 ? (
                         <div className="flex justify-center">
                           <StatusChip status={rowStatus} />
@@ -1317,7 +1317,7 @@ export default function AdminOrdersTable({
                       )}
                     </td>
 
-                    <td className="px-2 py-2 align-middle text-center text-[#5d3ed6]">
+                    <td className="px-2 py-2 align-middle text-center text-slate-700">
                       {formatCurrency(order.total)}
                     </td>
 
@@ -1336,7 +1336,7 @@ export default function AdminOrdersTable({
                       <div className="flex items-center justify-center gap-1">
                         <a
                           href={`/admin/orders/${order.id}`}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-[#5d3ed6] hover:bg-[#ede8ff]"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:bg-[#ede8ff]"
                           aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
                           title="Uredi"
                         >

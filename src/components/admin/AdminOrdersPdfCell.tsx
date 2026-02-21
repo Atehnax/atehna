@@ -166,7 +166,7 @@ export default function AdminOrdersPdfCell({
                   role="menuitem"
                   data-no-row-nav
                   onClick={() => setOpenType(null)}
-                  className="flex items-center justify-between rounded-md border border-transparent bg-white px-2 py-1 text-[10px] text-slate-700 transition hover:border-slate-200 hover:bg-slate-50"
+                  className="flex items-center justify-between rounded-md border border-transparent bg-white px-2 py-1 text-[10px] text-slate-700 transition hover:border-slate-200 hover:bg-slate-100"
                   title={documentOption.filename}
                 >
                   <span className="truncate font-medium">{documentOption.filename}</span>

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
+import { revalidateAdminOrderPaths } from '@/lib/server/revalidateAdminOrders';
 import { isPaymentStatus } from '@/lib/paymentStatus';
 import { getPool } from '@/lib/server/db';
+
 
 export async function POST(
   request: Request,
@@ -38,6 +40,7 @@ export async function POST(
       if (errorCode !== '42P01') throw error;
     }
 
+    revalidateAdminOrderPaths(orderId);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(

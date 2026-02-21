@@ -12,6 +12,7 @@ import { getCustomerTypeLabel } from '@/lib/customerType';
 import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 import { formatSlDate, formatSlDateFromDateInput, formatSlDateTime } from '@/lib/format/dateTime';
 import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, isPaymentStatus } from '@/lib/paymentStatus';
+import { DANGER_OUTLINE_BUTTON_CLASS } from './adminButtonStyles';
 import type { AnalyticsGlobalAppearance } from '@/lib/server/analyticsCharts';
 
 import {
@@ -976,7 +977,7 @@ export default function AdminOrdersTable({
             type="button"
             onClick={handleDelete}
             disabled={selected.length === 0 || isDeleting}
-            className="h-8 rounded-lg border border-rose-200 bg-[#f8f7fc] px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 focus-visible:border-rose-300 focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:border-rose-100 disabled:bg-[#f8f7fc]/60 disabled:text-rose-300"
+            className={`${DANGER_OUTLINE_BUTTON_CLASS} focus-visible:border-rose-300 focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none`}
           >
             {isDeleting ? 'Brisanje...' : 'Izbriši'}
           </button>

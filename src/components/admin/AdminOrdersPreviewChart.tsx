@@ -514,14 +514,14 @@ function AdminOrdersPreviewChart({
 
   return (
     <section className="mb-3" aria-label="Orders analytics previews">
-      <div className="mb-0 -mt-[15px] flex min-h-[18px] items-end justify-end gap-2">
+      <div className="mb-[15px] flex min-h-[18px] items-end justify-end gap-2">
         <div className="inline-flex h-6 items-center gap-0.5 rounded-full border border-slate-300 bg-white px-0.5">
           {rangeOptions.map((option) => (
             <button
               key={option.key}
               type="button"
               onClick={() => onRangeChange?.(option.key)}
-              className={`rounded-full px-2 py-0.5 text-[9px] font-semibold transition focus-visible:border focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 ${activeRange === option.key ? 'border border-[#5d3ed6] bg-[#ede8ff] text-[#5d3ed6]' : 'text-slate-700 hover:bg-slate-100'}`}
+              className={`rounded-full px-2 py-0.5 text-[9px] font-semibold leading-none transition focus-visible:border focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 ${activeRange === option.key ? 'border border-[#5d3ed6] bg-[#ede8ff] text-[#5d3ed6]' : 'text-slate-700 hover:bg-slate-100'}`}
             >
               {option.label}
             </button>
@@ -565,7 +565,7 @@ function AdminOrdersPreviewChart({
                     <p className="whitespace-nowrap text-[34px] font-bold leading-none text-slate-700">{chart.value}</p>
                   </>
                 )}
-                <p className={`absolute -top-[15px] left-0 text-[11px] font-medium ${chart.deltaClassName}`}>{chart.delta}</p>
+                <p className={`absolute bottom-0 left-0 text-[11px] font-medium leading-none ${chart.deltaClassName}`}>{chart.delta}</p>
               </div>
 
               <div className="relative w-[190px] rounded-md" style={{ backgroundColor: 'transparent' }}>

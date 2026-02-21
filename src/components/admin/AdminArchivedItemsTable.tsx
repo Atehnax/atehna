@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { DANGER_OUTLINE_BUTTON_CLASS } from './adminButtonStyles';
 
 const STORAGE_KEY = 'admin-items-crud-v2';
 
@@ -84,7 +85,7 @@ export default function AdminArchivedItemsTable() {
           type="button"
           onClick={hardDeleteSelected}
           disabled={selectedIds.length === 0}
-          className="h-8 rounded-xl border border-rose-200 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+          className={DANGER_OUTLINE_BUTTON_CLASS}
         >
           Trajno izbriši
         </button>

@@ -514,14 +514,14 @@ function AdminOrdersPreviewChart({
 
   return (
     <section className="mb-3" aria-label="Orders analytics previews">
-      <div className="mb-0 -mt-[15px] flex min-h-[24px] items-end justify-end gap-3">
-        <div className="inline-flex h-8 items-center gap-1 rounded-full border border-slate-300 bg-white px-1">
+      <div className="mb-0 -mt-[15px] flex min-h-[18px] items-end justify-end gap-2">
+        <div className="inline-flex h-6 items-center gap-0.5 rounded-full border border-slate-300 bg-white px-0.5">
           {rangeOptions.map((option) => (
             <button
               key={option.key}
               type="button"
               onClick={() => onRangeChange?.(option.key)}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:border focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 ${activeRange === option.key ? 'border border-[#5d3ed6] bg-[#ede8ff] text-[#5d3ed6]' : 'text-slate-700 hover:bg-slate-100'}`}
+              className={`rounded-full px-2 py-0.5 text-[9px] font-semibold transition focus-visible:border focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 ${activeRange === option.key ? 'border border-[#5d3ed6] bg-[#ede8ff] text-[#5d3ed6]' : 'text-slate-700 hover:bg-slate-100'}`}
             >
               {option.label}
             </button>
@@ -549,7 +549,7 @@ function AdminOrdersPreviewChart({
                     <p className="absolute left-0 top-0 whitespace-nowrap text-sm font-semibold tracking-wide text-slate-700">
                       {chart.title}
                     </p>
-                    <p className="whitespace-nowrap text-[34px] font-bold leading-none text-slate-900">
+                    <p className="whitespace-nowrap text-[34px] font-bold leading-none text-slate-700">
                       <span>{data.individualDaily.reduce((sum, value) => sum + value, 0)}</span>
                       <span className="mx-2 font-thin text-slate-300">|</span>
                       <span>{data.companyDaily.reduce((sum, value) => sum + value, 0)}</span>
@@ -562,10 +562,10 @@ function AdminOrdersPreviewChart({
                     <p className="absolute left-0 top-0 whitespace-nowrap text-sm font-semibold tracking-wide text-slate-700">
                       {chart.title}
                     </p>
-                    <p className="whitespace-nowrap text-[34px] font-bold leading-none text-slate-900">{chart.value}</p>
+                    <p className="whitespace-nowrap text-[34px] font-bold leading-none text-slate-700">{chart.value}</p>
                   </>
                 )}
-                <p className={`absolute top-[20px] left-0 text-[11px] font-medium ${chart.deltaClassName}`}>{chart.delta}</p>
+                <p className={`absolute -top-[15px] left-0 text-[11px] font-medium ${chart.deltaClassName}`}>{chart.delta}</p>
               </div>
 
               <div className="relative w-[190px] rounded-md" style={{ backgroundColor: 'transparent' }}>
@@ -595,11 +595,11 @@ function AdminOrdersPreviewChart({
                           key={`${row.label}-${index}`}
                           className="grid grid-cols-[minmax(180px,1fr)_auto] items-center gap-5 px-1 py-1"
                         >
-                          <div className="flex items-center gap-2" style={{ color: row.color }}>
+                          <div className="flex items-center gap-2 text-slate-700">
                             <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: row.color }} />
                             <span className="text-[13px] font-semibold">{row.label}</span>
                           </div>
-                          <span className="whitespace-nowrap text-right text-[13px] font-semibold" style={{ color: row.color }}>{row.value}</span>
+                          <span className="whitespace-nowrap text-right text-[13px] font-semibold text-slate-700">{row.value}</span>
                         </div>
                       ))}
                     </div>

@@ -358,7 +358,7 @@ export default function AdminOrderPdfManager({
                   <label
                     title="Naloži"
                     aria-label={`Naloži ${pdfType.label}`}
-                    className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:text-slate-700"
+                    className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-700"
                   >
                     <input
                       type="file"
@@ -380,7 +380,7 @@ export default function AdminOrderPdfManager({
                     onClick={() => downloadLatestByType(pdfType.key)}
                     title="Shrani"
                     aria-label={`Shrani ${pdfType.label}`}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:text-slate-700"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-700"
                   >
                     <SaveIcon />
                   </button>

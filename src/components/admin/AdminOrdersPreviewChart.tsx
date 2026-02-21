@@ -514,7 +514,7 @@ function AdminOrdersPreviewChart({
 
   return (
     <section className="mb-3" aria-label="Orders analytics previews">
-      <div className="mb-0 -mt-[10px] flex min-h-[24px] items-end justify-end gap-3">
+      <div className="mb-0 -mt-[15px] flex min-h-[24px] items-end justify-end gap-3">
         <div className="inline-flex h-8 items-center gap-1 rounded-full border border-slate-300 bg-white px-1">
           {rangeOptions.map((option) => (
             <button
@@ -565,7 +565,7 @@ function AdminOrdersPreviewChart({
                     <p className="whitespace-nowrap text-[34px] font-bold leading-none text-slate-900">{chart.value}</p>
                   </>
                 )}
-                <p className={`absolute bottom-0 left-0 text-[11px] font-medium ${chart.deltaClassName}`}>{chart.delta}</p>
+                <p className={`absolute top-[20px] left-0 text-[11px] font-medium ${chart.deltaClassName}`}>{chart.delta}</p>
               </div>
 
               <div className="relative w-[190px] rounded-md" style={{ backgroundColor: 'transparent' }}>
@@ -595,11 +595,11 @@ function AdminOrdersPreviewChart({
                           key={`${row.label}-${index}`}
                           className="grid grid-cols-[minmax(180px,1fr)_auto] items-center gap-5 px-1 py-1"
                         >
-                          <div className="flex items-center gap-2 text-[#374151]">
+                          <div className="flex items-center gap-2" style={{ color: row.color }}>
                             <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: row.color }} />
                             <span className="text-[13px] font-semibold">{row.label}</span>
                           </div>
-                          <span className="whitespace-nowrap text-right text-[13px] font-semibold text-black">{row.value}</span>
+                          <span className="whitespace-nowrap text-right text-[13px] font-semibold" style={{ color: row.color }}>{row.value}</span>
                         </div>
                       ))}
                     </div>

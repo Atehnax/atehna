@@ -291,7 +291,7 @@ export default function AdminOrderItemsEditor({
               onClick={startItemsEdit}
               title="Uredi"
               disabled={isItemsSaving}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
             >
               <PencilIcon />
             </button>
@@ -302,7 +302,7 @@ export default function AdminOrderItemsEditor({
               onClick={() => void saveItems()}
               title="Shrani"
               disabled={itemsSaveDisabled}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
             >
               <SaveIcon />
             </button>
@@ -313,7 +313,7 @@ export default function AdminOrderItemsEditor({
               onClick={() => void openAddItem()}
               title="Dodaj"
               disabled={addItemDisabled}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
             >
               <PlusIcon />
             </button>
@@ -459,7 +459,7 @@ export default function AdminOrderItemsEditor({
                   key={choice.sku}
                   type="button"
                   onClick={() => addCatalogItem(choice)}
-                  className="flex w-full items-center justify-between border-b border-slate-100 px-3 py-2 text-left text-sm hover:bg-[#ede8ff]"
+                  className="flex w-full items-center justify-between border-b border-slate-100 px-3 py-2 text-left text-sm hover:bg-slate-100"
                 >
                   <span className="font-medium text-slate-900">{choice.name}</span>
                   <span className="text-xs text-slate-600">{formatCurrency(choice.unitPrice)}</span>

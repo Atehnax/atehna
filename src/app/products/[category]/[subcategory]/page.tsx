@@ -6,6 +6,7 @@ import {
   getCatalogItemSku,
   getCatalogItemPrice,
   formatCatalogPrice,
+  getDiscountedPrice,
   getCatalogSubcategory,
   getCatalogSubcategorySlugs
 } from '@/lib/catalog';
@@ -52,9 +53,9 @@ export default function SubcategoryPage({
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {subcategory.items.map((item) => {
           const itemSku = getCatalogItemSku(category.slug, subcategory.slug, item.slug);
-          const price = formatCatalogPrice(
-            item.price ?? getCatalogItemPrice(category.slug, subcategory.slug, item.slug)
-          );
+          const basePrice = item.price ?? getCatalogItemPrice(category.slug, subcategory.slug, item.slug);
+          const finalPrice = getDiscountedPrice(basePrice, item.discountPct);
+          const price = formatCatalogPrice(finalPrice);
           const itemHref = `/products/${category.slug}/${subcategory.slug}/${item.slug}`;
           return (
             <div
@@ -66,7 +67,7 @@ export default function SubcategoryPage({
                   {item.image && (
                     <div className="relative h-24 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
                       <Image
-                        src={item.image}
+                        src={item.images?.[0] ?? item.image ?? ''}
                         alt={item.name}
                         fill
                         className="object-contain p-3 transition duration-300 group-hover:scale-105"
@@ -79,11 +80,14 @@ export default function SubcategoryPage({
                 </Link>
                 <p className="mt-2 text-sm text-slate-600">{item.description}</p>
                 <p className="mt-3 text-sm font-semibold text-slate-900">{price}</p>
+                {item.discountPct && item.discountPct > 0 ? (
+                  <p className="mt-1 text-xs text-slate-500"><span className="line-through">{formatCatalogPrice(basePrice)}</span> · Popust {item.discountPct}%</p>
+                ) : null}
               </div>
               <AddToCartButton
                 sku={itemSku}
                 name={item.name}
-                price={item.price ?? getCatalogItemPrice(category.slug, subcategory.slug, item.slug)}
+                price={finalPrice}
                 category={`${category.title} / ${subcategory.title}`}
                 className="mt-4 w-full justify-center"
               />

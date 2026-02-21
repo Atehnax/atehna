@@ -67,6 +67,7 @@ export async function PATCH(request: Request) {
     const restoredFromIds = ids.length > 0 ? await restoreArchiveEntries(ids) : 0;
     const restoredFromTargets = targets.length > 0 ? await restoreArchiveTargets(targets) : 0;
 
+    revalidatePath('/admin/arhiv');
     revalidatePath('/admin/arhiv-izbrisanih');
     revalidatePath('/admin/orders');
     revalidatePath('/admin/orders/[orderId]', 'page');

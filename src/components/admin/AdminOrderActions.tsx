@@ -27,7 +27,7 @@ function FloatingTextarea({ id, label, value, rows = 3, onChange }: FloatingText
         value={value}
         placeholder=" "
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-slate-300 bg-white px-3 pb-2 pt-5 text-[12px] text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+        className="w-full rounded-xl border border-slate-300 bg-white px-3 pb-2 pt-5 text-[12px] text-slate-900 shadow-sm outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
       />
       <label
         htmlFor={id}
@@ -74,7 +74,7 @@ export default function AdminOrderActions({ paymentStatus, paymentNotes, orderId
           type="button"
           onClick={saveNotes}
           disabled={isSavingNotes}
-          className="h-8 rounded-full bg-brand-600 px-4 text-xs font-semibold text-white hover:bg-brand-700 disabled:bg-slate-200 disabled:text-slate-400"
+          className="h-8 rounded-full bg-slate-700 px-4 text-xs font-semibold text-white hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400"
         >
           {isSavingNotes ? 'Shranjujem ...' : 'Shrani'}
         </button>

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
+import { revalidateAdminOrderPaths } from '@/lib/server/revalidateAdminOrders';
 import { getPool } from '@/lib/server/db';
+
 
 export async function POST(
   request: Request,
@@ -21,6 +23,7 @@ export async function POST(
     const pool = await getPool();
     await pool.query('UPDATE orders SET status = $1 WHERE id = $2', [status, orderId]);
 
+    revalidateAdminOrderPaths(orderId);
     return NextResponse.json({ status });
   } catch (error) {
     return NextResponse.json(

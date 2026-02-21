@@ -49,7 +49,7 @@ export default function AdminSidebar() {
                 <div key={link.href}>
                   <Link
                     href={link.href}
-                    className={`flex items-center gap-2 rounded-xl px-2.5 py-2 pr-4 text-xs transition ${
+                    className={`flex items-center gap-2 rounded-xl px-2.5 py-2 pr-4 text-sm transition ${
                       isActive
                         ? 'bg-[#ede8ff] font-semibold text-[#5d3ed6]'
                         : 'text-[#5d3ed6] hover:bg-[#ede8ff] hover:text-[#5d3ed6]'

@@ -341,7 +341,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
           >
             Arhiviraj
           </button>
-          <button type="button" onClick={openCreate} className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#ede8ff] bg-[#f8f7fc] px-3 text-xs font-semibold text-[#5d3ed6] hover:bg-[#ede8ff]">
+          <button type="button" onClick={openCreate} className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#ede8ff] bg-white px-3 text-xs font-semibold text-[#5d3ed6] hover:bg-[#ede8ff]">
             <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M10 4v12M4 10h12" /></svg>
             Nov artikel
           </button>
@@ -349,7 +349,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
         </div>
 
       <div className="flex items-center gap-2 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
-        <div className="inline-flex h-8 items-center gap-1 rounded-full border border-[#ede8ff] bg-[#f8f7fc] px-1">
+        <div className="inline-flex h-8 items-center gap-1 rounded-full border border-[#ede8ff] bg-white px-1">
           {statusTabs.map((tab) => {
             const isActive = statusTab === tab.key;
             const activeClass =

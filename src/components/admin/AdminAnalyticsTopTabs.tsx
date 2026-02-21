@@ -8,7 +8,7 @@ export default function AdminAnalyticsTopTabs() {
   const isWeb = pathname.startsWith('/admin/analitika/splet');
 
   return (
-    <div className="mb-4 inline-flex h-8 items-center gap-1 rounded-full border border-[#ede8ff] bg-[#f8f7fc] px-1">
+    <div className="mb-4 inline-flex h-8 items-center gap-1 rounded-full border border-[#ede8ff] bg-white px-1">
       <Link
         href="/admin/analitika"
         className={`rounded-full px-3 py-1 text-xs font-semibold transition ${

@@ -813,9 +813,9 @@ export default function AdminOrdersTable({
             <button
               type="button"
               onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-              className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 text-left text-xs text-slate-700 hover:border-slate-400 focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+              className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 py-0 text-left text-xs text-slate-700 hover:border-slate-400 focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
             >
-              <span className="inline-flex w-full items-center gap-1.5 leading-none"> 
+              <span className="inline-flex h-full w-full items-center gap-1.5 leading-none"> 
                 <svg
                   aria-hidden="true"
                   viewBox="0 0 24 24"
@@ -936,7 +936,7 @@ export default function AdminOrdersTable({
             />
           </div>
 
-          <div className="ml-auto inline-flex h-8 items-center overflow-hidden rounded-xl border border-slate-300 bg-[#f8f7fc] shadow-sm focus-within:border-[#5d3ed6]">
+          <div className="ml-auto inline-flex h-8 items-center overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm focus-within:border-[#5d3ed6]">
             <div className="relative">
               <select
                 value={documentType}
@@ -958,7 +958,7 @@ export default function AdminOrdersTable({
               type="button"
               onClick={handleResetDocumentFilter}
               disabled={documentType === 'all'}
-              className="h-8 border-l border-slate-200 px-3 text-xs font-semibold text-slate-700 transition hover:bg-[#ede8ff] focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
+              className="h-8 border-l border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-[#ede8ff] focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
             >
               Ponastavi
             </button>
@@ -966,7 +966,7 @@ export default function AdminOrdersTable({
               type="button"
               onClick={handleDownloadAllDocuments}
               disabled={isDownloading}
-              className="h-8 border-l border-slate-200 px-3 text-xs font-semibold text-slate-700 transition hover:bg-[#ede8ff] focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
+              className="h-8 border-l border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-[#ede8ff] focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
             >
               {isDownloading ? 'Prenos...' : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
             </button>
@@ -988,7 +988,7 @@ export default function AdminOrdersTable({
         </div>
 
       <div className="flex flex-wrap items-center gap-2 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
-        <div className="inline-flex h-8 items-center gap-1 rounded-full border border-slate-300 bg-[#f8f7fc] px-1">
+        <div className="inline-flex h-8 items-center gap-1 rounded-full border border-slate-300 bg-white px-1">
           {statusTabs.map((tab) => {
             const isActive = statusFilter === tab.value;
             return (

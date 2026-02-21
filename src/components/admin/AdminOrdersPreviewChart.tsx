@@ -239,9 +239,9 @@ function AdminOrdersPreviewChart({
       revenueMa: movingAverage(revenueSeries, 7),
       dailyAov,
       dailyAovMa,
-      companyCum: cumulative(companyDaily),
-      schoolCum: cumulative(schoolDaily),
-      individualCum: cumulative(individualDaily)
+      companyDaily,
+      schoolDaily,
+      individualDaily
     };
   }, [orders, fromDate, toDate]);
 
@@ -290,17 +290,20 @@ function AdminOrdersPreviewChart({
           y: data.ordersSeries,
           line: { color: appearance.seriesPalette[0], width: 1.9 },
           hoverinfo: 'none'
+        },
+        {
+          type: 'scatter',
+          mode: 'lines',
+          name: '7d MA',
+          x: data.x,
+          y: data.ordersMa,
+          line: { color: '#d7a0ff', width: 1.5, dash: 'dot' },
+          hoverinfo: 'none'
         }
       ],
       tooltipRowsAt: (i) => [
-        { label: '30-Day MA', value: formatInt(data.ordersMa[i]), color: '#d7a0ff', numericValue: data.ordersMa[i] ?? null },
-        { label: 'Daily Claimed', value: formatInt(data.ordersSeries[i]), color: '#2d8f73', numericValue: data.ordersSeries[i] ?? null },
-        {
-          label: 'Cuml. Claimed',
-          value: formatInt(data.ordersSeries.slice(0, i + 1).reduce((a, b) => a + b, 0)),
-          color: '#49d6a6',
-          numericValue: data.ordersSeries.slice(0, i + 1).reduce((a, b) => a + b, 0)
-        }
+        { label: 'Število naročil', value: formatInt(data.ordersSeries[i]), color: appearance.seriesPalette[0], numericValue: data.ordersSeries[i] ?? null },
+        { label: '7d MA', value: formatInt(data.ordersMa[i]), color: '#d7a0ff', numericValue: data.ordersMa[i] ?? null }
       ],
       layout: miniLayout(false)
     },
@@ -322,17 +325,20 @@ function AdminOrdersPreviewChart({
           y: data.revenueSeries,
           line: { color: appearance.seriesPalette[1], width: 1.9 },
           hoverinfo: 'none'
+        },
+        {
+          type: 'scatter',
+          mode: 'lines',
+          name: '7d MA',
+          x: data.x,
+          y: data.revenueMa,
+          line: { color: '#d7a0ff', width: 1.5, dash: 'dot' },
+          hoverinfo: 'none'
         }
       ],
       tooltipRowsAt: (i) => [
-        { label: '30-Day MA', value: formatCurrency(data.revenueMa[i]), color: '#d7a0ff', numericValue: data.revenueMa[i] ?? null },
-        { label: 'Daily Claimed', value: formatCurrency(data.revenueSeries[i]), color: '#2d8f73', numericValue: data.revenueSeries[i] ?? null },
-        {
-          label: 'Cuml. Claimed',
-          value: formatCurrency(data.revenueSeries.slice(0, i + 1).reduce((a, b) => a + b, 0)),
-          color: '#49d6a6',
-          numericValue: data.revenueSeries.slice(0, i + 1).reduce((a, b) => a + b, 0)
-        }
+        { label: 'Prihodki', value: formatCurrency(data.revenueSeries[i]), color: appearance.seriesPalette[1], numericValue: data.revenueSeries[i] ?? null },
+        { label: '7d MA', value: formatCurrency(data.revenueMa[i]), color: '#d7a0ff', numericValue: data.revenueMa[i] ?? null }
       ],
       layout: miniLayout(false)
     },
@@ -349,23 +355,27 @@ function AdminOrdersPreviewChart({
         {
           type: 'scatter',
           mode: 'lines',
-          name: 'AOV',
+          name: 'Povp. €/naročilo',
           x: data.x,
           y: data.dailyAov,
           line: { color: appearance.seriesPalette[2], width: 1.9 },
           connectgaps: false,
           hoverinfo: 'none'
+        },
+        {
+          type: 'scatter',
+          mode: 'lines',
+          name: '7d MA',
+          x: data.x,
+          y: data.dailyAovMa,
+          line: { color: '#d7a0ff', width: 1.5, dash: 'dot' },
+          connectgaps: false,
+          hoverinfo: 'none'
         }
       ],
       tooltipRowsAt: (i) => [
-        { label: '30-Day MA', value: formatCurrency(data.dailyAovMa[i]), color: '#d7a0ff', numericValue: data.dailyAovMa[i] ?? null },
-        { label: 'Daily Claimed', value: formatCurrency(data.dailyAov[i]), color: '#2d8f73', numericValue: data.dailyAov[i] ?? null },
-        {
-          label: 'Cuml. Claimed',
-          value: formatCurrency(data.dailyAov.slice(0, i + 1).filter((v): v is number => v !== null).reduce((a, b) => a + b, 0)),
-          color: '#49d6a6',
-          numericValue: data.dailyAov.slice(0, i + 1).filter((v): v is number => v !== null).reduce((a, b) => a + b, 0)
-        }
+        { label: 'Povp. €/naročilo', value: formatCurrency(data.dailyAov[i]), color: appearance.seriesPalette[2], numericValue: data.dailyAov[i] ?? null },
+        { label: '7d MA', value: formatCurrency(data.dailyAovMa[i]), color: '#d7a0ff', numericValue: data.dailyAovMa[i] ?? null }
       ],
       layout: miniLayout(false)
     },
@@ -373,11 +383,11 @@ function AdminOrdersPreviewChart({
       key: 'customer-type-cumulative',
       focusKey: 'narocila-status-mix',
       title: 'F | P | Š',
-      value: `${data.individualCum.at(-1) ?? 0}  |  ${data.companyCum.at(-1) ?? 0}  |  ${data.schoolCum.at(-1) ?? 0}`,
+      value: `${data.individualDaily.reduce((sum, value) => sum + value, 0)}  |  ${data.companyDaily.reduce((sum, value) => sum + value, 0)}  |  ${data.schoolDaily.reduce((sum, value) => sum + value, 0)}`,
       ...(() => {
         const delta = formatDelta(
           sevenDayChange(
-            data.companyCum.map((value, index) => value + data.schoolCum[index] + data.individualCum[index])
+            data.companyDaily.map((value, index) => value + data.schoolDaily[index] + data.individualDaily[index])
           )
         );
         return { delta: delta.text, deltaClassName: delta.className };
@@ -386,17 +396,41 @@ function AdminOrdersPreviewChart({
         {
           type: 'scatter',
           mode: 'lines',
-          name: 'Kupci',
+          stackgroup: 'types',
+          name: 'F',
           x: data.x,
-          y: data.companyCum.map((value, index) => value + data.schoolCum[index] + data.individualCum[index]),
-          line: { color: appearance.seriesPalette[0], width: 1.4 },
+          y: data.individualDaily,
+          line: { color: appearance.seriesPalette[3], width: 1.2 },
+          fill: 'tozeroy',
+          hoverinfo: 'none'
+        },
+        {
+          type: 'scatter',
+          mode: 'lines',
+          stackgroup: 'types',
+          name: 'P',
+          x: data.x,
+          y: data.companyDaily,
+          line: { color: appearance.seriesPalette[0], width: 1.2 },
+          fill: 'tonexty',
+          hoverinfo: 'none'
+        },
+        {
+          type: 'scatter',
+          mode: 'lines',
+          stackgroup: 'types',
+          name: 'Š',
+          x: data.x,
+          y: data.schoolDaily,
+          line: { color: appearance.seriesPalette[2], width: 1.2 },
+          fill: 'tonexty',
           hoverinfo: 'none'
         }
       ],
       tooltipRowsAt: (i) => [
-        { label: 'Šole', value: formatInt(data.schoolCum[i]), color: appearance.seriesPalette[2], numericValue: data.schoolCum[i] ?? null },
-        { label: 'Podjetja', value: formatInt(data.companyCum[i]), color: appearance.seriesPalette[0], numericValue: data.companyCum[i] ?? null },
-        { label: 'Fiz. os.', value: formatInt(data.individualCum[i]), color: appearance.seriesPalette[3], numericValue: data.individualCum[i] ?? null }
+        { label: 'F', value: formatInt(data.individualDaily[i]), color: appearance.seriesPalette[3], numericValue: data.individualDaily[i] ?? null },
+        { label: 'P', value: formatInt(data.companyDaily[i]), color: appearance.seriesPalette[0], numericValue: data.companyDaily[i] ?? null },
+        { label: 'Š', value: formatInt(data.schoolDaily[i]), color: appearance.seriesPalette[2], numericValue: data.schoolDaily[i] ?? null }
       ],
       layout: miniLayout(true)
     }
@@ -427,7 +461,7 @@ function AdminOrdersPreviewChart({
     const tooltipHeight = Math.max(176, 74 + rows.length * 34);
     const viewportLeft = Math.min(
       window.innerWidth - tooltipWidth - 12,
-      Math.max(12, domEvent.clientX + 18)
+      Math.max(12, domEvent.clientX + 20)
     );
     const viewportTop = Math.min(
       window.innerHeight - tooltipHeight - 12,
@@ -459,13 +493,13 @@ function AdminOrdersPreviewChart({
   return (
     <section className="mb-3" aria-label="Orders analytics previews">
       <div className="mb-2 flex min-h-[30px] items-center justify-end gap-3">
-        <div className="inline-flex items-center gap-1 rounded-full border border-[#d8ccfb] bg-[#f8f7fc] p-1 text-[11px] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_6px_18px_rgba(31,41,55,0.08)]">
+        <div className="inline-flex items-center gap-1 rounded-full border border-[#d8ccfb] bg-[#f3efff] p-1 text-[11px] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_6px_18px_rgba(31,41,55,0.08)]">
           {rangeOptions.map((option) => (
             <button
               key={option.key}
               type="button"
               onClick={() => onRangeChange?.(option.key)}
-              className={`rounded-full border border-transparent px-2.5 py-1 transition ${activeRange === option.key ? 'bg-[#efebfb] text-[#5a3fda] shadow-sm' : 'text-slate-700 hover:bg-[#f1eefc]'}`}
+              className={`rounded-full border border-transparent px-2.5 py-1 transition ${activeRange === option.key ? 'bg-white text-[#5a3fda] shadow-sm' : 'text-slate-700 hover:bg-white/70'}`}
             >
               {option.label}
             </button>
@@ -494,11 +528,11 @@ function AdminOrdersPreviewChart({
                       {chart.title}
                     </p>
                     <p className="whitespace-nowrap text-[34px] font-bold leading-none text-[#111827]">
-                      <span>{data.individualCum.at(-1) ?? 0}</span>
+                      <span>{data.individualDaily.reduce((sum, value) => sum + value, 0)}</span>
                       <span className="mx-2 font-thin text-slate-300">|</span>
-                      <span>{data.companyCum.at(-1) ?? 0}</span>
+                      <span>{data.companyDaily.reduce((sum, value) => sum + value, 0)}</span>
                       <span className="mx-2 font-thin text-slate-300">|</span>
-                      <span>{data.schoolCum.at(-1) ?? 0}</span>
+                      <span>{data.schoolDaily.reduce((sum, value) => sum + value, 0)}</span>
                     </p>
                   </div>
                 ) : (
@@ -531,7 +565,6 @@ function AdminOrdersPreviewChart({
                   >
                     <div className="mb-2 flex items-center justify-between">
                       <p className="pr-3 text-[15px] font-semibold leading-none text-[#111827]">{hoverCard.xLabel} 00:00</p>
-                      <span className="rounded-full border border-black/20 bg-[#f8f7fc] px-2 py-0.5 text-[12px] font-semibold text-[#374151]">1/1</span>
                     </div>
                     <div className="mb-2 h-px w-full bg-black/15" />
                     <div className="space-y-2.5">

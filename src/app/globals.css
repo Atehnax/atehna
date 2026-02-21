@@ -124,17 +124,3 @@ body {
 .admin-orders-preview-plot .hoverlayer .hovertext {
   filter: drop-shadow(0 6px 18px rgba(2, 6, 23, 0.35));
 }
-
-
-/* Admin controls background standard */
-.admin-theme :is(button, [role='button']) {
-  background-color: #f8f7fc;
-}
-
-.admin-theme :is(button, [role='button']):hover {
-  background-color: color-mix(in srgb, #f8f7fc 92%, #000 8%);
-}
-
-.admin-theme :is(span, a)[class*='rounded-full'][class*='border'] {
-  background-color: #f8f7fc;
-}

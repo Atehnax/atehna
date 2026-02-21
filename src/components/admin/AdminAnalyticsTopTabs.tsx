@@ -12,7 +12,7 @@ export default function AdminAnalyticsTopTabs() {
       <Link
         href="/admin/analitika"
         className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-          !isWeb ? 'bg-[#f8f7fc] border border-[#5d3ed6] text-[#5d3ed6]' : 'text-[#5d3ed6] hover:bg-[#ede8ff]'
+          !isWeb ? 'bg-[#f8f7fc] border border-[#5d3ed6] text-[#5d3ed6]' : 'text-slate-700 hover:bg-slate-100'
         }`}
       >
         Naročila
@@ -20,7 +20,7 @@ export default function AdminAnalyticsTopTabs() {
       <Link
         href="/admin/analitika/splet"
         className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-          isWeb ? 'bg-[#f8f7fc] border border-[#5d3ed6] text-[#5d3ed6]' : 'text-[#5d3ed6] hover:bg-[#ede8ff]'
+          isWeb ? 'bg-[#f8f7fc] border border-[#5d3ed6] text-[#5d3ed6]' : 'text-slate-700 hover:bg-slate-100'
         }`}
       >
         Splet

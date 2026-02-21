@@ -511,7 +511,7 @@ function AdminOrdersPreviewChart({
               key={option.key}
               type="button"
               onClick={() => onRangeChange?.(option.key)}
-              className={`rounded-full border border-transparent bg-[#f8f7fc] px-2.5 py-1 transition ${activeRange === option.key ? 'bg-[#f8f7fc] text-[#5d3ed6] shadow-sm' : 'text-[#5d3ed6] hover:bg-[#ede8ff]'}`}
+              className={`rounded-full border border-transparent bg-white px-2.5 py-1 transition ${activeRange === option.key ? 'bg-[#f8f7fc] text-[#5d3ed6] shadow-sm' : 'text-slate-700 hover:bg-slate-100'}`}
             >
               {option.label}
             </button>
@@ -536,10 +536,10 @@ function AdminOrdersPreviewChart({
               <div className="relative flex h-full min-w-[88px] flex-1 items-center justify-center pr-2 text-center">
                 {chart.key === 'customer-type-cumulative' ? (
                   <div className="w-full">
-                    <p className="absolute left-0 top-0 whitespace-nowrap text-sm font-semibold tracking-wide text-[#5d3ed6]">
+                    <p className="absolute left-0 top-0 whitespace-nowrap text-sm font-semibold tracking-wide text-slate-700">
                       {chart.title}
                     </p>
-                    <p className="whitespace-nowrap text-[34px] font-bold leading-none text-[#5d3ed6]">
+                    <p className="whitespace-nowrap text-[34px] font-bold leading-none text-slate-900">
                       <span>{data.individualDaily.reduce((sum, value) => sum + value, 0)}</span>
                       <span className="mx-2 font-thin text-slate-300">|</span>
                       <span>{data.companyDaily.reduce((sum, value) => sum + value, 0)}</span>
@@ -549,10 +549,10 @@ function AdminOrdersPreviewChart({
                   </div>
                 ) : (
                   <>
-                    <p className="absolute left-0 top-0 whitespace-nowrap text-sm font-semibold tracking-wide text-[#5d3ed6]">
+                    <p className="absolute left-0 top-0 whitespace-nowrap text-sm font-semibold tracking-wide text-slate-700">
                       {chart.title}
                     </p>
-                    <p className="whitespace-nowrap text-[34px] font-bold leading-none text-[#5d3ed6]">{chart.value}</p>
+                    <p className="whitespace-nowrap text-[34px] font-bold leading-none text-slate-900">{chart.value}</p>
                   </>
                 )}
                 <p className={`absolute bottom-0 left-0 text-[11px] font-medium ${chart.deltaClassName}`}>{chart.delta}</p>

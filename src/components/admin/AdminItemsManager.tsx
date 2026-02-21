@@ -337,7 +337,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             type="button"
             onClick={archiveSelected}
             disabled={selectedIds.length === 0}
-            className="h-8 rounded-xl border border-[#ede8ff] bg-[#f8f7fc] px-3 text-xs font-semibold text-[#5d3ed6] transition hover:bg-[#ede8ff] disabled:pointer-events-none disabled:opacity-45"
+            className="h-8 rounded-xl border border-amber-300 bg-amber-50 px-3 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 disabled:pointer-events-none disabled:opacity-45"
           >
             Arhiviraj
           </button>
@@ -355,13 +355,13 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             const activeClass =
               tab.key === 'active'
                 ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
-                : 'bg-[#f8f7fc] text-[#5d3ed6] ring-1 ring-[#ede8ff]';
+                : 'bg-slate-100 text-slate-600 ring-1 ring-slate-200';
             return (
               <button
                 key={tab.key}
                 type="button"
                 onClick={() => setStatusTab(tab.key)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition ${isActive ? activeClass : 'text-[#5d3ed6] hover:bg-[#ede8ff]'}`}
+                className={`rounded-full px-3 py-1 text-xs font-semibold transition ${isActive ? activeClass : 'text-slate-700 hover:bg-slate-100'}`}
               >
                 {tab.label}
               </button>

@@ -565,7 +565,7 @@ function AdminOrdersPreviewChart({
                     <p className="whitespace-nowrap text-[34px] font-bold leading-none text-slate-700">{chart.value}</p>
                   </>
                 )}
-                <p className={`absolute bottom-0 left-0 text-[11px] font-medium leading-none ${chart.deltaClassName}`}>{chart.delta}</p>
+                <p className={`absolute bottom-[8px] left-0 text-[11px] font-medium leading-none ${chart.deltaClassName}`}>{chart.delta}</p>
               </div>
 
               <div className="relative w-[190px] rounded-md" style={{ backgroundColor: 'transparent' }}>

@@ -25,7 +25,6 @@ export default function AdminCreateDraftOrderButton({ className }: Props) {
       router.push(`/admin/orders/${payload.orderId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Napaka pri ustvarjanju osnutka.');
-    } finally {
       setIsCreating(false);
     }
   };
@@ -36,13 +35,13 @@ export default function AdminCreateDraftOrderButton({ className }: Props) {
         type="button"
         onClick={createDraft}
         disabled={isCreating}
-        aria-label="Dodaj naročilo"
-        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-300 bg-slate-100 px-2.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:text-slate-400"
+        aria-label="Novo naročilo"
+        className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#ede8ff] bg-[#f8f7fc] px-3 text-xs font-semibold text-[#5d3ed6] shadow-sm transition hover:bg-[#ede8ff] focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#5d3ed6] disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-400"
       >
         <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
           <path d="M10 4v12M4 10h12" />
         </svg>
-        {isCreating ? 'Ustvarjam ...' : 'Dodaj naročilo'}
+        {isCreating ? 'Ustvarjam ...' : 'Novo naročilo'}
       </button>
       {error && <p className="text-xs text-rose-600">{error}</p>}
     </div>

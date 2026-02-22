@@ -36,6 +36,8 @@ export async function POST(
   try {
     const body = await request.json();
     const itemsRaw = Array.isArray(body?.items) ? body.items : null;
+    const shippingRaw = normalizeNumber(body?.shipping ?? 0);
+    const shipping = Number.isFinite(shippingRaw) ? Math.max(0, roundAmount(shippingRaw)) : 0;
 
     if (!itemsRaw || itemsRaw.length === 0) {
       return NextResponse.json({ message: 'Naročilo mora vsebovati vsaj eno postavko.' }, { status: 400 });
@@ -89,7 +91,7 @@ export async function POST(
       }, 0)
     );
     const tax = roundAmount(subtotal * TAX_RATE);
-    const total = roundAmount(subtotal + tax);
+    const total = roundAmount(subtotal + tax + shipping);
 
     const pool = await getPool();
     const client = await pool.connect();
@@ -119,10 +121,27 @@ export async function POST(
         );
       }
 
-      await client.query(
-        'UPDATE orders SET subtotal = $1, tax = $2, total = $3 WHERE id = $4',
-        [subtotal, tax, total, orderId]
+      const hasShippingColumnResult = await client.query(
+        `
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'orders' AND column_name = 'shipping'
+        LIMIT 1
+        `
       );
+      const hasShippingColumn = (hasShippingColumnResult.rowCount ?? 0) > 0;
+
+      if (hasShippingColumn) {
+        await client.query(
+          'UPDATE orders SET subtotal = $1, tax = $2, shipping = $3, total = $4 WHERE id = $5',
+          [subtotal, tax, shipping, total, orderId]
+        );
+      } else {
+        await client.query(
+          'UPDATE orders SET subtotal = $1, tax = $2, total = $3 WHERE id = $4',
+          [subtotal, tax, total, orderId]
+        );
+      }
 
       await client.query('COMMIT');
     } catch (error) {
@@ -132,7 +151,7 @@ export async function POST(
       client.release();
     }
 
-    return NextResponse.json({ success: true, totals: { subtotal, tax, total } });
+    return NextResponse.json({ success: true, totals: { subtotal, tax, shipping, total } });
   } catch (error) {
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Napaka na strežniku.' },

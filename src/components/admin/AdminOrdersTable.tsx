@@ -45,7 +45,7 @@ type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'cus
 
 
 const bulkDeleteButtonClass =
-  'h-8 rounded-xl border border-[var(--danger-border-strong)] bg-transparent px-3 text-xs font-semibold text-[var(--danger-700)] transition hover:bg-[var(--danger-bg)] focus-visible:border-[var(--danger-border-strong)] focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:border-[var(--danger-border-strong)] disabled:text-[var(--danger-700)] disabled:opacity-45';
+  'h-8 rounded-xl border border-[var(--danger-border-strong)] bg-transparent px-3 text-sm font-semibold leading-none text-[var(--danger-700)] transition hover:bg-[var(--danger-bg)] focus-visible:border-[var(--danger-border-strong)] focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:border-[var(--danger-border-strong)] disabled:text-[var(--danger-700)] disabled:opacity-45';
 
 const rowDeleteButtonClass =
   'inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--danger-border)] bg-transparent text-sm font-semibold leading-none text-[var(--danger-600)] transition hover:bg-[var(--danger-bg)] disabled:cursor-not-allowed disabled:opacity-45';

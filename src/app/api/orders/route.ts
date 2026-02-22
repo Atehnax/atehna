@@ -141,6 +141,45 @@ export async function POST(request: Request) {
           notes,
           subtotal,
           tax,
+          total,
+          is_draft
+        )
+        select
+          id,
+          '#' || id,
+          $1,
+          $2,
+          $3,
+          $4,
+          $5,
+          $6,
+          $7,
+          $8,
+          $9,
+          $10,
+          $11,
+          false
+        from next_id
+        returning id, order_number, created_at
+      `;
+
+      const insertOrderFallbackQuery = `
+        with next_id as (
+          select nextval('orders_id_seq') as id
+        )
+        insert into orders (
+          id,
+          order_number,
+          customer_type,
+          organization_name,
+          contact_name,
+          email,
+          phone,
+          delivery_address,
+          reference,
+          notes,
+          subtotal,
+          tax,
           total
         )
         select
@@ -161,19 +200,37 @@ export async function POST(request: Request) {
         returning id, order_number, created_at
       `;
 
-      const orderResult = await databaseClient.query(insertOrderQuery, [
-        customerType,
-        toNullableText(organizationName),
-        contactName,
-        email,
-        toNullableText(phone),
-        toNullableText(deliveryAddress),
-        toNullableText(reference),
-        toNullableText(notes),
-        subtotal,
-        tax,
-        total
-      ]);
+      let orderResult;
+      try {
+        orderResult = await databaseClient.query(insertOrderQuery, [
+          customerType,
+          toNullableText(organizationName),
+          contactName,
+          email,
+          toNullableText(phone),
+          toNullableText(deliveryAddress),
+          toNullableText(reference),
+          toNullableText(notes),
+          subtotal,
+          tax,
+          total
+        ]);
+      } catch (error) {
+        if (!isMissingColumnError(error, '42703')) throw error;
+        orderResult = await databaseClient.query(insertOrderFallbackQuery, [
+          customerType,
+          toNullableText(organizationName),
+          contactName,
+          email,
+          toNullableText(phone),
+          toNullableText(deliveryAddress),
+          toNullableText(reference),
+          toNullableText(notes),
+          subtotal,
+          tax,
+          total
+        ]);
+      }
 
       const orderRow = orderResult.rows[0] as
         | { id: number; order_number: string; created_at: string }

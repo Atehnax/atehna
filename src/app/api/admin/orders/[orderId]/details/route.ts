@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
+import { revalidateAdminOrderPaths } from '@/lib/server/revalidateAdminOrders';
 import { getPool } from '@/lib/server/db';
+
 
 export async function POST(
   request: Request,
@@ -21,7 +23,8 @@ export async function POST(
       deliveryAddress,
       reference,
       notes,
-      orderDate
+      orderDate,
+      orderNumber
     } = body ?? {};
 
     if (!contactName || !email || !customerType) {
@@ -47,9 +50,10 @@ export async function POST(
             delivery_address = $6,
             reference = $7,
             notes = $8,
-            created_at = coalesce($9::timestamptz, created_at),
+            order_number = coalesce(nullif($9::text, ''), order_number),
+            created_at = coalesce($10::timestamptz, created_at),
             is_draft = false
-        WHERE id = $10
+        WHERE id = $11
         `,
         [
           customerType,
@@ -60,6 +64,7 @@ export async function POST(
           deliveryAddress || null,
           reference || null,
           notes || null,
+          typeof orderNumber === 'string' ? orderNumber.trim() : null,
           normalizedOrderDate,
           orderId
         ]
@@ -80,8 +85,9 @@ export async function POST(
             delivery_address = $6,
             reference = $7,
             notes = $8,
-            created_at = coalesce($9::timestamptz, created_at)
-        WHERE id = $10
+            order_number = coalesce(nullif($9::text, ''), order_number),
+            created_at = coalesce($10::timestamptz, created_at)
+        WHERE id = $11
         `,
         [
           customerType,
@@ -92,12 +98,14 @@ export async function POST(
           deliveryAddress || null,
           reference || null,
           notes || null,
+          typeof orderNumber === 'string' ? orderNumber.trim() : null,
           normalizedOrderDate,
           orderId
         ]
       );
     }
 
+    revalidateAdminOrderPaths(orderId);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(

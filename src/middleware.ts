@@ -11,6 +11,9 @@ function unauthorized() {
 }
 
 export function middleware(request: NextRequest) {
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    console.info(`[middleware] ${request.method} ${request.nextUrl.pathname}`);
+  }
   const username = process.env.ADMIN_USERNAME;
   const password = process.env.ADMIN_PASSWORD;
 

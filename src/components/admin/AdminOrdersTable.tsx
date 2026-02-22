@@ -1,15 +1,18 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
 import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
 import AdminOrderPaymentSelect from '@/components/admin/AdminOrderPaymentSelect';
+import AdminOrdersPreviewChart from '@/components/admin/AdminOrdersPreviewChart';
 import StatusChip from '@/components/admin/StatusChip';
 import PaymentChip from '@/components/admin/PaymentChip';
 import { getCustomerTypeLabel } from '@/lib/customerType';
 import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 import { formatSlDate, formatSlDateFromDateInput, formatSlDateTime } from '@/lib/format/dateTime';
 import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, isPaymentStatus } from '@/lib/paymentStatus';
+import type { AnalyticsGlobalAppearance } from '@/lib/server/analyticsCharts';
 
 import {
   type Attachment,
@@ -37,42 +40,15 @@ import {
   toDisplayOrderNumber
 } from '@/components/admin/adminOrdersTableUtils';
 
-type DailyPoint = {
-  day: string;
-  revenue: number;
-  orders: number;
-  averageOrderValue: number;
-  paidShare: number;
-};
 
-type SparkPoint = {
-  x: number;
-  y: number;
-  value: number;
-  index: number;
-};
+type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
 
-function buildSparklinePoints(values: number[], width = 120, height = 28): SparkPoint[] {
-  if (values.length === 0) return [];
 
-  const maxValue = Math.max(...values, 1);
-  const step = values.length === 1 ? width : width / (values.length - 1);
+const bulkDeleteButtonClass =
+  'h-8 rounded-xl border border-[var(--danger-border-strong)] bg-transparent px-3 text-xs font-semibold text-[var(--danger-700)] transition hover:bg-[var(--danger-bg)] focus-visible:border-[var(--danger-border-strong)] focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:border-[var(--danger-border-strong)] disabled:text-[var(--danger-700)] disabled:opacity-45';
 
-  return values.map((value, index) => {
-    const normalized = maxValue === 0 ? 0 : value / maxValue;
-    const x = index * step;
-    const y = height - normalized * height;
-    return { x, y, value, index };
-  });
-}
-
-const pointsToPolyline = (points: SparkPoint[]) => points.map((point) => `${point.x},${point.y}`).join(' ');
-
-const pointsToArea = (points: SparkPoint[], width = 120, height = 28) => {
-  if (points.length === 0) return `M0,${height} L${width},${height}`;
-  const linePath = points.map((point) => `L${point.x},${point.y}`).join(' ');
-  return `M0,${height} ${linePath} L${width},${height} Z`;
-};
+const rowDeleteButtonClass =
+  'inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--danger-border)] bg-transparent text-sm font-semibold leading-none text-[var(--danger-600)] transition hover:bg-[var(--danger-bg)] disabled:cursor-not-allowed disabled:opacity-45';
 
 export default function AdminOrdersTable({
   orders,
@@ -81,7 +57,8 @@ export default function AdminOrdersTable({
   initialFrom = '',
   initialTo = '',
   initialQuery = '',
-  topAction
+  topAction,
+  analyticsAppearance
 }: {
   orders: OrderRow[];
   documents: PdfDoc[];
@@ -90,23 +67,28 @@ export default function AdminOrdersTable({
   initialTo?: string;
   initialQuery?: string;
   topAction?: ReactNode;
+  analyticsAppearance?: AnalyticsGlobalAppearance;
 }) {
+  const router = useRouter();
   const [selected, setSelected] = useState<number[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deletingRowId, setDeletingRowId] = useState<number | null>(null);
   const [isBulkUpdatingStatus, setIsBulkUpdatingStatus] = useState(false);
 
   const [statusFilter, setStatusFilter] = useState<StatusTab>('all');
   const [query, setQuery] = useState(initialQuery);
 
-  const [sortKey, setSortKey] = useState<SortKey>('created_at');
+  const [sortKey, setSortKey] = useState<SortKey>('order_number');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   const [fromDate, setFromDate] = useState(initialFrom);
   const [toDate, setToDate] = useState(initialTo);
+  const [rangePreset, setRangePreset] = useState<OrdersRangePreset>('1m');
+  const debouncedQuery = useDebouncedValue(query, 200);
+  const debouncedFromDate = useDebouncedValue(fromDate, 200);
+  const debouncedToDate = useDebouncedValue(toDate, 200);
   const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
 
-  const [isDocumentSearchEnabled, setIsDocumentSearchEnabled] = useState(false);
-  const [isDocumentFilterApplied, setIsDocumentFilterApplied] = useState(false);
   const [documentType, setDocumentType] = useState<DocumentType>('all');
   const [message, setMessage] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -115,10 +97,10 @@ export default function AdminOrdersTable({
   const datePopoverRef = useRef<HTMLDivElement>(null);
   const statusHeaderMenuRef = useRef<HTMLDivElement>(null);
   const paymentHeaderMenuRef = useRef<HTMLDivElement>(null);
+  const hasAutoResetFiltersRef = useRef(false);
 
   const [isStatusHeaderMenuOpen, setIsStatusHeaderMenuOpen] = useState(false);
   const [isPaymentHeaderMenuOpen, setIsPaymentHeaderMenuOpen] = useState(false);
-  const [hoveredKpi, setHoveredKpi] = useState<{ label: string; index: number } | null>(null);
 
   useEffect(() => {
     const closeOnOutsideClick = (mouseEvent: MouseEvent) => {
@@ -167,21 +149,95 @@ export default function AdminOrdersTable({
     };
   }, [isPaymentHeaderMenuOpen, isStatusHeaderMenuOpen]);
 
+  const latestOrderDate = useMemo(() => {
+    const timestamps = orders
+      .map((order) => new Date(order.created_at).getTime())
+      .filter((value) => Number.isFinite(value));
+    if (timestamps.length === 0) {
+      const fallback = new Date();
+      fallback.setHours(0, 0, 0, 0);
+      return fallback;
+    }
+    const latest = new Date(Math.max(...timestamps));
+    latest.setHours(0, 0, 0, 0);
+    return latest;
+  }, [orders]);
+
+  const earliestOrderDate = useMemo(() => {
+    const timestamps = orders
+      .map((order) => new Date(order.created_at).getTime())
+      .filter((value) => Number.isFinite(value));
+    if (timestamps.length === 0) {
+      const fallback = new Date(latestOrderDate);
+      fallback.setHours(0, 0, 0, 0);
+      return fallback;
+    }
+    const earliest = new Date(Math.min(...timestamps));
+    earliest.setHours(0, 0, 0, 0);
+    return earliest;
+  }, [latestOrderDate, orders]);
+
+  const toSafeDateRange = (from: Date, to: Date) => {
+    const start = Number.isFinite(from.getTime()) ? from : new Date(to);
+    const end = Number.isFinite(to.getTime()) ? to : new Date(start);
+    if (start.getTime() > end.getTime()) {
+      return { from: new Date(end), to: new Date(end) };
+    }
+    return { from: start, to: end };
+  };
+
+  const applyDateRange = (from: Date, to: Date, preset: OrdersRangePreset) => {
+    const safe = toSafeDateRange(from, to);
+    setFromDate(toDateInputValue(safe.from));
+    setToDate(toDateInputValue(safe.to));
+    setRangePreset(preset);
+  };
+
+
+  const applyAnalyticsRangePreset = (range: Exclude<OrdersRangePreset, 'custom'>) => {
+    const anchorDate = new Date(latestOrderDate);
+
+    if (range === 'ytd') {
+      const ytdStart = new Date(anchorDate.getFullYear(), 0, 1);
+      applyDateRange(ytdStart, anchorDate, 'ytd');
+      return;
+    }
+
+    if (range === 'max') {
+      applyDateRange(earliestOrderDate, anchorDate, 'max');
+      return;
+    }
+
+    const dayCountByRange: Record<Exclude<OrdersRangePreset, 'custom' | 'ytd' | 'max'>, number> = {
+      '7d': 6,
+      '1m': 29,
+      '3m': 89,
+      '6m': 179,
+      '1y': 364
+    };
+
+    const fromDateValue = shiftDateByDays(anchorDate, -dayCountByRange[range]);
+    applyDateRange(fromDateValue, anchorDate, range);
+  };
+
+  useEffect(() => {
+    if (!initialFrom && !initialTo) {
+      applyAnalyticsRangePreset('1m');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const applyQuickDateRange = (range: 'today' | 'yesterday' | '7d' | '30d' | '3m' | '6m' | '1y') => {
-    const todayDate = new Date();
-    const todayAsInput = toDateInputValue(todayDate);
+    const anchorDate = new Date(latestOrderDate);
 
     if (range === 'today') {
-      setFromDate(todayAsInput);
-      setToDate(todayAsInput);
+      applyDateRange(anchorDate, anchorDate, 'custom');
       return;
     }
 
     if (range === 'yesterday') {
-      const yesterdayDate = shiftDateByDays(todayDate, -1);
-      const yesterdayAsInput = toDateInputValue(yesterdayDate);
-      setFromDate(yesterdayAsInput);
-      setToDate(yesterdayAsInput);
+      const yesterdayDate = shiftDateByDays(anchorDate, -1);
+      applyDateRange(yesterdayDate, yesterdayDate, 'custom');
       return;
     }
 
@@ -193,9 +249,8 @@ export default function AdminOrdersTable({
       '1y': 364
     };
 
-    const fromDateValue = shiftDateByDays(todayDate, -dayCountByRange[range]);
-    setFromDate(toDateInputValue(fromDateValue));
-    setToDate(todayAsInput);
+    const fromDateValue = shiftDateByDays(anchorDate, -dayCountByRange[range]);
+    applyDateRange(fromDateValue, anchorDate, 'custom');
   };
 
   const documentsByOrder = useMemo(() => {
@@ -273,7 +328,7 @@ export default function AdminOrdersTable({
   }, [documents, attachments]);
 
   const filteredAndSortedOrders = useMemo(() => {
-    const normalizedQuery = normalizeForSearch(query);
+    const normalizedQuery = normalizeForSearch(debouncedQuery);
 
     const filteredOrders = orders.filter((order) => {
       const mergedStatusValue = getMergedOrderStatusValue(order.status);
@@ -284,8 +339,8 @@ export default function AdminOrdersTable({
 
       const orderTimestamp = new Date(order.created_at).getTime();
 
-      if (fromDate) {
-        const fromTimestamp = new Date(`${fromDate}T00:00:00`).getTime();
+      if (debouncedFromDate) {
+        const fromTimestamp = new Date(`${debouncedFromDate}T00:00:00`).getTime();
         if (
           !Number.isNaN(fromTimestamp) &&
           !Number.isNaN(orderTimestamp) &&
@@ -295,8 +350,8 @@ export default function AdminOrdersTable({
         }
       }
 
-      if (toDate) {
-        const toTimestamp = new Date(`${toDate}T23:59:59.999`).getTime();
+      if (debouncedToDate) {
+        const toTimestamp = new Date(`${debouncedToDate}T23:59:59.999`).getTime();
         if (
           !Number.isNaN(toTimestamp) &&
           !Number.isNaN(orderTimestamp) &&
@@ -334,30 +389,40 @@ export default function AdminOrdersTable({
 
       const documentsMatch = !normalizedQuery || documentsSearchBlob.includes(normalizedQuery);
 
-      if (!isDocumentSearchEnabled) {
-        return orderMatches;
-      }
+      const hasSelectedDocumentType = documentType !== 'all';
 
-      if (isDocumentFilterApplied) {
+      if (hasSelectedDocumentType) {
         if (documentsMatchingSelectedType.length === 0) return false;
-        if (normalizedQuery && !documentsMatch) return false;
-        return true;
+        if (!normalizedQuery) return true;
+        return documentsMatch || orderMatches;
       }
 
-      if (!normalizedQuery) return true;
-      return orderMatches || documentsMatch;
+      return orderMatches;
     });
 
     const sortedOrders = [...filteredOrders].sort((leftOrder, rightOrder) => {
       const sortMultiplier = sortDirection === 'asc' ? 1 : -1;
-      const leftOrderNumber = getNumericOrderNumber(leftOrder.order_number);
-      const rightOrderNumber = getNumericOrderNumber(rightOrder.order_number);
+      const leftOrderNumberNumeric = getNumericOrderNumber(leftOrder.order_number);
+      const rightOrderNumberNumeric = getNumericOrderNumber(rightOrder.order_number);
 
       let leftValue: string | number;
       let rightValue: string | number;
 
       switch (sortKey) {
         case 'order_number':
+          if (
+            Number.isFinite(leftOrderNumberNumeric) &&
+            Number.isFinite(rightOrderNumberNumeric) &&
+            leftOrderNumberNumeric !== rightOrderNumberNumeric
+          ) {
+            return (leftOrderNumberNumeric - rightOrderNumberNumeric) * sortMultiplier;
+          }
+
+          if (leftOrderNumberNumeric !== rightOrderNumberNumeric) {
+            if (!Number.isFinite(leftOrderNumberNumeric)) return 1;
+            if (!Number.isFinite(rightOrderNumberNumeric)) return -1;
+          }
+
           leftValue = leftOrder.order_number;
           rightValue = rightOrder.order_number;
           break;
@@ -402,7 +467,7 @@ export default function AdminOrdersTable({
         if (primaryResult !== 0) return primaryResult;
 
         if (sortKey === 'created_at') {
-          return rightOrderNumber - leftOrderNumber;
+          return rightOrderNumberNumeric - leftOrderNumberNumeric;
         }
 
         return 0;
@@ -412,21 +477,19 @@ export default function AdminOrdersTable({
       if (textResult !== 0) return textResult;
 
       if (sortKey === 'created_at') {
-        return rightOrderNumber - leftOrderNumber;
+        return rightOrderNumberNumeric - leftOrderNumberNumeric;
       }
 
-      return 0;
+      return leftOrder.id - rightOrder.id;
     });
 
     return sortedOrders;
   }, [
     orders,
     statusFilter,
-    query,
-    fromDate,
-    toDate,
-    isDocumentSearchEnabled,
-    isDocumentFilterApplied,
+    debouncedQuery,
+    debouncedFromDate,
+    debouncedToDate,
     documentType,
     latestDocumentsByOrder,
     sortKey,
@@ -466,6 +529,9 @@ export default function AdminOrdersTable({
 
   useEffect(() => {
     const validIds = new Set(orders.map((order) => order.id));
+    setSelected((previousSelected) =>
+      previousSelected.filter((selectedOrderId) => validIds.has(selectedOrderId))
+    );
     setRowStatusOverrides((previousOverrides) =>
       Object.fromEntries(
         Object.entries(previousOverrides).filter(([orderId]) => validIds.has(Number(orderId)))
@@ -511,16 +577,42 @@ export default function AdminOrdersTable({
 
     setIsDeleting(true);
     try {
-      await Promise.all(
+      const deleteResults = await Promise.allSettled(
         selected.map((orderId) => fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' }))
       );
-      setSelected([]);
-      window.location.reload();
+
+      const failedDeletes = deleteResults.filter(
+        (result) => result.status === 'fulfilled' && !result.value.ok
+      ).length;
+
+      if (failedDeletes > 0) {
+        setMessage(`Brisanje ni uspelo za ${failedDeletes} naročil.`);
+      }
+
+      router.refresh();
     } finally {
       setIsDeleting(false);
     }
   };
 
+
+  const handleDeleteRow = async (orderId: number) => {
+    const confirmed = window.confirm('Ali ste prepričani, da želite izbrisati to naročilo?');
+    if (!confirmed) return;
+
+    setDeletingRowId(orderId);
+    try {
+      const response = await fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' });
+      if (!response.ok) {
+        setMessage('Brisanje naročila ni uspelo. Poskusite znova.');
+        return;
+      }
+
+      router.refresh();
+    } finally {
+      setDeletingRowId(null);
+    }
+  };
 
   const handleBulkStatusUpdate = async (nextStatus: string) => {
     if (selected.length === 0) return;
@@ -587,7 +679,12 @@ export default function AdminOrdersTable({
     }
 
     setSortKey(nextSortKey);
-    setSortDirection(nextSortKey === 'created_at' || nextSortKey === 'total' ? 'desc' : 'asc');
+    if (nextSortKey === 'order_number' || nextSortKey === 'created_at' || nextSortKey === 'total') {
+      setSortDirection('desc');
+      return;
+    }
+
+    setSortDirection('asc');
   };
 
   const sortIndicator = (nextSortKey: SortKey) => {
@@ -617,70 +714,34 @@ export default function AdminOrdersTable({
 
 
 
-  const dateRangeFilteredOrders = useMemo(() => {
-    const fromTimestamp = fromDate ? new Date(`${fromDate}T00:00:00`).getTime() : null;
-    const toTimestamp = toDate ? new Date(`${toDate}T23:59:59`).getTime() : null;
+  const resetAllFilters = () => {
+    setStatusFilter('all');
+    setQuery('');
+    setFromDate('');
+    setToDate('');
+    setDocumentType('all');
+    setMessage(null);
+  };
 
-    return orders.filter((order) => {
-      const createdTimestamp = new Date(order.created_at).getTime();
-      if (Number.isNaN(createdTimestamp)) return false;
-      if (fromTimestamp !== null && createdTimestamp < fromTimestamp) return false;
-      if (toTimestamp !== null && createdTimestamp > toTimestamp) return false;
-      return true;
-    });
-  }, [orders, fromDate, toDate]);
+  const hasActiveFilters =
+    statusFilter !== 'all' ||
+    query.trim().length > 0 ||
+    fromDate.length > 0 ||
+    toDate.length > 0 ||
+    documentType !== 'all';
 
-  const kpiMetrics = useMemo(() => {
-    const totalRevenue = dateRangeFilteredOrders.reduce((sum, order) => sum + toAmount(order.total), 0);
-    const totalOrders = dateRangeFilteredOrders.length;
-    const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-    const paidOrdersCount = dateRangeFilteredOrders.filter((order) => order.payment_status === 'paid').length;
-    const paidShare = totalOrders > 0 ? (paidOrdersCount / totalOrders) * 100 : 0;
+  useEffect(() => {
+    if (hasAutoResetFiltersRef.current) return;
+    if (orders.length === 0) return;
+    if (!hasActiveFilters) return;
+    if (filteredAndSortedOrders.length > 0) return;
 
-    return {
-      totalRevenue,
-      totalOrders,
-      averageOrderValue,
-      paidShare
-    };
-  }, [dateRangeFilteredOrders]);
-
-  const dailyKpiSeries = useMemo<DailyPoint[]>(() => {
-    const perDay = new Map<string, { revenue: number; orders: number; paid: number }>();
-
-    dateRangeFilteredOrders.forEach((order) => {
-      const day = order.created_at.slice(0, 10);
-      const row = perDay.get(day) ?? { revenue: 0, orders: 0, paid: 0 };
-      row.revenue += toAmount(order.total);
-      row.orders += 1;
-      if (order.payment_status === 'paid') row.paid += 1;
-      perDay.set(day, row);
-    });
-
-    return Array.from(perDay.entries())
-      .map(([day, row]) => ({
-        day,
-        revenue: row.revenue,
-        orders: row.orders,
-        averageOrderValue: row.orders > 0 ? row.revenue / row.orders : 0,
-        paidShare: row.orders > 0 ? (row.paid / row.orders) * 100 : 0
-      }))
-      .sort((left, right) => left.day.localeCompare(right.day));
-  }, [dateRangeFilteredOrders]);
-
-  const analyticsHref = useMemo(() => {
-    const params = new URLSearchParams();
-    if (fromDate) params.set('from', fromDate);
-    if (toDate) params.set('to', toDate);
-    return `/admin/analitika/narocila${params.toString() ? `?${params.toString()}` : ''}`;
-  }, [fromDate, toDate]);
-
+    hasAutoResetFiltersRef.current = true;
+    resetAllFilters();
+  }, [orders.length, hasActiveFilters, filteredAndSortedOrders.length]);
 
   const handleResetDocumentFilter = () => {
     setDocumentType('all');
-    if (isDocumentSearchEnabled) {
-      setIsDocumentFilterApplied(true);
-    }
     setMessage(null);
   };
 
@@ -701,15 +762,17 @@ export default function AdminOrdersTable({
   };
 
   const handleDownloadAllDocuments = async () => {
-    if (!isDocumentSearchEnabled) return;
-
     setIsDownloading(true);
     setMessage(null);
 
     try {
       const filesToDownload: Array<{ url: string; filename: string }> = [];
 
-      filteredAndSortedOrders.forEach((order) => {
+      const downloadSourceOrders = selected.length > 0
+        ? filteredAndSortedOrders.filter((order) => selected.includes(order.id))
+        : filteredAndSortedOrders;
+
+      downloadSourceOrders.forEach((order) => {
         const latestDocumentsForOrder = latestDocumentsByOrder.get(order.id) ?? [];
         const documentsBySelectedType =
           documentType === 'all'
@@ -741,107 +804,29 @@ export default function AdminOrdersTable({
 
   return (
     <div className="w-full">
-      <div className="mx-auto w-[72vw] min-w-[1180px] max-w-[1520px]">
-      <div className="mb-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-        {[
-          {
-            label: 'Skupni prihodki',
-            value: formatCurrency(kpiMetrics.totalRevenue),
-            points: buildSparklinePoints(dailyKpiSeries.map((item) => item.revenue)),
-            stroke: '#0f766e'
-          },
-          {
-            label: 'Število naročil',
-            value: String(kpiMetrics.totalOrders),
-            points: buildSparklinePoints(dailyKpiSeries.map((item) => item.orders)),
-            stroke: '#475569'
-          },
-          {
-            label: 'Povprečna vrednost naročila',
-            value: formatCurrency(kpiMetrics.averageOrderValue),
-            points: buildSparklinePoints(dailyKpiSeries.map((item) => item.averageOrderValue)),
-            stroke: '#334155'
-          },
-          {
-            label: 'Delež plačanih naročil',
-            value: `${kpiMetrics.paidShare.toFixed(1).replace('.', ',')} %`,
-            points: buildSparklinePoints(dailyKpiSeries.map((item) => item.paidShare)),
-            stroke: '#155e75'
-          }
-        ].map((kpi) => (
-          <button
-            key={kpi.label}
-            type="button"
-            onClick={() => {
-              window.location.href = analyticsHref;
-            }}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-left shadow-sm transition hover:border-teal-200 hover:bg-white"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{kpi.label}</p>
-                <p className="mt-1 text-lg font-semibold text-slate-900">{kpi.value}</p>
-              </div>
-              <div className="relative w-[46%]">
-              <svg viewBox="0 0 120 30" className="h-8 w-full rounded px-1 py-0.5">
-                <path d={pointsToArea(kpi.points)} fill={kpi.stroke} opacity="0.12" />
-                <polyline fill="none" stroke={kpi.stroke} strokeWidth="1.6" points={pointsToPolyline(kpi.points)} />
-                {hoveredKpi?.label === kpi.label ? (
-                  <line
-                    x1={kpi.points[hoveredKpi.index]?.x ?? 0}
-                    x2={kpi.points[hoveredKpi.index]?.x ?? 0}
-                    y1="0"
-                    y2="30"
-                    stroke={kpi.stroke}
-                    strokeWidth="1"
-                    opacity="0.3"
-                  />
-                ) : null}
-                {kpi.points.map((point) => (
-                  <circle
-                    key={`${kpi.label}-${point.index}`}
-                    cx={point.x}
-                    cy={point.y}
-                    r="2.1"
-                    fill={kpi.stroke}
-                    opacity={hoveredKpi?.label === kpi.label && hoveredKpi.index === point.index ? 1 : 0.35}
-                    onMouseEnter={() => setHoveredKpi({ label: kpi.label, index: point.index })}
-                    onMouseLeave={() => setHoveredKpi(null)}
-                  />
-                ))}
-                {kpi.points.length > 0 ? (
-                  <circle
-                    cx={kpi.points[kpi.points.length - 1]?.x}
-                    cy={kpi.points[kpi.points.length - 1]?.y}
-                    r="2.7"
-                    fill={kpi.stroke}
-                  />
-                ) : null}
-              </svg>
-              {hoveredKpi?.label === kpi.label && dailyKpiSeries[hoveredKpi.index] ? (
-                <div className="pointer-events-none absolute -top-7 left-0 rounded bg-slate-900 px-1.5 py-0.5 text-[9px] text-white">
-                  {dailyKpiSeries[hoveredKpi.index]?.day}: {kpi.label === 'Skupni prihodki' || kpi.label === 'Povprečna vrednost naročila' ? formatCurrency(kpi.points[hoveredKpi.index]?.value ?? 0) : kpi.label === 'Delež plačanih naročil' ? `${(kpi.points[hoveredKpi.index]?.value ?? 0).toFixed(1).replace('.', ',')} %` : Math.round(kpi.points[hoveredKpi.index]?.value ?? 0)}
-                </div>
-              ) : null}
-              </div>
-            </div>
-          </button>
-        ))}
-      </div>
-      <div className="mb-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="mx-auto w-full max-w-[1600px]">
+      <AdminOrdersPreviewChart
+        orders={orders}
+        appearance={analyticsAppearance}
+        fromDate={debouncedFromDate}
+        toDate={debouncedToDate}
+        activeRange={rangePreset}
+        onRangeChange={applyAnalyticsRangePreset}
+      />
+      <div className="overflow-hidden rounded-2xl border shadow-sm" style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)', borderColor: analyticsAppearance?.gridColor ?? '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}>
+        <div className="p-3">
         <div className="flex flex-wrap items-end gap-2">
           <div className="relative min-w-[170px]" ref={datePopoverRef}>
             <button
               type="button"
               onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-              className="h-11 min-w-[220px] rounded-xl border border-slate-300 bg-white px-3 text-left text-xs text-slate-700 hover:border-slate-400"
+              className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 py-0 text-left text-xs text-slate-700 hover:border-slate-400 focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
             >
-              <span className="pointer-events-none absolute left-3 top-1.5 bg-white px-1 text-[10px] text-slate-600">Datum</span>
-              <span className="mt-3 inline-flex w-full items-center gap-1.5 leading-none"> 
+              <span className="inline-flex h-full w-full items-center gap-1.5 leading-none"> 
                 <svg
                   aria-hidden="true"
                   viewBox="0 0 24 24"
-                  className="h-3.5 w-3.5 text-slate-700"
+                  className="h-3.5 w-3.5 text-slate-600"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="1.8"
@@ -915,8 +900,8 @@ export default function AdminOrdersTable({
                         type="date"
                         lang="sl-SI"
                         value={fromDate}
-                        onChange={(event) => setFromDate(event.target.value)}
-                        className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs"
+                        onChange={(event) => { setFromDate(event.target.value); setRangePreset('custom'); }}
+                        className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs outline-none focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
                       />
                     </div>
 
@@ -926,8 +911,8 @@ export default function AdminOrdersTable({
                         type="date"
                         lang="sl-SI"
                         value={toDate}
-                        onChange={(event) => setToDate(event.target.value)}
-                        className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs"
+                        onChange={(event) => { setToDate(event.target.value); setRangePreset('custom'); }}
+                        className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs outline-none focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
                       />
                     </div>
 
@@ -948,114 +933,88 @@ export default function AdminOrdersTable({
             )}
           </div>
 
-          <div className="group relative min-w-[220px] flex-1" data-filled={query.trim().length > 0 ? 'true' : 'false'}>
+          <div className="min-w-[220px] flex-1">
             <input
               type="text"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Naročilo, naročnik, naslov, tip, status, plačilo..."
-              className="h-10 w-full rounded-xl border border-slate-300 px-3 pb-1 pt-4 text-xs"
+              placeholder="Poišči naročilo, naročnika, naslov, tip, status, plačilo..."
+              className="h-8 w-full rounded-xl border border-slate-300 px-3 text-xs focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
             />
-            <label className="pointer-events-none absolute left-3 top-1.5 bg-white px-1 text-[10px] text-slate-600">Iskanje</label>
           </div>
 
-          <div>
-            <label className="mb-1 block select-none text-xs font-semibold uppercase text-transparent">
-              Dokumenti
-            </label>
-            <div className="flex h-8 items-center gap-2">
-              <input
-                id="search-documents"
-                type="checkbox"
-                checked={isDocumentSearchEnabled}
+          <div className="ml-auto inline-flex h-8 items-center overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm focus-within:border-[#5d3ed6]">
+            <div className="relative">
+              <select
+                value={documentType}
                 onChange={(event) => {
-                  const checked = event.target.checked;
-                  setIsDocumentSearchEnabled(checked);
-                  setIsDocumentFilterApplied(checked);
-                  if (!checked) {
-                    setMessage(null);
-                  }
-                }}
-                className="h-4 w-4 rounded border-slate-300"
-              />
-              <label htmlFor="search-documents" className="text-xs text-slate-700">
-                Išči dokumente
-              </label>
-            </div>
-          </div>
-
-          <div className={`relative min-w-[180px] ${!isDocumentSearchEnabled ? 'opacity-60' : ''}`}>
-            <select
-              value={documentType}
-              onChange={(event) => {
-                setDocumentType(event.target.value as DocumentType);
-                if (isDocumentSearchEnabled) {
-                  setIsDocumentFilterApplied(true);
+                  setDocumentType(event.target.value as DocumentType);
                   setMessage(null);
-                }
-              }}
-              disabled={!isDocumentSearchEnabled}
-              className="h-10 w-full rounded-xl border border-slate-300 px-2.5 pb-1 pt-4 text-xs disabled:bg-slate-100 disabled:text-slate-400"
+                }}
+                className="h-8 min-w-[180px] appearance-none border-0 bg-transparent px-3 pr-7 text-xs font-semibold text-slate-700 outline-none focus:border-[#5d3ed6] focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:ring-0"
+              >
+                {documentTypeOptions.map((documentTypeOption) => (
+                  <option key={documentTypeOption.value} value={documentTypeOption.value}>
+                    {documentTypeOption.label}
+                  </option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-500">▾</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleResetDocumentFilter}
+              disabled={documentType === 'all'}
+              className="h-8 border-l border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-[#ede8ff] focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
             >
-              {documentTypeOptions.map((documentTypeOption) => (
-                <option key={documentTypeOption.value} value={documentTypeOption.value}>
-                  {documentTypeOption.label}
-                </option>
-              ))}
-            </select>
-            <label className={`pointer-events-none absolute left-2.5 top-1.5 px-1 text-[10px] ${isDocumentSearchEnabled ? 'bg-white text-slate-600' : 'bg-slate-100 text-slate-400'}`}>
-              Vrsta dokumenta
-            </label>
+              Ponastavi
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadAllDocuments}
+              disabled={isDownloading}
+              className="h-8 border-l border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-[#ede8ff] focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
+            >
+              {isDownloading ? 'Prenos...' : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
+            </button>
           </div>
 
-
           <button
             type="button"
-            onClick={handleDownloadAllDocuments}
-            disabled={!isDocumentSearchEnabled || isDownloading}
-            className="h-8 rounded-full border border-slate-300 px-3 text-xs font-semibold text-slate-700 transition hover:border-brand-300 hover:text-brand-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
+            onClick={handleDelete}
+            disabled={selected.length === 0 || isDeleting}
+            className={bulkDeleteButtonClass}
           >
-            {isDownloading ? 'Prenos...' : 'Prenesi vse'}
+            {isDeleting ? 'Brisanje...' : 'Izbriši'}
           </button>
 
-          <button
-            type="button"
-            onClick={handleResetDocumentFilter}
-            disabled={documentType === 'all'}
-            className="h-8 rounded-full px-3 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:ring-slate-100 disabled:hover:bg-transparent"
-          >
-            Ponastavi
-          </button>
-
-          {topAction ? <div className="ml-auto flex h-8 items-center">{topAction}</div> : null}
+          {topAction ? <div className="flex h-8 items-center">{topAction}</div> : null}
         </div>
 
         {message && <p className="mt-2 text-xs text-slate-600">{message}</p>}
+        </div>
+
+      <div className="flex flex-wrap items-center gap-2 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
+        <div className="inline-flex h-8 items-center gap-1 rounded-full border border-slate-300 bg-white px-1">
+          {statusTabs.map((tab) => {
+            const isActive = statusFilter === tab.value;
+            return (
+              <button
+                key={tab.value}
+                type="button"
+                onClick={() => setStatusFilter(tab.value)}
+                className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:border focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 ${isActive ? 'border border-[#5d3ed6] bg-[#f8f7fc] text-[#5d3ed6]' : 'text-slate-700 hover:bg-slate-100'}`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        {statusTabs.map((tab) => {
-          const isActive = statusFilter === tab.value;
-          return (
-            <button
-              key={tab.value}
-              type="button"
-              onClick={() => setStatusFilter(tab.value)}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                isActive
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
 
-
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-[1180px] w-full table-fixed text-left text-[13px]">
+      <div className="overflow-x-auto" style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)' }}>
+        <table className="min-w-[1180px] w-full table-auto text-left text-[13px]">
           <colgroup>
             <col style={{ width: columnWidths.selectAndDelete }} />
             <col style={{ width: columnWidths.order }} />
@@ -1070,29 +1029,19 @@ export default function AdminOrdersTable({
             <col style={{ width: columnWidths.edit }} />
           </colgroup>
 
-          <thead className="bg-slate-50 text-[12px] uppercase text-slate-500">
+          <thead className="text-[12px] uppercase text-slate-600">
             <tr>
-              <th className="px-2 py-2">
-                <div className="flex flex-col items-center gap-1">
-                  <input
-                    type="checkbox"
-                    ref={selectAllRef}
-                    checked={allSelected}
-                    onChange={toggleAll}
-                    aria-label="Izberi vse"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleDelete}
-                    disabled={selected.length === 0 || isDeleting}
-                    className="text-[10px] font-semibold text-rose-600 disabled:text-slate-300"
-                  >
-                    {isDeleting ? 'Brisanje...' : 'Izbriši'}
-                  </button>
-                </div>
+              <th className="h-11 px-2 py-2 text-center">
+                <input
+                  type="checkbox"
+                  ref={selectAllRef}
+                  checked={allSelected}
+                  onChange={toggleAll}
+                  aria-label="Izberi vse"
+                />
               </th>
 
-              <th className="px-2 py-2 text-center">
+              <th className="h-11 px-2 py-2 text-center">
                 <button
                   type="button"
                   onClick={() => onSort('order_number')}
@@ -1102,7 +1051,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-2 py-2 text-center">
+              <th className="h-11 px-2 py-2 text-center">
                 <button
                   type="button"
                   onClick={() => onSort('created_at')}
@@ -1132,7 +1081,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-2 py-2 text-center">
+              <th className="h-11 px-2 py-2 text-center">
                 <button
                   type="button"
                   onClick={() => onSort('type')}
@@ -1142,7 +1091,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="px-2 py-2 text-center">
+              <th className="h-11 px-2 py-2 text-center">
                 <div className="relative inline-flex" ref={statusHeaderMenuRef}>
                   {selectedCount > 0 ? (
                     <>
@@ -1169,7 +1118,7 @@ export default function AdminOrdersTable({
                               role="menuitem"
                               onClick={() => handleBulkStatusUpdate(option.value)}
                               disabled={isBulkUpdatingStatus}
-                              className="block w-full rounded-md px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                              className="block w-full rounded-md px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
                             >
                               {option.label}
                             </button>
@@ -1189,7 +1138,7 @@ export default function AdminOrdersTable({
                 </div>
               </th>
 
-              <th className="px-2 py-2 text-center">
+              <th className="h-11 px-2 py-2 text-center">
                 <div className="relative inline-flex" ref={paymentHeaderMenuRef}>
                   {selectedCount > 0 ? (
                     <>
@@ -1216,7 +1165,7 @@ export default function AdminOrdersTable({
                               role="menuitem"
                               onClick={() => handleBulkPaymentUpdate(option.value)}
                               disabled={isBulkUpdatingStatus}
-                              className="block w-full rounded-md px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                              className="block w-full rounded-md px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
                             >
                               {option.label}
                             </button>
@@ -1236,7 +1185,7 @@ export default function AdminOrdersTable({
                 </div>
               </th>
 
-              <th className="px-2 py-2 text-right">
+              <th className="h-11 px-2 py-2 text-center">
                 <button
                   type="button"
                   onClick={() => onSort('total')}
@@ -1246,7 +1195,7 @@ export default function AdminOrdersTable({
                 </button>
               </th>
 
-              <th className="min-w-[120px] px-2 py-2 text-left normal-case">PDF datoteke</th>
+              <th className="min-w-[100px] px-2 py-2 text-center normal-case">PDF datoteke</th>
               <th className="px-2 py-2 text-center normal-case">Uredi</th>
             </tr>
           </thead>
@@ -1255,7 +1204,18 @@ export default function AdminOrdersTable({
             {filteredAndSortedOrders.length === 0 ? (
               <tr>
                 <td className="px-2 py-6 text-center text-slate-500" colSpan={10}>
-                  Ni zadetkov za izbrane filtre.
+                  <div className="flex flex-col items-center gap-2">
+                    <span>Ni zadetkov za izbrane filtre.</span>
+                    {orders.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={resetAllFilters}
+                        className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                      >
+                        Prikaži vsa naročila
+                      </button>
+                    ) : null}
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -1272,8 +1232,8 @@ export default function AdminOrdersTable({
                   <tr
                     key={order.id}
                     className={`border-t border-slate-100 transition-colors duration-200 ${
-                      orderIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-                    } hover:bg-[#e7efef]`}
+                      isRowSelected ? 'bg-[#f8f7fc]' : orderIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+                    } hover:bg-[#f8f7fc]`}
                   >
                     <td className="px-2 py-2 align-middle">
                       <div className="flex justify-center">
@@ -1287,15 +1247,19 @@ export default function AdminOrdersTable({
                       </div>
                     </td>
 
-                    <td className="px-2 py-2 align-middle text-center font-semibold text-slate-900">
-                      <span className="text-[13px] font-semibold text-slate-900">
+                    <td className="px-2 py-2 align-middle text-center font-semibold text-slate-900" data-no-row-nav>
+                      <a
+                        href={`/admin/orders/${order.id}`}
+                        className="inline-flex rounded-sm px-1 text-[13px] font-semibold text-brand-700 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#5d3ed6]"
+                        aria-label={`Odpri naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                      >
                         {toDisplayOrderNumber(order.order_number)}
-                      </span>
+                      </a>
                     </td>
 
-                    <td className="px-2 py-2 align-middle text-center whitespace-nowrap text-slate-600">
+                    <td className="px-2 py-2 align-middle text-center whitespace-nowrap text-slate-700">
                       <span
-                        className="inline-block rounded-sm px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+                        className="inline-block rounded-sm px-1 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#5d3ed6]"
                         title={formatSlDateTime(order.created_at)}
                         aria-label={`Datum naročila ${formatSlDateTime(order.created_at)}`}
                         tabIndex={0}
@@ -1304,13 +1268,13 @@ export default function AdminOrdersTable({
                       </span>
                     </td>
 
-                    <td className="px-2 py-2 align-middle text-slate-600">
+                    <td className="px-2 py-2 align-middle text-slate-700">
                       <span className="block truncate" title={order.organization_name || order.contact_name}>
                         {order.organization_name || order.contact_name}
                       </span>
                     </td>
 
-                    <td className="px-2 py-2 align-middle text-slate-600">
+                    <td className="px-2 py-2 align-middle text-slate-700">
                       <span className="block truncate" title={orderAddress || '—'}>
                         {orderAddress || '—'}
                       </span>
@@ -1318,7 +1282,7 @@ export default function AdminOrdersTable({
 
                     <td className="px-2 py-2 align-middle text-center text-slate-700">{typeLabel}</td>
 
-                    <td className="px-2 py-2 align-middle text-center text-slate-600">
+                    <td className="px-2 py-2 align-middle text-center text-slate-700">
                       {selectedCount > 1 ? (
                         <div className="flex justify-center">
                           <StatusChip status={rowStatus} />
@@ -1360,12 +1324,12 @@ export default function AdminOrdersTable({
                       )}
                     </td>
 
-                    <td className="px-2 py-2 align-middle text-right text-slate-700">
+                    <td className="px-2 py-2 align-middle text-center text-slate-700">
                       {formatCurrency(order.total)}
                     </td>
 
-                    <td className="min-w-[120px] pl-0 pr-0 py-2 align-middle text-right" data-no-row-nav>
-                      <div className="flex justify-end">
+                    <td className="min-w-[100px] pl-0 pr-0 py-2 align-middle text-center" data-no-row-nav>
+                      <div className="flex justify-center">
                         <AdminOrdersPdfCell
                           orderId={order.id}
                           documents={documentsByOrder.get(order.id) ?? []}
@@ -1376,13 +1340,29 @@ export default function AdminOrdersTable({
                     </td>
 
                     <td className="pl-0 pr-0 py-2 align-middle text-center" data-no-row-nav>
-                      <a
-                        href={`/admin/orders/${order.id}`}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100"
-                        aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
-                      >
-                        ✎
-                      </a>
+                      <div className="flex items-center justify-center gap-1">
+                        <a
+                          href={`/admin/orders/${order.id}`}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:bg-slate-100"
+                          aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                          title="Uredi"
+                        >
+                          <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                            <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
+                            <path d="M11.5 4.5l3 3" />
+                          </svg>
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteRow(order.id)}
+                          disabled={deletingRowId === order.id}
+                          className={rowDeleteButtonClass}
+                          aria-label={`Izbriši naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                          title="Izbriši"
+                        >
+                          {deletingRowId === order.id ? '…' : '×'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -1392,6 +1372,18 @@ export default function AdminOrdersTable({
         </table>
       </div>
       </div>
+      </div>
     </div>
   );
+}
+
+function useDebouncedValue<T>(value: T, delayMs: number) {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setDebounced(value), delayMs);
+    return () => window.clearTimeout(timeoutId);
+  }, [value, delayMs]);
+
+  return debounced;
 }

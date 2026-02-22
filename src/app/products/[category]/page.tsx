@@ -6,7 +6,8 @@ import {
   getCatalogCategorySlugs,
   getCatalogCategoryItemPrice,
   getCatalogCategoryItemSku,
-  formatCatalogPrice
+  formatCatalogPrice,
+  getDiscountedPrice
 } from '@/lib/catalog';
 import AddToCartButton from '@/components/products/AddToCartButton';
 
@@ -71,9 +72,9 @@ export default function CategoryPage({ params }: { params: { category: string } 
                 </p>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   {(category.items ?? []).map((item) => {
-                    const price = formatCatalogPrice(
-                      item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug)
-                    );
+                    const basePrice = item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug);
+                    const finalPrice = getDiscountedPrice(basePrice, item.discountPct);
+                    const price = formatCatalogPrice(finalPrice);
                     const itemSku = getCatalogCategoryItemSku(category.slug, item.slug);
                     const itemHref = `/products/${category.slug}/items/${item.slug}`;
                     return (
@@ -83,10 +84,10 @@ export default function CategoryPage({ params }: { params: { category: string } 
                       >
                         <div>
                           <Link href={itemHref} className="group block">
-                            {item.image && (
+                            {(item.images?.[0] ?? item.image) && (
                               <div className="relative h-24 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
                                 <Image
-                                  src={item.image}
+                                  src={item.images?.[0] ?? item.image ?? ''}
                                   alt={item.name}
                                   fill
                                   className="object-contain p-3 transition duration-300 group-hover:scale-105"
@@ -99,12 +100,15 @@ export default function CategoryPage({ params }: { params: { category: string } 
                           </Link>
                           <p className="mt-2 text-sm text-slate-600">{item.description}</p>
                           <p className="mt-3 text-sm font-semibold text-slate-900">{price}</p>
+                          {item.discountPct && item.discountPct > 0 ? (
+                            <p className="mt-1 text-xs text-slate-500"><span className="line-through">{formatCatalogPrice(basePrice)}</span> · Popust {item.discountPct}%</p>
+                          ) : null}
                         </div>
                         <AddToCartButton
                           sku={itemSku}
                           name={item.name}
                           price={
-                            item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug)
+                            finalPrice
                           }
                           category={category.title}
                           className="mt-4 w-full justify-center"

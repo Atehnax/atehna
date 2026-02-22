@@ -1099,17 +1099,18 @@ export default function AdminOrdersTable({
                         type="button"
                         onClick={() => setIsStatusHeaderMenuOpen((previousOpen) => !previousOpen)}
                         disabled={isBulkUpdatingStatus}
-                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:border-slate-400 disabled:cursor-not-allowed disabled:text-slate-300"
+                        className="inline-flex h-8 min-w-[180px] items-center justify-start rounded-xl border border-slate-300 bg-white px-3 pr-7 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:text-slate-300"
                         aria-haspopup="menu"
                         aria-expanded={isStatusHeaderMenuOpen}
                       >
-                        Status ▾ ({selectedCount})
+                        Status ({selectedCount})
+                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-500">▾</span>
                       </button>
 
                       {isStatusHeaderMenuOpen && (
                         <div
                           role="menu"
-                          className="absolute left-1/2 top-8 z-20 w-44 -translate-x-1/2 rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
+                          className="absolute left-1/2 top-9 z-20 w-44 -translate-x-1/2 rounded-xl border border-slate-300 bg-white p-1 shadow-sm"
                         >
                           {ORDER_STATUS_OPTIONS.map((option) => (
                             <button
@@ -1146,17 +1147,18 @@ export default function AdminOrdersTable({
                         type="button"
                         onClick={() => setIsPaymentHeaderMenuOpen((previousOpen) => !previousOpen)}
                         disabled={isBulkUpdatingStatus}
-                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:border-slate-400 disabled:cursor-not-allowed disabled:text-slate-300"
+                        className="inline-flex h-8 min-w-[180px] items-center justify-start rounded-xl border border-slate-300 bg-white px-3 pr-7 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:text-slate-300"
                         aria-haspopup="menu"
                         aria-expanded={isPaymentHeaderMenuOpen}
                       >
-                        Plačilo ▾ ({selectedCount})
+                        Plačilo ({selectedCount})
+                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-500">▾</span>
                       </button>
 
                       {isPaymentHeaderMenuOpen && (
                         <div
                           role="menu"
-                          className="absolute left-1/2 top-8 z-20 w-44 -translate-x-1/2 rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
+                          className="absolute left-1/2 top-9 z-20 w-44 -translate-x-1/2 rounded-xl border border-slate-300 bg-white p-1 shadow-sm"
                         >
                           {PAYMENT_STATUS_OPTIONS.map((option) => (
                             <button

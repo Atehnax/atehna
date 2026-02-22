@@ -2,16 +2,141 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg: #f6f5f2;
+  --surface-1: #ffffff;
+  --surface-2: #f1f0ec;
+  --border: #d8d6cf;
+  --text: #111827;
+  --text-muted: #4b5563;
+
+  --primary: #5d3ed6;
+  --primary-hover: #5d3ed6;
+  --primary-active: #5d3ed6;
+  --primary-soft: #ede8ff;
+  --primary-foreground: #ffffff;
+
+  --accent: #b08968;
+
+  --success: #2f6f4e;
+  --warning: #8a6a1f;
+  --danger: #a24a45;
+  --info: #375a7a;
+
+  --ring: #5d3ed6;
+  --admin-bg: #f8f7fc;
+  --admin-accent: #5d3ed6;
+  --admin-hover: #ede8ff;
+
+  /* admin destructive controls */
+  --danger-600: #de144d;
+  --danger-700: #9c0b3b;
+  --danger-border: #fcccd3;
+  --danger-border-strong: #faa2b0;
+  --danger-bg: #fff2f3;
+  --surface: #ffffff;
+  --surface-soft: #f8f7fc;
+  --shadow-soft: 0 1px 2px rgba(17, 24, 39, 0.06), 0 8px 24px rgba(17, 24, 39, 0.05);
+
+  --chart-canvas: #ffffff;
+  --chart-card: #ffffff;
+  --chart-border: #d8d6cf;
+  --chart-text: #111827;
+  --chart-muted-text: #4b5563;
+  --chart-grid: rgba(216, 214, 207, 0.65);
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-border: #d8d6cf;
+  --chart-series-primary: #5d3ed6;
+  --chart-series-secondary: #5d3ed6;
+  --chart-series-tertiary: #7a8f6a;
+  --chart-series-quaternary: #b08968;
+  --chart-series-danger: #a24a45;
+  --chart-series-neutral: #375a7a;
+}
+
 body {
-  @apply bg-slate-50 text-slate-900;
+  @apply bg-[color:var(--bg)] text-[color:var(--text)];
 }
 
 .prose h1,
 .prose h2,
 .prose h3 {
-  @apply text-slate-900;
+  @apply text-[color:var(--text)];
 }
 
 .container-base {
   @apply mx-auto w-full max-w-6xl px-6;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  summary:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 22%, transparent);
+  }
+}
+
+@layer utilities {
+  .bg-white { background-color: var(--surface-1); }
+  .bg-slate-50, .bg-gray-50 { background-color: var(--bg); }
+  .bg-slate-100, .bg-gray-100 { background-color: var(--surface-2); }
+  .bg-slate-200, .bg-gray-200 { background-color: color-mix(in srgb, var(--surface-2) 70%, var(--border)); }
+  .bg-slate-900\/40 { background-color: color-mix(in srgb, #111827 40%, transparent); }
+
+  .text-slate-900, .text-gray-900 { color: var(--text); }
+  .text-slate-800, .text-gray-800 { color: color-mix(in srgb, var(--text) 88%, white); }
+  .text-slate-700, .text-gray-700 { color: color-mix(in srgb, var(--text) 74%, white); }
+  .text-slate-600, .text-gray-600, .text-slate-500, .text-gray-500, .text-slate-400, .text-gray-400 { color: var(--text-muted); }
+
+  .border-slate-100, .border-slate-200, .border-slate-300, .border-gray-200, .border-gray-300 { border-color: var(--border); }
+
+  .bg-brand-600 { background-color: var(--primary); }
+  .bg-brand-700 { background-color: var(--primary-hover); }
+  .bg-brand-800 { background-color: var(--primary-active); }
+  .hover\:bg-brand-700:hover { background-color: var(--primary-hover); }
+  .hover\:bg-brand-800:hover { background-color: var(--primary-active); }
+  .text-brand-600, .text-brand-700 { color: var(--primary); }
+  .hover\:text-brand-600:hover, .hover\:text-brand-700:hover, .hover\:text-brand-800:hover { color: var(--primary-hover); }
+  .border-brand-200, .border-brand-300, .border-brand-400, .border-brand-500, .border-brand-600 { border-color: var(--primary); }
+  .hover\:border-brand-200:hover, .hover\:border-brand-300:hover, .hover\:border-brand-600:hover { border-color: var(--primary); }
+  .focus\:border-brand-500:focus, .focus-visible\:ring-brand-300:focus-visible, .focus-visible\:ring-brand-400:focus-visible {
+    border-color: var(--primary);
+    --tw-ring-color: color-mix(in srgb, var(--primary) 32%, transparent);
+  }
+  .focus\:ring-brand-100:focus, .focus\:ring-brand-500:focus {
+    --tw-ring-color: color-mix(in srgb, var(--primary) 28%, transparent);
+  }
+
+  .shadow-sm, .shadow, .shadow-lg, .shadow-xl { box-shadow: var(--shadow-soft); }
+
+  .admin-card {
+    background-color: var(--surface-1);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-soft);
+  }
+}
+
+
+/* Orders preview hover card polish */
+.admin-orders-preview-plot .hoverlayer .legendlines,
+.admin-orders-preview-plot .hoverlayer .legendpoints,
+.admin-orders-preview-plot .hoverlayer .legendtoggle,
+.admin-orders-preview-plot .hoverlayer .legendfill {
+  display: none !important;
+}
+
+.admin-orders-preview-plot .hoverlayer .hovertext {
+  filter: drop-shadow(0 6px 18px rgba(2, 6, 23, 0.35));
+}
+
+.admin-scope table tbody tr:hover {
+  background-color: #f8f7fc !important;
 }

@@ -9,6 +9,7 @@ import {
   fetchOrderDocuments,
   fetchOrderItems
 } from '@/lib/server/orders';
+import { getDatabaseUrl } from '@/lib/server/db';
 
 export const metadata = {
   title: 'Podrobnosti naročila'
@@ -18,13 +19,21 @@ export const dynamic = 'force-dynamic';
 
 
 const asText = (value: unknown, fallback = '') => (typeof value === 'string' ? value : fallback);
+const asNumber = (value: unknown, fallback = 0) => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+};
 
 export default async function AdminOrderDetailPage({
   params
 }: {
   params: { orderId: string };
 }) {
-  if (!process.env.DATABASE_URL) {
+  if (!getDatabaseUrl()) {
     const order = {
       order_number: '#1',
       status: 'received',
@@ -40,7 +49,10 @@ export default async function AdminOrderDetailPage({
       payment_notes: 'Plačano ob prevzemu.',
       is_draft: false,
       deleted_at: params.orderId === '1' ? new Date().toISOString() : null,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      subtotal: 19,
+      tax: 4.18,
+      total: 23.18
     };
 
     const items = [
@@ -75,7 +87,7 @@ export default async function AdminOrderDetailPage({
 
 
     return (
-      <div className="container-base py-12">
+      <div className="w-full">
         <div className="mx-auto max-w-7xl">
           <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-6 text-sm text-amber-700">
             DATABASE_URL ni nastavljen — prikazan je demo pogled.
@@ -110,7 +122,7 @@ export default async function AdminOrderDetailPage({
                   createdAt={order.created_at}
                 />
 
-                <AdminOrderItemsEditor orderId={1} items={items} />
+                <AdminOrderItemsEditor orderId={1} items={items} initialSubtotal={19} initialTax={4.18} initialTotal={23.18} />
               </div>
 
               <aside className="w-full min-w-0 space-y-5">
@@ -152,12 +164,15 @@ export default async function AdminOrderDetailPage({
     status: asText(order.status, 'received'),
     payment_status: asText(order.payment_status, 'unpaid'),
     payment_notes: asText(order.payment_notes),
-    created_at: asText(order.created_at, new Date().toISOString())
+    created_at: asText(order.created_at, new Date().toISOString()),
+    subtotal: asNumber(order.subtotal, 0),
+    tax: asNumber(order.tax, 0),
+    total: asNumber(order.total, 0)
   };
 
 
   return (
-    <div className="container-base py-12">
+    <div className="w-full">
       <div className="mx-auto max-w-7xl">
         <Link href="/admin/orders" className="text-sm font-semibold text-brand-600">
           ← Nazaj na seznam
@@ -192,7 +207,13 @@ export default async function AdminOrderDetailPage({
                 createdAt={safeOrder.created_at}
               />
 
-              <AdminOrderItemsEditor orderId={orderId} items={items} />
+              <AdminOrderItemsEditor
+                orderId={orderId}
+                items={items}
+                initialSubtotal={safeOrder.subtotal}
+                initialTax={safeOrder.tax}
+                initialTotal={safeOrder.total}
+              />
             </div>
 
             <aside className="w-full min-w-0 space-y-5">

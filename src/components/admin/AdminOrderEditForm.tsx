@@ -1,6 +1,8 @@
 'use client';
 
 import { type ReactNode, useEffect, useState } from 'react';
+import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/lib/customerType';
+import { toDateInputValue } from '@/lib/format/dateTime';
 
 type Props = {
   orderId: number;
@@ -15,24 +17,11 @@ type Props = {
   createdAt: string;
 };
 
-const customerTypeOptions = [
-  { value: 'individual', label: 'Fizična oseba' },
-  { value: 'company', label: 'Podjetje' },
-  { value: 'school', label: 'Šola / javni zavod' }
-];
-
 const isFilled = (value: unknown) => {
   if (typeof value === 'string') return value.trim().length > 0;
   if (typeof value === 'number') return Number.isFinite(value);
   return false;
 };
-const toDateInputValue = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return new Date().toISOString().slice(0, 10);
-  return date.toISOString().slice(0, 10);
-};
-
-
 type FloatingInputProps = {
   id: string;
   label: string;
@@ -247,7 +236,7 @@ export default function AdminOrderEditForm({
                   markDirty();
                 }}
               >
-                {customerTypeOptions.map((option) => (
+                {CUSTOMER_TYPE_FORM_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>

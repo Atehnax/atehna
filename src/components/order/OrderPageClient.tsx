@@ -12,17 +12,10 @@ import {
 } from 'react';
 import Link from 'next/link';
 import { useCartStore } from '@/lib/cart/store';
+import { CUSTOMER_TYPE_FORM_OPTIONS, type CustomerType } from '@/lib/customerType';
 import { SLOVENIAN_ADDRESSES } from '@/data/slovenianAddresses';
 
 const FORM_STORAGE_KEY = 'atehna-order-form';
-
-const customerTypeOptions = [
-  { value: 'individual', label: 'Fizična oseba' },
-  { value: 'company', label: 'Podjetje' },
-  { value: 'school', label: 'Šola / javni zavod' }
-] as const;
-
-type CustomerType = (typeof customerTypeOptions)[number]['value'];
 
 type CheckoutItem = {
   sku: string;
@@ -710,7 +703,7 @@ export default function OrderPageClient() {
                     }));
                   }}
                 >
-                  {customerTypeOptions.map((option) => (
+                  {CUSTOMER_TYPE_FORM_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>

@@ -37,3 +37,9 @@ export const formatSlDateFromDateInput = (value: string) => {
   const year = parsedDate.getFullYear();
   return `${day}.${month}.${year}`;
 };
+
+export const toDateInputValue = (value: string) => {
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) return new Date().toISOString().slice(0, 10);
+  return parsedDate.toISOString().slice(0, 10);
+};

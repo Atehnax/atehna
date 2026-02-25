@@ -118,7 +118,7 @@ function StableFloatingInput({
         value={value}
         placeholder=" "
         onChange={(event) => onChange(event.target.value)}
-        className="h-12 w-full overflow-visible rounded-xl border border-slate-300 bg-white px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+        className="h-10 w-full overflow-visible rounded-xl border border-slate-300 bg-white px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
       />
       <label className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 bg-white px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600">
         {label}
@@ -139,21 +139,15 @@ function StableFloatingTextarea({
   const filled = String(value ?? '').length > 0;
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  useEffect(() => {
-    if (!textareaRef.current) return;
-    textareaRef.current.style.height = '0px';
-    textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-  }, [value]);
-
   return (
     <div className="group relative" data-filled={filled ? 'true' : 'false'}>
       <textarea
         ref={textareaRef}
-        rows={2}
+        rows={1}
         value={value}
         placeholder=" "
         onChange={(event) => onChange(event.target.value)}
-        className="min-h-[48px] w-full overflow-hidden rounded-xl border border-slate-300 bg-white px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+        className="h-10 min-h-[40px] w-full resize-y overflow-hidden rounded-xl border border-slate-300 bg-white px-2.5 pb-1 pt-4 text-xs leading-4 text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
       />
       <label className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 bg-white px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600">
         {label}
@@ -180,7 +174,7 @@ function StaticFloatingDate({
         type="date"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-12 w-full overflow-visible rounded-xl border border-slate-300 bg-white px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+        className="h-10 w-full overflow-visible rounded-xl border border-slate-300 bg-white px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
       />
     </div>
   );
@@ -195,22 +189,190 @@ function StaticFloatingSelect({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+
+  const selectedOption =
+    customerTypeOptions.find((option) => option.value === value) ?? customerTypeOptions[0];
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!wrapperRef.current?.contains(target)) {
+        setIsOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isOpen]);
+
   return (
-    <div className="relative">
-      <label className="pointer-events-none absolute left-2.5 top-1.5 z-10 bg-white px-1 text-[10px] text-slate-600">
+    <div className="relative" ref={wrapperRef}>
+      <label className="pointer-events-none absolute left-2.5 top-1 z-10 bg-white px-1 text-[10px] text-slate-600">
         {label}
       </label>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-12 w-full appearance-none overflow-visible rounded-xl border border-slate-300 bg-white px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+
+      <button
+        type="button"
+        onClick={() => setIsOpen((previousOpen) => !previousOpen)}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        className="inline-flex h-10 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-2.5 pb-1 pt-4 text-left text-xs leading-5 text-slate-900 outline-none transition hover:border-slate-400 focus:border-[#5d3ed6] focus:outline-none focus:ring-0"
       >
-        {customerTypeOptions.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+        <span className="block min-w-0 flex-1 truncate text-left">
+          {selectedOption?.label ?? ''}
+        </span>
+        <span className="ml-2 shrink-0 text-slate-500">▾</span>
+      </button>
+
+      {isOpen ? (
+        <div
+          role="menu"
+          className="absolute left-0 top-11 z-30 min-w-full w-max max-w-[320px] rounded-xl border border-slate-300 bg-white p-1 shadow-sm"
+        >
+          {customerTypeOptions.map((option) => {
+            const isSelected = option.value === value;
+
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+                className={`flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none transition ${
+                  isSelected
+                    ? 'bg-[#f8f7fc] text-[#5d3ed6]'
+                    : 'text-slate-700 hover:bg-[#ede8ff]'
+                }`}
+                title={option.label}
+              >
+                <span className="block w-full text-left whitespace-nowrap">
+                  {option.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+type CompactDropdownOption = {
+  value: string;
+  label: string;
+};
+
+function CompactDropdown({
+  value,
+  options,
+  onChange,
+  disabled = false,
+  buttonClassName = '',
+  menuClassName = ''
+}: {
+  value: string;
+  options: readonly CompactDropdownOption[];
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  buttonClassName?: string;
+  menuClassName?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+
+  const selectedLabel =
+    options.find((option) => option.value === value)?.label ?? options[0]?.label ?? '';
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!wrapperRef.current?.contains(target)) {
+        setIsOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isOpen]);
+
+  return (
+    <div className="relative" ref={wrapperRef}>
+      <button
+        type="button"
+        onClick={() => {
+          if (disabled) return;
+          setIsOpen((previousOpen) => !previousOpen);
+        }}
+        disabled={disabled}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        className={`inline-flex h-8 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-left text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] disabled:cursor-not-allowed disabled:opacity-60 ${buttonClassName}`}
+      >
+        <span className="block min-w-0 flex-1 truncate text-left">{selectedLabel}</span>
+        <span className="ml-2 shrink-0 text-slate-500">▾</span>
+      </button>
+
+      {isOpen ? (
+        <div
+          role="menu"
+          className={`absolute left-0 top-9 z-30 min-w-full w-max max-w-[260px] rounded-xl border border-slate-300 bg-white p-1 shadow-sm ${menuClassName}`}
+        >
+          {options.map((option) => {
+            const isSelected = option.value === value;
+
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+                className={`flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none transition ${
+                  isSelected
+                    ? 'bg-[#f8f7fc] text-[#5d3ed6]'
+                    : 'text-slate-700 hover:bg-[#ede8ff]'
+                }`}
+                title={option.label}
+              >
+                <span className="block w-full text-left whitespace-nowrap">{option.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -231,7 +393,9 @@ export default function AdminOrderHeaderChips(props: Props) {
   const [message, setMessage] = useState<string | null>(null);
 
   const isTopDirty = useMemo(
-    () => JSON.stringify(draftTopData) !== JSON.stringify(persistedTopData) || draftOrderNumber.trim() !== displayOrderNumber.trim(),
+    () =>
+      JSON.stringify(draftTopData) !== JSON.stringify(persistedTopData) ||
+      draftOrderNumber.trim() !== displayOrderNumber.trim(),
     [draftTopData, persistedTopData, draftOrderNumber, displayOrderNumber]
   );
 
@@ -359,28 +523,23 @@ export default function AdminOrderHeaderChips(props: Props) {
         <div className="ml-auto flex items-center gap-1.5">
           {topInputsEditable ? (
             <>
-              <select
+              <CompactDropdown
                 value={draftTopData.status}
-                onChange={(event) => setDraftTopData((prev) => ({ ...prev, status: event.target.value }))}
-                className="h-8 rounded-lg border border-slate-300 px-2 text-xs outline-none transition focus:border-[#5d3ed6] focus:ring-0"
-              >
-                {ORDER_STATUS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <select
+                onChange={(value) => setDraftTopData((prev) => ({ ...prev, status: value }))}
+                options={ORDER_STATUS_OPTIONS}
+                disabled={isTopSaving}
+                buttonClassName="w-[120px]"
+                menuClassName="max-w-[280px]"
+              />
+
+              <CompactDropdown
                 value={draftTopData.paymentStatus}
-                onChange={(event) => setDraftTopData((prev) => ({ ...prev, paymentStatus: event.target.value }))}
-                className="h-8 rounded-lg border border-slate-300 px-2 text-xs outline-none transition focus:border-[#5d3ed6] focus:ring-0"
-              >
-                {PAYMENT_STATUS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setDraftTopData((prev) => ({ ...prev, paymentStatus: value }))}
+                options={PAYMENT_STATUS_OPTIONS}
+                disabled={isTopSaving}
+                buttonClassName="w-[120px]"
+                menuClassName="max-w-[280px]"
+              />
             </>
           ) : (
             <>
@@ -465,11 +624,11 @@ export default function AdminOrderHeaderChips(props: Props) {
         </div>
       ) : (
         <div className="mt-4 grid min-h-[132px] gap-3 text-[12px] md:grid-cols-2">
-          <div className="min-h-11">
+          <div className="min-h-10">
             <p className="text-sm font-semibold text-slate-700">Datum</p>
             <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.orderDate)}</p>
           </div>
-          <div className="min-h-11">
+          <div className="min-h-10">
             <p className="text-sm font-semibold text-slate-700">Tip naročnika</p>
             <p className="mt-0.5 text-xs leading-5 text-slate-900">
               {displayValue(
@@ -478,19 +637,19 @@ export default function AdminOrderHeaderChips(props: Props) {
               )}
             </p>
           </div>
-          <div className="min-h-11">
+          <div className="min-h-10">
             <p className="text-sm font-semibold text-slate-700">Naročnik</p>
             <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.organizationName)}</p>
           </div>
-          <div className="min-h-11">
+          <div className="min-h-10">
             <p className="text-sm font-semibold text-slate-700">Email</p>
             <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.email)}</p>
           </div>
-          <div className="min-h-11">
+          <div className="min-h-10">
             <p className="text-sm font-semibold text-slate-700">Naslov</p>
             <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.deliveryAddress)}</p>
           </div>
-          <div className="min-h-11">
+          <div className="min-h-10">
             <p className="text-sm font-semibold text-slate-700">Opombe</p>
             <p className="mt-0.5 whitespace-pre-wrap text-xs leading-5 text-slate-900">{displayValue(activeTopData.notes)}</p>
           </div>

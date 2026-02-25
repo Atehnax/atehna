@@ -22,6 +22,19 @@ const PDF_BUTTONS: PdfButton[] = [
   { key: 'invoice', short: 'R', full: 'Račun' }
 ];
 
+const MENU_GAP = 6;
+const MENU_PADDING = 8;
+
+type MenuPosition = {
+  top: number;
+  left: number;
+};
+
+const clamp = (value: number, minValue: number, maxValue: number) => {
+  if (maxValue < minValue) return minValue;
+  return Math.min(Math.max(value, minValue), maxValue);
+};
+
 export default function AdminOrdersPdfCell({
   orderId,
   documents,
@@ -38,25 +51,81 @@ export default function AdminOrdersPdfCell({
   const [loadingType, setLoadingType] = useState<GeneratePdfType | null>(null);
   const [openType, setOpenType] = useState<PdfTypeKey | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const [menuPosition, setMenuPosition] = useState<MenuPosition>({ top: 0, left: 0 });
 
   const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!openType) return;
+
     const anchor = buttonRefs.current[openType];
     if (!anchor) return;
 
     const updatePosition = () => {
-      const rect = anchor.getBoundingClientRect();
+      const anchorRect = anchor.getBoundingClientRect();
+
+      // Menu is rendered in a portal with `position: fixed`,
+      // so coordinates must be viewport coordinates (NO scrollX/scrollY).
+      const menuWidth = menuRef.current?.offsetWidth ?? 250;
+      const menuHeight = menuRef.current?.offsetHeight ?? 180;
+
+      // Prefer explicit boundary (data-pdf-menu-boundary), fallback to nearest overflow-x container.
+      const boundaryElement =
+        (anchor.closest('[data-pdf-menu-boundary]') as HTMLElement | null) ??
+        (anchor.closest('.overflow-x-auto') as HTMLElement | null);
+
+      const viewportBounds = {
+        left: MENU_PADDING,
+        top: MENU_PADDING,
+        right: window.innerWidth - MENU_PADDING,
+        bottom: window.innerHeight - MENU_PADDING
+      };
+
+      let bounds = viewportBounds;
+
+      if (boundaryElement) {
+        const boundaryRect = boundaryElement.getBoundingClientRect();
+
+        bounds = {
+          left: Math.max(viewportBounds.left, boundaryRect.left + MENU_PADDING),
+          top: Math.max(viewportBounds.top, boundaryRect.top + MENU_PADDING),
+          right: Math.min(viewportBounds.right, boundaryRect.right - MENU_PADDING),
+          bottom: Math.min(viewportBounds.bottom, boundaryRect.bottom - MENU_PADDING)
+        };
+      }
+
+      // Horizontal position: align to button left, but clamp inside bounds.
+      const minLeft = bounds.left;
+      const maxLeft = Math.max(bounds.left, bounds.right - menuWidth);
+      const nextLeft = clamp(anchorRect.left, minLeft, maxLeft);
+
+      // Vertical position: prefer below; if not enough space, try above; then clamp.
+      const preferredTopBelow = anchorRect.bottom + MENU_GAP;
+      const preferredTopAbove = anchorRect.top - MENU_GAP - menuHeight;
+
+      const spaceBelow = bounds.bottom - preferredTopBelow;
+      const spaceAbove = preferredTopAbove - bounds.top;
+
+      let nextTop = preferredTopBelow;
+      if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
+        nextTop = preferredTopAbove;
+      }
+
+      const minTop = bounds.top;
+      const maxTop = Math.max(bounds.top, bounds.bottom - menuHeight);
+
       setMenuPosition({
-        top: rect.bottom + window.scrollY + 6,
-        left: rect.left + window.scrollX
+        top: Math.round(clamp(nextTop, minTop, maxTop)),
+        left: Math.round(nextLeft)
       });
     };
 
     updatePosition();
+
+    // Run once more after paint to ensure menu dimensions are measured correctly.
+    const rafId = window.requestAnimationFrame(updatePosition);
+
     window.addEventListener('resize', updatePosition);
     window.addEventListener('scroll', updatePosition, true);
 
@@ -73,13 +142,15 @@ export default function AdminOrdersPdfCell({
 
     document.addEventListener('mousedown', onOutside);
     document.addEventListener('keydown', onEscape);
+
     return () => {
+      window.cancelAnimationFrame(rafId);
       window.removeEventListener('resize', updatePosition);
       window.removeEventListener('scroll', updatePosition, true);
       document.removeEventListener('mousedown', onOutside);
       document.removeEventListener('keydown', onEscape);
     };
-  }, [openType]);
+  }, [openType, errorMessage, loadingType]);
 
   const groupedDocuments = useMemo(
     () => groupDocumentsByType(documentsState, attachmentsState),
@@ -89,10 +160,12 @@ export default function AdminOrdersPdfCell({
   const handleGenerate = async (type: GeneratePdfType) => {
     setLoadingType(type);
     setErrorMessage(null);
+
     try {
       const response = await fetch(`/api/admin/orders/${orderId}/${routeMap[type]}`, {
         method: 'POST'
       });
+
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
         setErrorMessage(body.message || 'Generiranje PDF ni uspelo.');
@@ -106,15 +179,16 @@ export default function AdminOrdersPdfCell({
         type: string;
       };
 
-      setDocumentsState((prev) => [
+      setDocumentsState((previousDocuments) => [
         {
           type: payload.type,
           blob_url: payload.url,
           filename: payload.filename,
           created_at: payload.createdAt
         },
-        ...prev
+        ...previousDocuments
       ]);
+
       setOpenType(type);
     } finally {
       setLoadingType(null);
@@ -135,11 +209,12 @@ export default function AdminOrdersPdfCell({
         ref={menuRef}
         role="menu"
         data-no-row-nav
-        className="fixed z-[120] w-[250px] rounded-xl border border-slate-200 bg-white p-2 shadow-2xl"
+        className="fixed z-[120] w-[250px] max-w-[calc(100vw-16px)] rounded-xl border border-slate-200 bg-white p-2 shadow-2xl"
         style={{ top: menuPosition.top, left: menuPosition.left }}
       >
         <div className="mb-2 flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
           <p className="text-[11px] font-semibold text-slate-800">{button.full}</p>
+
           {isGenerateKey(button.key) ? (
             <button
               type="button"
@@ -170,7 +245,9 @@ export default function AdminOrdersPdfCell({
                   title={documentOption.filename}
                 >
                   <span className="truncate font-medium">{documentOption.filename}</span>
-                  <span className="ml-2 shrink-0 text-slate-500">{formatDateTimeCompact(documentOption.created_at)}</span>
+                  <span className="ml-2 shrink-0 text-slate-500">
+                    {formatDateTimeCompact(documentOption.created_at)}
+                  </span>
                 </a>
               </li>
             ))}
@@ -202,7 +279,9 @@ export default function AdminOrdersPdfCell({
               aria-label={`${button.full} dokumenti`}
               aria-haspopup="menu"
               aria-expanded={isOpen}
-              onClick={() => setOpenType((previousType) => (previousType === button.key ? null : button.key))}
+              onClick={() =>
+                setOpenType((previousType) => (previousType === button.key ? null : button.key))
+              }
               disabled={interactionsDisabled}
               className="relative inline-flex h-6 items-center rounded-md border border-slate-200 bg-slate-50 px-1.5 py-1 text-[11px] font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
             >
@@ -211,6 +290,7 @@ export default function AdminOrdersPdfCell({
           </div>
         );
       })}
+
       {renderMenu()}
     </div>
   );

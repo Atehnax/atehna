@@ -97,10 +97,12 @@ export default function AdminOrdersTable({
   const datePopoverRef = useRef<HTMLDivElement>(null);
   const statusHeaderMenuRef = useRef<HTMLDivElement>(null);
   const paymentHeaderMenuRef = useRef<HTMLDivElement>(null);
+  const documentTypeMenuRef = useRef<HTMLDivElement>(null);
   const hasAutoResetFiltersRef = useRef(false);
 
   const [isStatusHeaderMenuOpen, setIsStatusHeaderMenuOpen] = useState(false);
   const [isPaymentHeaderMenuOpen, setIsPaymentHeaderMenuOpen] = useState(false);
+  const [isDocumentTypeMenuOpen, setIsDocumentTypeMenuOpen] = useState(false);
 
   useEffect(() => {
     const closeOnOutsideClick = (mouseEvent: MouseEvent) => {
@@ -121,33 +123,37 @@ export default function AdminOrdersTable({
 
 
   useEffect(() => {
-    if (!isStatusHeaderMenuOpen && !isPaymentHeaderMenuOpen) return;
+  if (!isStatusHeaderMenuOpen && !isPaymentHeaderMenuOpen && !isDocumentTypeMenuOpen) return;
 
-    const handleOutsideClick = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (!statusHeaderMenuRef.current?.contains(target)) {
-        setIsStatusHeaderMenuOpen(false);
-      }
-      if (!paymentHeaderMenuRef.current?.contains(target)) {
-        setIsPaymentHeaderMenuOpen(false);
-      }
-    };
+  const handleOutsideClick = (event: MouseEvent) => {
+    const target = event.target as Node;
+    if (!statusHeaderMenuRef.current?.contains(target)) {
+      setIsStatusHeaderMenuOpen(false);
+    }
+    if (!paymentHeaderMenuRef.current?.contains(target)) {
+      setIsPaymentHeaderMenuOpen(false);
+    }
+    if (!documentTypeMenuRef.current?.contains(target)) {
+      setIsDocumentTypeMenuOpen(false);
+    }
+  };
 
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsStatusHeaderMenuOpen(false);
-        setIsPaymentHeaderMenuOpen(false);
-      }
-    };
+  const handleEscape = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      setIsStatusHeaderMenuOpen(false);
+      setIsPaymentHeaderMenuOpen(false);
+      setIsDocumentTypeMenuOpen(false);
+    }
+  };
 
-    document.addEventListener('mousedown', handleOutsideClick);
-    document.addEventListener('keydown', handleEscape);
+  document.addEventListener('mousedown', handleOutsideClick);
+  document.addEventListener('keydown', handleEscape);
 
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isPaymentHeaderMenuOpen, isStatusHeaderMenuOpen]);
+  return () => {
+    document.removeEventListener('mousedown', handleOutsideClick);
+    document.removeEventListener('keydown', handleEscape);
+  };
+}, [isDocumentTypeMenuOpen, isPaymentHeaderMenuOpen, isStatusHeaderMenuOpen]);
 
   const latestOrderDate = useMemo(() => {
     const timestamps = orders
@@ -711,7 +717,9 @@ export default function AdminOrdersTable({
     fromDate || toDate
       ? `${formatSlDateFromDateInput(fromDate)} – ${formatSlDateFromDateInput(toDate)}`
       : defaultDateRangeLabel;
-
+  const selectedDocumentTypeLabel =
+  documentTypeOptions.find((documentTypeOption) => documentTypeOption.value === documentType)?.label ??
+  'Vsi dokumenti';
 
 
   const resetAllFilters = () => {
@@ -741,8 +749,9 @@ export default function AdminOrdersTable({
   }, [orders.length, hasActiveFilters, filteredAndSortedOrders.length]);
 
   const handleResetDocumentFilter = () => {
-    setDocumentType('all');
-    setMessage(null);
+  setDocumentType('all');
+  setMessage(null);
+  setIsDocumentTypeMenuOpen(false);
   };
 
   const downloadFile = async (fileUrl: string, downloadFilename: string) => {
@@ -943,37 +952,57 @@ export default function AdminOrdersTable({
             />
           </div>
 
-          <div className="ml-auto inline-flex h-8 items-center overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm focus-within:border-[#5d3ed6]">
-            <div className="relative">
-              <select
-                value={documentType}
-                onChange={(event) => {
-                  setDocumentType(event.target.value as DocumentType);
-                  setMessage(null);
-                }}
-                className="h-8 min-w-[180px] appearance-none border-0 bg-transparent px-3 pr-7 text-xs font-semibold text-slate-700 outline-none focus:border-[#5d3ed6] focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:ring-0"
+          <div className="ml-auto inline-flex h-8 shrink-0 items-stretch overflow-visible rounded-xl border border-slate-300 bg-white shadow-sm focus-within:border-[#5d3ed6]">
+            <div className="relative" ref={documentTypeMenuRef}>
+              <button
+                type="button"
+                onClick={() => setIsDocumentTypeMenuOpen((previousOpen) => !previousOpen)}
+                className="inline-flex h-full w-[180px] items-center justify-between rounded-l-xl border-0 bg-transparent px-3 text-xs font-semibold text-slate-700 outline-none focus:border-[#5d3ed6] focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:ring-0"
+                aria-haspopup="menu"
+                aria-expanded={isDocumentTypeMenuOpen}
               >
-                {documentTypeOptions.map((documentTypeOption) => (
-                  <option key={documentTypeOption.value} value={documentTypeOption.value}>
-                    {documentTypeOption.label}
-                  </option>
-                ))}
-              </select>
-              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-500">▾</span>
+                <span className="truncate text-left">{selectedDocumentTypeLabel}</span>
+                <span className="ml-2 text-slate-500">▾</span>
+              </button>
+
+              {isDocumentTypeMenuOpen && (
+                <div
+                  role="menu"
+                  className="absolute left-0 top-8 z-30 w-[180px] rounded-xl border border-slate-300 bg-white p-1 shadow-sm"
+                >
+                  {documentTypeOptions.map((documentTypeOption) => (
+                    <button
+                      key={documentTypeOption.value}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setDocumentType(documentTypeOption.value);
+                        setMessage(null);
+                        setIsDocumentTypeMenuOpen(false);
+                      }}
+                      className="flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none text-slate-700 hover:bg-[#ede8ff]"
+                    >
+                      {documentTypeOption.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
+
             <button
               type="button"
               onClick={handleResetDocumentFilter}
               disabled={documentType === 'all'}
-              className="h-8 border-l border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-[#ede8ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
+              className="flex h-full w-[92px] items-center justify-center border-l border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-[#ede8ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
             >
               Ponastavi
             </button>
+
             <button
               type="button"
               onClick={handleDownloadAllDocuments}
               disabled={isDownloading}
-              className="h-8 border-l border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-[#ede8ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
+              className="flex h-full w-[140px] items-center justify-center whitespace-nowrap rounded-r-xl border-l border-slate-200 bg-white px-3 text-xs font-semibold tabular-nums text-slate-700 transition hover:bg-[#ede8ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
             >
               {isDownloading ? 'Prenos...' : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
             </button>
@@ -1109,7 +1138,7 @@ export default function AdminOrdersTable({
                       {isStatusHeaderMenuOpen && (
                         <div
                           role="menu"
-                          className="absolute left-1/2 top-8 z-20 w-44 -translate-x-1/2 rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
+                          className="absolute left-1/2 top-8 z-20 w-44 -translate-x-1/2 rounded-xl border border-slate-300 bg-white p-1 shadow-sm"
                         >
                           {ORDER_STATUS_OPTIONS.map((option) => (
                             <button
@@ -1118,7 +1147,7 @@ export default function AdminOrdersTable({
                               role="menuitem"
                               onClick={() => handleBulkStatusUpdate(option.value)}
                               disabled={isBulkUpdatingStatus}
-                              className="block w-full rounded-md px-2 py-1.5 text-left text-xs leading-4 text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+                              className="flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none text-slate-700 hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
                             >
                               {option.label}
                             </button>
@@ -1156,7 +1185,7 @@ export default function AdminOrdersTable({
                       {isPaymentHeaderMenuOpen && (
                         <div
                           role="menu"
-                          className="absolute left-1/2 top-8 z-20 w-44 -translate-x-1/2 rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
+                          className="absolute left-1/2 top-8 z-20 w-44 -translate-x-1/2 rounded-xl border border-slate-300 bg-white p-1 shadow-sm"
                         >
                           {PAYMENT_STATUS_OPTIONS.map((option) => (
                             <button
@@ -1165,7 +1194,7 @@ export default function AdminOrdersTable({
                               role="menuitem"
                               onClick={() => handleBulkPaymentUpdate(option.value)}
                               disabled={isBulkUpdatingStatus}
-                              className="block w-full rounded-md px-2 py-1.5 text-left text-xs leading-4 text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+                              className="flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none text-slate-700 hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
                             >
                               {option.label}
                             </button>

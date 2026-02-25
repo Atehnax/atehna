@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 type Item = {
   id: string;
@@ -145,6 +145,9 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
   const [newCategoryValue, setNewCategoryValue] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
+  const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
+  const categoryMenuRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
@@ -157,6 +160,31 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
       // ignore malformed local state
     }
   }, []);
+
+  useEffect(() => {
+    if (!isCategoryMenuOpen) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!categoryMenuRef.current?.contains(target)) {
+        setIsCategoryMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsCategoryMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isCategoryMenuOpen]);
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
@@ -174,6 +202,18 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
       ).sort((a, b) => a.localeCompare(b, 'sl')),
     [items]
   );
+
+  const selectedCategoryLabel =
+    categoryFilter === 'all'
+      ? 'Vse kategorije'
+      : categories.find((category) => category === categoryFilter) ?? 'Vse kategorije';
+
+  useEffect(() => {
+    if (categoryFilter === 'all') return;
+    if (!categories.includes(categoryFilter)) {
+      setCategoryFilter('all');
+    }
+  }, [categories, categoryFilter]);
 
   const filteredItems = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -320,19 +360,68 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
 
       <div className="overflow-hidden rounded-2xl border shadow-sm" style={{ background: "linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)", borderColor: "#e2e8f0", boxShadow: "0 10px 24px rgba(15,23,42,0.06)" }}>
         <div className="p-3">
-          <div className="mt-1 grid gap-2 md:grid-cols-[minmax(280px,1fr)_220px_auto_auto] md:items-center">
+          <div className="mt-1 grid gap-2 md:grid-cols-[minmax(280px,1fr)_240px_auto_auto] md:items-center">
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Poišči po nazivu, SKU ali kategoriji …"
             className="h-8 rounded-xl border border-slate-300 px-3 text-xs focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
           />
-          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-8 rounded-xl border border-slate-300 px-3 text-xs focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]">
-            <option value="all">Vse kategorije</option>
-            {categories.map((category) => (
-              <option key={category} value={category}>{category}</option>
-            ))}
-          </select>
+                    <div className="relative" ref={categoryMenuRef}>
+            <button
+              type="button"
+              onClick={() => setIsCategoryMenuOpen((previousOpen) => !previousOpen)}
+              className="inline-flex h-8 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-left text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0"
+              aria-haspopup="menu"
+              aria-expanded={isCategoryMenuOpen}
+            >
+              <span className="block min-w-0 flex-1 truncate text-left">{selectedCategoryLabel}</span>
+              <span className="ml-2 text-slate-500">▾</span>
+            </button>
+
+            {isCategoryMenuOpen && (
+              <div
+                role="menu"
+                className="absolute left-0 top-9 z-30 min-w-full w-max max-w-[560px] rounded-xl border border-slate-300 bg-white p-1 shadow-sm"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setCategoryFilter('all');
+                    setIsCategoryMenuOpen(false);
+                  }}
+                  className={`flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none transition ${
+                    categoryFilter === 'all'
+                      ? 'bg-[#f8f7fc] text-[#5d3ed6]'
+                      : 'text-slate-700 hover:bg-[#ede8ff]'
+                  }`}
+                >
+                  Vse kategorije
+                </button>
+
+                {categories.map((category) => (
+                  <button
+                    key={category}
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setCategoryFilter(category);
+                      setIsCategoryMenuOpen(false);
+                    }}
+                    className={`flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none transition ${
+                      categoryFilter === category
+                        ? 'bg-[#f8f7fc] text-[#5d3ed6]'
+                        : 'text-slate-700 hover:bg-[#ede8ff]'
+                    }`}
+                    title={category}
+                  >
+                    <span className="block w-full text-left whitespace-nowrap">{category}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button
             type="button"
             onClick={archiveSelected}

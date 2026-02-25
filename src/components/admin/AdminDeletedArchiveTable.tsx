@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { DANGER_OUTLINE_BUTTON_CLASS } from './adminButtonStyles';
 import { useRouter } from 'next/navigation';
 
@@ -20,6 +20,14 @@ type DisplayRow = {
   parentOrderId: number | null;
 };
 
+type TypeFilterValue = 'all' | 'order' | 'pdf';
+
+const TYPE_FILTER_OPTIONS: Array<{ value: TypeFilterValue; label: string }> = [
+  { value: 'all', label: 'Vse vrste' },
+  { value: 'order', label: 'Naročila' },
+  { value: 'pdf', label: 'PDF datoteke' }
+];
+
 const formatDateTime = (value: string) =>
   new Date(value).toLocaleString('sl-SI', {
     dateStyle: 'medium',
@@ -34,10 +42,41 @@ export default function AdminDeletedArchiveTable({
   const router = useRouter();
   const [entries, setEntries] = useState(initialEntries);
   const [selected, setSelected] = useState<number[]>([]);
-  const [typeFilter, setTypeFilter] = useState<'all' | 'order' | 'pdf'>('all');
+  const [typeFilter, setTypeFilter] = useState<TypeFilterValue>('all');
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+
+  const [isTypeFilterMenuOpen, setIsTypeFilterMenuOpen] = useState(false);
+  const typeFilterMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isTypeFilterMenuOpen) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!typeFilterMenuRef.current?.contains(target)) {
+        setIsTypeFilterMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsTypeFilterMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isTypeFilterMenuOpen]);
+
+  const selectedTypeFilterLabel =
+    TYPE_FILTER_OPTIONS.find((option) => option.value === typeFilter)?.label ?? 'Vse vrste';
 
   const filtered = useMemo(
     () => entries.filter((entry) => (typeFilter === 'all' ? true : entry.item_type === typeFilter)),
@@ -62,19 +101,19 @@ export default function AdminDeletedArchiveTable({
       .filter((entry) => entry.item_type === 'pdf' && typeof entry.order_id === 'number' && deletedOrderIds.has(entry.order_id))
       .forEach((entry) => {
         const orderId = entry.order_id as number;
-        const list = pdfByOrder.get(orderId) ?? [];
-        list.push(entry);
-        pdfByOrder.set(orderId, list);
+        const existingList = pdfByOrder.get(orderId) ?? [];
+        existingList.push(entry);
+        pdfByOrder.set(orderId, existingList);
       });
 
     orderRows.forEach((entry) => {
       rows.push({ entry, isChild: false, parentOrderId: null });
       if (typeFilter !== 'all') return;
 
-      const children = pdfByOrder.get(entry.order_id ?? -1) ?? [];
-      children
-        .sort((left, right) => new Date(right.deleted_at).getTime() - new Date(left.deleted_at).getTime())
-        .forEach((child) => rows.push({ entry: child, isChild: true, parentOrderId: entry.order_id ?? null }));
+      const childEntries = pdfByOrder.get(entry.order_id ?? -1) ?? [];
+      childEntries
+        .sort((leftEntry, rightEntry) => new Date(rightEntry.deleted_at).getTime() - new Date(leftEntry.deleted_at).getTime())
+        .forEach((childEntry) => rows.push({ entry: childEntry, isChild: true, parentOrderId: entry.order_id ?? null }));
     });
 
     if (typeFilter === 'all') {
@@ -93,26 +132,25 @@ export default function AdminDeletedArchiveTable({
   const visibleIds = useMemo(() => displayRows.map((row) => row.entry.id), [displayRows]);
   const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.includes(id));
 
-
   const groupedChildIdsByOrder = useMemo(() => {
-    const map = new Map<number, number[]>();
+    const groupedChildIds = new Map<number, number[]>();
     displayRows.forEach((row) => {
       if (!row.isChild || row.parentOrderId === null) return;
-      const list = map.get(row.parentOrderId) ?? [];
-      list.push(row.entry.id);
-      map.set(row.parentOrderId, list);
+      const existingList = groupedChildIds.get(row.parentOrderId) ?? [];
+      existingList.push(row.entry.id);
+      groupedChildIds.set(row.parentOrderId, existingList);
     });
-    return map;
+    return groupedChildIds;
   }, [displayRows]);
 
   const parentRowIdByOrder = useMemo(() => {
-    const map = new Map<number, number>();
+    const parentIdsByOrder = new Map<number, number>();
     displayRows.forEach((row) => {
       if (row.isChild) return;
       if (row.entry.item_type !== 'order' || row.entry.order_id === null) return;
-      map.set(row.entry.order_id, row.entry.id);
+      parentIdsByOrder.set(row.entry.order_id, row.entry.id);
     });
-    return map;
+    return parentIdsByOrder;
   }, [displayRows]);
 
   const selectedEntriesFromRows = useMemo(
@@ -120,8 +158,8 @@ export default function AdminDeletedArchiveTable({
       displayRows
         .map((row) => row.entry)
         .filter(
-          (entry, index, array) =>
-            selected.includes(entry.id) && array.findIndex((candidate) => candidate.id === entry.id) === index
+          (entry, index, entriesArray) =>
+            selected.includes(entry.id) && entriesArray.findIndex((candidate) => candidate.id === entry.id) === index
         ),
     [displayRows, selected]
   );
@@ -134,41 +172,46 @@ export default function AdminDeletedArchiveTable({
       if (!parentRowId || !selected.includes(parentRowId)) return;
     }
 
-    setSelected((prev) => {
+    setSelected((previousSelected) => {
       if (isChild && parentOrderId !== null) {
-        return prev.includes(entry.id) ? prev.filter((item) => item !== entry.id) : [...prev, entry.id];
+        return previousSelected.includes(entry.id)
+          ? previousSelected.filter((itemId) => itemId !== entry.id)
+          : [...previousSelected, entry.id];
       }
 
-      const next = new Set(prev);
-      const isCurrentlySelected = next.has(entry.id);
-      const childIds = entry.item_type === 'order' && entry.order_id !== null ? groupedChildIdsByOrder.get(entry.order_id) ?? [] : [];
+      const nextSelected = new Set(previousSelected);
+      const isCurrentlySelected = nextSelected.has(entry.id);
+      const childIds =
+        entry.item_type === 'order' && entry.order_id !== null
+          ? groupedChildIdsByOrder.get(entry.order_id) ?? []
+          : [];
 
       if (isCurrentlySelected) {
-        next.delete(entry.id);
-        childIds.forEach((childId) => next.delete(childId));
+        nextSelected.delete(entry.id);
+        childIds.forEach((childId) => nextSelected.delete(childId));
       } else {
-        next.add(entry.id);
-        childIds.forEach((childId) => next.add(childId));
+        nextSelected.add(entry.id);
+        childIds.forEach((childId) => nextSelected.add(childId));
       }
 
-      return Array.from(next);
+      return Array.from(nextSelected);
     });
   };
 
   const toggleAll = () => {
-    setSelected((prev) => {
-      if (allSelected) return prev.filter((id) => !visibleIds.includes(id));
+    setSelected((previousSelected) => {
+      if (allSelected) return previousSelected.filter((id) => !visibleIds.includes(id));
 
-      const merged = new Set(prev);
+      const mergedSelection = new Set(previousSelected);
       displayRows.forEach((row) => {
-        merged.add(row.entry.id);
+        mergedSelection.add(row.entry.id);
         if (!row.isChild && row.entry.item_type === 'order' && row.entry.order_id !== null) {
           const childIds = groupedChildIdsByOrder.get(row.entry.order_id) ?? [];
-          childIds.forEach((childId) => merged.add(childId));
+          childIds.forEach((childId) => mergedSelection.add(childId));
         }
       });
 
-      return Array.from(merged);
+      return Array.from(mergedSelection);
     });
   };
 
@@ -202,7 +245,7 @@ export default function AdminDeletedArchiveTable({
         return;
       }
 
-      setEntries((prev) => prev.filter((entry) => !selected.includes(entry.id)));
+      setEntries((previousEntries) => previousEntries.filter((entry) => !selected.includes(entry.id)));
       setSelected([]);
       setMessage('Izbrani zapisi so obnovljeni.');
       router.refresh();
@@ -233,7 +276,7 @@ export default function AdminDeletedArchiveTable({
         return;
       }
 
-      setEntries((prev) => prev.filter((entry) => !deletableIds.includes(entry.id)));
+      setEntries((previousEntries) => previousEntries.filter((entry) => !deletableIds.includes(entry.id)));
       setSelected([]);
       setMessage('Izbrani zapisi so trajno izbrisani.');
     } finally {
@@ -244,16 +287,39 @@ export default function AdminDeletedArchiveTable({
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-[112px]">
-          <select
-            value={typeFilter}
-            onChange={(event) => setTypeFilter(event.target.value as 'all' | 'order' | 'pdf')}
-            className="h-8 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+        <div className="relative min-w-[140px]" ref={typeFilterMenuRef}>
+          <button
+            type="button"
+            onClick={() => setIsTypeFilterMenuOpen((previousOpen) => !previousOpen)}
+            className="inline-flex h-8 w-full min-w-[140px] items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-left text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0"
+            aria-haspopup="menu"
+            aria-expanded={isTypeFilterMenuOpen}
           >
-            <option value="all">Vse vrste</option>
-            <option value="order">Naročila</option>
-            <option value="pdf">PDF datoteke</option>
-          </select>
+            <span className="truncate">{selectedTypeFilterLabel}</span>
+            <span className="ml-2 text-slate-500">▾</span>
+          </button>
+
+          {isTypeFilterMenuOpen && (
+            <div
+              role="menu"
+              className="absolute left-0 top-9 z-30 w-[180px] rounded-xl border border-slate-300 bg-white p-1 shadow-sm"
+            >
+              {TYPE_FILTER_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setTypeFilter(option.value);
+                    setIsTypeFilterMenuOpen(false);
+                  }}
+                  className="flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none text-slate-700 transition hover:bg-[#ede8ff]"
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2">

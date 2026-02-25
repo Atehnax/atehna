@@ -10,10 +10,10 @@
   --text: #111827;
   --text-muted: #4b5563;
 
-  --primary: #5d3ed6;
-  --primary-hover: #5d3ed6;
-  --primary-active: #5d3ed6;
-  --primary-soft: #ede8ff;
+  --primary: #506be4; /* #5d3ed6; */
+  --primary-hover: #3e67d6; /* #5d3ed6; */
+  --primary-active: #3e67d6; /* #5d3ed6; */
+  --primary-soft: #e8eeff; /* #ede8ff; */
   --primary-foreground: #ffffff;
 
   --accent: #b08968;
@@ -23,9 +23,9 @@
   --danger: #a24a45;
   --info: #375a7a;
 
-  --ring: #5d3ed6;
-  --admin-bg: #f8f7fc;
-  --admin-accent: #5d3ed6;
+  --ring: #3e67d6; /* #5d3ed6; */
+  --admin-bg: #f7f9fc; /* #f8f7fc; */
+  --admin-accent: #3e67d6; /* #5d3ed6; */
   --admin-hover: #ede8ff;
 
   /* admin destructive controls */
@@ -46,8 +46,8 @@
   --chart-grid: rgba(216, 214, 207, 0.65);
   --chart-tooltip-bg: #ffffff;
   --chart-tooltip-border: #d8d6cf;
-  --chart-series-primary: #5d3ed6;
-  --chart-series-secondary: #5d3ed6;
+  --chart-series-primary: #3e67d6; /* #5d3ed6; */
+  --chart-series-secondary: #3e67d6; /* #5d3ed6; */
   --chart-series-tertiary: #7a8f6a;
   --chart-series-quaternary: #b08968;
   --chart-series-danger: #a24a45;

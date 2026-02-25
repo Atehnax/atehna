@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { Data, Layout } from 'plotly.js';
 import PlotlyClient from '@/components/admin/charts/PlotlyClient';
 import { getBaseChartLayout, getChartThemeFromCssVars } from '@/components/admin/charts/chartTheme';
-import type { OrderRow } from '@/components/admin/adminOrdersTableUtils';
+import type { OrderRow } from '@/features/admin/orders/utils/adminOrdersTableUtils';
 import type { AnalyticsGlobalAppearance } from '@/lib/server/analyticsCharts';
 
 type RangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';

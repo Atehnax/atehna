@@ -4,7 +4,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PaymentChip from '@/components/admin/PaymentChip';
 import StatusChip from '@/components/admin/StatusChip';
+import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/lib/customerType';
 import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
+import { toDateInputValue } from '@/lib/format/dateTime';
 import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/lib/paymentStatus';
 
 type TopSectionMode = 'read' | 'edit';
@@ -33,18 +35,6 @@ type Props = {
   deliveryAddress: string | null;
   notes: string | null;
   createdAt: string;
-};
-
-const customerTypeOptions = [
-  { value: 'individual', label: 'Fizična oseba' },
-  { value: 'company', label: 'Podjetje' },
-  { value: 'school', label: 'Šola / javni zavod' }
-];
-
-const toDateInputValue = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return new Date().toISOString().slice(0, 10);
-  return date.toISOString().slice(0, 10);
 };
 
 const asTopData = ({
@@ -193,7 +183,7 @@ function StaticFloatingSelect({
   const wrapperRef = useRef<HTMLDivElement | null>(null);
 
   const selectedOption =
-    customerTypeOptions.find((option) => option.value === value) ?? customerTypeOptions[0];
+    CUSTOMER_TYPE_FORM_OPTIONS.find((option) => option.value === value) ?? CUSTOMER_TYPE_FORM_OPTIONS[0];
 
   useEffect(() => {
     if (!isOpen) return;
@@ -244,7 +234,7 @@ function StaticFloatingSelect({
           role="menu"
           className="absolute left-0 top-11 z-30 min-w-full w-max max-w-[320px] rounded-xl border border-slate-300 bg-white p-1 shadow-sm"
         >
-          {customerTypeOptions.map((option) => {
+          {CUSTOMER_TYPE_FORM_OPTIONS.map((option) => {
             const isSelected = option.value === value;
 
             return (
@@ -632,7 +622,7 @@ export default function AdminOrderHeaderChips(props: Props) {
             <p className="text-sm font-semibold text-slate-700">Tip naročnika</p>
             <p className="mt-0.5 text-xs leading-5 text-slate-900">
               {displayValue(
-                customerTypeOptions.find((option) => option.value === activeTopData.customerType)?.label ??
+                CUSTOMER_TYPE_FORM_OPTIONS.find((option) => option.value === activeTopData.customerType)?.label ??
                   activeTopData.customerType
               )}
             </p>

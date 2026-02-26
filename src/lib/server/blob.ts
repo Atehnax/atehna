@@ -14,6 +14,11 @@ const sanitizeBlobSegment = (value: string): string =>
 
 const normalizePathname = (pathname: string): string => pathname.trim().replace(/^\/+/, '');
 
+const buildUploadCallsite = (): string => {
+  const stackLines = new Error().stack?.split('\n').slice(2, 5).map((line) => line.trim()) ?? [];
+  return stackLines.join(' | ');
+};
+
 export function buildOrderBlobPath(orderReference: string, fileName: string): string {
   const safeOrderReference = sanitizeBlobSegment(orderReference) || 'order';
   const safeFileName = fileName.trim().replace(/^\/+/, '');
@@ -48,6 +53,13 @@ export async function uploadBlob(
   }
 
   const effectiveContentType = contentType || 'application/octet-stream';
+  const callsite = buildUploadCallsite();
+
+  console.info('[blob.upload] calling put', {
+    pathname: normalizedPathname,
+    contentType: effectiveContentType,
+    callsite
+  });
 
   // Safety check for PDFs: must start with "%PDF-"
   if (effectiveContentType === 'application/pdf') {
@@ -57,13 +69,23 @@ export async function uploadBlob(
     }
   }
 
-  const blob = await put(normalizedPathname, payload, {
-    access: 'public',
-    contentType: effectiveContentType,
-    token: process.env.BLOB_READ_WRITE_TOKEN
-  });
+  try {
+    const blob = await put(normalizedPathname, payload, {
+      access: 'public',
+      contentType: effectiveContentType,
+      token: process.env.BLOB_READ_WRITE_TOKEN
+    });
 
-  return { url: blob.url, pathname: blob.pathname };
+    return { url: blob.url, pathname: blob.pathname };
+  } catch (error) {
+    console.error('[blob.upload] put failed', {
+      pathname: normalizedPathname,
+      contentType: effectiveContentType,
+      callsite,
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+    throw error;
+  }
 }
 
 export async function deleteBlob(pathnameOrUrl: string): Promise<void> {

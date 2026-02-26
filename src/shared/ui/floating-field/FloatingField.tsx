@@ -62,7 +62,13 @@ const toneClasses = {
     selectLabel:
       'pointer-events-none absolute left-3 z-10 bg-[var(--field-bg)] px-1 leading-none text-slate-500 transition-all duration-150 top-2 text-[11px] group-data-[has-value=false]:top-1/2 group-data-[has-value=false]:-translate-y-1/2 group-data-[has-value=false]:bg-transparent group-data-[has-value=false]:px-0 group-data-[has-value=false]:text-sm group-data-[has-value=false]:text-slate-400 peer-focus:top-2 peer-focus:translate-y-0 peer-focus:bg-[var(--field-bg)] peer-focus:px-1 peer-focus:text-[11px] peer-focus:text-slate-600',
     selectLabelStatic:
-      'pointer-events-none absolute left-3 top-2 z-10 bg-[var(--field-bg)] px-1 leading-none text-[11px] text-slate-600'
+      'px-3 pt-2 text-xs leading-4 text-slate-600',
+    staticShell: 'flex min-h-[56px] flex-col rounded-lg',
+    staticInput: 'w-full border-0 bg-transparent px-3 pb-2 text-sm leading-5 text-slate-900 outline-none ring-0',
+    staticTextarea:
+      'min-h-[110px] w-full border-0 bg-transparent px-3 pb-2 text-sm leading-5 text-slate-900 outline-none ring-0 resize-y',
+    staticSelect:
+      'w-full appearance-none border-0 bg-transparent px-3 pb-2 text-sm leading-5 text-slate-900 outline-none ring-0'
   },
   admin: {
     shell:
@@ -84,7 +90,14 @@ const toneClasses = {
     selectLabel:
       'pointer-events-none absolute left-2.5 top-1.5 z-10 bg-[var(--field-bg)] px-1 text-[10px] text-slate-600 group-data-[has-value=false]:top-1/2 group-data-[has-value=false]:-translate-y-1/2 group-data-[has-value=false]:bg-transparent group-data-[has-value=false]:px-0 group-data-[has-value=false]:text-xs group-data-[has-value=false]:text-slate-400',
     selectLabelStatic:
-      'pointer-events-none absolute left-2.5 top-1.5 z-10 bg-[var(--field-bg)] px-1 text-[10px] text-slate-600'
+      'px-2.5 pt-2 text-xs leading-4 text-slate-600',
+    staticShell: 'flex min-h-10 flex-col rounded-xl',
+    staticInput:
+      'w-full border-0 bg-transparent px-2.5 pb-2 text-sm leading-5 text-slate-900 outline-none ring-0 overflow-visible',
+    staticTextarea:
+      'min-h-[60px] w-full border-0 bg-transparent px-2.5 pb-2 text-sm leading-5 text-slate-900 outline-none ring-0 resize-y',
+    staticSelect:
+      'w-full appearance-none border-0 bg-transparent px-2.5 pb-2 text-sm leading-5 text-slate-900 outline-none ring-0 overflow-visible'
   }
 } as const;
 
@@ -102,17 +115,30 @@ export function FloatingInput({
   const fieldBackgroundVariable =
     ({ '--field-bg': fieldBackground === 'muted' ? 'rgb(248 250 252)' : 'rgb(255 255 255)' } as CSSProperties);
 
+  const isStatic = labelMode === 'static';
+
   return (
     <div
-      className={classes.shell}
+      className={classNames(classes.shell, isStatic && classes.staticShell)}
       data-floating-field
       data-filled={filled ? 'true' : 'false'}
       style={{ ...fieldBackgroundVariable, backgroundColor: 'var(--field-bg)' }}
     >
-      <input {...props} id={id} placeholder=" " className={classNames(classes.input, className)} />
-      <label htmlFor={id} className={labelMode === 'static' ? classes.inputLabelStatic : classes.inputLabel}>
-        {label}
-      </label>
+      {isStatic ? (
+        <>
+          <label htmlFor={id} className={classes.inputLabelStatic}>
+            {label}
+          </label>
+          <input {...props} id={id} className={classNames(classes.staticInput, 'mt-1', className)} />
+        </>
+      ) : (
+        <>
+          <input {...props} id={id} placeholder=" " className={classNames(classes.input, className)} />
+          <label htmlFor={id} className={classes.inputLabel}>
+            {label}
+          </label>
+        </>
+      )}
     </div>
   );
 }
@@ -131,20 +157,30 @@ export function FloatingTextarea({
   const fieldBackgroundVariable =
     ({ '--field-bg': fieldBackground === 'muted' ? 'rgb(248 250 252)' : 'rgb(255 255 255)' } as CSSProperties);
 
+  const isStatic = labelMode === 'static';
+
   return (
     <div
-      className={classes.shell}
+      className={classNames(classes.shell, isStatic && classes.staticShell)}
       data-floating-field
       data-filled={filled ? 'true' : 'false'}
       style={{ ...fieldBackgroundVariable, backgroundColor: 'var(--field-bg)' }}
     >
-      <textarea {...props} id={id} placeholder=" " className={classNames(classes.textarea, className)} />
-      <label
-        htmlFor={id}
-        className={labelMode === 'static' ? classes.textareaLabelStatic : classes.textareaLabel}
-      >
-        {label}
-      </label>
+      {isStatic ? (
+        <>
+          <label htmlFor={id} className={classes.textareaLabelStatic}>
+            {label}
+          </label>
+          <textarea {...props} id={id} className={classNames(classes.staticTextarea, 'mt-1', className)} />
+        </>
+      ) : (
+        <>
+          <textarea {...props} id={id} placeholder=" " className={classNames(classes.textarea, className)} />
+          <label htmlFor={id} className={classes.textareaLabel}>
+            {label}
+          </label>
+        </>
+      )}
     </div>
   );
 }
@@ -167,28 +203,49 @@ export function FloatingSelect({
   const fieldBackgroundVariable =
     ({ '--field-bg': fieldBackground === 'muted' ? 'rgb(248 250 252)' : 'rgb(255 255 255)' } as CSSProperties);
 
+  const isStatic = labelMode === 'static';
+
   return (
     <div
-      className={classes.shell}
+      className={classNames(classes.shell, isStatic && classes.staticShell)}
       data-floating-field
       data-has-value={hasValue}
       style={{ ...fieldBackgroundVariable, backgroundColor: 'var(--field-bg)' }}
     >
-      <select
-        {...props}
-        id={id}
-        value={value}
-        defaultValue={defaultValue}
-        className={classNames(classes.select, className)}
-      >
-        {children}
-      </select>
+      {isStatic ? (
+        <>
+          <label htmlFor={id} className={classes.selectLabelStatic}>
+            {label}
+          </label>
+          <select
+            {...props}
+            id={id}
+            value={value}
+            defaultValue={defaultValue}
+            className={classNames(classes.staticSelect, 'mt-1', className)}
+          >
+            {children}
+          </select>
+        </>
+      ) : (
+        <>
+          <select
+            {...props}
+            id={id}
+            value={value}
+            defaultValue={defaultValue}
+            className={classNames(classes.select, className)}
+          >
+            {children}
+          </select>
 
-      <label htmlFor={id} className={labelMode === 'static' ? classes.selectLabelStatic : classes.selectLabel}>
-        {label}
-      </label>
+          <label htmlFor={id} className={classes.selectLabel}>
+            {label}
+          </label>
+        </>
+      )}
 
-      {tone === 'order' ? (
+      {tone === 'order' && !isStatic ? (
         <svg
           viewBox="0 0 20 20"
           className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"

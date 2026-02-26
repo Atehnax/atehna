@@ -8,9 +8,51 @@ import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/lib/customerType';
 import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 import { toDateInputValue } from '@/lib/format/dateTime';
 import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/lib/paymentStatus';
-import { FloatingInput, FloatingTextarea } from '@/shared/ui/floating-field';
+import TextField from '@mui/material/TextField';
 
 type TopSectionMode = 'read' | 'edit';
+
+
+const outlinedTextFieldSx = {
+  '& .MuiOutlinedInput-root': {
+    backgroundColor: '#fff',
+    boxShadow: 'none',
+    '& .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#5d3ed6',
+      borderWidth: 1
+    },
+    '&:hover .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#5d3ed6'
+    },
+    '&.Mui-focused': {
+      boxShadow: 'none'
+    },
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#5d3ed6',
+      borderWidth: 1
+    }
+  },
+  '& .MuiInputBase-input': {
+    fontSize: '10px',
+    lineHeight: '14px',
+    paddingTop: '14px',
+    paddingBottom: '8px'
+  },
+  '& .MuiInputBase-input:focus-visible': {
+    outline: 'none',
+    boxShadow: 'none'
+  },
+  '& .MuiInputLabel-root.MuiInputLabel-shrink': {
+    backgroundColor: '#fff',
+    fontSize: '10px',
+    lineHeight: 1,
+    paddingInline: '2px',
+    transform: 'translate(12px, -6px) scale(1)'
+  },
+  '& .MuiInputLabel-root.Mui-focused': {
+    color: '#5d3ed6'
+  }
+} as const;
 
 type TopData = {
   orderDate: string;
@@ -100,14 +142,14 @@ function StaticFloatingDate({
 }) {
   return (
     <div className="relative">
-      <label className="pointer-events-none absolute left-2.5 top-1.5 z-10 bg-white px-1 text-[10px] text-slate-600">
+      <label className="pointer-events-none absolute left-2.5 top-0 z-10 -translate-y-1/2 bg-white px-0.5 text-[10px] leading-none text-[#5d3ed6]">
         {label}
       </label>
       <input
         type="date"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full overflow-visible rounded-xl border border-slate-300 bg-white px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+        className="h-10 w-full overflow-visible rounded-xl border border-[#5d3ed6] bg-white px-2.5 py-2 text-[10px] leading-[14px] text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0"
       />
     </div>
   );
@@ -155,7 +197,7 @@ function StaticFloatingSelect({
 
   return (
     <div className="relative" ref={wrapperRef}>
-      <label className="pointer-events-none absolute left-2.5 top-1 z-10 bg-white px-1 text-[10px] text-slate-600">
+      <label className="pointer-events-none absolute left-2.5 top-0 z-10 -translate-y-1/2 bg-white px-0.5 text-[10px] leading-none text-[#5d3ed6]">
         {label}
       </label>
 
@@ -164,7 +206,7 @@ function StaticFloatingSelect({
         onClick={() => setIsOpen((previousOpen) => !previousOpen)}
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        className="inline-flex h-10 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-2.5 pb-1 pt-4 text-left text-xs leading-5 text-slate-900 outline-none transition hover:border-slate-400 focus:border-[#5d3ed6] focus:outline-none focus:ring-0"
+        className="inline-flex h-10 w-full items-center justify-between rounded-xl border border-[#5d3ed6] bg-white px-2.5 py-2 text-left text-[10px] leading-[14px] text-slate-900 outline-none transition hover:border-[#5d3ed6] focus:border-[#5d3ed6] focus:outline-none focus:ring-0"
       >
         <span className="block min-w-0 flex-1 truncate text-left">
           {selectedOption?.label ?? ''}
@@ -175,7 +217,7 @@ function StaticFloatingSelect({
       {isOpen ? (
         <div
           role="menu"
-          className="absolute left-0 top-11 z-30 min-w-full w-max max-w-[320px] rounded-xl border border-slate-300 bg-white p-1 shadow-sm"
+          className="absolute left-0 top-11 z-30 min-w-full w-max max-w-[320px] rounded-xl border border-[#5d3ed6] bg-white p-1 shadow-sm"
         >
           {CUSTOMER_TYPE_FORM_OPTIONS.map((option) => {
             const isSelected = option.value === value;
@@ -530,35 +572,54 @@ export default function AdminOrderHeaderChips(props: Props) {
             onChange={(value) => setDraftTopData((prev) => ({ ...prev, customerType: value }))}
           />
 
-          <FloatingInput
-            tone="admin"
+          <TextField
+            sx={outlinedTextFieldSx}
             id="organizationName"
             label="Naročnik"
+            variant="outlined"
+            size="small"
+            fullWidth
             value={activeTopData.organizationName}
             onChange={(event) => setDraftTopData((prev) => ({ ...prev, organizationName: event.target.value }))}
           />
 
-          <FloatingInput
-            tone="admin"
+          <TextField
+            sx={outlinedTextFieldSx}
             id="email"
             label="Email"
             type="email"
+            variant="outlined"
+            size="small"
+            fullWidth
             value={activeTopData.email}
             onChange={(event) => setDraftTopData((prev) => ({ ...prev, email: event.target.value }))}
           />
 
-          <FloatingInput
-            tone="admin"
+          <TextField
+            sx={outlinedTextFieldSx}
             id="deliveryAddress"
             label="Naslov"
+            variant="outlined"
+            size="small"
+            fullWidth
             value={activeTopData.deliveryAddress}
             onChange={(event) => setDraftTopData((prev) => ({ ...prev, deliveryAddress: event.target.value }))}
           />
 
-          <FloatingTextarea
-            tone="admin"
+          <TextField
+            sx={{
+              ...outlinedTextFieldSx,
+              "& .MuiInputBase-inputMultiline": {
+                resize: "both"
+              }
+            }}
             id="notes"
             label="Opombe"
+            variant="outlined"
+            size="small"
+            fullWidth
+            multiline
+            minRows={2}
             value={activeTopData.notes}
             onChange={(event) => setDraftTopData((prev) => ({ ...prev, notes: event.target.value }))}
           />

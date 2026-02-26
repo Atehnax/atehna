@@ -7,12 +7,49 @@ import {
   type FormEvent,
 } from 'react';
 import Link from 'next/link';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
 import { useCartStore } from '@/lib/cart/store';
 import { CUSTOMER_TYPE_FORM_OPTIONS, type CustomerType } from '@/lib/customerType';
 import { SLOVENIAN_ADDRESSES } from '@/data/slovenianAddresses';
-import { FloatingInput, FloatingSelect, FloatingTextarea } from '@/shared/ui/floating-field';
 
 const FORM_STORAGE_KEY = 'atehna-order-form';
+
+
+const outlinedTextFieldSx = {
+  '& .MuiOutlinedInput-root': {
+    backgroundColor: '#fff',
+    boxShadow: 'none',
+    '& .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#5d3ed6',
+      borderWidth: 1
+    },
+    '&:hover .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#5d3ed6'
+    },
+    '&.Mui-focused': {
+      boxShadow: 'none'
+    },
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#5d3ed6',
+      borderWidth: 1
+    }
+  },
+  '& .MuiInputBase-input:focus-visible': {
+    outline: 'none',
+    boxShadow: 'none'
+  },
+  '& .MuiInputLabel-root.MuiInputLabel-shrink': {
+    backgroundColor: '#fff',
+    fontSize: '11px',
+    lineHeight: 1,
+    paddingInline: '1px',
+    transform: 'translate(10px, -6px) scale(1)'
+  },
+  '& .MuiInputLabel-root.Mui-focused': {
+    color: '#5d3ed6'
+  }
+} as const;
 
 type CheckoutItem = {
   sku: string;
@@ -491,11 +528,15 @@ export default function OrderPageClient() {
 
             {isEmailEditing && (
               <div className="mt-4 space-y-3">
-                <FloatingInput
+                <TextField
+                  sx={outlinedTextFieldSx}
                   id="email"
                   type="email"
                   label="Email naslov"
                   autoComplete="email"
+                  variant="outlined"
+                  size="small"
+                  fullWidth
                   value={formData.email}
                   onChange={(event) =>
                     setFormData((previous) => ({ ...previous, email: event.target.value }))
@@ -547,10 +588,15 @@ export default function OrderPageClient() {
               onSubmit={handleSubmit}
             >
               <div className="md:col-span-2">
-                <FloatingSelect
+                <TextField
+                  sx={outlinedTextFieldSx}
                   id="customerType"
                   label="Tip naročnika"
                   disabled={shippingDetailsLocked}
+                  variant="outlined"
+                  size="small"
+                  fullWidth
+                  select
                   value={formData.customerType}
                   onChange={(event) => {
                     setFormData((previous) => ({
@@ -560,28 +606,36 @@ export default function OrderPageClient() {
                   }}
                 >
                   {CUSTOMER_TYPE_FORM_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
+                    <MenuItem key={option.value} value={option.value}>
                       {option.label}
-                    </option>
+                    </MenuItem>
                   ))}
-                </FloatingSelect>
+                </TextField>
               </div>
 
               {isIndividual ? (
                 <>
-                  <FloatingInput
+                  <TextField
+                    sx={outlinedTextFieldSx}
                     id="firstName"
                     label="Ime *"
                     disabled={shippingDetailsLocked}
+                    variant="outlined"
+                    size="small"
+                    fullWidth
                     value={formData.firstName}
                     onChange={(event) =>
                       setFormData((previous) => ({ ...previous, firstName: event.target.value }))
                     }
                   />
-                  <FloatingInput
+                  <TextField
+                    sx={outlinedTextFieldSx}
                     id="lastName"
                     label="Priimek *"
                     disabled={shippingDetailsLocked}
+                    variant="outlined"
+                    size="small"
+                    fullWidth
                     value={formData.lastName}
                     onChange={(event) =>
                       setFormData((previous) => ({ ...previous, lastName: event.target.value }))
@@ -591,10 +645,14 @@ export default function OrderPageClient() {
               ) : (
                 <>
                   <div className="md:col-span-2">
-                    <FloatingInput
+                    <TextField
+                      sx={outlinedTextFieldSx}
                       id="organizationName"
                       label="Naročnik *"
                       disabled={shippingDetailsLocked}
+                      variant="outlined"
+                      size="small"
+                      fullWidth
                       value={formData.organizationName}
                       onChange={(event) =>
                         setFormData((previous) => ({
@@ -608,11 +666,15 @@ export default function OrderPageClient() {
               )}
 
               <div className="md:col-span-2">
-                <FloatingInput
+                <TextField
+                  sx={outlinedTextFieldSx}
                   id="addressLine1"
                   label="Naslov *"
                   disabled={shippingDetailsLocked}
                   autoComplete="street-address"
+                  variant="outlined"
+                  size="small"
+                  fullWidth
                   value={formData.addressLine1}
                   onChange={(event) =>
                     setFormData((previous) => ({
@@ -642,20 +704,28 @@ export default function OrderPageClient() {
               </div>
 
               <div className="md:col-span-2 grid gap-4 md:grid-cols-[3fr_1fr]">
-                <FloatingInput
+                <TextField
+                  sx={outlinedTextFieldSx}
                   id="city"
                   label="Kraj *"
                   disabled={shippingDetailsLocked}
+                  variant="outlined"
+                  size="small"
+                  fullWidth
                   value={formData.city}
                   onChange={(event) =>
                     setFormData((previous) => ({ ...previous, city: event.target.value }))
                   }
                 />
 
-                <FloatingInput
+                <TextField
+                  sx={outlinedTextFieldSx}
                   id="postalCode"
                   label="Poštna številka *"
                   disabled={shippingDetailsLocked}
+                  variant="outlined"
+                  size="small"
+                  fullWidth
                   value={formData.postalCode}
                   onChange={(event) =>
                     setFormData((previous) => ({ ...previous, postalCode: event.target.value }))
@@ -664,11 +734,15 @@ export default function OrderPageClient() {
               </div>
 
               <div className="md:col-span-2">
-                <FloatingInput
+                <TextField
+                  sx={outlinedTextFieldSx}
                   id="phone"
                   label="Telefon"
                   disabled={shippingDetailsLocked}
                   autoComplete="tel"
+                  variant="outlined"
+                  size="small"
+                  fullWidth
                   value={formData.phone}
                   onChange={(event) =>
                     setFormData((previous) => ({ ...previous, phone: event.target.value }))
@@ -677,11 +751,16 @@ export default function OrderPageClient() {
               </div>
 
               <div className="md:col-span-2">
-                <FloatingTextarea
+                <TextField
+                  sx={outlinedTextFieldSx}
                   id="notes"
                   label="Opombe"
                   disabled={shippingDetailsLocked}
-                  rows={3}
+                  variant="outlined"
+                  size="small"
+                  fullWidth
+                  multiline
+                  minRows={3}
                   value={formData.notes}
                   onChange={(event) =>
                     setFormData((previous) => ({ ...previous, notes: event.target.value }))

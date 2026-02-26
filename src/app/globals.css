@@ -84,6 +84,12 @@ body {
   }
 }
 
+
+.MuiInputBase-input:focus-visible {
+  outline: none;
+  box-shadow: none !important;
+}
+
 @layer utilities {
   .bg-white { background-color: var(--surface-1); }
   .bg-slate-50, .bg-gray-50 { background-color: var(--bg); }
@@ -139,20 +145,4 @@ body {
 
 .admin-scope table tbody tr:hover {
   background-color: #f8f7fc !important;
-}
-
-[data-floating-field] input:-webkit-autofill,
-[data-floating-field] textarea:-webkit-autofill,
-[data-floating-field] select:-webkit-autofill,
-[data-floating-field] input:-webkit-autofill:hover,
-[data-floating-field] textarea:-webkit-autofill:hover,
-[data-floating-field] select:-webkit-autofill:hover,
-[data-floating-field] input:-webkit-autofill:focus,
-[data-floating-field] textarea:-webkit-autofill:focus,
-[data-floating-field] select:-webkit-autofill:focus {
-  background-color: var(--field-bg) !important;
-  -webkit-box-shadow: 0 0 0 1000px var(--field-bg) inset !important;
-  box-shadow: 0 0 0 1000px var(--field-bg) inset !important;
-  -webkit-text-fill-color: currentColor !important;
-  caret-color: currentColor !important;
 }

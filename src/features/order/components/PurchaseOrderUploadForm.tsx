@@ -3,10 +3,46 @@
 import { useState } from 'react';
 
 import { Button } from '@/shared/ui/button';
-import { FloatingInput } from '@/shared/ui/floating-field';
+import TextField from '@mui/material/TextField';
 
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg'];
+
+
+const outlinedTextFieldSx = {
+  '& .MuiOutlinedInput-root': {
+    backgroundColor: '#fff',
+    boxShadow: 'none',
+    '& .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#5d3ed6',
+      borderWidth: 1
+    },
+    '&:hover .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#5d3ed6'
+    },
+    '&.Mui-focused': {
+      boxShadow: 'none'
+    },
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#5d3ed6',
+      borderWidth: 1
+    }
+  },
+  '& .MuiInputBase-input:focus-visible': {
+    outline: 'none',
+    boxShadow: 'none'
+  },
+  '& .MuiInputLabel-root.MuiInputLabel-shrink': {
+    backgroundColor: '#fff',
+    fontSize: '11px',
+    lineHeight: 1,
+    paddingInline: '1px',
+    transform: 'translate(10px, -6px) scale(1)'
+  },
+  '& .MuiInputLabel-root.Mui-focused': {
+    color: '#5d3ed6'
+  }
+} as const;
 
 export default function PurchaseOrderUploadForm() {
   const [orderNumber, setOrderNumber] = useState('');
@@ -70,9 +106,13 @@ export default function PurchaseOrderUploadForm() {
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
-      <FloatingInput
+      <TextField
+        sx={outlinedTextFieldSx}
         id="orderNumber"
         label="Št. naročila"
+        variant="outlined"
+        size="small"
+        fullWidth
         value={orderNumber}
         onChange={(event) => setOrderNumber(event.target.value)}
       />

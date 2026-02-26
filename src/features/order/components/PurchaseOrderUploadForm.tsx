@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 
-import { parseOrderId } from '@/features/order/utils/parseOrderId';
 import { Button } from '@/shared/ui/button';
 
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
@@ -19,9 +18,9 @@ export default function PurchaseOrderUploadForm() {
     setMessage(null);
     setUploadedUrl(null);
 
-    const orderId = parseOrderId(orderNumber);
-    if (!orderId) {
-      setMessage('Vnesite veljavno številko naročila (npr. #123).');
+    const normalizedOrderNumber = orderNumber.trim();
+    if (!normalizedOrderNumber) {
+      setMessage('Vnesite veljavno številko naročila (npr. #123, 123).');
       return;
     }
 
@@ -49,7 +48,7 @@ export default function PurchaseOrderUploadForm() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/api/orders/${orderId}/purchase-order`, {
+      const response = await fetch(`/api/orders/${encodeURIComponent(normalizedOrderNumber)}/purchase-order`, {
         method: 'POST',
         body: formData
       });

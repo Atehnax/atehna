@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/server/db';
-import { uploadBlob } from '@/lib/server/blob';
+import { buildOrderBlobPath, uploadBlob } from '@/lib/server/blob';
 
 export const runtime = 'nodejs';
 
@@ -71,7 +71,7 @@ export async function POST(
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     const fileName = `purchase-order-${Date.now()}.${detectedFormat.extension}`;
-    const blobPath = `orders/${order.order_number}/${fileName}`;
+    const blobPath = buildOrderBlobPath(String(order.order_number ?? ''), fileName);
 
     const blob = await uploadBlob(blobPath, fileBuffer, detectedFormat.contentType);
 

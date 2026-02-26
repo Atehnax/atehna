@@ -8,6 +8,7 @@ import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/lib/customerType';
 import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 import { toDateInputValue } from '@/lib/format/dateTime';
 import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/lib/paymentStatus';
+import { FloatingInput, FloatingTextarea } from '@/shared/ui/floating-field';
 
 type TopSectionMode = 'read' | 'edit';
 
@@ -85,64 +86,6 @@ function PencilIcon() {
       <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
       <path d="M11.5 4.5l3 3" />
     </svg>
-  );
-}
-
-function StableFloatingInput({
-  label,
-  value,
-  onChange,
-  type = 'text'
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  type?: string;
-}) {
-  const filled = String(value ?? '').length > 0;
-
-  return (
-    <div className="group relative" data-filled={filled ? 'true' : 'false'}>
-      <input
-        type={type}
-        value={value}
-        placeholder=" "
-        onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full overflow-visible rounded-xl border border-slate-300 bg-white px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
-      />
-      <label className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 bg-white px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600">
-        {label}
-      </label>
-    </div>
-  );
-}
-
-function StableFloatingTextarea({
-  label,
-  value,
-  onChange
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  const filled = String(value ?? '').length > 0;
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-
-  return (
-    <div className="group relative" data-filled={filled ? 'true' : 'false'}>
-      <textarea
-        ref={textareaRef}
-        rows={1}
-        value={value}
-        placeholder=" "
-        onChange={(event) => onChange(event.target.value)}
-        className="h-10 min-h-[40px] w-full resize-y overflow-hidden rounded-xl border border-slate-300 bg-white px-2.5 pb-1 pt-4 text-xs leading-4 text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
-      />
-      <label className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 bg-white px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600">
-        {label}
-      </label>
-    </div>
   );
 }
 
@@ -587,29 +530,37 @@ export default function AdminOrderHeaderChips(props: Props) {
             onChange={(value) => setDraftTopData((prev) => ({ ...prev, customerType: value }))}
           />
 
-          <StableFloatingInput
+          <FloatingInput
+            tone="admin"
+            id="organizationName"
             label="Naročnik"
             value={activeTopData.organizationName}
-            onChange={(value) => setDraftTopData((prev) => ({ ...prev, organizationName: value }))}
+            onChange={(event) => setDraftTopData((prev) => ({ ...prev, organizationName: event.target.value }))}
           />
 
-          <StableFloatingInput
+          <FloatingInput
+            tone="admin"
+            id="email"
             label="Email"
             type="email"
             value={activeTopData.email}
-            onChange={(value) => setDraftTopData((prev) => ({ ...prev, email: value }))}
+            onChange={(event) => setDraftTopData((prev) => ({ ...prev, email: event.target.value }))}
           />
 
-          <StableFloatingInput
+          <FloatingInput
+            tone="admin"
+            id="deliveryAddress"
             label="Naslov"
             value={activeTopData.deliveryAddress}
-            onChange={(value) => setDraftTopData((prev) => ({ ...prev, deliveryAddress: value }))}
+            onChange={(event) => setDraftTopData((prev) => ({ ...prev, deliveryAddress: event.target.value }))}
           />
 
-          <StableFloatingTextarea
+          <FloatingTextarea
+            tone="admin"
+            id="notes"
             label="Opombe"
             value={activeTopData.notes}
-            onChange={(value) => setDraftTopData((prev) => ({ ...prev, notes: value }))}
+            onChange={(event) => setDraftTopData((prev) => ({ ...prev, notes: event.target.value }))}
           />
         </div>
       ) : (

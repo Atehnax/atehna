@@ -1,4 +1,4 @@
-import AdminOrdersTable from '@/features/admin/orders/components/AdminOrdersTable';
+import AdminOrdersTable from '@/components/admin/AdminOrdersTable';
 import AdminCreateDraftOrderButton from '@/components/admin/AdminCreateDraftOrderButton';
 import {
   type OrderAttachmentRow,

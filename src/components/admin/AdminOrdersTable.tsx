@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
-import AdminOrdersPdfCell from '@/features/admin/orders/components/AdminOrdersPdfCell';
+import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
 import AdminOrderPaymentSelect from '@/components/admin/AdminOrderPaymentSelect';
-import AdminOrdersPreviewChart from '@/features/admin/orders/components/AdminOrdersPreviewChart';
+import AdminOrdersPreviewChart from '@/components/admin/AdminOrdersPreviewChart';
 import StatusChip from '@/components/admin/StatusChip';
 import PaymentChip from '@/components/admin/PaymentChip';
 import { getCustomerTypeLabel } from '@/lib/customerType';
@@ -38,7 +38,7 @@ import {
   toAmount,
   toDateInputValue,
   toDisplayOrderNumber
-} from '@/features/admin/orders/utils/adminOrdersTableUtils';
+} from '@/components/admin/adminOrdersTableUtils';
 
 
 type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';

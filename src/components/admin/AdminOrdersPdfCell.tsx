@@ -10,7 +10,7 @@ import {
   groupDocumentsByType,
   isGenerateKey,
   routeMap
-} from '@/features/admin/orders/utils/adminOrdersPdfCellUtils';
+} from '@/components/admin/adminOrdersPdfCellUtils';
 
 type PdfButton = { key: PdfTypeKey; short: string; full: string };
 

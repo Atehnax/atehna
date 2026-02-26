@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import AdminOrderItemsEditor from '@/components/admin/AdminOrderItemsEditor';
 import AdminOrderPdfManager from '@/components/admin/AdminOrderPdfManager';
 import AdminOrderHeaderChips from '@/components/admin/AdminOrderHeaderChips';
-import { toDisplayOrderNumber } from '@/features/admin/orders/utils/adminOrdersTableUtils';
+import { toDisplayOrderNumber } from '@/components/admin/adminOrdersTableUtils';
 import {
   fetchOrderById,
   fetchOrderDocuments,

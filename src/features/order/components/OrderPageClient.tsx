@@ -15,6 +15,26 @@ import { SLOVENIAN_ADDRESSES } from '@/data/slovenianAddresses';
 
 const FORM_STORAGE_KEY = 'atehna-order-form';
 
+
+const outlinedTextFieldSx = {
+  '& .MuiOutlinedInput-root': {
+    '& .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#cbd5e1',
+      borderWidth: 1
+    },
+    '&:hover .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#94a3b8'
+    },
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#5d3ed6',
+      borderWidth: 1
+    }
+  },
+  '& .MuiInputLabel-root.Mui-focused': {
+    color: '#5d3ed6'
+  }
+} as const;
+
 type CheckoutItem = {
   sku: string;
   name: string;
@@ -493,6 +513,7 @@ export default function OrderPageClient() {
             {isEmailEditing && (
               <div className="mt-4 space-y-3">
                 <TextField
+                  sx={outlinedTextFieldSx}
                   id="email"
                   type="email"
                   label="Email naslov"
@@ -552,6 +573,7 @@ export default function OrderPageClient() {
             >
               <div className="md:col-span-2">
                 <TextField
+                  sx={outlinedTextFieldSx}
                   id="customerType"
                   label="Tip naročnika"
                   disabled={shippingDetailsLocked}
@@ -578,6 +600,7 @@ export default function OrderPageClient() {
               {isIndividual ? (
                 <>
                   <TextField
+                    sx={outlinedTextFieldSx}
                     id="firstName"
                     label="Ime *"
                     disabled={shippingDetailsLocked}
@@ -590,6 +613,7 @@ export default function OrderPageClient() {
                     }
                   />
                   <TextField
+                    sx={outlinedTextFieldSx}
                     id="lastName"
                     label="Priimek *"
                     disabled={shippingDetailsLocked}
@@ -606,6 +630,7 @@ export default function OrderPageClient() {
                 <>
                   <div className="md:col-span-2">
                     <TextField
+                      sx={outlinedTextFieldSx}
                       id="organizationName"
                       label="Naročnik *"
                       disabled={shippingDetailsLocked}
@@ -626,6 +651,7 @@ export default function OrderPageClient() {
 
               <div className="md:col-span-2">
                 <TextField
+                  sx={outlinedTextFieldSx}
                   id="addressLine1"
                   label="Naslov *"
                   disabled={shippingDetailsLocked}
@@ -663,6 +689,7 @@ export default function OrderPageClient() {
 
               <div className="md:col-span-2 grid gap-4 md:grid-cols-[3fr_1fr]">
                 <TextField
+                  sx={outlinedTextFieldSx}
                   id="city"
                   label="Kraj *"
                   disabled={shippingDetailsLocked}
@@ -676,6 +703,7 @@ export default function OrderPageClient() {
                 />
 
                 <TextField
+                  sx={outlinedTextFieldSx}
                   id="postalCode"
                   label="Poštna številka *"
                   disabled={shippingDetailsLocked}
@@ -691,6 +719,7 @@ export default function OrderPageClient() {
 
               <div className="md:col-span-2">
                 <TextField
+                  sx={outlinedTextFieldSx}
                   id="phone"
                   label="Telefon"
                   disabled={shippingDetailsLocked}
@@ -707,6 +736,7 @@ export default function OrderPageClient() {
 
               <div className="md:col-span-2">
                 <TextField
+                  sx={outlinedTextFieldSx}
                   id="notes"
                   label="Opombe"
                   disabled={shippingDetailsLocked}

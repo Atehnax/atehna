@@ -48,6 +48,26 @@ const emptyItem = (): Item => ({
 const discountedPrice = (price: number, discountPct: number) =>
   Number((price * (1 - Math.max(0, Math.min(100, discountPct)) / 100)).toFixed(2));
 
+
+const outlinedTextFieldSx = {
+  '& .MuiOutlinedInput-root': {
+    '& .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#cbd5e1',
+      borderWidth: 1
+    },
+    '&:hover .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#94a3b8'
+    },
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#5d3ed6',
+      borderWidth: 1
+    }
+  },
+  '& .MuiInputLabel-root.Mui-focused': {
+    color: '#5d3ed6'
+  }
+} as const;
+
 const statusTabs: Array<{ key: StatusTab; label: string }> = [
   { key: 'active', label: 'Aktivni' },
   { key: 'inactive', label: 'Neaktivni' }
@@ -94,6 +114,7 @@ function FloatingInput({
       size="small"
       fullWidth
       inputProps={{ min, max, step }}
+      sx={outlinedTextFieldSx}
     />
   );
 }
@@ -481,6 +502,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             <div className="space-y-3 text-sm">
               <FloatingInput label="Naziv" value={draft.name} onChange={(value) => setDraft((prev) => ({ ...prev, name: value }))} />
               <TextField
+                sx={outlinedTextFieldSx}
                 label="Opis"
                 value={draft.description}
                 onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))}
@@ -492,6 +514,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
               />
 
               <TextField
+                sx={outlinedTextFieldSx}
                 label="Kategorija"
                 value={draft.category}
                 onChange={(event) => setDraft((prev) => ({ ...prev, category: event.target.value }))}

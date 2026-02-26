@@ -12,6 +12,26 @@ import TextField from '@mui/material/TextField';
 
 type TopSectionMode = 'read' | 'edit';
 
+
+const outlinedTextFieldSx = {
+  '& .MuiOutlinedInput-root': {
+    '& .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#cbd5e1',
+      borderWidth: 1
+    },
+    '&:hover .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#94a3b8'
+    },
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#5d3ed6',
+      borderWidth: 1
+    }
+  },
+  '& .MuiInputLabel-root.Mui-focused': {
+    color: '#5d3ed6'
+  }
+} as const;
+
 type TopData = {
   orderDate: string;
   customerType: string;
@@ -531,6 +551,7 @@ export default function AdminOrderHeaderChips(props: Props) {
           />
 
           <TextField
+            sx={outlinedTextFieldSx}
             id="organizationName"
             label="Naročnik"
             variant="outlined"
@@ -541,6 +562,7 @@ export default function AdminOrderHeaderChips(props: Props) {
           />
 
           <TextField
+            sx={outlinedTextFieldSx}
             id="email"
             label="Email"
             type="email"
@@ -552,6 +574,7 @@ export default function AdminOrderHeaderChips(props: Props) {
           />
 
           <TextField
+            sx={outlinedTextFieldSx}
             id="deliveryAddress"
             label="Naslov"
             variant="outlined"
@@ -562,6 +585,7 @@ export default function AdminOrderHeaderChips(props: Props) {
           />
 
           <TextField
+            sx={outlinedTextFieldSx}
             id="notes"
             label="Opombe"
             variant="outlined"

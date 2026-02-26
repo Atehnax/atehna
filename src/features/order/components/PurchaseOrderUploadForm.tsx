@@ -8,6 +8,26 @@ import TextField from '@mui/material/TextField';
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg'];
 
+
+const outlinedTextFieldSx = {
+  '& .MuiOutlinedInput-root': {
+    '& .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#cbd5e1',
+      borderWidth: 1
+    },
+    '&:hover .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#94a3b8'
+    },
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#5d3ed6',
+      borderWidth: 1
+    }
+  },
+  '& .MuiInputLabel-root.Mui-focused': {
+    color: '#5d3ed6'
+  }
+} as const;
+
 export default function PurchaseOrderUploadForm() {
   const [orderNumber, setOrderNumber] = useState('');
   const [message, setMessage] = useState<string | null>(null);
@@ -71,6 +91,7 @@ export default function PurchaseOrderUploadForm() {
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
       <TextField
+        sx={outlinedTextFieldSx}
         id="orderNumber"
         label="Št. naročila"
         variant="outlined"

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import './globals.css';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
@@ -33,11 +34,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="sl">
       <body className="min-h-screen bg-slate-50 text-slate-900">
-        <WebsiteAnalyticsTracker />
-        <SiteHeader searchItems={searchItems} />
-        <main className="min-h-[70vh]">{children}</main>
-        <CartDrawer />
-        <SiteFooter />
+        <AppRouterCacheProvider>
+          <WebsiteAnalyticsTracker />
+          <SiteHeader searchItems={searchItems} />
+          <main className="min-h-[70vh]">{children}</main>
+          <CartDrawer />
+          <SiteFooter />
+        </AppRouterCacheProvider>
       </body>
     </html>
   );

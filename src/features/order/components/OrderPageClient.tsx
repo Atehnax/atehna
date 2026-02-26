@@ -7,10 +7,11 @@ import {
   type FormEvent,
 } from 'react';
 import Link from 'next/link';
+import MenuItem from '@mui/material/MenuItem';
 import { useCartStore } from '@/lib/cart/store';
 import { CUSTOMER_TYPE_FORM_OPTIONS, type CustomerType } from '@/lib/customerType';
 import { SLOVENIAN_ADDRESSES } from '@/data/slovenianAddresses';
-import { FloatingInput, FloatingSelect, FloatingTextarea } from '@/shared/ui/floating-field';
+import MuiTextField from '@/shared/ui/mui-text-field/MuiTextField';
 
 const FORM_STORAGE_KEY = 'atehna-order-form';
 
@@ -491,7 +492,7 @@ export default function OrderPageClient() {
 
             {isEmailEditing && (
               <div className="mt-4 space-y-3">
-                <FloatingInput
+                <MuiTextField
                   id="email"
                   type="email"
                   label="Email naslov"
@@ -547,9 +548,10 @@ export default function OrderPageClient() {
               onSubmit={handleSubmit}
             >
               <div className="md:col-span-2">
-                <FloatingSelect
+                <MuiTextField
                   id="customerType"
                   label="Tip naročnika"
+                  select
                   disabled={shippingDetailsLocked}
                   value={formData.customerType}
                   onChange={(event) => {
@@ -560,16 +562,16 @@ export default function OrderPageClient() {
                   }}
                 >
                   {CUSTOMER_TYPE_FORM_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
+                    <MenuItem key={option.value} value={option.value}>
                       {option.label}
-                    </option>
+                    </MenuItem>
                   ))}
-                </FloatingSelect>
+                </MuiTextField>
               </div>
 
               {isIndividual ? (
                 <>
-                  <FloatingInput
+                  <MuiTextField
                     id="firstName"
                     label="Ime *"
                     disabled={shippingDetailsLocked}
@@ -578,7 +580,7 @@ export default function OrderPageClient() {
                       setFormData((previous) => ({ ...previous, firstName: event.target.value }))
                     }
                   />
-                  <FloatingInput
+                  <MuiTextField
                     id="lastName"
                     label="Priimek *"
                     disabled={shippingDetailsLocked}
@@ -591,7 +593,7 @@ export default function OrderPageClient() {
               ) : (
                 <>
                   <div className="md:col-span-2">
-                    <FloatingInput
+                    <MuiTextField
                       id="organizationName"
                       label="Naročnik *"
                       disabled={shippingDetailsLocked}
@@ -608,7 +610,7 @@ export default function OrderPageClient() {
               )}
 
               <div className="md:col-span-2">
-                <FloatingInput
+                <MuiTextField
                   id="addressLine1"
                   label="Naslov *"
                   disabled={shippingDetailsLocked}
@@ -642,7 +644,7 @@ export default function OrderPageClient() {
               </div>
 
               <div className="md:col-span-2 grid gap-4 md:grid-cols-[3fr_1fr]">
-                <FloatingInput
+                <MuiTextField
                   id="city"
                   label="Kraj *"
                   disabled={shippingDetailsLocked}
@@ -652,7 +654,7 @@ export default function OrderPageClient() {
                   }
                 />
 
-                <FloatingInput
+                <MuiTextField
                   id="postalCode"
                   label="Poštna številka *"
                   disabled={shippingDetailsLocked}
@@ -664,7 +666,7 @@ export default function OrderPageClient() {
               </div>
 
               <div className="md:col-span-2">
-                <FloatingInput
+                <MuiTextField
                   id="phone"
                   label="Telefon"
                   disabled={shippingDetailsLocked}
@@ -677,9 +679,10 @@ export default function OrderPageClient() {
               </div>
 
               <div className="md:col-span-2">
-                <FloatingTextarea
+                <MuiTextField
                   id="notes"
                   label="Opombe"
+                  multiline
                   disabled={shippingDetailsLocked}
                   rows={3}
                   value={formData.notes}

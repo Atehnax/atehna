@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import MuiTextField from '@/shared/ui/mui-text-field/MuiTextField';
 
 type Item = {
   id: string;
@@ -60,48 +61,6 @@ function ActionIcon({ type }: { type: 'edit' | 'copy' | 'archive' }) {
   if (type === 'edit') return <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 14.8V17h2.2L15.8 6.4l-2.2-2.2L3 14.8z"/><path d="M12.9 3.1l2.2 2.2"/></svg>;
   if (type === 'copy') return <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="7" y="7" width="10" height="10" rx="2"/><rect x="3" y="3" width="10" height="10" rx="2"/></svg>;
   return <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 6h14v11H3z"/><path d="M7 6V4h6v2"/></svg>;
-}
-
-function FloatingInput({
-  label,
-  value,
-  onChange,
-  type = 'text',
-  min,
-  max,
-  step,
-  disabled,
-  placeholder = ' '
-}: {
-  label: string;
-  value: string | number;
-  onChange: (next: string) => void;
-  type?: string;
-  min?: number;
-  max?: number;
-  step?: number;
-  disabled?: boolean;
-  placeholder?: string;
-}) {
-  const filled = String(value ?? '').length > 0;
-  return (
-    <div className="group relative" data-filled={filled ? 'true' : 'false'}>
-      <input
-        type={type}
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        disabled={disabled}
-        placeholder={placeholder}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6] disabled:bg-slate-100 disabled:text-slate-400"
-      />
-      <label className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600 ${disabled ? 'bg-slate-100' : 'bg-white'}`}>
-        {label}
-      </label>
-    </div>
-  );
 }
 
 function FloatingSelect({
@@ -512,11 +471,14 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             </div>
 
             <div className="space-y-3 text-sm">
-              <FloatingInput label="Naziv" value={draft.name} onChange={(value) => setDraft((prev) => ({ ...prev, name: value }))} />
-              <div className="group relative" data-filled={draft.description ? 'true' : 'false'}>
-                <textarea value={draft.description} onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))} placeholder=" " className="min-h-[90px] w-full rounded-xl border border-slate-300 bg-white px-3 pb-2 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]" />
-                <label className="pointer-events-none absolute left-3 top-1.5 bg-white px-1 text-[10px] text-slate-600">Opis</label>
-              </div>
+              <MuiTextField label="Naziv" value={draft.name} onChange={(event) => setDraft((prev) => ({ ...prev, name: event.target.value }))} />
+              <MuiTextField
+                label="Opis"
+                multiline
+                minRows={4}
+                value={draft.description}
+                onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))}
+              />
 
               <FloatingSelect label="Kategorija" value={draft.category} onChange={(value) => setDraft((prev) => ({ ...prev, category: value }))}>
                 <option value="">Izberi kategorijo</option>
@@ -524,14 +486,14 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
               </FloatingSelect>
 
               <label className="inline-flex items-center gap-2 text-xs text-slate-700"><input type="checkbox" checked={newCategoryEnabled} onChange={(event) => setNewCategoryEnabled(event.target.checked)} />Dodaj novo kategorijo</label>
-              <FloatingInput label="Nova Kategorija" value={newCategoryValue} onChange={(value) => setNewCategoryValue(value)} disabled={!newCategoryEnabled} />
+              <MuiTextField label="Nova Kategorija" value={newCategoryValue} onChange={(event) => setNewCategoryValue(event.target.value)} disabled={!newCategoryEnabled} />
 
-              <FloatingInput label="Cena" value={draft.price} onChange={(value) => setDraft((prev) => ({ ...prev, price: Number(value) || 0 }))} type="number" step={0.01} />
-              <FloatingInput label="Popust (%)" value={draft.discountPct} onChange={(value) => setDraft((prev) => ({ ...prev, discountPct: Number(value) || 0 }))} type="number" min={0} max={100} step={1} />
+              <MuiTextField label="Cena" value={draft.price} onChange={(event) => setDraft((prev) => ({ ...prev, price: Number(event.target.value) || 0 }))} type="number" inputProps={{ step: 0.01 }} />
+              <MuiTextField label="Popust (%)" value={draft.discountPct} onChange={(event) => setDraft((prev) => ({ ...prev, discountPct: Number(event.target.value) || 0 }))} type="number" inputProps={{ min: 0, max: 100, step: 1 }} />
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs text-slate-700">Sedanja cena: <span className="font-semibold text-slate-900">{formatCurrency(discountedPrice(draft.price, draft.discountPct))}</span></div>
 
-              <FloatingInput label="Enota" value={draft.unit} onChange={(value) => setDraft((prev) => ({ ...prev, unit: value }))} />
-              <FloatingInput label="SKU / koda" value={draft.sku} onChange={(value) => setDraft((prev) => ({ ...prev, sku: value }))} />
+              <MuiTextField label="Enota" value={draft.unit} onChange={(event) => setDraft((prev) => ({ ...prev, unit: event.target.value }))} />
+              <MuiTextField label="SKU / koda" value={draft.sku} onChange={(event) => setDraft((prev) => ({ ...prev, sku: event.target.value }))} />
 
               <label className="block">Slike artikla (več datotek)
                 <input type="file" accept="image/*" multiple onChange={(event) => handleMultiImageUpload(event.target.files)} className="mt-1 block w-full text-xs" />

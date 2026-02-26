@@ -8,7 +8,7 @@ import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/lib/customerType';
 import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 import { toDateInputValue } from '@/lib/format/dateTime';
 import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/lib/paymentStatus';
-import { FloatingInput, FloatingTextarea } from '@/shared/ui/floating-field';
+import MuiTextField from '@/shared/ui/mui-text-field/MuiTextField';
 
 type TopSectionMode = 'read' | 'edit';
 
@@ -530,16 +530,14 @@ export default function AdminOrderHeaderChips(props: Props) {
             onChange={(value) => setDraftTopData((prev) => ({ ...prev, customerType: value }))}
           />
 
-          <FloatingInput
-            tone="admin"
+          <MuiTextField
             id="organizationName"
             label="Naročnik"
             value={activeTopData.organizationName}
             onChange={(event) => setDraftTopData((prev) => ({ ...prev, organizationName: event.target.value }))}
           />
 
-          <FloatingInput
-            tone="admin"
+          <MuiTextField
             id="email"
             label="Email"
             type="email"
@@ -547,16 +545,15 @@ export default function AdminOrderHeaderChips(props: Props) {
             onChange={(event) => setDraftTopData((prev) => ({ ...prev, email: event.target.value }))}
           />
 
-          <FloatingInput
-            tone="admin"
+          <MuiTextField
             id="deliveryAddress"
             label="Naslov"
             value={activeTopData.deliveryAddress}
             onChange={(event) => setDraftTopData((prev) => ({ ...prev, deliveryAddress: event.target.value }))}
           />
 
-          <FloatingTextarea
-            tone="admin"
+          <MuiTextField
+            multiline
             id="notes"
             label="Opombe"
             value={activeTopData.notes}

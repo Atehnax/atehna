@@ -32,6 +32,12 @@ const outlinedTextFieldSx = {
       borderWidth: 1
     }
   },
+  '& .MuiInputBase-input': {
+    fontSize: '10px',
+    lineHeight: '14px',
+    paddingTop: '14px',
+    paddingBottom: '8px'
+  },
   '& .MuiInputBase-input:focus-visible': {
     outline: 'none',
     boxShadow: 'none'
@@ -40,8 +46,8 @@ const outlinedTextFieldSx = {
     backgroundColor: '#fff',
     fontSize: '10px',
     lineHeight: 1,
-    paddingInline: '1px',
-    transform: 'translate(10px, -6px) scale(1)'
+    paddingInline: '2px',
+    transform: 'translate(12px, -6px) scale(1)'
   },
   '& .MuiInputLabel-root.Mui-focused': {
     color: '#5d3ed6'
@@ -143,7 +149,7 @@ function StaticFloatingDate({
         type="date"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full overflow-visible rounded-xl border border-[#5d3ed6] bg-white px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0"
+        className="h-10 w-full overflow-visible rounded-xl border border-[#5d3ed6] bg-white px-2.5 py-2 text-[10px] leading-[14px] text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0"
       />
     </div>
   );
@@ -200,7 +206,7 @@ function StaticFloatingSelect({
         onClick={() => setIsOpen((previousOpen) => !previousOpen)}
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        className="inline-flex h-10 w-full items-center justify-between rounded-xl border border-[#5d3ed6] bg-white px-2.5 pb-1 pt-4 text-left text-xs leading-5 text-slate-900 outline-none transition hover:border-[#5d3ed6] focus:border-[#5d3ed6] focus:outline-none focus:ring-0"
+        className="inline-flex h-10 w-full items-center justify-between rounded-xl border border-[#5d3ed6] bg-white px-2.5 py-2 text-left text-[10px] leading-[14px] text-slate-900 outline-none transition hover:border-[#5d3ed6] focus:border-[#5d3ed6] focus:outline-none focus:ring-0"
       >
         <span className="block min-w-0 flex-1 truncate text-left">
           {selectedOption?.label ?? ''}
@@ -601,7 +607,12 @@ export default function AdminOrderHeaderChips(props: Props) {
           />
 
           <TextField
-            sx={outlinedTextFieldSx}
+            sx={{
+              ...outlinedTextFieldSx,
+              "& .MuiInputBase-inputMultiline": {
+                resize: "both"
+              }
+            }}
             id="notes"
             label="Opombe"
             variant="outlined"

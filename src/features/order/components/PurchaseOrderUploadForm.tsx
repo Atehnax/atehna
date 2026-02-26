@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { parseOrderId } from '@/features/order/utils/parseOrderId';
+import { Button } from '@/shared/ui/button';
 
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg'];
@@ -93,13 +94,9 @@ export default function PurchaseOrderUploadForm() {
           className="mt-1 block w-full text-sm text-slate-600"
         />
       </div>
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
-      >
+      <Button type="submit" disabled={isSubmitting} variant="brand" size="sm">
         {isSubmitting ? 'Nalaganje...' : 'Naloži naročilnico'}
-      </button>
+      </Button>
       {message && <p className="text-sm text-slate-600">{message}</p>}
       {uploadedUrl && (
         <a

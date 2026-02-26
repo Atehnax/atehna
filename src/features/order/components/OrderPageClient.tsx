@@ -5,15 +5,12 @@ import {
   useMemo,
   useState,
   type FormEvent,
-  type InputHTMLAttributes,
-  type TextareaHTMLAttributes,
-  type SelectHTMLAttributes,
-  type ReactNode
 } from 'react';
 import Link from 'next/link';
 import { useCartStore } from '@/lib/cart/store';
 import { CUSTOMER_TYPE_FORM_OPTIONS, type CustomerType } from '@/lib/customerType';
 import { SLOVENIAN_ADDRESSES } from '@/data/slovenianAddresses';
+import { FloatingInput, FloatingSelect, FloatingTextarea } from '@/shared/ui/floating-field';
 
 const FORM_STORAGE_KEY = 'atehna-order-form';
 
@@ -91,147 +88,6 @@ const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.
 
 const classNames = (...parts: Array<string | false | null | undefined>) =>
   parts.filter(Boolean).join(' ');
-
-const isFilled = (value: unknown) => {
-  if (value === null || value === undefined) return false;
-  return String(value).length > 0;
-};
-
-type FloatingInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'id' | 'placeholder'> & {
-  id: string;
-  label: string;
-};
-
-function FloatingInput({ label, id, className = '', ...props }: FloatingInputProps) {
-  const filled = isFilled(props.value ?? props.defaultValue);
-
-  return (
-    <div className="group relative" data-filled={filled ? 'true' : 'false'}>
-      <input
-        {...props}
-        id={id}
-        placeholder=" "
-        className={classNames(
-          'h-14 w-full rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6',
-          'text-sm text-slate-900 outline-none transition',
-          'focus:border-brand-500 focus:ring-2 focus:ring-brand-100',
-          'disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400',
-          className
-        )}
-      />
-      <label
-        htmlFor={id}
-        className={classNames(
-          'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400 transition-all duration-150',
-          'group-focus-within:top-2 group-focus-within:translate-y-0 group-focus-within:bg-white group-focus-within:px-1 group-focus-within:text-[11px] group-focus-within:text-slate-600',
-          'group-data-[filled=true]:top-2 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:bg-white group-data-[filled=true]:px-1 group-data-[filled=true]:text-[11px] group-data-[filled=true]:text-slate-600'
-        )}
-      >
-        {label}
-      </label>
-    </div>
-  );
-}
-
-type FloatingTextareaProps = Omit<
-  TextareaHTMLAttributes<HTMLTextAreaElement>,
-  'id' | 'placeholder'
-> & {
-  id: string;
-  label: string;
-};
-
-function FloatingTextarea({ label, id, className = '', ...props }: FloatingTextareaProps) {
-  const filled = isFilled(props.value ?? props.defaultValue);
-
-  return (
-    <div className="group relative" data-filled={filled ? 'true' : 'false'}>
-      <textarea
-        {...props}
-        id={id}
-        placeholder=" "
-        className={classNames(
-          'min-h-[110px] w-full rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6',
-          'text-sm text-slate-900 outline-none transition',
-          'focus:border-brand-500 focus:ring-2 focus:ring-brand-100',
-          'disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400',
-          className
-        )}
-      />
-      <label
-        htmlFor={id}
-        className={classNames(
-          'pointer-events-none absolute left-3 top-6 -translate-y-1/2 text-sm text-slate-400 transition-all duration-150',
-          'group-focus-within:top-2 group-focus-within:translate-y-0 group-focus-within:bg-white group-focus-within:px-1 group-focus-within:text-[11px] group-focus-within:text-slate-600',
-          'group-data-[filled=true]:top-2 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:bg-white group-data-[filled=true]:px-1 group-data-[filled=true]:text-[11px] group-data-[filled=true]:text-slate-600'
-        )}
-      >
-        {label}
-      </label>
-    </div>
-  );
-}
-
-type FloatingSelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'id'> & {
-  id: string;
-  label: string;
-  children: ReactNode;
-};
-
-function FloatingSelect({
-  label,
-  id,
-  className = '',
-  children,
-  value,
-  defaultValue,
-  ...props
-}: FloatingSelectProps) {
-  const currentValue = value ?? defaultValue ?? '';
-  const hasValue = String(currentValue).length > 0;
-
-  return (
-    <div className="group relative" data-has-value={hasValue}>
-      <select
-        {...props}
-        id={id}
-        value={value}
-        defaultValue={defaultValue}
-        className={classNames(
-          'peer h-14 w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6',
-          'text-sm text-slate-900 outline-none transition',
-          'focus:border-brand-500 focus:ring-2 focus:ring-brand-100',
-          'disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400',
-          className
-        )}
-      >
-        {children}
-      </select>
-
-      <label
-        htmlFor={id}
-        className={classNames(
-          'pointer-events-none absolute left-3 z-10 bg-white px-1 leading-none text-slate-500 transition-all duration-150',
-          'top-2 text-[11px]',
-          'group-data-[has-value=false]:top-1/2 group-data-[has-value=false]:-translate-y-1/2 group-data-[has-value=false]:px-0 group-data-[has-value=false]:text-sm group-data-[has-value=false]:text-slate-400',
-          'peer-focus:top-2 peer-focus:translate-y-0 peer-focus:px-1 peer-focus:text-[11px] peer-focus:text-slate-600'
-        )}
-      >
-        {label}
-      </label>
-
-      <svg
-        viewBox="0 0 20 20"
-        className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      >
-        <path d="M5 7.5l5 5 5-5" />
-      </svg>
-    </div>
-  );
-}
 
 function CheckIcon() {
   return (

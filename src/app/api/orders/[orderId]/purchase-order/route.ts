@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/server/db';
-import { uploadBlob } from '@/lib/server/blob';
+import { buildOrderBlobPath, uploadBlob } from '@/lib/server/blob';
 
 export const runtime = 'nodejs';
 
@@ -60,9 +60,7 @@ export async function POST(
     }
 
     const pool = await getPool();
-    const orderResult = await pool.query('SELECT order_number FROM orders WHERE id = $1', [
-      orderId
-    ]);
+    const orderResult = await pool.query('SELECT id FROM orders WHERE id = $1', [orderId]);
     const order = orderResult.rows[0];
 
     if (!order) {
@@ -70,8 +68,8 @@ export async function POST(
     }
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
-    const fileName = `purchase-order-${Date.now()}.${detectedFormat.extension}`;
-    const blobPath = `orders/${order.order_number}/${fileName}`;
+    const fileName = `${orderId}-purchase_order-${Date.now()}.${detectedFormat.extension}`;
+    const blobPath = buildOrderBlobPath(orderId, fileName);
 
     const blob = await uploadBlob(blobPath, fileBuffer, detectedFormat.contentType);
 

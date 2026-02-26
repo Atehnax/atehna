@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { DANGER_OUTLINE_BUTTON_CLASS } from './adminButtonStyles';
 import { useRouter } from 'next/navigation';
+import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 
 type ArchiveEntry = {
   id: number;
@@ -300,24 +301,20 @@ export default function AdminDeletedArchiveTable({
           </button>
 
           {isTypeFilterMenuOpen && (
-            <div
-              role="menu"
-              className="absolute left-0 top-9 z-30 w-[180px] rounded-xl border border-slate-300 bg-white p-1 shadow-sm"
-            >
-              {TYPE_FILTER_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    setTypeFilter(option.value);
-                    setIsTypeFilterMenuOpen(false);
-                  }}
-                  className="flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none text-slate-700 transition hover:bg-[#ede8ff]"
-                >
-                  {option.label}
-                </button>
-              ))}
+            <div role="menu">
+              <MenuPanel className="absolute left-0 top-9 z-30 w-[180px]">
+                {TYPE_FILTER_OPTIONS.map((option) => (
+                  <MenuItem
+                    key={option.value}
+                    onClick={() => {
+                      setTypeFilter(option.value);
+                      setIsTypeFilterMenuOpen(false);
+                    }}
+                  >
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </MenuPanel>
             </div>
           )}
         </div>

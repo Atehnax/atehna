@@ -5,6 +5,21 @@ export type UploadResult = {
   pathname: string;
 };
 
+const sanitizeBlobSegment = (value: string): string =>
+  value
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+const normalizePathname = (pathname: string): string => pathname.trim().replace(/^\/+/, '');
+
+export function buildOrderBlobPath(orderReference: string, fileName: string): string {
+  const safeOrderReference = sanitizeBlobSegment(orderReference) || 'order';
+  const safeFileName = fileName.trim().replace(/^\/+/, '');
+  return `orders/${safeOrderReference}/${safeFileName}`;
+}
+
 export async function uploadBlob(
   pathname: string,
   data: Buffer | Uint8Array,
@@ -15,6 +30,23 @@ export async function uploadBlob(
   }
 
   const payload = Buffer.isBuffer(data) ? data : Buffer.from(data);
+  const normalizedPathname = normalizePathname(pathname);
+
+  if (!normalizedPathname || normalizedPathname.endsWith('/')) {
+    console.error('[blob.upload] invalid pathname (folder-like path is not allowed)', {
+      pathname: normalizedPathname
+    });
+    throw new Error(`Invalid blob pathname: "${normalizedPathname}". Provide a filename, not a folder path.`);
+  }
+
+  const fileName = normalizedPathname.split('/').pop() ?? '';
+  if (!fileName.includes('.') || fileName.endsWith('.')) {
+    console.error('[blob.upload] invalid pathname (missing filename extension)', {
+      pathname: normalizedPathname
+    });
+    throw new Error(`Invalid blob pathname: "${normalizedPathname}". Filename must include an extension.`);
+  }
+
   const effectiveContentType = contentType || 'application/octet-stream';
 
   // Safety check for PDFs: must start with "%PDF-"
@@ -25,7 +57,7 @@ export async function uploadBlob(
     }
   }
 
-  const blob = await put(pathname, payload, {
+  const blob = await put(normalizedPathname, payload, {
     access: 'public',
     contentType: effectiveContentType,
     token: process.env.BLOB_READ_WRITE_TOKEN

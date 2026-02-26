@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/server/db';
-import { uploadBlob } from '@/lib/server/blob';
+import { buildOrderBlobPath, uploadBlob } from '@/lib/server/blob';
 import { generateOrderPdf } from '@/lib/server/pdf';
 
 export const runtime = 'nodejs';
@@ -299,7 +299,7 @@ export async function POST(request: Request) {
       );
 
       const fileName = `${orderRow.order_number}-${documentType}.pdf`;
-      const blobPath = `orders/${orderRow.order_number}/${fileName}`;
+      const blobPath = buildOrderBlobPath(orderRow.order_number, fileName);
       const blob = await uploadBlob(blobPath, Buffer.from(pdfBuffer), 'application/pdf');
 
       await databaseClient.query('savepoint order_document_insert_sp');

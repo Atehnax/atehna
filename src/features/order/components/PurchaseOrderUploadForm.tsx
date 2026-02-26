@@ -2,26 +2,10 @@
 
 import { useState } from 'react';
 
+import { parseOrderId } from '@/features/order/utils/parseOrderId';
+
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg'];
-
-function parseOrderId(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  if (trimmed.startsWith('#')) {
-    const numeric = trimmed.slice(1);
-    const parsed = Number(numeric);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  if (trimmed.toUpperCase().startsWith('N-')) {
-    const numeric = trimmed.slice(trimmed.indexOf('-') + 1);
-    const parsed = Number(numeric);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-  const parsed = Number(trimmed);
-  return Number.isFinite(parsed) ? parsed : null;
-}
 
 export default function PurchaseOrderUploadForm() {
   const [orderNumber, setOrderNumber] = useState('');

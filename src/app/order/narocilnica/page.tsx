@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import PurchaseOrderUploadForm from '@/components/order/PurchaseOrderUploadForm';
+import PurchaseOrderUploadForm from '@/features/order/components/PurchaseOrderUploadForm';
 
 export const metadata = {
   title: 'Naloži naročilnico'

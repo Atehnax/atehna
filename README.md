@@ -56,9 +56,17 @@ Run SQL migrations in `migrations/`, including:
 `npm install atehna`
 
 # Test
+- Run all local safety gates: `npm run lint && npm run typecheck && npm run build`
+
+## CI safety gates
+The pull request CI workflow runs:
+- `npm ci`
 - `npm run lint`
-- `npx tsc --noEmit`
+- `npm run typecheck`
 - `npm run build`
+
+Playwright smoke tests are not yet present in this repository.
+A commented placeholder is included in `.github/workflows/ci.yml`; enable it after adding `test:e2e` and Playwright specs.
 
 # License
 Internal / project-specific.

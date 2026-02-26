@@ -150,6 +150,7 @@ body {
 [data-floating-field] input:-webkit-autofill:focus,
 [data-floating-field] textarea:-webkit-autofill:focus,
 [data-floating-field] select:-webkit-autofill:focus {
+  background-color: var(--field-bg) !important;
   -webkit-box-shadow: 0 0 0 1000px var(--field-bg) inset !important;
   box-shadow: 0 0 0 1000px var(--field-bg) inset !important;
   -webkit-text-fill-color: currentColor !important;

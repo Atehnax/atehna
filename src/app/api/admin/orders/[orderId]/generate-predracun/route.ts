@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/server/db';
-import { uploadBlob } from '@/lib/server/blob';
+import { buildOrderBlobPath, uploadBlob } from '@/lib/server/blob';
 import { generateOrderPdf } from '@/lib/server/pdf';
 import { buildGeneratedPdfFileName, buildPdfContext } from '@/lib/server/pdfGeneration';
 
@@ -27,7 +27,7 @@ export async function POST(
     );
 
     const fileName = await buildGeneratedPdfFileName(pool, orderId, 'predracun');
-    const blobPath = `orders/${context.orderToken}/${fileName}`;
+    const blobPath = buildOrderBlobPath(orderId, fileName);
     const blob = await uploadBlob(blobPath, Buffer.from(pdfBuffer), 'application/pdf');
 
     const insertResult = await pool.query(

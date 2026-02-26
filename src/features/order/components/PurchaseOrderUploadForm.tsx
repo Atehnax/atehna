@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 
-import { parseOrderId } from '@/features/order/utils/parseOrderId';
+import { Button } from '@/shared/ui/button';
+import { FloatingInput } from '@/shared/ui/floating-field';
 
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg'];
@@ -18,9 +19,9 @@ export default function PurchaseOrderUploadForm() {
     setMessage(null);
     setUploadedUrl(null);
 
-    const orderId = parseOrderId(orderNumber);
-    if (!orderId) {
-      setMessage('Vnesite veljavno številko naročila (npr. #123).');
+    const normalizedOrderNumber = orderNumber.trim();
+    if (!normalizedOrderNumber) {
+      setMessage('Vnesite veljavno številko naročila (npr. #123, 123).');
       return;
     }
 
@@ -48,7 +49,7 @@ export default function PurchaseOrderUploadForm() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/api/orders/${orderId}/purchase-order`, {
+      const response = await fetch(`/api/orders/${encodeURIComponent(normalizedOrderNumber)}/purchase-order`, {
         method: 'POST',
         body: formData
       });
@@ -69,18 +70,12 @@ export default function PurchaseOrderUploadForm() {
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
-      <div>
-        <label className="text-sm font-medium text-slate-700" htmlFor="orderNumber">
-          Št. naročila
-        </label>
-        <input
-          id="orderNumber"
-          value={orderNumber}
-          onChange={(event) => setOrderNumber(event.target.value)}
-          placeholder="#123"
-          className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-        />
-      </div>
+      <FloatingInput
+        id="orderNumber"
+        label="Št. naročila"
+        value={orderNumber}
+        onChange={(event) => setOrderNumber(event.target.value)}
+      />
       <div>
         <label className="text-sm font-medium text-slate-700" htmlFor="purchaseOrder">
           Datoteka naročilnice (PDF ali JPG)
@@ -93,13 +88,9 @@ export default function PurchaseOrderUploadForm() {
           className="mt-1 block w-full text-sm text-slate-600"
         />
       </div>
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
-      >
+      <Button type="submit" disabled={isSubmitting} variant="brand" size="sm">
         {isSubmitting ? 'Nalaganje...' : 'Naloži naročilnico'}
-      </button>
+      </Button>
       {message && <p className="text-sm text-slate-600">{message}</p>}
       {uploadedUrl && (
         <a

@@ -9,12 +9,14 @@ import type {
 import './floating-field.css';
 
 export type FloatingFieldTone = 'order' | 'admin';
+export type FloatingFieldLabelMode = 'floating' | 'static';
 
 type BaseProps = {
   id: string;
   label: string;
   className?: string;
   tone?: FloatingFieldTone;
+  labelMode?: FloatingFieldLabelMode;
 };
 
 type FieldBackground = 'default' | 'muted';
@@ -39,12 +41,6 @@ const getFieldBackground = (disabled?: boolean, readOnly?: boolean): FieldBackgr
   return 'default';
 };
 
-const fieldsetBaseClasses =
-  'pointer-events-none absolute inset-0 m-0 border transition-colors group-focus-within:border-brand-500 group-focus-within:ring-2 group-focus-within:ring-brand-100 group-focus-within:ring-offset-0';
-
-const adminFieldsetBaseClasses =
-  'pointer-events-none absolute inset-0 m-0 border transition-colors group-focus-within:border-[#5d3ed6] group-focus-within:ring-2 group-focus-within:ring-brand-100 group-focus-within:ring-offset-0';
-
 const toneClasses = {
   order: {
     shell:
@@ -57,10 +53,16 @@ const toneClasses = {
       'peer h-14 w-full appearance-none rounded-lg border-0 bg-transparent px-3 pb-2 pt-6 text-sm text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:text-slate-400',
     inputLabel:
       'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400 transition-all duration-150 group-focus-within:top-2 group-focus-within:translate-y-0 group-focus-within:bg-[var(--field-bg)] group-focus-within:px-1 group-focus-within:text-[11px] group-focus-within:text-slate-600 group-data-[filled=true]:top-2 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:bg-[var(--field-bg)] group-data-[filled=true]:px-1 group-data-[filled=true]:text-[11px] group-data-[filled=true]:text-slate-600',
+    inputLabelStatic:
+      'pointer-events-none absolute left-3 top-2 z-10 bg-[var(--field-bg)] px-1 leading-none text-[11px] text-slate-600',
     textareaLabel:
       'pointer-events-none absolute left-3 top-6 -translate-y-1/2 text-sm text-slate-400 transition-all duration-150 group-focus-within:top-2 group-focus-within:translate-y-0 group-focus-within:bg-[var(--field-bg)] group-focus-within:px-1 group-focus-within:text-[11px] group-focus-within:text-slate-600 group-data-[filled=true]:top-2 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:bg-[var(--field-bg)] group-data-[filled=true]:px-1 group-data-[filled=true]:text-[11px] group-data-[filled=true]:text-slate-600',
+    textareaLabelStatic:
+      'pointer-events-none absolute left-3 top-2 z-10 bg-[var(--field-bg)] px-1 leading-none text-[11px] text-slate-600',
     selectLabel:
-      'pointer-events-none absolute left-3 z-10 bg-[var(--field-bg)] px-1 leading-none text-slate-500 transition-all duration-150 top-2 text-[11px] group-data-[has-value=false]:top-1/2 group-data-[has-value=false]:-translate-y-1/2 group-data-[has-value=false]:bg-transparent group-data-[has-value=false]:px-0 group-data-[has-value=false]:text-sm group-data-[has-value=false]:text-slate-400 peer-focus:top-2 peer-focus:translate-y-0 peer-focus:bg-[var(--field-bg)] peer-focus:px-1 peer-focus:text-[11px] peer-focus:text-slate-600'
+      'pointer-events-none absolute left-3 z-10 bg-[var(--field-bg)] px-1 leading-none text-slate-500 transition-all duration-150 top-2 text-[11px] group-data-[has-value=false]:top-1/2 group-data-[has-value=false]:-translate-y-1/2 group-data-[has-value=false]:bg-transparent group-data-[has-value=false]:px-0 group-data-[has-value=false]:text-sm group-data-[has-value=false]:text-slate-400 peer-focus:top-2 peer-focus:translate-y-0 peer-focus:bg-[var(--field-bg)] peer-focus:px-1 peer-focus:text-[11px] peer-focus:text-slate-600',
+    selectLabelStatic:
+      'pointer-events-none absolute left-3 top-2 z-10 bg-[var(--field-bg)] px-1 leading-none text-[11px] text-slate-600'
   },
   admin: {
     shell:
@@ -73,14 +75,27 @@ const toneClasses = {
       'peer h-10 w-full appearance-none overflow-visible rounded-xl border-0 bg-transparent px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:text-slate-400',
     inputLabel:
       'pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 bg-transparent px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:bg-[var(--field-bg)] group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:bg-[var(--field-bg)] group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600',
+    inputLabelStatic:
+      'pointer-events-none absolute left-2.5 top-1.5 z-10 bg-[var(--field-bg)] px-1 leading-none text-[10px] text-slate-600',
     textareaLabel:
       'pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 bg-transparent px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:bg-[var(--field-bg)] group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:bg-[var(--field-bg)] group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600',
+    textareaLabelStatic:
+      'pointer-events-none absolute left-2.5 top-1.5 z-10 bg-[var(--field-bg)] px-1 leading-none text-[10px] text-slate-600',
     selectLabel:
-      'pointer-events-none absolute left-2.5 top-1.5 z-10 bg-[var(--field-bg)] px-1 text-[10px] text-slate-600 group-data-[has-value=false]:top-1/2 group-data-[has-value=false]:-translate-y-1/2 group-data-[has-value=false]:bg-transparent group-data-[has-value=false]:px-0 group-data-[has-value=false]:text-xs group-data-[has-value=false]:text-slate-400'
+      'pointer-events-none absolute left-2.5 top-1.5 z-10 bg-[var(--field-bg)] px-1 text-[10px] text-slate-600 group-data-[has-value=false]:top-1/2 group-data-[has-value=false]:-translate-y-1/2 group-data-[has-value=false]:bg-transparent group-data-[has-value=false]:px-0 group-data-[has-value=false]:text-xs group-data-[has-value=false]:text-slate-400',
+    selectLabelStatic:
+      'pointer-events-none absolute left-2.5 top-1.5 z-10 bg-[var(--field-bg)] px-1 text-[10px] text-slate-600'
   }
 } as const;
 
-export function FloatingInput({ label, id, className = '', tone = 'order', ...props }: FloatingInputProps) {
+export function FloatingInput({
+  label,
+  id,
+  className = '',
+  tone = 'order',
+  labelMode = 'floating',
+  ...props
+}: FloatingInputProps) {
   const filled = isFilled(props.value ?? props.defaultValue);
   const classes = toneClasses[tone];
   const fieldBackground = getFieldBackground(props.disabled, props.readOnly);
@@ -95,7 +110,7 @@ export function FloatingInput({ label, id, className = '', tone = 'order', ...pr
       style={{ ...fieldBackgroundVariable, backgroundColor: 'var(--field-bg)' }}
     >
       <input {...props} id={id} placeholder=" " className={classNames(classes.input, className)} />
-      <label htmlFor={id} className={classes.inputLabel}>
+      <label htmlFor={id} className={labelMode === 'static' ? classes.inputLabelStatic : classes.inputLabel}>
         {label}
       </label>
     </div>
@@ -107,6 +122,7 @@ export function FloatingTextarea({
   id,
   className = '',
   tone = 'order',
+  labelMode = 'floating',
   ...props
 }: FloatingTextareaProps) {
   const filled = isFilled(props.value ?? props.defaultValue);
@@ -122,13 +138,11 @@ export function FloatingTextarea({
       data-filled={filled ? 'true' : 'false'}
       style={{ ...fieldBackgroundVariable, backgroundColor: 'var(--field-bg)' }}
     >
-      <textarea
-        {...props}
-        id={id}
-        placeholder=" "
-        className={classNames(classes.textarea, className)}
-      />
-      <label htmlFor={id} className={classes.textareaLabel}>
+      <textarea {...props} id={id} placeholder=" " className={classNames(classes.textarea, className)} />
+      <label
+        htmlFor={id}
+        className={labelMode === 'static' ? classes.textareaLabelStatic : classes.textareaLabel}
+      >
         {label}
       </label>
     </div>
@@ -143,6 +157,7 @@ export function FloatingSelect({
   value,
   defaultValue,
   tone = 'order',
+  labelMode = 'floating',
   ...props
 }: FloatingSelectProps) {
   const currentValue = value ?? defaultValue ?? '';
@@ -169,7 +184,7 @@ export function FloatingSelect({
         {children}
       </select>
 
-      <label htmlFor={id} className={classes.selectLabel}>
+      <label htmlFor={id} className={labelMode === 'static' ? classes.selectLabelStatic : classes.selectLabel}>
         {label}
       </label>
 

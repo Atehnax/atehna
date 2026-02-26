@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 import { Button } from '@/shared/ui/button';
-import { FloatingInput } from '@/shared/ui/floating-field';
+import TextField from '@mui/material/TextField';
 
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg'];
@@ -70,9 +70,12 @@ export default function PurchaseOrderUploadForm() {
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
-      <FloatingInput
+      <TextField
         id="orderNumber"
         label="Št. naročila"
+        variant="outlined"
+        size="small"
+        fullWidth
         value={orderNumber}
         onChange={(event) => setOrderNumber(event.target.value)}
       />

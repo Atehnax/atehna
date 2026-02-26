@@ -8,7 +8,7 @@ import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/lib/customerType';
 import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 import { toDateInputValue } from '@/lib/format/dateTime';
 import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/lib/paymentStatus';
-import { FloatingInput, FloatingTextarea } from '@/shared/ui/floating-field';
+import TextField from '@mui/material/TextField';
 
 type TopSectionMode = 'read' | 'edit';
 
@@ -530,35 +530,45 @@ export default function AdminOrderHeaderChips(props: Props) {
             onChange={(value) => setDraftTopData((prev) => ({ ...prev, customerType: value }))}
           />
 
-          <FloatingInput
-            tone="admin"
+          <TextField
             id="organizationName"
             label="Naročnik"
+            variant="outlined"
+            size="small"
+            fullWidth
             value={activeTopData.organizationName}
             onChange={(event) => setDraftTopData((prev) => ({ ...prev, organizationName: event.target.value }))}
           />
 
-          <FloatingInput
-            tone="admin"
+          <TextField
             id="email"
             label="Email"
             type="email"
+            variant="outlined"
+            size="small"
+            fullWidth
             value={activeTopData.email}
             onChange={(event) => setDraftTopData((prev) => ({ ...prev, email: event.target.value }))}
           />
 
-          <FloatingInput
-            tone="admin"
+          <TextField
             id="deliveryAddress"
             label="Naslov"
+            variant="outlined"
+            size="small"
+            fullWidth
             value={activeTopData.deliveryAddress}
             onChange={(event) => setDraftTopData((prev) => ({ ...prev, deliveryAddress: event.target.value }))}
           />
 
-          <FloatingTextarea
-            tone="admin"
+          <TextField
             id="notes"
             label="Opombe"
+            variant="outlined"
+            size="small"
+            fullWidth
+            multiline
+            minRows={2}
             value={activeTopData.notes}
             onChange={(event) => setDraftTopData((prev) => ({ ...prev, notes: event.target.value }))}
           />

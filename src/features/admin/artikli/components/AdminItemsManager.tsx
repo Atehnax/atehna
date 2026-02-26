@@ -1,7 +1,9 @@
 'use client';
 
 import Image from 'next/image';
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
 
 type Item = {
   id: string;
@@ -70,8 +72,7 @@ function FloatingInput({
   min,
   max,
   step,
-  disabled,
-  placeholder = ' '
+  disabled
 }: {
   label: string;
   value: string | number;
@@ -81,53 +82,19 @@ function FloatingInput({
   max?: number;
   step?: number;
   disabled?: boolean;
-  placeholder?: string;
-}) {
-  const filled = String(value ?? '').length > 0;
-  return (
-    <div className="group relative" data-filled={filled ? 'true' : 'false'}>
-      <input
-        type={type}
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        disabled={disabled}
-        placeholder={placeholder}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6] disabled:bg-slate-100 disabled:text-slate-400"
-      />
-      <label className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600 ${disabled ? 'bg-slate-100' : 'bg-white'}`}>
-        {label}
-      </label>
-    </div>
-  );
-}
-
-function FloatingSelect({
-  label,
-  value,
-  onChange,
-  children
-}: {
-  label: string;
-  value: string;
-  onChange: (next: string) => void;
-  children: ReactNode;
 }) {
   return (
-    <div className="relative">
-      <label className="pointer-events-none absolute left-3 top-1.5 z-10 bg-white px-1 text-[10px] text-slate-600">
-        {label}
-      </label>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
-      >
-        {children}
-      </select>
-    </div>
+    <TextField
+      label={label}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      type={type}
+      disabled={disabled}
+      variant="outlined"
+      size="small"
+      fullWidth
+      inputProps={{ min, max, step }}
+    />
   );
 }
 
@@ -513,15 +480,29 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
 
             <div className="space-y-3 text-sm">
               <FloatingInput label="Naziv" value={draft.name} onChange={(value) => setDraft((prev) => ({ ...prev, name: value }))} />
-              <div className="group relative" data-filled={draft.description ? 'true' : 'false'}>
-                <textarea value={draft.description} onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))} placeholder=" " className="min-h-[90px] w-full rounded-xl border border-slate-300 bg-white px-3 pb-2 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]" />
-                <label className="pointer-events-none absolute left-3 top-1.5 bg-white px-1 text-[10px] text-slate-600">Opis</label>
-              </div>
+              <TextField
+                label="Opis"
+                value={draft.description}
+                onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))}
+                variant="outlined"
+                size="small"
+                fullWidth
+                multiline
+                minRows={4}
+              />
 
-              <FloatingSelect label="Kategorija" value={draft.category} onChange={(value) => setDraft((prev) => ({ ...prev, category: value }))}>
-                <option value="">Izberi kategorijo</option>
-                {categories.map((category) => <option key={category} value={category}>{category}</option>)}
-              </FloatingSelect>
+              <TextField
+                label="Kategorija"
+                value={draft.category}
+                onChange={(event) => setDraft((prev) => ({ ...prev, category: event.target.value }))}
+                variant="outlined"
+                size="small"
+                fullWidth
+                select
+              >
+                <MenuItem value="">Izberi kategorijo</MenuItem>
+                {categories.map((category) => <MenuItem key={category} value={category}>{category}</MenuItem>)}
+              </TextField>
 
               <label className="inline-flex items-center gap-2 text-xs text-slate-700"><input type="checkbox" checked={newCategoryEnabled} onChange={(event) => setNewCategoryEnabled(event.target.checked)} />Dodaj novo kategorijo</label>
               <FloatingInput label="Nova Kategorija" value={newCategoryValue} onChange={(value) => setNewCategoryValue(value)} disabled={!newCategoryEnabled} />

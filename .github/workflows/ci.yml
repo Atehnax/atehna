@@ -28,9 +28,8 @@ jobs:
       - name: Build
         run: npm run build
 
-      # Enable this once Playwright smoke tests are added to the repository:
-      # - name: Install Playwright browsers
-      #   run: npx playwright install --with-deps
-      #
-      # - name: E2E smoke tests
-      #   run: npm run test:e2e
+      - name: Install Playwright browsers (Chromium)
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E smoke tests
+        run: npm run test:e2e

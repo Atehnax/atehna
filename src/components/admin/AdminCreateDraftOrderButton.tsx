@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/shared/ui/button';
 
 type Props = {
   className?: string;
@@ -31,18 +32,18 @@ export default function AdminCreateDraftOrderButton({ className }: Props) {
 
   return (
     <div className={`flex flex-col items-end gap-1 ${className ?? ''}`.trim()}>
-      <button
+      <Button
         type="button"
         onClick={createDraft}
         disabled={isCreating}
         aria-label="Novo naročilo"
-        className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#ede8ff] bg-[#f8f7fc] px-3 text-xs font-semibold text-[#5d3ed6] shadow-sm transition hover:border-[#5d3ed6] hover:bg-[#f8f7fc] focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-400"
+        variant="admin-soft"
       >
         <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
           <path d="M10 4v12M4 10h12" />
         </svg>
         {isCreating ? 'Ustvarjam ...' : 'Novo naročilo'}
-      </button>
+      </Button>
       {error && <p className="text-xs text-rose-600">{error}</p>}
     </div>
   );

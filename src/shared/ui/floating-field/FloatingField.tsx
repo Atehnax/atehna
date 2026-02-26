@@ -6,6 +6,8 @@ import type {
   TextareaHTMLAttributes
 } from 'react';
 
+import './floating-field.css';
+
 export type FloatingFieldTone = 'order' | 'admin';
 
 type BaseProps = {

@@ -6,6 +6,8 @@ import type {
   TextareaHTMLAttributes
 } from 'react';
 
+import './floating-field.css';
+
 export type FloatingFieldTone = 'order' | 'admin';
 
 type BaseProps = {
@@ -36,6 +38,12 @@ const getFieldBackground = (disabled?: boolean, readOnly?: boolean): FieldBackgr
   if (disabled || readOnly) return 'muted';
   return 'default';
 };
+
+const fieldsetBaseClasses =
+  'pointer-events-none absolute inset-0 m-0 border transition-colors group-focus-within:border-brand-500 group-focus-within:ring-2 group-focus-within:ring-brand-100 group-focus-within:ring-offset-0';
+
+const adminFieldsetBaseClasses =
+  'pointer-events-none absolute inset-0 m-0 border transition-colors group-focus-within:border-[#5d3ed6] group-focus-within:ring-2 group-focus-within:ring-brand-100 group-focus-within:ring-offset-0';
 
 const toneClasses = {
   order: {

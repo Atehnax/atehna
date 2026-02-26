@@ -40,22 +40,22 @@ const getFieldBackground = (disabled?: boolean, readOnly?: boolean): FieldBackgr
 };
 
 const fieldsetBaseClasses =
-  'pointer-events-none absolute inset-0 m-0 border transition-colors group-focus-within:border-brand-500 group-focus-within:ring-2 group-focus-within:ring-brand-100';
+  'pointer-events-none absolute inset-0 m-0 border transition-colors group-focus-within:border-brand-500 group-focus-within:ring-2 group-focus-within:ring-brand-100 group-focus-within:ring-offset-0';
 
 const adminFieldsetBaseClasses =
-  'pointer-events-none absolute inset-0 m-0 border transition-colors group-focus-within:border-[#5d3ed6] group-focus-within:ring-0';
+  'pointer-events-none absolute inset-0 m-0 border transition-colors group-focus-within:border-[#5d3ed6] group-focus-within:ring-2 group-focus-within:ring-brand-100 group-focus-within:ring-offset-0';
 
 const toneClasses = {
   order: {
     input:
-      'relative z-10 h-14 w-full rounded-lg border border-transparent bg-transparent px-3 pb-2 pt-6 text-sm text-slate-900 outline-none transition disabled:cursor-not-allowed disabled:text-slate-400 read-only:cursor-not-allowed read-only:text-slate-500',
+      'relative z-10 h-14 w-full rounded-lg border-0 bg-transparent px-3 pb-2 pt-6 text-sm text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:text-slate-400 read-only:cursor-not-allowed read-only:text-slate-500',
     textarea:
-      'relative z-10 min-h-[110px] w-full rounded-lg border border-transparent bg-transparent px-3 pb-2 pt-6 text-sm text-slate-900 outline-none transition disabled:cursor-not-allowed disabled:text-slate-400 read-only:cursor-not-allowed read-only:text-slate-500',
+      'relative z-10 min-h-[110px] w-full rounded-lg border-0 bg-transparent px-3 pb-2 pt-6 text-sm text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:text-slate-400 read-only:cursor-not-allowed read-only:text-slate-500',
     select:
-      'peer relative z-10 h-14 w-full appearance-none rounded-lg border border-transparent bg-transparent px-3 pb-2 pt-6 text-sm text-slate-900 outline-none transition disabled:cursor-not-allowed disabled:text-slate-400',
+      'peer relative z-10 h-14 w-full appearance-none rounded-lg border-0 bg-transparent px-3 pb-2 pt-6 text-sm text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:text-slate-400',
     fieldset: 'rounded-lg',
     legend:
-      'mx-2 max-w-0 overflow-hidden whitespace-nowrap px-1 text-[11px] leading-none text-transparent transition-[max-width] duration-150',
+      'mx-2 max-w-0 overflow-hidden whitespace-nowrap px-1 text-[11px] leading-none transition-[max-width] duration-150',
     inputLabel:
       'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400 transition-all duration-150 group-focus-within:top-2 group-focus-within:translate-y-0 group-focus-within:text-[11px] group-focus-within:text-slate-600 group-data-[filled=true]:top-2 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:text-[11px] group-data-[filled=true]:text-slate-600',
     textareaLabel:
@@ -65,14 +65,14 @@ const toneClasses = {
   },
   admin: {
     input:
-      'relative z-10 h-10 w-full overflow-visible rounded-xl border border-transparent bg-transparent px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition disabled:cursor-not-allowed disabled:text-slate-400 read-only:cursor-not-allowed read-only:text-slate-500',
+      'relative z-10 h-10 w-full overflow-visible rounded-xl border-0 bg-transparent px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:text-slate-400 read-only:cursor-not-allowed read-only:text-slate-500',
     textarea:
-      'relative z-10 h-10 min-h-[40px] w-full resize-y overflow-hidden rounded-xl border border-transparent bg-transparent px-2.5 pb-1 pt-4 text-xs leading-4 text-slate-900 outline-none transition disabled:cursor-not-allowed disabled:text-slate-400 read-only:cursor-not-allowed read-only:text-slate-500',
+      'relative z-10 h-10 min-h-[40px] w-full resize-y overflow-hidden rounded-xl border-0 bg-transparent px-2.5 pb-1 pt-4 text-xs leading-4 text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:text-slate-400 read-only:cursor-not-allowed read-only:text-slate-500',
     select:
-      'peer relative z-10 h-10 w-full appearance-none overflow-visible rounded-xl border border-transparent bg-transparent px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition disabled:cursor-not-allowed disabled:text-slate-400',
+      'peer relative z-10 h-10 w-full appearance-none overflow-visible rounded-xl border-0 bg-transparent px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:text-slate-400',
     fieldset: 'rounded-xl',
     legend:
-      'mx-2 max-w-0 overflow-hidden whitespace-nowrap px-1 text-[10px] leading-none text-transparent transition-[max-width] duration-150',
+      'mx-2 max-w-0 overflow-hidden whitespace-nowrap px-1 text-[10px] leading-none transition-[max-width] duration-150',
     inputLabel:
       'pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600',
     textareaLabel:
@@ -99,7 +99,7 @@ export function FloatingInput({ label, id, className = '', tone = 'order', ...pr
     >
       <fieldset className={classNames(fieldsetBase, classes.fieldset, 'border-slate-300 bg-[var(--field-bg)]')} aria-hidden>
         <legend className={classNames(classes.legend, 'group-focus-within:max-w-[240px] group-data-[filled=true]:max-w-[240px]')}>
-          {label}
+          <span className="invisible">{label}</span>
         </legend>
       </fieldset>
       <input {...props} id={id} placeholder=" " className={classNames(classes.input, className)} />
@@ -133,7 +133,7 @@ export function FloatingTextarea({
     >
       <fieldset className={classNames(fieldsetBase, classes.fieldset, 'border-slate-300 bg-[var(--field-bg)]')} aria-hidden>
         <legend className={classNames(classes.legend, 'group-focus-within:max-w-[240px] group-data-[filled=true]:max-w-[240px]')}>
-          {label}
+          <span className="invisible">{label}</span>
         </legend>
       </fieldset>
       <textarea
@@ -174,7 +174,7 @@ export function FloatingSelect({
         aria-hidden
       >
         <legend className={classNames(classes.legend, hasValue ? 'max-w-[240px]' : 'max-w-0', 'group-focus-within:max-w-[240px]')}>
-          {label}
+          <span className="invisible">{label}</span>
         </legend>
       </fieldset>
       <select

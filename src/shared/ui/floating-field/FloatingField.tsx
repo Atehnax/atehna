@@ -78,8 +78,13 @@ export function FloatingInput({ label, id, className = '', tone = 'order', ...pr
     ({ '--field-bg': fieldBackground === 'muted' ? 'rgb(248 250 252)' : 'rgb(255 255 255)' } as CSSProperties);
 
   return (
-    <div className="group relative ff-root" data-filled={filled ? 'true' : 'false'} style={fieldBackgroundVariable}>
-      <input {...props} id={id} placeholder=" " className={classNames(classes.input, 'ff-control bg-[var(--field-bg)]', className)} />
+    <div
+      className="group relative"
+      data-floating-field
+      data-filled={filled ? 'true' : 'false'}
+      style={fieldBackgroundVariable}
+    >
+      <input {...props} id={id} placeholder=" " className={classNames(classes.input, 'bg-[var(--field-bg)]', className)} />
       <label htmlFor={id} className={classes.inputLabel}>
         {label}
       </label>
@@ -101,12 +106,17 @@ export function FloatingTextarea({
     ({ '--field-bg': fieldBackground === 'muted' ? 'rgb(248 250 252)' : 'rgb(255 255 255)' } as CSSProperties);
 
   return (
-    <div className="group relative ff-root" data-filled={filled ? 'true' : 'false'} style={fieldBackgroundVariable}>
+    <div
+      className="group relative"
+      data-floating-field
+      data-filled={filled ? 'true' : 'false'}
+      style={fieldBackgroundVariable}
+    >
       <textarea
         {...props}
         id={id}
         placeholder=" "
-        className={classNames(classes.textarea, 'ff-control bg-[var(--field-bg)]', className)}
+        className={classNames(classes.textarea, 'bg-[var(--field-bg)]', className)}
       />
       <label htmlFor={id} className={classes.textareaLabel}>
         {label}
@@ -133,13 +143,13 @@ export function FloatingSelect({
     ({ '--field-bg': fieldBackground === 'muted' ? 'rgb(248 250 252)' : 'rgb(255 255 255)' } as CSSProperties);
 
   return (
-    <div className="group relative ff-root" data-has-value={hasValue} style={fieldBackgroundVariable}>
+    <div className="group relative" data-floating-field data-has-value={hasValue} style={fieldBackgroundVariable}>
       <select
         {...props}
         id={id}
         value={value}
         defaultValue={defaultValue}
-        className={classNames(classes.select, 'ff-control bg-[var(--field-bg)]', className)}
+        className={classNames(classes.select, 'bg-[var(--field-bg)]', className)}
       >
         {children}
       </select>

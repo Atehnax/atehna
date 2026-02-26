@@ -14,11 +14,11 @@ const outlinedTextFieldSx = {
     backgroundColor: '#fff',
     boxShadow: 'none',
     '& .MuiOutlinedInput-notchedOutline': {
-      borderColor: '#cbd5e1',
+      borderColor: '#5d3ed6',
       borderWidth: 1
     },
     '&:hover .MuiOutlinedInput-notchedOutline': {
-      borderColor: '#94a3b8'
+      borderColor: '#5d3ed6'
     },
     '&.Mui-focused': {
       boxShadow: 'none'
@@ -34,7 +34,10 @@ const outlinedTextFieldSx = {
   },
   '& .MuiInputLabel-root.MuiInputLabel-shrink': {
     backgroundColor: '#fff',
-    paddingInline: '4px'
+    fontSize: '8px',
+    lineHeight: 1,
+    paddingInline: '2px',
+    transform: 'translate(12px, -5px) scale(1)'
   },
   '& .MuiInputLabel-root.Mui-focused': {
     color: '#5d3ed6'

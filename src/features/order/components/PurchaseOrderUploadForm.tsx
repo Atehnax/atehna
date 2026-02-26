@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { Button } from '@/shared/ui/button';
+import { FloatingInput } from '@/shared/ui/floating-field';
 
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg'];
@@ -69,18 +70,12 @@ export default function PurchaseOrderUploadForm() {
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
-      <div>
-        <label className="text-sm font-medium text-slate-700" htmlFor="orderNumber">
-          Št. naročila
-        </label>
-        <input
-          id="orderNumber"
-          value={orderNumber}
-          onChange={(event) => setOrderNumber(event.target.value)}
-          placeholder="#123"
-          className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-        />
-      </div>
+      <FloatingInput
+        id="orderNumber"
+        label="Št. naročila"
+        value={orderNumber}
+        onChange={(event) => setOrderNumber(event.target.value)}
+      />
       <div>
         <label className="text-sm font-medium text-slate-700" htmlFor="purchaseOrder">
           Datoteka naročilnice (PDF ali JPG)

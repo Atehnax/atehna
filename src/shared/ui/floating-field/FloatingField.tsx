@@ -14,6 +14,8 @@ type BaseProps = {
   tone?: FloatingFieldTone;
 };
 
+type FieldBackground = 'default' | 'muted';
+
 type FloatingInputProps = BaseProps & Omit<InputHTMLAttributes<HTMLInputElement>, 'id' | 'placeholder'>;
 type FloatingTextareaProps = BaseProps & Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'id' | 'placeholder'>;
 type FloatingSelectProps = BaseProps &
@@ -29,14 +31,19 @@ const isFilled = (value: unknown) => {
   return String(value).length > 0;
 };
 
+const getFieldBackground = (disabled?: boolean, readOnly?: boolean): FieldBackground => {
+  if (disabled || readOnly) return 'muted';
+  return 'default';
+};
+
 const toneClasses = {
   order: {
     input:
-      'h-14 w-full rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400',
+      'h-14 w-full rounded-lg border border-slate-300 px-3 pb-2 pt-6 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:text-slate-400 read-only:cursor-not-allowed read-only:text-slate-500',
     textarea:
-      'min-h-[110px] w-full rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400',
+      'min-h-[110px] w-full rounded-lg border border-slate-300 px-3 pb-2 pt-6 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:text-slate-400 read-only:cursor-not-allowed read-only:text-slate-500',
     select:
-      'peer h-14 w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-6 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400',
+      'peer h-14 w-full appearance-none rounded-lg border border-slate-300 px-3 pb-2 pt-6 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:text-slate-400',
     inputLabel:
       'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400 transition-all duration-150 group-focus-within:top-2 group-focus-within:translate-y-0 group-focus-within:bg-white group-focus-within:px-1 group-focus-within:text-[11px] group-focus-within:text-slate-600 group-data-[filled=true]:top-2 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:bg-white group-data-[filled=true]:px-1 group-data-[filled=true]:text-[11px] group-data-[filled=true]:text-slate-600',
     textareaLabel:
@@ -46,11 +53,11 @@ const toneClasses = {
   },
   admin: {
     input:
-      'h-10 w-full overflow-visible rounded-xl border border-slate-300 bg-white px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]',
+      'h-10 w-full overflow-visible rounded-xl border border-slate-300 px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6] disabled:cursor-not-allowed disabled:text-slate-400 read-only:cursor-not-allowed read-only:text-slate-500',
     textarea:
-      'h-10 min-h-[40px] w-full resize-y overflow-hidden rounded-xl border border-slate-300 bg-white px-2.5 pb-1 pt-4 text-xs leading-4 text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]',
+      'h-10 min-h-[40px] w-full resize-y overflow-hidden rounded-xl border border-slate-300 px-2.5 pb-1 pt-4 text-xs leading-4 text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6] disabled:cursor-not-allowed disabled:text-slate-400 read-only:cursor-not-allowed read-only:text-slate-500',
     select:
-      'peer h-10 w-full appearance-none overflow-visible rounded-xl border border-slate-300 bg-white px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]',
+      'peer h-10 w-full appearance-none overflow-visible rounded-xl border border-slate-300 px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6] disabled:cursor-not-allowed disabled:text-slate-400',
     inputLabel:
       'pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 bg-white px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600',
     textareaLabel:
@@ -63,11 +70,17 @@ const toneClasses = {
 export function FloatingInput({ label, id, className = '', tone = 'order', ...props }: FloatingInputProps) {
   const filled = isFilled(props.value ?? props.defaultValue);
   const classes = toneClasses[tone];
+  const fieldBackground = getFieldBackground(props.disabled, props.readOnly);
+  const fieldBackgroundClass = fieldBackground === 'muted' ? 'bg-slate-50' : 'bg-white';
+  const labelBackgroundClass =
+    fieldBackground === 'muted'
+      ? 'group-focus-within:bg-slate-50 group-data-[filled=true]:bg-slate-50'
+      : 'group-focus-within:bg-white group-data-[filled=true]:bg-white';
 
   return (
     <div className="group relative" data-filled={filled ? 'true' : 'false'}>
-      <input {...props} id={id} placeholder=" " className={classNames(classes.input, className)} />
-      <label htmlFor={id} className={classes.inputLabel}>
+      <input {...props} id={id} placeholder=" " className={classNames(classes.input, fieldBackgroundClass, className)} />
+      <label htmlFor={id} className={classNames(classes.inputLabel, labelBackgroundClass)}>
         {label}
       </label>
     </div>
@@ -83,11 +96,17 @@ export function FloatingTextarea({
 }: FloatingTextareaProps) {
   const filled = isFilled(props.value ?? props.defaultValue);
   const classes = toneClasses[tone];
+  const fieldBackground = getFieldBackground(props.disabled, props.readOnly);
+  const fieldBackgroundClass = fieldBackground === 'muted' ? 'bg-slate-50' : 'bg-white';
+  const labelBackgroundClass =
+    fieldBackground === 'muted'
+      ? 'group-focus-within:bg-slate-50 group-data-[filled=true]:bg-slate-50'
+      : 'group-focus-within:bg-white group-data-[filled=true]:bg-white';
 
   return (
     <div className="group relative" data-filled={filled ? 'true' : 'false'}>
-      <textarea {...props} id={id} placeholder=" " className={classNames(classes.textarea, className)} />
-      <label htmlFor={id} className={classes.textareaLabel}>
+      <textarea {...props} id={id} placeholder=" " className={classNames(classes.textarea, fieldBackgroundClass, className)} />
+      <label htmlFor={id} className={classNames(classes.textareaLabel, labelBackgroundClass)}>
         {label}
       </label>
     </div>
@@ -107,6 +126,9 @@ export function FloatingSelect({
   const currentValue = value ?? defaultValue ?? '';
   const hasValue = String(currentValue).length > 0;
   const classes = toneClasses[tone];
+  const fieldBackground = getFieldBackground(props.disabled, false);
+  const fieldBackgroundClass = fieldBackground === 'muted' ? 'bg-slate-50' : 'bg-white';
+  const selectLabelBackgroundClass = fieldBackground === 'muted' ? 'bg-slate-50' : 'bg-white';
 
   return (
     <div className="group relative" data-has-value={hasValue}>
@@ -115,12 +137,12 @@ export function FloatingSelect({
         id={id}
         value={value}
         defaultValue={defaultValue}
-        className={classNames(classes.select, className)}
+        className={classNames(classes.select, fieldBackgroundClass, className)}
       >
         {children}
       </select>
 
-      <label htmlFor={id} className={classes.selectLabel}>
+      <label htmlFor={id} className={classNames(classes.selectLabel, selectLabelBackgroundClass)}>
         {label}
       </label>
 

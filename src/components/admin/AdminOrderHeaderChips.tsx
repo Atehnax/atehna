@@ -8,7 +8,7 @@ import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/lib/customerType';
 import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 import { toDateInputValue } from '@/lib/format/dateTime';
 import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/lib/paymentStatus';
-import { FloatingInput, FloatingSelect, FloatingTextarea } from '@/shared/ui/floating-field';
+import AdminHeaderField from '@/components/admin/AdminHeaderField';
 
 type TopSectionMode = 'read' | 'edit';
 
@@ -399,9 +399,7 @@ export default function AdminOrderHeaderChips(props: Props) {
 
       {topInputsEditable ? (
         <div className="mt-4 grid min-h-[132px] gap-3 text-[12px] md:grid-cols-2">
-          <FloatingInput
-            tone="admin"
-            labelMode="static"
+          <AdminHeaderField
             id="orderDate"
             label="Datum"
             type="date"
@@ -409,9 +407,8 @@ export default function AdminOrderHeaderChips(props: Props) {
             onChange={(event) => setDraftTopData((prev) => ({ ...prev, orderDate: event.target.value }))}
           />
 
-          <FloatingSelect
-            tone="admin"
-            labelMode="static"
+          <AdminHeaderField
+            kind="select"
             id="customerType"
             label="Tip naročnika"
             value={activeTopData.customerType}
@@ -422,18 +419,16 @@ export default function AdminOrderHeaderChips(props: Props) {
                 {option.label}
               </option>
             ))}
-          </FloatingSelect>
+          </AdminHeaderField>
 
-          <FloatingInput
-            tone="admin"
+          <AdminHeaderField
             id="organizationName"
             label="Naročnik"
             value={activeTopData.organizationName}
             onChange={(event) => setDraftTopData((prev) => ({ ...prev, organizationName: event.target.value }))}
           />
 
-          <FloatingInput
-            tone="admin"
+          <AdminHeaderField
             id="email"
             label="Email"
             type="email"
@@ -441,16 +436,15 @@ export default function AdminOrderHeaderChips(props: Props) {
             onChange={(event) => setDraftTopData((prev) => ({ ...prev, email: event.target.value }))}
           />
 
-          <FloatingInput
-            tone="admin"
+          <AdminHeaderField
             id="deliveryAddress"
             label="Naslov"
             value={activeTopData.deliveryAddress}
             onChange={(event) => setDraftTopData((prev) => ({ ...prev, deliveryAddress: event.target.value }))}
           />
 
-          <FloatingTextarea
-            tone="admin"
+          <AdminHeaderField
+            kind="textarea"
             id="notes"
             label="Opombe"
             value={activeTopData.notes}

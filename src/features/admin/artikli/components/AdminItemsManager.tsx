@@ -74,10 +74,10 @@ const outlinedTextFieldSx = {
   },
   '& .MuiInputLabel-root.MuiInputLabel-shrink': {
     backgroundColor: '#fff',
-    fontSize: '8px',
+    fontSize: '10px',
     lineHeight: 1,
-    paddingInline: '2px',
-    transform: 'translate(12px, -5px) scale(1)'
+    paddingInline: '1px',
+    transform: 'translate(10px, -6px) scale(1)'
   },
   '& .MuiInputLabel-root.Mui-focused': {
     color: '#5d3ed6'

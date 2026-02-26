@@ -38,10 +38,10 @@ const outlinedTextFieldSx = {
   },
   '& .MuiInputLabel-root.MuiInputLabel-shrink': {
     backgroundColor: '#fff',
-    fontSize: '8px',
+    fontSize: '10px',
     lineHeight: 1,
-    paddingInline: '2px',
-    transform: 'translate(12px, -5px) scale(1)'
+    paddingInline: '1px',
+    transform: 'translate(10px, -6px) scale(1)'
   },
   '& .MuiInputLabel-root.Mui-focused': {
     color: '#5d3ed6'
@@ -136,7 +136,7 @@ function StaticFloatingDate({
 }) {
   return (
     <div className="relative">
-      <label className="pointer-events-none absolute left-2.5 top-1.5 z-10 bg-white px-0.5 text-[8px] leading-none text-[#5d3ed6]">
+      <label className="pointer-events-none absolute left-2.5 top-0 z-10 -translate-y-1/2 bg-white px-0.5 text-[10px] leading-none text-[#5d3ed6]">
         {label}
       </label>
       <input
@@ -191,7 +191,7 @@ function StaticFloatingSelect({
 
   return (
     <div className="relative" ref={wrapperRef}>
-      <label className="pointer-events-none absolute left-2.5 top-1.5 z-10 bg-white px-0.5 text-[8px] leading-none text-[#5d3ed6]">
+      <label className="pointer-events-none absolute left-2.5 top-0 z-10 -translate-y-1/2 bg-white px-0.5 text-[10px] leading-none text-[#5d3ed6]">
         {label}
       </label>
 

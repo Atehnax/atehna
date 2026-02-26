@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useCartStore } from '@/lib/cart/store';
+import { Button } from '@/shared/ui/button';
+import { IconButton } from '@/shared/ui/icon-button';
 
 export default function CartDrawer() {
   const items = useCartStore((state) => state.items);
@@ -84,13 +86,15 @@ export default function CartDrawer() {
                   </div>
 
                   <div className="mt-3 flex items-center gap-2">
-                    <button
+                    <IconButton
                       type="button"
                       onClick={() => setQuantity(item.sku, item.quantity - 1)}
-                      className="h-8 w-8 rounded-full border border-slate-200 text-sm font-semibold text-slate-600"
+                      shape="rounded"
+                      size="md"
+                      className="text-sm font-semibold"
                     >
                       −
-                    </button>
+                    </IconButton>
                     <input
                       type="number"
                       min={1}
@@ -101,13 +105,15 @@ export default function CartDrawer() {
                       }}
                       className="w-16 rounded-lg border border-slate-200 px-2 py-1 text-center text-sm font-semibold text-slate-700"
                     />
-                    <button
+                    <IconButton
                       type="button"
                       onClick={() => setQuantity(item.sku, item.quantity + 1)}
-                      className="h-8 w-8 rounded-full border border-slate-200 text-sm font-semibold text-slate-600"
+                      shape="rounded"
+                      size="md"
+                      className="text-sm font-semibold"
                     >
                       +
-                    </button>
+                    </IconButton>
                     <span className="ml-auto text-sm font-semibold text-slate-900">
                       {formatter.format((item.unitPrice ?? 0) * item.quantity)}
                     </span>
@@ -123,13 +129,9 @@ export default function CartDrawer() {
               <span>{formatter.format(total)}</span>
             </div>
             <div className="flex flex-col gap-3">
-              <button
-                type="button"
-                onClick={closeDrawer}
-                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-200 hover:text-brand-600"
-              >
+              <Button type="button" onClick={closeDrawer} variant="outline">
                 Nadaljuj z brskanjem
-              </button>
+              </Button>
               <Link
                 href="/order"
                 onClick={closeDrawer}

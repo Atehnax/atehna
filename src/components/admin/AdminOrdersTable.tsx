@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
+import MenuItem from '@/shared/ui/menu/menu-item';
+import MenuPanel from '@/shared/ui/menu/menu-panel';
 import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
 import AdminOrderPaymentSelect from '@/components/admin/AdminOrderPaymentSelect';
 import AdminOrdersPreviewChart from '@/components/admin/AdminOrdersPreviewChart';
@@ -966,25 +968,21 @@ export default function AdminOrdersTable({
               </button>
 
               {isDocumentTypeMenuOpen && (
-                <div
-                  role="menu"
-                  className="absolute left-0 top-8 z-30 w-[180px] rounded-xl border border-slate-300 bg-white p-1 shadow-sm"
-                >
-                  {documentTypeOptions.map((documentTypeOption) => (
-                    <button
-                      key={documentTypeOption.value}
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        setDocumentType(documentTypeOption.value);
-                        setMessage(null);
-                        setIsDocumentTypeMenuOpen(false);
-                      }}
-                      className="flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none text-slate-700 hover:bg-[#ede8ff]"
-                    >
-                      {documentTypeOption.label}
-                    </button>
-                  ))}
+                <div role="menu">
+                  <MenuPanel className="absolute left-0 top-8 z-30 w-[180px]">
+                    {documentTypeOptions.map((documentTypeOption) => (
+                      <MenuItem
+                        key={documentTypeOption.value}
+                        onClick={() => {
+                          setDocumentType(documentTypeOption.value);
+                          setMessage(null);
+                          setIsDocumentTypeMenuOpen(false);
+                        }}
+                      >
+                        {documentTypeOption.label}
+                      </MenuItem>
+                    ))}
+                  </MenuPanel>
                 </div>
               )}
             </div>

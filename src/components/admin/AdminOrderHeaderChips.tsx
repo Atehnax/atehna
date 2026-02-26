@@ -9,6 +9,8 @@ import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 import { toDateInputValue } from '@/lib/format/dateTime';
 import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/lib/paymentStatus';
 import AdminHeaderField from '@/components/admin/AdminHeaderField';
+import MenuItem from '@/shared/ui/menu/menu-item';
+import MenuPanel from '@/shared/ui/menu/menu-panel';
 
 type TopSectionMode = 'read' | 'edit';
 
@@ -158,33 +160,25 @@ function CompactDropdown({
       </button>
 
       {isOpen ? (
-        <div
-          role="menu"
-          className={`absolute left-0 top-9 z-30 min-w-full w-max max-w-[260px] rounded-xl border border-slate-300 bg-white p-1 shadow-sm ${menuClassName}`}
-        >
-          {options.map((option) => {
-            const isSelected = option.value === value;
+        <div role="menu">
+          <MenuPanel className={`absolute left-0 top-9 z-30 min-w-full w-max max-w-[260px] ${menuClassName}`}>
+            {options.map((option) => {
+              const isSelected = option.value === value;
 
-            return (
-              <button
-                key={option.value}
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  onChange(option.value);
-                  setIsOpen(false);
-                }}
-                className={`flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none transition ${
-                  isSelected
-                    ? 'bg-[#f8f7fc] text-[#5d3ed6]'
-                    : 'text-slate-700 hover:bg-[#ede8ff]'
-                }`}
-                title={option.label}
-              >
-                <span className="block w-full text-left whitespace-nowrap">{option.label}</span>
-              </button>
-            );
-          })}
+              return (
+                <MenuItem
+                  key={option.value}
+                  onClick={() => {
+                    onChange(option.value);
+                    setIsOpen(false);
+                  }}
+                  isActive={isSelected}
+                >
+                  <span className="block w-full whitespace-nowrap text-left">{option.label}</span>
+                </MenuItem>
+              );
+            })}
+          </MenuPanel>
         </div>
       ) : null}
     </div>

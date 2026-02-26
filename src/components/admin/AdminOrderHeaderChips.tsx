@@ -15,6 +15,8 @@ type TopSectionMode = 'read' | 'edit';
 
 const outlinedTextFieldSx = {
   '& .MuiOutlinedInput-root': {
+    backgroundColor: '#fff',
+    boxShadow: 'none',
     '& .MuiOutlinedInput-notchedOutline': {
       borderColor: '#cbd5e1',
       borderWidth: 1
@@ -22,10 +24,21 @@ const outlinedTextFieldSx = {
     '&:hover .MuiOutlinedInput-notchedOutline': {
       borderColor: '#94a3b8'
     },
+    '&.Mui-focused': {
+      boxShadow: 'none'
+    },
     '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
       borderColor: '#5d3ed6',
       borderWidth: 1
     }
+  },
+  '& .MuiInputBase-input:focus-visible': {
+    outline: 'none',
+    boxShadow: 'none'
+  },
+  '& .MuiInputLabel-root.MuiInputLabel-shrink': {
+    backgroundColor: '#fff',
+    paddingInline: '4px'
   },
   '& .MuiInputLabel-root.Mui-focused': {
     color: '#5d3ed6'

@@ -9,8 +9,7 @@ import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 import { toDateInputValue } from '@/lib/format/dateTime';
 import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/lib/paymentStatus';
 import AdminHeaderField from '@/components/admin/AdminHeaderField';
-import MenuItem from '@/shared/ui/menu/menu-item';
-import MenuPanel from '@/shared/ui/menu/menu-panel';
+import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 
 type TopSectionMode = 'read' | 'edit';
 

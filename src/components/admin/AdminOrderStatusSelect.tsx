@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 import StatusChip from '@/components/admin/StatusChip';
-import MenuItem from '@/shared/ui/menu/menu-item';
-import MenuPanel from '@/shared/ui/menu/menu-panel';
+import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 
 type Props = {
   orderId: number;

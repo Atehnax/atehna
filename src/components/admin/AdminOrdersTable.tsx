@@ -3,8 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
-import MenuItem from '@/shared/ui/menu/menu-item';
-import MenuPanel from '@/shared/ui/menu/menu-panel';
+import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
 import AdminOrderPaymentSelect from '@/components/admin/AdminOrderPaymentSelect';
 import AdminOrdersPreviewChart from '@/components/admin/AdminOrdersPreviewChart';

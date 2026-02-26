@@ -11,6 +11,7 @@ import { useCartStore } from '@/lib/cart/store';
 import { CUSTOMER_TYPE_FORM_OPTIONS, type CustomerType } from '@/lib/customerType';
 import { SLOVENIAN_ADDRESSES } from '@/data/slovenianAddresses';
 import { FloatingInput, FloatingSelect, FloatingTextarea } from '@/shared/ui/floating-field';
+import { IconButton } from '@/shared/ui/icon-button';
 
 const FORM_STORAGE_KEY = 'atehna-order-form';
 
@@ -720,25 +721,29 @@ export default function OrderPageClient() {
                       </div>
 
                       <div className="flex items-center justify-center gap-3 sm:justify-self-center">
-                        <button
+                        <IconButton
                           type="button"
                           onClick={() => setQuantity(item.sku, item.quantity - 1)}
-                          className="h-8 w-8 rounded-full border border-slate-200 text-sm font-semibold text-slate-600"
+                          shape="rounded"
+                          size="md"
+                          className="text-sm font-semibold"
                           aria-label={`Zmanjšaj količino za ${item.name}`}
                         >
                           −
-                        </button>
+                        </IconButton>
                         <span className="min-w-[1.5rem] text-center text-sm font-semibold text-slate-700">
                           {item.quantity}
                         </span>
-                        <button
+                        <IconButton
                           type="button"
                           onClick={() => setQuantity(item.sku, item.quantity + 1)}
-                          className="h-8 w-8 rounded-full border border-slate-200 text-sm font-semibold text-slate-600"
+                          shape="rounded"
+                          size="md"
+                          className="text-sm font-semibold"
                           aria-label={`Povečaj količino za ${item.name}`}
                         >
                           +
-                        </button>
+                        </IconButton>
                       </div>
 
                       <div className="justify-self-end text-right text-sm font-semibold text-slate-900 tabular-nums">

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/server/db';
-import { uploadBlob } from '@/lib/server/blob';
+import { buildOrderBlobPath, uploadBlob } from '@/lib/server/blob';
 import { generateOrderPdf } from '@/lib/server/pdf';
 
 export const runtime = 'nodejs';
@@ -71,6 +71,21 @@ const isMissingColumnError = (error: unknown, columnCode: string): boolean => {
   if (!error || typeof error !== 'object') return false;
   const databaseError = error as { code?: string };
   return databaseError.code === columnCode;
+};
+
+const asDatabaseErrorDetails = (error: unknown): { code: string; message: string } => {
+  if (error instanceof Error) {
+    const databaseError = error as Error & { code?: string };
+    return {
+      code: databaseError.code ?? 'unknown',
+      message: databaseError.message
+    };
+  }
+
+  return {
+    code: 'unknown',
+    message: 'Unknown database error'
+  };
 };
 
 export async function POST(request: Request) {
@@ -200,36 +215,37 @@ export async function POST(request: Request) {
         returning id, order_number, created_at
       `;
 
+      const orderInsertParams = [
+        customerType,
+        toNullableText(organizationName),
+        contactName,
+        email,
+        toNullableText(phone),
+        toNullableText(deliveryAddress),
+        toNullableText(reference),
+        toNullableText(notes),
+        subtotal,
+        tax,
+        total
+      ];
+
       let orderResult;
+      await databaseClient.query('savepoint order_insert_sp');
       try {
-        orderResult = await databaseClient.query(insertOrderQuery, [
-          customerType,
-          toNullableText(organizationName),
-          contactName,
-          email,
-          toNullableText(phone),
-          toNullableText(deliveryAddress),
-          toNullableText(reference),
-          toNullableText(notes),
-          subtotal,
-          tax,
-          total
-        ]);
+        orderResult = await databaseClient.query(insertOrderQuery, orderInsertParams);
       } catch (error) {
-        if (!isMissingColumnError(error, '42703')) throw error;
-        orderResult = await databaseClient.query(insertOrderFallbackQuery, [
-          customerType,
-          toNullableText(organizationName),
-          contactName,
-          email,
-          toNullableText(phone),
-          toNullableText(deliveryAddress),
-          toNullableText(reference),
-          toNullableText(notes),
-          subtotal,
-          tax,
-          total
-        ]);
+        if (!isMissingColumnError(error, '42703')) {
+          await databaseClient.query('rollback to savepoint order_insert_sp');
+          throw error;
+        }
+
+        const details = asDatabaseErrorDetails(error);
+        console.error('[orders.create] primary insert failed, using fallback query', details);
+
+        await databaseClient.query('rollback to savepoint order_insert_sp');
+        orderResult = await databaseClient.query(insertOrderFallbackQuery, orderInsertParams);
+      } finally {
+        await databaseClient.query('release savepoint order_insert_sp');
       }
 
       const orderRow = orderResult.rows[0] as
@@ -282,22 +298,33 @@ export async function POST(request: Request) {
         pricedItems
       );
 
-      const fileName = `${orderRow.order_number}-${documentType}.pdf`;
-      const blobPath = `orders/${orderRow.order_number}/${fileName}`;
+      const fileName = `${orderRow.id}-${documentType}.pdf`;
+      const blobPath = buildOrderBlobPath(orderRow.id, fileName);
       const blob = await uploadBlob(blobPath, Buffer.from(pdfBuffer), 'application/pdf');
 
+      await databaseClient.query('savepoint order_document_insert_sp');
       try {
         await databaseClient.query(
           'insert into order_documents (order_id, type, filename, blob_url, blob_pathname) values ($1, $2, $3, $4, $5)',
           [orderRow.id, documentType, fileName, blob.url, blob.pathname]
         );
       } catch (error) {
-        if (!isMissingColumnError(error, '42703')) throw error;
+        if (!isMissingColumnError(error, '42703')) {
+          await databaseClient.query('rollback to savepoint order_document_insert_sp');
+          throw error;
+        }
+
+        const details = asDatabaseErrorDetails(error);
+        console.error('[orders.create] order_documents insert failed, using fallback query', details);
+
+        await databaseClient.query('rollback to savepoint order_document_insert_sp');
 
         await databaseClient.query(
           'insert into order_documents (order_id, type, filename, blob_url) values ($1, $2, $3, $4)',
           [orderRow.id, documentType, fileName, blob.url]
         );
+      } finally {
+        await databaseClient.query('release savepoint order_document_insert_sp');
       }
 
       await databaseClient.query('commit');
@@ -309,6 +336,9 @@ export async function POST(request: Request) {
         documentType
       });
     } catch (error) {
+      const details = asDatabaseErrorDetails(error);
+      console.error('[orders.create] transaction failed; rolling back', details);
+
       await databaseClient.query('rollback');
       throw error;
     } finally {

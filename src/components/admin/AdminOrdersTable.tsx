@@ -1133,22 +1133,18 @@ export default function AdminOrdersTable({
                       </button>
 
                       {isStatusHeaderMenuOpen && (
-                        <div
-                          role="menu"
-                          className="absolute left-1/2 top-8 z-20 w-44 -translate-x-1/2 rounded-xl border border-slate-300 bg-white p-1 shadow-sm"
-                        >
-                          {ORDER_STATUS_OPTIONS.map((option) => (
-                            <button
-                              key={option.value}
-                              type="button"
-                              role="menuitem"
-                              onClick={() => handleBulkStatusUpdate(option.value)}
-                              disabled={isBulkUpdatingStatus}
-                              className="flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none text-slate-700 hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
-                            >
-                              {option.label}
-                            </button>
-                          ))}
+                        <div role="menu">
+                          <MenuPanel className="absolute left-1/2 top-8 z-20 w-44 -translate-x-1/2">
+                            {ORDER_STATUS_OPTIONS.map((option) => (
+                              <MenuItem
+                                key={option.value}
+                                onClick={() => handleBulkStatusUpdate(option.value)}
+                                disabled={isBulkUpdatingStatus}
+                              >
+                                {option.label}
+                              </MenuItem>
+                            ))}
+                          </MenuPanel>
                         </div>
                       )}
                     </>
@@ -1180,22 +1176,18 @@ export default function AdminOrdersTable({
                       </button>
 
                       {isPaymentHeaderMenuOpen && (
-                        <div
-                          role="menu"
-                          className="absolute left-1/2 top-8 z-20 w-44 -translate-x-1/2 rounded-xl border border-slate-300 bg-white p-1 shadow-sm"
-                        >
-                          {PAYMENT_STATUS_OPTIONS.map((option) => (
-                            <button
-                              key={option.value}
-                              type="button"
-                              role="menuitem"
-                              onClick={() => handleBulkPaymentUpdate(option.value)}
-                              disabled={isBulkUpdatingStatus}
-                              className="flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none text-slate-700 hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
-                            >
-                              {option.label}
-                            </button>
-                          ))}
+                        <div role="menu">
+                          <MenuPanel className="absolute left-1/2 top-8 z-20 w-44 -translate-x-1/2">
+                            {PAYMENT_STATUS_OPTIONS.map((option) => (
+                              <MenuItem
+                                key={option.value}
+                                onClick={() => handleBulkPaymentUpdate(option.value)}
+                                disabled={isBulkUpdatingStatus}
+                              >
+                                {option.label}
+                              </MenuItem>
+                            ))}
+                          </MenuPanel>
                         </div>
                       )}
                     </>

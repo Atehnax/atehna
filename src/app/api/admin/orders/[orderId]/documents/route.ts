@@ -56,9 +56,7 @@ export async function POST(
     }
 
     const pool = await getPool();
-    const orderResult = await pool.query('SELECT order_number FROM orders WHERE id = $1', [
-      orderId
-    ]);
+    const orderResult = await pool.query('SELECT id FROM orders WHERE id = $1', [orderId]);
     const order = orderResult.rows[0];
 
     if (!order) {
@@ -66,8 +64,8 @@ export async function POST(
     }
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
-    const fileName = `${order.order_number}-${normalizedType}-${Date.now()}.pdf`;
-    const blobPath = buildOrderBlobPath(String(order.order_number ?? ''), fileName);
+    const fileName = `${orderId}-${normalizedType}-${Date.now()}.pdf`;
+    const blobPath = buildOrderBlobPath(orderId, fileName);
 
     // force correct metadata, never pass browser mime directly
     const blob = await uploadBlob(blobPath, fileBuffer, 'application/pdf');

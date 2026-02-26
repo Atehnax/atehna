@@ -298,8 +298,8 @@ export async function POST(request: Request) {
         pricedItems
       );
 
-      const fileName = `${orderRow.order_number}-${documentType}.pdf`;
-      const blobPath = buildOrderBlobPath(orderRow.order_number, fileName);
+      const fileName = `${orderRow.id}-${documentType}.pdf`;
+      const blobPath = buildOrderBlobPath(orderRow.id, fileName);
       const blob = await uploadBlob(blobPath, Buffer.from(pdfBuffer), 'application/pdf');
 
       await databaseClient.query('savepoint order_document_insert_sp');

@@ -5,19 +5,27 @@ export type UploadResult = {
   pathname: string;
 };
 
+const FORBIDDEN_PATH_CHARS = /[#?%\n\r]/g;
+
 const sanitizeBlobSegment = (value: string): string =>
   value
+    .replace(FORBIDDEN_PATH_CHARS, '')
     .trim()
-    .replace(/[^a-zA-Z0-9_-]+/g, '-')
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
 
 const normalizePathname = (pathname: string): string => pathname.trim().replace(/^\/+/, '');
 
-export function buildOrderBlobPath(orderReference: string, fileName: string): string {
-  const safeOrderReference = sanitizeBlobSegment(orderReference) || 'order';
-  const safeFileName = fileName.trim().replace(/^\/+/, '');
-  return `orders/${safeOrderReference}/${safeFileName}`;
+export function buildOrderBlobPath(orderId: string | number, fileName: string): string {
+  const safeOrderId = sanitizeBlobSegment(String(orderId)) || 'order';
+  const safeFileName = sanitizeBlobSegment(fileName).replace(/^\/+/, '');
+
+  if (!safeFileName || safeFileName.endsWith('/')) {
+    throw new Error(`Invalid blob fileName: "${safeFileName}".`);
+  }
+
+  return `orders/${safeOrderId}/${safeFileName}`;
 }
 
 export async function uploadBlob(
@@ -49,6 +57,8 @@ export async function uploadBlob(
 
   const effectiveContentType = contentType || 'application/octet-stream';
 
+  console.info('[blob.upload] put pathname', { pathname: normalizedPathname });
+
   // Safety check for PDFs: must start with "%PDF-"
   if (effectiveContentType === 'application/pdf') {
     const header = payload.subarray(0, 5).toString('ascii');
@@ -57,13 +67,21 @@ export async function uploadBlob(
     }
   }
 
-  const blob = await put(normalizedPathname, payload, {
-    access: 'public',
-    contentType: effectiveContentType,
-    token: process.env.BLOB_READ_WRITE_TOKEN
-  });
+  try {
+    const blob = await put(normalizedPathname, payload, {
+      access: 'public',
+      contentType: effectiveContentType,
+      token: process.env.BLOB_READ_WRITE_TOKEN
+    });
 
-  return { url: blob.url, pathname: blob.pathname };
+    return { url: blob.url, pathname: blob.pathname };
+  } catch (error) {
+    console.error('[blob.upload] put failed', {
+      pathname: normalizedPathname,
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+    throw error;
+  }
 }
 
 export async function deleteBlob(pathnameOrUrl: string): Promise<void> {

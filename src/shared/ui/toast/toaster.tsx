@@ -6,11 +6,11 @@ import { ToastContext, type ToastTone } from './toast-provider';
 
 const toneClassMap: Record<ToastTone, string> = {
   success:
-    'border-emerald-500/40 bg-gradient-to-r from-emerald-50 via-white to-emerald-50/70 text-emerald-900 ring-1 ring-emerald-500/30',
+    'border-emerald-500/80 bg-gradient-to-r from-slate-950 via-slate-900 to-emerald-950/60 text-emerald-200 ring-1 ring-emerald-500/60',
   error:
-    'border-rose-500/40 bg-gradient-to-r from-rose-50 via-white to-rose-50/70 text-rose-900 ring-1 ring-rose-500/30',
+    'border-rose-500/85 bg-gradient-to-r from-black via-slate-950 to-rose-950/60 text-rose-200 ring-1 ring-rose-500/65',
   info:
-    'border-[#5d3ed6]/35 bg-gradient-to-r from-[#5d3ed6]/10 via-white to-[#5d3ed6]/5 text-slate-900 ring-1 ring-[#5d3ed6]/25'
+    'border-slate-500/80 bg-gradient-to-r from-black via-slate-950 to-slate-900 text-slate-100 ring-1 ring-slate-400/45'
 };
 
 export default function Toaster() {
@@ -24,13 +24,13 @@ export default function Toaster() {
             key={toast.id}
             role="status"
             aria-live={toast.tone === 'error' ? 'assertive' : 'polite'}
-            className={`pointer-events-auto flex items-start justify-between gap-3 rounded-xl border px-4 py-3 text-sm font-medium shadow-[0_14px_30px_-14px_rgba(15,23,42,0.6)] backdrop-blur ${toneClassMap[toast.tone]}`}
+            className={`pointer-events-auto flex items-start justify-between gap-3 rounded-xl border px-4 py-3 text-sm font-semibold shadow-[0_20px_40px_-18px_rgba(2,6,23,0.9)] backdrop-blur ${toneClassMap[toast.tone]}`}
           >
-            <p>{toast.message}</p>
+            <p className="leading-5">{toast.message}</p>
             <button
               type="button"
               onClick={() => context.removeToast(toast.id)}
-              className="shrink-0 rounded-md px-1.5 py-0.5 text-xs font-semibold text-slate-500 transition hover:bg-white/70 hover:text-slate-900"
+              className="shrink-0 rounded-md px-1.5 py-0.5 text-xs font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
               aria-label="Zapri obvestilo"
             >
               ✕

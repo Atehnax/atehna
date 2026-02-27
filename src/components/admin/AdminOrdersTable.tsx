@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, Table, TBody, TD, THead, TH, TR, TableShell } from '@/shared/ui/table';
 import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
 import AdminOrderPaymentSelect from '@/components/admin/AdminOrderPaymentSelect';
@@ -95,7 +96,7 @@ export default function AdminOrdersTable({
   const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
 
   const [documentType, setDocumentType] = useState<DocumentType>('all');
-  const [message, setMessage] = useState<string | null>(null);
+  const { toast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
 
   const selectAllRef = useRef<HTMLInputElement>(null);
@@ -596,7 +597,7 @@ export default function AdminOrdersTable({
       ).length;
 
       if (failedDeletes > 0) {
-        setMessage(`Brisanje ni uspelo za ${failedDeletes} naročil.`);
+        toast.error(`Brisanje ni uspelo za ${failedDeletes} naročil.`);
       }
 
       router.refresh();
@@ -618,7 +619,7 @@ export default function AdminOrdersTable({
     try {
       const response = await fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' });
       if (!response.ok) {
-        setMessage('Brisanje naročila ni uspelo. Poskusite znova.');
+        toast.error('Brisanje naročila ni uspelo. Poskusite znova.');
         return;
       }
 
@@ -736,7 +737,6 @@ export default function AdminOrdersTable({
     setFromDate('');
     setToDate('');
     setDocumentType('all');
-    setMessage(null);
   };
 
   const hasActiveFilters =
@@ -758,7 +758,6 @@ export default function AdminOrdersTable({
 
   const handleResetDocumentFilter = () => {
   setDocumentType('all');
-  setMessage(null);
   setIsDocumentTypeMenuOpen(false);
   };
 
@@ -780,7 +779,6 @@ export default function AdminOrdersTable({
 
   const handleDownloadAllDocuments = async () => {
     setIsDownloading(true);
-    setMessage(null);
 
     try {
       const filesToDownload: Array<{ url: string; filename: string }> = [];
@@ -805,7 +803,7 @@ export default function AdminOrdersTable({
       });
 
       if (filesToDownload.length === 0) {
-        setMessage('Ni dokumentov za prenos glede na trenutno izbiro.');
+        toast.info('Ni dokumentov za prenos glede na trenutno izbiro.');
         return;
       }
 
@@ -813,7 +811,7 @@ export default function AdminOrdersTable({
         await downloadFile(fileToDownload.url, fileToDownload.filename);
       }
 
-      setMessage(`Prenesenih dokumentov: ${filesToDownload.length}`);
+      toast.success(`Prenesenih dokumentov: ${filesToDownload.length}`);
     } finally {
       setIsDownloading(false);
     }
@@ -981,8 +979,7 @@ export default function AdminOrdersTable({
                         key={documentTypeOption.value}
                         onClick={() => {
                           setDocumentType(documentTypeOption.value);
-                          setMessage(null);
-                          setIsDocumentTypeMenuOpen(false);
+                                                setIsDocumentTypeMenuOpen(false);
                         }}
                       >
                         {documentTypeOption.label}
@@ -1024,7 +1021,6 @@ export default function AdminOrdersTable({
           {topAction ? <div className="flex h-8 items-center">{topAction}</div> : null}
         </div>
 
-        {message && <p className="mt-2 text-xs text-slate-600">{message}</p>}
 
         <ConfirmDialog
           open={isBulkDeleteDialogOpen}

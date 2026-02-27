@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { useToast } from '@/shared/ui/toast';
 
 type PdfDocument = {
   id: number;
@@ -116,7 +117,7 @@ export default function AdminOrderPdfManager({
   const [draftNotes, setDraftNotes] = useState<string>(paymentNotes ?? '');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
 
-  const [message, setMessage] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const grouped = useMemo(() => {
     const map: Record<PdfTypeKey, PdfDocument[]> = {
@@ -156,7 +157,6 @@ export default function AdminOrderPdfManager({
     if (notesSaveDisabled) return;
 
     setIsSavingNotes(true);
-    setMessage(null);
     try {
       const response = await fetch(`/api/admin/orders/${orderId}/payment-status`, {
         method: 'POST',
@@ -165,12 +165,12 @@ export default function AdminOrderPdfManager({
       });
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
-        setMessage(body.message || 'Shranjevanje opomb ni uspelo.');
+        toast.error(body.message || 'Shranjevanje opomb ni uspelo.');
         return;
       }
       setPersistedNotes(draftNotes);
       setNotesSectionMode('read');
-      setMessage('Opombe so shranjene.');
+      toast.success('Opombe so shranjene.');
     } finally {
       setIsSavingNotes(false);
     }
@@ -178,14 +178,13 @@ export default function AdminOrderPdfManager({
 
   const handleGenerate = async (type: PdfTypeKey) => {
     setLoadingType(type);
-    setMessage(null);
     try {
       const response = await fetch(`/api/admin/orders/${orderId}/${routeMap[type]}`, {
         method: 'POST'
       });
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
-        setMessage(body.message || 'Generiranje PDF ni uspelo.');
+        toast.error(body.message || 'Generiranje PDF ni uspelo.');
         return;
       }
       const payload = (await response.json()) as {
@@ -195,7 +194,7 @@ export default function AdminOrderPdfManager({
         createdAt: string;
         type: string;
       };
-      setMessage('PDF je uspešno ustvarjen.');
+      toast.success('PDF je uspešno ustvarjen.');
       setDocList((prev) => [
         {
           id: payload.id,
@@ -213,7 +212,6 @@ export default function AdminOrderPdfManager({
 
   const handleUpload = async (type: PdfTypeKey, file: File) => {
     setUploadingType(type);
-    setMessage(null);
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -224,7 +222,7 @@ export default function AdminOrderPdfManager({
       });
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
-        setMessage(body.message || 'Nalaganje PDF ni uspelo.');
+        toast.error(body.message || 'Nalaganje PDF ni uspelo.');
         return;
       }
       const payload = (await response.json()) as {
@@ -234,7 +232,7 @@ export default function AdminOrderPdfManager({
         createdAt: string;
         type: string;
       };
-      setMessage('PDF je uspešno naložen.');
+      toast.success('PDF je uspešno naložen.');
       setDocList((prev) => [
         {
           id: payload.id,
@@ -258,7 +256,7 @@ export default function AdminOrderPdfManager({
   const downloadLatestByType = (type: PdfTypeKey) => {
     const latest = grouped[type][0];
     if (!latest) {
-      setMessage('Ni dokumenta za prenos.');
+      toast.info('Ni dokumenta za prenos.');
       return;
     }
     window.open(latest.blob_url, '_blank', 'noopener,noreferrer');
@@ -269,17 +267,16 @@ export default function AdminOrderPdfManager({
     const documentId = confirmDeleteDocumentId;
     setDeletingDocumentId(documentId);
     setConfirmDeleteDocumentId(null);
-    setMessage(null);
     try {
       const response = await fetch(`/api/admin/orders/${orderId}/documents/${documentId}`, {
         method: 'DELETE'
       });
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
-        setMessage(body.message || 'Brisanje PDF ni uspelo.');
+        toast.error(body.message || 'Brisanje PDF ni uspelo.');
         return;
       }
-      setMessage('Verzija PDF je izbrisana.');
+      toast.success('Verzija PDF je izbrisana.');
       setDocList((previousDocuments) => previousDocuments.filter((doc) => doc.id !== documentId));
     } finally {
       setDeletingDocumentId(null);
@@ -289,8 +286,6 @@ export default function AdminOrderPdfManager({
   return (
     <section className="w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <h2 className="text-base font-semibold text-slate-900">PDF dokumenti</h2>
-      {message ? <p className="mt-2 text-xs text-slate-600">{message}</p> : null}
-
       <div className="mt-4 rounded-2xl border border-slate-200/80 p-3.5">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-semibold text-slate-900">Opombe</p>

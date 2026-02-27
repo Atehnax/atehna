@@ -12,6 +12,7 @@ import AdminHeaderField from '@/components/admin/AdminHeaderField';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { CustomSelect } from '@/shared/ui/select';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { useToast } from '@/shared/ui/toast';
 
 type TopSectionMode = 'read' | 'edit';
 
@@ -199,7 +200,7 @@ export default function AdminOrderHeaderChips(props: Props) {
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const isTopDirty = useMemo(
     () =>
@@ -216,14 +217,12 @@ export default function AdminOrderHeaderChips(props: Props) {
       setDraftTopData({ ...persistedTopData });
       setDraftOrderNumber(displayOrderNumber);
       setTopSectionMode('read');
-      setMessage(null);
       return;
     }
 
     setDraftTopData({ ...persistedTopData });
     setDraftOrderNumber(displayOrderNumber);
     setTopSectionMode('edit');
-    setMessage(null);
   };
 
   const saveTopSection = async () => {
@@ -235,7 +234,6 @@ export default function AdminOrderHeaderChips(props: Props) {
     }
 
     setIsTopSaving(true);
-    setMessage(null);
     try {
       const [statusResponse, paymentResponse, detailsResponse] = await Promise.all([
         fetch(`/api/admin/orders/${orderId}/status`, {
@@ -287,7 +285,7 @@ export default function AdminOrderHeaderChips(props: Props) {
         })
       );
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Napaka pri shranjevanju.');
+      toast.error(error instanceof Error ? error.message : 'Napaka pri shranjevanju.');
     } finally {
       setIsTopSaving(false);
     }
@@ -296,7 +294,6 @@ export default function AdminOrderHeaderChips(props: Props) {
   const confirmDeleteOrder = async () => {
     setIsDeleting(true);
     setIsDeleteModalOpen(false);
-    setMessage(null);
     try {
       const response = await fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' });
       if (!response.ok) {
@@ -306,7 +303,7 @@ export default function AdminOrderHeaderChips(props: Props) {
       router.push('/admin/orders');
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Napaka pri brisanju naročila.');
+      toast.error(error instanceof Error ? error.message : 'Napaka pri brisanju naročila.');
     } finally {
       setIsDeleting(false);
     }
@@ -482,8 +479,6 @@ export default function AdminOrderHeaderChips(props: Props) {
           </div>
         </div>
       )}
-
-      {message ? <p className="mt-2 text-xs text-slate-600">{message}</p> : null}
 
       <ConfirmDialog
         open={isDeleteModalOpen}

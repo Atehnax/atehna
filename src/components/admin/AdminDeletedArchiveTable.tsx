@@ -5,6 +5,7 @@ import { DANGER_OUTLINE_BUTTON_CLASS } from './adminButtonStyles';
 import { useRouter } from 'next/navigation';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { useToast } from '@/shared/ui/toast';
 import { EmptyState, Table, TBody, TD, THead, TH, TR, TableShell } from '@/shared/ui/table';
 
 type ArchiveEntry = {
@@ -49,7 +50,7 @@ export default function AdminDeletedArchiveTable({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const [isTypeFilterMenuOpen, setIsTypeFilterMenuOpen] = useState(false);
   const typeFilterMenuRef = useRef<HTMLDivElement>(null);
@@ -231,12 +232,11 @@ export default function AdminDeletedArchiveTable({
       }));
 
     if (restorableIds.length === 0 && targets.length === 0) {
-      setMessage('Ni izbranih zapisov za obnovo.');
+      toast.info('Ni izbranih zapisov za obnovo.');
       return;
     }
 
     setIsRestoring(true);
-    setMessage(null);
     try {
       const response = await fetch('/api/admin/archive', {
         method: 'PATCH',
@@ -245,13 +245,13 @@ export default function AdminDeletedArchiveTable({
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setMessage(body.message || 'Obnova ni uspela.');
+        toast.error(body.message || 'Obnova ni uspela.');
         return;
       }
 
       setEntries((previousEntries) => previousEntries.filter((entry) => !selected.includes(entry.id)));
       setSelected([]);
-      setMessage('Izbrani zapisi so obnovljeni.');
+      toast.success('Izbrani zapisi so obnovljeni.');
       router.refresh();
     } finally {
       setIsRestoring(false);
@@ -261,7 +261,7 @@ export default function AdminDeletedArchiveTable({
   const bulkDelete = () => {
     const deletableIds = selected.filter((id) => id > 0);
     if (deletableIds.length === 0) {
-      setMessage('Izbrani zapisi nimajo arhivske postavke za trajni izbris.');
+      toast.info('Izbrani zapisi nimajo arhivske postavke za trajni izbris.');
       return;
     }
 
@@ -271,14 +271,13 @@ export default function AdminDeletedArchiveTable({
   const confirmBulkDelete = async () => {
     const deletableIds = selected.filter((id) => id > 0);
     if (deletableIds.length === 0) {
-      setMessage('Izbrani zapisi nimajo arhivske postavke za trajni izbris.');
+      toast.info('Izbrani zapisi nimajo arhivske postavke za trajni izbris.');
       setIsDeleteConfirmOpen(false);
       return;
     }
 
     setIsDeleteConfirmOpen(false);
     setIsDeleting(true);
-    setMessage(null);
     try {
       const response = await fetch('/api/admin/archive', {
         method: 'DELETE',
@@ -287,13 +286,13 @@ export default function AdminDeletedArchiveTable({
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setMessage(body.message || 'Trajni izbris ni uspel.');
+        toast.error(body.message || 'Trajni izbris ni uspel.');
         return;
       }
 
       setEntries((previousEntries) => previousEntries.filter((entry) => !deletableIds.includes(entry.id)));
       setSelected([]);
-      setMessage('Izbrani zapisi so trajno izbrisani.');
+      toast.success('Izbrani zapisi so trajno izbrisani.');
     } finally {
       setIsDeleting(false);
     }
@@ -353,7 +352,19 @@ export default function AdminDeletedArchiveTable({
         </div>
       </div>
 
-      {message ? <p className="mb-2 text-xs text-slate-600">{message}</p> : null}
+      <ConfirmDialog
+        open={isDeleteConfirmOpen}
+        title="Trajni izbris"
+        description="Ali ste prepričani, da želite trajno izbrisati izbrane zapise?"
+        confirmLabel="Izbriši"
+        cancelLabel="Prekliči"
+        isDanger
+        onCancel={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={() => {
+          void confirmBulkDelete();
+        }}
+        confirmDisabled={isDeleting}
+      />
 
       <ConfirmDialog
         open={isDeleteConfirmOpen}

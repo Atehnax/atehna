@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { IconButton } from '@/shared/ui/icon-button';
+import { useToast } from '@/shared/ui/toast';
 
 type OrderItemInput = {
   id: number;
@@ -114,7 +115,7 @@ export default function AdminOrderItemsEditor({
   const [catalogChoices, setCatalogChoices] = useState<CatalogChoice[]>([]);
   const [catalogQuery, setCatalogQuery] = useState('');
   const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const isItemsDirty = useMemo(
     () => JSON.stringify(draftItems) !== JSON.stringify(persistedItems) || toMoney(draftShipping) !== toMoney(persistedShipping),
@@ -164,13 +165,11 @@ export default function AdminOrderItemsEditor({
         };
       })
     );
-    setMessage(null);
   };
 
   const removeItem = (id: string) => {
     if (!itemsEditable) return;
     setDraftItems((currentItems) => currentItems.filter((item) => item.id !== id));
-    setMessage(null);
   };
 
   const startItemsEdit = () => {
@@ -178,14 +177,12 @@ export default function AdminOrderItemsEditor({
       setDraftItems(cloneEditableItems(persistedItems));
       setDraftShipping(persistedShipping);
       setItemsSectionMode('read');
-      setMessage(null);
-      return;
+        return;
     }
 
     setDraftItems(cloneEditableItems(persistedItems));
     setDraftShipping(persistedShipping);
     setItemsSectionMode('edit');
-    setMessage(null);
   };
 
   const openAddItem = async () => {
@@ -224,7 +221,6 @@ export default function AdminOrderItemsEditor({
     });
     setIsPickerOpen(false);
     setCatalogQuery('');
-    setMessage(null);
   };
 
   const saveItems = async () => {
@@ -236,12 +232,11 @@ export default function AdminOrderItemsEditor({
     }
 
     if (draftItems.length === 0) {
-      setMessage('Naročilo mora vsebovati vsaj eno postavko.');
+      toast.error('Naročilo mora vsebovati vsaj eno postavko.');
       return;
     }
 
     setIsItemsSaving(true);
-    setMessage(null);
     try {
       const response = await fetch(`/api/admin/orders/${orderId}/items`, {
         method: 'POST',
@@ -270,9 +265,9 @@ export default function AdminOrderItemsEditor({
       setPersistedShipping(toMoney(draftShipping));
       setDraftItems(cloneEditableItems(nextItems));
       setItemsSectionMode('read');
-      setMessage('Postavke so posodobljene.');
+      toast.success('Postavke so posodobljene.');
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Napaka pri shranjevanju postavk.');
+      toast.error(error instanceof Error ? error.message : 'Napaka pri shranjevanju postavk.');
     } finally {
       setIsItemsSaving(false);
     }
@@ -429,8 +424,6 @@ export default function AdminOrderItemsEditor({
           </div>
         </div>
       </div>
-
-      {message && <p className="mt-3 text-[12px] text-slate-600">{message}</p>}
 
       {isPickerOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">

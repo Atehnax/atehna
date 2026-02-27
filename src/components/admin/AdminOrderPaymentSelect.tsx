@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import PaymentChip from '@/components/admin/PaymentChip';
 import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/lib/paymentStatus';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import { useToast } from '@/shared/ui/toast';
 
 type Props = {
   orderId: number;
@@ -24,6 +25,7 @@ export default function AdminOrderPaymentSelect({
   const [isSaving, setIsSaving] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     setCurrentStatus(status ?? null);
@@ -60,11 +62,18 @@ export default function AdminOrderPaymentSelect({
         body: JSON.stringify({ status: value, note: '' })
       });
 
-      if (!response.ok) return;
+      if (!response.ok) {
+        toast.error('Napaka pri shranjevanju');
+        return;
+      }
 
       setCurrentStatus(value);
+      toast.success('Shranjeno');
       setIsOpen(false);
       onStatusSaved?.(value);
+    } catch (error) {
+      console.error(error);
+      toast.error('Napaka pri shranjevanju');
     } finally {
       setIsSaving(false);
     }

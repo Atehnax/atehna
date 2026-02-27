@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 import StatusChip from '@/components/admin/StatusChip';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import { useToast } from '@/shared/ui/toast';
 
 type Props = {
   orderId: number;
@@ -24,6 +25,7 @@ export default function AdminOrderStatusSelect({
   const [isSaving, setIsSaving] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     setCurrentStatus(status);
@@ -60,11 +62,18 @@ export default function AdminOrderStatusSelect({
         body: JSON.stringify({ status: value })
       });
 
-      if (!response.ok) return;
+      if (!response.ok) {
+        toast.error('Napaka pri shranjevanju');
+        return;
+      }
 
       setCurrentStatus(value);
+      toast.success('Shranjeno');
       setIsOpen(false);
       onStatusSaved?.(value);
+    } catch (error) {
+      console.error(error);
+      toast.error('Napaka pri shranjevanju');
     } finally {
       setIsSaving(false);
     }

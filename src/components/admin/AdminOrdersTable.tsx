@@ -600,6 +600,7 @@ export default function AdminOrdersTable({
         toast.error(`Brisanje ni uspelo za ${failedDeletes} naročil.`);
       }
 
+      toast.success('Izbrisano');
       router.refresh();
     } finally {
       setIsDeleting(false);
@@ -623,6 +624,7 @@ export default function AdminOrdersTable({
         return;
       }
 
+      toast.success('Izbrisano');
       router.refresh();
     } finally {
       setDeletingRowId(null);
@@ -652,6 +654,10 @@ export default function AdminOrdersTable({
         return nextOverrides;
       });
       setIsStatusHeaderMenuOpen(false);
+      toast.success('Shranjeno');
+    } catch (error) {
+      console.error(error);
+      toast.error('Napaka pri shranjevanju');
     } finally {
       setIsBulkUpdatingStatus(false);
     }
@@ -680,6 +686,10 @@ export default function AdminOrdersTable({
         return nextOverrides;
       });
       setIsPaymentHeaderMenuOpen(false);
+      toast.success('Shranjeno');
+    } catch (error) {
+      console.error(error);
+      toast.error('Napaka pri shranjevanju');
     } finally {
       setIsBulkUpdatingStatus(false);
     }

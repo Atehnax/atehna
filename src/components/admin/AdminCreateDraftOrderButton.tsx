@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
+import { useToast } from '@/shared/ui/toast';
 
 type Props = {
   className?: string;
@@ -12,6 +13,7 @@ export default function AdminCreateDraftOrderButton({ className }: Props) {
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const createDraft = async () => {
     setError(null);
@@ -23,9 +25,12 @@ export default function AdminCreateDraftOrderButton({ className }: Props) {
         throw new Error(body.message || 'Ustvarjanje osnutka ni uspelo.');
       }
       const payload = (await response.json()) as { orderId: number };
+      toast.success('Dodano');
       router.push(`/admin/orders/${payload.orderId}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Napaka pri ustvarjanju osnutka.');
+      const message = err instanceof Error ? err.message : 'Napaka pri ustvarjanju osnutka.';
+      setError(message);
+      toast.error('Napaka pri dodajanju');
       setIsCreating(false);
     }
   };

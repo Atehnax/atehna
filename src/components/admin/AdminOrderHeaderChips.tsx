@@ -9,6 +9,10 @@ import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 import { toDateInputValue } from '@/lib/format/dateTime';
 import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/lib/paymentStatus';
 import AdminHeaderField from '@/components/admin/AdminHeaderField';
+import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import { CustomSelect } from '@/shared/ui/select';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { useToast } from '@/shared/ui/toast';
 
 type TopSectionMode = 'read' | 'edit';
 
@@ -158,33 +162,25 @@ function CompactDropdown({
       </button>
 
       {isOpen ? (
-        <div
-          role="menu"
-          className={`absolute left-0 top-9 z-30 min-w-full w-max max-w-[260px] rounded-xl border border-slate-300 bg-white p-1 shadow-sm ${menuClassName}`}
-        >
-          {options.map((option) => {
-            const isSelected = option.value === value;
+        <div role="menu">
+          <MenuPanel className={`absolute left-0 top-9 z-30 min-w-full w-max max-w-[260px] ${menuClassName}`}>
+            {options.map((option) => {
+              const isSelected = option.value === value;
 
-            return (
-              <button
-                key={option.value}
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  onChange(option.value);
-                  setIsOpen(false);
-                }}
-                className={`flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none transition ${
-                  isSelected
-                    ? 'bg-[#f8f7fc] text-[#5d3ed6]'
-                    : 'text-slate-700 hover:bg-[#ede8ff]'
-                }`}
-                title={option.label}
-              >
-                <span className="block w-full text-left whitespace-nowrap">{option.label}</span>
-              </button>
-            );
-          })}
+              return (
+                <MenuItem
+                  key={option.value}
+                  onClick={() => {
+                    onChange(option.value);
+                    setIsOpen(false);
+                  }}
+                  isActive={isSelected}
+                >
+                  <span className="block w-full whitespace-nowrap text-left">{option.label}</span>
+                </MenuItem>
+              );
+            })}
+          </MenuPanel>
         </div>
       ) : null}
     </div>
@@ -204,7 +200,7 @@ export default function AdminOrderHeaderChips(props: Props) {
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const isTopDirty = useMemo(
     () =>
@@ -221,14 +217,12 @@ export default function AdminOrderHeaderChips(props: Props) {
       setDraftTopData({ ...persistedTopData });
       setDraftOrderNumber(displayOrderNumber);
       setTopSectionMode('read');
-      setMessage(null);
       return;
     }
 
     setDraftTopData({ ...persistedTopData });
     setDraftOrderNumber(displayOrderNumber);
     setTopSectionMode('edit');
-    setMessage(null);
   };
 
   const saveTopSection = async () => {
@@ -240,7 +234,6 @@ export default function AdminOrderHeaderChips(props: Props) {
     }
 
     setIsTopSaving(true);
-    setMessage(null);
     try {
       const [statusResponse, paymentResponse, detailsResponse] = await Promise.all([
         fetch(`/api/admin/orders/${orderId}/status`, {
@@ -292,7 +285,7 @@ export default function AdminOrderHeaderChips(props: Props) {
         })
       );
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Napaka pri shranjevanju.');
+      toast.error(error instanceof Error ? error.message : 'Napaka pri shranjevanju.');
     } finally {
       setIsTopSaving(false);
     }
@@ -301,7 +294,6 @@ export default function AdminOrderHeaderChips(props: Props) {
   const confirmDeleteOrder = async () => {
     setIsDeleting(true);
     setIsDeleteModalOpen(false);
-    setMessage(null);
     try {
       const response = await fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' });
       if (!response.ok) {
@@ -311,7 +303,7 @@ export default function AdminOrderHeaderChips(props: Props) {
       router.push('/admin/orders');
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Napaka pri brisanju naročila.');
+      toast.error(error instanceof Error ? error.message : 'Napaka pri brisanju naročila.');
     } finally {
       setIsDeleting(false);
     }
@@ -407,19 +399,22 @@ export default function AdminOrderHeaderChips(props: Props) {
             onChange={(event) => setDraftTopData((prev) => ({ ...prev, orderDate: event.target.value }))}
           />
 
-          <AdminHeaderField
-            kind="select"
-            id="customerType"
-            label="Tip naročnika"
-            value={activeTopData.customerType}
-            onChange={(event) => setDraftTopData((prev) => ({ ...prev, customerType: event.target.value }))}
-          >
-            {CUSTOMER_TYPE_FORM_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </AdminHeaderField>
+          <div className="group relative rounded-xl border border-slate-300 bg-white transition-colors focus-within:border-[#5d3ed6] focus-within:ring-2 focus-within:ring-brand-100">
+            <label
+              htmlFor="customerType"
+              className="pointer-events-none absolute left-2.5 top-1.5 z-10 bg-white px-1 text-[10px] text-slate-600"
+            >
+              Tip naročnika
+            </label>
+            <CustomSelect
+              value={activeTopData.customerType}
+              onChange={(value) => setDraftTopData((prev) => ({ ...prev, customerType: value }))}
+              options={CUSTOMER_TYPE_FORM_OPTIONS}
+              className="pr-7"
+              menuClassName="max-w-[280px]"
+              disabled={isTopSaving}
+            />
+          </div>
 
           <AdminHeaderField
             id="organizationName"
@@ -485,32 +480,18 @@ export default function AdminOrderHeaderChips(props: Props) {
         </div>
       )}
 
-      {message ? <p className="mt-2 text-xs text-slate-600">{message}</p> : null}
-
-      {isDeleteModalOpen ? (
-        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-900/30 px-4" role="dialog" aria-modal="true">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-4 shadow-xl">
-            <p className="text-sm font-semibold text-slate-900">Izbris naročila</p>
-            <p className="mt-2 text-xs text-slate-600">Ali ste prepričani, da želite izbrisati to naročilo?</p>
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setIsDeleteModalOpen(false)}
-                className="h-8 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600"
-              >
-                Prekliči
-              </button>
-              <button
-                type="button"
-                onClick={confirmDeleteOrder}
-                className="h-8 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-700"
-              >
-                Izbriši
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ConfirmDialog
+        open={isDeleteModalOpen}
+        title="Izbris naročila"
+        description="Ali ste prepričani, da želite izbrisati to naročilo?"
+        confirmLabel="Izbriši"
+        cancelLabel="Prekliči"
+        isDanger
+        onCancel={() => setIsDeleteModalOpen(false)}
+        onConfirm={() => {
+          void confirmDeleteOrder();
+        }}
+      />
     </div>
   );
 }

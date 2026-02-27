@@ -51,7 +51,7 @@ export default function AdminSidebar() {
   };
 
   return (
-    <aside className={`sticky top-0 h-screen shrink-0 transition-all duration-300 ${isCollapsed ? 'w-10' : 'w-[19rem]'}`}>
+    <aside className={`h-full self-stretch shrink-0 transition-all duration-300 ${isCollapsed ? 'w-10' : 'w-[19rem]'}`}>
       <div className="relative h-full overflow-visible border-r border-slate-200 bg-[#f8f7fc] shadow-sm">
         <button
           type="button"
@@ -62,12 +62,12 @@ export default function AdminSidebar() {
           <span aria-hidden="true">{isCollapsed ? '❯' : '❮'}</span>
         </button>
 
-        <div className={`relative z-10 h-full px-3 py-10 transition-opacity duration-200 ${isCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100'}`}>
+        <div className={`relative z-10 flex h-full min-h-full flex-col px-3 py-10 transition-opacity duration-200 ${isCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100'}`}>
           <div className="mb-5 px-2 pr-4">
             <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#5d3ed6]">Administracija</p>
           </div>
 
-          <div className="flex h-full flex-col">
+          <div className="flex h-full min-h-full flex-col">
             <nav className="space-y-1">
               {rootLinks.map((link) => {
                 const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);

@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { FloatingInput } from '@/shared/ui/floating-field';
 
 export default function AdminLoginForm() {
   const router = useRouter();
@@ -41,28 +42,26 @@ export default function AdminLoginForm() {
       <p className="mt-1 text-sm text-slate-500">Prijavite se za dostop do administracije.</p>
 
       <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
-        <label className="block">
-          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Uporabniško ime</span>
-          <input
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-            className="h-11 w-full rounded-xl border border-slate-300 px-3 text-sm outline-none transition focus:border-[#5d3ed6]"
-            autoComplete="username"
-            required
-          />
-        </label>
+        <FloatingInput
+          id="admin-username"
+          tone="admin"
+          label="Uporabniško ime"
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
+          autoComplete="username"
+          required
+        />
 
-        <label className="block">
-          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Geslo</span>
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="h-11 w-full rounded-xl border border-slate-300 px-3 text-sm outline-none transition focus:border-[#5d3ed6]"
-            autoComplete="current-password"
-            required
-          />
-        </label>
+        <FloatingInput
+          id="admin-password"
+          tone="admin"
+          type="password"
+          label="Geslo"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          autoComplete="current-password"
+          required
+        />
 
         {error ? <p className="text-sm font-medium text-rose-600">{error}</p> : null}
 

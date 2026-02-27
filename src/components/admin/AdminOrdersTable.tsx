@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
+import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
 import AdminOrderPaymentSelect from '@/components/admin/AdminOrderPaymentSelect';
 import AdminOrdersPreviewChart from '@/components/admin/AdminOrdersPreviewChart';
@@ -966,25 +967,21 @@ export default function AdminOrdersTable({
               </button>
 
               {isDocumentTypeMenuOpen && (
-                <div
-                  role="menu"
-                  className="absolute left-0 top-8 z-30 w-[180px] rounded-xl border border-slate-300 bg-white p-1 shadow-sm"
-                >
-                  {documentTypeOptions.map((documentTypeOption) => (
-                    <button
-                      key={documentTypeOption.value}
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        setDocumentType(documentTypeOption.value);
-                        setMessage(null);
-                        setIsDocumentTypeMenuOpen(false);
-                      }}
-                      className="flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none text-slate-700 hover:bg-[#ede8ff]"
-                    >
-                      {documentTypeOption.label}
-                    </button>
-                  ))}
+                <div role="menu">
+                  <MenuPanel className="absolute left-0 top-8 z-30 w-[180px]">
+                    {documentTypeOptions.map((documentTypeOption) => (
+                      <MenuItem
+                        key={documentTypeOption.value}
+                        onClick={() => {
+                          setDocumentType(documentTypeOption.value);
+                          setMessage(null);
+                          setIsDocumentTypeMenuOpen(false);
+                        }}
+                      >
+                        {documentTypeOption.label}
+                      </MenuItem>
+                    ))}
+                  </MenuPanel>
                 </div>
               )}
             </div>
@@ -1136,22 +1133,18 @@ export default function AdminOrdersTable({
                       </button>
 
                       {isStatusHeaderMenuOpen && (
-                        <div
-                          role="menu"
-                          className="absolute left-1/2 top-8 z-20 w-44 -translate-x-1/2 rounded-xl border border-slate-300 bg-white p-1 shadow-sm"
-                        >
-                          {ORDER_STATUS_OPTIONS.map((option) => (
-                            <button
-                              key={option.value}
-                              type="button"
-                              role="menuitem"
-                              onClick={() => handleBulkStatusUpdate(option.value)}
-                              disabled={isBulkUpdatingStatus}
-                              className="flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none text-slate-700 hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
-                            >
-                              {option.label}
-                            </button>
-                          ))}
+                        <div role="menu">
+                          <MenuPanel className="absolute left-1/2 top-8 z-20 w-44 -translate-x-1/2">
+                            {ORDER_STATUS_OPTIONS.map((option) => (
+                              <MenuItem
+                                key={option.value}
+                                onClick={() => handleBulkStatusUpdate(option.value)}
+                                disabled={isBulkUpdatingStatus}
+                              >
+                                {option.label}
+                              </MenuItem>
+                            ))}
+                          </MenuPanel>
                         </div>
                       )}
                     </>
@@ -1183,22 +1176,18 @@ export default function AdminOrdersTable({
                       </button>
 
                       {isPaymentHeaderMenuOpen && (
-                        <div
-                          role="menu"
-                          className="absolute left-1/2 top-8 z-20 w-44 -translate-x-1/2 rounded-xl border border-slate-300 bg-white p-1 shadow-sm"
-                        >
-                          {PAYMENT_STATUS_OPTIONS.map((option) => (
-                            <button
-                              key={option.value}
-                              type="button"
-                              role="menuitem"
-                              onClick={() => handleBulkPaymentUpdate(option.value)}
-                              disabled={isBulkUpdatingStatus}
-                              className="flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none text-slate-700 hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
-                            >
-                              {option.label}
-                            </button>
-                          ))}
+                        <div role="menu">
+                          <MenuPanel className="absolute left-1/2 top-8 z-20 w-44 -translate-x-1/2">
+                            {PAYMENT_STATUS_OPTIONS.map((option) => (
+                              <MenuItem
+                                key={option.value}
+                                onClick={() => handleBulkPaymentUpdate(option.value)}
+                                disabled={isBulkUpdatingStatus}
+                              >
+                                {option.label}
+                              </MenuItem>
+                            ))}
+                          </MenuPanel>
                         </div>
                       )}
                     </>

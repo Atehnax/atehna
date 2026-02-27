@@ -9,6 +9,8 @@ import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 import { toDateInputValue } from '@/lib/format/dateTime';
 import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/lib/paymentStatus';
 import AdminHeaderField from '@/components/admin/AdminHeaderField';
+import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import { CustomSelect } from '@/shared/ui/select';
 
 type TopSectionMode = 'read' | 'edit';
 
@@ -158,33 +160,25 @@ function CompactDropdown({
       </button>
 
       {isOpen ? (
-        <div
-          role="menu"
-          className={`absolute left-0 top-9 z-30 min-w-full w-max max-w-[260px] rounded-xl border border-slate-300 bg-white p-1 shadow-sm ${menuClassName}`}
-        >
-          {options.map((option) => {
-            const isSelected = option.value === value;
+        <div role="menu">
+          <MenuPanel className={`absolute left-0 top-9 z-30 min-w-full w-max max-w-[260px] ${menuClassName}`}>
+            {options.map((option) => {
+              const isSelected = option.value === value;
 
-            return (
-              <button
-                key={option.value}
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  onChange(option.value);
-                  setIsOpen(false);
-                }}
-                className={`flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none transition ${
-                  isSelected
-                    ? 'bg-[#f8f7fc] text-[#5d3ed6]'
-                    : 'text-slate-700 hover:bg-[#ede8ff]'
-                }`}
-                title={option.label}
-              >
-                <span className="block w-full text-left whitespace-nowrap">{option.label}</span>
-              </button>
-            );
-          })}
+              return (
+                <MenuItem
+                  key={option.value}
+                  onClick={() => {
+                    onChange(option.value);
+                    setIsOpen(false);
+                  }}
+                  isActive={isSelected}
+                >
+                  <span className="block w-full whitespace-nowrap text-left">{option.label}</span>
+                </MenuItem>
+              );
+            })}
+          </MenuPanel>
         </div>
       ) : null}
     </div>
@@ -407,19 +401,22 @@ export default function AdminOrderHeaderChips(props: Props) {
             onChange={(event) => setDraftTopData((prev) => ({ ...prev, orderDate: event.target.value }))}
           />
 
-          <AdminHeaderField
-            kind="select"
-            id="customerType"
-            label="Tip naročnika"
-            value={activeTopData.customerType}
-            onChange={(event) => setDraftTopData((prev) => ({ ...prev, customerType: event.target.value }))}
-          >
-            {CUSTOMER_TYPE_FORM_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </AdminHeaderField>
+          <div className="group relative rounded-xl border border-slate-300 bg-white transition-colors focus-within:border-[#5d3ed6] focus-within:ring-2 focus-within:ring-brand-100">
+            <label
+              htmlFor="customerType"
+              className="pointer-events-none absolute left-2.5 top-1.5 z-10 bg-white px-1 text-[10px] text-slate-600"
+            >
+              Tip naročnika
+            </label>
+            <CustomSelect
+              value={activeTopData.customerType}
+              onChange={(value) => setDraftTopData((prev) => ({ ...prev, customerType: value }))}
+              options={CUSTOMER_TYPE_FORM_OPTIONS}
+              className="pr-7"
+              menuClassName="max-w-[280px]"
+              disabled={isTopSaving}
+            />
+          </div>
 
           <AdminHeaderField
             id="organizationName"

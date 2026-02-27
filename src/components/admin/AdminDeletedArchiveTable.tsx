@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { DANGER_OUTLINE_BUTTON_CLASS } from './adminButtonStyles';
 import { useRouter } from 'next/navigation';
+import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { useToast } from '@/shared/ui/toast';
+import { EmptyState, Table, TBody, TD, THead, TH, TR, TableShell } from '@/shared/ui/table';
 
 type ArchiveEntry = {
   id: number;
@@ -44,8 +48,9 @@ export default function AdminDeletedArchiveTable({
   const [selected, setSelected] = useState<number[]>([]);
   const [typeFilter, setTypeFilter] = useState<TypeFilterValue>('all');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const [isTypeFilterMenuOpen, setIsTypeFilterMenuOpen] = useState(false);
   const typeFilterMenuRef = useRef<HTMLDivElement>(null);
@@ -227,12 +232,11 @@ export default function AdminDeletedArchiveTable({
       }));
 
     if (restorableIds.length === 0 && targets.length === 0) {
-      setMessage('Ni izbranih zapisov za obnovo.');
+      toast.info('Ni izbranih zapisov za obnovo.');
       return;
     }
 
     setIsRestoring(true);
-    setMessage(null);
     try {
       const response = await fetch('/api/admin/archive', {
         method: 'PATCH',
@@ -241,29 +245,39 @@ export default function AdminDeletedArchiveTable({
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setMessage(body.message || 'Obnova ni uspela.');
+        toast.error(body.message || 'Obnova ni uspela.');
         return;
       }
 
       setEntries((previousEntries) => previousEntries.filter((entry) => !selected.includes(entry.id)));
       setSelected([]);
-      setMessage('Izbrani zapisi so obnovljeni.');
+      toast.success('Izbrani zapisi so obnovljeni.');
       router.refresh();
     } finally {
       setIsRestoring(false);
     }
   };
 
-  const bulkDelete = async () => {
+  const bulkDelete = () => {
     const deletableIds = selected.filter((id) => id > 0);
     if (deletableIds.length === 0) {
-      setMessage('Izbrani zapisi nimajo arhivske postavke za trajni izbris.');
+      toast.info('Izbrani zapisi nimajo arhivske postavke za trajni izbris.');
       return;
     }
-    if (!window.confirm('Ali ste prepričani, da želite trajno izbrisati izbrane zapise?')) return;
 
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    const deletableIds = selected.filter((id) => id > 0);
+    if (deletableIds.length === 0) {
+      toast.info('Izbrani zapisi nimajo arhivske postavke za trajni izbris.');
+      setIsDeleteConfirmOpen(false);
+      return;
+    }
+
+    setIsDeleteConfirmOpen(false);
     setIsDeleting(true);
-    setMessage(null);
     try {
       const response = await fetch('/api/admin/archive', {
         method: 'DELETE',
@@ -272,20 +286,20 @@ export default function AdminDeletedArchiveTable({
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setMessage(body.message || 'Trajni izbris ni uspel.');
+        toast.error(body.message || 'Trajni izbris ni uspel.');
         return;
       }
 
       setEntries((previousEntries) => previousEntries.filter((entry) => !deletableIds.includes(entry.id)));
       setSelected([]);
-      setMessage('Izbrani zapisi so trajno izbrisani.');
+      toast.success('Izbrani zapisi so trajno izbrisani.');
     } finally {
       setIsDeleting(false);
     }
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <TableShell className="border-slate-200 bg-white p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="relative min-w-[140px]" ref={typeFilterMenuRef}>
           <button
@@ -300,24 +314,20 @@ export default function AdminDeletedArchiveTable({
           </button>
 
           {isTypeFilterMenuOpen && (
-            <div
-              role="menu"
-              className="absolute left-0 top-9 z-30 w-[180px] rounded-xl border border-slate-300 bg-white p-1 shadow-sm"
-            >
-              {TYPE_FILTER_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    setTypeFilter(option.value);
-                    setIsTypeFilterMenuOpen(false);
-                  }}
-                  className="flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none text-slate-700 transition hover:bg-[#ede8ff]"
-                >
-                  {option.label}
-                </button>
-              ))}
+            <div role="menu">
+              <MenuPanel className="absolute left-0 top-9 z-30 w-[180px]">
+                {TYPE_FILTER_OPTIONS.map((option) => (
+                  <MenuItem
+                    key={option.value}
+                    onClick={() => {
+                      setTypeFilter(option.value);
+                      setIsTypeFilterMenuOpen(false);
+                    }}
+                  >
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </MenuPanel>
             </div>
           )}
         </div>
@@ -342,22 +352,48 @@ export default function AdminDeletedArchiveTable({
         </div>
       </div>
 
-      {message ? <p className="mb-2 text-xs text-slate-600">{message}</p> : null}
+      <ConfirmDialog
+        open={isDeleteConfirmOpen}
+        title="Trajni izbris"
+        description="Ali ste prepričani, da želite trajno izbrisati izbrane zapise?"
+        confirmLabel="Izbriši"
+        cancelLabel="Prekliči"
+        isDanger
+        onCancel={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={() => {
+          void confirmBulkDelete();
+        }}
+        confirmDisabled={isDeleting}
+      />
+
+      <ConfirmDialog
+        open={isDeleteConfirmOpen}
+        title="Trajni izbris"
+        description="Ali ste prepričani, da želite trajno izbrisati izbrane zapise?"
+        confirmLabel="Izbriši"
+        cancelLabel="Prekliči"
+        isDanger
+        onCancel={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={() => {
+          void confirmBulkDelete();
+        }}
+        confirmDisabled={isDeleting}
+      />
 
       <div className="overflow-x-auto">
-        <table className="w-full table-fixed border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-slate-200 text-xs uppercase text-slate-500">
-              <th className="w-10 py-2 text-center">
+        <Table className="w-full table-fixed border-collapse text-sm">
+          <THead>
+            <TR className="border-b border-slate-200 text-xs uppercase text-slate-500">
+              <TH className="w-10 px-0 py-2 text-center">
                 <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" />
-              </th>
-              <th className="w-28 py-2 text-left">Vrsta</th>
-              <th className="py-2 text-left">Element</th>
-              <th className="w-44 py-2 text-left">Izbrisano</th>
-              <th className="w-44 py-2 text-left">Poteče</th>
-            </tr>
-          </thead>
-          <tbody>
+              </TH>
+              <TH className="w-28 px-0 py-2 text-left">Vrsta</TH>
+              <TH className="px-0 py-2 text-left">Element</TH>
+              <TH className="w-44 px-0 py-2 text-left">Izbrisano</TH>
+              <TH className="w-44 px-0 py-2 text-left">Poteče</TH>
+            </TR>
+          </THead>
+          <TBody>
             {displayRows.map((row) => {
               const { entry, isChild, parentOrderId } = row;
               const parentSelected =
@@ -369,8 +405,8 @@ export default function AdminDeletedArchiveTable({
                     })();
 
               return (
-                <tr key={entry.id} className="border-b border-slate-100 hover:bg-[#ede8ff]">
-                  <td className="py-2 text-center">
+                <TR key={entry.id} className="border-b border-slate-100 hover:bg-[#ede8ff]">
+                  <TD className="px-0 py-2 text-center">
                     <input
                       type="checkbox"
                       className="disabled:cursor-not-allowed disabled:opacity-50"
@@ -379,11 +415,11 @@ export default function AdminDeletedArchiveTable({
                       disabled={isChild && !parentSelected}
                       aria-label={`Izberi zapis ${entry.label}`}
                     />
-                  </td>
-                  <td className="py-2 text-xs font-semibold text-slate-700">
+                  </TD>
+                  <TD className="px-0 py-2 text-xs font-semibold text-slate-700">
                     {entry.item_type === 'order' ? 'Naročilo' : 'PDF datoteka'}
-                  </td>
-                  <td className={`py-2 text-slate-800 ${isChild ? 'pl-6' : ''}`}>
+                  </TD>
+                  <TD className={`px-0 py-2 text-slate-800 ${isChild ? 'pl-6' : ''}`}>
                     {entry.item_type === 'order' && entry.order_id ? (
                       <a href={`/admin/orders/${entry.order_id}`} className="font-medium text-brand-700 hover:text-brand-800">
                         {entry.label}
@@ -391,22 +427,22 @@ export default function AdminDeletedArchiveTable({
                     ) : (
                       <span>{isChild ? `↳ ${entry.label}` : entry.label}</span>
                     )}
-                  </td>
-                  <td className="py-2 text-xs text-slate-500">{formatDateTime(entry.deleted_at)}</td>
-                  <td className="py-2 text-xs text-slate-500">{formatDateTime(entry.expires_at)}</td>
-                </tr>
+                  </TD>
+                  <TD className="px-0 py-2 text-xs text-slate-500">{formatDateTime(entry.deleted_at)}</TD>
+                  <TD className="px-0 py-2 text-xs text-slate-500">{formatDateTime(entry.expires_at)}</TD>
+                </TR>
               );
             })}
             {displayRows.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="py-8 text-center text-sm text-slate-500">
-                  Arhiv je prazen.
-                </td>
-              </tr>
+              <TR>
+                <TD colSpan={5} className="py-8 text-center text-sm text-slate-500">
+                  <EmptyState title="Arhiv je prazen." />
+                </TD>
+              </TR>
             ) : null}
-          </tbody>
-        </table>
+          </TBody>
+        </Table>
       </div>
-    </div>
+    </TableShell>
   );
 }

@@ -5,6 +5,8 @@ import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type D
 import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import PlotlyClient from '@/components/admin/charts/PlotlyClient';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { useToast } from '@/shared/ui/toast';
 import { getBaseChartLayout, getChartThemeFromCssVars, type ChartTheme } from '@/components/admin/charts/chartTheme';
 import type { Data, Layout } from 'plotly.js';
 import type { OrdersAnalyticsResponse } from '@/lib/server/orderAnalytics';
@@ -140,6 +142,8 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
   const [builderDescription, setBuilderDescription] = useState('');
   const [builderComment, setBuilderComment] = useState('');
   const [builderChartType, setBuilderChartType] = useState<AnalyticsChartType>('combo');
+  const [confirmDeleteChartId, setConfirmDeleteChartId] = useState<number | null>(null);
+  const { toast } = useToast();
 
   const reloadCharts = async () => {
     const response = await fetch('/api/admin/analytics/charts');
@@ -198,18 +202,28 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
     if (response.ok) {
       await reloadCharts();
       setEditingChartId(null);
+      toast.success('Shranjeno');
+      return;
     }
+
+    toast.error('Napaka pri shranjevanju');
   };
 
-  const deleteChart = async (chartId: number) => {
-    const confirmed = window.confirm('Ali res želite izbrisati ta graf?');
-    if (!confirmed) return;
+  const deleteChart = (chartId: number) => {
+    setConfirmDeleteChartId(chartId);
+  };
 
+  const confirmDeleteChart = async () => {
+    if (confirmDeleteChartId === null) return;
+
+    const chartId = confirmDeleteChartId;
+    setConfirmDeleteChartId(null);
     const previous = charts;
     setCharts((current) => current.filter((chart) => chart.id !== chartId));
     const response = await fetch(`/api/admin/analytics/charts/${chartId}`, { method: 'DELETE' });
     if (!response.ok) {
       setCharts(previous);
+      toast.error('Napaka pri brisanju');
       return;
     }
 
@@ -219,6 +233,7 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
     }
 
     await reloadCharts();
+    toast.success('Izbrisano');
   };
 
   const persistOrder = async (updated: AnalyticsChartRow[], fallback?: AnalyticsChartRow[]) => {
@@ -230,10 +245,12 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
 
     if (!response.ok && fallback) {
       setCharts(fallback);
+      toast.error('Napaka pri shranjevanju');
       return;
     }
 
     await reloadCharts();
+    toast.success('Shranjeno');
   };
 
   const onDragEnd = async (event: DragEndEvent) => {
@@ -269,7 +286,11 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
       setBuilderOpen(false);
       setEditingChartId(null);
       await reloadCharts();
+      toast.success(editingChartId ? 'Shranjeno' : 'Dodano');
+      return;
     }
+
+    toast.error(editingChartId ? 'Napaka pri shranjevanju' : 'Napaka pri dodajanju');
   };
 
   const chartRenderModels = useMemo(() => {
@@ -314,12 +335,19 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
         onChange={setPreviewAppearance}
         onReset={() => setPreviewAppearance(savedAppearance)}
         onSave={async () => {
-          await fetch('/api/admin/analytics/charts/appearance', {
+          const response = await fetch('/api/admin/analytics/charts/appearance', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(previewAppearance)
           });
+
+          if (!response.ok) {
+            toast.error('Napaka pri shranjevanju');
+            return;
+          }
+
           setSavedAppearance(previewAppearance);
+          toast.success('Shranjeno');
         }}
       />
 
@@ -360,6 +388,19 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
           </div>
         </SortableContext>
       </DndContext>
+
+      <ConfirmDialog
+        open={confirmDeleteChartId !== null}
+        title="Izbris grafa"
+        description="Ali res želite izbrisati ta graf?"
+        confirmLabel="Izbriši"
+        cancelLabel="Prekliči"
+        isDanger
+        onCancel={() => setConfirmDeleteChartId(null)}
+        onConfirm={() => {
+          void confirmDeleteChart();
+        }}
+      />
 
       {builderOpen ? (
         <BuilderModal

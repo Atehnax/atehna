@@ -11,6 +11,7 @@ import {
   isGenerateKey,
   routeMap
 } from '@/components/admin/adminOrdersPdfCellUtils';
+import { useToast } from '@/shared/ui/toast';
 
 type PdfButton = { key: PdfTypeKey; short: string; full: string };
 
@@ -50,7 +51,7 @@ export default function AdminOrdersPdfCell({
   const [attachmentsState] = useState<PdfDocument[]>(attachments);
   const [loadingType, setLoadingType] = useState<GeneratePdfType | null>(null);
   const [openType, setOpenType] = useState<PdfTypeKey | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { toast } = useToast();
   const [menuPosition, setMenuPosition] = useState<MenuPosition>({ top: 0, left: 0 });
 
   const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -150,7 +151,7 @@ export default function AdminOrdersPdfCell({
       document.removeEventListener('mousedown', onOutside);
       document.removeEventListener('keydown', onEscape);
     };
-  }, [openType, errorMessage, loadingType]);
+  }, [openType, loadingType]);
 
   const groupedDocuments = useMemo(
     () => groupDocumentsByType(documentsState, attachmentsState),
@@ -159,7 +160,6 @@ export default function AdminOrdersPdfCell({
 
   const handleGenerate = async (type: GeneratePdfType) => {
     setLoadingType(type);
-    setErrorMessage(null);
 
     try {
       const response = await fetch(`/api/admin/orders/${orderId}/${routeMap[type]}`, {
@@ -168,7 +168,7 @@ export default function AdminOrdersPdfCell({
 
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
-        setErrorMessage(body.message || 'Generiranje PDF ni uspelo.');
+        toast.error(body.message || 'Generiranje PDF ni uspelo.');
         return;
       }
 
@@ -256,7 +256,6 @@ export default function AdminOrdersPdfCell({
           <p className="text-[10px] text-slate-400">Ni shranjenih verzij.</p>
         )}
 
-        {errorMessage ? <p className="mt-2 text-[10px] text-rose-600">{errorMessage}</p> : null}
       </div>,
       document.body
     );

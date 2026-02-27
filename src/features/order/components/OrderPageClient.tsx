@@ -10,7 +10,8 @@ import Link from 'next/link';
 import { useCartStore } from '@/lib/cart/store';
 import { CUSTOMER_TYPE_FORM_OPTIONS, type CustomerType } from '@/lib/customerType';
 import { SLOVENIAN_ADDRESSES } from '@/data/slovenianAddresses';
-import { FloatingInput, FloatingSelect, FloatingTextarea } from '@/shared/ui/floating-field';
+import { FloatingInput, FloatingTextarea } from '@/shared/ui/floating-field';
+import { CustomSelect } from '@/shared/ui/select';
 import { IconButton } from '@/shared/ui/icon-button';
 
 const FORM_STORAGE_KEY = 'atehna-order-form';
@@ -548,24 +549,24 @@ export default function OrderPageClient() {
               onSubmit={handleSubmit}
             >
               <div className="md:col-span-2">
-                <FloatingSelect
-                  id="customerType"
-                  label="Tip naročnika"
-                  disabled={shippingDetailsLocked}
-                  value={formData.customerType}
-                  onChange={(event) => {
-                    setFormData((previous) => ({
-                      ...previous,
-                      customerType: event.target.value as CustomerType
-                    }));
-                  }}
-                >
-                  {CUSTOMER_TYPE_FORM_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </FloatingSelect>
+                <div className="group relative rounded-lg border border-slate-300 bg-white transition-colors focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100">
+                  <span className="pointer-events-none absolute left-3 top-2 z-10 bg-white px-1 leading-none text-[11px] text-slate-600">
+                    Tip naročnika
+                  </span>
+                  <CustomSelect
+                    value={formData.customerType}
+                    disabled={shippingDetailsLocked}
+                    onChange={(value) => {
+                      setFormData((previous) => ({
+                        ...previous,
+                        customerType: value as CustomerType
+                      }));
+                    }}
+                    options={CUSTOMER_TYPE_FORM_OPTIONS}
+                    className="h-14 rounded-lg px-3 pb-2 pt-6 text-sm"
+                    menuClassName="mt-1"
+                  />
+                </div>
               </div>
 
               {isIndividual ? (

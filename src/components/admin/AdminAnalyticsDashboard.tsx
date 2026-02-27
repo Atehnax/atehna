@@ -5,6 +5,7 @@ import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type D
 import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import PlotlyClient from '@/components/admin/charts/PlotlyClient';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { getBaseChartLayout, getChartThemeFromCssVars, type ChartTheme } from '@/components/admin/charts/chartTheme';
 import type { Data, Layout } from 'plotly.js';
 import type { OrdersAnalyticsResponse } from '@/lib/server/orderAnalytics';
@@ -140,6 +141,7 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
   const [builderDescription, setBuilderDescription] = useState('');
   const [builderComment, setBuilderComment] = useState('');
   const [builderChartType, setBuilderChartType] = useState<AnalyticsChartType>('combo');
+  const [confirmDeleteChartId, setConfirmDeleteChartId] = useState<number | null>(null);
 
   const reloadCharts = async () => {
     const response = await fetch('/api/admin/analytics/charts');
@@ -201,10 +203,15 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
     }
   };
 
-  const deleteChart = async (chartId: number) => {
-    const confirmed = window.confirm('Ali res želite izbrisati ta graf?');
-    if (!confirmed) return;
+  const deleteChart = (chartId: number) => {
+    setConfirmDeleteChartId(chartId);
+  };
 
+  const confirmDeleteChart = async () => {
+    if (confirmDeleteChartId === null) return;
+
+    const chartId = confirmDeleteChartId;
+    setConfirmDeleteChartId(null);
     const previous = charts;
     setCharts((current) => current.filter((chart) => chart.id !== chartId));
     const response = await fetch(`/api/admin/analytics/charts/${chartId}`, { method: 'DELETE' });
@@ -360,6 +367,19 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
           </div>
         </SortableContext>
       </DndContext>
+
+      <ConfirmDialog
+        open={confirmDeleteChartId !== null}
+        title="Izbris grafa"
+        description="Ali res želite izbrisati ta graf?"
+        confirmLabel="Izbriši"
+        cancelLabel="Prekliči"
+        isDanger
+        onCancel={() => setConfirmDeleteChartId(null)}
+        onConfirm={() => {
+          void confirmDeleteChart();
+        }}
+      />
 
       {builderOpen ? (
         <BuilderModal

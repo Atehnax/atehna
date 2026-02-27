@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { IconButton } from '@/shared/ui/icon-button';
 
 type OrderItemInput = {
   id: number;
@@ -285,38 +286,35 @@ export default function AdminOrderItemsEditor({
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
           <h3 className="text-sm font-semibold text-slate-900">Postavke</h3>
           <div className="ml-auto flex items-center gap-1.5">
-            <button
+            <IconButton
               type="button"
               aria-label="Uredi postavke"
               onClick={startItemsEdit}
               title="Uredi"
               disabled={isItemsSaving}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
             >
               <PencilIcon />
-            </button>
+            </IconButton>
 
-            <button
+            <IconButton
               type="button"
               aria-label="Shrani postavke"
               onClick={() => void saveItems()}
               title="Shrani"
               disabled={itemsSaveDisabled}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
             >
               <SaveIcon />
-            </button>
+            </IconButton>
 
-            <button
+            <IconButton
               type="button"
               aria-label="Dodaj postavko"
               onClick={() => void openAddItem()}
               title="Dodaj"
               disabled={addItemDisabled}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
             >
               <PlusIcon />
-            </button>
+            </IconButton>
           </div>
         </div>
 

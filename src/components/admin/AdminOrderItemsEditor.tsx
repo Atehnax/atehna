@@ -1,6 +1,9 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { IconButton } from '@/shared/ui/icon-button';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { useToast } from '@/shared/ui/toast';
 
 type OrderItemInput = {
   id: number;
@@ -113,7 +116,8 @@ export default function AdminOrderItemsEditor({
   const [catalogChoices, setCatalogChoices] = useState<CatalogChoice[]>([]);
   const [catalogQuery, setCatalogQuery] = useState('');
   const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [confirmRemoveItemId, setConfirmRemoveItemId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const isItemsDirty = useMemo(
     () => JSON.stringify(draftItems) !== JSON.stringify(persistedItems) || toMoney(draftShipping) !== toMoney(persistedShipping),
@@ -163,13 +167,19 @@ export default function AdminOrderItemsEditor({
         };
       })
     );
-    setMessage(null);
   };
 
   const removeItem = (id: string) => {
     if (!itemsEditable) return;
-    setDraftItems((currentItems) => currentItems.filter((item) => item.id !== id));
-    setMessage(null);
+    setConfirmRemoveItemId(id);
+  };
+
+  const confirmRemoveItem = () => {
+    if (!confirmRemoveItemId) return;
+
+    setDraftItems((currentItems) => currentItems.filter((item) => item.id !== confirmRemoveItemId));
+    setConfirmRemoveItemId(null);
+    toast.success('Izbrisano');
   };
 
   const startItemsEdit = () => {
@@ -177,14 +187,12 @@ export default function AdminOrderItemsEditor({
       setDraftItems(cloneEditableItems(persistedItems));
       setDraftShipping(persistedShipping);
       setItemsSectionMode('read');
-      setMessage(null);
       return;
     }
 
     setDraftItems(cloneEditableItems(persistedItems));
     setDraftShipping(persistedShipping);
     setItemsSectionMode('edit');
-    setMessage(null);
   };
 
   const openAddItem = async () => {
@@ -223,7 +231,6 @@ export default function AdminOrderItemsEditor({
     });
     setIsPickerOpen(false);
     setCatalogQuery('');
-    setMessage(null);
   };
 
   const saveItems = async () => {
@@ -235,12 +242,11 @@ export default function AdminOrderItemsEditor({
     }
 
     if (draftItems.length === 0) {
-      setMessage('Naročilo mora vsebovati vsaj eno postavko.');
+      toast.error('Naročilo mora vsebovati vsaj eno postavko.');
       return;
     }
 
     setIsItemsSaving(true);
-    setMessage(null);
     try {
       const response = await fetch(`/api/admin/orders/${orderId}/items`, {
         method: 'POST',
@@ -269,9 +275,9 @@ export default function AdminOrderItemsEditor({
       setPersistedShipping(toMoney(draftShipping));
       setDraftItems(cloneEditableItems(nextItems));
       setItemsSectionMode('read');
-      setMessage('Postavke so posodobljene.');
+      toast.success('Postavke so posodobljene.');
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Napaka pri shranjevanju postavk.');
+      toast.error(error instanceof Error ? error.message : 'Napaka pri shranjevanju postavk.');
     } finally {
       setIsItemsSaving(false);
     }
@@ -285,38 +291,35 @@ export default function AdminOrderItemsEditor({
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
           <h3 className="text-sm font-semibold text-slate-900">Postavke</h3>
           <div className="ml-auto flex items-center gap-1.5">
-            <button
+            <IconButton
               type="button"
               aria-label="Uredi postavke"
               onClick={startItemsEdit}
               title="Uredi"
               disabled={isItemsSaving}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
             >
               <PencilIcon />
-            </button>
+            </IconButton>
 
-            <button
+            <IconButton
               type="button"
               aria-label="Shrani postavke"
               onClick={() => void saveItems()}
               title="Shrani"
               disabled={itemsSaveDisabled}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
             >
               <SaveIcon />
-            </button>
+            </IconButton>
 
-            <button
+            <IconButton
               type="button"
               aria-label="Dodaj postavko"
               onClick={() => void openAddItem()}
               title="Dodaj"
               disabled={addItemDisabled}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
             >
               <PlusIcon />
-            </button>
+            </IconButton>
           </div>
         </div>
 
@@ -432,7 +435,16 @@ export default function AdminOrderItemsEditor({
         </div>
       </div>
 
-      {message && <p className="mt-3 text-[12px] text-slate-600">{message}</p>}
+      <ConfirmDialog
+        open={confirmRemoveItemId !== null}
+        title="Odstrani postavko"
+        description="Ali želite odstraniti to postavko?"
+        confirmLabel="Odstrani"
+        cancelLabel="Prekliči"
+        isDanger
+        onCancel={() => setConfirmRemoveItemId(null)}
+        onConfirm={confirmRemoveItem}
+      />
 
       {isPickerOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">

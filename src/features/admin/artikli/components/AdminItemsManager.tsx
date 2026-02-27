@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { MenuItem } from '@/shared/ui/menu';
 
 type Item = {
   id: string;
@@ -384,40 +385,27 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                 role="menu"
                 className="absolute left-0 top-9 z-30 min-w-full w-max max-w-[560px] rounded-xl border border-slate-300 bg-white p-1 shadow-sm"
               >
-                <button
-                  type="button"
-                  role="menuitem"
+                <MenuItem
                   onClick={() => {
                     setCategoryFilter('all');
                     setIsCategoryMenuOpen(false);
                   }}
-                  className={`flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none transition ${
-                    categoryFilter === 'all'
-                      ? 'bg-[#f8f7fc] text-[#5d3ed6]'
-                      : 'text-slate-700 hover:bg-[#ede8ff]'
-                  }`}
+                  isActive={categoryFilter === 'all'}
                 >
                   Vse kategorije
-                </button>
+                </MenuItem>
 
                 {categories.map((category) => (
-                  <button
+                  <MenuItem
                     key={category}
-                    type="button"
-                    role="menuitem"
                     onClick={() => {
                       setCategoryFilter(category);
                       setIsCategoryMenuOpen(false);
                     }}
-                    className={`flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none transition ${
-                      categoryFilter === category
-                        ? 'bg-[#f8f7fc] text-[#5d3ed6]'
-                        : 'text-slate-700 hover:bg-[#ede8ff]'
-                    }`}
-                    title={category}
+                    isActive={categoryFilter === category}
                   >
-                    <span className="block w-full text-left whitespace-nowrap">{category}</span>
-                  </button>
+                    <span className="block w-full whitespace-nowrap text-left">{category}</span>
+                  </MenuItem>
                 ))}
               </div>
             )}

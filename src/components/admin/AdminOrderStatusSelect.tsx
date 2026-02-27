@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 import StatusChip from '@/components/admin/StatusChip';
+import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 
 type Props = {
   orderId: number;
@@ -91,23 +92,18 @@ export default function AdminOrderStatusSelect({
       </button>
 
       {isOpen && (
-        <div
-          role="menu"
-          className="absolute left-1/2 top-9 z-20 min-w-[180px] -translate-x-1/2 rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
-        >
-          {ORDER_STATUS_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              role="menuitem"
-              onClick={() => handleChange(option.value)}
-              disabled={isSaving || option.value === currentStatus}
-              className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
-            >
-              <span>{option.label}</span>
-              {option.value === currentStatus && <span aria-hidden>✓</span>}
-            </button>
-          ))}
+        <div role="menu">
+          <MenuPanel className="absolute left-1/2 top-9 z-20 min-w-[180px] -translate-x-1/2">
+            {ORDER_STATUS_OPTIONS.map((option) => (
+              <MenuItem
+                key={option.value}
+                onClick={() => handleChange(option.value)}
+                disabled={isSaving || option.value === currentStatus}
+              >
+                {option.label}
+              </MenuItem>
+            ))}
+          </MenuPanel>
         </div>
       )}
     </div>

@@ -23,11 +23,6 @@ type FieldBackground = 'default' | 'muted';
 
 type FloatingInputProps = BaseProps & Omit<InputHTMLAttributes<HTMLInputElement>, 'id' | 'placeholder'>;
 type FloatingTextareaProps = BaseProps & Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'id' | 'placeholder'>;
-type FloatingSelectProps = BaseProps &
-  Omit<SelectHTMLAttributes<HTMLSelectElement>, 'id'> & {
-    children: ReactNode;
-  };
-
 const classNames = (...parts: Array<string | false | null | undefined>) =>
   parts.filter(Boolean).join(' ');
 
@@ -185,77 +180,3 @@ export function FloatingTextarea({
   );
 }
 
-export function FloatingSelect({
-  label,
-  id,
-  className = '',
-  children,
-  value,
-  defaultValue,
-  tone = 'order',
-  labelMode = 'floating',
-  ...props
-}: FloatingSelectProps) {
-  const currentValue = value ?? defaultValue ?? '';
-  const hasValue = String(currentValue).length > 0;
-  const classes = toneClasses[tone];
-  const fieldBackground = getFieldBackground(props.disabled, false);
-  const fieldBackgroundVariable =
-    ({ '--field-bg': fieldBackground === 'muted' ? 'rgb(248 250 252)' : 'rgb(255 255 255)' } as CSSProperties);
-
-  const isStatic = labelMode === 'static';
-
-  return (
-    <div
-      className={classNames(classes.shell, isStatic && classes.staticShell)}
-      data-floating-field
-      data-has-value={hasValue}
-      style={{ ...fieldBackgroundVariable, backgroundColor: 'var(--field-bg)' }}
-    >
-      {isStatic ? (
-        <>
-          <label htmlFor={id} className={classes.selectLabelStatic}>
-            {label}
-          </label>
-          <select
-            {...props}
-            id={id}
-            value={value}
-            defaultValue={defaultValue}
-            className={classNames(classes.staticSelect, 'mt-1', className)}
-          >
-            {children}
-          </select>
-        </>
-      ) : (
-        <>
-          <select
-            {...props}
-            id={id}
-            value={value}
-            defaultValue={defaultValue}
-            className={classNames(classes.select, className)}
-          >
-            {children}
-          </select>
-
-          <label htmlFor={id} className={classes.selectLabel}>
-            {label}
-          </label>
-        </>
-      )}
-
-      {tone === 'order' && !isStatic ? (
-        <svg
-          viewBox="0 0 20 20"
-          className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-        >
-          <path d="M5 7.5l5 5 5-5" />
-        </svg>
-      ) : null}
-    </div>
-  );
-}

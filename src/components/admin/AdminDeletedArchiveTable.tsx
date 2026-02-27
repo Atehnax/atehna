@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { DANGER_OUTLINE_BUTTON_CLASS } from './adminButtonStyles';
 import { useRouter } from 'next/navigation';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { EmptyState, Table, TBody, TD, THead, TH, TR, TableShell } from '@/shared/ui/table';
 
 type ArchiveEntry = {
@@ -46,6 +47,7 @@ export default function AdminDeletedArchiveTable({
   const [selected, setSelected] = useState<number[]>([]);
   const [typeFilter, setTypeFilter] = useState<TypeFilterValue>('all');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -256,14 +258,25 @@ export default function AdminDeletedArchiveTable({
     }
   };
 
-  const bulkDelete = async () => {
+  const bulkDelete = () => {
     const deletableIds = selected.filter((id) => id > 0);
     if (deletableIds.length === 0) {
       setMessage('Izbrani zapisi nimajo arhivske postavke za trajni izbris.');
       return;
     }
-    if (!window.confirm('Ali ste prepričani, da želite trajno izbrisati izbrane zapise?')) return;
 
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    const deletableIds = selected.filter((id) => id > 0);
+    if (deletableIds.length === 0) {
+      setMessage('Izbrani zapisi nimajo arhivske postavke za trajni izbris.');
+      setIsDeleteConfirmOpen(false);
+      return;
+    }
+
+    setIsDeleteConfirmOpen(false);
     setIsDeleting(true);
     setMessage(null);
     try {
@@ -341,6 +354,20 @@ export default function AdminDeletedArchiveTable({
       </div>
 
       {message ? <p className="mb-2 text-xs text-slate-600">{message}</p> : null}
+
+      <ConfirmDialog
+        open={isDeleteConfirmOpen}
+        title="Trajni izbris"
+        description="Ali ste prepričani, da želite trajno izbrisati izbrane zapise?"
+        confirmLabel="Izbriši"
+        cancelLabel="Prekliči"
+        isDanger
+        onCancel={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={() => {
+          void confirmBulkDelete();
+        }}
+        confirmDisabled={isDeleting}
+      />
 
       <div className="overflow-x-auto">
         <Table className="w-full table-fixed border-collapse text-sm">

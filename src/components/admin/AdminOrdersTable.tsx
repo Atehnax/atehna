@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { EmptyState, RowActions, Table, TBody, TD, THead, TH, TR, TableShell } from '@/shared/ui/table';
 import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
 import AdminOrderPaymentSelect from '@/components/admin/AdminOrderPaymentSelect';
@@ -75,6 +76,8 @@ export default function AdminOrdersTable({
   const [selected, setSelected] = useState<number[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deletingRowId, setDeletingRowId] = useState<number | null>(null);
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
+  const [confirmDeleteRowId, setConfirmDeleteRowId] = useState<number | null>(null);
   const [isBulkUpdatingStatus, setIsBulkUpdatingStatus] = useState(false);
 
   const [statusFilter, setStatusFilter] = useState<StatusTab>('all');
@@ -575,14 +578,13 @@ export default function AdminOrdersTable({
     });
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (selected.length === 0) return;
+    setIsBulkDeleteDialogOpen(true);
+  };
 
-    const confirmed = window.confirm(
-      `Ali ste prepričani, da želite izbrisati ${selected.length} naročil?`
-    );
-    if (!confirmed) return;
-
+  const confirmDeleteSelected = async () => {
+    setIsBulkDeleteDialogOpen(false);
     setIsDeleting(true);
     try {
       const deleteResults = await Promise.allSettled(
@@ -603,11 +605,15 @@ export default function AdminOrdersTable({
     }
   };
 
+  const handleDeleteRow = (orderId: number) => {
+    setConfirmDeleteRowId(orderId);
+  };
 
-  const handleDeleteRow = async (orderId: number) => {
-    const confirmed = window.confirm('Ali ste prepričani, da želite izbrisati to naročilo?');
-    if (!confirmed) return;
+  const confirmDeleteRow = async () => {
+    if (confirmDeleteRowId === null) return;
 
+    const orderId = confirmDeleteRowId;
+    setConfirmDeleteRowId(null);
     setDeletingRowId(orderId);
     try {
       const response = await fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' });
@@ -1019,6 +1025,34 @@ export default function AdminOrdersTable({
         </div>
 
         {message && <p className="mt-2 text-xs text-slate-600">{message}</p>}
+
+        <ConfirmDialog
+          open={isBulkDeleteDialogOpen}
+          title="Izbris naročil"
+          description={`Ali ste prepričani, da želite izbrisati ${selected.length} naročil?`}
+          confirmLabel="Izbriši"
+          cancelLabel="Prekliči"
+          isDanger
+          onCancel={() => setIsBulkDeleteDialogOpen(false)}
+          onConfirm={() => {
+            void confirmDeleteSelected();
+          }}
+          confirmDisabled={isDeleting}
+        />
+
+        <ConfirmDialog
+          open={confirmDeleteRowId !== null}
+          title="Izbris naročila"
+          description="Ali ste prepričani, da želite izbrisati to naročilo?"
+          confirmLabel="Izbriši"
+          cancelLabel="Prekliči"
+          isDanger
+          onCancel={() => setConfirmDeleteRowId(null)}
+          onConfirm={() => {
+            void confirmDeleteRow();
+          }}
+          confirmDisabled={deletingRowId !== null}
+        />
         </div>
 
       <div className="flex flex-wrap items-center gap-2 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">

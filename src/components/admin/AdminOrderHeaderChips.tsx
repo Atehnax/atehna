@@ -11,6 +11,7 @@ import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/lib/paymentStatus';
 import AdminHeaderField from '@/components/admin/AdminHeaderField';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { CustomSelect } from '@/shared/ui/select';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 
 type TopSectionMode = 'read' | 'edit';
 
@@ -484,30 +485,18 @@ export default function AdminOrderHeaderChips(props: Props) {
 
       {message ? <p className="mt-2 text-xs text-slate-600">{message}</p> : null}
 
-      {isDeleteModalOpen ? (
-        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-900/30 px-4" role="dialog" aria-modal="true">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-4 shadow-xl">
-            <p className="text-sm font-semibold text-slate-900">Izbris naročila</p>
-            <p className="mt-2 text-xs text-slate-600">Ali ste prepričani, da želite izbrisati to naročilo?</p>
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setIsDeleteModalOpen(false)}
-                className="h-8 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600"
-              >
-                Prekliči
-              </button>
-              <button
-                type="button"
-                onClick={confirmDeleteOrder}
-                className="h-8 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-700"
-              >
-                Izbriši
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ConfirmDialog
+        open={isDeleteModalOpen}
+        title="Izbris naročila"
+        description="Ali ste prepričani, da želite izbrisati to naročilo?"
+        confirmLabel="Izbriši"
+        cancelLabel="Prekliči"
+        isDanger
+        onCancel={() => setIsDeleteModalOpen(false)}
+        onConfirm={() => {
+          void confirmDeleteOrder();
+        }}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import { EmptyState, RowActions, Table, TBody, TD, THead, TH, TR, TableShell } from '@/shared/ui/table';
 import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
 import AdminOrderPaymentSelect from '@/components/admin/AdminOrderPaymentSelect';
 import AdminOrdersPreviewChart from '@/components/admin/AdminOrdersPreviewChart';
@@ -823,7 +824,7 @@ export default function AdminOrdersTable({
         activeRange={rangePreset}
         onRangeChange={applyAnalyticsRangePreset}
       />
-      <div className="overflow-hidden rounded-2xl border shadow-sm" style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)', borderColor: analyticsAppearance?.gridColor ?? '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}>
+      <TableShell className="border" style={{ background: "linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)", borderColor: analyticsAppearance?.gridColor ?? "#e2e8f0", boxShadow: "0 10px 24px rgba(15,23,42,0.06)" }}>
         <div className="p-3">
         <div className="flex flex-wrap items-end gap-2">
           <div className="relative min-w-[170px]" ref={datePopoverRef}>
@@ -1040,7 +1041,7 @@ export default function AdminOrdersTable({
 
 
       <div className="overflow-x-auto" style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)' }}>
-        <table className="min-w-[1180px] w-full table-auto text-left text-[13px]">
+        <Table className="min-w-[1180px] w-full">
           <colgroup>
             <col style={{ width: columnWidths.selectAndDelete }} />
             <col style={{ width: columnWidths.order }} />
@@ -1055,9 +1056,9 @@ export default function AdminOrdersTable({
             <col style={{ width: columnWidths.edit }} />
           </colgroup>
 
-          <thead className="text-[12px] uppercase text-slate-600">
-            <tr>
-              <th className="h-11 px-2 py-2 text-center">
+          <THead>
+            <TR>
+              <TH className="h-11 text-center">
                 <input
                   type="checkbox"
                   ref={selectAllRef}
@@ -1065,9 +1066,9 @@ export default function AdminOrdersTable({
                   onChange={toggleAll}
                   aria-label="Izberi vse"
                 />
-              </th>
+              </TH>
 
-              <th className="h-11 px-2 py-2 text-center">
+              <TH className="h-11 text-center">
                 <button
                   type="button"
                   onClick={() => onSort('order_number')}
@@ -1075,9 +1076,9 @@ export default function AdminOrdersTable({
                 >
                   Naročilo {sortIndicator('order_number')}
                 </button>
-              </th>
+              </TH>
 
-              <th className="h-11 px-2 py-2 text-center">
+              <TH className="h-11 text-center">
                 <button
                   type="button"
                   onClick={() => onSort('created_at')}
@@ -1085,9 +1086,9 @@ export default function AdminOrdersTable({
                 >
                   Datum {sortIndicator('created_at')}
                 </button>
-              </th>
+              </TH>
 
-              <th className="px-2 py-2">
+              <TH>
                 <button
                   type="button"
                   onClick={() => onSort('customer')}
@@ -1095,9 +1096,9 @@ export default function AdminOrdersTable({
                 >
                   Naročnik {sortIndicator('customer')}
                 </button>
-              </th>
+              </TH>
 
-              <th className="px-2 py-2">
+              <TH>
                 <button
                   type="button"
                   onClick={() => onSort('address')}
@@ -1105,9 +1106,9 @@ export default function AdminOrdersTable({
                 >
                   Naslov {sortIndicator('address')}
                 </button>
-              </th>
+              </TH>
 
-              <th className="h-11 px-2 py-2 text-center">
+              <TH className="h-11 text-center">
                 <button
                   type="button"
                   onClick={() => onSort('type')}
@@ -1115,9 +1116,9 @@ export default function AdminOrdersTable({
                 >
                   Tip {sortIndicator('type')}
                 </button>
-              </th>
+              </TH>
 
-              <th className="h-11 px-2 py-2 text-center">
+              <TH className="h-11 text-center">
                 <div className="relative inline-flex" ref={statusHeaderMenuRef}>
                   {selectedCount > 0 ? (
                     <>
@@ -1158,9 +1159,9 @@ export default function AdminOrdersTable({
                     </button>
                   )}
                 </div>
-              </th>
+              </TH>
 
-              <th className="h-11 px-2 py-2 text-center">
+              <TH className="h-11 text-center">
                 <div className="relative inline-flex" ref={paymentHeaderMenuRef}>
                   {selectedCount > 0 ? (
                     <>
@@ -1201,9 +1202,9 @@ export default function AdminOrdersTable({
                     </button>
                   )}
                 </div>
-              </th>
+              </TH>
 
-              <th className="h-11 px-2 py-2 text-center">
+              <TH className="h-11 text-center">
                 <button
                   type="button"
                   onClick={() => onSort('total')}
@@ -1211,31 +1212,30 @@ export default function AdminOrdersTable({
                 >
                   Skupaj {sortIndicator('total')}
                 </button>
-              </th>
+              </TH>
 
-              <th className="min-w-[100px] px-2 py-2 text-center normal-case">PDF datoteke</th>
-              <th className="px-2 py-2 text-center normal-case">Uredi</th>
-            </tr>
-          </thead>
+              <TH className="min-w-[100px] text-center normal-case">PDF datoteke</TH>
+              <TH className="text-center normal-case">Uredi</TH>
+            </TR>
+          </THead>
 
-          <tbody>
+          <TBody>
             {filteredAndSortedOrders.length === 0 ? (
-              <tr>
-                <td className="px-2 py-6 text-center text-slate-500" colSpan={10}>
-                  <div className="flex flex-col items-center gap-2">
-                    <span>Ni zadetkov za izbrane filtre.</span>
-                    {orders.length > 0 ? (
-                      <button
-                        type="button"
-                        onClick={resetAllFilters}
-                        className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-                      >
-                        Prikaži vsa naročila
-                      </button>
-                    ) : null}
-                  </div>
-                </td>
-              </tr>
+              <TR>
+                <TD className="py-6 text-center text-slate-500" colSpan={10}>
+                  <EmptyState title="Ni zadetkov za izbrane filtre." action={
+                    orders.length > 0 ? (
+                    <button
+                      type="button"
+                      onClick={resetAllFilters}
+                      className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                    >
+                      Prikaži vsa naročila
+                    </button>
+                  ) : null
+                } />
+                </TD>
+              </TR>
             ) : (
               filteredAndSortedOrders.map((order, orderIndex) => {
                 const orderAddress = formatOrderAddress(order);
@@ -1247,13 +1247,13 @@ export default function AdminOrdersTable({
                 const canEditPayment = isSingleSelection && isRowSelected;
 
                 return (
-                  <tr
+                  <TR
                     key={order.id}
                     className={`border-t border-slate-100 transition-colors duration-200 ${
                       isRowSelected ? 'bg-[#f8f7fc]' : orderIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
                     } hover:bg-[#f8f7fc]`}
                   >
-                    <td className="px-2 py-2 align-middle">
+                    <TD>
                       <div className="flex justify-center">
                         <input
                           data-no-row-nav
@@ -1263,9 +1263,9 @@ export default function AdminOrdersTable({
                           aria-label={`Izberi naročilo ${toDisplayOrderNumber(order.order_number)}`}
                         />
                       </div>
-                    </td>
+                    </TD>
 
-                    <td className="px-2 py-2 align-middle text-center font-semibold text-slate-900" data-no-row-nav>
+                    <TD className="text-center font-semibold text-slate-900" data-no-row-nav>
                       <a
                         href={`/admin/orders/${order.id}`}
                         className="inline-flex rounded-sm px-1 text-[13px] font-semibold text-brand-700 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#5d3ed6]"
@@ -1273,9 +1273,9 @@ export default function AdminOrdersTable({
                       >
                         {toDisplayOrderNumber(order.order_number)}
                       </a>
-                    </td>
+                    </TD>
 
-                    <td className="px-2 py-2 align-middle text-center whitespace-nowrap text-slate-700">
+                    <TD className="text-center whitespace-nowrap text-slate-700">
                       <span
                         className="inline-block rounded-sm px-1 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#5d3ed6]"
                         title={formatSlDateTime(order.created_at)}
@@ -1284,23 +1284,23 @@ export default function AdminOrdersTable({
                       >
                         {formatSlDate(order.created_at)}
                       </span>
-                    </td>
+                    </TD>
 
-                    <td className="px-2 py-2 align-middle text-slate-700">
+                    <TD className="text-slate-700">
                       <span className="block truncate" title={order.organization_name || order.contact_name}>
                         {order.organization_name || order.contact_name}
                       </span>
-                    </td>
+                    </TD>
 
-                    <td className="px-2 py-2 align-middle text-slate-700">
+                    <TD className="text-slate-700">
                       <span className="block truncate" title={orderAddress || '—'}>
                         {orderAddress || '—'}
                       </span>
-                    </td>
+                    </TD>
 
-                    <td className="px-2 py-2 align-middle text-center text-slate-700">{typeLabel}</td>
+                    <TD className="text-center text-slate-700">{typeLabel}</TD>
 
-                    <td className="px-2 py-2 align-middle text-center text-slate-700">
+                    <TD className="text-center text-slate-700">
                       {selectedCount > 1 ? (
                         <div className="flex justify-center">
                           <StatusChip status={rowStatus} />
@@ -1319,9 +1319,9 @@ export default function AdminOrdersTable({
                           }
                         />
                       )}
-                    </td>
+                    </TD>
 
-                    <td className="px-2 py-2 align-middle text-center">
+                    <TD className="text-center">
                       {selectedCount > 1 ? (
                         <div className="flex justify-center">
                           <PaymentChip status={rowPaymentStatus} />
@@ -1340,13 +1340,13 @@ export default function AdminOrdersTable({
                           }
                         />
                       )}
-                    </td>
+                    </TD>
 
-                    <td className="px-2 py-2 align-middle text-center text-slate-700">
+                    <TD className="text-center text-slate-700">
                       {formatCurrency(order.total)}
-                    </td>
+                    </TD>
 
-                    <td className="min-w-[100px] pl-0 pr-0 py-2 align-middle text-center" data-no-row-nav>
+                    <TD className="min-w-[100px] pl-0 pr-0 text-center" data-no-row-nav>
                       <div className="flex justify-center">
                         <AdminOrdersPdfCell
                           orderId={order.id}
@@ -1355,10 +1355,10 @@ export default function AdminOrdersTable({
                           interactionsDisabled={false}
                         />
                       </div>
-                    </td>
+                    </TD>
 
-                    <td className="pl-0 pr-0 py-2 align-middle text-center" data-no-row-nav>
-                      <div className="flex items-center justify-center gap-1">
+                    <TD className="pl-0 pr-0 text-center" data-no-row-nav>
+                      <RowActions>
                         <a
                           href={`/admin/orders/${order.id}`}
                           className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:bg-slate-100"
@@ -1380,16 +1380,16 @@ export default function AdminOrdersTable({
                         >
                           {deletingRowId === order.id ? '…' : '×'}
                         </button>
-                      </div>
-                    </td>
-                  </tr>
+                      </RowActions>
+                    </TD>
+                  </TR>
                 );
               })
             )}
-          </tbody>
-        </table>
+          </TBody>
+        </Table>
       </div>
-      </div>
+      </TableShell>
       </div>
     </div>
   );

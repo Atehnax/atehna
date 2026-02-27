@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { DANGER_OUTLINE_BUTTON_CLASS } from './adminButtonStyles';
 import { useRouter } from 'next/navigation';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import { EmptyState, Table, TBody, TD, THead, TH, TR, TableShell } from '@/shared/ui/table';
 
 type ArchiveEntry = {
   id: number;
@@ -286,7 +287,7 @@ export default function AdminDeletedArchiveTable({
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <TableShell className="border-slate-200 bg-white p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="relative min-w-[140px]" ref={typeFilterMenuRef}>
           <button
@@ -342,19 +343,19 @@ export default function AdminDeletedArchiveTable({
       {message ? <p className="mb-2 text-xs text-slate-600">{message}</p> : null}
 
       <div className="overflow-x-auto">
-        <table className="w-full table-fixed border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-slate-200 text-xs uppercase text-slate-500">
-              <th className="w-10 py-2 text-center">
+        <Table className="w-full table-fixed border-collapse text-sm">
+          <THead>
+            <TR className="border-b border-slate-200 text-xs uppercase text-slate-500">
+              <TH className="w-10 px-0 py-2 text-center">
                 <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" />
-              </th>
-              <th className="w-28 py-2 text-left">Vrsta</th>
-              <th className="py-2 text-left">Element</th>
-              <th className="w-44 py-2 text-left">Izbrisano</th>
-              <th className="w-44 py-2 text-left">Poteče</th>
-            </tr>
-          </thead>
-          <tbody>
+              </TH>
+              <TH className="w-28 px-0 py-2 text-left">Vrsta</TH>
+              <TH className="px-0 py-2 text-left">Element</TH>
+              <TH className="w-44 px-0 py-2 text-left">Izbrisano</TH>
+              <TH className="w-44 px-0 py-2 text-left">Poteče</TH>
+            </TR>
+          </THead>
+          <TBody>
             {displayRows.map((row) => {
               const { entry, isChild, parentOrderId } = row;
               const parentSelected =
@@ -366,8 +367,8 @@ export default function AdminDeletedArchiveTable({
                     })();
 
               return (
-                <tr key={entry.id} className="border-b border-slate-100 hover:bg-[#ede8ff]">
-                  <td className="py-2 text-center">
+                <TR key={entry.id} className="border-b border-slate-100 hover:bg-[#ede8ff]">
+                  <TD className="px-0 py-2 text-center">
                     <input
                       type="checkbox"
                       className="disabled:cursor-not-allowed disabled:opacity-50"
@@ -376,11 +377,11 @@ export default function AdminDeletedArchiveTable({
                       disabled={isChild && !parentSelected}
                       aria-label={`Izberi zapis ${entry.label}`}
                     />
-                  </td>
-                  <td className="py-2 text-xs font-semibold text-slate-700">
+                  </TD>
+                  <TD className="px-0 py-2 text-xs font-semibold text-slate-700">
                     {entry.item_type === 'order' ? 'Naročilo' : 'PDF datoteka'}
-                  </td>
-                  <td className={`py-2 text-slate-800 ${isChild ? 'pl-6' : ''}`}>
+                  </TD>
+                  <TD className={`px-0 py-2 text-slate-800 ${isChild ? 'pl-6' : ''}`}>
                     {entry.item_type === 'order' && entry.order_id ? (
                       <a href={`/admin/orders/${entry.order_id}`} className="font-medium text-brand-700 hover:text-brand-800">
                         {entry.label}
@@ -388,22 +389,22 @@ export default function AdminDeletedArchiveTable({
                     ) : (
                       <span>{isChild ? `↳ ${entry.label}` : entry.label}</span>
                     )}
-                  </td>
-                  <td className="py-2 text-xs text-slate-500">{formatDateTime(entry.deleted_at)}</td>
-                  <td className="py-2 text-xs text-slate-500">{formatDateTime(entry.expires_at)}</td>
-                </tr>
+                  </TD>
+                  <TD className="px-0 py-2 text-xs text-slate-500">{formatDateTime(entry.deleted_at)}</TD>
+                  <TD className="px-0 py-2 text-xs text-slate-500">{formatDateTime(entry.expires_at)}</TD>
+                </TR>
               );
             })}
             {displayRows.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="py-8 text-center text-sm text-slate-500">
-                  Arhiv je prazen.
-                </td>
-              </tr>
+              <TR>
+                <TD colSpan={5} className="py-8 text-center text-sm text-slate-500">
+                  <EmptyState title="Arhiv je prazen." />
+                </TD>
+              </TR>
             ) : null}
-          </tbody>
-        </table>
+          </TBody>
+        </Table>
       </div>
-    </div>
+    </TableShell>
   );
 }

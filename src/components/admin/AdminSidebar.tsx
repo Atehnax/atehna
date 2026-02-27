@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useToast } from '@/shared/ui/toast';
 
 const rootLinks = [
   { href: '/admin/analitika', label: 'Analitika', icon: 'chart' },
@@ -24,10 +25,33 @@ function SidebarIcon({ type }: { type: (typeof rootLinks)[number]['icon'] }) {
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      const response = await fetch('/api/admin/logout', { method: 'POST' });
+      if (!response.ok) {
+        toast.error('Napaka pri odjavi');
+        return;
+      }
+
+      toast.success('Odjava uspešna');
+      router.push('/admin');
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      toast.error('Napaka pri odjavi');
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
-    <aside className={`sticky top-0 h-screen shrink-0 transition-all duration-300 ${isCollapsed ? 'w-10' : 'w-[19rem]'}`}>
+    <aside className={`h-full self-stretch shrink-0 transition-all duration-300 ${isCollapsed ? 'w-10' : 'w-[19rem]'}`}>
       <div className="relative h-full overflow-visible border-r border-slate-200 bg-[#f8f7fc] shadow-sm">
         <button
           type="button"
@@ -38,30 +62,49 @@ export default function AdminSidebar() {
           <span aria-hidden="true">{isCollapsed ? '❯' : '❮'}</span>
         </button>
 
-        <div className={`relative z-10 h-full px-3 py-10 transition-opacity duration-200 ${isCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100'}`}>
+        <div className={`relative z-10 flex h-full min-h-full flex-col px-3 py-10 transition-opacity duration-200 ${isCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100'}`}>
           <div className="mb-5 px-2 pr-4">
             <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#5d3ed6]">Administracija</p>
           </div>
-          <nav className="space-y-1">
-            {rootLinks.map((link) => {
-              const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
-              return (
-                <div key={link.href}>
-                  <Link
-                    href={link.href}
-                    className={`flex items-center gap-2 rounded-xl px-2.5 py-2 pr-4 text-sm transition ${
-                      isActive
-                        ? 'bg-[#ede8ff] font-semibold text-[#5d3ed6]'
-                        : 'text-[#5d3ed6] hover:bg-[#ede8ff] hover:text-[#5d3ed6]'
-                    }`}
-                  >
-                    <SidebarIcon type={link.icon} />
-                    <span>{link.label}</span>
-                  </Link>
-                </div>
-              );
-            })}
-          </nav>
+
+          <div className="flex h-full min-h-full flex-col">
+            <nav className="space-y-1">
+              {rootLinks.map((link) => {
+                const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
+                return (
+                  <div key={link.href}>
+                    <Link
+                      href={link.href}
+                      className={`flex items-center gap-2 rounded-xl px-2.5 py-2 pr-4 text-sm transition ${
+                        isActive
+                          ? 'bg-[#ede8ff] font-semibold text-[#5d3ed6]'
+                          : 'text-[#5d3ed6] hover:bg-[#ede8ff] hover:text-[#5d3ed6]'
+                      }`}
+                    >
+                      <SidebarIcon type={link.icon} />
+                      <span>{link.label}</span>
+                    </Link>
+                  </div>
+                );
+              })}
+            </nav>
+
+            <div className="mt-auto border-t border-slate-200/80 pt-3">
+              <button
+                type="button"
+                onClick={() => void handleLogout()}
+                disabled={isLoggingOut}
+                className="flex w-full items-center gap-2 rounded-xl border border-rose-200 bg-white px-2.5 py-2 pr-4 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60"
+              >
+                <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7">
+                  <path d="M12 4h4v12h-4"/>
+                  <path d="M8 6L4 10l4 4"/>
+                  <path d="M4 10h9"/>
+                </svg>
+                <span>{isLoggingOut ? 'Odjava ...' : 'Odjava'}</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </aside>

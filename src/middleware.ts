@@ -1,37 +1,48 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-function unauthorized() {
-  return new NextResponse('Authentication required.', {
-    status: 401,
-    headers: {
-      'WWW-Authenticate': 'Basic realm="Admin"'
-    }
-  });
+const ADMIN_SESSION_COOKIE = 'atehna_admin_session';
+
+function expectedToken(username: string, password: string) {
+  return btoa(`${username}:${password}`);
+}
+
+function hasValidSession(request: NextRequest, username: string, password: string) {
+  const token = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
+  if (!token) return false;
+  return token === expectedToken(username, password);
+}
+
+function unauthorizedApi() {
+  return NextResponse.json({ message: 'Authentication required.' }, { status: 401 });
 }
 
 export function middleware(request: NextRequest) {
-  if (request.nextUrl.pathname.startsWith('/admin')) {
-    console.info(`[middleware] ${request.method} ${request.nextUrl.pathname}`);
-  }
-  const username = process.env.ADMIN_USERNAME;
-  const password = process.env.ADMIN_PASSWORD;
+  const { pathname } = request.nextUrl;
+  const username = process.env.ADMIN_USERNAME ?? 'admin';
+  const password = process.env.ADMIN_PASSWORD ?? 'admin';
 
-  if (!username || !password) {
+  const isAdminPage = pathname.startsWith('/admin');
+  const isAdminApi = pathname.startsWith('/api/admin');
+  const isLoginPage = pathname === '/admin';
+  const isLoginApi = pathname === '/api/admin/login';
+
+  const authenticated = hasValidSession(request, username, password);
+
+  if (authenticated && isLoginPage) {
+    return NextResponse.redirect(new URL('/admin/orders', request.url));
+  }
+
+  if (isLoginPage || isLoginApi) {
     return NextResponse.next();
   }
 
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader?.startsWith('Basic ')) {
-    return unauthorized();
+  if (isAdminPage && !authenticated) {
+    return NextResponse.redirect(new URL('/admin', request.url));
   }
 
-  const encoded = authHeader.split(' ')[1];
-  const decoded = globalThis.atob(encoded ?? '');
-  const [user, pass] = decoded.split(':');
-
-  if (user !== username || pass !== password) {
-    return unauthorized();
+  if (isAdminApi && !authenticated) {
+    return unauthorizedApi();
   }
 
   return NextResponse.next();

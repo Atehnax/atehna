@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { Button } from '@/shared/ui/button';
 import { FloatingInput } from '@/shared/ui/floating-field';
+import { useToast } from '@/shared/ui/toast';
 
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg'];
@@ -13,6 +14,7 @@ export default function PurchaseOrderUploadForm() {
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -60,9 +62,11 @@ export default function PurchaseOrderUploadForm() {
       const payload = (await response.json()) as { url: string };
       setUploadedUrl(payload.url);
       setMessage('Naročilnica je uspešno shranjena.');
+      toast.success('Poslano');
       form.reset();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Napaka pri nalaganju datoteke.');
+      toast.error('Napaka pri pošiljanju');
     } finally {
       setIsSubmitting(false);
     }

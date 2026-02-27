@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { MenuItem } from '@/shared/ui/menu';
+import { useToast } from '@/shared/ui/toast';
 
 type Item = {
   id: string;
@@ -145,6 +146,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
   const [newCategoryEnabled, setNewCategoryEnabled] = useState(false);
   const [newCategoryValue, setNewCategoryValue] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const { toast } = useToast();
 
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const categoryMenuRef = useRef<HTMLDivElement>(null);
@@ -288,7 +290,10 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
 
   const save = () => {
     const resolvedCategory = newCategoryEnabled ? newCategoryValue.trim() : draft.category.trim();
-    if (!draft.name.trim() || !draft.sku.trim() || !resolvedCategory) return;
+    if (!draft.name.trim() || !draft.sku.trim() || !resolvedCategory) {
+      toast.error('Napaka pri shranjevanju');
+      return;
+    }
     const next = {
       ...draft,
       category: resolvedCategory,
@@ -302,6 +307,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
       return prev.map((item) => (item.id === editingId ? next : item));
     });
     setEditorOpen(false);
+    toast.success(editingId ? 'Shranjeno' : 'Dodano');
   };
 
   const duplicate = (item: Item) => {
@@ -314,6 +320,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
       archivedAt: null
     };
     setItems((prev) => [copy, ...prev]);
+    toast.success('Dodano');
   };
 
   const archive = (item: Item) => {
@@ -329,10 +336,14 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
       )
     );
     setSelectedIds((current) => current.filter((id) => id !== item.id));
+    toast.success('Arhivirano');
   };
 
   const archiveSelected = () => {
-    if (selectedIds.length === 0) return;
+    if (selectedIds.length === 0) {
+      toast.info('Ni izbranih artiklov za arhiviranje.');
+      return;
+    }
     setItems((prev) =>
       prev.map((entry) =>
         selectedIds.includes(entry.id)
@@ -345,6 +356,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
       )
     );
     setSelectedIds([]);
+    toast.success('Arhivirano');
   };
 
   const handleMultiImageUpload = (files: FileList | null) => {

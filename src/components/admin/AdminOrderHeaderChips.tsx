@@ -271,6 +271,7 @@ export default function AdminOrderHeaderChips(props: Props) {
       setPersistedTopData({ ...draftTopData });
       setDisplayOrderNumber(resolvedOrderNumber);
       setTopSectionMode('read');
+      toast.success('Shranjeno');
       window.dispatchEvent(
         new CustomEvent('admin-order-details-updated', {
           detail: {
@@ -300,6 +301,7 @@ export default function AdminOrderHeaderChips(props: Props) {
         const error = await response.json().catch(() => ({}));
         throw new Error(error.message || 'Brisanje ni uspelo.');
       }
+      toast.success('Izbrisano');
       router.push('/admin/orders');
       router.refresh();
     } catch (error) {

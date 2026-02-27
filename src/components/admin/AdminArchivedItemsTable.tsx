@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { DANGER_OUTLINE_BUTTON_CLASS } from './adminButtonStyles';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 
 const STORAGE_KEY = 'admin-items-crud-v2';
 
@@ -27,6 +28,7 @@ const formatDateTime = (value?: string | null) => {
 export default function AdminArchivedItemsTable() {
   const [items, setItems] = useState<Item[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   useEffect(() => {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -63,11 +65,15 @@ export default function AdminArchivedItemsTable() {
 
   const hardDeleteSelected = () => {
     if (selectedIds.length === 0) return;
-    if (!window.confirm('Trajno izbrišem izbrane artikle?')) return;
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const confirmHardDeleteSelected = () => {
     const selectedSet = new Set(selectedIds);
     const next = items.filter((item) => !selectedSet.has(item.id));
     persist(next);
     setSelectedIds([]);
+    setIsDeleteConfirmOpen(false);
   };
 
   return (
@@ -90,6 +96,17 @@ export default function AdminArchivedItemsTable() {
           Trajno izbriši
         </button>
       </div>
+
+      <ConfirmDialog
+        open={isDeleteConfirmOpen}
+        title="Trajni izbris"
+        description="Trajno izbrišem izbrane artikle?"
+        confirmLabel="Izbriši"
+        cancelLabel="Prekliči"
+        isDanger
+        onCancel={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={confirmHardDeleteSelected}
+      />
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[860px] text-left text-sm">

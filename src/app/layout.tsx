@@ -4,6 +4,7 @@ import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import CartDrawer from '@/components/cart/CartDrawer';
 import WebsiteAnalyticsTracker from '@/components/WebsiteAnalyticsTracker';
+import { ToastProvider, Toaster } from '@/shared/ui/toast';
 import { getCatalogSearchItems } from '@/lib/catalog';
 
 export const metadata: Metadata = {
@@ -33,11 +34,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="sl">
       <body className="min-h-screen bg-slate-50 text-slate-900">
-        <WebsiteAnalyticsTracker />
-        <SiteHeader searchItems={searchItems} />
-        <main className="min-h-[70vh]">{children}</main>
-        <CartDrawer />
-        <SiteFooter />
+        <ToastProvider>
+          <WebsiteAnalyticsTracker />
+          <SiteHeader searchItems={searchItems} />
+          <main className="min-h-[70vh]">{children}</main>
+          <CartDrawer />
+          <SiteFooter />
+          <Toaster />
+        </ToastProvider>
       </body>
     </html>
   );

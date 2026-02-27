@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import PaymentChip from '@/components/admin/PaymentChip';
 import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/lib/paymentStatus';
+import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 
 type Props = {
   orderId: number;
@@ -94,22 +95,18 @@ export default function AdminOrderPaymentSelect({
       </button>
 
       {isOpen && (
-        <div
-          role="menu"
-          className="absolute left-1/2 top-9 z-20 w-44 -translate-x-1/2 rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
-        >
-          {PAYMENT_STATUS_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              role="menuitem"
-              onClick={() => handleChange(option.value)}
-              disabled={isSaving || option.value === currentStatus}
-              className="block w-full rounded-md px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-[#ede8ff] disabled:cursor-not-allowed disabled:text-slate-300"
-            >
-              {option.label}
-            </button>
-          ))}
+        <div role="menu">
+          <MenuPanel className="absolute left-1/2 top-9 z-20 w-44 -translate-x-1/2">
+            {PAYMENT_STATUS_OPTIONS.map((option) => (
+              <MenuItem
+                key={option.value}
+                onClick={() => handleChange(option.value)}
+                disabled={isSaving || option.value === currentStatus}
+              >
+                {option.label}
+              </MenuItem>
+            ))}
+          </MenuPanel>
         </div>
       )}
     </div>

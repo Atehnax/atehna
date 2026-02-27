@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 
 type PdfDocument = {
   id: number;
@@ -478,36 +479,18 @@ export default function AdminOrderPdfManager({
         })}
       </div>
 
-      {confirmDeleteDocumentId !== null ? (
-        <div
-          className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-900/30 px-4"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="w-full max-w-sm rounded-2xl bg-white p-4 shadow-xl">
-            <p className="text-sm font-semibold text-slate-900">Izbris verzije PDF</p>
-            <p className="mt-2 text-xs text-slate-600">
-              Ali ste prepričani, da želite izbrisati to verzijo PDF dokumenta?
-            </p>
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setConfirmDeleteDocumentId(null)}
-                className="h-8 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600"
-              >
-                Prekliči
-              </button>
-              <button
-                type="button"
-                onClick={() => void confirmDeleteDocument()}
-                className="h-8 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-700"
-              >
-                Izbriši
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ConfirmDialog
+        open={confirmDeleteDocumentId !== null}
+        title="Izbris verzije PDF"
+        description="Ali ste prepričani, da želite izbrisati to verzijo PDF dokumenta?"
+        confirmLabel="Izbriši"
+        cancelLabel="Prekliči"
+        isDanger
+        onCancel={() => setConfirmDeleteDocumentId(null)}
+        onConfirm={() => {
+          void confirmDeleteDocument();
+        }}
+      />
     </section>
   );
 }

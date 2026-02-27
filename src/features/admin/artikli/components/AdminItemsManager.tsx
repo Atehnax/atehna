@@ -390,7 +390,6 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                     setCategoryFilter('all');
                     setIsCategoryMenuOpen(false);
                   }}
-                  isActive={categoryFilter === 'all'}
                 >
                   Vse kategorije
                 </MenuItem>
@@ -402,7 +401,6 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                       setCategoryFilter(category);
                       setIsCategoryMenuOpen(false);
                     }}
-                    isActive={categoryFilter === category}
                   >
                     <span className="block w-full whitespace-nowrap text-left">{category}</span>
                   </MenuItem>

@@ -172,7 +172,6 @@ function CompactDropdown({
                     onChange(option.value);
                     setIsOpen(false);
                   }}
-                  isActive={isSelected}
                 >
                   <span className="block w-full whitespace-nowrap text-left">{option.label}</span>
                 </MenuItem>

@@ -99,10 +99,8 @@ export default function AdminOrderStatusSelect({
                 key={option.value}
                 onClick={() => handleChange(option.value)}
                 disabled={isSaving || option.value === currentStatus}
-                className="justify-between"
               >
-                <span>{option.label}</span>
-                {option.value === currentStatus && <span aria-hidden>✓</span>}
+                {option.label}
               </MenuItem>
             ))}
           </MenuPanel>

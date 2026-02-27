@@ -600,6 +600,7 @@ export default function AdminOrdersTable({
         toast.error(`Brisanje ni uspelo za ${failedDeletes} naročil.`);
       }
 
+      toast.success('Izbrisano');
       router.refresh();
     } finally {
       setIsDeleting(false);
@@ -623,6 +624,7 @@ export default function AdminOrdersTable({
         return;
       }
 
+      toast.success('Izbrisano');
       router.refresh();
     } finally {
       setDeletingRowId(null);

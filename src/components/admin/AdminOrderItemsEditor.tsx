@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { IconButton } from '@/shared/ui/icon-button';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToast } from '@/shared/ui/toast';
 
 type OrderItemInput = {
@@ -115,6 +116,7 @@ export default function AdminOrderItemsEditor({
   const [catalogChoices, setCatalogChoices] = useState<CatalogChoice[]>([]);
   const [catalogQuery, setCatalogQuery] = useState('');
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [confirmRemoveItemId, setConfirmRemoveItemId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const isItemsDirty = useMemo(
@@ -169,7 +171,15 @@ export default function AdminOrderItemsEditor({
 
   const removeItem = (id: string) => {
     if (!itemsEditable) return;
-    setDraftItems((currentItems) => currentItems.filter((item) => item.id !== id));
+    setConfirmRemoveItemId(id);
+  };
+
+  const confirmRemoveItem = () => {
+    if (!confirmRemoveItemId) return;
+
+    setDraftItems((currentItems) => currentItems.filter((item) => item.id !== confirmRemoveItemId));
+    setConfirmRemoveItemId(null);
+    toast.success('Izbrisano');
   };
 
   const startItemsEdit = () => {
@@ -177,7 +187,7 @@ export default function AdminOrderItemsEditor({
       setDraftItems(cloneEditableItems(persistedItems));
       setDraftShipping(persistedShipping);
       setItemsSectionMode('read');
-        return;
+      return;
     }
 
     setDraftItems(cloneEditableItems(persistedItems));
@@ -424,6 +434,17 @@ export default function AdminOrderItemsEditor({
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmRemoveItemId !== null}
+        title="Odstrani postavko"
+        description="Ali želite odstraniti to postavko?"
+        confirmLabel="Odstrani"
+        cancelLabel="Prekliči"
+        isDanger
+        onCancel={() => setConfirmRemoveItemId(null)}
+        onConfirm={confirmRemoveItem}
+      />
 
       {isPickerOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">

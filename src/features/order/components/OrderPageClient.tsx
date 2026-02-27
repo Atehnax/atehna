@@ -13,6 +13,7 @@ import { SLOVENIAN_ADDRESSES } from '@/data/slovenianAddresses';
 import { FloatingInput, FloatingTextarea } from '@/shared/ui/floating-field';
 import { CustomSelect } from '@/shared/ui/select';
 import { IconButton } from '@/shared/ui/icon-button';
+import { useToast } from '@/shared/ui/toast';
 
 const FORM_STORAGE_KEY = 'atehna-order-form';
 
@@ -121,6 +122,7 @@ export default function OrderPageClient() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [isEmailEditing, setIsEmailEditing] = useState(true);
+  const { toast } = useToast();
 
   const normalizedItems = useMemo(
     () =>
@@ -289,8 +291,10 @@ export default function OrderPageClient() {
 
       setOrderResponse(payload);
       clearCart();
+      toast.success('Poslano');
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Napaka pri oddaji naročila.');
+      toast.error('Napaka pri pošiljanju');
     } finally {
       setIsSubmitting(false);
     }

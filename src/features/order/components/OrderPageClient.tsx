@@ -732,9 +732,17 @@ export default function OrderPageClient() {
                         >
                           −
                         </IconButton>
-                        <span className="min-w-[1.5rem] text-center text-sm font-semibold text-slate-700">
-                          {item.quantity}
-                        </span>
+                        <input
+                          type="number"
+                          min={1}
+                          value={item.quantity}
+                          onChange={(event) => {
+                            const next = Number.parseInt(event.target.value, 10);
+                            setQuantity(item.sku, Number.isNaN(next) ? item.quantity : next);
+                          }}
+                          className="w-16 rounded-lg border border-slate-200 px-2 py-1 text-center text-sm font-semibold text-slate-700 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+                          aria-label={`Količina za ${item.name}`}
+                        />
                         <IconButton
                           type="button"
                           onClick={() => setQuantity(item.sku, item.quantity + 1)}

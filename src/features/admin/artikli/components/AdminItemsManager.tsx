@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { MenuItem } from '@/shared/ui/menu';
 import { SegmentedControl } from '@/shared/ui/segmented';
+import { Chip } from '@/shared/ui/badge';
 import { useToast } from '@/shared/ui/toast';
 
 type Item = {
@@ -483,7 +484,14 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                   <td className="px-3 py-2 text-center text-slate-600">{formatCurrency(item.price)}</td>
                   <td className="px-3 py-2 text-center text-slate-600">{item.discountPct}%</td>
                   <td className="px-3 py-2 text-center text-slate-600">{formatCurrency(discountedPrice(item.price, item.discountPct))}</td>
-                  <td className="px-3 py-2 text-center"><span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-semibold ${item.active ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'}`}>{item.active ? 'Aktiven' : 'Neaktiven'}</span></td>
+                  <td className="px-3 py-2 text-center">
+                    <Chip
+                      variant={item.active ? 'success' : 'neutral'}
+                      className={`min-w-0 px-2.5 text-xs ${item.active ? 'ring-1 ring-emerald-200' : 'border-transparent bg-slate-100 text-slate-600 ring-1 ring-slate-200'}`}
+                    >
+                      {item.active ? 'Aktiven' : 'Neaktiven'}
+                    </Chip>
+                  </td>
                   <td className="px-3 py-2"><div className="flex items-center justify-center gap-1.5"><button type="button" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100"><ActionIcon type="edit" /></button><button type="button" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100"><ActionIcon type="copy" /></button><button type="button" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-100"><ActionIcon type="archive" /></button></div></td>
                 </tr>
               ))}

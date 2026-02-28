@@ -705,7 +705,7 @@ export default function OrderPageClient() {
                 onClick={clearCart}
                 className="text-xs font-semibold text-slate-400 hover:text-slate-600"
               >
-                Počisti
+                Ponastavi
               </button>
             </div>
 
@@ -751,14 +751,16 @@ export default function OrderPageClient() {
                         {formatCurrency(lineTotal)}
                       </div>
 
-                      <button
+                      <IconButton
                         type="button"
                         onClick={() => removeItem(item.sku)}
-                        className="h-8 w-8 justify-self-end rounded-full border border-slate-200 text-lg leading-none text-slate-500 hover:text-slate-700"
+                        tone="danger"
+                        className="h-6 w-6 justify-self-end"
                         aria-label={`Odstrani ${item.name}`}
+                        title="Odstrani"
                       >
                         ×
-                      </button>
+                      </IconButton>
                     </div>
                   </div>
                 );

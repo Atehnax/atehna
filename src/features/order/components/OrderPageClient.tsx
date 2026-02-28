@@ -751,14 +751,15 @@ export default function OrderPageClient() {
                         {formatCurrency(lineTotal)}
                       </div>
 
-                      <button
+                      <IconButton
                         type="button"
                         onClick={() => removeItem(item.sku)}
-                        className="h-8 w-8 justify-self-end rounded-full border border-slate-200 text-lg leading-none text-slate-500 hover:text-slate-700"
+                        tone="danger"
+                        className="justify-self-end"
                         aria-label={`Odstrani ${item.name}`}
                       >
                         ×
-                      </button>
+                      </IconButton>
                     </div>
                   </div>
                 );

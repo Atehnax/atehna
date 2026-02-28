@@ -28,3 +28,16 @@ export const getPaymentBadgeClassName = (status?: string | null) => {
     'border-slate-200 bg-slate-50 text-slate-400'
   );
 };
+
+
+export const getPaymentBadgeVariant = (status?: string | null) => {
+  if (!status || !isPaymentStatus(status)) return 'neutral' as const;
+
+  const variantMap: Record<PaymentStatus, 'neutral' | 'success' | 'purple'> = {
+    unpaid: 'neutral',
+    paid: 'success',
+    refunded: 'purple'
+  };
+
+  return variantMap[status];
+};

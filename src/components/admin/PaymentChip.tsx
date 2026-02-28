@@ -1,4 +1,5 @@
-import { getPaymentBadgeClassName, getPaymentLabel } from '@/lib/paymentStatus';
+import { Chip } from '@/shared/ui/badge';
+import { getPaymentBadgeVariant, getPaymentLabel, isPaymentStatus } from '@/lib/paymentStatus';
 
 type Props = {
   status?: string | null;
@@ -6,14 +7,12 @@ type Props = {
 };
 
 export default function PaymentChip({ status, isSaving = false }: Props) {
+  const isKnown = Boolean(status && isPaymentStatus(status));
+
   return (
-    <span
-      className={`inline-flex h-6 min-w-[104px] items-center justify-center rounded-full border px-2 text-[11px] font-semibold leading-none ${getPaymentBadgeClassName(
-        status
-      )}`}
-    >
+    <Chip variant={getPaymentBadgeVariant(status)} className={isKnown ? undefined : 'text-slate-400'}>
       <span>{getPaymentLabel(status)}</span>
       {isSaving && <span className="ml-1 text-[10px]">…</span>}
-    </span>
+    </Chip>
   );
 }

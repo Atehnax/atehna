@@ -25,7 +25,7 @@ type ToastContextValue = {
 
 export const ToastContext = createContext<ToastContextValue | null>(null);
 
-const DEFAULT_DURATION_MS = 3750;
+const DEFAULT_DURATION_MS = 3000;
 
 const createToastId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 

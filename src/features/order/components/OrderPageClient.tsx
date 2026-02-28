@@ -13,6 +13,7 @@ import { SLOVENIAN_ADDRESSES } from '@/data/slovenianAddresses';
 import { FloatingInput, FloatingTextarea } from '@/shared/ui/floating-field';
 import { CustomSelect } from '@/shared/ui/select';
 import { IconButton } from '@/shared/ui/icon-button';
+import { QuantityInput } from '@/shared/ui/quantity-input';
 
 const FORM_STORAGE_KEY = 'atehna-order-form';
 
@@ -732,15 +733,13 @@ export default function OrderPageClient() {
                         >
                           −
                         </IconButton>
-                        <input
-                          type="number"
+                        <QuantityInput
                           min={1}
                           value={item.quantity}
                           onChange={(event) => {
                             const next = Number.parseInt(event.target.value, 10);
                             setQuantity(item.sku, Number.isNaN(next) ? item.quantity : next);
                           }}
-                          className="w-16 rounded-lg border border-slate-200 px-2 py-1 text-center text-sm font-semibold text-slate-700 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
                           aria-label={`Količina za ${item.name}`}
                         />
                         <IconButton

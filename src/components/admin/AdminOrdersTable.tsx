@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import { SegmentedControl } from '@/shared/ui/segmented';
+import { Spinner } from '@/shared/ui/loading';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, Table, TBody, TD, THead, TH, TR, TableShell } from '@/shared/ui/table';
@@ -1015,7 +1017,7 @@ export default function AdminOrdersTable({
               disabled={isDownloading}
               className="flex h-full w-[140px] items-center justify-center whitespace-nowrap rounded-r-xl border-l border-slate-200 bg-white px-3 text-xs font-semibold tabular-nums text-slate-700 transition hover:bg-[#ede8ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
             >
-              {isDownloading ? 'Prenos...' : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
+              {isDownloading ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Prenos...</span> : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
             </button>
           </div>
 
@@ -1025,7 +1027,7 @@ export default function AdminOrdersTable({
             disabled={selected.length === 0 || isDeleting}
             className={bulkDeleteButtonClass}
           >
-            {isDeleting ? 'Brisanje...' : 'Izbriši'}
+            {isDeleting ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-[var(--danger-600)]" />Brisanje...</span> : 'Izbriši'}
           </button>
 
           {topAction ? <div className="flex h-8 items-center">{topAction}</div> : null}
@@ -1062,21 +1064,12 @@ export default function AdminOrdersTable({
         </div>
 
       <div className="flex flex-wrap items-center gap-2 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
-        <div className="inline-flex h-8 items-center gap-1 rounded-full border border-slate-300 bg-white px-1">
-          {statusTabs.map((tab) => {
-            const isActive = statusFilter === tab.value;
-            return (
-              <button
-                key={tab.value}
-                type="button"
-                onClick={() => setStatusFilter(tab.value)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:border focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 ${isActive ? 'border border-[#5d3ed6] bg-[#f8f7fc] text-[#5d3ed6]' : 'text-slate-700 hover:bg-slate-100'}`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+        <SegmentedControl
+          size="sm"
+          value={statusFilter}
+          onChange={(next) => setStatusFilter(next as typeof statusFilter)}
+          options={statusTabs.map((tab) => ({ value: tab.value, label: tab.label }))}
+        />
       </div>
 
 
@@ -1418,7 +1411,7 @@ export default function AdminOrdersTable({
                           aria-label={`Izbriši naročilo ${toDisplayOrderNumber(order.order_number)}`}
                           title="Izbriši"
                         >
-                          {deletingRowId === order.id ? '…' : '×'}
+                          {deletingRowId === order.id ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : '×'}
                         </button>
                       </RowActions>
                     </TD>

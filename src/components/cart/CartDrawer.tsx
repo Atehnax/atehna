@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCartStore } from '@/lib/cart/store';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
+import { QuantityInput } from '@/shared/ui/quantity-input';
 
 export default function CartDrawer() {
   const items = useCartStore((state) => state.items);
@@ -95,15 +96,13 @@ export default function CartDrawer() {
                     >
                       −
                     </IconButton>
-                    <input
-                      type="number"
+                    <QuantityInput
                       min={1}
                       value={item.quantity}
                       onChange={(event) => {
                         const next = Number.parseInt(event.target.value, 10);
                         setQuantity(item.sku, Number.isNaN(next) ? item.quantity : next);
                       }}
-                      className="w-16 rounded-lg border border-slate-200 px-2 py-1 text-center text-sm font-semibold text-slate-700"
                     />
                     <IconButton
                       type="button"

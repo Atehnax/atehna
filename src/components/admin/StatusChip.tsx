@@ -1,4 +1,5 @@
-import { getStatusChipClassName, getStatusLabel } from '@/lib/orderStatus';
+import { Chip } from '@/shared/ui/badge';
+import { getStatusChipVariant, getStatusLabel, isOrderStatus } from '@/lib/orderStatus';
 
 type Props = {
   status: string;
@@ -6,14 +7,12 @@ type Props = {
 };
 
 export default function StatusChip({ status, isSaving = false }: Props) {
+  const isKnown = isOrderStatus(status);
+
   return (
-    <span
-      className={`inline-flex h-6 min-w-[104px] items-center justify-center rounded-full border px-2 text-[11px] font-semibold leading-none ${getStatusChipClassName(
-        status
-      )}`}
-    >
+    <Chip variant={getStatusChipVariant(status)} className={isKnown ? undefined : 'text-slate-400'}>
       <span>{getStatusLabel(status)}</span>
       {isSaving && <span className="ml-1 text-[10px]">…</span>}
-    </span>
+    </Chip>
   );
 }

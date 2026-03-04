@@ -3,6 +3,8 @@
 import Image from 'next/image';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { MenuItem } from '@/shared/ui/menu';
+import { SegmentedControl } from '@/shared/ui/segmented';
+import { Chip } from '@/shared/ui/badge';
 import { useToast } from '@/shared/ui/toast';
 
 type Item = {
@@ -438,25 +440,13 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
         </div>
 
       <div className="flex items-center gap-2 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
-        <div className="inline-flex h-8 items-center gap-1 rounded-full border border-[#ede8ff] bg-white px-1">
-          {statusTabs.map((tab) => {
-            const isActive = statusTab === tab.key;
-            const activeClass =
-              tab.key === 'active'
-                ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-400'
-                : 'bg-slate-200 text-slate-700 ring-1 ring-slate-400';
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => setStatusTab(tab.key)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition ${isActive ? activeClass : 'text-slate-700 hover:bg-slate-100'}`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+        <SegmentedControl
+          size="sm"
+          value={statusTab}
+          onChange={(next) => setStatusTab(next as StatusTab)}
+          options={statusTabs.map((tab) => ({ value: tab.key, label: tab.label }))}
+          className="border-[#ede8ff]"
+        />
       </div>
 
       <div className="overflow-x-auto" style={{ background: "linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)" }}>
@@ -494,7 +484,14 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                   <td className="px-3 py-2 text-center text-slate-600">{formatCurrency(item.price)}</td>
                   <td className="px-3 py-2 text-center text-slate-600">{item.discountPct}%</td>
                   <td className="px-3 py-2 text-center text-slate-600">{formatCurrency(discountedPrice(item.price, item.discountPct))}</td>
-                  <td className="px-3 py-2 text-center"><span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-semibold ${item.active ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'}`}>{item.active ? 'Aktiven' : 'Neaktiven'}</span></td>
+                  <td className="px-3 py-2 text-center">
+                    <Chip
+                      variant={item.active ? 'success' : 'neutral'}
+                      className={`min-w-0 px-2.5 text-xs ${item.active ? 'ring-1 ring-emerald-200' : 'border-transparent bg-slate-100 text-slate-600 ring-1 ring-slate-200'}`}
+                    >
+                      {item.active ? 'Aktiven' : 'Neaktiven'}
+                    </Chip>
+                  </td>
                   <td className="px-3 py-2"><div className="flex items-center justify-center gap-1.5"><button type="button" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100"><ActionIcon type="edit" /></button><button type="button" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100"><ActionIcon type="copy" /></button><button type="button" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-100"><ActionIcon type="archive" /></button></div></td>
                 </tr>
               ))}

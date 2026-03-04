@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useToast } from '@/shared/ui/toast';
+import { Spinner } from '@/shared/ui/loading';
 
 const rootLinks = [
   { href: '/admin/analitika', label: 'Analitika', icon: 'chart' },
@@ -101,7 +102,7 @@ export default function AdminSidebar() {
                   <path d="M8 6L4 10l4 4"/>
                   <path d="M4 10h9"/>
                 </svg>
-                <span>{isLoggingOut ? 'Odjava ...' : 'Odjava'}</span>
+                <span>{isLoggingOut ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Odjava ...</span> : 'Odjava'}</span>
               </button>
             </div>
           </div>

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { FloatingInput } from '@/shared/ui/floating-field';
 import { useToast } from '@/shared/ui/toast';
+import { Spinner } from '@/shared/ui/loading';
 
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg'];
@@ -93,7 +94,7 @@ export default function PurchaseOrderUploadForm() {
         />
       </div>
       <Button type="submit" disabled={isSubmitting} variant="brand" size="sm">
-        {isSubmitting ? 'Nalaganje...' : 'Naloži naročilnico'}
+        {isSubmitting ? <span className="inline-flex items-center gap-2"><Spinner size="sm" className="text-white" />Nalaganje...</span> : 'Naloži naročilnico'}
       </Button>
       {message && <p className="text-sm text-slate-600">{message}</p>}
       {uploadedUrl && (

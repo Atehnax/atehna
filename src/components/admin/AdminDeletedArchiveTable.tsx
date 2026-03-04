@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToast } from '@/shared/ui/toast';
+import { Spinner } from '@/shared/ui/loading';
 import { EmptyState, Table, TBody, TD, THead, TH, TR, TableShell } from '@/shared/ui/table';
 
 type ArchiveEntry = {
@@ -339,7 +340,7 @@ export default function AdminDeletedArchiveTable({
             disabled={selected.length === 0 || isRestoring || isDeleting}
             className="h-8 rounded-lg border border-emerald-200 bg-[#f8f7fc] px-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
           >
-            {isRestoring ? 'Obnavljam ...' : 'Obnovi'}
+            {isRestoring ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Obnavljam ...</span> : 'Obnovi'}
           </button>
           <button
             type="button"
@@ -347,7 +348,7 @@ export default function AdminDeletedArchiveTable({
             disabled={selected.length === 0 || isDeleting || isRestoring}
             className={DANGER_OUTLINE_BUTTON_CLASS}
           >
-            {isDeleting ? 'Brišem ...' : 'Trajno izbriši'}
+            {isDeleting ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-rose-700" />Brišem ...</span> : 'Trajno izbriši'}
           </button>
         </div>
       </div>

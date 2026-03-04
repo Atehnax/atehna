@@ -7,6 +7,8 @@ import { CSS } from '@dnd-kit/utilities';
 import PlotlyClient from '@/components/admin/charts/PlotlyClient';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToast } from '@/shared/ui/toast';
+import { SegmentedControl } from '@/shared/ui/segmented';
+import { Spinner, TableSkeleton } from '@/shared/ui/loading';
 import { getBaseChartLayout, getChartThemeFromCssVars, type ChartTheme } from '@/components/admin/charts/chartTheme';
 import type { Data, Layout } from 'plotly.js';
 import type { OrdersAnalyticsResponse } from '@/lib/server/orderAnalytics';
@@ -305,20 +307,16 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
           <p className="text-xs text-slate-500">Timezone bucketing: UTC.</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="inline-flex rounded-lg border border-slate-300 bg-slate-100 p-0.5">
-            {(['7d', '30d', '90d', '180d', '365d', 'ytd'] as RangeOption[]).map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => void loadRange(option)}
-                className={`rounded-md px-2 py-1 text-xs font-semibold ${
-                  range === option ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:bg-slate-200'
-                }`}
-              >
-                {option === 'ytd' ? 'YTD' : option}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            size="sm"
+            value={range}
+            onChange={(next) => void loadRange(next as RangeOption)}
+            options={(['7d', '30d', '90d', '180d', '365d', 'ytd'] as RangeOption[]).map((option) => ({
+              value: option,
+              label: option === 'ytd' ? 'YTD' : option
+            }))}
+            className="rounded-lg border-slate-300 bg-slate-100 p-0.5"
+          />
           <button
             type="button"
             onClick={() => { setEditingChartId(null); setBuilderTitle('New chart'); setBuilderDescription(''); setBuilderComment(''); setBuilderChartType('combo'); setBuilderOpen(true); }}
@@ -351,7 +349,15 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
         }}
       />
 
-      {loading ? <p className="mb-2 text-xs text-slate-500">Loading analytics…</p> : null}
+      {loading ? (
+        <div className="mb-4 space-y-3">
+          <p className="inline-flex items-center gap-2 text-xs text-slate-500">
+            <Spinner size="sm" className="text-slate-500" />
+            Loading analytics…
+          </p>
+          <TableSkeleton rows={4} cols={2} className="border-slate-200" />
+        </div>
+      ) : null}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(event: DragEndEvent) => void onDragEnd(event)}>
         <SortableContext items={chartRenderModels.map((model) => model.chart.id)} strategy={rectSortingStrategy}>

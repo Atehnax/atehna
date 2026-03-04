@@ -8,6 +8,7 @@ import PlotlyClient from '@/components/admin/charts/PlotlyClient';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToast } from '@/shared/ui/toast';
 import { SegmentedControl } from '@/shared/ui/segmented';
+import { Spinner, TableSkeleton } from '@/shared/ui/loading';
 import { getBaseChartLayout, getChartThemeFromCssVars, type ChartTheme } from '@/components/admin/charts/chartTheme';
 import type { Data, Layout } from 'plotly.js';
 import type { OrdersAnalyticsResponse } from '@/lib/server/orderAnalytics';
@@ -348,7 +349,15 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
         }}
       />
 
-      {loading ? <p className="mb-2 text-xs text-slate-500">Loading analytics…</p> : null}
+      {loading ? (
+        <div className="mb-4 space-y-3">
+          <p className="inline-flex items-center gap-2 text-xs text-slate-500">
+            <Spinner size="sm" className="text-slate-500" />
+            Loading analytics…
+          </p>
+          <TableSkeleton rows={4} cols={2} className="border-slate-200" />
+        </div>
+      ) : null}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(event: DragEndEvent) => void onDragEnd(event)}>
         <SortableContext items={chartRenderModels.map((model) => model.chart.id)} strategy={rectSortingStrategy}>

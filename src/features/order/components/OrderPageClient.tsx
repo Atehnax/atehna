@@ -11,6 +11,7 @@ import { useCartStore } from '@/lib/cart/store';
 import { CUSTOMER_TYPE_FORM_OPTIONS, type CustomerType } from '@/lib/customerType';
 import { SLOVENIAN_ADDRESSES } from '@/data/slovenianAddresses';
 import { FloatingInput, FloatingTextarea } from '@/shared/ui/floating-field';
+import { Spinner } from '@/shared/ui/loading';
 import { CustomSelect } from '@/shared/ui/select';
 import { IconButton } from '@/shared/ui/icon-button';
 import { QuantityInput } from '@/shared/ui/quantity-input';
@@ -812,7 +813,7 @@ export default function OrderPageClient() {
                     : 'bg-brand-600 text-white hover:bg-brand-700'
                 )}
               >
-                {isSubmitting ? 'Oddajanje...' : 'Oddaj naročilo'}
+                {isSubmitting ? <span className="inline-flex items-center gap-2"><Spinner size="sm" className="text-white" />Oddajanje...</span> : 'Oddaj naročilo'}
               </button>
 
               {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}

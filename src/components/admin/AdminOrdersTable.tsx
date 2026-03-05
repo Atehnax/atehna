@@ -1080,7 +1080,7 @@ export default function AdminOrdersTable({
             <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="topPills" size="sm" showNumbers={false} />
           </>
         }
-        footerRight={<Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" showNumbers={false} />}
+        footerRight={<Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" size="sm" showNumbers={false} />}
       >
         <Table className="min-w-[1180px] w-full">
           <colgroup>
@@ -1254,8 +1254,8 @@ export default function AdminOrdersTable({
                 </button>
               </TH>
 
-              <TH className="min-w-[100px] text-center normal-case">PDF datoteke</TH>
-              <TH className="text-center normal-case">Uredi</TH>
+              <TH className="min-w-[100px] text-center">PDF datoteke</TH>
+              <TH className="text-center">Uredi</TH>
             </TR>
           </THead>
 

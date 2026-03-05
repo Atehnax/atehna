@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { TableShell } from '@/shared/ui/table';
+import { ADMIN_TABLE_BG, TableShell } from '@/shared/ui/table';
 
 type AdminTableLayoutProps = {
   headerLeft?: ReactNode;
@@ -26,20 +26,27 @@ export default function AdminTableLayout({
   style,
   contentClassName
 }: AdminTableLayoutProps) {
+  const hasHeaderRow = Boolean(headerLeft || headerRight);
+  const hasFilterRow = Boolean(filterRowLeft || filterRowRight);
+
   return (
     <TableShell className={classNames('overflow-hidden border-slate-200 bg-white', className)} style={style}>
-      <div className="px-3 py-3">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div className="flex min-w-0 flex-1 flex-wrap items-end gap-2">{headerLeft}</div>
-          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">{headerRight}</div>
-        </div>
-      </div>
+      <div className={classNames(ADMIN_TABLE_BG, 'px-3 py-3')}>
+        {hasHeaderRow ? (
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div className="flex min-w-0 flex-1 flex-wrap items-end gap-2">{headerLeft}</div>
+            <div className="ml-auto flex flex-wrap items-center justify-end gap-2">{headerRight}</div>
+          </div>
+        ) : null}
 
-      <hr className="border-slate-200" />
+        {hasHeaderRow && hasFilterRow ? <hr className="my-2 border-slate-200" /> : null}
 
-      <div className="flex flex-wrap items-center justify-between gap-2 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">{filterRowLeft}</div>
-        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">{filterRowRight}</div>
+        {hasFilterRow ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">{filterRowLeft}</div>
+            <div className="ml-auto flex flex-wrap items-center justify-end gap-2">{filterRowRight}</div>
+          </div>
+        ) : null}
       </div>
 
       <div className={contentClassName}>{children}</div>

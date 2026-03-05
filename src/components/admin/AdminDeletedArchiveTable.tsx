@@ -28,7 +28,7 @@ type DisplayRow = {
 
 type TypeFilterValue = 'all' | 'order' | 'pdf';
 
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [50, 100];
 
 const TYPE_FILTER_OPTIONS: Array<{ value: TypeFilterValue; label: string }> = [
   { value: 'all', label: 'Vse vrste' },
@@ -141,7 +141,8 @@ export default function AdminDeletedArchiveTable({
   const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
     totalCount: displayRows.length,
     storageKey: 'adminArchive.pageSize',
-    defaultPageSize: 25
+    defaultPageSize: 50,
+    pageSizeOptions: PAGE_SIZE_OPTIONS
   });
 
   const pagedRows = useMemo(() => {

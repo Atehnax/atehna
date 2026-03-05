@@ -24,7 +24,8 @@ export default function PageSizeSelect({
         value={String(value)}
         onChange={(next) => onChange(Number(next))}
         options={options.map((option) => ({ value: String(option), label: String(option) }))}
-        className="h-8 min-w-[130px] rounded-xl border border-slate-300 bg-white px-3 pt-0 text-xs font-semibold text-slate-700 shadow-sm"
+        className="h-8 min-w-[72px] rounded-md border border-slate-300 bg-white px-2 pr-6 pt-0 text-xs font-semibold leading-none text-slate-700 shadow-none"
+        valueClassName="inline-flex w-full items-center justify-center text-center leading-none"
         menuClassName="w-full"
       />
     </div>

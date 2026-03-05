@@ -1078,19 +1078,18 @@ export default function AdminOrdersTable({
         />
         </div>
 
-      <div className="flex flex-wrap items-center gap-2 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-y border-slate-200 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
         <SegmentedControl
           size="sm"
           value={statusFilter}
           onChange={(next) => setStatusFilter(next as typeof statusFilter)}
           options={statusTabs.map((tab) => ({ value: tab.value, label: tab.label }))}
         />
-      </div>
 
-
-      <div className="flex flex-wrap items-center justify-end gap-2 border-y border-slate-200 bg-white px-3 py-2">
-        <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={setPageSize} />
-        <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="topPills" size="sm" />
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={setPageSize} />
+          <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="topPills" size="sm" showNumbers={false} />
+        </div>
       </div>
 
       <div className="overflow-x-auto" style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)' }}>
@@ -1444,7 +1443,7 @@ export default function AdminOrdersTable({
       </div>
 
       <div className="border-t border-slate-200 bg-white px-3 py-2">
-        <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" />
+        <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" showNumbers={false} />
       </div>
       </TableShell>
       </div>

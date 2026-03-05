@@ -57,7 +57,7 @@ const bulkDeleteButtonClass =
 const rowDeleteButtonClass =
   'inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--danger-border)] bg-transparent text-sm font-semibold leading-none text-[var(--danger-600)] transition hover:bg-[var(--danger-bg)] disabled:cursor-not-allowed disabled:opacity-45';
 
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [50, 100];
 
 export default function AdminOrdersTable({
   orders,
@@ -516,7 +516,8 @@ export default function AdminOrdersTable({
   const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
     totalCount: filteredAndSortedOrders.length,
     storageKey: 'adminOrders.pageSize',
-    defaultPageSize: 25
+    defaultPageSize: 50,
+    pageSizeOptions: PAGE_SIZE_OPTIONS
   });
 
   const pagedOrders = useMemo(() => {

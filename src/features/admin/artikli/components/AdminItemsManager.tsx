@@ -5,6 +5,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { MenuItem } from '@/shared/ui/menu';
 import { SegmentedControl } from '@/shared/ui/segmented';
 import { Chip } from '@/shared/ui/badge';
+import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
 import { useToast } from '@/shared/ui/toast';
 
 type Item = {
@@ -54,6 +55,8 @@ const statusTabs: Array<{ key: StatusTab; label: string }> = [
   { key: 'active', label: 'Aktivni' },
   { key: 'inactive', label: 'Neaktivni' }
 ];
+
+const PAGE_SIZE_OPTIONS = [50, 100];
 
 function SortIndicator({ active, direction }: { active: boolean; direction: 'asc' | 'desc' }) {
   if (!active) return <span className="ml-1 text-slate-300">↕</span>;
@@ -246,12 +249,28 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
     return next;
   }, [categoryFilter, items, search, sortDirection, sortKey, statusTab]);
 
-  const visibleIds = useMemo(() => filteredItems.map((item) => item.id), [filteredItems]);
+  const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
+    totalCount: filteredItems.length,
+    storageKey: 'adminArtikli.pageSize',
+    defaultPageSize: 50,
+    pageSizeOptions: PAGE_SIZE_OPTIONS
+  });
+
+  const pagedItems = useMemo(() => {
+    const startIndex = (page - 1) * pageSize;
+    return filteredItems.slice(startIndex, startIndex + pageSize);
+  }, [filteredItems, page, pageSize]);
+
+  const visibleIds = useMemo(() => pagedItems.map((item) => item.id), [pagedItems]);
   const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
 
   useEffect(() => {
     setSelectedIds((current) => current.filter((id) => visibleIds.includes(id)));
   }, [visibleIds]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [categoryFilter, search, setPage, sortDirection, sortKey, statusTab]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -439,7 +458,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
           </div>
         </div>
 
-      <div className="flex items-center gap-2 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
         <SegmentedControl
           size="sm"
           value={statusTab}
@@ -447,6 +466,18 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
           options={statusTabs.map((tab) => ({ value: tab.key, label: tab.label }))}
           className="border-[#ede8ff]"
         />
+
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={setPageSize} />
+          <Pagination
+            page={page}
+            pageCount={pageCount}
+            onPageChange={setPage}
+            variant="topPills"
+            size="sm"
+            showNumbers={false}
+          />
+        </div>
       </div>
 
       <div className="overflow-x-auto" style={{ background: "linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)" }}>
@@ -475,7 +506,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
               </tr>
             </thead>
             <tbody>
-              {filteredItems.map((item, index) => (
+              {pagedItems.map((item, index) => (
                 <tr key={item.id} className={`border-t border-slate-200 transition-colors ${index % 2 === 0 ? "bg-white/70" : "bg-slate-50/60"} hover:bg-[#f8f7fc]`}>
                   <td className="px-3 py-2 text-center"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleOne(item.id)} aria-label={`Izberi ${item.name}`} /></td>
                   <td className="px-3 py-2 font-medium text-slate-900">{item.name}</td>
@@ -497,6 +528,16 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
               ))}
             </tbody>
           </table>
+        </div>
+
+        <div className="border-t border-slate-200 bg-white px-3 py-2">
+          <Pagination
+            page={page}
+            pageCount={pageCount}
+            onPageChange={setPage}
+            variant="bottomBar"
+            showNumbers={false}
+          />
         </div>
       </div>
 

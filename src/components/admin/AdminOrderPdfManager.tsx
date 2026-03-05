@@ -305,7 +305,7 @@ export default function AdminOrderPdfManager({
               onClick={() => void saveNotes()}
               disabled={notesSaveDisabled}
               title="Shrani"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100 disabled:cursor-default disabled:text-slate-300"
               aria-label="Shrani opombe"
             >
               <SaveIcon />
@@ -347,7 +347,7 @@ export default function AdminOrderPdfManager({
                     disabled={loadingType === pdfType.key}
                     title="Ustvari"
                     aria-label={`Ustvari ${pdfType.label}`}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#ede8ff] bg-[#f8f7fc] text-[#5d3ed6] shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#ede8ff] bg-[#f8f7fc] text-[#5d3ed6] shadow-sm transition hover:bg-slate-100 disabled:cursor-default disabled:bg-slate-200 disabled:text-slate-400"
                   >
                     {loadingType === pdfType.key ? <Spinner size="sm" className="text-slate-500" /> : <GeneratePdfIcon />}
                   </button>

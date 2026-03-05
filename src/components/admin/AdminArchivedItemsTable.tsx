@@ -83,7 +83,7 @@ export default function AdminArchivedItemsTable() {
           type="button"
           onClick={restoreSelected}
           disabled={selectedIds.length === 0}
-          className="h-8 rounded-xl border border-emerald-200 px-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+          className="h-8 rounded-xl border border-emerald-200 px-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-default disabled:border-slate-200 disabled:text-slate-400"
         >
           Obnovi
         </button>

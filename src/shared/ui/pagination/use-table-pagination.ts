@@ -6,6 +6,7 @@ type Params = {
   totalCount: number;
   storageKey: string;
   defaultPageSize: number;
+  pageSizeOptions: number[];
 };
 
 type Result = {
@@ -16,18 +17,33 @@ type Result = {
   setPageSize: (pageSize: number) => void;
 };
 
-export default function useTablePagination({ totalCount, storageKey, defaultPageSize }: Params): Result {
+export default function useTablePagination({ totalCount, storageKey, defaultPageSize, pageSizeOptions }: Params): Result {
+  const normalizedPageSizeOptions = useMemo(
+    () => Array.from(new Set(pageSizeOptions.filter((option) => Number.isFinite(option) && option > 0))).sort((left, right) => left - right),
+    [pageSizeOptions]
+  );
+
+  const fallbackPageSize = normalizedPageSizeOptions[0] ?? 50;
+
+  const clampPageSize = useCallback(
+    (nextPageSize: number) => (normalizedPageSizeOptions.includes(nextPageSize) ? nextPageSize : fallbackPageSize),
+    [fallbackPageSize, normalizedPageSizeOptions]
+  );
+
+  const safeDefaultPageSize = clampPageSize(defaultPageSize);
   const [page, setPageState] = useState(1);
-  const [pageSize, setPageSizeState] = useState(defaultPageSize);
+  const [pageSize, setPageSizeState] = useState(safeDefaultPageSize);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const rawValue = window.localStorage.getItem(storageKey);
     const parsedValue = Number(rawValue);
-    if (Number.isFinite(parsedValue) && parsedValue > 0) {
-      setPageSizeState(parsedValue);
-    }
-  }, [storageKey]);
+    setPageSizeState(clampPageSize(parsedValue));
+  }, [clampPageSize, storageKey]);
+
+  useEffect(() => {
+    setPageSizeState((currentPageSize) => clampPageSize(currentPageSize));
+  }, [clampPageSize]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -46,9 +62,9 @@ export default function useTablePagination({ totalCount, storageKey, defaultPage
 
   const setPageSize = useCallback((nextPageSize: number) => {
     if (!Number.isFinite(nextPageSize) || nextPageSize <= 0) return;
-    setPageSizeState(nextPageSize);
+    setPageSizeState(clampPageSize(nextPageSize));
     setPageState(1);
-  }, []);
+  }, [clampPageSize]);
 
   return {
     page,
@@ -58,4 +74,3 @@ export default function useTablePagination({ totalCount, storageKey, defaultPage
     setPageSize
   };
 }
-

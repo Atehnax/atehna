@@ -28,7 +28,7 @@ type DisplayRow = {
 
 type TypeFilterValue = 'all' | 'order' | 'pdf';
 
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [50, 100];
 
 const TYPE_FILTER_OPTIONS: Array<{ value: TypeFilterValue; label: string }> = [
   { value: 'all', label: 'Vse vrste' },
@@ -141,7 +141,8 @@ export default function AdminDeletedArchiveTable({
   const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
     totalCount: displayRows.length,
     storageKey: 'adminArchive.pageSize',
-    defaultPageSize: 25
+    defaultPageSize: 50,
+    pageSizeOptions: PAGE_SIZE_OPTIONS
   });
 
   const pagedRows = useMemo(() => {
@@ -362,7 +363,7 @@ export default function AdminDeletedArchiveTable({
           type="button"
           onClick={bulkRestore}
           disabled={selected.length === 0 || isRestoring || isDeleting}
-          className="h-8 rounded-lg border border-emerald-200 bg-[#f8f7fc] px-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+          className="h-8 rounded-lg border border-emerald-200 bg-[#f8f7fc] px-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-default disabled:border-slate-200 disabled:text-slate-400"
         >
           {isRestoring ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Obnavljam ...</span> : 'Obnovi'}
         </button>
@@ -433,7 +434,7 @@ export default function AdminDeletedArchiveTable({
                   <TD className="px-0 py-2 text-center">
                     <input
                       type="checkbox"
-                      className="disabled:cursor-not-allowed disabled:opacity-50"
+                      className="disabled:cursor-default disabled:opacity-50"
                       checked={selected.includes(entry.id)}
                       onChange={() => toggleOne(row)}
                       disabled={isChild && !parentSelected}

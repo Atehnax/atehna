@@ -110,7 +110,7 @@ export function TabsTrigger({ value, disabled, children, className }: TabsTrigge
       className={classNames(
         'rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:border focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0',
         isActive ? 'border border-[#5d3ed6] bg-[#f8f7fc] text-[#5d3ed6]' : 'text-slate-700 hover:bg-slate-100',
-        disabled && 'cursor-not-allowed opacity-50',
+        disabled && 'cursor-default opacity-50',
         className
       )}
     >

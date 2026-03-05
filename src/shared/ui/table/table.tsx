@@ -18,7 +18,7 @@ export function Table({ children, className, ...props }: BaseProps & TableHTMLAt
 
 export function THead({ children, className, ...props }: BaseProps & HTMLAttributes<HTMLTableSectionElement>) {
   return (
-    <thead className={classNames('text-[12px] uppercase text-slate-600', className)} {...props}>
+    <thead className={classNames(className)} {...props}>
       {children}
     </thead>
   );
@@ -42,7 +42,13 @@ export function TR({ children, className, ...props }: BaseProps & HTMLAttributes
 
 export function TH({ children, className, ...props }: BaseProps & ThHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <th className={classNames('px-2 py-2', className)} {...props}>
+    <th
+      className={classNames(
+        'border-b border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600 align-middle',
+        className
+      )}
+      {...props}
+    >
       {children}
     </th>
   );

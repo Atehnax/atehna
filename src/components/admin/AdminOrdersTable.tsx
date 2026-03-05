@@ -1254,8 +1254,8 @@ export default function AdminOrdersTable({
                 </button>
               </TH>
 
-              <TH className="min-w-[100px] text-center normal-case">PDF datoteke</TH>
-              <TH className="text-center normal-case">Uredi</TH>
+              <TH className="min-w-[100px] text-center">PDF datoteke</TH>
+              <TH className="text-center">Uredi</TH>
             </TR>
           </THead>
 

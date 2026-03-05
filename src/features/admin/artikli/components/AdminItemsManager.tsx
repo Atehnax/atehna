@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { MenuItem } from '@/shared/ui/menu';
 import { SegmentedControl } from '@/shared/ui/segmented';
+import { Table, THead, TH, TR } from '@/shared/ui/table';
 import { Chip } from '@/shared/ui/badge';
 import { useToast } from '@/shared/ui/toast';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
@@ -481,31 +482,31 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
         contentClassName="overflow-x-auto"
         footerRight={<Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" showNumbers={false} />}
       >
-        <div className="overflow-x-auto" style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)' }}>
-          <table className="w-full min-w-[1000px] text-left text-sm">
-            <thead className="text-xs text-slate-600">
-              <tr>
-                <th className="px-3 py-2 text-center"><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" /></th>
-                <th className="px-3 py-2">
+        <div className="overflow-x-auto">
+          <Table className="min-w-[1000px] text-sm">
+            <THead>
+              <TR>
+                <TH className="text-center"><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" /></TH>
+                <TH>
                   <button type="button" onClick={() => handleSort('name')} className="inline-flex items-center font-semibold hover:text-slate-700">Naziv <SortIndicator active={sortKey === 'name'} direction={sortDirection} /></button>
-                </th>
-                <th className="px-3 py-2">
+                </TH>
+                <TH>
                   <button type="button" onClick={() => handleSort('sku')} className="inline-flex items-center font-semibold hover:text-slate-700">SKU <SortIndicator active={sortKey === 'sku'} direction={sortDirection} /></button>
-                </th>
-                <th className="px-3 py-2">
+                </TH>
+                <TH>
                   <button type="button" onClick={() => handleSort('category')} className="inline-flex items-center font-semibold hover:text-slate-700">Kategorija <SortIndicator active={sortKey === 'category'} direction={sortDirection} /></button>
-                </th>
-                <th className="px-3 py-2 text-center">
+                </TH>
+                <TH className="text-center">
                   <button type="button" onClick={() => handleSort('price')} className="inline-flex items-center font-semibold hover:text-slate-700">Cena <SortIndicator active={sortKey === 'price'} direction={sortDirection} /></button>
-                </th>
-                <th className="px-3 py-2 text-center"><span className="inline-flex items-center font-semibold text-slate-500">Popust</span></th>
-                <th className="px-3 py-2 text-center whitespace-nowrap"><span className="inline-flex items-center font-semibold text-slate-500">Akcijska cena</span></th>
-                <th className="px-3 py-2 text-center">
+                </TH>
+                <TH className="text-center"><span className="inline-flex items-center">Popust</span></TH>
+                <TH className="whitespace-nowrap text-center"><span className="inline-flex items-center">Akcijska cena</span></TH>
+                <TH className="text-center">
                   <button type="button" onClick={() => handleSort('status')} className="inline-flex items-center font-semibold hover:text-slate-700">Status <SortIndicator active={sortKey === 'status'} direction={sortDirection} /></button>
-                </th>
-                <th className="px-3 py-2 text-center"><span className="inline-flex items-center font-semibold text-slate-500">Uredi</span></th>
-              </tr>
-            </thead>
+                </TH>
+                <TH className="text-center"><span className="inline-flex items-center">Uredi</span></TH>
+              </TR>
+            </THead>
             <tbody>
               {pagedItems.map((item, index) => (
                 <tr key={item.id} className={`border-t border-slate-200 transition-colors ${index % 2 === 0 ? "bg-white/70" : "bg-slate-50/60"} hover:bg-[#f8f7fc]`}>
@@ -528,7 +529,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                 </tr>
               ))}
             </tbody>
-          </table>
+          </Table>
         </div>
       </AdminTableLayout>
 

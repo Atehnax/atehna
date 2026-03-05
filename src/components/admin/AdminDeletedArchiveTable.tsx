@@ -9,7 +9,6 @@ import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 import { EmptyState, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
-import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
 
 type ArchiveEntry = {
   id: number;
@@ -28,8 +27,6 @@ type DisplayRow = {
 };
 
 type TypeFilterValue = 'all' | 'order' | 'pdf';
-
-const PAGE_SIZE_OPTIONS = [50, 100];
 
 const TYPE_FILTER_OPTIONS: Array<{ value: TypeFilterValue; label: string }> = [
   { value: 'all', label: 'Vse vrste' },
@@ -139,23 +136,7 @@ export default function AdminDeletedArchiveTable({
     return rows;
   }, [filtered, typeFilter]);
 
-  const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
-    totalCount: displayRows.length,
-    storageKey: 'adminArchive.pageSize',
-    defaultPageSize: 50,
-    pageSizeOptions: PAGE_SIZE_OPTIONS
-  });
-
-  const pagedRows = useMemo(() => {
-    const startIndex = (page - 1) * pageSize;
-    return displayRows.slice(startIndex, startIndex + pageSize);
-  }, [displayRows, page, pageSize]);
-
-  const visibleIds = useMemo(() => pagedRows.map((row) => row.entry.id), [pagedRows]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [setPage, typeFilter]);
+  const visibleIds = useMemo(() => displayRows.map((row) => row.entry.id), [displayRows]);
   const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.includes(id));
 
   const groupedChildIdsByOrder = useMemo(() => {
@@ -374,13 +355,6 @@ export default function AdminDeletedArchiveTable({
           )}
         </div>
       }
-      filterRowRight={
-        <>
-          <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={setPageSize} />
-          <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="topPills" size="sm" showNumbers={false} />
-        </>
-      }
-      footerRight={<Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" showNumbers={false} />}
       contentClassName="overflow-x-auto"
     >
       <ConfirmDialog
@@ -425,7 +399,7 @@ export default function AdminDeletedArchiveTable({
             </TR>
           </THead>
           <TBody>
-            {pagedRows.map((row) => {
+            {displayRows.map((row, index) => {
               const { entry, isChild, parentOrderId } = row;
               const parentSelected =
                 !isChild || parentOrderId === null
@@ -436,7 +410,7 @@ export default function AdminDeletedArchiveTable({
                     })();
 
               return (
-                <TR key={entry.id} className="border-b border-slate-100 hover:bg-[#ede8ff]">
+                <TR key={entry.id} className={`border-b border-slate-100 transition-colors ${index % 2 === 0 ? "bg-white/70" : "bg-slate-50/60"} hover:bg-[#ede8ff]`}>
                   <TD className="px-0 py-2 text-center">
                     <input
                       type="checkbox"
@@ -464,7 +438,7 @@ export default function AdminDeletedArchiveTable({
                 </TR>
               );
             })}
-            {pagedRows.length === 0 ? (
+            {displayRows.length === 0 ? (
               <TR>
                 <TD colSpan={5} className="py-8 text-center text-sm text-slate-500">
                   <EmptyState title="Arhiv je prazen." />

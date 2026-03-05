@@ -21,12 +21,12 @@ const sizeClassMap = {
   sm: {
     icon: 'h-7 w-7',
     label: 'text-xs',
-    input: 'h-7 w-14 text-xs'
+    input: 'h-7 w-[44px] text-xs'
   },
   md: {
     icon: 'h-8 w-8',
     label: 'text-sm',
-    input: 'h-8 w-16 text-sm'
+    input: 'h-8 w-[48px] text-sm'
   }
 } as const;
 
@@ -81,7 +81,7 @@ export default function Pagination({
           inputMode="numeric"
           pattern="[0-9]*"
           aria-label="Številka strani"
-          className={classNames(sizeClassMap[size].input, 'px-2 text-center font-semibold leading-none')}
+          className={classNames(sizeClassMap[size].input, 'px-1 text-center font-semibold leading-none')}
           onChange={(event) => setPageInput(event.target.value.replace(/[^0-9]/g, ''))}
           onBlur={commitPageInput}
           onKeyDown={(event) => {

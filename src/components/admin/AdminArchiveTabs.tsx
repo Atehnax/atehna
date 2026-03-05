@@ -1,30 +1,27 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 
 const tabs = [
-  { href: '/admin/arhiv', label: 'Arhiv naročil' },
-  { href: '/admin/arhiv/artikli', label: 'Arhiv artiklov' }
+  { value: '/admin/arhiv', label: 'Arhiv naročil' },
+  { value: '/admin/arhiv/artikli', label: 'Arhiv artiklov' }
 ];
 
 export default function AdminArchiveTabs() {
   const pathname = usePathname();
+  const router = useRouter();
+  const value = pathname.startsWith('/admin/arhiv/artikli') ? '/admin/arhiv/artikli' : '/admin/arhiv';
 
   return (
-    <div className="mb-4 inline-flex h-8 items-center gap-1 rounded-full border border-[#ede8ff] bg-white px-1">
-      {tabs.map((tab) => {
-        const isActive = pathname === tab.href;
-        return (
-          <Link
-            key={tab.href}
-            href={tab.href}
-            className={`rounded-full px-3 py-1 text-xs font-semibold transition ${isActive ? 'bg-[#f8f7fc] border border-[#5d3ed6] text-[#5d3ed6]' : 'text-slate-700 hover:bg-slate-100'}`}
-          >
+    <Tabs value={value} onValueChange={(next) => router.push(next)}>
+      <TabsList className="mb-4">
+        {tabs.map((tab) => (
+          <TabsTrigger key={tab.value} value={tab.value}>
             {tab.label}
-          </Link>
-        );
-      })}
-    </div>
+          </TabsTrigger>
+        ))}
+      </TabsList>
+    </Tabs>
   );
 }

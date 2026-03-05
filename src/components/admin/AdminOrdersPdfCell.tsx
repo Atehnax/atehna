@@ -12,6 +12,7 @@ import {
   routeMap
 } from '@/components/admin/adminOrdersPdfCellUtils';
 import { useToast } from '@/shared/ui/toast';
+import { Spinner } from '@/shared/ui/loading';
 
 type PdfButton = { key: PdfTypeKey; short: string; full: string };
 
@@ -223,7 +224,7 @@ export default function AdminOrdersPdfCell({
               disabled={interactionsDisabled || loadingType === button.key}
               className="inline-flex h-6 items-center rounded-md border border-slate-300 bg-white px-2 text-[10px] font-medium text-slate-700 transition hover:border-slate-400 disabled:cursor-not-allowed disabled:text-slate-300"
             >
-              {loadingType === button.key ? 'Generiram ...' : latest ? 'Nova verzija' : 'Ustvari'}
+              {loadingType === button.key ? <span className="inline-flex items-center gap-1"><Spinner size="sm" className="text-slate-500" />Generiram ...</span> : latest ? 'Nova verzija' : 'Ustvari'}
             </button>
           ) : null}
         </div>

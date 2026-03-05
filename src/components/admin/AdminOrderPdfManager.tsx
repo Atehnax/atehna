@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToast } from '@/shared/ui/toast';
+import { Spinner } from '@/shared/ui/loading';
 
 type PdfDocument = {
   id: number;
@@ -348,7 +349,7 @@ export default function AdminOrderPdfManager({
                     aria-label={`Ustvari ${pdfType.label}`}
                     className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#ede8ff] bg-[#f8f7fc] text-[#5d3ed6] shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
                   >
-                    <GeneratePdfIcon />
+                    {loadingType === pdfType.key ? <Spinner size="sm" className="text-slate-500" /> : <GeneratePdfIcon />}
                   </button>
 
                   <label
@@ -368,7 +369,7 @@ export default function AdminOrderPdfManager({
                         event.currentTarget.value = '';
                       }}
                     />
-                    <UploadIcon />
+                    {uploadingType === pdfType.key ? <Spinner size="sm" className="text-slate-500" /> : <UploadIcon />}
                   </label>
 
                   <button

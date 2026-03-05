@@ -520,7 +520,7 @@ export default function OrderPageClient() {
                     'w-full rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition',
                     emailIsValid
                       ? 'bg-brand-600 text-white hover:bg-brand-700'
-                      : 'cursor-not-allowed bg-slate-200 text-slate-400'
+                      : 'cursor-default bg-slate-200 text-slate-400'
                   )}
                 >
                   Nadaljuj
@@ -809,7 +809,7 @@ export default function OrderPageClient() {
                 className={classNames(
                   'rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition',
                   !canSubmit
-                    ? 'cursor-not-allowed bg-slate-200 text-slate-400'
+                    ? 'cursor-default bg-slate-200 text-slate-400'
                     : 'bg-brand-600 text-white hover:bg-brand-700'
                 )}
               >

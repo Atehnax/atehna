@@ -388,13 +388,13 @@ export default function AdminDeletedArchiveTable({
       <Table className="w-full table-fixed border-collapse text-sm">
           <THead>
             <TR className="border-b border-slate-200 text-xs uppercase text-slate-500">
-              <TH className="w-10 px-0 py-2 text-center">
+              <TH className="w-10 text-center">
                 <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" />
               </TH>
-              <TH className="w-28 px-0 py-2 text-left">Vrsta</TH>
-              <TH className="px-0 py-2 text-left">Element</TH>
-              <TH className="w-44 px-0 py-2 text-left">Izbrisano</TH>
-              <TH className="w-44 px-0 py-2 text-left">Poteče</TH>
+              <TH className="w-28">Vrsta</TH>
+              <TH>Element</TH>
+              <TH className="w-44">Izbrisano</TH>
+              <TH className="w-44">Poteče</TH>
             </TR>
           </THead>
           <TBody>

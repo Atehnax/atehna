@@ -9,7 +9,8 @@ import { Spinner } from '@/shared/ui/loading';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToast } from '@/shared/ui/toast';
-import { EmptyState, RowActions, Table, TBody, TD, THead, TH, TR, TableShell } from '@/shared/ui/table';
+import { EmptyState, RowActions, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
+import { AdminTableLayout } from '@/shared/ui/admin-table';
 import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
 import AdminOrderPaymentSelect from '@/components/admin/AdminOrderPaymentSelect';
 import AdminOrdersPreviewChart from '@/components/admin/AdminOrdersPreviewChart';
@@ -856,146 +857,160 @@ export default function AdminOrdersTable({
         activeRange={rangePreset}
         onRangeChange={applyAnalyticsRangePreset}
       />
-      <TableShell className="border" style={{ background: "linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)", borderColor: analyticsAppearance?.gridColor ?? "#e2e8f0", boxShadow: "0 10px 24px rgba(15,23,42,0.06)" }}>
-        <div className="p-3">
-        <div className="flex flex-wrap items-end gap-2">
-          <div className="relative min-w-[170px]" ref={datePopoverRef}>
-            <button
-              type="button"
-              onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-              className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 py-0 text-left text-xs text-slate-700 hover:border-slate-400 focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
-            >
-              <span className="inline-flex h-full w-full items-center gap-1.5 leading-none"> 
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  className="h-3.5 w-3.5 text-slate-600"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                >
-                  <rect x="3" y="5" width="18" height="16" rx="2" />
-                  <path d="M16 3v4M8 3v4M3 10h18" />
-                </svg>
-                <span className="truncate">{dateRangeLabel}</span>
-              </span>
-            </button>
+      <ConfirmDialog
+        open={isBulkDeleteDialogOpen}
+        title="Izbris naročil"
+        description={`Ali ste prepričani, da želite izbrisati ${selected.length} naročil?`}
+        confirmLabel="Izbriši"
+        cancelLabel="Prekliči"
+        isDanger
+        onCancel={() => setIsBulkDeleteDialogOpen(false)}
+        onConfirm={() => {
+          void confirmDeleteSelected();
+        }}
+        confirmDisabled={isDeleting}
+      />
 
-            {isDatePopoverOpen && (
-              <div lang="sl-SI" className="absolute left-0 z-20 mt-2 w-[420px] rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
-                <div className="grid grid-cols-[180px_1fr] gap-4">
-                  <div className="space-y-1 border-r border-slate-200 pr-3">
-                    <button
-                      type="button"
-                      onClick={() => applyQuickDateRange('today')}
-                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
-                    >
-                      Danes
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyQuickDateRange('yesterday')}
-                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
-                    >
-                      Včeraj
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyQuickDateRange('7d')}
-                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
-                    >
-                      Zadnjih 7 dni
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyQuickDateRange('30d')}
-                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
-                    >
-                      Zadnjih 30 dni
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyQuickDateRange('3m')}
-                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
-                    >
-                      Zadnje 3 mesece
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyQuickDateRange('6m')}
-                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
-                    >
-                      Zadnjih 6 mesecev
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyQuickDateRange('1y')}
-                      className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
-                    >
-                      Zadnje leto
-                    </button>
-                  </div>
+      <ConfirmDialog
+        open={confirmDeleteRowId !== null}
+        title="Izbris naročila"
+        description="Ali ste prepričani, da želite izbrisati to naročilo?"
+        confirmLabel="Izbriši"
+        cancelLabel="Prekliči"
+        isDanger
+        onCancel={() => setConfirmDeleteRowId(null)}
+        onConfirm={() => {
+          void confirmDeleteRow();
+        }}
+        confirmDisabled={deletingRowId !== null}
+      />
 
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-xs font-semibold uppercase text-slate-500">Od</label>
-                      <input
-                        type="date"
-                        lang="sl-SI"
-                        value={fromDate}
-                        onChange={(event) => { setFromDate(event.target.value); setRangePreset('custom'); }}
-                        className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs outline-none focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
-                      />
-                    </div>
+      <AdminTableLayout
+        className="border"
+        style={{ background: "linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)", borderColor: analyticsAppearance?.gridColor ?? "#e2e8f0", boxShadow: "0 10px 24px rgba(15,23,42,0.06)" }}
+        contentClassName="overflow-x-auto"
+        headerLeft={
+          <>
+            <div className="relative min-w-[170px]" ref={datePopoverRef}>
+              <button
+                type="button"
+                onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
+                className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 py-0 text-left text-xs text-slate-700 hover:border-slate-400 focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+              >
+                <span className="inline-flex h-full w-full items-center gap-1.5 leading-none"> 
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 24 24"
+                    className="h-3.5 w-3.5 text-slate-600"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <rect x="3" y="5" width="18" height="16" rx="2" />
+                    <path d="M16 3v4M8 3v4M3 10h18" />
+                  </svg>
+                  <span className="truncate">{dateRangeLabel}</span>
+                </span>
+              </button>
 
-                    <div>
-                      <label className="text-xs font-semibold uppercase text-slate-500">Do</label>
-                      <input
-                        type="date"
-                        lang="sl-SI"
-                        value={toDate}
-                        onChange={(event) => { setToDate(event.target.value); setRangePreset('custom'); }}
-                        className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs outline-none focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
+              {isDatePopoverOpen && (
+                <div lang="sl-SI" className="absolute left-0 z-20 mt-2 w-[420px] rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+                  <div className="grid grid-cols-[180px_1fr] gap-4">
+                    <div className="space-y-1 border-r border-slate-200 pr-3">
                       <button
                         type="button"
-                        onClick={() => {
-                          setFromDate('');
-                          setToDate('');
-                        }}
-                        className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+                        onClick={() => applyQuickDateRange('today')}
+                        className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
                       >
-                        Ponastavi
-                      </button>                    </div>
+                        Danes
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyQuickDateRange('yesterday')}
+                        className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
+                      >
+                        Včeraj
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyQuickDateRange('7d')}
+                        className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
+                      >
+                        Zadnjih 7 dni
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyQuickDateRange('30d')}
+                        className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
+                      >
+                        Zadnjih 30 dni
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyQuickDateRange('3m')}
+                        className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
+                      >
+                        Zadnje 3 mesece
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyQuickDateRange('6m')}
+                        className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
+                      >
+                        Zadnjih 6 mesecev
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyQuickDateRange('1y')}
+                        className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
+                      >
+                        Zadnje leto
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs font-semibold uppercase text-slate-500">Od</label>
+                        <input
+                          type="date"
+                          lang="sl-SI"
+                          value={fromDate}
+                          onChange={(event) => { setFromDate(event.target.value); setRangePreset('custom'); }}
+                          className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs outline-none focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold uppercase text-slate-500">Do</label>
+                        <input
+                          type="date"
+                          lang="sl-SI"
+                          value={toDate}
+                          onChange={(event) => { setToDate(event.target.value); setRangePreset('custom'); }}
+                          className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs outline-none focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
 
-          <div className="min-w-[220px] flex-1">
             <input
-              type="text"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Poišči naročilo, naročnika, naslov, tip, status, plačilo..."
-              className="h-8 w-full rounded-xl border border-slate-300 px-3 text-xs focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+              placeholder="Poišči po številki, naročniku, naslovu, opombi ..."
+              className="h-8 min-w-[260px] flex-1 rounded-xl border border-slate-300 px-3 text-xs text-slate-700 outline-none focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
             />
-          </div>
 
-          <div className="ml-auto inline-flex h-8 shrink-0 items-stretch overflow-visible rounded-xl border border-slate-300 bg-white shadow-sm focus-within:border-[#5d3ed6]">
-            <div className="relative" ref={documentTypeMenuRef}>
+            <div className="relative flex h-8 rounded-xl border border-slate-300 bg-white shadow-sm" ref={documentTypeMenuRef}>
               <button
                 type="button"
                 onClick={() => setIsDocumentTypeMenuOpen((previousOpen) => !previousOpen)}
-                className="inline-flex h-full w-[180px] items-center justify-between rounded-l-xl border-0 bg-transparent px-3 text-xs font-semibold text-slate-700 outline-none focus:border-[#5d3ed6] focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:ring-0"
+                className="flex h-full min-w-[140px] items-center justify-between rounded-l-xl px-3 text-left text-xs font-semibold text-slate-700 transition hover:bg-[#ede8ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0"
                 aria-haspopup="menu"
                 aria-expanded={isDocumentTypeMenuOpen}
               >
-                <span className="truncate text-left">{selectedDocumentTypeLabel}</span>
+                <span className="truncate">{selectedDocumentTypeLabel}</span>
                 <span className="ml-2 text-slate-500">▾</span>
               </button>
 
@@ -1007,7 +1022,7 @@ export default function AdminOrdersTable({
                         key={documentTypeOption.value}
                         onClick={() => {
                           setDocumentType(documentTypeOption.value);
-                                                setIsDocumentTypeMenuOpen(false);
+                          setIsDocumentTypeMenuOpen(false);
                         }}
                       >
                         {documentTypeOption.label}
@@ -1022,7 +1037,7 @@ export default function AdminOrdersTable({
               type="button"
               onClick={handleResetDocumentFilter}
               disabled={documentType === 'all'}
-              className="flex h-full w-[92px] items-center justify-center border-l border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-[#ede8ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
+              className="flex h-8 w-[92px] items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-[#ede8ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
             >
               Ponastavi
             </button>
@@ -1031,69 +1046,42 @@ export default function AdminOrdersTable({
               type="button"
               onClick={handleDownloadAllDocuments}
               disabled={isDownloading}
-              className="flex h-full w-[140px] items-center justify-center whitespace-nowrap rounded-r-xl border-l border-slate-200 bg-white px-3 text-xs font-semibold tabular-nums text-slate-700 transition hover:bg-[#ede8ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
+              className="flex h-8 w-[140px] items-center justify-center whitespace-nowrap rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold tabular-nums text-slate-700 transition hover:bg-[#ede8ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
             >
               {isDownloading ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Prenos...</span> : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
             </button>
-          </div>
+          </>
+        }
+        headerRight={
+          <>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={selected.length === 0 || isDeleting}
+              className={bulkDeleteButtonClass}
+            >
+              {isDeleting ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-[var(--danger-600)]" />Brisanje...</span> : 'Izbriši'}
+            </button>
 
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={selected.length === 0 || isDeleting}
-            className={bulkDeleteButtonClass}
-          >
-            {isDeleting ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-[var(--danger-600)]" />Brisanje...</span> : 'Izbriši'}
-          </button>
-
-          {topAction ? <div className="flex h-8 items-center">{topAction}</div> : null}
-        </div>
-
-
-        <ConfirmDialog
-          open={isBulkDeleteDialogOpen}
-          title="Izbris naročil"
-          description={`Ali ste prepričani, da želite izbrisati ${selected.length} naročil?`}
-          confirmLabel="Izbriši"
-          cancelLabel="Prekliči"
-          isDanger
-          onCancel={() => setIsBulkDeleteDialogOpen(false)}
-          onConfirm={() => {
-            void confirmDeleteSelected();
-          }}
-          confirmDisabled={isDeleting}
-        />
-
-        <ConfirmDialog
-          open={confirmDeleteRowId !== null}
-          title="Izbris naročila"
-          description="Ali ste prepričani, da želite izbrisati to naročilo?"
-          confirmLabel="Izbriši"
-          cancelLabel="Prekliči"
-          isDanger
-          onCancel={() => setConfirmDeleteRowId(null)}
-          onConfirm={() => {
-            void confirmDeleteRow();
-          }}
-          confirmDisabled={deletingRowId !== null}
-        />
-        </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-2 border-y border-slate-200 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
-        <SegmentedControl
-          size="sm"
-          value={statusFilter}
-          onChange={(next) => setStatusFilter(next as typeof statusFilter)}
-          options={statusTabs.map((tab) => ({ value: tab.value, label: tab.label }))}
-        />
-
-        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
-          <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={setPageSize} />
-          <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="topPills" size="sm" showNumbers={false} />
-        </div>
-      </div>
-
-      <div className="overflow-x-auto" style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)' }}>
+            {topAction ? <div className="flex h-8 items-center">{topAction}</div> : null}
+          </>
+        }
+        filterRowLeft={
+          <SegmentedControl
+            size="sm"
+            value={statusFilter}
+            onChange={(next) => setStatusFilter(next as typeof statusFilter)}
+            options={statusTabs.map((tab) => ({ value: tab.value, label: tab.label }))}
+          />
+        }
+        filterRowRight={
+          <>
+            <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={setPageSize} />
+            <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="topPills" size="sm" showNumbers={false} />
+          </>
+        }
+        footerRight={<Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" showNumbers={false} />}
+      >
         <Table className="min-w-[1180px] w-full">
           <colgroup>
             <col style={{ width: columnWidths.selectAndDelete }} />
@@ -1108,7 +1096,6 @@ export default function AdminOrdersTable({
             <col style={{ width: columnWidths.documents }} />
             <col style={{ width: columnWidths.edit }} />
           </colgroup>
-
           <THead>
             <TR>
               <TH className="h-11 text-center">
@@ -1441,12 +1428,8 @@ export default function AdminOrdersTable({
             )}
           </TBody>
         </Table>
-      </div>
 
-      <div className="border-t border-slate-200 bg-white px-3 py-2">
-        <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" showNumbers={false} />
-      </div>
-      </TableShell>
+      </AdminTableLayout>
       </div>
     </div>
   );

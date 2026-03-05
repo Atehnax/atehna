@@ -7,6 +7,7 @@ import { SegmentedControl } from '@/shared/ui/segmented';
 import { Chip } from '@/shared/ui/badge';
 import { useToast } from '@/shared/ui/toast';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
+import { AdminTableLayout } from '@/shared/ui/admin-table';
 
 type Item = {
   id: string;
@@ -391,87 +392,96 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
         <h1 className="text-2xl font-semibold text-slate-900">Artikli</h1>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border shadow-sm" style={{ background: "linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)", borderColor: "#e2e8f0", boxShadow: "0 10px 24px rgba(15,23,42,0.06)" }}>
-        <div className="p-3">
-          <div className="mt-1 grid gap-2 md:grid-cols-[minmax(280px,1fr)_240px_auto_auto] md:items-center">
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Poišči po nazivu, SKU ali kategoriji …"
-            className="h-8 rounded-xl border border-slate-300 px-3 text-xs focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
-          />
-                    <div className="relative" ref={categoryMenuRef}>
-            <button
-              type="button"
-              onClick={() => setIsCategoryMenuOpen((previousOpen) => !previousOpen)}
-              className="inline-flex h-8 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-left text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0"
-              aria-haspopup="menu"
-              aria-expanded={isCategoryMenuOpen}
-            >
-              <span className="block min-w-0 flex-1 truncate text-left">{selectedCategoryLabel}</span>
-              <span className="ml-2 text-slate-500">▾</span>
-            </button>
-
-            {isCategoryMenuOpen && (
-              <div
-                role="menu"
-                className="absolute left-0 top-9 z-30 min-w-full w-max max-w-[560px] rounded-xl border border-slate-300 bg-white p-1 shadow-sm"
+      <AdminTableLayout
+        className="border shadow-sm"
+        style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)', borderColor: '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
+        headerLeft={
+          <>
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Poišči po nazivu, SKU ali kategoriji …"
+              className="h-8 min-w-[240px] flex-1 rounded-xl border border-slate-300 px-3 text-xs focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+            />
+            <div className="relative min-w-[220px]" ref={categoryMenuRef}>
+              <button
+                type="button"
+                onClick={() => setIsCategoryMenuOpen((previousOpen) => !previousOpen)}
+                className="inline-flex h-8 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-left text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0"
+                aria-haspopup="menu"
+                aria-expanded={isCategoryMenuOpen}
               >
-                <MenuItem
-                  onClick={() => {
-                    setCategoryFilter('all');
-                    setIsCategoryMenuOpen(false);
-                  }}
-                  isActive={categoryFilter === 'all'}
-                >
-                  Vse kategorije
-                </MenuItem>
+                <span className="block min-w-0 flex-1 truncate text-left">{selectedCategoryLabel}</span>
+                <span className="ml-2 text-slate-500">▾</span>
+              </button>
 
-                {categories.map((category) => (
+              {isCategoryMenuOpen && (
+                <div
+                  role="menu"
+                  className="absolute left-0 top-9 z-30 min-w-full w-max max-w-[560px] rounded-xl border border-slate-300 bg-white p-1 shadow-sm"
+                >
                   <MenuItem
-                    key={category}
                     onClick={() => {
-                      setCategoryFilter(category);
+                      setCategoryFilter('all');
                       setIsCategoryMenuOpen(false);
                     }}
-                    isActive={categoryFilter === category}
+                    isActive={categoryFilter === 'all'}
                   >
-                    <span className="block w-full whitespace-nowrap text-left">{category}</span>
+                    Vse kategorije
                   </MenuItem>
-                ))}
-              </div>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={archiveSelected}
-            disabled={selectedIds.length === 0}
-            className="h-8 rounded-xl border border-amber-300 bg-amber-50 px-3 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 disabled:pointer-events-none disabled:opacity-45"
-          >
-            Arhiviraj
-          </button>
-          <button type="button" onClick={openCreate} className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#ede8ff] bg-[#f8f7fc] px-3 text-xs font-semibold text-[#5d3ed6] shadow-sm transition hover:border-[#5d3ed6] hover:bg-[#f8f7fc] focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0">
-            <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M10 4v12M4 10h12" /></svg>
-            Nov artikel
-          </button>
-          <div className="md:col-span-4 flex flex-wrap items-center justify-end gap-2">
+
+                  {categories.map((category) => (
+                    <MenuItem
+                      key={category}
+                      onClick={() => {
+                        setCategoryFilter(category);
+                        setIsCategoryMenuOpen(false);
+                      }}
+                      isActive={categoryFilter === category}
+                    >
+                      <span className="block w-full whitespace-nowrap text-left">{category}</span>
+                    </MenuItem>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        }
+        headerRight={
+          <>
+            <button
+              type="button"
+              onClick={archiveSelected}
+              disabled={selectedIds.length === 0}
+              className="h-8 rounded-xl border border-amber-300 bg-amber-50 px-3 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 disabled:pointer-events-none disabled:opacity-45"
+            >
+              Arhiviraj
+            </button>
+            <button type="button" onClick={openCreate} className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#ede8ff] bg-[#f8f7fc] px-3 text-xs font-semibold text-[#5d3ed6] shadow-sm transition hover:border-[#5d3ed6] hover:bg-[#f8f7fc] focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0">
+              <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M10 4v12M4 10h12" /></svg>
+              Nov artikel
+            </button>
+          </>
+        }
+        filterRowLeft={
+          <SegmentedControl
+            size="sm"
+            value={statusTab}
+            onChange={(next) => setStatusTab(next as StatusTab)}
+            options={statusTabs.map((tab) => ({ value: tab.key, label: tab.label }))}
+            className="border-[#ede8ff]"
+          />
+        }
+        filterRowRight={
+          <>
             <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={setPageSize} />
             <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="topPills" size="sm" showNumbers={false} />
-          </div>
-          </div>
-        </div>
-
-      <div className="flex items-center gap-2 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
-        <SegmentedControl
-          size="sm"
-          value={statusTab}
-          onChange={(next) => setStatusTab(next as StatusTab)}
-          options={statusTabs.map((tab) => ({ value: tab.key, label: tab.label }))}
-          className="border-[#ede8ff]"
-        />
-      </div>
-
-      <div className="overflow-x-auto" style={{ background: "linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)" }}>
+          </>
+        }
+        contentClassName="overflow-x-auto"
+        footerRight={<Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" showNumbers={false} />}
+      >
+        <div className="overflow-x-auto" style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)' }}>
           <table className="w-full min-w-[1000px] text-left text-sm">
             <thead className="text-xs text-slate-600">
               <tr>
@@ -520,11 +530,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             </tbody>
           </table>
         </div>
-
-        <div className="flex items-center justify-end border-t border-slate-200 bg-white/70 px-3 py-2">
-          <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" showNumbers={false} />
-        </div>
-      </div>
+      </AdminTableLayout>
 
       {editorOpen ? (
         <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/30">

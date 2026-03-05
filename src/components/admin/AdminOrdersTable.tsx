@@ -4,6 +4,9 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import { SegmentedControl } from '@/shared/ui/segmented';
+import { Spinner } from '@/shared/ui/loading';
+import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, Table, TBody, TD, THead, TH, TR, TableShell } from '@/shared/ui/table';
@@ -53,6 +56,8 @@ const bulkDeleteButtonClass =
 
 const rowDeleteButtonClass =
   'inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--danger-border)] bg-transparent text-sm font-semibold leading-none text-[var(--danger-600)] transition hover:bg-[var(--danger-bg)] disabled:cursor-not-allowed disabled:opacity-45';
+
+const PAGE_SIZE_OPTIONS = [50, 100];
 
 export default function AdminOrdersTable({
   orders,
@@ -508,10 +513,19 @@ export default function AdminOrdersTable({
     sortDirection
   ]);
 
-  const visibleOrderIds = useMemo(
-    () => filteredAndSortedOrders.map((order) => order.id),
-    [filteredAndSortedOrders]
-  );
+  const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
+    totalCount: filteredAndSortedOrders.length,
+    storageKey: 'adminOrders.pageSize',
+    defaultPageSize: 50,
+    pageSizeOptions: PAGE_SIZE_OPTIONS
+  });
+
+  const pagedOrders = useMemo(() => {
+    const startIndex = (page - 1) * pageSize;
+    return filteredAndSortedOrders.slice(startIndex, startIndex + pageSize);
+  }, [filteredAndSortedOrders, page, pageSize]);
+
+  const visibleOrderIds = useMemo(() => pagedOrders.map((order) => order.id), [pagedOrders]);
 
   const selectedVisibleCount = useMemo(
     () => visibleOrderIds.filter((orderId) => selected.includes(orderId)).length,
@@ -555,6 +569,10 @@ export default function AdminOrdersTable({
       )
     );
   }, [orders]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedFromDate, debouncedQuery, debouncedToDate, documentType, setPage, sortDirection, sortKey, statusFilter]);
 
   const toggleSelected = (orderId: number) => {
     setSelected((previousSelected) =>
@@ -1015,7 +1033,7 @@ export default function AdminOrdersTable({
               disabled={isDownloading}
               className="flex h-full w-[140px] items-center justify-center whitespace-nowrap rounded-r-xl border-l border-slate-200 bg-white px-3 text-xs font-semibold tabular-nums text-slate-700 transition hover:bg-[#ede8ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
             >
-              {isDownloading ? 'Prenos...' : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
+              {isDownloading ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Prenos...</span> : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
             </button>
           </div>
 
@@ -1025,7 +1043,7 @@ export default function AdminOrdersTable({
             disabled={selected.length === 0 || isDeleting}
             className={bulkDeleteButtonClass}
           >
-            {isDeleting ? 'Brisanje...' : 'Izbriši'}
+            {isDeleting ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-[var(--danger-600)]" />Brisanje...</span> : 'Izbriši'}
           </button>
 
           {topAction ? <div className="flex h-8 items-center">{topAction}</div> : null}
@@ -1062,23 +1080,19 @@ export default function AdminOrdersTable({
         </div>
 
       <div className="flex flex-wrap items-center gap-2 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
-        <div className="inline-flex h-8 items-center gap-1 rounded-full border border-slate-300 bg-white px-1">
-          {statusTabs.map((tab) => {
-            const isActive = statusFilter === tab.value;
-            return (
-              <button
-                key={tab.value}
-                type="button"
-                onClick={() => setStatusFilter(tab.value)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:border focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 ${isActive ? 'border border-[#5d3ed6] bg-[#f8f7fc] text-[#5d3ed6]' : 'text-slate-700 hover:bg-slate-100'}`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+        <SegmentedControl
+          size="sm"
+          value={statusFilter}
+          onChange={(next) => setStatusFilter(next as typeof statusFilter)}
+          options={statusTabs.map((tab) => ({ value: tab.value, label: tab.label }))}
+        />
       </div>
 
+
+      <div className="flex flex-wrap items-center justify-end gap-2 border-y border-slate-200 bg-white px-3 py-2">
+        <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={setPageSize} />
+        <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="topPills" size="sm" />
+      </div>
 
       <div className="overflow-x-auto" style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)' }}>
         <Table className="min-w-[1180px] w-full">
@@ -1277,7 +1291,7 @@ export default function AdminOrdersTable({
                 </TD>
               </TR>
             ) : (
-              filteredAndSortedOrders.map((order, orderIndex) => {
+              pagedOrders.map((order, orderIndex) => {
                 const orderAddress = formatOrderAddress(order);
                 const typeLabel = getCustomerTypeLabel(order.customer_type);
                 const rowStatus = rowStatusOverrides[order.id] ?? order.status;
@@ -1418,7 +1432,7 @@ export default function AdminOrdersTable({
                           aria-label={`Izbriši naročilo ${toDisplayOrderNumber(order.order_number)}`}
                           title="Izbriši"
                         >
-                          {deletingRowId === order.id ? '…' : '×'}
+                          {deletingRowId === order.id ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : '×'}
                         </button>
                       </RowActions>
                     </TD>
@@ -1428,6 +1442,10 @@ export default function AdminOrdersTable({
             )}
           </TBody>
         </Table>
+      </div>
+
+      <div className="border-t border-slate-200 bg-white px-3 py-2">
+        <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" />
       </div>
       </TableShell>
       </div>

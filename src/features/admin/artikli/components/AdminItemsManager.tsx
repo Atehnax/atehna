@@ -3,6 +3,9 @@
 import Image from 'next/image';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { MenuItem } from '@/shared/ui/menu';
+import { SegmentedControl } from '@/shared/ui/segmented';
+import { Chip } from '@/shared/ui/badge';
+import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
 import { useToast } from '@/shared/ui/toast';
 
 type Item = {
@@ -52,6 +55,8 @@ const statusTabs: Array<{ key: StatusTab; label: string }> = [
   { key: 'active', label: 'Aktivni' },
   { key: 'inactive', label: 'Neaktivni' }
 ];
+
+const PAGE_SIZE_OPTIONS = [50, 100];
 
 function SortIndicator({ active, direction }: { active: boolean; direction: 'asc' | 'desc' }) {
   if (!active) return <span className="ml-1 text-slate-300">↕</span>;
@@ -244,12 +249,28 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
     return next;
   }, [categoryFilter, items, search, sortDirection, sortKey, statusTab]);
 
-  const visibleIds = useMemo(() => filteredItems.map((item) => item.id), [filteredItems]);
+  const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
+    totalCount: filteredItems.length,
+    storageKey: 'adminArtikli.pageSize',
+    defaultPageSize: 50,
+    pageSizeOptions: PAGE_SIZE_OPTIONS
+  });
+
+  const pagedItems = useMemo(() => {
+    const startIndex = (page - 1) * pageSize;
+    return filteredItems.slice(startIndex, startIndex + pageSize);
+  }, [filteredItems, page, pageSize]);
+
+  const visibleIds = useMemo(() => pagedItems.map((item) => item.id), [pagedItems]);
   const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
 
   useEffect(() => {
     setSelectedIds((current) => current.filter((id) => visibleIds.includes(id)));
   }, [visibleIds]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [categoryFilter, search, setPage, sortDirection, sortKey, statusTab]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -437,25 +458,25 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
           </div>
         </div>
 
-      <div className="flex items-center gap-2 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
-        <div className="inline-flex h-8 items-center gap-1 rounded-full border border-[#ede8ff] bg-white px-1">
-          {statusTabs.map((tab) => {
-            const isActive = statusTab === tab.key;
-            const activeClass =
-              tab.key === 'active'
-                ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-400'
-                : 'bg-slate-200 text-slate-700 ring-1 ring-slate-400';
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => setStatusTab(tab.key)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition ${isActive ? activeClass : 'text-slate-700 hover:bg-slate-100'}`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-[linear-gradient(180deg,rgba(250,251,252,0.96)_0%,rgba(242,244,247,0.96)_100%)] px-3 py-2">
+        <SegmentedControl
+          size="sm"
+          value={statusTab}
+          onChange={(next) => setStatusTab(next as StatusTab)}
+          options={statusTabs.map((tab) => ({ value: tab.key, label: tab.label }))}
+          className="border-[#ede8ff]"
+        />
+
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={setPageSize} />
+          <Pagination
+            page={page}
+            pageCount={pageCount}
+            onPageChange={setPage}
+            variant="topPills"
+            size="sm"
+            showNumbers={false}
+          />
         </div>
       </div>
 
@@ -485,7 +506,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
               </tr>
             </thead>
             <tbody>
-              {filteredItems.map((item, index) => (
+              {pagedItems.map((item, index) => (
                 <tr key={item.id} className={`border-t border-slate-200 transition-colors ${index % 2 === 0 ? "bg-white/70" : "bg-slate-50/60"} hover:bg-[#f8f7fc]`}>
                   <td className="px-3 py-2 text-center"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleOne(item.id)} aria-label={`Izberi ${item.name}`} /></td>
                   <td className="px-3 py-2 font-medium text-slate-900">{item.name}</td>
@@ -494,12 +515,29 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                   <td className="px-3 py-2 text-center text-slate-600">{formatCurrency(item.price)}</td>
                   <td className="px-3 py-2 text-center text-slate-600">{item.discountPct}%</td>
                   <td className="px-3 py-2 text-center text-slate-600">{formatCurrency(discountedPrice(item.price, item.discountPct))}</td>
-                  <td className="px-3 py-2 text-center"><span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-semibold ${item.active ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'}`}>{item.active ? 'Aktiven' : 'Neaktiven'}</span></td>
+                  <td className="px-3 py-2 text-center">
+                    <Chip
+                      variant={item.active ? 'success' : 'neutral'}
+                      className={`min-w-0 px-2.5 text-xs ${item.active ? 'ring-1 ring-emerald-200' : 'border-transparent bg-slate-100 text-slate-600 ring-1 ring-slate-200'}`}
+                    >
+                      {item.active ? 'Aktiven' : 'Neaktiven'}
+                    </Chip>
+                  </td>
                   <td className="px-3 py-2"><div className="flex items-center justify-center gap-1.5"><button type="button" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100"><ActionIcon type="edit" /></button><button type="button" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100"><ActionIcon type="copy" /></button><button type="button" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-100"><ActionIcon type="archive" /></button></div></td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+
+        <div className="border-t border-slate-200 bg-white px-3 py-2">
+          <Pagination
+            page={page}
+            pageCount={pageCount}
+            onPageChange={setPage}
+            variant="bottomBar"
+            showNumbers={false}
+          />
         </div>
       </div>
 

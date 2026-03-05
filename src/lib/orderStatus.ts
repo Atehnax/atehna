@@ -32,3 +32,18 @@ export const getStatusChipClassName = (value: string) =>
   isOrderStatus(value)
     ? STATUS_CHIP_CLASSNAMES[value]
     : 'border-slate-200 bg-slate-50 text-slate-400';
+
+export const getStatusChipVariant = (value: string) => {
+  if (!isOrderStatus(value)) return 'neutral' as const;
+
+  const variantMap: Record<OrderStatus, 'neutral' | 'warning' | 'info' | 'success' | 'danger'> = {
+    received: 'neutral',
+    in_progress: 'warning',
+    partially_sent: 'info',
+    sent: 'info',
+    finished: 'success',
+    cancelled: 'danger'
+  };
+
+  return variantMap[value];
+};

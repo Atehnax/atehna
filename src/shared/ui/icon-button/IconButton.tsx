@@ -23,7 +23,7 @@ const sizeClassMap = {
 
 const toneClassMap = {
   neutral:
-    'border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300',
+    'border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-default disabled:text-slate-300',
   danger: 'border border-rose-300 text-xs font-semibold leading-none text-rose-600 hover:bg-rose-50'
 } as const;
 

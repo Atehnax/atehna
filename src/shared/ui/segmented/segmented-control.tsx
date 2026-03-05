@@ -75,7 +75,7 @@ export default function SegmentedControl({ value, onChange, options, size = 'md'
               'font-semibold transition focus-visible:border focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0',
               sizeClassMap[size].item,
               isActive ? 'border border-[#5d3ed6] bg-[#f8f7fc] text-[#5d3ed6]' : 'text-slate-700 hover:bg-slate-100',
-              option.disabled && 'cursor-not-allowed opacity-50'
+              option.disabled && 'cursor-default opacity-50'
             )}
           >
             {option.label}

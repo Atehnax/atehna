@@ -49,8 +49,8 @@ export default function ConfirmDialog({
             disabled={confirmDisabled}
             className={
               isDanger
-                ? 'h-8 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-50'
-                : 'h-8 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50'
+                ? 'h-8 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-700 disabled:cursor-default disabled:opacity-50'
+                : 'h-8 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700 disabled:cursor-default disabled:opacity-50'
             }
           >
             {confirmLabel}

@@ -558,19 +558,19 @@ function AdminOrdersPreviewChart({
               key={chart.key}
               type="button"
               onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(chart.focusKey)}`)}
-              className="flex min-h-[124px] items-center justify-between rounded-xl border px-3 py-2 text-left shadow-sm transition hover:border-slate-400"
+              className="flex min-h-[124px] flex-col overflow-hidden rounded-xl border px-3 py-2 text-left shadow-sm transition hover:border-slate-400 md:flex-row md:items-center md:justify-between"
               style={{
                 background: `linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,248,251,0.96) 100%)`,
                 borderColor: appearance.gridColor
               }}
             >
-              <div className="relative flex h-full min-w-[88px] flex-1 items-center justify-center pr-2 text-center">
+              <div className="relative flex h-full min-w-0 flex-1 items-center justify-center pr-0 text-center md:pr-2">
                 {chart.key === 'customer-type-cumulative' ? (
-                  <div className="w-full">
-                    <p className="absolute left-0 top-0 whitespace-nowrap text-sm font-semibold tracking-wide text-slate-700">
+                  <div className="w-full min-w-0 overflow-hidden">
+                    <p className="absolute left-0 top-0 min-w-0 max-w-full truncate text-[clamp(0.75rem,1.2vw,0.875rem)] font-semibold tracking-wide text-slate-700">
                       {chart.title}
                     </p>
-                    <p className="whitespace-nowrap text-[34px] font-bold leading-none text-slate-700">
+                    <p className="min-w-0 overflow-hidden text-[clamp(1.35rem,4.2vw,2.125rem)] font-bold leading-none text-slate-700">
                       <span>{data.individualDaily.reduce((sum, value) => sum + value, 0)}</span>
                       <span className="mx-2 font-thin text-slate-300">|</span>
                       <span>{data.companyDaily.reduce((sum, value) => sum + value, 0)}</span>
@@ -580,21 +580,21 @@ function AdminOrdersPreviewChart({
                   </div>
                 ) : (
                   <>
-                    <p className="absolute left-0 top-0 whitespace-nowrap text-sm font-semibold tracking-wide text-slate-700">
+                    <p className="absolute left-0 top-0 min-w-0 max-w-full truncate text-[clamp(0.75rem,1.2vw,0.875rem)] font-semibold tracking-wide text-slate-700">
                       {chart.title}
                     </p>
-                    <p className="whitespace-nowrap text-[34px] font-bold leading-none text-slate-700">{chart.value}</p>
+                    <p className="min-w-0 max-w-full truncate text-[clamp(1.35rem,4.2vw,2.125rem)] font-bold leading-none text-slate-700">{chart.value}</p>
                   </>
                 )}
                 <p className={`absolute bottom-[8px] left-0 text-[11px] font-medium leading-none ${chart.deltaClassName}`}>{chart.delta}</p>
               </div>
 
-              <div className="relative w-[190px] rounded-md" style={{ backgroundColor: 'transparent' }}>
+              <div className="relative mt-2 w-full min-w-0 rounded-md md:mt-0 md:w-[190px] md:shrink-0" style={{ backgroundColor: 'transparent' }}>
                 <PlotlyClient
                   data={chart.traces}
                   layout={chart.layout}
                   config={{ responsive: true, displayModeBar: false }}
-                  style={{ width: '100%', height: 118 }}
+                  style={{ width: '100%', height: 118, maxWidth: '100%' }}
                   useResizeHandler
                   onHover={(eventData: any) => handleHover(chart, eventData)}
                   onUnhover={() => hideHover(chart.key)}

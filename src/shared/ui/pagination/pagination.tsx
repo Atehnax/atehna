@@ -1,5 +1,8 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import { IconButton } from '@/shared/ui/icon-button';
-import usePaginationRange, { DOTS } from './use-pagination-range';
+import { Input } from '@/shared/ui/input';
 
 export type PaginationProps = {
   page: number;
@@ -17,13 +20,13 @@ const classNames = (...parts: Array<string | false | null | undefined>) =>
 const sizeClassMap = {
   sm: {
     icon: 'h-7 w-7',
-    number: 'h-7 min-w-7 px-2 text-xs',
-    label: 'text-xs'
+    label: 'text-xs',
+    input: 'h-7 w-[44px] text-xs'
   },
   md: {
     icon: 'h-8 w-8',
-    number: 'h-8 min-w-8 px-2.5 text-xs',
-    label: 'text-sm'
+    label: 'text-sm',
+    input: 'h-8 w-[48px] text-sm'
   }
 } as const;
 
@@ -40,12 +43,28 @@ export default function Pagination({
   onPageChange,
   variant = 'bottomBar',
   size = 'md',
-  showNumbers = true,
   className
 }: PaginationProps) {
   const safePageCount = Math.max(pageCount, 1);
   const safePage = Math.min(Math.max(page, 1), safePageCount);
-  const range = usePaginationRange({ page: safePage, pageCount: safePageCount });
+  const [pageInput, setPageInput] = useState(String(safePage));
+
+  useEffect(() => {
+    setPageInput(String(safePage));
+  }, [safePage]);
+
+  const commitPageInput = () => {
+    const parsed = Number(pageInput);
+    if (!Number.isFinite(parsed)) {
+      setPageInput(String(safePage));
+      return;
+    }
+    const clamped = Math.min(Math.max(Math.trunc(parsed), 1), safePageCount);
+    setPageInput(String(clamped));
+    if (clamped !== safePage) {
+      onPageChange(clamped);
+    }
+  };
 
   return (
     <div
@@ -55,9 +74,25 @@ export default function Pagination({
         className
       )}
     >
-      <span className={classNames('text-slate-600', sizeClassMap[size].label)}>
-        Stran {safePage} od {safePageCount}
-      </span>
+      <div className="inline-flex items-center gap-1.5 text-slate-600">
+        <span className={sizeClassMap[size].label}>Stran</span>
+        <Input
+          value={pageInput}
+          inputMode="numeric"
+          pattern="[0-9]*"
+          aria-label="Številka strani"
+          className={classNames(sizeClassMap[size].input, 'px-1 text-center font-semibold leading-none')}
+          onChange={(event) => setPageInput(event.target.value.replace(/[^0-9]/g, ''))}
+          onBlur={commitPageInput}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              commitPageInput();
+            }
+          }}
+        />
+        <span className={sizeClassMap[size].label}>od {safePageCount}</span>
+      </div>
 
       <div className="inline-flex items-center gap-0.5">
         <IconButton
@@ -67,10 +102,7 @@ export default function Pagination({
           size={size === 'sm' ? 'sm' : 'md'}
           onClick={() => onPageChange(1)}
           disabled={safePage <= 1}
-          className={classNames(
-            'border-0 text-slate-600 hover:bg-slate-100 disabled:opacity-50',
-            sizeClassMap[size].icon
-          )}
+          className={classNames('border-0 text-slate-600 hover:bg-slate-100 disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
           aria-label="Prva stran"
           title="Prva stran"
         >
@@ -84,38 +116,12 @@ export default function Pagination({
           size={size === 'sm' ? 'sm' : 'md'}
           onClick={() => onPageChange(safePage - 1)}
           disabled={safePage <= 1}
-          className={classNames(
-            'border-0 text-slate-600 hover:bg-slate-100 disabled:opacity-50',
-            sizeClassMap[size].icon
-          )}
+          className={classNames('border-0 text-slate-600 hover:bg-slate-100 disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
           aria-label="Prejšnja stran"
           title="Prejšnja stran"
         >
           <NavIcon direction="prev" />
         </IconButton>
-
-        {showNumbers
-          ? range.map((item, index) =>
-              item === DOTS ? (
-                <span key={`dots-${index}`} className="px-1 text-xs text-slate-400">
-                  {DOTS}
-                </span>
-              ) : (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => onPageChange(item)}
-                  className={classNames(
-                    'inline-flex items-center justify-center rounded-md font-semibold text-slate-600 transition hover:bg-slate-100',
-                    sizeClassMap[size].number,
-                    item === safePage && 'bg-[#f8f7fc] text-[#5d3ed6]'
-                  )}
-                >
-                  {item}
-                </button>
-              )
-            )
-          : null}
 
         <IconButton
           type="button"
@@ -124,10 +130,7 @@ export default function Pagination({
           size={size === 'sm' ? 'sm' : 'md'}
           onClick={() => onPageChange(safePage + 1)}
           disabled={safePage >= safePageCount}
-          className={classNames(
-            'border-0 text-slate-600 hover:bg-slate-100 disabled:opacity-50',
-            sizeClassMap[size].icon
-          )}
+          className={classNames('border-0 text-slate-600 hover:bg-slate-100 disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
           aria-label="Naslednja stran"
           title="Naslednja stran"
         >
@@ -141,10 +144,7 @@ export default function Pagination({
           size={size === 'sm' ? 'sm' : 'md'}
           onClick={() => onPageChange(safePageCount)}
           disabled={safePage >= safePageCount}
-          className={classNames(
-            'border-0 text-slate-600 hover:bg-slate-100 disabled:opacity-50',
-            sizeClassMap[size].icon
-          )}
+          className={classNames('border-0 text-slate-600 hover:bg-slate-100 disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
           aria-label="Zadnja stran"
           title="Zadnja stran"
         >

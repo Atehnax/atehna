@@ -155,7 +155,7 @@ function CompactDropdown({
         disabled={disabled}
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        className={`inline-flex h-8 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-left text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] disabled:cursor-not-allowed disabled:opacity-60 ${buttonClassName}`}
+        className={`inline-flex h-8 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-left text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] disabled:cursor-default disabled:opacity-60 ${buttonClassName}`}
       >
         <span className="block min-w-0 flex-1 truncate text-left">{selectedLabel}</span>
         <span className="ml-2 shrink-0 text-slate-500">▾</span>
@@ -370,7 +370,7 @@ export default function AdminOrderHeaderChips(props: Props) {
           <button
             type="button"
             onClick={() => void saveTopSection()}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100 disabled:cursor-default disabled:text-slate-300"
             aria-label="Shrani naročilo"
             title="Shrani"
             disabled={topSaveDisabled}

@@ -16,6 +16,7 @@ type CustomSelectProps = {
   placeholder?: string;
   className?: string;
   menuClassName?: string;
+  valueClassName?: string;
 };
 
 const classNames = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ');
@@ -27,7 +28,8 @@ export default function CustomSelect({
   disabled = false,
   placeholder = '',
   className,
-  menuClassName
+  menuClassName,
+  valueClassName
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -70,11 +72,11 @@ export default function CustomSelect({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         className={classNames(
-          'h-10 w-full overflow-visible rounded-xl border-0 bg-transparent px-2.5 pb-0 pt-4 text-left text-xs leading-6 text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-60',
+          'h-10 w-full overflow-visible rounded-xl border-0 bg-transparent px-2.5 pb-0 pt-4 text-left text-xs leading-6 text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:opacity-60',
           className
         )}
       >
-        <span className="block truncate">{selectedLabel}</span>
+        <span className={classNames('block truncate', valueClassName)}>{selectedLabel}</span>
       </button>
       <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500">▾</span>
 

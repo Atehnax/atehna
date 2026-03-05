@@ -7,7 +7,8 @@ import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
-import { EmptyState, Table, TBody, TD, THead, TH, TR, TableShell } from '@/shared/ui/table';
+import { EmptyState, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
+import { AdminTableLayout } from '@/shared/ui/admin-table';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
 
 type ArchiveEntry = {
@@ -28,7 +29,7 @@ type DisplayRow = {
 
 type TypeFilterValue = 'all' | 'order' | 'pdf';
 
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [50, 100];
 
 const TYPE_FILTER_OPTIONS: Array<{ value: TypeFilterValue; label: string }> = [
   { value: 'all', label: 'Vse vrste' },
@@ -141,7 +142,8 @@ export default function AdminDeletedArchiveTable({
   const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
     totalCount: displayRows.length,
     storageKey: 'adminArchive.pageSize',
-    defaultPageSize: 25
+    defaultPageSize: 50,
+    pageSizeOptions: PAGE_SIZE_OPTIONS
   });
 
   const pagedRows = useMemo(() => {
@@ -318,8 +320,29 @@ export default function AdminDeletedArchiveTable({
   };
 
   return (
-    <TableShell className="border-slate-200 bg-white p-4">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+    <AdminTableLayout
+      className="border-slate-200 bg-white"
+      headerRight={
+        <>
+          <button
+            type="button"
+            onClick={bulkRestore}
+            disabled={selected.length === 0 || isRestoring || isDeleting}
+            className="h-8 rounded-lg border border-emerald-200 bg-[#f8f7fc] px-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-default disabled:border-slate-200 disabled:text-slate-400"
+          >
+            {isRestoring ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Obnavljam ...</span> : 'Obnovi'}
+          </button>
+          <button
+            type="button"
+            onClick={bulkDelete}
+            disabled={selected.length === 0 || isDeleting || isRestoring}
+            className={DANGER_OUTLINE_BUTTON_CLASS}
+          >
+            {isDeleting ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-rose-700" />Brišem ...</span> : 'Trajno izbriši'}
+          </button>
+        </>
+      }
+      filterRowLeft={
         <div className="relative min-w-[140px]" ref={typeFilterMenuRef}>
           <button
             type="button"
@@ -350,32 +373,16 @@ export default function AdminDeletedArchiveTable({
             </div>
           )}
         </div>
-
-        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+      }
+      filterRowRight={
+        <>
           <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={setPageSize} />
           <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="topPills" size="sm" showNumbers={false} />
-        </div>
-      </div>
-
-      <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={bulkRestore}
-          disabled={selected.length === 0 || isRestoring || isDeleting}
-          className="h-8 rounded-lg border border-emerald-200 bg-[#f8f7fc] px-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
-        >
-          {isRestoring ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Obnavljam ...</span> : 'Obnovi'}
-        </button>
-        <button
-          type="button"
-          onClick={bulkDelete}
-          disabled={selected.length === 0 || isDeleting || isRestoring}
-          className={DANGER_OUTLINE_BUTTON_CLASS}
-        >
-          {isDeleting ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-rose-700" />Brišem ...</span> : 'Trajno izbriši'}
-        </button>
-      </div>
-
+        </>
+      }
+      footerRight={<Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" showNumbers={false} />}
+      contentClassName="overflow-x-auto"
+    >
       <ConfirmDialog
         open={isDeleteConfirmOpen}
         title="Trajni izbris"
@@ -433,7 +440,7 @@ export default function AdminDeletedArchiveTable({
                   <TD className="px-0 py-2 text-center">
                     <input
                       type="checkbox"
-                      className="disabled:cursor-not-allowed disabled:opacity-50"
+                      className="disabled:cursor-default disabled:opacity-50"
                       checked={selected.includes(entry.id)}
                       onChange={() => toggleOne(row)}
                       disabled={isChild && !parentSelected}
@@ -468,9 +475,6 @@ export default function AdminDeletedArchiveTable({
         </Table>
       </div>
 
-      <div className="border-t border-slate-200 pt-3">
-        <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" showNumbers={false} />
-      </div>
-    </TableShell>
+    </AdminTableLayout>
   );
 }

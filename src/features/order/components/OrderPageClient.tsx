@@ -11,8 +11,10 @@ import { useCartStore } from '@/lib/cart/store';
 import { CUSTOMER_TYPE_FORM_OPTIONS, type CustomerType } from '@/lib/customerType';
 import { SLOVENIAN_ADDRESSES } from '@/data/slovenianAddresses';
 import { FloatingInput, FloatingTextarea } from '@/shared/ui/floating-field';
+import { Spinner } from '@/shared/ui/loading';
 import { CustomSelect } from '@/shared/ui/select';
 import { IconButton } from '@/shared/ui/icon-button';
+import { QuantityInput } from '@/shared/ui/quantity-input';
 
 const FORM_STORAGE_KEY = 'atehna-order-form';
 
@@ -705,7 +707,7 @@ export default function OrderPageClient() {
                 onClick={clearCart}
                 className="text-xs font-semibold text-slate-400 hover:text-slate-600"
               >
-                Počisti
+                Ponastavi
               </button>
             </div>
 
@@ -732,9 +734,15 @@ export default function OrderPageClient() {
                         >
                           −
                         </IconButton>
-                        <span className="min-w-[1.5rem] text-center text-sm font-semibold text-slate-700">
-                          {item.quantity}
-                        </span>
+                        <QuantityInput
+                          min={1}
+                          value={item.quantity}
+                          onChange={(event) => {
+                            const next = Number.parseInt(event.target.value, 10);
+                            setQuantity(item.sku, Number.isNaN(next) ? item.quantity : next);
+                          }}
+                          aria-label={`Količina za ${item.name}`}
+                        />
                         <IconButton
                           type="button"
                           onClick={() => setQuantity(item.sku, item.quantity + 1)}
@@ -751,14 +759,16 @@ export default function OrderPageClient() {
                         {formatCurrency(lineTotal)}
                       </div>
 
-                      <button
+                      <IconButton
                         type="button"
                         onClick={() => removeItem(item.sku)}
-                        className="h-8 w-8 justify-self-end rounded-full border border-slate-200 text-lg leading-none text-slate-500 hover:text-slate-700"
+                        tone="danger"
+                        className="h-6 w-6 justify-self-end"
                         aria-label={`Odstrani ${item.name}`}
+                        title="Odstrani"
                       >
                         ×
-                      </button>
+                      </IconButton>
                     </div>
                   </div>
                 );
@@ -803,7 +813,7 @@ export default function OrderPageClient() {
                     : 'bg-brand-600 text-white hover:bg-brand-700'
                 )}
               >
-                {isSubmitting ? 'Oddajanje...' : 'Oddaj naročilo'}
+                {isSubmitting ? <span className="inline-flex items-center gap-2"><Spinner size="sm" className="text-white" />Oddajanje...</span> : 'Oddaj naročilo'}
               </button>
 
               {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}

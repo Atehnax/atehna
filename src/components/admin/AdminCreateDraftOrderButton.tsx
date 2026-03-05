@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
 import { useToast } from '@/shared/ui/toast';
+import { Spinner } from '@/shared/ui/loading';
 
 type Props = {
   className?: string;
@@ -47,7 +48,7 @@ export default function AdminCreateDraftOrderButton({ className }: Props) {
         <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
           <path d="M10 4v12M4 10h12" />
         </svg>
-        {isCreating ? 'Ustvarjam ...' : 'Novo naročilo'}
+        {isCreating ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-white" />Ustvarjam ...</span> : 'Novo naročilo'}
       </Button>
       {error && <p className="text-xs text-rose-600">{error}</p>}
     </div>

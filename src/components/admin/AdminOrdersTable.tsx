@@ -6,6 +6,7 @@ import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { SegmentedControl } from '@/shared/ui/segmented';
 import { Spinner } from '@/shared/ui/loading';
+import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, Table, TBody, TD, THead, TH, TR, TableShell } from '@/shared/ui/table';
@@ -55,6 +56,8 @@ const bulkDeleteButtonClass =
 
 const rowDeleteButtonClass =
   'inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--danger-border)] bg-transparent text-sm font-semibold leading-none text-[var(--danger-600)] transition hover:bg-[var(--danger-bg)] disabled:cursor-not-allowed disabled:opacity-45';
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 export default function AdminOrdersTable({
   orders,
@@ -510,10 +513,18 @@ export default function AdminOrdersTable({
     sortDirection
   ]);
 
-  const visibleOrderIds = useMemo(
-    () => filteredAndSortedOrders.map((order) => order.id),
-    [filteredAndSortedOrders]
-  );
+  const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
+    totalCount: filteredAndSortedOrders.length,
+    storageKey: 'adminOrders.pageSize',
+    defaultPageSize: 25
+  });
+
+  const pagedOrders = useMemo(() => {
+    const startIndex = (page - 1) * pageSize;
+    return filteredAndSortedOrders.slice(startIndex, startIndex + pageSize);
+  }, [filteredAndSortedOrders, page, pageSize]);
+
+  const visibleOrderIds = useMemo(() => pagedOrders.map((order) => order.id), [pagedOrders]);
 
   const selectedVisibleCount = useMemo(
     () => visibleOrderIds.filter((orderId) => selected.includes(orderId)).length,
@@ -557,6 +568,10 @@ export default function AdminOrdersTable({
       )
     );
   }, [orders]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedFromDate, debouncedQuery, debouncedToDate, documentType, setPage, sortDirection, sortKey, statusFilter]);
 
   const toggleSelected = (orderId: number) => {
     setSelected((previousSelected) =>
@@ -1073,6 +1088,11 @@ export default function AdminOrdersTable({
       </div>
 
 
+      <div className="flex flex-wrap items-center justify-end gap-2 border-y border-slate-200 bg-white px-3 py-2">
+        <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={setPageSize} />
+        <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="topPills" size="sm" />
+      </div>
+
       <div className="overflow-x-auto" style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)' }}>
         <Table className="min-w-[1180px] w-full">
           <colgroup>
@@ -1270,7 +1290,7 @@ export default function AdminOrdersTable({
                 </TD>
               </TR>
             ) : (
-              filteredAndSortedOrders.map((order, orderIndex) => {
+              pagedOrders.map((order, orderIndex) => {
                 const orderAddress = formatOrderAddress(order);
                 const typeLabel = getCustomerTypeLabel(order.customer_type);
                 const rowStatus = rowStatusOverrides[order.id] ?? order.status;
@@ -1421,6 +1441,10 @@ export default function AdminOrdersTable({
             )}
           </TBody>
         </Table>
+      </div>
+
+      <div className="border-t border-slate-200 bg-white px-3 py-2">
+        <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" />
       </div>
       </TableShell>
       </div>

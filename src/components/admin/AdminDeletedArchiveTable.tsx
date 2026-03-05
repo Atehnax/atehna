@@ -8,6 +8,7 @@ import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 import { EmptyState, Table, TBody, TD, THead, TH, TR, TableShell } from '@/shared/ui/table';
+import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
 
 type ArchiveEntry = {
   id: number;
@@ -26,6 +27,8 @@ type DisplayRow = {
 };
 
 type TypeFilterValue = 'all' | 'order' | 'pdf';
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 const TYPE_FILTER_OPTIONS: Array<{ value: TypeFilterValue; label: string }> = [
   { value: 'all', label: 'Vse vrste' },
@@ -135,7 +138,22 @@ export default function AdminDeletedArchiveTable({
     return rows;
   }, [filtered, typeFilter]);
 
-  const visibleIds = useMemo(() => displayRows.map((row) => row.entry.id), [displayRows]);
+  const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
+    totalCount: displayRows.length,
+    storageKey: 'adminArchive.pageSize',
+    defaultPageSize: 25
+  });
+
+  const pagedRows = useMemo(() => {
+    const startIndex = (page - 1) * pageSize;
+    return displayRows.slice(startIndex, startIndex + pageSize);
+  }, [displayRows, page, pageSize]);
+
+  const visibleIds = useMemo(() => pagedRows.map((row) => row.entry.id), [pagedRows]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [setPage, typeFilter]);
   const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.includes(id));
 
   const groupedChildIdsByOrder = useMemo(() => {
@@ -353,6 +371,11 @@ export default function AdminDeletedArchiveTable({
         </div>
       </div>
 
+      <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
+        <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={setPageSize} />
+        <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="topPills" size="sm" />
+      </div>
+
       <ConfirmDialog
         open={isDeleteConfirmOpen}
         title="Trajni izbris"
@@ -395,7 +418,7 @@ export default function AdminDeletedArchiveTable({
             </TR>
           </THead>
           <TBody>
-            {displayRows.map((row) => {
+            {pagedRows.map((row) => {
               const { entry, isChild, parentOrderId } = row;
               const parentSelected =
                 !isChild || parentOrderId === null
@@ -434,7 +457,7 @@ export default function AdminDeletedArchiveTable({
                 </TR>
               );
             })}
-            {displayRows.length === 0 ? (
+            {pagedRows.length === 0 ? (
               <TR>
                 <TD colSpan={5} className="py-8 text-center text-sm text-slate-500">
                   <EmptyState title="Arhiv je prazen." />
@@ -443,6 +466,10 @@ export default function AdminDeletedArchiveTable({
             ) : null}
           </TBody>
         </Table>
+      </div>
+
+      <div className="border-t border-slate-200 pt-3">
+        <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" />
       </div>
     </TableShell>
   );

@@ -29,7 +29,7 @@ export default function MenuItem({
       onClick={onClick}
       disabled={disabled}
       className={classNames(
-        'flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none transition disabled:cursor-not-allowed disabled:text-slate-300',
+        'flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none transition disabled:cursor-default disabled:text-slate-300',
         isActive ? 'text-slate-700 hover:bg-slate-50 hover:text-brand-600' : 'text-slate-700 hover:bg-slate-50 hover:text-brand-600',
         className
       )}

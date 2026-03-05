@@ -72,7 +72,7 @@ export default function CustomSelect({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         className={classNames(
-          'h-10 w-full overflow-visible rounded-xl border-0 bg-transparent px-2.5 pb-0 pt-4 text-left text-xs leading-6 text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-60',
+          'h-10 w-full overflow-visible rounded-xl border-0 bg-transparent px-2.5 pb-0 pt-4 text-left text-xs leading-6 text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:opacity-60',
           className
         )}
       >

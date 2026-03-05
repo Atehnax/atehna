@@ -52,10 +52,10 @@ type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'cus
 
 
 const bulkDeleteButtonClass =
-  'h-8 rounded-xl border border-[var(--danger-border)] bg-[var(--danger-bg)] px-3 text-xs font-semibold text-[var(--danger-600)] transition hover:bg-[var(--danger-bg)] focus-visible:border-[var(--danger-border)] focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:border-[var(--danger-border)] disabled:bg-transparent disabled:text-[var(--danger-600)] disabled:opacity-100';
+  'h-8 rounded-xl border border-[var(--danger-border)] bg-[var(--danger-bg)] px-3 text-xs font-semibold text-[var(--danger-600)] transition hover:bg-[var(--danger-bg)] focus-visible:border-[var(--danger-border)] focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:border-[var(--danger-border)] disabled:bg-transparent disabled:text-[var(--danger-600)] disabled:opacity-100';
 
 const rowDeleteButtonClass =
-  'inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--danger-border)] bg-transparent text-sm font-semibold leading-none text-[var(--danger-600)] transition hover:bg-[var(--danger-bg)] disabled:cursor-not-allowed disabled:opacity-45';
+  'inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--danger-border)] bg-transparent text-sm font-semibold leading-none text-[var(--danger-600)] transition hover:bg-[var(--danger-bg)] disabled:cursor-default disabled:opacity-45';
 
 const PAGE_SIZE_OPTIONS = [50, 100];
 
@@ -1179,7 +1179,7 @@ export default function AdminOrdersTable({
                         type="button"
                         onClick={() => setIsStatusHeaderMenuOpen((previousOpen) => !previousOpen)}
                         disabled={isBulkUpdatingStatus}
-                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 hover:border-slate-400 disabled:cursor-not-allowed disabled:text-slate-300"
+                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 hover:border-slate-400 disabled:cursor-default disabled:text-slate-300"
                         aria-haspopup="menu"
                         aria-expanded={isStatusHeaderMenuOpen}
                       >
@@ -1222,7 +1222,7 @@ export default function AdminOrdersTable({
                         type="button"
                         onClick={() => setIsPaymentHeaderMenuOpen((previousOpen) => !previousOpen)}
                         disabled={isBulkUpdatingStatus}
-                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 hover:border-slate-400 disabled:cursor-not-allowed disabled:text-slate-300"
+                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 hover:border-slate-400 disabled:cursor-default disabled:text-slate-300"
                         aria-haspopup="menu"
                         aria-expanded={isPaymentHeaderMenuOpen}
                       >

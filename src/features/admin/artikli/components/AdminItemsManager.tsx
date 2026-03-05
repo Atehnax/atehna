@@ -6,6 +6,7 @@ import { MenuItem } from '@/shared/ui/menu';
 import { SegmentedControl } from '@/shared/ui/segmented';
 import { Chip } from '@/shared/ui/badge';
 import { useToast } from '@/shared/ui/toast';
+import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
 
 type Item = {
   id: string;
@@ -26,6 +27,7 @@ type SortKey = 'name' | 'sku' | 'category' | 'price' | 'status';
 type StatusTab = 'active' | 'inactive';
 
 const STORAGE_KEY = 'admin-items-crud-v2';
+const PAGE_SIZE_OPTIONS = [50, 100];
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }).format(value);
@@ -246,12 +248,28 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
     return next;
   }, [categoryFilter, items, search, sortDirection, sortKey, statusTab]);
 
-  const visibleIds = useMemo(() => filteredItems.map((item) => item.id), [filteredItems]);
+  const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
+    totalCount: filteredItems.length,
+    storageKey: 'adminArtikli.pageSize',
+    defaultPageSize: 50,
+    pageSizeOptions: PAGE_SIZE_OPTIONS
+  });
+
+  const pagedItems = useMemo(() => {
+    const startIndex = (page - 1) * pageSize;
+    return filteredItems.slice(startIndex, startIndex + pageSize);
+  }, [filteredItems, page, pageSize]);
+
+  const visibleIds = useMemo(() => pagedItems.map((item) => item.id), [pagedItems]);
   const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
 
   useEffect(() => {
-    setSelectedIds((current) => current.filter((id) => visibleIds.includes(id)));
-  }, [visibleIds]);
+    setPage(1);
+  }, [categoryFilter, search, setPage, sortDirection, sortKey, statusTab]);
+
+  useEffect(() => {
+    setSelectedIds((current) => current.filter((id) => filteredItems.some((item) => item.id === id)));
+  }, [filteredItems]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -436,6 +454,10 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M10 4v12M4 10h12" /></svg>
             Nov artikel
           </button>
+          <div className="md:col-span-4 flex flex-wrap items-center justify-end gap-2">
+            <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={setPageSize} />
+            <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="topPills" size="sm" showNumbers={false} />
+          </div>
           </div>
         </div>
 
@@ -475,7 +497,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
               </tr>
             </thead>
             <tbody>
-              {filteredItems.map((item, index) => (
+              {pagedItems.map((item, index) => (
                 <tr key={item.id} className={`border-t border-slate-200 transition-colors ${index % 2 === 0 ? "bg-white/70" : "bg-slate-50/60"} hover:bg-[#f8f7fc]`}>
                   <td className="px-3 py-2 text-center"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleOne(item.id)} aria-label={`Izberi ${item.name}`} /></td>
                   <td className="px-3 py-2 font-medium text-slate-900">{item.name}</td>
@@ -497,6 +519,10 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
               ))}
             </tbody>
           </table>
+        </div>
+
+        <div className="flex items-center justify-end border-t border-slate-200 bg-white/70 px-3 py-2">
+          <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" showNumbers={false} />
         </div>
       </div>
 

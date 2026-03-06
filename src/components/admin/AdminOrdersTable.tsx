@@ -964,7 +964,7 @@ export default function AdminOrdersTable({
                           lang="sl-SI"
                           value={fromDate}
                           onChange={(event) => { setFromDate(event.target.value); setRangePreset('custom'); }}
-                          className={`mt-1 ${dateInputTokenClasses.field}`}
+                          className={`mt-1 ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`}
                         />
                       </div>
                       <div>
@@ -974,7 +974,7 @@ export default function AdminOrdersTable({
                           lang="sl-SI"
                           value={toDate}
                           onChange={(event) => { setToDate(event.target.value); setRangePreset('custom'); }}
-                          className={`mt-1 ${dateInputTokenClasses.field}`}
+                          className={`mt-1 ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`}
                         />
                       </div>
                     </div>

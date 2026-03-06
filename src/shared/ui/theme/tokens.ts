@@ -84,6 +84,8 @@ export const selectTokenClasses = {
 } as const;
 
 export const dateInputTokenClasses = {
-  field:
-    'h-8 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs text-slate-900 outline-none transition hover:bg-transparent focus:border-[#3e67d6] focus:bg-white focus:ring-0 focus-visible:border-[#3e67d6]'
+  base:
+    'w-full border border-slate-300 bg-white text-xs text-slate-900 outline-none transition hover:bg-transparent focus:border-[#3e67d6] focus:bg-white focus:ring-0 focus-visible:border-[#3e67d6]',
+  compact: 'h-8 rounded-lg px-2.5',
+  floating: 'h-10 rounded-xl px-2.5 pb-1.5 pt-5 leading-6'
 } as const;

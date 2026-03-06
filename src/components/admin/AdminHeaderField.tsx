@@ -69,7 +69,7 @@ export default function AdminHeaderField(props: AdminHeaderFieldProps) {
           id={id}
           value={props.value}
           onChange={props.onChange}
-          className={`${fieldBaseClassName} resize-y overflow-hidden ${className}`}
+          className={`${fieldBaseClassName} resize-y overflow-y-hidden ${className}`}
         />
       ) : (
         <input
@@ -77,7 +77,7 @@ export default function AdminHeaderField(props: AdminHeaderFieldProps) {
           type={props.type ?? 'text'}
           value={props.value}
           onChange={props.onChange}
-          className={`${props.type === 'date' ? dateInputTokenClasses.field : fieldBaseClassName} ${className}`}
+          className={`${props.type === 'date' ? `${dateInputTokenClasses.base} ${dateInputTokenClasses.floating}` : fieldBaseClassName} ${className}`}
         />
       )}
     </div>

@@ -413,7 +413,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               value={activeTopData.customerType}
               onChange={(value) => setDraftTopData((prev) => ({ ...prev, customerType: value }))}
               options={CUSTOMER_TYPE_FORM_OPTIONS}
-              className="pr-7"
+              className="!pb-0 !pt-4 pr-7"
               menuClassName="max-w-[280px]"
               disabled={isTopSaving}
             />

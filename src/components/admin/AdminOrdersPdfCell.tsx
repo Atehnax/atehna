@@ -222,7 +222,7 @@ export default function AdminOrdersPdfCell({
               data-no-row-nav
               onClick={() => handleGenerate(button.key)}
               disabled={interactionsDisabled || loadingType === button.key}
-              className="inline-flex h-6 items-center rounded-md border border-slate-300 bg-white px-2 text-[10px] font-medium text-slate-700 transition hover:border-slate-400 disabled:cursor-default disabled:text-slate-300"
+              className="inline-flex h-6 items-center rounded-md border border-[#d7dfff] bg-[#f5f8ff] px-2 text-[10px] font-medium text-slate-700 transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] disabled:cursor-default disabled:text-slate-300"
             >
               {loadingType === button.key ? <span className="inline-flex items-center gap-1"><Spinner size="sm" className="text-slate-500" />Generiram ...</span> : latest ? 'Nova verzija' : 'Ustvari'}
             </button>
@@ -242,7 +242,7 @@ export default function AdminOrdersPdfCell({
                   role="menuitem"
                   data-no-row-nav
                   onClick={() => setOpenType(null)}
-                  className="flex items-center justify-between rounded-md border border-transparent bg-white px-2 py-1 text-[10px] text-slate-700 transition hover:border-slate-200 hover:bg-slate-100"
+                  className="flex items-center justify-between rounded-md border border-[#d7dfff] bg-[#f5f8ff] px-2 py-1 text-[10px] text-slate-700 transition hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
                   title={documentOption.filename}
                 >
                   <span className="truncate font-medium">{documentOption.filename}</span>
@@ -283,7 +283,7 @@ export default function AdminOrdersPdfCell({
                 setOpenType((previousType) => (previousType === button.key ? null : button.key))
               }
               disabled={interactionsDisabled}
-              className="relative inline-flex h-6 items-center rounded-md border border-slate-200 bg-slate-50 px-1.5 py-1 text-[11px] font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-default disabled:text-slate-300"
+              className="relative inline-flex h-6 items-center rounded-md border border-[#d7dfff] bg-[#f5f8ff] px-1.5 py-1 text-[11px] font-medium text-slate-700 transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] disabled:cursor-default disabled:text-slate-300"
             >
               <span>{button.short}</span>
             </button>

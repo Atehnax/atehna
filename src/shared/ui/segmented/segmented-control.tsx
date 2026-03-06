@@ -55,7 +55,7 @@ export default function SegmentedControl({ value, onChange, options, size = 'md'
     <div
       ref={rootRef}
       className={classNames(
-        'inline-flex items-center border border-slate-300 bg-white',
+        'inline-flex items-center border border-[#d7dfff] bg-[#f5f8ff]',
         sizeClassMap[size].root,
         className
       )}

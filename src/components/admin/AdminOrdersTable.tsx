@@ -1002,7 +1002,7 @@ export default function AdminOrdersTable({
               className="h-8 min-w-[260px] flex-1 rounded-xl border border-slate-300 px-3 text-xs text-slate-700 outline-none focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
             />
 
-            <div className="relative flex h-8 rounded-xl border border-slate-300 bg-white shadow-sm" ref={documentTypeMenuRef}>
+            <div className="relative flex h-8 rounded-xl border border-[#d7dfff] bg-[#f5f8ff] shadow-sm" ref={documentTypeMenuRef}>
               <button
                 type="button"
                 onClick={() => setIsDocumentTypeMenuOpen((previousOpen) => !previousOpen)}

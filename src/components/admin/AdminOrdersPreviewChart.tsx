@@ -61,12 +61,6 @@ const rangeOptions: Array<{ key: Exclude<RangePreset, 'custom'>; label: string }
 ];
 
 
-const SERIES_FILL_SOFT = 'rgba(93,62,214,0.24)';
-const SERIES_LINE_STRONG = '#5d3ed6';
-const SERIES_STACK_BOTTOM = 'rgba(93,62,214,0.38)';
-const SERIES_STACK_MIDDLE = 'rgba(93,62,214,0.26)';
-const SERIES_STACK_TOP = 'rgba(93,62,214,0.16)';
-
 const movingAverage = (values: number[], window = 7) =>
   values.map((_, i) => {
     const slice = values.slice(Math.max(0, i - (window - 1)), i + 1);
@@ -171,13 +165,36 @@ const formatTooltipDateTime = (value: string) => {
   return `${value} 00:00`;
 };
 
+
+const readCssVarColor = (name: string, fallback: string) => {
+  if (typeof window === 'undefined') return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+};
+
+const toRgba = (hex: string, alpha: number) => {
+  const clean = hex.replace('#', '').trim();
+  const normalized =
+    clean.length === 3
+      ? clean
+          .split('')
+          .map((char) => `${char}${char}`)
+          .join('')
+      : clean;
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return hex;
+  const r = Number.parseInt(normalized.slice(0, 2), 16);
+  const g = Number.parseInt(normalized.slice(2, 4), 16);
+  const b = Number.parseInt(normalized.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+};
+
 const fallbackAppearance: AnalyticsGlobalAppearance = {
   sectionBg: '#f1f0ec',
   canvasBg: '#ffffff',
   cardBg: '#ffffff',
   plotBg: '#ffffff',
   axisTextColor: '#111827',
-  seriesPalette: ['#5d3ed6', '#5d3ed6', '#5d3ed6', '#5d3ed6', '#5d3ed6'],
+  seriesPalette: ['#3e67d6', '#059669', '#a16207', '#3e67d6', '#3e67d6'],
   gridColor: '#d8d6cf',
   gridOpacity: 0.35
 };
@@ -201,6 +218,33 @@ function AdminOrdersPreviewChart({
   const chartTheme = getChartThemeFromCssVars();
   const layoutBase = getBaseChartLayout(chartTheme);
   const [hoverCards, setHoverCards] = useState<Record<string, HoverCard>>({});
+
+  const semanticChartColors = useMemo(() => {
+    const info = readCssVarColor('--semantic-info', '#3e67d6');
+    const success = readCssVarColor('--semantic-success', '#059669');
+    const warning = readCssVarColor('--semantic-warning', '#a16207');
+
+    return {
+      orders: {
+        line: info,
+        fill: toRgba(info, 0.24)
+      },
+      revenue: {
+        line: success,
+        fill: toRgba(success, 0.24)
+      },
+      avgOrderValue: {
+        line: warning,
+        fill: toRgba(warning, 0.24)
+      },
+      customerStack: {
+        line: info,
+        bottom: toRgba(info, 0.38),
+        middle: toRgba(info, 0.26),
+        top: toRgba(info, 0.16)
+      }
+    };
+  }, []);
 
   const data = useMemo(() => {
     const selectedOrders = orders.filter((order) => {
@@ -337,7 +381,7 @@ function AdminOrdersPreviewChart({
           name: 'Število naročil',
           x: data.x,
           y: data.ordersSeries,
-          marker: { color: SERIES_FILL_SOFT },
+          marker: { color: semanticChartColors.orders.fill },
           hoverinfo: 'none'
         },
         {
@@ -346,13 +390,13 @@ function AdminOrdersPreviewChart({
           name: '7d MA',
           x: data.x,
           y: data.ordersMa,
-          line: { color: SERIES_LINE_STRONG, width: 2.1 },
+          line: { color: semanticChartColors.orders.line, width: 2.1 },
           hoverinfo: 'none'
         }
       ],
       tooltipRowsAt: (i) => [
-        { label: 'Število naročil', value: formatInt(data.ordersSeries[i]), color: SERIES_FILL_SOFT, numericValue: data.ordersSeries[i] ?? null },
-        { label: '7d MA', value: formatInt(data.ordersMa[i]), color: SERIES_LINE_STRONG, numericValue: data.ordersMa[i] ?? null }
+        { label: 'Število naročil', value: formatInt(data.ordersSeries[i]), color: semanticChartColors.orders.fill, numericValue: data.ordersSeries[i] ?? null },
+        { label: '7d MA', value: formatInt(data.ordersMa[i]), color: semanticChartColors.orders.line, numericValue: data.ordersMa[i] ?? null }
       ],
       enforceTopDownTooltipOrder: true,
       layout: miniLayout(false)
@@ -372,7 +416,7 @@ function AdminOrdersPreviewChart({
           name: 'Prihodki',
           x: data.x,
           y: data.revenueSeries,
-          marker: { color: SERIES_FILL_SOFT },
+          marker: { color: semanticChartColors.revenue.fill },
           hoverinfo: 'none'
         },
         {
@@ -381,13 +425,13 @@ function AdminOrdersPreviewChart({
           name: '7d MA',
           x: data.x,
           y: data.revenueMa,
-          line: { color: SERIES_LINE_STRONG, width: 2.1 },
+          line: { color: semanticChartColors.revenue.line, width: 2.1 },
           hoverinfo: 'none'
         }
       ],
       tooltipRowsAt: (i) => [
-        { label: 'Prihodki', value: formatCurrency(data.revenueSeries[i]), color: SERIES_FILL_SOFT, numericValue: data.revenueSeries[i] ?? null },
-        { label: '7d MA', value: formatCurrency(data.revenueMa[i]), color: SERIES_LINE_STRONG, numericValue: data.revenueMa[i] ?? null }
+        { label: 'Prihodki', value: formatCurrency(data.revenueSeries[i]), color: semanticChartColors.revenue.fill, numericValue: data.revenueSeries[i] ?? null },
+        { label: '7d MA', value: formatCurrency(data.revenueMa[i]), color: semanticChartColors.revenue.line, numericValue: data.revenueMa[i] ?? null }
       ],
       enforceTopDownTooltipOrder: true,
       layout: miniLayout(false)
@@ -407,7 +451,7 @@ function AdminOrdersPreviewChart({
           name: 'Povp. €/naročilo',
           x: data.x,
           y: data.dailyAov,
-          marker: { color: SERIES_FILL_SOFT },
+          marker: { color: semanticChartColors.avgOrderValue.fill },
           connectgaps: false,
           hoverinfo: 'none'
         },
@@ -417,14 +461,14 @@ function AdminOrdersPreviewChart({
           name: '7d MA',
           x: data.x,
           y: data.dailyAovMa,
-          line: { color: SERIES_LINE_STRONG, width: 2.1 },
+          line: { color: semanticChartColors.avgOrderValue.line, width: 2.1 },
           connectgaps: false,
           hoverinfo: 'none'
         }
       ],
       tooltipRowsAt: (i) => [
-        { label: 'Povp. €/naročilo', value: formatCurrency(data.dailyAov[i]), color: SERIES_FILL_SOFT, numericValue: data.dailyAov[i] ?? null },
-        { label: '7d MA', value: formatCurrency(data.dailyAovMa[i]), color: SERIES_LINE_STRONG, numericValue: data.dailyAovMa[i] ?? null }
+        { label: 'Povp. €/naročilo', value: formatCurrency(data.dailyAov[i]), color: semanticChartColors.avgOrderValue.fill, numericValue: data.dailyAov[i] ?? null },
+        { label: '7d MA', value: formatCurrency(data.dailyAovMa[i]), color: semanticChartColors.avgOrderValue.line, numericValue: data.dailyAovMa[i] ?? null }
       ],
       enforceTopDownTooltipOrder: true,
       layout: miniLayout(false)
@@ -447,8 +491,8 @@ function AdminOrdersPreviewChart({
           name: 'Šola',
           x: data.x,
           y: data.schoolDaily,
-          line: { color: SERIES_LINE_STRONG, width: 1.2 },
-          fillcolor: SERIES_STACK_BOTTOM,
+          line: { color: semanticChartColors.customerStack.line, width: 1.2 },
+          fillcolor: semanticChartColors.customerStack.bottom,
           fill: 'tozeroy',
           hoverinfo: 'none'
         },
@@ -459,8 +503,8 @@ function AdminOrdersPreviewChart({
           name: 'Podjetje',
           x: data.x,
           y: data.companyDaily,
-          line: { color: SERIES_LINE_STRONG, width: 1.2 },
-          fillcolor: SERIES_STACK_MIDDLE,
+          line: { color: semanticChartColors.customerStack.line, width: 1.2 },
+          fillcolor: semanticChartColors.customerStack.middle,
           fill: 'tonexty',
           hoverinfo: 'none'
         },
@@ -471,16 +515,16 @@ function AdminOrdersPreviewChart({
           name: 'Fizična oseba',
           x: data.x,
           y: data.individualDaily,
-          line: { color: SERIES_LINE_STRONG, width: 1.2 },
-          fillcolor: SERIES_STACK_TOP,
+          line: { color: semanticChartColors.customerStack.line, width: 1.2 },
+          fillcolor: semanticChartColors.customerStack.top,
           fill: 'tonexty',
           hoverinfo: 'none'
         }
       ],
       tooltipRowsAt: (i) => [
-        { label: 'Fizična oseba', value: formatInt(data.individualDaily[i]), color: SERIES_STACK_TOP, numericValue: data.individualDaily[i] ?? null },
-        { label: 'Podjetje', value: formatInt(data.companyDaily[i]), color: SERIES_STACK_MIDDLE, numericValue: data.companyDaily[i] ?? null },
-        { label: 'Šola', value: formatInt(data.schoolDaily[i]), color: SERIES_STACK_BOTTOM, numericValue: data.schoolDaily[i] ?? null }
+        { label: 'Fizična oseba', value: formatInt(data.individualDaily[i]), color: semanticChartColors.customerStack.top, numericValue: data.individualDaily[i] ?? null },
+        { label: 'Podjetje', value: formatInt(data.companyDaily[i]), color: semanticChartColors.customerStack.middle, numericValue: data.companyDaily[i] ?? null },
+        { label: 'Šola', value: formatInt(data.schoolDaily[i]), color: semanticChartColors.customerStack.bottom, numericValue: data.schoolDaily[i] ?? null }
       ],
       enforceTopDownTooltipOrder: false,
       layout: miniLayout(true)
@@ -603,7 +647,7 @@ function AdminOrdersPreviewChart({
 
                 {hoverCard ? (
                   <div
-                    className="pointer-events-none absolute z-30 min-w-[360px] max-w-[460px] rounded-xl border border-[#5d3ed6] bg-[#f8f7fc] px-[14px] py-3 text-left shadow-[0_10px_24px_rgba(15,23,42,0.15)]"
+                    className="pointer-events-none absolute z-30 min-w-[360px] max-w-[460px] rounded-xl border border-[color:var(--semantic-info-border)] bg-[color:var(--surface-muted)] px-[14px] py-3 text-left shadow-[0_10px_24px_rgba(15,23,42,0.15)]"
                     style={{ left: hoverCard.left, top: hoverCard.top }}
                   >
                     <div className="mb-2 flex items-center justify-between">

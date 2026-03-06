@@ -16,6 +16,23 @@ export default {
         },
         border: 'var(--border)',
         muted: 'var(--text-muted)',
+        blue: {
+          50: 'var(--blue-50)',
+          100: 'var(--blue-100)',
+          500: 'var(--blue-500)',
+          700: 'var(--blue-700)'
+        },
+        semantic: {
+          info: 'var(--semantic-info)',
+          'info-soft': 'var(--semantic-info-soft)',
+          'info-border': 'var(--semantic-info-border)',
+          success: 'var(--semantic-success)',
+          'success-soft': 'var(--semantic-success-soft)',
+          'success-border': 'var(--semantic-success-border)',
+          warning: 'var(--semantic-warning)',
+          'warning-soft': 'var(--semantic-warning-soft)',
+          'warning-border': 'var(--semantic-warning-border)'
+        },
         primary: {
           DEFAULT: 'var(--primary)',
           hover: 'var(--primary-hover)',

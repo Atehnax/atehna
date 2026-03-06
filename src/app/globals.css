@@ -3,30 +3,54 @@
 @tailwind utilities;
 
 :root {
-  --bg: #f6f5f2;
-  --surface-1: #ffffff;
-  --surface-2: #f1f0ec;
+  /* Core surfaces */
+  --surface: #ffffff;
+  --surface-muted: #f8fafc;
+  --surface-subtle: #f1f5f9;
   --border: #d8d6cf;
   --text: #111827;
   --text-muted: #4b5563;
 
-  --primary: #506be4; /* #5d3ed6; */
-  --primary-hover: #3e67d6; /* #5d3ed6; */
-  --primary-active: #3e67d6; /* #5d3ed6; */
-  --primary-soft: #e8eeff; /* #ede8ff; */
+  /* Minimal blue palette (single hue family) */
+  --blue-50: #eef4ff;
+  --blue-100: #dbe8ff;
+  --blue-500: #3e67d6;
+  --blue-700: #2f53c0;
+
+  /* Semantic tokens */
+  --semantic-info: var(--blue-500);
+  --semantic-info-soft: var(--blue-100);
+  --semantic-info-border: color-mix(in srgb, var(--blue-500) 35%, white);
+
+  --semantic-success: #059669;
+  --semantic-success-soft: #ecfdf5;
+  --semantic-success-border: #a7f3d0;
+
+  --semantic-warning: #a16207;
+  --semantic-warning-soft: #fefce8;
+  --semantic-warning-border: #fde68a;
+
+  --bg: #f6f5f2;
+  --surface-1: var(--surface);
+  --surface-2: var(--surface-subtle);
+
+  --primary: var(--blue-500);
+  --primary-hover: var(--blue-700);
+  --primary-active: var(--blue-700);
+  --primary-soft: var(--blue-100);
   --primary-foreground: #ffffff;
 
   --accent: #b08968;
 
-  --success: #2f6f4e;
-  --warning: #8a6a1f;
+  --success: var(--semantic-success);
+  --warning: var(--semantic-warning);
   --danger: #a24a45;
-  --info: #375a7a;
+  --info: var(--semantic-info);
 
-  --ring: #3e67d6; /* #5d3ed6; */
-  --admin-bg: #f7f9fc; /* #f8f7fc; */
-  --admin-accent: #3e67d6; /* #5d3ed6; */
-  --admin-hover: #ede8ff;
+  --ring: var(--blue-500);
+  --admin-bg: var(--blue-50);
+  --admin-accent: var(--blue-500);
+  --admin-hover: var(--blue-100);
 
   /* admin destructive controls */
   --danger-600: #de144d;
@@ -34,21 +58,20 @@
   --danger-border: #fcccd3;
   --danger-border-strong: #faa2b0;
   --danger-bg: #fff2f3;
-  --surface: #ffffff;
   --surface-soft: #f8f7fc;
   --shadow-soft: 0 1px 2px rgba(17, 24, 39, 0.06), 0 8px 24px rgba(17, 24, 39, 0.05);
 
-  --chart-canvas: #ffffff;
-  --chart-card: #ffffff;
-  --chart-border: #d8d6cf;
-  --chart-text: #111827;
-  --chart-muted-text: #4b5563;
+  --chart-canvas: var(--surface);
+  --chart-card: var(--surface);
+  --chart-border: var(--border);
+  --chart-text: var(--text);
+  --chart-muted-text: var(--text-muted);
   --chart-grid: rgba(216, 214, 207, 0.65);
-  --chart-tooltip-bg: #ffffff;
-  --chart-tooltip-border: #d8d6cf;
-  --chart-series-primary: #3e67d6; /* #5d3ed6; */
-  --chart-series-secondary: #3e67d6; /* #5d3ed6; */
-  --chart-series-tertiary: #7a8f6a;
+  --chart-tooltip-bg: var(--surface);
+  --chart-tooltip-border: var(--border);
+  --chart-series-primary: var(--semantic-info);
+  --chart-series-secondary: var(--semantic-success);
+  --chart-series-tertiary: var(--semantic-warning);
   --chart-series-quaternary: #b08968;
   --chart-series-danger: #a24a45;
   --chart-series-neutral: #375a7a;

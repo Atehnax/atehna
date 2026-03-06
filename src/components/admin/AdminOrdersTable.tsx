@@ -1234,7 +1234,7 @@ export default function AdminOrdersTable({
                     <button
                       type="button"
                       onClick={resetAllFilters}
-                      className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                      className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
                     >
                       Prikaži vsa naročila
                     </button>
@@ -1367,7 +1367,7 @@ export default function AdminOrdersTable({
                       <RowActions>
                         <a
                           href={`/admin/orders/${order.id}`}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:bg-slate-100"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
                           aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
                           title="Uredi"
                         >

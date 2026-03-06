@@ -9,6 +9,7 @@ import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 import { EmptyState, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
+import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 
 type ArchiveEntry = {
   id: number;

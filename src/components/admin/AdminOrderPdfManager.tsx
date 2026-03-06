@@ -348,6 +348,7 @@ export default function AdminOrderPdfManager({
                     disabled={loadingType === pdfType.key}
                     title="Ustvari"
                     aria-label={`Ustvari ${pdfType.label}`}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-default disabled:bg-slate-200 disabled:text-slate-400"
                   >
                     {loadingType === pdfType.key ? <Spinner size="sm" className="text-slate-500" /> : <GeneratePdfIcon />}
                   </PdfButton>

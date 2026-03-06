@@ -883,7 +883,7 @@ export default function AdminOrdersTable({
               <button
                 type="button"
                 onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-                className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 py-0 text-left text-xs text-slate-700 hover:border-slate-300 focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+                className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 py-0 text-left text-xs text-slate-700 hover:bg-slate-100 focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
               >
                 <span className="inline-flex h-full w-full items-center gap-1.5 leading-none"> 
                   <svg
@@ -996,7 +996,6 @@ export default function AdminOrdersTable({
                 onChange={(next) => setDocumentType(next as DocumentType)}
                 options={documentTypeOptions}
                 className="h-8 min-w-[140px] px-3 py-0 text-xs font-semibold"
-                valueClassName="text-center"
               />
             </div>
 

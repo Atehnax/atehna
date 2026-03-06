@@ -388,7 +388,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                   ...categories.map((category) => ({ value: category, label: category }))
                 ]}
                 className="h-8 px-3 py-0 text-xs font-semibold"
-                valueClassName="min-w-0 flex-1 text-center"
+                valueClassName="min-w-0 flex-1 text-left"
                 menuClassName="min-w-full w-max max-w-[560px]"
               />
             </div>
@@ -399,7 +399,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             <Button type="button" variant="archive" onClick={archiveSelected} disabled={selectedIds.length === 0}>
               Arhiviraj
             </Button>
-            <Button type="button" variant="default" onClick={openCreate}>
+            <Button type="button" variant="admin-soft" onClick={openCreate}>
               <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M10 4v12M4 10h12" /></svg>
               Nov artikel
             </Button>

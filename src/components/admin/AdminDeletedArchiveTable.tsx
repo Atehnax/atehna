@@ -308,7 +308,6 @@ export default function AdminDeletedArchiveTable({
             onChange={(next) => setTypeFilter(next as TypeFilterValue)}
             options={TYPE_FILTER_OPTIONS}
             className="h-8 min-w-[140px] px-3 py-0 text-xs font-semibold"
-            valueClassName="text-center"
           />
         </div>
       }

@@ -542,7 +542,7 @@ function AdminOrdersPreviewChart({
               key={option.key}
               type="button"
               onClick={() => onRangeChange?.(option.key)}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:border focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 ${activeRange === option.key ? 'bg-[#e9efff] text-[#3659d6]' : 'border border-[#d7dfff] bg-[#f5f8ff] text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]'}`}
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:border focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 ${activeRange === option.key ? 'bg-[#e9efff] text-[#3659d6]' : 'border border-transparent text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]'}`}
             >
               {option.label}
             </button>
@@ -558,7 +558,7 @@ function AdminOrdersPreviewChart({
               key={chart.key}
               type="button"
               onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(chart.focusKey)}`)}
-              className="flex min-h-[124px] flex-col overflow-hidden rounded-xl border px-3 py-2 text-left shadow-sm transition hover:border-slate-400 md:flex-row md:items-center md:justify-between"
+              className="flex min-h-[124px] flex-col overflow-hidden rounded-xl border px-3 py-2 text-left shadow-sm transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] md:flex-row md:items-center md:justify-between"
               style={{
                 background: `linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,248,251,0.96) 100%)`,
                 borderColor: appearance.gridColor

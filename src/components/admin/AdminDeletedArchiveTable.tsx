@@ -336,7 +336,7 @@ export default function AdminDeletedArchiveTable({
           <button
             type="button"
             onClick={() => setIsTypeFilterMenuOpen((previousOpen) => !previousOpen)}
-            className="inline-flex h-8 w-full min-w-[140px] items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-left text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0"
+            className="inline-flex h-8 w-full min-w-[140px] items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-left text-xs font-semibold text-slate-700 shadow-sm transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0"
             aria-haspopup="menu"
             aria-expanded={isTypeFilterMenuOpen}
           >

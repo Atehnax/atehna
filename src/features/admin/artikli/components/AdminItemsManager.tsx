@@ -408,7 +408,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
               <button
                 type="button"
                 onClick={() => setIsCategoryMenuOpen((previousOpen) => !previousOpen)}
-                className="inline-flex h-8 w-full items-center justify-between rounded-xl border border-[#d7dfff] bg-[#f5f8ff] px-3 text-left text-xs font-semibold text-slate-700 shadow-sm transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0"
+                className="inline-flex h-8 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-left text-xs font-semibold text-slate-700 shadow-sm transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0"
                 aria-haspopup="menu"
                 aria-expanded={isCategoryMenuOpen}
               >
@@ -458,7 +458,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             >
               Arhiviraj
             </button>
-            <button type="button" onClick={openCreate} className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#d7dfff] bg-[#f5f8ff] px-3 text-xs font-semibold text-[#3659d6] shadow-sm transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0">
+            <button type="button" onClick={openCreate} className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#ede8ff] bg-[#f8f7fc] px-3 text-xs font-semibold text-[#5d3ed6] shadow-sm transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0">
               <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M10 4v12M4 10h12" /></svg>
               Nov artikel
             </button>
@@ -525,7 +525,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                       {item.active ? 'Aktiven' : 'Neaktiven'}
                     </Chip>
                   </td>
-                  <td className="px-3 py-2"><div className="flex items-center justify-center gap-1.5"><button type="button" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-[#d7dfff] bg-[#f5f8ff] text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"><ActionIcon type="edit" /></button><button type="button" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-[#d7dfff] bg-[#f5f8ff] text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"><ActionIcon type="copy" /></button><button type="button" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-100"><ActionIcon type="archive" /></button></div></td>
+                  <td className="px-3 py-2"><div className="flex items-center justify-center gap-1.5"><button type="button" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"><ActionIcon type="edit" /></button><button type="button" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"><ActionIcon type="copy" /></button><button type="button" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-100"><ActionIcon type="archive" /></button></div></td>
                 </tr>
               ))}
             </tbody>

@@ -895,7 +895,7 @@ export default function AdminOrdersTable({
               <button
                 type="button"
                 onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-                className="h-8 min-w-[175px] rounded-xl border border-[#d7dfff] bg-[#f5f8ff] px-3 py-0 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff] focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+                className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 py-0 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff] focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
               >
                 <span className="inline-flex h-full w-full items-center gap-1.5 leading-none"> 
                   <svg
@@ -920,49 +920,49 @@ export default function AdminOrdersTable({
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('today')}
-                        className="w-full rounded-lg border border-[#d7dfff] bg-[#f5f8ff] px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
+                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
                       >
                         Danes
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('yesterday')}
-                        className="w-full rounded-lg border border-[#d7dfff] bg-[#f5f8ff] px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
+                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
                       >
                         Včeraj
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('7d')}
-                        className="w-full rounded-lg border border-[#d7dfff] bg-[#f5f8ff] px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
+                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
                       >
                         Zadnjih 7 dni
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('30d')}
-                        className="w-full rounded-lg border border-[#d7dfff] bg-[#f5f8ff] px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
+                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
                       >
                         Zadnjih 30 dni
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('3m')}
-                        className="w-full rounded-lg border border-[#d7dfff] bg-[#f5f8ff] px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
+                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
                       >
                         Zadnje 3 mesece
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('6m')}
-                        className="w-full rounded-lg border border-[#d7dfff] bg-[#f5f8ff] px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
+                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
                       >
                         Zadnjih 6 mesecev
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('1y')}
-                        className="w-full rounded-lg border border-[#d7dfff] bg-[#f5f8ff] px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
+                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
                       >
                         Zadnje leto
                       </button>
@@ -1037,7 +1037,7 @@ export default function AdminOrdersTable({
               type="button"
               onClick={handleResetDocumentFilter}
               disabled={documentType === 'all'}
-              className="flex h-8 w-[92px] items-center justify-center rounded-xl border border-[#d7dfff] bg-[#f5f8ff] px-3 text-xs font-semibold text-slate-700 transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
+              className="flex h-8 w-[92px] items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
             >
               Ponastavi
             </button>
@@ -1046,7 +1046,7 @@ export default function AdminOrdersTable({
               type="button"
               onClick={handleDownloadAllDocuments}
               disabled={isDownloading}
-              className="flex h-8 w-[140px] items-center justify-center whitespace-nowrap rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold tabular-nums text-slate-700 transition hover:bg-[#ede8ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
+              className="flex h-8 w-[140px] items-center justify-center whitespace-nowrap rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold tabular-nums text-slate-700 transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
             >
               {isDownloading ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Prenos...</span> : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
             </button>
@@ -1166,7 +1166,7 @@ export default function AdminOrdersTable({
                         type="button"
                         onClick={() => setIsStatusHeaderMenuOpen((previousOpen) => !previousOpen)}
                         disabled={isBulkUpdatingStatus}
-                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 hover:border-slate-400 disabled:cursor-default disabled:text-slate-300"
+                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff] disabled:cursor-default disabled:text-slate-300"
                         aria-haspopup="menu"
                         aria-expanded={isStatusHeaderMenuOpen}
                       >
@@ -1209,7 +1209,7 @@ export default function AdminOrdersTable({
                         type="button"
                         onClick={() => setIsPaymentHeaderMenuOpen((previousOpen) => !previousOpen)}
                         disabled={isBulkUpdatingStatus}
-                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 hover:border-slate-400 disabled:cursor-default disabled:text-slate-300"
+                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff] disabled:cursor-default disabled:text-slate-300"
                         aria-haspopup="menu"
                         aria-expanded={isPaymentHeaderMenuOpen}
                       >
@@ -1268,7 +1268,7 @@ export default function AdminOrdersTable({
                     <button
                       type="button"
                       onClick={resetAllFilters}
-                      className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                      className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
                     >
                       Prikaži vsa naročila
                     </button>
@@ -1401,7 +1401,7 @@ export default function AdminOrdersTable({
                       <RowActions>
                         <a
                           href={`/admin/orders/${order.id}`}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:bg-slate-100"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
                           aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
                           title="Uredi"
                         >

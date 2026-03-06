@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { PdfButton } from '@/shared/ui/pdf';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 
@@ -341,7 +342,7 @@ export default function AdminOrderPdfManager({
                   <p className="text-sm font-semibold text-slate-900">{pdfType.label}</p>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <button
+                  <PdfButton
                     type="button"
                     onClick={() => void handleGenerate(pdfType.key)}
                     disabled={loadingType === pdfType.key}
@@ -350,7 +351,7 @@ export default function AdminOrderPdfManager({
                     className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-default disabled:bg-slate-200 disabled:text-slate-400"
                   >
                     {loadingType === pdfType.key ? <Spinner size="sm" className="text-slate-500" /> : <GeneratePdfIcon />}
-                  </button>
+                  </PdfButton>
 
                   <label
                     title="Naloži"

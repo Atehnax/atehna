@@ -77,9 +77,9 @@ export default function CustomSelect({
           className
         )}
       >
-        <span className={classNames('block truncate', valueClassName)}>{selectedLabel}</span>
+        <span className={classNames('min-w-0 flex-1 truncate leading-none', valueClassName)}>{selectedLabel}</span>
+        <span className="ml-2 shrink-0 text-slate-500">▾</span>
       </button>
-      <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500">▾</span>
 
       {isOpen && (
         <div role="listbox" className="absolute left-0 top-11 z-30 w-full">

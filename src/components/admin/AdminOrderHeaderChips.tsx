@@ -13,6 +13,7 @@ import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { CustomSelect } from '@/shared/ui/select';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToast } from '@/shared/ui/toast';
+import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 
 type TopSectionMode = 'read' | 'edit';
 
@@ -382,7 +383,7 @@ export default function AdminOrderHeaderChips(props: Props) {
             type="button"
             onClick={() => setIsDeleteModalOpen(true)}
             disabled={isDeleting}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-rose-200 text-sm font-semibold leading-none text-rose-600 hover:bg-rose-50 disabled:text-slate-300"
+            className={buttonTokenClasses.closeX}
             aria-label="Izbriši naročilo"
             title="Izbriši"
           >

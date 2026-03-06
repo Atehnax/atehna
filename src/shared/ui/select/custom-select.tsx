@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import { selectTokenClasses } from '@/shared/ui/theme/tokens';
 
 type CustomSelectOption = {
   value: string;
@@ -72,17 +73,17 @@ export default function CustomSelect({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         className={classNames(
-          'h-10 w-full overflow-visible rounded-xl border-0 bg-transparent px-2.5 pb-0 pt-4 text-left text-xs leading-6 text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:opacity-60',
+          selectTokenClasses.trigger,
           className
         )}
       >
-        <span className={classNames('block truncate', valueClassName)}>{selectedLabel}</span>
+        <span className={classNames('min-w-0 flex-1 truncate leading-none', valueClassName)}>{selectedLabel}</span>
+        <span className="ml-2 shrink-0 text-slate-500">▾</span>
       </button>
-      <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500">▾</span>
 
       {isOpen && (
         <div role="listbox" className="absolute left-0 top-11 z-30 w-full">
-          <MenuPanel className={classNames('w-full', menuClassName)}>
+          <MenuPanel className={classNames(selectTokenClasses.menu, menuClassName)}>
             {options.map((option) => (
               <MenuItem
                 key={option.value}

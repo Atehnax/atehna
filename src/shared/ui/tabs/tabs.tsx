@@ -10,6 +10,7 @@ import {
   type KeyboardEvent,
   type ReactNode
 } from 'react';
+import { pillTokenClasses } from '@/shared/ui/theme/tokens';
 
 type TabsContextValue = {
   value: string;
@@ -53,7 +54,7 @@ export function TabsList({ children, className }: TabsListProps) {
     <div
       role="tablist"
       aria-orientation="horizontal"
-      className={classNames('inline-flex h-8 items-center gap-1 rounded-full border border-[#ede8ff] bg-white px-1', className)}
+      className={classNames(pillTokenClasses.list, 'h-8 gap-1 rounded-full px-1', className)}
     >
       {children}
     </div>
@@ -108,8 +109,9 @@ export function TabsTrigger({ value, disabled, children, className }: TabsTrigge
       onClick={() => onValueChange(value)}
       onKeyDown={handleKeyDown}
       className={classNames(
-        'rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:border focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0',
-        isActive ? 'border border-[#5d3ed6] bg-[#f8f7fc] text-[#5d3ed6]' : 'text-slate-700 hover:bg-slate-100',
+        'rounded-full px-3 py-1 text-xs',
+        pillTokenClasses.itemBase,
+        isActive ? pillTokenClasses.itemActive : pillTokenClasses.itemIdle,
         disabled && 'cursor-default opacity-50',
         className
       )}

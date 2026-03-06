@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { DANGER_OUTLINE_BUTTON_CLASS } from './adminButtonStyles';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/select';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 import { EmptyState, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
+import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 
 type ArchiveEntry = {
   id: number;
@@ -27,6 +28,10 @@ type DisplayRow = {
 };
 
 type TypeFilterValue = 'all' | 'order' | 'pdf';
+
+
+type ArchiveSortKey = 'deleted_at' | 'expires_at';
+type ArchiveSortDirection = 'asc' | 'desc';
 
 const TYPE_FILTER_OPTIONS: Array<{ value: TypeFilterValue; label: string }> = [
   { value: 'all', label: 'Vse vrste' },
@@ -49,41 +54,12 @@ export default function AdminDeletedArchiveTable({
   const [entries, setEntries] = useState(initialEntries);
   const [selected, setSelected] = useState<number[]>([]);
   const [typeFilter, setTypeFilter] = useState<TypeFilterValue>('all');
+  const [sortKey, setSortKey] = useState<ArchiveSortKey>('deleted_at');
+  const [sortDirection, setSortDirection] = useState<ArchiveSortDirection>('desc');
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const { toast } = useToast();
-
-  const [isTypeFilterMenuOpen, setIsTypeFilterMenuOpen] = useState(false);
-  const typeFilterMenuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!isTypeFilterMenuOpen) return;
-
-    const handleOutsideClick = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (!typeFilterMenuRef.current?.contains(target)) {
-        setIsTypeFilterMenuOpen(false);
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsTypeFilterMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleOutsideClick);
-    document.addEventListener('keydown', handleEscape);
-
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isTypeFilterMenuOpen]);
-
-  const selectedTypeFilterLabel =
-    TYPE_FILTER_OPTIONS.find((option) => option.value === typeFilter)?.label ?? 'Vse vrste';
 
   const filtered = useMemo(
     () => entries.filter((entry) => (typeFilter === 'all' ? true : entry.item_type === typeFilter)),
@@ -133,8 +109,13 @@ export default function AdminDeletedArchiveTable({
         .forEach((entry) => rows.push({ entry, isChild: false, parentOrderId: null }));
     }
 
-    return rows;
-  }, [filtered, typeFilter]);
+    return rows.sort((leftRow, rightRow) => {
+      const leftValue = new Date(leftRow.entry[sortKey]).getTime();
+      const rightValue = new Date(rightRow.entry[sortKey]).getTime();
+      const multiplier = sortDirection === 'asc' ? 1 : -1;
+      return (leftValue - rightValue) * multiplier;
+    });
+  }, [filtered, sortDirection, sortKey, typeFilter]);
 
   const visibleIds = useMemo(() => displayRows.map((row) => row.entry.id), [displayRows]);
   const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.includes(id));
@@ -270,6 +251,23 @@ export default function AdminDeletedArchiveTable({
     setIsDeleteConfirmOpen(true);
   };
 
+
+  const handleSort = (nextSortKey: ArchiveSortKey) => {
+    const isSameColumn = sortKey === nextSortKey;
+    if (isSameColumn) {
+      setSortDirection((previousDirection) => (previousDirection === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+
+    setSortKey(nextSortKey);
+    setSortDirection('desc');
+  };
+
+  const sortIndicator = (nextSortKey: ArchiveSortKey) => {
+    if (sortKey !== nextSortKey) return <span className="ml-1 text-slate-300">↕</span>;
+    return <span className="ml-1 text-slate-500">{sortDirection === 'asc' ? '↑' : '↓'}</span>;
+  };
+
   const confirmBulkDelete = async () => {
     const deletableIds = selected.filter((id) => id > 0);
     if (deletableIds.length === 0) {
@@ -304,55 +302,24 @@ export default function AdminDeletedArchiveTable({
     <AdminTableLayout
       className="border-slate-200 bg-white"
       headerLeft={
-        <div className="relative min-w-[140px]" ref={typeFilterMenuRef}>
-          <button
-            type="button"
-            onClick={() => setIsTypeFilterMenuOpen((previousOpen) => !previousOpen)}
-            className="inline-flex h-8 w-full min-w-[140px] items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-left text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0"
-            aria-haspopup="menu"
-            aria-expanded={isTypeFilterMenuOpen}
-          >
-            <span className="truncate">{selectedTypeFilterLabel}</span>
-            <span className="ml-2 text-slate-500">▾</span>
-          </button>
-
-          {isTypeFilterMenuOpen && (
-            <div role="menu">
-              <MenuPanel className="absolute left-0 top-9 z-30 w-[180px]">
-                {TYPE_FILTER_OPTIONS.map((option) => (
-                  <MenuItem
-                    key={option.value}
-                    onClick={() => {
-                      setTypeFilter(option.value);
-                      setIsTypeFilterMenuOpen(false);
-                    }}
-                  >
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </MenuPanel>
-            </div>
-          )}
+        <div className="relative min-w-[140px]">
+          <CustomSelect
+            value={typeFilter}
+            onChange={(next) => setTypeFilter(next as TypeFilterValue)}
+            options={TYPE_FILTER_OPTIONS}
+            className="h-8 min-w-[140px] px-3 py-0 text-xs font-semibold"
+            valueClassName="text-center"
+          />
         </div>
       }
       headerRight={
         <>
-          <button
-            type="button"
-            onClick={bulkRestore}
-            disabled={selected.length === 0 || isRestoring || isDeleting}
-            className="h-8 rounded-lg border border-emerald-200 bg-[#f8f7fc] px-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-default disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
-          >
+          <Button type="button" variant="restore" onClick={bulkRestore} disabled={selected.length === 0 || isRestoring || isDeleting}>
             {isRestoring ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Obnavljam ...</span> : 'Obnovi'}
-          </button>
-          <button
-            type="button"
-            onClick={bulkDelete}
-            disabled={selected.length === 0 || isDeleting || isRestoring}
-            className={DANGER_OUTLINE_BUTTON_CLASS}
-          >
+          </Button>
+          <Button type="button" variant="danger" onClick={bulkDelete} disabled={selected.length === 0 || isDeleting || isRestoring}>
             {isDeleting ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-rose-700" />Brišem ...</span> : 'Trajno izbriši'}
-          </button>
+          </Button>
         </>
       }
       contentClassName="overflow-x-auto"
@@ -387,14 +354,22 @@ export default function AdminDeletedArchiveTable({
 
       <Table className="w-full table-fixed border-collapse text-sm">
           <THead>
-            <TR className="border-b border-slate-200 text-xs uppercase text-slate-500">
-              <TH className="w-10 px-0 py-2 text-center">
+            <TR>
+              <TH className="w-10 text-center">
                 <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" />
               </TH>
-              <TH className="w-28 px-0 py-2 text-left">Vrsta</TH>
-              <TH className="px-0 py-2 text-left">Element</TH>
-              <TH className="w-44 px-0 py-2 text-left">Izbrisano</TH>
-              <TH className="w-44 px-0 py-2 text-left">Poteče</TH>
+              <TH className="w-28">Vrsta</TH>
+              <TH>Element</TH>
+              <TH className="w-44">
+                <button type="button" onClick={() => handleSort('deleted_at')} className="inline-flex items-center font-semibold hover:text-slate-700">
+                  Izbrisano {sortIndicator('deleted_at')}
+                </button>
+              </TH>
+              <TH className="w-44">
+                <button type="button" onClick={() => handleSort('expires_at')} className="inline-flex items-center font-semibold hover:text-slate-700">
+                  Poteče {sortIndicator('expires_at')}
+                </button>
+              </TH>
             </TR>
           </THead>
           <TBody>

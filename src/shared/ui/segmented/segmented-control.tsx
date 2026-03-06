@@ -55,7 +55,7 @@ export default function SegmentedControl({ value, onChange, options, size = 'md'
     <div
       ref={rootRef}
       className={classNames(
-        'inline-flex items-center border border-slate-300 bg-white',
+        'inline-flex items-center border border-[#d7dfff] bg-[#f5f8ff]',
         sizeClassMap[size].root,
         className
       )}
@@ -74,7 +74,7 @@ export default function SegmentedControl({ value, onChange, options, size = 'md'
             className={classNames(
               'font-semibold transition focus-visible:border focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0',
               sizeClassMap[size].item,
-              isActive ? 'border border-[#5d3ed6] bg-[#f8f7fc] text-[#5d3ed6]' : 'text-slate-700 hover:bg-slate-100',
+              isActive ? 'bg-[#e9efff] text-[#3659d6]' : 'text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]' ,
               option.disabled && 'cursor-default opacity-50'
             )}
           >

@@ -895,7 +895,7 @@ export default function AdminOrdersTable({
               <button
                 type="button"
                 onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-                className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 py-0 text-left text-xs text-slate-700 hover:border-slate-400 focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+                className="h-8 min-w-[175px] rounded-xl border border-[#d7dfff] bg-[#f5f8ff] px-3 py-0 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff] focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
               >
                 <span className="inline-flex h-full w-full items-center gap-1.5 leading-none"> 
                   <svg
@@ -920,49 +920,49 @@ export default function AdminOrdersTable({
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('today')}
-                        className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
+                        className="w-full rounded-lg border border-[#d7dfff] bg-[#f5f8ff] px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
                       >
                         Danes
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('yesterday')}
-                        className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
+                        className="w-full rounded-lg border border-[#d7dfff] bg-[#f5f8ff] px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
                       >
                         Včeraj
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('7d')}
-                        className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
+                        className="w-full rounded-lg border border-[#d7dfff] bg-[#f5f8ff] px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
                       >
                         Zadnjih 7 dni
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('30d')}
-                        className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
+                        className="w-full rounded-lg border border-[#d7dfff] bg-[#f5f8ff] px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
                       >
                         Zadnjih 30 dni
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('3m')}
-                        className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
+                        className="w-full rounded-lg border border-[#d7dfff] bg-[#f5f8ff] px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
                       >
                         Zadnje 3 mesece
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('6m')}
-                        className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
+                        className="w-full rounded-lg border border-[#d7dfff] bg-[#f5f8ff] px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
                       >
                         Zadnjih 6 mesecev
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('1y')}
-                        className="w-full rounded-lg px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
+                        className="w-full rounded-lg border border-[#d7dfff] bg-[#f5f8ff] px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
                       >
                         Zadnje leto
                       </button>
@@ -1002,11 +1002,11 @@ export default function AdminOrdersTable({
               className="h-8 min-w-[260px] flex-1 rounded-xl border border-slate-300 px-3 text-xs text-slate-700 outline-none focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
             />
 
-            <div className="relative flex h-8 rounded-xl border border-slate-300 bg-white shadow-sm" ref={documentTypeMenuRef}>
+            <div className="relative flex h-8 rounded-xl border border-[#d7dfff] bg-[#f5f8ff] shadow-sm" ref={documentTypeMenuRef}>
               <button
                 type="button"
                 onClick={() => setIsDocumentTypeMenuOpen((previousOpen) => !previousOpen)}
-                className="flex h-full min-w-[140px] items-center justify-between rounded-l-xl px-3 text-left text-xs font-semibold text-slate-700 transition hover:bg-[#ede8ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0"
+                className="flex h-full min-w-[140px] items-center justify-between rounded-l-xl px-3 text-left text-xs font-semibold text-slate-700 transition hover:bg-[#eef3ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0"
                 aria-haspopup="menu"
                 aria-expanded={isDocumentTypeMenuOpen}
               >
@@ -1037,7 +1037,7 @@ export default function AdminOrdersTable({
               type="button"
               onClick={handleResetDocumentFilter}
               disabled={documentType === 'all'}
-              className="flex h-8 w-[92px] items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-[#ede8ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
+              className="flex h-8 w-[92px] items-center justify-center rounded-xl border border-[#d7dfff] bg-[#f5f8ff] px-3 text-xs font-semibold text-slate-700 transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
             >
               Ponastavi
             </button>

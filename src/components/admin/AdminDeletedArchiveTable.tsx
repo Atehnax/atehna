@@ -369,7 +369,7 @@ export default function AdminDeletedArchiveTable({
             type="button"
             onClick={bulkRestore}
             disabled={selected.length === 0 || isRestoring || isDeleting}
-            className="h-8 rounded-lg border border-emerald-200 bg-[#f8f7fc] px-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-default disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+            className="h-8 rounded-xl border border-emerald-300 bg-emerald-50 px-3 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100 disabled:pointer-events-none disabled:opacity-45"
           >
             {isRestoring ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Obnavljam ...</span> : 'Obnovi'}
           </button>

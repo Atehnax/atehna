@@ -319,7 +319,7 @@ export default function AdminOrderPdfManager({
             value={draftNotes}
             onChange={(event) => setDraftNotes(event.target.value)}
             rows={2}
-            className={`${notesBoxClass} w-full resize-y bg-white outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]`}
+            className={`${notesBoxClass} w-full resize-y bg-white outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
           />
         ) : (
           <p className={`${notesBoxClass} bg-slate-100 text-slate-600`}>
@@ -433,7 +433,7 @@ export default function AdminOrderPdfManager({
                                         [pdfType.key]: !previousState[pdfType.key]
                                       }))
                                     }
-                                    className="shrink-0 text-xs font-semibold text-slate-500 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5d3ed6]"
+                                    className="shrink-0 text-xs font-semibold text-slate-500 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]"
                                     aria-label={
                                       isExpanded
                                         ? `Skrij verzije za ${pdfType.label}`

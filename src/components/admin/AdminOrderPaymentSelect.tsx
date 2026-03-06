@@ -95,7 +95,7 @@ export default function AdminOrderPaymentSelect({
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="rounded-full focus:outline-none focus-visible:ring-0 focus-visible:ring-[#5d3ed6]"
+        className="rounded-full focus:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-label={`Spremeni plačilni status naročila ${orderId}`}

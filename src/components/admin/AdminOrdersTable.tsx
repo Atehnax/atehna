@@ -53,7 +53,7 @@ type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'cus
 
 
 const bulkDeleteButtonClass =
-  'h-8 rounded-xl border border-[var(--danger-border)] bg-[var(--danger-bg)] px-3 text-xs font-semibold text-[var(--danger-600)] transition hover:bg-[var(--danger-bg)] focus-visible:border-[var(--danger-border)] focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:border-[var(--danger-border)] disabled:bg-transparent disabled:text-[var(--danger-600)] disabled:opacity-100';
+  'h-8 rounded-xl border border-rose-300 bg-rose-50 px-3 text-xs font-semibold text-rose-800 transition hover:bg-rose-100 focus-visible:border-rose-300 focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45';
 
 const rowDeleteButtonClass =
   'inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--danger-border)] bg-transparent text-sm font-semibold leading-none text-[var(--danger-600)] transition hover:bg-[var(--danger-bg)] disabled:cursor-default disabled:opacity-45';
@@ -1080,7 +1080,7 @@ export default function AdminOrdersTable({
             <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="topPills" size="sm" showNumbers={false} />
           </>
         }
-        footerRight={<Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" showNumbers={false} />}
+        footerRight={<Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" size="sm" showNumbers={false} />}
       >
         <Table className="min-w-[1180px] w-full">
           <colgroup>
@@ -1254,8 +1254,8 @@ export default function AdminOrdersTable({
                 </button>
               </TH>
 
-              <TH className="min-w-[100px] text-center normal-case">PDF datoteke</TH>
-              <TH className="text-center normal-case">Uredi</TH>
+              <TH className="min-w-[100px] text-center">PDF datoteke</TH>
+              <TH className="text-center">Uredi</TH>
             </TR>
           </THead>
 

@@ -542,7 +542,7 @@ function AdminOrdersPreviewChart({
               key={option.key}
               type="button"
               onClick={() => onRangeChange?.(option.key)}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:border focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 ${activeRange === option.key ? 'bg-[#e9efff] text-[#3659d6]' : 'border border-transparent text-slate-700 hover:bg-slate-100'}`}
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:border focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0 ${activeRange === option.key ? 'bg-[#e9efff] text-[#3659d6]' : 'border border-transparent text-slate-700 hover:bg-slate-100'}`}
             >
               {option.label}
             </button>

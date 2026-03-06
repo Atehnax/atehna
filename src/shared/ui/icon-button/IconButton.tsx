@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { iconButtonTokenClasses } from '@/shared/ui/theme/tokens';
 
 export type IconButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className'> & {
   children: ReactNode;
@@ -22,9 +23,8 @@ const sizeClassMap = {
 } as const;
 
 const toneClassMap = {
-  neutral:
-    'border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-default disabled:text-slate-300',
-  danger: 'border border-rose-300 text-xs font-semibold leading-none text-rose-600 hover:bg-rose-50'
+  neutral: iconButtonTokenClasses.neutral,
+  danger: iconButtonTokenClasses.danger
 } as const;
 
 export default function IconButton({
@@ -39,7 +39,7 @@ export default function IconButton({
     <button
       {...props}
       className={classNames(
-        'inline-flex items-center justify-center',
+        iconButtonTokenClasses.base,
         shapeClassMap[shape],
         sizeClassMap[size],
         toneClassMap[tone],

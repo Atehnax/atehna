@@ -4,10 +4,12 @@ import Image from 'next/image';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { MenuItem } from '@/shared/ui/menu';
 import { SegmentedControl } from '@/shared/ui/segmented';
+import { Table, THead, TH, TR } from '@/shared/ui/table';
 import { Chip } from '@/shared/ui/badge';
 import { useToast } from '@/shared/ui/toast';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
+import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 
 type Item = {
   id: string;
@@ -407,7 +409,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
               <button
                 type="button"
                 onClick={() => setIsCategoryMenuOpen((previousOpen) => !previousOpen)}
-                className="inline-flex h-8 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-left text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0"
+                className="inline-flex h-8 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-left text-xs font-semibold text-slate-700 shadow-sm transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0"
                 aria-haspopup="menu"
                 aria-expanded={isCategoryMenuOpen}
               >
@@ -453,11 +455,11 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
               type="button"
               onClick={archiveSelected}
               disabled={selectedIds.length === 0}
-              className="h-8 rounded-xl border border-amber-300 bg-amber-50 px-3 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 disabled:pointer-events-none disabled:opacity-45"
+              className={buttonTokenClasses.archive}
             >
               Arhiviraj
             </button>
-            <button type="button" onClick={openCreate} className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#ede8ff] bg-[#f8f7fc] px-3 text-xs font-semibold text-[#5d3ed6] shadow-sm transition hover:border-[#5d3ed6] hover:bg-[#f8f7fc] focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0">
+            <button type="button" onClick={openCreate} className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#ede8ff] bg-[#f8f7fc] px-3 text-xs font-semibold text-[#5d3ed6] shadow-sm transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0">
               <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M10 4v12M4 10h12" /></svg>
               Nov artikel
             </button>
@@ -479,33 +481,33 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
           </>
         }
         contentClassName="overflow-x-auto"
-        footerRight={<Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" showNumbers={false} />}
+        footerRight={<Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" size="sm" showNumbers={false} />}
       >
-        <div className="overflow-x-auto" style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)' }}>
-          <table className="w-full min-w-[1000px] text-left text-sm">
-            <thead className="text-xs text-slate-600">
-              <tr>
-                <th className="px-3 py-2 text-center"><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" /></th>
-                <th className="px-3 py-2">
+        <div className="overflow-x-auto">
+          <Table className="min-w-[1000px] text-sm">
+            <THead>
+              <TR>
+                <TH className="text-center"><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" /></TH>
+                <TH>
                   <button type="button" onClick={() => handleSort('name')} className="inline-flex items-center font-semibold hover:text-slate-700">Naziv <SortIndicator active={sortKey === 'name'} direction={sortDirection} /></button>
-                </th>
-                <th className="px-3 py-2">
+                </TH>
+                <TH>
                   <button type="button" onClick={() => handleSort('sku')} className="inline-flex items-center font-semibold hover:text-slate-700">SKU <SortIndicator active={sortKey === 'sku'} direction={sortDirection} /></button>
-                </th>
-                <th className="px-3 py-2">
+                </TH>
+                <TH>
                   <button type="button" onClick={() => handleSort('category')} className="inline-flex items-center font-semibold hover:text-slate-700">Kategorija <SortIndicator active={sortKey === 'category'} direction={sortDirection} /></button>
-                </th>
-                <th className="px-3 py-2 text-center">
+                </TH>
+                <TH className="text-center">
                   <button type="button" onClick={() => handleSort('price')} className="inline-flex items-center font-semibold hover:text-slate-700">Cena <SortIndicator active={sortKey === 'price'} direction={sortDirection} /></button>
-                </th>
-                <th className="px-3 py-2 text-center"><span className="inline-flex items-center font-semibold text-slate-500">Popust</span></th>
-                <th className="px-3 py-2 text-center whitespace-nowrap"><span className="inline-flex items-center font-semibold text-slate-500">Akcijska cena</span></th>
-                <th className="px-3 py-2 text-center">
+                </TH>
+                <TH className="text-center"><span className="inline-flex items-center">Popust</span></TH>
+                <TH className="whitespace-nowrap text-center"><span className="inline-flex items-center">Akcijska cena</span></TH>
+                <TH className="text-center">
                   <button type="button" onClick={() => handleSort('status')} className="inline-flex items-center font-semibold hover:text-slate-700">Status <SortIndicator active={sortKey === 'status'} direction={sortDirection} /></button>
-                </th>
-                <th className="px-3 py-2 text-center"><span className="inline-flex items-center font-semibold text-slate-500">Uredi</span></th>
-              </tr>
-            </thead>
+                </TH>
+                <TH className="text-center"><span className="inline-flex items-center">Uredi</span></TH>
+              </TR>
+            </THead>
             <tbody>
               {pagedItems.map((item, index) => (
                 <tr key={item.id} className={`border-t border-slate-200 transition-colors ${index % 2 === 0 ? "bg-white/70" : "bg-slate-50/60"} hover:bg-[#f8f7fc]`}>
@@ -519,16 +521,16 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                   <td className="px-3 py-2 text-center">
                     <Chip
                       variant={item.active ? 'success' : 'neutral'}
-                      className={`min-w-0 px-2.5 text-xs ${item.active ? 'ring-1 ring-emerald-200' : 'border-transparent bg-slate-100 text-slate-600 ring-1 ring-slate-200'}`}
+                      className={`min-w-0 px-2.5 text-xs ${item.active ? buttonTokenClasses.activeSuccess : buttonTokenClasses.inactiveNeutral}`}
                     >
                       {item.active ? 'Aktiven' : 'Neaktiven'}
                     </Chip>
                   </td>
-                  <td className="px-3 py-2"><div className="flex items-center justify-center gap-1.5"><button type="button" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100"><ActionIcon type="edit" /></button><button type="button" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100"><ActionIcon type="copy" /></button><button type="button" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-100"><ActionIcon type="archive" /></button></div></td>
+                  <td className="px-3 py-2"><div className="flex items-center justify-center gap-1.5"><button type="button" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"><ActionIcon type="edit" /></button><button type="button" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"><ActionIcon type="copy" /></button><button type="button" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-100"><ActionIcon type="archive" /></button></div></td>
                 </tr>
               ))}
             </tbody>
-          </table>
+          </Table>
         </div>
       </AdminTableLayout>
 

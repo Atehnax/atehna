@@ -1,6 +1,7 @@
 'use client';
 
 import type { ChangeEventHandler, ReactNode } from 'react';
+import { dateInputTokenClasses } from '@/shared/ui/theme/tokens';
 
 type BaseProps = {
   id: string;
@@ -31,7 +32,7 @@ type TextareaFieldProps = BaseProps & {
 type AdminHeaderFieldProps = InputFieldProps | SelectFieldProps | TextareaFieldProps;
 
 const shellClassName =
-  'group relative rounded-xl border border-slate-300 bg-white transition-colors focus-within:border-[#5d3ed6] focus-within:ring-2 focus-within:ring-brand-100';
+  'group relative rounded-xl border border-slate-300 bg-white transition-colors focus-within:border-[#3e67d6] focus-within:ring-2 focus-within:ring-brand-100';
 
 const fieldBaseClassName =
   'h-10 w-full overflow-visible rounded-xl border-0 bg-transparent px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0';
@@ -68,7 +69,7 @@ export default function AdminHeaderField(props: AdminHeaderFieldProps) {
           id={id}
           value={props.value}
           onChange={props.onChange}
-          className={`${fieldBaseClassName} resize-none ${className}`}
+          className={`${fieldBaseClassName} resize-y overflow-hidden ${className}`}
         />
       ) : (
         <input
@@ -76,7 +77,7 @@ export default function AdminHeaderField(props: AdminHeaderFieldProps) {
           type={props.type ?? 'text'}
           value={props.value}
           onChange={props.onChange}
-          className={`${fieldBaseClassName} ${className}`}
+          className={`${props.type === 'date' ? dateInputTokenClasses.field : fieldBaseClassName} ${className}`}
         />
       )}
     </div>

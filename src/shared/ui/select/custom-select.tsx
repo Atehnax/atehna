@@ -77,7 +77,7 @@ export default function CustomSelect({
           className
         )}
       >
-        <span className={classNames('min-w-0 flex-1 truncate leading-none', valueClassName)}>{selectedLabel}</span>
+        <span className={classNames('min-w-0 flex-1 truncate text-left leading-none', valueClassName)}>{selectedLabel}</span>
         <span className="ml-2 shrink-0 text-slate-500">▾</span>
       </button>
 

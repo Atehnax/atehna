@@ -12,7 +12,7 @@ import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagi
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
-import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
+import { buttonTokenClasses, dateInputTokenClasses } from '@/shared/ui/theme/tokens';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
 import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
 import AdminOrderPaymentSelect from '@/components/admin/AdminOrderPaymentSelect';
@@ -883,7 +883,7 @@ export default function AdminOrdersTable({
               <button
                 type="button"
                 onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-                className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 py-0 text-left text-xs text-slate-700 hover:bg-transparent focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+                className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 py-0 text-left text-xs text-slate-700 hover:bg-transparent focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
               >
                 <span className="inline-flex h-full w-full items-center gap-1.5 leading-none"> 
                   <svg
@@ -964,7 +964,7 @@ export default function AdminOrdersTable({
                           lang="sl-SI"
                           value={fromDate}
                           onChange={(event) => { setFromDate(event.target.value); setRangePreset('custom'); }}
-                          className="mt-1 h-8 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs outline-none hover:bg-transparent focus:border-[#5d3ed6] focus:bg-white focus:ring-0 focus:ring-[#5d3ed6]"
+                          className={`mt-1 ${dateInputTokenClasses.field}`}
                         />
                       </div>
                       <div>
@@ -974,7 +974,7 @@ export default function AdminOrdersTable({
                           lang="sl-SI"
                           value={toDate}
                           onChange={(event) => { setToDate(event.target.value); setRangePreset('custom'); }}
-                          className="mt-1 h-8 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs outline-none hover:bg-transparent focus:border-[#5d3ed6] focus:bg-white focus:ring-0 focus:ring-[#5d3ed6]"
+                          className={`mt-1 ${dateInputTokenClasses.field}`}
                         />
                       </div>
                     </div>
@@ -987,7 +987,7 @@ export default function AdminOrdersTable({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Poišči po številki, naročniku, naslovu, opombi ..."
-              className="h-8 min-w-[260px] flex-1 rounded-xl border border-slate-300 px-3 text-xs text-slate-700 outline-none focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+              className="h-8 min-w-[260px] flex-1 rounded-xl border border-slate-300 px-3 text-xs text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
             />
 
             <div className="relative min-w-[140px]">
@@ -1276,7 +1276,7 @@ export default function AdminOrdersTable({
                     <TD className="text-center font-semibold text-slate-900" data-no-row-nav>
                       <a
                         href={`/admin/orders/${order.id}`}
-                        className="inline-flex rounded-sm px-1 text-[13px] font-semibold text-brand-700 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#5d3ed6]"
+                        className="inline-flex rounded-sm px-1 text-[13px] font-semibold text-brand-700 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
                         aria-label={`Odpri naročilo ${toDisplayOrderNumber(order.order_number)}`}
                       >
                         {toDisplayOrderNumber(order.order_number)}
@@ -1285,7 +1285,7 @@ export default function AdminOrdersTable({
 
                     <TD className="text-center whitespace-nowrap text-slate-700">
                       <span
-                        className="inline-block rounded-sm px-1 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#5d3ed6]"
+                        className="inline-block rounded-sm px-1 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
                         title={formatSlDateTime(order.created_at)}
                         aria-label={`Datum naročila ${formatSlDateTime(order.created_at)}`}
                         tabIndex={0}

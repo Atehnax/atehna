@@ -883,7 +883,7 @@ export default function AdminOrdersTable({
               <button
                 type="button"
                 onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-                className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 py-0 text-left text-xs text-slate-700 hover:bg-slate-100 focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+                className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 py-0 text-left text-xs text-slate-700 hover:bg-transparent focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
               >
                 <span className="inline-flex h-full w-full items-center gap-1.5 leading-none"> 
                   <svg
@@ -964,7 +964,7 @@ export default function AdminOrdersTable({
                           lang="sl-SI"
                           value={fromDate}
                           onChange={(event) => { setFromDate(event.target.value); setRangePreset('custom'); }}
-                          className="mt-1 h-8 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs outline-none focus:border-[#5d3ed6] focus:bg-white focus:ring-0 focus:ring-[#5d3ed6]"
+                          className="mt-1 h-8 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs outline-none hover:bg-transparent focus:border-[#5d3ed6] focus:bg-white focus:ring-0 focus:ring-[#5d3ed6]"
                         />
                       </div>
                       <div>
@@ -974,7 +974,7 @@ export default function AdminOrdersTable({
                           lang="sl-SI"
                           value={toDate}
                           onChange={(event) => { setToDate(event.target.value); setRangePreset('custom'); }}
-                          className="mt-1 h-8 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs outline-none focus:border-[#5d3ed6] focus:bg-white focus:ring-0 focus:ring-[#5d3ed6]"
+                          className="mt-1 h-8 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs outline-none hover:bg-transparent focus:border-[#5d3ed6] focus:bg-white focus:ring-0 focus:ring-[#5d3ed6]"
                         />
                       </div>
                     </div>

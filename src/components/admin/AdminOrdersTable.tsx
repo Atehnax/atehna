@@ -964,7 +964,7 @@ export default function AdminOrdersTable({
                           lang="sl-SI"
                           value={fromDate}
                           onChange={(event) => { setFromDate(event.target.value); setRangePreset('custom'); }}
-                          className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs outline-none focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+                          className="mt-1 h-8 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs outline-none focus:border-[#5d3ed6] focus:bg-white focus:ring-0 focus:ring-[#5d3ed6]"
                         />
                       </div>
                       <div>
@@ -974,7 +974,7 @@ export default function AdminOrdersTable({
                           lang="sl-SI"
                           value={toDate}
                           onChange={(event) => { setToDate(event.target.value); setRangePreset('custom'); }}
-                          className="mt-1 h-8 w-full rounded-lg border border-slate-300 px-2.5 text-xs outline-none focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+                          className="mt-1 h-8 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs outline-none focus:border-[#5d3ed6] focus:bg-white focus:ring-0 focus:ring-[#5d3ed6]"
                         />
                       </div>
                     </div>
@@ -999,23 +999,25 @@ export default function AdminOrdersTable({
               />
             </div>
 
-            <button
+            <Button
               type="button"
+              variant="default"
               onClick={handleResetDocumentFilter}
               disabled={documentType === 'all'}
-              className="flex h-8 w-[92px] items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
+              className="w-[92px]"
             >
               Ponastavi
-            </button>
+            </Button>
 
-            <button
+            <Button
               type="button"
+              variant="default"
               onClick={handleDownloadAllDocuments}
               disabled={isDownloading}
-              className="flex h-8 w-[140px] items-center justify-center whitespace-nowrap rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold tabular-nums text-slate-700 transition hover:bg-slate-100 focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
+              className="w-[140px] whitespace-nowrap tabular-nums"
             >
               {isDownloading ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Prenos...</span> : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
-            </button>
+            </Button>
           </>
         }
         headerRight={

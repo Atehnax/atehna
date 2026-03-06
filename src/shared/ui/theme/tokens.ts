@@ -40,6 +40,8 @@ export const buttonTokenClasses = {
     'inline-flex items-center justify-center font-semibold transition disabled:cursor-default disabled:opacity-60',
   primary:
     'rounded-md border border-slate-200 bg-white text-xs text-slate-600 hover:border-slate-300 hover:bg-slate-100 focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0',
+  control:
+    'inline-flex h-8 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-100 focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45',
   outline:
     'rounded-full border border-slate-200 bg-white text-sm text-slate-700 hover:border-slate-300 hover:bg-slate-100 focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0',
   ghost:
@@ -66,7 +68,7 @@ export const iconButtonTokenClasses = {
 } as const;
 
 export const pillTokenClasses = {
-  list: 'inline-flex items-center border border-slate-300 bg-white',
+  list: 'inline-flex items-center border border-slate-300 bg-transparent',
   itemBase:
     'font-semibold transition focus-visible:border focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0',
   itemActive: 'bg-[#e9efff] text-[#3659d6]',
@@ -75,7 +77,7 @@ export const pillTokenClasses = {
 
 export const selectTokenClasses = {
   trigger:
-    'h-10 w-full overflow-visible rounded-xl border border-slate-300 bg-white px-2.5 pb-0 pt-4 text-left text-xs leading-6 text-slate-900 outline-none ring-0 transition hover:border-slate-300 hover:bg-slate-50 focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:opacity-60',
+    'h-10 w-full overflow-visible rounded-xl border border-slate-300 bg-white px-2.5 pb-0 pt-4 text-left text-xs leading-6 text-slate-900 outline-none ring-0 transition hover:border-slate-300 focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:opacity-60',
   menu: 'w-full border border-slate-200 bg-white shadow-sm',
   menuItem:
     'flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none text-slate-700 transition hover:bg-slate-50 hover:text-brand-600 disabled:cursor-default disabled:text-slate-300'

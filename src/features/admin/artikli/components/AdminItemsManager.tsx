@@ -57,9 +57,9 @@ const emptyItem = (): Item => ({
 const discountedPrice = (price: number, discountPct: number) =>
   Number((price * (1 - Math.max(0, Math.min(100, discountPct)) / 100)).toFixed(2));
 
-const statusTabs: Array<{ key: StatusTab; label: string }> = [
-  { key: 'active', label: 'Aktivni' },
-  { key: 'inactive', label: 'Neaktivni' }
+const statusTabs: Array<{ key: StatusTab; label: string; activeClassName: string }> = [
+  { key: 'active', label: 'Aktivni', activeClassName: buttonTokenClasses.activeSuccess },
+  { key: 'inactive', label: 'Neaktivni', activeClassName: buttonTokenClasses.inactiveNeutral }
 ];
 
 function SortIndicator({ active, direction }: { active: boolean; direction: 'asc' | 'desc' }) {
@@ -410,7 +410,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             size="sm"
             value={statusTab}
             onChange={(next) => setStatusTab(next as StatusTab)}
-            options={statusTabs.map((tab) => ({ value: tab.key, label: tab.label }))}
+            options={statusTabs.map((tab) => ({ value: tab.key, label: tab.label, activeClassName: tab.activeClassName }))}
           />
         }
         filterRowRight={

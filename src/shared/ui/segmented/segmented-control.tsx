@@ -7,6 +7,8 @@ type SegmentedOption = {
   value: string;
   label: string;
   disabled?: boolean;
+  activeClassName?: string;
+  idleClassName?: string;
 };
 
 export type SegmentedControlProps = {
@@ -56,7 +58,7 @@ export default function SegmentedControl({ value, onChange, options, size = 'md'
     <div
       ref={rootRef}
       className={classNames(
-        'inline-flex items-center border border-[#d7dfff] bg-[#f5f8ff]',
+        pillTokenClasses.list,
         sizeClassMap[size].root,
         className
       )}
@@ -75,7 +77,9 @@ export default function SegmentedControl({ value, onChange, options, size = 'md'
             className={classNames(
               pillTokenClasses.itemBase,
               sizeClassMap[size].item,
-              isActive ? pillTokenClasses.itemActive : pillTokenClasses.itemIdle,
+              isActive
+                ? classNames(pillTokenClasses.itemActive, option.activeClassName)
+                : classNames(pillTokenClasses.itemIdle, option.idleClassName),
               option.disabled && 'cursor-default opacity-50'
             )}
           >

@@ -9,6 +9,7 @@ import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 import { EmptyState, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
+import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 
 type ArchiveEntry = {
   id: number;
@@ -369,7 +370,7 @@ export default function AdminDeletedArchiveTable({
             type="button"
             onClick={bulkRestore}
             disabled={selected.length === 0 || isRestoring || isDeleting}
-            className="h-8 rounded-xl border border-emerald-300 bg-emerald-50 px-3 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100 disabled:pointer-events-none disabled:opacity-45"
+            className={buttonTokenClasses.restore}
           >
             {isRestoring ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Obnavljam ...</span> : 'Obnovi'}
           </button>

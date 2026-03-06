@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, type KeyboardEvent } from 'react';
+import { pillTokenClasses } from '@/shared/ui/theme/tokens';
 
 type SegmentedOption = {
   value: string;
@@ -72,9 +73,9 @@ export default function SegmentedControl({ value, onChange, options, size = 'md'
             onClick={() => onChange(option.value)}
             onKeyDown={handleKeyDown}
             className={classNames(
-              'font-semibold transition focus-visible:border focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0',
+              pillTokenClasses.itemBase,
               sizeClassMap[size].item,
-              isActive ? 'bg-[#e9efff] text-[#3659d6]' : 'border border-transparent text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]',
+              isActive ? pillTokenClasses.itemActive : pillTokenClasses.itemIdle,
               option.disabled && 'cursor-default opacity-50'
             )}
           >

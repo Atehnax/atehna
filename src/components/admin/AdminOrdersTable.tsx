@@ -10,6 +10,7 @@ import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagi
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
+import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
 import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
 import AdminOrderPaymentSelect from '@/components/admin/AdminOrderPaymentSelect';
@@ -52,8 +53,7 @@ import {
 type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
 
 
-const bulkDeleteButtonClass =
-  'h-8 rounded-xl border border-rose-300 bg-rose-50 px-3 text-xs font-semibold text-rose-800 transition hover:bg-rose-100 focus-visible:border-rose-300 focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45';
+const bulkDeleteButtonClass = buttonTokenClasses.danger;
 
 const rowDeleteButtonClass =
   'inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--danger-border)] bg-transparent text-sm font-semibold leading-none text-[var(--danger-600)] transition hover:bg-[var(--danger-bg)] disabled:cursor-default disabled:opacity-45';

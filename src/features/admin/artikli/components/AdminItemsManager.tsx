@@ -9,6 +9,7 @@ import { Chip } from '@/shared/ui/badge';
 import { useToast } from '@/shared/ui/toast';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
+import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 
 type Item = {
   id: string;
@@ -454,7 +455,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
               type="button"
               onClick={archiveSelected}
               disabled={selectedIds.length === 0}
-              className="h-8 rounded-xl border border-amber-300 bg-amber-50 px-3 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 disabled:pointer-events-none disabled:opacity-45"
+              className={buttonTokenClasses.archive}
             >
               Arhiviraj
             </button>
@@ -520,7 +521,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                   <td className="px-3 py-2 text-center">
                     <Chip
                       variant={item.active ? 'success' : 'neutral'}
-                      className={`min-w-0 px-2.5 text-xs ${item.active ? 'ring-1 ring-emerald-200' : 'border-transparent bg-slate-100 text-slate-600 ring-1 ring-slate-200'}`}
+                      className={`min-w-0 px-2.5 text-xs ${item.active ? buttonTokenClasses.activeSuccess : buttonTokenClasses.inactiveNeutral}`}
                     >
                       {item.active ? 'Aktiven' : 'Neaktiven'}
                     </Chip>

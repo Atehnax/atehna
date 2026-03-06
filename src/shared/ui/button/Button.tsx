@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 
 type ButtonVariant = 'brand' | 'outline' | 'admin-soft';
 type ButtonSize = 'sm' | 'md';
@@ -21,10 +22,8 @@ const sizeClassMap: Record<ButtonSize, string> = {
 const variantClassMap: Record<ButtonVariant, string> = {
   brand:
     'rounded-full bg-brand-600 font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-default disabled:bg-slate-200 disabled:text-slate-400',
-  outline:
-    'rounded-full border border-slate-200 font-semibold text-slate-700 transition hover:border-brand-200 hover:text-brand-600 disabled:cursor-default disabled:border-slate-200 disabled:text-slate-400',
-  'admin-soft':
-    'inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#ede8ff] bg-[#f8f7fc] px-3 text-xs font-semibold text-[#5d3ed6] shadow-sm transition hover:border-[#5d3ed6] hover:bg-[#f8f7fc] focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-400'
+  outline: buttonTokenClasses.outline,
+  'admin-soft': buttonTokenClasses.adminSoft
 };
 
 export default function Button({ children, variant, size = 'sm', className, ...props }: ButtonProps) {

@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { DANGER_OUTLINE_BUTTON_CLASS } from './adminButtonStyles';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/select';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
@@ -60,37 +60,6 @@ export default function AdminDeletedArchiveTable({
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const { toast } = useToast();
-
-  const [isTypeFilterMenuOpen, setIsTypeFilterMenuOpen] = useState(false);
-  const typeFilterMenuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!isTypeFilterMenuOpen) return;
-
-    const handleOutsideClick = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (!typeFilterMenuRef.current?.contains(target)) {
-        setIsTypeFilterMenuOpen(false);
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsTypeFilterMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleOutsideClick);
-    document.addEventListener('keydown', handleEscape);
-
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isTypeFilterMenuOpen]);
-
-  const selectedTypeFilterLabel =
-    TYPE_FILTER_OPTIONS.find((option) => option.value === typeFilter)?.label ?? 'Vse vrste';
 
   const filtered = useMemo(
     () => entries.filter((entry) => (typeFilter === 'all' ? true : entry.item_type === typeFilter)),
@@ -333,55 +302,23 @@ export default function AdminDeletedArchiveTable({
     <AdminTableLayout
       className="border-slate-200 bg-white"
       headerLeft={
-        <div className="relative min-w-[140px]" ref={typeFilterMenuRef}>
-          <button
-            type="button"
-            onClick={() => setIsTypeFilterMenuOpen((previousOpen) => !previousOpen)}
-            className="inline-flex h-8 w-full min-w-[140px] items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-left text-xs font-semibold text-slate-700 shadow-sm transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0"
-            aria-haspopup="menu"
-            aria-expanded={isTypeFilterMenuOpen}
-          >
-            <span className="truncate">{selectedTypeFilterLabel}</span>
-            <span className="ml-2 text-slate-500">▾</span>
-          </button>
-
-          {isTypeFilterMenuOpen && (
-            <div role="menu">
-              <MenuPanel className="absolute left-0 top-9 z-30 w-[180px]">
-                {TYPE_FILTER_OPTIONS.map((option) => (
-                  <MenuItem
-                    key={option.value}
-                    onClick={() => {
-                      setTypeFilter(option.value);
-                      setIsTypeFilterMenuOpen(false);
-                    }}
-                  >
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </MenuPanel>
-            </div>
-          )}
+        <div className="relative min-w-[140px]">
+          <CustomSelect
+            value={typeFilter}
+            onChange={(next) => setTypeFilter(next as TypeFilterValue)}
+            options={TYPE_FILTER_OPTIONS}
+            className="h-8 min-w-[140px] px-3 py-0 text-xs font-semibold"
+          />
         </div>
       }
       headerRight={
         <>
-          <button
-            type="button"
-            onClick={bulkRestore}
-            disabled={selected.length === 0 || isRestoring || isDeleting}
-            className={buttonTokenClasses.restore}
-          >
+          <Button type="button" variant="restore" onClick={bulkRestore} disabled={selected.length === 0 || isRestoring || isDeleting}>
             {isRestoring ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Obnavljam ...</span> : 'Obnovi'}
-          </button>
-          <button
-            type="button"
-            onClick={bulkDelete}
-            disabled={selected.length === 0 || isDeleting || isRestoring}
-            className={DANGER_OUTLINE_BUTTON_CLASS}
-          >
+          </Button>
+          <Button type="button" variant="danger" onClick={bulkDelete} disabled={selected.length === 0 || isDeleting || isRestoring}>
             {isDeleting ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-rose-700" />Brišem ...</span> : 'Trajno izbriši'}
-          </button>
+          </Button>
         </>
       }
       contentClassName="overflow-x-auto"

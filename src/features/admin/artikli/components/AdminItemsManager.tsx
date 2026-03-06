@@ -1,9 +1,11 @@
 'use client';
 
 import Image from 'next/image';
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
-import { MenuItem } from '@/shared/ui/menu';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { Button } from '@/shared/ui/button';
+import { IconButton } from '@/shared/ui/icon-button';
 import { SegmentedControl } from '@/shared/ui/segmented';
+import { CustomSelect } from '@/shared/ui/select';
 import { Table, THead, TH, TR } from '@/shared/ui/table';
 import { Chip } from '@/shared/ui/badge';
 import { useToast } from '@/shared/ui/toast';
@@ -155,9 +157,6 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const { toast } = useToast();
 
-  const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
-  const categoryMenuRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
@@ -170,31 +169,6 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
       // ignore malformed local state
     }
   }, []);
-
-  useEffect(() => {
-    if (!isCategoryMenuOpen) return;
-
-    const handleOutsideClick = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (!categoryMenuRef.current?.contains(target)) {
-        setIsCategoryMenuOpen(false);
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsCategoryMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleOutsideClick);
-    document.addEventListener('keydown', handleEscape);
-
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isCategoryMenuOpen]);
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
@@ -405,64 +379,30 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
               placeholder="Poišči po nazivu, SKU ali kategoriji …"
               className="h-8 min-w-[240px] flex-1 rounded-xl border border-slate-300 px-3 text-xs focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
             />
-            <div className="relative min-w-[220px]" ref={categoryMenuRef}>
-              <button
-                type="button"
-                onClick={() => setIsCategoryMenuOpen((previousOpen) => !previousOpen)}
-                className="inline-flex h-8 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-left text-xs font-semibold text-slate-700 shadow-sm transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0"
-                aria-haspopup="menu"
-                aria-expanded={isCategoryMenuOpen}
-              >
-                <span className="block min-w-0 flex-1 truncate text-left">{selectedCategoryLabel}</span>
-                <span className="ml-2 text-slate-500">▾</span>
-              </button>
-
-              {isCategoryMenuOpen && (
-                <div
-                  role="menu"
-                  className="absolute left-0 top-9 z-30 min-w-full w-max max-w-[560px] rounded-xl border border-slate-300 bg-white p-1 shadow-sm"
-                >
-                  <MenuItem
-                    onClick={() => {
-                      setCategoryFilter('all');
-                      setIsCategoryMenuOpen(false);
-                    }}
-                    isActive={categoryFilter === 'all'}
-                  >
-                    Vse kategorije
-                  </MenuItem>
-
-                  {categories.map((category) => (
-                    <MenuItem
-                      key={category}
-                      onClick={() => {
-                        setCategoryFilter(category);
-                        setIsCategoryMenuOpen(false);
-                      }}
-                      isActive={categoryFilter === category}
-                    >
-                      <span className="block w-full whitespace-nowrap text-left">{category}</span>
-                    </MenuItem>
-                  ))}
-                </div>
-              )}
+            <div className="relative min-w-[220px]">
+              <CustomSelect
+                value={categoryFilter}
+                onChange={setCategoryFilter}
+                options={[
+                  { value: 'all', label: 'Vse kategorije' },
+                  ...categories.map((category) => ({ value: category, label: category }))
+                ]}
+                className="h-8 px-3 py-0 text-xs font-semibold"
+                valueClassName="min-w-0 flex-1 text-left"
+                menuClassName="min-w-full w-max max-w-[560px]"
+              />
             </div>
           </>
         }
         headerRight={
           <>
-            <button
-              type="button"
-              onClick={archiveSelected}
-              disabled={selectedIds.length === 0}
-              className={buttonTokenClasses.archive}
-            >
+            <Button type="button" variant="archive" onClick={archiveSelected} disabled={selectedIds.length === 0}>
               Arhiviraj
-            </button>
-            <button type="button" onClick={openCreate} className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#ede8ff] bg-[#f8f7fc] px-3 text-xs font-semibold text-[#5d3ed6] shadow-sm transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0">
+            </Button>
+            <Button type="button" variant="admin-soft" onClick={openCreate}>
               <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M10 4v12M4 10h12" /></svg>
               Nov artikel
-            </button>
+            </Button>
           </>
         }
         filterRowLeft={
@@ -471,7 +411,6 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             value={statusTab}
             onChange={(next) => setStatusTab(next as StatusTab)}
             options={statusTabs.map((tab) => ({ value: tab.key, label: tab.label }))}
-            className="border-[#ede8ff]"
           />
         }
         filterRowRight={
@@ -526,7 +465,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                       {item.active ? 'Aktiven' : 'Neaktiven'}
                     </Chip>
                   </td>
-                  <td className="px-3 py-2"><div className="flex items-center justify-center gap-1.5"><button type="button" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"><ActionIcon type="edit" /></button><button type="button" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"><ActionIcon type="copy" /></button><button type="button" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-100"><ActionIcon type="archive" /></button></div></td>
+                  <td className="px-3 py-2"><div className="flex items-center justify-center gap-1.5"><IconButton type="button" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi"><ActionIcon type="edit" /></IconButton><IconButton type="button" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji"><ActionIcon type="copy" /></IconButton><IconButton type="button" tone="danger" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj" className="border-amber-300 text-amber-700 hover:bg-amber-100"><ActionIcon type="archive" /></IconButton></div></td>
                 </tr>
               ))}
             </tbody>
@@ -539,7 +478,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
           <div className="h-full w-full max-w-md overflow-y-auto border-l border-slate-200 bg-white p-4 shadow-xl">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-base font-semibold text-slate-900">{editingId ? 'Uredi artikel' : 'Dodaj artikel'}</h2>
-              <button type="button" className="text-sm text-slate-500" onClick={() => setEditorOpen(false)}>Zapri</button>
+              <Button type="button" variant="ghost" size="xs" className="text-sm" onClick={() => setEditorOpen(false)}>Zapri</Button>
             </div>
 
             <div className="space-y-3 text-sm">
@@ -581,7 +520,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             </div>
 
             <div className="mt-4 flex items-center justify-end">
-              <button type="button" onClick={save} className="rounded-lg border border-brand-600 bg-brand-600 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-700">Shrani</button>
+              <Button type="button" variant="brand" onClick={save}>Shrani</Button>
             </div>
           </div>
         </div>

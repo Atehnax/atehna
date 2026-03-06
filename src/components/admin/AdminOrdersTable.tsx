@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/shared/ui/button';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { SegmentedControl } from '@/shared/ui/segmented';
+import { CustomSelect } from '@/shared/ui/select';
 import { Spinner } from '@/shared/ui/loading';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
@@ -54,9 +56,6 @@ type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'cus
 
 
 const bulkDeleteButtonClass = buttonTokenClasses.danger;
-
-const rowDeleteButtonClass =
-  'inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--danger-border)] bg-transparent text-sm font-semibold leading-none text-[var(--danger-600)] transition hover:bg-[var(--danger-bg)] disabled:cursor-default disabled:opacity-45';
 
 const PAGE_SIZE_OPTIONS = [50, 100];
 
@@ -109,12 +108,10 @@ export default function AdminOrdersTable({
   const datePopoverRef = useRef<HTMLDivElement>(null);
   const statusHeaderMenuRef = useRef<HTMLDivElement>(null);
   const paymentHeaderMenuRef = useRef<HTMLDivElement>(null);
-  const documentTypeMenuRef = useRef<HTMLDivElement>(null);
   const hasAutoResetFiltersRef = useRef(false);
 
   const [isStatusHeaderMenuOpen, setIsStatusHeaderMenuOpen] = useState(false);
   const [isPaymentHeaderMenuOpen, setIsPaymentHeaderMenuOpen] = useState(false);
-  const [isDocumentTypeMenuOpen, setIsDocumentTypeMenuOpen] = useState(false);
 
   useEffect(() => {
     const closeOnOutsideClick = (mouseEvent: MouseEvent) => {
@@ -135,7 +132,7 @@ export default function AdminOrdersTable({
 
 
   useEffect(() => {
-  if (!isStatusHeaderMenuOpen && !isPaymentHeaderMenuOpen && !isDocumentTypeMenuOpen) return;
+  if (!isStatusHeaderMenuOpen && !isPaymentHeaderMenuOpen) return;
 
   const handleOutsideClick = (event: MouseEvent) => {
     const target = event.target as Node;
@@ -145,16 +142,12 @@ export default function AdminOrdersTable({
     if (!paymentHeaderMenuRef.current?.contains(target)) {
       setIsPaymentHeaderMenuOpen(false);
     }
-    if (!documentTypeMenuRef.current?.contains(target)) {
-      setIsDocumentTypeMenuOpen(false);
-    }
   };
 
   const handleEscape = (event: KeyboardEvent) => {
     if (event.key === 'Escape') {
       setIsStatusHeaderMenuOpen(false);
       setIsPaymentHeaderMenuOpen(false);
-      setIsDocumentTypeMenuOpen(false);
     }
   };
 
@@ -165,7 +158,7 @@ export default function AdminOrdersTable({
     document.removeEventListener('mousedown', handleOutsideClick);
     document.removeEventListener('keydown', handleEscape);
   };
-}, [isDocumentTypeMenuOpen, isPaymentHeaderMenuOpen, isStatusHeaderMenuOpen]);
+}, [isPaymentHeaderMenuOpen, isStatusHeaderMenuOpen]);
 
   const latestOrderDate = useMemo(() => {
     const timestamps = orders
@@ -755,10 +748,6 @@ export default function AdminOrdersTable({
     fromDate || toDate
       ? `${formatSlDateFromDateInput(fromDate)} – ${formatSlDateFromDateInput(toDate)}`
       : defaultDateRangeLabel;
-  const selectedDocumentTypeLabel =
-  documentTypeOptions.find((documentTypeOption) => documentTypeOption.value === documentType)?.label ??
-  'Vsi dokumenti';
-
 
   const resetAllFilters = () => {
     setStatusFilter('all');
@@ -787,8 +776,7 @@ export default function AdminOrdersTable({
 
   const handleResetDocumentFilter = () => {
   setDocumentType('all');
-  setIsDocumentTypeMenuOpen(false);
-  };
+};
 
   const downloadFile = async (fileUrl: string, downloadFilename: string) => {
     const response = await fetch(fileUrl);
@@ -895,7 +883,7 @@ export default function AdminOrdersTable({
               <button
                 type="button"
                 onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-                className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 py-0 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff] focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+                className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 py-0 text-left text-xs text-slate-700 hover:bg-slate-100 focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
               >
                 <span className="inline-flex h-full w-full items-center gap-1.5 leading-none"> 
                   <svg
@@ -920,49 +908,49 @@ export default function AdminOrdersTable({
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('today')}
-                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
+                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
                       >
                         Danes
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('yesterday')}
-                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
+                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
                       >
                         Včeraj
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('7d')}
-                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
+                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
                       >
                         Zadnjih 7 dni
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('30d')}
-                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
+                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
                       >
                         Zadnjih 30 dni
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('3m')}
-                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
+                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
                       >
                         Zadnje 3 mesece
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('6m')}
-                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
+                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
                       >
                         Zadnjih 6 mesecev
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('1y')}
-                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
+                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100"
                       >
                         Zadnje leto
                       </button>
@@ -1002,42 +990,20 @@ export default function AdminOrdersTable({
               className="h-8 min-w-[260px] flex-1 rounded-xl border border-slate-300 px-3 text-xs text-slate-700 outline-none focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
             />
 
-            <div className="relative flex h-8 rounded-xl border border-[#d7dfff] bg-[#f5f8ff] shadow-sm" ref={documentTypeMenuRef}>
-              <button
-                type="button"
-                onClick={() => setIsDocumentTypeMenuOpen((previousOpen) => !previousOpen)}
-                className="flex h-full min-w-[140px] items-center justify-between rounded-l-xl px-3 text-left text-xs font-semibold text-slate-700 transition hover:bg-[#eef3ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0"
-                aria-haspopup="menu"
-                aria-expanded={isDocumentTypeMenuOpen}
-              >
-                <span className="truncate">{selectedDocumentTypeLabel}</span>
-                <span className="ml-2 text-slate-500">▾</span>
-              </button>
-
-              {isDocumentTypeMenuOpen && (
-                <div role="menu">
-                  <MenuPanel className="absolute left-0 top-8 z-30 w-[180px]">
-                    {documentTypeOptions.map((documentTypeOption) => (
-                      <MenuItem
-                        key={documentTypeOption.value}
-                        onClick={() => {
-                          setDocumentType(documentTypeOption.value);
-                          setIsDocumentTypeMenuOpen(false);
-                        }}
-                      >
-                        {documentTypeOption.label}
-                      </MenuItem>
-                    ))}
-                  </MenuPanel>
-                </div>
-              )}
+            <div className="relative min-w-[140px]">
+              <CustomSelect
+                value={documentType}
+                onChange={(next) => setDocumentType(next as DocumentType)}
+                options={documentTypeOptions}
+                className="h-8 min-w-[140px] px-3 py-0 text-xs font-semibold"
+              />
             </div>
 
             <button
               type="button"
               onClick={handleResetDocumentFilter}
               disabled={documentType === 'all'}
-              className="flex h-8 w-[92px] items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
+              className="flex h-8 w-[92px] items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
             >
               Ponastavi
             </button>
@@ -1046,7 +1012,7 @@ export default function AdminOrdersTable({
               type="button"
               onClick={handleDownloadAllDocuments}
               disabled={isDownloading}
-              className="flex h-8 w-[140px] items-center justify-center whitespace-nowrap rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold tabular-nums text-slate-700 transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
+              className="flex h-8 w-[140px] items-center justify-center whitespace-nowrap rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold tabular-nums text-slate-700 transition hover:bg-slate-100 focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45"
             >
               {isDownloading ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Prenos...</span> : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
             </button>
@@ -1166,7 +1132,7 @@ export default function AdminOrdersTable({
                         type="button"
                         onClick={() => setIsStatusHeaderMenuOpen((previousOpen) => !previousOpen)}
                         disabled={isBulkUpdatingStatus}
-                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff] disabled:cursor-default disabled:text-slate-300"
+                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-default disabled:text-slate-300"
                         aria-haspopup="menu"
                         aria-expanded={isStatusHeaderMenuOpen}
                       >
@@ -1209,7 +1175,7 @@ export default function AdminOrdersTable({
                         type="button"
                         onClick={() => setIsPaymentHeaderMenuOpen((previousOpen) => !previousOpen)}
                         disabled={isBulkUpdatingStatus}
-                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff] disabled:cursor-default disabled:text-slate-300"
+                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-default disabled:text-slate-300"
                         aria-haspopup="menu"
                         aria-expanded={isPaymentHeaderMenuOpen}
                       >
@@ -1410,16 +1376,16 @@ export default function AdminOrdersTable({
                             <path d="M11.5 4.5l3 3" />
                           </svg>
                         </a>
-                        <button
+                        <Button
                           type="button"
+                          variant="close-x"
                           onClick={() => void handleDeleteRow(order.id)}
                           disabled={deletingRowId === order.id}
-                          className={rowDeleteButtonClass}
                           aria-label={`Izbriši naročilo ${toDisplayOrderNumber(order.order_number)}`}
                           title="Izbriši"
                         >
                           {deletingRowId === order.id ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : '×'}
-                        </button>
+                        </Button>
                       </RowActions>
                     </TD>
                   </TR>

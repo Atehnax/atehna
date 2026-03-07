@@ -340,7 +340,7 @@ export default function AdminOrderItemsEditor({
                           min={1}
                           value={item.quantity}
                           onChange={(event) => updateItem(item.id, { quantity: Number(event.target.value) || 1 })}
-                          className="h-6 w-12 rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+                          className="h-6 w-12 rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
                         />
                       ) : (
                         <span className="inline-flex h-6 items-center text-[11px] leading-4 text-slate-900">{item.quantity}</span>
@@ -353,7 +353,7 @@ export default function AdminOrderItemsEditor({
                           inputMode="decimal"
                           value={formatDecimalInput(item.unitPrice)}
                           onChange={(event) => updateItem(item.id, { unitPrice: parseLocaleNumber(event.target.value) })}
-                          className="h-6 w-[4.5rem] rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+                          className="h-6 w-[4.5rem] rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
                         />
                       ) : (
                         <span className="inline-flex h-6 items-center text-[11px] leading-4 text-slate-900">{formatCurrency(item.unitPrice)}</span>
@@ -368,7 +368,7 @@ export default function AdminOrderItemsEditor({
                           onChange={(event) =>
                             updateItem(item.id, { discountPercentage: parseLocaleNumber(event.target.value) })
                           }
-                          className="h-6 w-14 rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+                          className="h-6 w-14 rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
                         />
                       ) : (
                         <span className="inline-flex h-6 items-center text-[11px] leading-4 text-slate-900">{formatDecimalInput(item.discountPercentage)} %</span>
@@ -408,7 +408,7 @@ export default function AdminOrderItemsEditor({
                 inputMode="decimal"
                 value={formatDecimalInput(draftShipping)}
                 onChange={(event) => setDraftShipping(Math.max(0, parseLocaleNumber(event.target.value)))}
-                className="h-6 w-full max-w-none rounded-md border border-slate-300 bg-white px-1 text-right text-[11px] leading-4 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6] sm:max-w-[60px]"
+                className="h-6 w-full max-w-none rounded-md border border-slate-300 bg-white px-1 text-right text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] sm:max-w-[60px]"
               />
             ) : (
               <span className="font-semibold">{formatCurrency(totals.shipping)}</span>

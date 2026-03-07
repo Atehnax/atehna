@@ -69,7 +69,7 @@ export default function AdminLoginForm() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#5d3ed6] px-4 text-sm font-semibold text-white transition hover:bg-[#4b30b6] disabled:opacity-60"
+          className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[color:var(--blue-500)] px-4 text-sm font-semibold text-white transition hover:bg-[color:var(--blue-700)] disabled:opacity-60"
         >
           {isSubmitting ? <span className="inline-flex items-center gap-2"><Spinner size="sm" className="text-white" />Prijava ...</span> : 'Prijava'}
         </button>

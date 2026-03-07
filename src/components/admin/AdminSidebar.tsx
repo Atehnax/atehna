@@ -52,20 +52,20 @@ export default function AdminSidebar() {
   };
 
   return (
-    <aside className={`h-full self-stretch shrink-0 transition-all duration-300 ${isCollapsed ? 'w-10' : 'w-[19rem]'}`}>
-      <div className="relative h-full overflow-visible border-r border-blue-200 bg-gradient-to-b from-blue-50 via-indigo-50 to-blue-100 shadow-sm">
+    <aside className={`relative min-h-full self-stretch shrink-0 overflow-y-auto overflow-x-hidden border-r border-[color:var(--semantic-info-border)] bg-[color:var(--blue-50)] shadow-sm transition-all duration-300 ${isCollapsed ? 'w-10' : 'w-[19rem]'}`}>
+      <div className="relative min-h-full overflow-visible">
         <button
           type="button"
           aria-label={isCollapsed ? 'Odpri meni' : 'Skrij meni'}
           onClick={() => setIsCollapsed((current) => !current)}
-          className="absolute right-[-14px] top-3 z-20 inline-flex h-8 w-8 items-center justify-center rounded-xl border border-blue-200 bg-white text-sm text-blue-700 shadow-sm transition hover:bg-blue-50"
+          className="absolute right-0 top-3 z-20 inline-flex h-8 w-8 translate-x-1/2 items-center justify-center rounded-xl border border-[color:var(--semantic-info-border)] bg-white text-sm text-[color:var(--semantic-info)] shadow-sm transition hover:bg-[color:var(--blue-100)]"
         >
           <span aria-hidden="true">{isCollapsed ? '❯' : '❮'}</span>
         </button>
 
         <div className={`relative z-10 flex h-full min-h-full flex-col px-3 py-10 transition-opacity duration-200 ${isCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100'}`}>
           <div className="mb-5 px-2 pr-4">
-            <p className="text-sm font-semibold uppercase tracking-[0.12em] text-blue-700">Administracija</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[color:var(--semantic-info)]">Administracija</p>
           </div>
 
           <div className="flex h-full min-h-full flex-col">
@@ -78,8 +78,8 @@ export default function AdminSidebar() {
                       href={link.href}
                       className={`flex items-center gap-2 rounded-xl px-2.5 py-2 pr-4 text-sm transition ${
                         isActive
-                          ? 'bg-white/80 font-semibold text-blue-800'
-                          : 'text-blue-700 hover:bg-white/70 hover:text-blue-800'
+                          ? 'font-semibold text-[color:var(--blue-700)]'
+                          : 'text-[color:var(--semantic-info)] hover:bg-white/75 hover:text-[color:var(--blue-700)]'
                       }`}
                     >
                       <SidebarIcon type={link.icon} />
@@ -90,12 +90,12 @@ export default function AdminSidebar() {
               })}
             </nav>
 
-            <div className="mt-auto border-t border-blue-200/80 pt-3">
+            <div className="mt-auto border-t border-[color:var(--semantic-info-border)] pt-3">
               <button
                 type="button"
                 onClick={() => void handleLogout()}
                 disabled={isLoggingOut}
-                className="flex w-full items-center gap-2 rounded-xl border border-blue-200 bg-white/80 px-2.5 py-2 pr-4 text-sm font-semibold text-slate-700 transition hover:bg-white disabled:opacity-60"
+                className="flex w-full items-center gap-2 rounded-xl border border-slate-300 bg-white/85 px-2.5 py-2 pr-4 text-sm font-semibold text-slate-700 transition hover:bg-white disabled:opacity-60"
               >
                 <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7">
                   <path d="M12 4h4v12h-4"/>

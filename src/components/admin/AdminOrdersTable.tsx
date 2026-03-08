@@ -101,7 +101,6 @@ export default function AdminOrdersTable({
   const debouncedFromDate = useDebouncedValue(fromDate, 200);
   const debouncedToDate = useDebouncedValue(toDate, 200);
   const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
-  const [documentTypeMenuOpen, setDocumentTypeMenuOpen] = useState(false);
 
   const [documentType, setDocumentType] = useState<DocumentType>('all');
   const { toast } = useToast();
@@ -993,14 +992,13 @@ export default function AdminOrdersTable({
               className="h-8 min-w-[260px] flex-1 rounded-xl border border-slate-300 px-3 text-xs text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
             />
 
-            <ButtonGroup className="min-w-[372px]">
-              <ButtonGroupItem isSelected={documentTypeMenuOpen || documentType !== 'all'} className="min-w-[140px]">
+            <ButtonGroup className="min-w-[328px]">
+              <ButtonGroupItem className="min-w-[140px]">
                 <CustomSelect
                   value={documentType}
                   onChange={(next) => setDocumentType(next as DocumentType)}
                   options={documentTypeOptions}
-                  onOpenChange={setDocumentTypeMenuOpen}
-                  className="h-8 min-w-[140px] rounded-none border-0 bg-transparent px-3 py-0 text-xs font-semibold shadow-none hover:bg-slate-100"
+                  className="h-8 min-w-[140px] rounded-none border-0 bg-transparent px-3 py-0 text-xs font-semibold shadow-none hover:bg-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-inset focus:z-10"
                 />
               </ButtonGroupItem>
 
@@ -1010,7 +1008,7 @@ export default function AdminOrdersTable({
                   variant="default"
                   onClick={handleResetDocumentFilter}
                   disabled={documentType === 'all'}
-                  className="w-[92px] rounded-none border-0 bg-transparent shadow-none"
+                  className="w-[92px] rounded-none border-0 bg-transparent shadow-none focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-inset focus:z-10"
                 >
                   Ponastavi
                 </Button>
@@ -1022,7 +1020,7 @@ export default function AdminOrdersTable({
                   variant="default"
                   onClick={handleDownloadAllDocuments}
                   disabled={isDownloading}
-                  className="w-[140px] rounded-none border-0 bg-transparent whitespace-nowrap tabular-nums shadow-none"
+                  className="w-[126px] px-4 rounded-none border-0 bg-transparent whitespace-nowrap tabular-nums shadow-none focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-inset focus:z-10"
                 >
                   {isDownloading ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Prenos...</span> : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
                 </Button>

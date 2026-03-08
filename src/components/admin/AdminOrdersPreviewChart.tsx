@@ -172,29 +172,6 @@ const toRgba = (hex: string, alpha: number) => {
   return `rgba(${r},${g},${b},${alpha})`;
 };
 
-
-const readCssVarColor = (name: string, fallback: string) => {
-  if (typeof window === 'undefined') return fallback;
-  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  return value || fallback;
-};
-
-const toRgba = (hex: string, alpha: number) => {
-  const clean = hex.replace('#', '').trim();
-  const normalized =
-    clean.length === 3
-      ? clean
-          .split('')
-          .map((char) => `${char}${char}`)
-          .join('')
-      : clean;
-  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return hex;
-  const r = Number.parseInt(normalized.slice(0, 2), 16);
-  const g = Number.parseInt(normalized.slice(2, 4), 16);
-  const b = Number.parseInt(normalized.slice(4, 6), 16);
-  return `rgba(${r},${g},${b},${alpha})`;
-};
-
 const fallbackAppearance: AnalyticsGlobalAppearance = {
   sectionBg: '#f1f0ec',
   canvasBg: '#ffffff',

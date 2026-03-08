@@ -600,7 +600,7 @@ function AdminOrdersPreviewChart({
                     <p className="absolute left-0 top-0 min-w-0 max-w-full truncate text-[clamp(0.75rem,1.2vw,0.875rem)] font-semibold tracking-wide text-slate-700">
                       {chart.title}
                     </p>
-                    <p className="min-w-0 overflow-hidden text-[clamp(1.35rem,4.2vw,2.125rem)] font-bold leading-none text-slate-700">
+                    <p className="min-w-0 overflow-hidden text-[clamp(0.95rem,3.1vw,1.5rem)] font-bold leading-none text-slate-700">
                       <span>{data.individualDaily.reduce((sum, value) => sum + value, 0)}</span>
                       <span className="mx-2 font-thin text-slate-300">|</span>
                       <span>{data.companyDaily.reduce((sum, value) => sum + value, 0)}</span>
@@ -613,7 +613,7 @@ function AdminOrdersPreviewChart({
                     <p className="absolute left-0 top-0 min-w-0 max-w-full truncate text-[clamp(0.75rem,1.2vw,0.875rem)] font-semibold tracking-wide text-slate-700">
                       {chart.title}
                     </p>
-                    <p className="min-w-0 max-w-full truncate text-[clamp(1.35rem,4.2vw,2.125rem)] font-bold leading-none text-slate-700">{chart.value}</p>
+                    <p className="min-w-0 max-w-full truncate text-[clamp(1.1rem,3.4vw,1.7rem)] font-bold leading-none text-slate-700">{chart.value}</p>
                   </>
                 )}
                 <p className={`absolute bottom-[8px] left-0 text-[11px] font-medium leading-none ${chart.deltaClassName}`}>{chart.delta}</p>

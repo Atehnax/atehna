@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { PdfButton } from '@/shared/ui/pdf';
+import { IconButton } from '@/shared/ui/icon-button';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 
@@ -292,25 +293,25 @@ export default function AdminOrderPdfManager({
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-semibold text-slate-900">Opombe</p>
           <div className="flex items-center gap-1.5">
-            <button
+            <IconButton
               type="button"
               onClick={toggleNotesEdit}
               title="Uredi"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100"
+              tone="neutral"
               aria-label="Uredi opombe"
             >
               <PencilIcon />
-            </button>
-            <button
+            </IconButton>
+            <IconButton
               type="button"
               onClick={() => void saveNotes()}
               disabled={notesSaveDisabled}
               title="Shrani"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100 disabled:cursor-default disabled:text-slate-300"
+              tone="neutral"
               aria-label="Shrani opombe"
             >
               <SaveIcon />
-            </button>
+            </IconButton>
           </div>
         </div>
 
@@ -356,7 +357,7 @@ export default function AdminOrderPdfManager({
                   <label
                     title="Naloži"
                     aria-label={`Naloži ${pdfType.label}`}
-                    className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-700"
+                    className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:bg-slate-100"
                   >
                     <input
                       type="file"
@@ -373,15 +374,15 @@ export default function AdminOrderPdfManager({
                     {uploadingType === pdfType.key ? <Spinner size="sm" className="text-slate-500" /> : <UploadIcon />}
                   </label>
 
-                  <button
+                  <IconButton
                     type="button"
                     onClick={() => downloadLatestByType(pdfType.key)}
                     title="Shrani"
+                    tone="neutral"
                     aria-label={`Shrani ${pdfType.label}`}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-700"
                   >
                     <SaveIcon />
-                  </button>
+                  </IconButton>
                 </div>
               </div>
 

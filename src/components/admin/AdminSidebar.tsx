@@ -24,6 +24,20 @@ function SidebarIcon({ type }: { type: (typeof rootLinks)[number]['icon'] }) {
   return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 5h12v12H4z"/><path d="M7 5V3h6v2"/></svg>;
 }
 
+
+function SidebarHandle({ isCollapsed, onToggle }: { isCollapsed: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={isCollapsed ? 'Odpri meni' : 'Skrij meni'}
+      onClick={onToggle}
+      className="absolute right-[-14px] top-3 z-40 inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[color:var(--semantic-info-border)] bg-white text-sm text-[color:var(--semantic-info)] shadow-sm transition hover:bg-[color:var(--blue-100)]"
+    >
+      <span aria-hidden="true">{isCollapsed ? '❯' : '❮'}</span>
+    </button>
+  );
+}
+
 export default function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -52,17 +66,8 @@ export default function AdminSidebar() {
   };
 
   return (
-    <aside className={`relative min-h-full self-stretch shrink-0 overflow-y-auto overflow-x-visible border-r border-[color:var(--semantic-info-border)] bg-slate-50/90 shadow-sm transition-all duration-300 ${isCollapsed ? 'w-10' : 'w-[19rem]'}`}>
-      <div className="relative min-h-full overflow-visible">
-        <button
-          type="button"
-          aria-label={isCollapsed ? 'Odpri meni' : 'Skrij meni'}
-          onClick={() => setIsCollapsed((current) => !current)}
-          className="absolute right-0 top-3 z-30 inline-flex h-8 w-8 translate-x-1/2 items-center justify-center rounded-xl border border-[color:var(--semantic-info-border)] bg-white text-sm text-[color:var(--semantic-info)] shadow-sm transition hover:bg-[color:var(--blue-100)]"
-        >
-          <span aria-hidden="true">{isCollapsed ? '❯' : '❮'}</span>
-        </button>
-
+    <div className={`relative min-h-full self-stretch shrink-0 overflow-visible transition-all duration-300 ${isCollapsed ? 'w-10' : 'w-[19rem]'}`}>
+      <aside className="h-full min-h-full overflow-y-auto overflow-x-visible border-r border-[color:var(--semantic-info-border)] bg-slate-50/90 shadow-sm">
         <div className={`relative z-10 flex h-full min-h-full flex-col px-3 py-10 transition-opacity duration-200 ${isCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100'}`}>
           <div className="mb-5 px-2 pr-4">
             <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[color:var(--semantic-info)]">Administracija</p>
@@ -107,7 +112,8 @@ export default function AdminSidebar() {
             </div>
           </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+      <SidebarHandle isCollapsed={isCollapsed} onToggle={() => setIsCollapsed((current) => !current)} />
+    </div>
   );
 }

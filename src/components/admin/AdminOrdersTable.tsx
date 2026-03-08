@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
-import { ButtonGroup, ButtonGroupItem } from '@/shared/ui/button-group';
+import { ButtonGroup } from '@/shared/ui/button-group';
 import { IconButton } from '@/shared/ui/icon-button';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
@@ -992,39 +992,33 @@ export default function AdminOrdersTable({
               className="h-8 min-w-[260px] flex-1 rounded-xl border border-slate-300 px-3 text-xs text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
             />
 
-            <ButtonGroup className="min-w-[328px]">
-              <ButtonGroupItem className="min-w-[140px]">
-                <CustomSelect
-                  value={documentType}
-                  onChange={(next) => setDocumentType(next as DocumentType)}
-                  options={documentTypeOptions}
-                  className="h-8 min-w-[140px] rounded-none border-0 bg-transparent px-3 py-0 text-xs font-semibold shadow-none hover:bg-slate-100"
-                />
-              </ButtonGroupItem>
+            <ButtonGroup className="min-w-[308px]">
+              <CustomSelect
+                value={documentType}
+                onChange={(next) => setDocumentType(next as DocumentType)}
+                options={documentTypeOptions}
+                triggerClassName="h-9 min-w-[140px] bg-transparent border-0 rounded-none px-3 py-0 text-sm font-medium flex items-center justify-between shadow-none hover:bg-slate-100 focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10"
+              />
 
-              <ButtonGroupItem>
-                <Button
-                  type="button"
-                  variant="default"
-                  onClick={handleResetDocumentFilter}
-                  disabled={documentType === 'all'}
-                  className="w-[92px] rounded-none border-0 bg-transparent shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0"
-                >
-                  Ponastavi
-                </Button>
-              </ButtonGroupItem>
+              <Button
+                type="button"
+                variant="default"
+                onClick={handleResetDocumentFilter}
+                disabled={documentType === 'all'}
+                className="h-9 px-3 rounded-none border-0 bg-transparent text-sm font-medium shadow-none focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10"
+              >
+                Ponastavi
+              </Button>
 
-              <ButtonGroupItem>
-                <Button
-                  type="button"
-                  variant="default"
-                  onClick={handleDownloadAllDocuments}
-                  disabled={isDownloading}
-                  className="w-[126px] px-4 rounded-none border-0 bg-transparent whitespace-nowrap tabular-nums shadow-none"
-                >
-                  {isDownloading ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Prenos...</span> : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
-                </Button>
-              </ButtonGroupItem>
+              <Button
+                type="button"
+                variant="default"
+                onClick={handleDownloadAllDocuments}
+                disabled={isDownloading}
+                className="h-9 w-[100px] px-2 rounded-none border-0 bg-transparent whitespace-nowrap text-sm font-medium tabular-nums shadow-none focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10"
+              >
+                {isDownloading ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Prenos...</span> : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
+              </Button>
             </ButtonGroup>
           </>
         }

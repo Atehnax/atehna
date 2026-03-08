@@ -31,10 +31,10 @@ const sizeClassMap = {
 } as const;
 
 function NavIcon({ direction }: { direction: 'first' | 'prev' | 'next' | 'last' }) {
-  if (direction === 'first') return <span aria-hidden="true">«</span>;
-  if (direction === 'prev') return <span aria-hidden="true">‹</span>;
-  if (direction === 'next') return <span aria-hidden="true">›</span>;
-  return <span aria-hidden="true">»</span>;
+  if (direction === 'first') return <span aria-hidden="true" className="font-normal transition-all group-hover:font-semibold">«</span>;
+  if (direction === 'prev') return <span aria-hidden="true" className="font-normal transition-all group-hover:font-semibold">‹</span>;
+  if (direction === 'next') return <span aria-hidden="true" className="font-normal transition-all group-hover:font-semibold">›</span>;
+  return <span aria-hidden="true" className="font-normal transition-all group-hover:font-semibold">»</span>;
 }
 
 export default function Pagination({
@@ -102,7 +102,7 @@ export default function Pagination({
           size={size === 'sm' ? 'sm' : 'md'}
           onClick={() => onPageChange(1)}
           disabled={safePage <= 1}
-          className={classNames('border-0 bg-transparent text-slate-600 shadow-none hover:border-slate-300 hover:bg-slate-100 active:bg-slate-100 disabled:bg-transparent disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
+          className={classNames('group border-0 bg-transparent text-slate-600 shadow-none hover:border-slate-300 hover:bg-slate-100 active:bg-slate-100 disabled:bg-transparent disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
           aria-label="Prva stran"
           title="Prva stran"
         >
@@ -116,7 +116,7 @@ export default function Pagination({
           size={size === 'sm' ? 'sm' : 'md'}
           onClick={() => onPageChange(safePage - 1)}
           disabled={safePage <= 1}
-          className={classNames('border-0 bg-transparent text-slate-600 shadow-none hover:border-slate-300 hover:bg-slate-100 active:bg-slate-100 disabled:bg-transparent disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
+          className={classNames('group border-0 bg-transparent text-slate-600 shadow-none hover:border-slate-300 hover:bg-slate-100 active:bg-slate-100 disabled:bg-transparent disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
           aria-label="Prejšnja stran"
           title="Prejšnja stran"
         >
@@ -130,7 +130,7 @@ export default function Pagination({
           size={size === 'sm' ? 'sm' : 'md'}
           onClick={() => onPageChange(safePage + 1)}
           disabled={safePage >= safePageCount}
-          className={classNames('border-0 bg-transparent text-slate-600 shadow-none hover:border-slate-300 hover:bg-slate-100 active:bg-slate-100 disabled:bg-transparent disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
+          className={classNames('group border-0 bg-transparent text-slate-600 shadow-none hover:border-slate-300 hover:bg-slate-100 active:bg-slate-100 disabled:bg-transparent disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
           aria-label="Naslednja stran"
           title="Naslednja stran"
         >
@@ -144,7 +144,7 @@ export default function Pagination({
           size={size === 'sm' ? 'sm' : 'md'}
           onClick={() => onPageChange(safePageCount)}
           disabled={safePage >= safePageCount}
-          className={classNames('border-0 bg-transparent text-slate-600 shadow-none hover:border-slate-300 hover:bg-slate-100 active:bg-slate-100 disabled:bg-transparent disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
+          className={classNames('group border-0 bg-transparent text-slate-600 shadow-none hover:border-slate-300 hover:bg-slate-100 active:bg-slate-100 disabled:bg-transparent disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
           aria-label="Zadnja stran"
           title="Zadnja stran"
         >

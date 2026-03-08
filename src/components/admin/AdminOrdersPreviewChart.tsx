@@ -1,6 +1,7 @@
 'use client';
 
 import { memo, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import type { Data, Layout } from 'plotly.js';
 import PlotlyClient from '@/components/admin/charts/PlotlyClient';
@@ -60,12 +61,6 @@ const rangeOptions: Array<{ key: Exclude<RangePreset, 'custom'>; label: string }
   { key: 'max', label: 'MAX' }
 ];
 
-
-const SERIES_FILL_SOFT = 'rgba(93,62,214,0.24)';
-const SERIES_LINE_STRONG = '#5d3ed6';
-const SERIES_STACK_BOTTOM = 'rgba(93,62,214,0.38)';
-const SERIES_STACK_MIDDLE = 'rgba(93,62,214,0.26)';
-const SERIES_STACK_TOP = 'rgba(93,62,214,0.16)';
 
 const movingAverage = (values: number[], window = 7) =>
   values.map((_, i) => {
@@ -171,13 +166,36 @@ const formatTooltipDateTime = (value: string) => {
   return `${value} 00:00`;
 };
 
+
+const readCssVarColor = (name: string, fallback: string) => {
+  if (typeof window === 'undefined') return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+};
+
+const toRgba = (hex: string, alpha: number) => {
+  const clean = hex.replace('#', '').trim();
+  const normalized =
+    clean.length === 3
+      ? clean
+          .split('')
+          .map((char) => `${char}${char}`)
+          .join('')
+      : clean;
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return hex;
+  const r = Number.parseInt(normalized.slice(0, 2), 16);
+  const g = Number.parseInt(normalized.slice(2, 4), 16);
+  const b = Number.parseInt(normalized.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+};
+
 const fallbackAppearance: AnalyticsGlobalAppearance = {
   sectionBg: '#f1f0ec',
   canvasBg: '#ffffff',
   cardBg: '#ffffff',
   plotBg: '#ffffff',
   axisTextColor: '#111827',
-  seriesPalette: ['#5d3ed6', '#5d3ed6', '#5d3ed6', '#5d3ed6', '#5d3ed6'],
+  seriesPalette: ['#3e67d6', '#059669', '#a16207', '#3e67d6', '#3e67d6'],
   gridColor: '#d8d6cf',
   gridOpacity: 0.35
 };
@@ -201,6 +219,33 @@ function AdminOrdersPreviewChart({
   const chartTheme = getChartThemeFromCssVars();
   const layoutBase = getBaseChartLayout(chartTheme);
   const [hoverCards, setHoverCards] = useState<Record<string, HoverCard>>({});
+
+  const semanticChartColors = useMemo(() => {
+    const info = readCssVarColor('--semantic-info', '#3e67d6');
+    const success = readCssVarColor('--semantic-success', '#059669');
+    const warning = readCssVarColor('--semantic-warning', '#a16207');
+
+    return {
+      orders: {
+        line: info,
+        fill: toRgba(info, 0.24)
+      },
+      revenue: {
+        line: success,
+        fill: toRgba(success, 0.24)
+      },
+      avgOrderValue: {
+        line: warning,
+        fill: toRgba(warning, 0.24)
+      },
+      customerStack: {
+        line: info,
+        bottom: toRgba(info, 0.38),
+        middle: toRgba(info, 0.26),
+        top: toRgba(info, 0.16)
+      }
+    };
+  }, []);
 
   const data = useMemo(() => {
     const selectedOrders = orders.filter((order) => {
@@ -337,7 +382,7 @@ function AdminOrdersPreviewChart({
           name: 'Število naročil',
           x: data.x,
           y: data.ordersSeries,
-          marker: { color: SERIES_FILL_SOFT },
+          marker: { color: semanticChartColors.orders.fill },
           hoverinfo: 'none'
         },
         {
@@ -346,13 +391,13 @@ function AdminOrdersPreviewChart({
           name: '7d MA',
           x: data.x,
           y: data.ordersMa,
-          line: { color: SERIES_LINE_STRONG, width: 2.1 },
+          line: { color: semanticChartColors.orders.line, width: 2.1 },
           hoverinfo: 'none'
         }
       ],
       tooltipRowsAt: (i) => [
-        { label: 'Število naročil', value: formatInt(data.ordersSeries[i]), color: SERIES_FILL_SOFT, numericValue: data.ordersSeries[i] ?? null },
-        { label: '7d MA', value: formatInt(data.ordersMa[i]), color: SERIES_LINE_STRONG, numericValue: data.ordersMa[i] ?? null }
+        { label: 'Število naročil', value: formatInt(data.ordersSeries[i]), color: semanticChartColors.orders.fill, numericValue: data.ordersSeries[i] ?? null },
+        { label: '7d MA', value: formatInt(data.ordersMa[i]), color: semanticChartColors.orders.line, numericValue: data.ordersMa[i] ?? null }
       ],
       enforceTopDownTooltipOrder: true,
       layout: miniLayout(false)
@@ -372,7 +417,7 @@ function AdminOrdersPreviewChart({
           name: 'Prihodki',
           x: data.x,
           y: data.revenueSeries,
-          marker: { color: SERIES_FILL_SOFT },
+          marker: { color: semanticChartColors.revenue.fill },
           hoverinfo: 'none'
         },
         {
@@ -381,13 +426,13 @@ function AdminOrdersPreviewChart({
           name: '7d MA',
           x: data.x,
           y: data.revenueMa,
-          line: { color: SERIES_LINE_STRONG, width: 2.1 },
+          line: { color: semanticChartColors.revenue.line, width: 2.1 },
           hoverinfo: 'none'
         }
       ],
       tooltipRowsAt: (i) => [
-        { label: 'Prihodki', value: formatCurrency(data.revenueSeries[i]), color: SERIES_FILL_SOFT, numericValue: data.revenueSeries[i] ?? null },
-        { label: '7d MA', value: formatCurrency(data.revenueMa[i]), color: SERIES_LINE_STRONG, numericValue: data.revenueMa[i] ?? null }
+        { label: 'Prihodki', value: formatCurrency(data.revenueSeries[i]), color: semanticChartColors.revenue.fill, numericValue: data.revenueSeries[i] ?? null },
+        { label: '7d MA', value: formatCurrency(data.revenueMa[i]), color: semanticChartColors.revenue.line, numericValue: data.revenueMa[i] ?? null }
       ],
       enforceTopDownTooltipOrder: true,
       layout: miniLayout(false)
@@ -407,7 +452,7 @@ function AdminOrdersPreviewChart({
           name: 'Povp. €/naročilo',
           x: data.x,
           y: data.dailyAov,
-          marker: { color: SERIES_FILL_SOFT },
+          marker: { color: semanticChartColors.avgOrderValue.fill },
           connectgaps: false,
           hoverinfo: 'none'
         },
@@ -417,14 +462,14 @@ function AdminOrdersPreviewChart({
           name: '7d MA',
           x: data.x,
           y: data.dailyAovMa,
-          line: { color: SERIES_LINE_STRONG, width: 2.1 },
+          line: { color: semanticChartColors.avgOrderValue.line, width: 2.1 },
           connectgaps: false,
           hoverinfo: 'none'
         }
       ],
       tooltipRowsAt: (i) => [
-        { label: 'Povp. €/naročilo', value: formatCurrency(data.dailyAov[i]), color: SERIES_FILL_SOFT, numericValue: data.dailyAov[i] ?? null },
-        { label: '7d MA', value: formatCurrency(data.dailyAovMa[i]), color: SERIES_LINE_STRONG, numericValue: data.dailyAovMa[i] ?? null }
+        { label: 'Povp. €/naročilo', value: formatCurrency(data.dailyAov[i]), color: semanticChartColors.avgOrderValue.fill, numericValue: data.dailyAov[i] ?? null },
+        { label: '7d MA', value: formatCurrency(data.dailyAovMa[i]), color: semanticChartColors.avgOrderValue.line, numericValue: data.dailyAovMa[i] ?? null }
       ],
       enforceTopDownTooltipOrder: true,
       layout: miniLayout(false)
@@ -441,46 +486,34 @@ function AdminOrdersPreviewChart({
       })(),
       traces: [
         {
-          type: 'scatter',
-          mode: 'lines',
-          stackgroup: 'types',
+          type: 'bar',
           name: 'Šola',
           x: data.x,
           y: data.schoolDaily,
-          line: { color: SERIES_LINE_STRONG, width: 1.2 },
-          fillcolor: SERIES_STACK_BOTTOM,
-          fill: 'tozeroy',
+          marker: { color: semanticChartColors.customerStack.bottom },
           hoverinfo: 'none'
         },
         {
-          type: 'scatter',
-          mode: 'lines',
-          stackgroup: 'types',
+          type: 'bar',
           name: 'Podjetje',
           x: data.x,
           y: data.companyDaily,
-          line: { color: SERIES_LINE_STRONG, width: 1.2 },
-          fillcolor: SERIES_STACK_MIDDLE,
-          fill: 'tonexty',
+          marker: { color: semanticChartColors.customerStack.middle },
           hoverinfo: 'none'
         },
         {
-          type: 'scatter',
-          mode: 'lines',
-          stackgroup: 'types',
+          type: 'bar',
           name: 'Fizična oseba',
           x: data.x,
           y: data.individualDaily,
-          line: { color: SERIES_LINE_STRONG, width: 1.2 },
-          fillcolor: SERIES_STACK_TOP,
-          fill: 'tonexty',
+          marker: { color: semanticChartColors.customerStack.top },
           hoverinfo: 'none'
         }
       ],
       tooltipRowsAt: (i) => [
-        { label: 'Fizična oseba', value: formatInt(data.individualDaily[i]), color: SERIES_STACK_TOP, numericValue: data.individualDaily[i] ?? null },
-        { label: 'Podjetje', value: formatInt(data.companyDaily[i]), color: SERIES_STACK_MIDDLE, numericValue: data.companyDaily[i] ?? null },
-        { label: 'Šola', value: formatInt(data.schoolDaily[i]), color: SERIES_STACK_BOTTOM, numericValue: data.schoolDaily[i] ?? null }
+        { label: 'Fizična oseba', value: formatInt(data.individualDaily[i]), color: semanticChartColors.customerStack.top, numericValue: data.individualDaily[i] ?? null },
+        { label: 'Podjetje', value: formatInt(data.companyDaily[i]), color: semanticChartColors.customerStack.middle, numericValue: data.companyDaily[i] ?? null },
+        { label: 'Šola', value: formatInt(data.schoolDaily[i]), color: semanticChartColors.customerStack.bottom, numericValue: data.schoolDaily[i] ?? null }
       ],
       enforceTopDownTooltipOrder: false,
       layout: miniLayout(true)
@@ -500,19 +533,16 @@ function AdminOrdersPreviewChart({
     const pointY = typeof point.y === 'number' ? point.y : Number(point.y);
     if (!Number.isFinite(pointY)) return;
 
-    const rect = (domEvent.currentTarget as HTMLElement).getBoundingClientRect();
     const tooltipWidth = 380;
     const tooltipHeight = Math.max(176, 74 + rows.length * 34);
-    const viewportLeft = Math.min(
+    const left = Math.min(
       window.innerWidth - tooltipWidth - 12,
       Math.max(12, domEvent.clientX + 40)
     );
-    const viewportTop = Math.min(
+    const top = Math.min(
       window.innerHeight - tooltipHeight - 12,
       Math.max(12, domEvent.clientY + 40)
     );
-    const left = viewportLeft - rect.left;
-    const top = viewportTop - rect.top;
 
     setHoverCards((prev) => ({
       ...prev,
@@ -542,7 +572,7 @@ function AdminOrdersPreviewChart({
               key={option.key}
               type="button"
               onClick={() => onRangeChange?.(option.key)}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:border focus-visible:border-[#5d3ed6] focus-visible:outline-none focus-visible:ring-0 ${activeRange === option.key ? 'bg-[#e9efff] text-[#3659d6]' : 'border border-transparent text-slate-700 hover:bg-slate-100'}`}
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:border focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0 ${activeRange === option.key ? 'bg-[#e9efff] text-[#3659d6]' : 'border border-transparent text-slate-700 hover:bg-slate-100'}`}
             >
               {option.label}
             </button>
@@ -558,7 +588,7 @@ function AdminOrdersPreviewChart({
               key={chart.key}
               type="button"
               onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(chart.focusKey)}`)}
-              className="flex min-h-[124px] flex-col overflow-hidden rounded-xl border px-3 py-2 text-left shadow-sm transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] md:flex-row md:items-center md:justify-between"
+              className="flex min-h-[124px] flex-col overflow-visible rounded-xl border px-3 py-2 text-left shadow-sm transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] md:flex-row md:items-center md:justify-between"
               style={{
                 background: `linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,248,251,0.96) 100%)`,
                 borderColor: appearance.gridColor
@@ -570,7 +600,7 @@ function AdminOrdersPreviewChart({
                     <p className="absolute left-0 top-0 min-w-0 max-w-full truncate text-[clamp(0.75rem,1.2vw,0.875rem)] font-semibold tracking-wide text-slate-700">
                       {chart.title}
                     </p>
-                    <p className="min-w-0 overflow-hidden text-[clamp(1.35rem,4.2vw,2.125rem)] font-bold leading-none text-slate-700">
+                    <p className="min-w-0 overflow-hidden text-[clamp(0.95rem,3.1vw,1.5rem)] font-bold leading-none text-slate-700">
                       <span>{data.individualDaily.reduce((sum, value) => sum + value, 0)}</span>
                       <span className="mx-2 font-thin text-slate-300">|</span>
                       <span>{data.companyDaily.reduce((sum, value) => sum + value, 0)}</span>
@@ -583,7 +613,7 @@ function AdminOrdersPreviewChart({
                     <p className="absolute left-0 top-0 min-w-0 max-w-full truncate text-[clamp(0.75rem,1.2vw,0.875rem)] font-semibold tracking-wide text-slate-700">
                       {chart.title}
                     </p>
-                    <p className="min-w-0 max-w-full truncate text-[clamp(1.35rem,4.2vw,2.125rem)] font-bold leading-none text-slate-700">{chart.value}</p>
+                    <p className="min-w-0 max-w-full truncate text-[clamp(1.1rem,3.4vw,1.7rem)] font-bold leading-none text-slate-700">{chart.value}</p>
                   </>
                 )}
                 <p className={`absolute bottom-[8px] left-0 text-[11px] font-medium leading-none ${chart.deltaClassName}`}>{chart.delta}</p>
@@ -601,9 +631,9 @@ function AdminOrdersPreviewChart({
                   className="admin-orders-preview-plot"
                 />
 
-                {hoverCard ? (
+                {hoverCard ? createPortal(
                   <div
-                    className="pointer-events-none absolute z-30 min-w-[360px] max-w-[460px] rounded-xl border border-[#5d3ed6] bg-[#f8f7fc] px-[14px] py-3 text-left shadow-[0_10px_24px_rgba(15,23,42,0.15)]"
+                    className="pointer-events-none fixed z-[120] min-w-[360px] max-w-[460px] rounded-xl border border-[color:var(--semantic-info-border)] bg-[color:var(--surface-muted)] px-[14px] py-3 text-left shadow-[0_10px_24px_rgba(15,23,42,0.15)]"
                     style={{ left: hoverCard.left, top: hoverCard.top }}
                   >
                     <div className="mb-2 flex items-center justify-between">
@@ -624,7 +654,8 @@ function AdminOrdersPreviewChart({
                         </div>
                       ))}
                     </div>
-                  </div>
+                  </div>,
+                  document.body
                 ) : null}
               </div>
             </button>

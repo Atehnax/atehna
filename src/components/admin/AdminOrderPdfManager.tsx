@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { PdfButton } from '@/shared/ui/pdf';
+import { IconButton } from '@/shared/ui/icon-button';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 
@@ -292,25 +293,25 @@ export default function AdminOrderPdfManager({
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-semibold text-slate-900">Opombe</p>
           <div className="flex items-center gap-1.5">
-            <button
+            <IconButton
               type="button"
               onClick={toggleNotesEdit}
               title="Uredi"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100"
+              tone="neutral"
               aria-label="Uredi opombe"
             >
               <PencilIcon />
-            </button>
-            <button
+            </IconButton>
+            <IconButton
               type="button"
               onClick={() => void saveNotes()}
               disabled={notesSaveDisabled}
               title="Shrani"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100 disabled:cursor-default disabled:text-slate-300"
+              tone="neutral"
               aria-label="Shrani opombe"
             >
               <SaveIcon />
-            </button>
+            </IconButton>
           </div>
         </div>
 
@@ -319,7 +320,7 @@ export default function AdminOrderPdfManager({
             value={draftNotes}
             onChange={(event) => setDraftNotes(event.target.value)}
             rows={2}
-            className={`${notesBoxClass} w-full resize-y bg-white outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]`}
+            className={`${notesBoxClass} w-full resize-y bg-white outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
           />
         ) : (
           <p className={`${notesBoxClass} bg-slate-100 text-slate-600`}>
@@ -356,7 +357,7 @@ export default function AdminOrderPdfManager({
                   <label
                     title="Naloži"
                     aria-label={`Naloži ${pdfType.label}`}
-                    className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-700"
+                    className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:bg-slate-100"
                   >
                     <input
                       type="file"
@@ -373,15 +374,15 @@ export default function AdminOrderPdfManager({
                     {uploadingType === pdfType.key ? <Spinner size="sm" className="text-slate-500" /> : <UploadIcon />}
                   </label>
 
-                  <button
+                  <IconButton
                     type="button"
                     onClick={() => downloadLatestByType(pdfType.key)}
                     title="Shrani"
+                    tone="neutral"
                     aria-label={`Shrani ${pdfType.label}`}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-700"
                   >
                     <SaveIcon />
-                  </button>
+                  </IconButton>
                 </div>
               </div>
 
@@ -433,7 +434,7 @@ export default function AdminOrderPdfManager({
                                         [pdfType.key]: !previousState[pdfType.key]
                                       }))
                                     }
-                                    className="shrink-0 text-xs font-semibold text-slate-500 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5d3ed6]"
+                                    className="shrink-0 text-xs font-semibold text-slate-500 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]"
                                     aria-label={
                                       isExpanded
                                         ? `Skrij verzije za ${pdfType.label}`

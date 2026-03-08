@@ -106,7 +106,7 @@ function FloatingInput({
         disabled={disabled}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6] disabled:bg-slate-100 disabled:text-slate-400"
+        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] disabled:bg-slate-100 disabled:text-slate-400"
       />
       <label className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600 ${disabled ? 'bg-slate-100' : 'bg-white'}`}>
         {label}
@@ -134,7 +134,7 @@ function FloatingSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+        className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
       >
         {children}
       </select>
@@ -377,7 +377,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Poišči po nazivu, SKU ali kategoriji …"
-              className="h-8 min-w-[240px] flex-1 rounded-xl border border-slate-300 px-3 text-xs focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+              className="h-8 min-w-[240px] flex-1 rounded-xl border border-slate-300 px-3 text-xs focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
             />
             <div className="relative min-w-[220px]">
               <CustomSelect
@@ -399,7 +399,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             <Button type="button" variant="archive" onClick={archiveSelected} disabled={selectedIds.length === 0}>
               Arhiviraj
             </Button>
-            <Button type="button" variant="admin-soft" onClick={openCreate}>
+            <Button type="button" variant="default" onClick={openCreate}>
               <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M10 4v12M4 10h12" /></svg>
               Nov artikel
             </Button>
@@ -484,7 +484,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             <div className="space-y-3 text-sm">
               <FloatingInput label="Naziv" value={draft.name} onChange={(value) => setDraft((prev) => ({ ...prev, name: value }))} />
               <div className="group relative" data-filled={draft.description ? 'true' : 'false'}>
-                <textarea value={draft.description} onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))} placeholder=" " className="min-h-[90px] w-full rounded-xl border border-slate-300 bg-white px-3 pb-2 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]" />
+                <textarea value={draft.description} onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))} placeholder=" " className="min-h-[90px] w-full rounded-xl border border-slate-300 bg-white px-3 pb-2 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]" />
                 <label className="pointer-events-none absolute left-3 top-1.5 bg-white px-1 text-[10px] text-slate-600">Opis</label>
               </div>
 

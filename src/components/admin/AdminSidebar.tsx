@@ -52,13 +52,13 @@ export default function AdminSidebar() {
   };
 
   return (
-    <aside className={`relative min-h-full self-stretch shrink-0 overflow-y-auto overflow-x-hidden border-r border-[color:var(--semantic-info-border)] bg-[color:var(--blue-50)] shadow-sm transition-all duration-300 ${isCollapsed ? 'w-10' : 'w-[19rem]'}`}>
+    <aside className={`relative min-h-full self-stretch shrink-0 overflow-y-auto overflow-x-visible border-r border-[color:var(--semantic-info-border)] bg-slate-50/90 shadow-sm transition-all duration-300 ${isCollapsed ? 'w-10' : 'w-[19rem]'}`}>
       <div className="relative min-h-full overflow-visible">
         <button
           type="button"
           aria-label={isCollapsed ? 'Odpri meni' : 'Skrij meni'}
           onClick={() => setIsCollapsed((current) => !current)}
-          className="absolute right-0 top-3 z-20 inline-flex h-8 w-8 translate-x-1/2 items-center justify-center rounded-xl border border-[color:var(--semantic-info-border)] bg-white text-sm text-[color:var(--semantic-info)] shadow-sm transition hover:bg-[color:var(--blue-100)]"
+          className="absolute right-0 top-1/2 z-30 inline-flex h-8 w-8 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-xl border border-[color:var(--semantic-info-border)] bg-white text-sm text-[color:var(--semantic-info)] shadow-sm transition hover:bg-[color:var(--blue-100)]"
         >
           <span aria-hidden="true">{isCollapsed ? '❯' : '❮'}</span>
         </button>

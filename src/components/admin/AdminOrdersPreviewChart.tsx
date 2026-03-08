@@ -1,6 +1,7 @@
 'use client';
 
 import { memo, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import type { Data, Layout } from 'plotly.js';
 import PlotlyClient from '@/components/admin/charts/PlotlyClient';
@@ -485,39 +486,27 @@ function AdminOrdersPreviewChart({
       })(),
       traces: [
         {
-          type: 'scatter',
-          mode: 'lines',
-          stackgroup: 'types',
+          type: 'bar',
           name: 'Šola',
           x: data.x,
           y: data.schoolDaily,
-          line: { color: semanticChartColors.customerStack.line, width: 1.2 },
-          fillcolor: semanticChartColors.customerStack.bottom,
-          fill: 'tozeroy',
+          marker: { color: semanticChartColors.customerStack.bottom },
           hoverinfo: 'none'
         },
         {
-          type: 'scatter',
-          mode: 'lines',
-          stackgroup: 'types',
+          type: 'bar',
           name: 'Podjetje',
           x: data.x,
           y: data.companyDaily,
-          line: { color: semanticChartColors.customerStack.line, width: 1.2 },
-          fillcolor: semanticChartColors.customerStack.middle,
-          fill: 'tonexty',
+          marker: { color: semanticChartColors.customerStack.middle },
           hoverinfo: 'none'
         },
         {
-          type: 'scatter',
-          mode: 'lines',
-          stackgroup: 'types',
+          type: 'bar',
           name: 'Fizična oseba',
           x: data.x,
           y: data.individualDaily,
-          line: { color: semanticChartColors.customerStack.line, width: 1.2 },
-          fillcolor: semanticChartColors.customerStack.top,
-          fill: 'tonexty',
+          marker: { color: semanticChartColors.customerStack.top },
           hoverinfo: 'none'
         }
       ],
@@ -544,19 +533,16 @@ function AdminOrdersPreviewChart({
     const pointY = typeof point.y === 'number' ? point.y : Number(point.y);
     if (!Number.isFinite(pointY)) return;
 
-    const rect = (domEvent.currentTarget as HTMLElement).getBoundingClientRect();
     const tooltipWidth = 380;
     const tooltipHeight = Math.max(176, 74 + rows.length * 34);
-    const viewportLeft = Math.min(
+    const left = Math.min(
       window.innerWidth - tooltipWidth - 12,
       Math.max(12, domEvent.clientX + 40)
     );
-    const viewportTop = Math.min(
+    const top = Math.min(
       window.innerHeight - tooltipHeight - 12,
       Math.max(12, domEvent.clientY + 40)
     );
-    const left = viewportLeft - rect.left;
-    const top = viewportTop - rect.top;
 
     setHoverCards((prev) => ({
       ...prev,
@@ -602,7 +588,7 @@ function AdminOrdersPreviewChart({
               key={chart.key}
               type="button"
               onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(chart.focusKey)}`)}
-              className="flex min-h-[124px] flex-col overflow-hidden rounded-xl border px-3 py-2 text-left shadow-sm transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] md:flex-row md:items-center md:justify-between"
+              className="flex min-h-[124px] flex-col overflow-visible rounded-xl border px-3 py-2 text-left shadow-sm transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] md:flex-row md:items-center md:justify-between"
               style={{
                 background: `linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,248,251,0.96) 100%)`,
                 borderColor: appearance.gridColor
@@ -645,9 +631,9 @@ function AdminOrdersPreviewChart({
                   className="admin-orders-preview-plot"
                 />
 
-                {hoverCard ? (
+                {hoverCard ? createPortal(
                   <div
-                    className="pointer-events-none absolute z-30 min-w-[360px] max-w-[460px] rounded-xl border border-[color:var(--semantic-info-border)] bg-[color:var(--surface-muted)] px-[14px] py-3 text-left shadow-[0_10px_24px_rgba(15,23,42,0.15)]"
+                    className="pointer-events-none fixed z-[120] min-w-[360px] max-w-[460px] rounded-xl border border-[color:var(--semantic-info-border)] bg-[color:var(--surface-muted)] px-[14px] py-3 text-left shadow-[0_10px_24px_rgba(15,23,42,0.15)]"
                     style={{ left: hoverCard.left, top: hoverCard.top }}
                   >
                     <div className="mb-2 flex items-center justify-between">
@@ -668,7 +654,8 @@ function AdminOrdersPreviewChart({
                         </div>
                       ))}
                     </div>
-                  </div>
+                  </div>,
+                  document.body
                 ) : null}
               </div>
             </button>

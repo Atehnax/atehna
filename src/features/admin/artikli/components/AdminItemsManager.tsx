@@ -449,7 +449,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             </THead>
             <tbody>
               {pagedItems.map((item, index) => (
-                <tr key={item.id} className={`border-t border-slate-200 transition-colors ${index % 2 === 0 ? "bg-white/70" : "bg-slate-50/60"} hover:bg-[#f8f7fc]`}>
+                <tr key={item.id} className={`border-t border-slate-200 transition-colors ${index % 2 === 0 ? "bg-white/70" : "bg-slate-50/60"} hover:bg-[#eef3ff]`}>
                   <td className="px-3 py-2 text-center"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleOne(item.id)} aria-label={`Izberi ${item.name}`} /></td>
                   <td className="px-3 py-2 font-medium text-slate-900">{item.name}</td>
                   <td className="px-3 py-2 text-slate-600">{item.sku}</td>
@@ -465,7 +465,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                       {item.active ? 'Aktiven' : 'Neaktiven'}
                     </Chip>
                   </td>
-                  <td className="px-3 py-2"><div className="flex items-center justify-center gap-1.5"><IconButton type="button" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi"><ActionIcon type="edit" /></IconButton><IconButton type="button" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji"><ActionIcon type="copy" /></IconButton><IconButton type="button" tone="danger" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj" className="border-amber-300 text-amber-700 hover:bg-amber-100"><ActionIcon type="archive" /></IconButton></div></td>
+                  <td className="px-3 py-2"><div className="flex items-center justify-center gap-1.5"><IconButton type="button" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi"><ActionIcon type="edit" /></IconButton><IconButton type="button" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji"><ActionIcon type="copy" /></IconButton><IconButton type="button" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj" className="border-amber-300 text-amber-700 hover:bg-amber-100"><ActionIcon type="archive" /></IconButton></div></td>
                 </tr>
               ))}
             </tbody>

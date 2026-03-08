@@ -36,7 +36,7 @@ export function TBody({ children, className, ...props }: BaseProps & HTMLAttribu
 
 export function TR({ children, className, ...props }: BaseProps & HTMLAttributes<HTMLTableRowElement>) {
   return (
-    <tr className={className} {...props}>
+    <tr className={classNames('transition-colors hover:bg-[#eef3ff]', className)} {...props}>
       {children}
     </tr>
   );

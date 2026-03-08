@@ -1258,8 +1258,8 @@ export default function AdminOrdersTable({
                   <TR
                     key={order.id}
                     className={`border-t border-slate-100 transition-colors duration-200 ${
-                      isRowSelected ? 'bg-[#f8f7fc]' : orderIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-                    } hover:bg-[#f8f7fc]`}
+                      isRowSelected ? 'bg-[#eef3ff]' : orderIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+                    } hover:bg-[#eef3ff]`}
                   >
                     <TD>
                       <div className="flex justify-center">

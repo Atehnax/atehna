@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
+import { ButtonGroup } from '@/shared/ui/button-group';
+import { IconButton } from '@/shared/ui/icon-button';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { SegmentedControl } from '@/shared/ui/segmented';
@@ -12,7 +14,7 @@ import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagi
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
-import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
+import { buttonTokenClasses, dateInputTokenClasses } from '@/shared/ui/theme/tokens';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
 import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
 import AdminOrderPaymentSelect from '@/components/admin/AdminOrderPaymentSelect';
@@ -883,7 +885,7 @@ export default function AdminOrdersTable({
               <button
                 type="button"
                 onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-                className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 py-0 text-left text-xs text-slate-700 hover:bg-slate-100 focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+                className="h-8 min-w-[175px] rounded-xl border border-slate-300 bg-white px-3 py-0 text-left text-xs text-slate-700 hover:bg-transparent focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
               >
                 <span className="inline-flex h-full w-full items-center gap-1.5 leading-none"> 
                   <svg
@@ -964,7 +966,7 @@ export default function AdminOrdersTable({
                           lang="sl-SI"
                           value={fromDate}
                           onChange={(event) => { setFromDate(event.target.value); setRangePreset('custom'); }}
-                          className="mt-1 h-8 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs outline-none focus:border-[#5d3ed6] focus:bg-white focus:ring-0 focus:ring-[#5d3ed6]"
+                          className={`mt-1 ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`}
                         />
                       </div>
                       <div>
@@ -974,7 +976,7 @@ export default function AdminOrdersTable({
                           lang="sl-SI"
                           value={toDate}
                           onChange={(event) => { setToDate(event.target.value); setRangePreset('custom'); }}
-                          className="mt-1 h-8 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs outline-none focus:border-[#5d3ed6] focus:bg-white focus:ring-0 focus:ring-[#5d3ed6]"
+                          className={`mt-1 ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`}
                         />
                       </div>
                     </div>
@@ -987,37 +989,39 @@ export default function AdminOrdersTable({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Poišči po številki, naročniku, naslovu, opombi ..."
-              className="h-8 min-w-[260px] flex-1 rounded-xl border border-slate-300 px-3 text-xs text-slate-700 outline-none focus:border-[#5d3ed6] focus:ring-0 focus:ring-[#5d3ed6]"
+              className="h-8 min-w-[260px] flex-1 rounded-xl border border-slate-300 px-3 text-xs text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
             />
 
-            <div className="relative min-w-[140px]">
-              <CustomSelect
-                value={documentType}
-                onChange={(next) => setDocumentType(next as DocumentType)}
-                options={documentTypeOptions}
-                className="h-8 min-w-[140px] px-3 py-0 text-xs font-semibold"
-              />
-            </div>
+            <ButtonGroup className="min-w-[372px]">
+              <div className="min-w-[140px]">
+                <CustomSelect
+                  value={documentType}
+                  onChange={(next) => setDocumentType(next as DocumentType)}
+                  options={documentTypeOptions}
+                  className="h-8 min-w-[140px] rounded-none border-0 bg-transparent px-3 py-0 text-xs font-semibold shadow-none hover:bg-slate-100"
+                />
+              </div>
 
-            <Button
-              type="button"
-              variant="default"
-              onClick={handleResetDocumentFilter}
-              disabled={documentType === 'all'}
-              className="w-[92px]"
-            >
-              Ponastavi
-            </Button>
+              <Button
+                type="button"
+                variant="default"
+                onClick={handleResetDocumentFilter}
+                disabled={documentType === 'all'}
+                className="w-[92px] rounded-none border-0 bg-transparent shadow-none"
+              >
+                Ponastavi
+              </Button>
 
-            <Button
-              type="button"
-              variant="default"
-              onClick={handleDownloadAllDocuments}
-              disabled={isDownloading}
-              className="w-[140px] whitespace-nowrap tabular-nums"
-            >
-              {isDownloading ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Prenos...</span> : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
-            </Button>
+              <Button
+                type="button"
+                variant="default"
+                onClick={handleDownloadAllDocuments}
+                disabled={isDownloading}
+                className="w-[140px] rounded-none border-0 bg-transparent whitespace-nowrap tabular-nums shadow-none"
+              >
+                {isDownloading ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Prenos...</span> : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
+              </Button>
+            </ButtonGroup>
           </>
         }
         headerRight={
@@ -1258,8 +1262,8 @@ export default function AdminOrdersTable({
                   <TR
                     key={order.id}
                     className={`border-t border-slate-100 transition-colors duration-200 ${
-                      isRowSelected ? 'bg-[#f8f7fc]' : orderIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-                    } hover:bg-[#f8f7fc]`}
+                      isRowSelected ? 'bg-[#eef3ff]' : orderIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+                    } hover:bg-[#eef3ff]`}
                   >
                     <TD>
                       <div className="flex justify-center">
@@ -1276,7 +1280,7 @@ export default function AdminOrdersTable({
                     <TD className="text-center font-semibold text-slate-900" data-no-row-nav>
                       <a
                         href={`/admin/orders/${order.id}`}
-                        className="inline-flex rounded-sm px-1 text-[13px] font-semibold text-brand-700 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#5d3ed6]"
+                        className="inline-flex rounded-sm px-1 text-[13px] font-semibold text-brand-700 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
                         aria-label={`Odpri naročilo ${toDisplayOrderNumber(order.order_number)}`}
                       >
                         {toDisplayOrderNumber(order.order_number)}
@@ -1285,7 +1289,7 @@ export default function AdminOrdersTable({
 
                     <TD className="text-center whitespace-nowrap text-slate-700">
                       <span
-                        className="inline-block rounded-sm px-1 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#5d3ed6]"
+                        className="inline-block rounded-sm px-1 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
                         title={formatSlDateTime(order.created_at)}
                         aria-label={`Datum naročila ${formatSlDateTime(order.created_at)}`}
                         tabIndex={0}
@@ -1367,9 +1371,9 @@ export default function AdminOrdersTable({
 
                     <TD className="pl-0 pr-0 text-center" data-no-row-nav>
                       <RowActions>
-                        <a
+                        <IconButton
                           href={`/admin/orders/${order.id}`}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
+                          tone="neutral"
                           aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
                           title="Uredi"
                         >
@@ -1377,7 +1381,7 @@ export default function AdminOrdersTable({
                             <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
                             <path d="M11.5 4.5l3 3" />
                           </svg>
-                        </a>
+                        </IconButton>
                         <Button
                           type="button"
                           variant="close-x"

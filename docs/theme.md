@@ -32,3 +32,8 @@ This project uses **CSS variables in `src/app/globals.css`** as the source of tr
 - **Do not introduce new blue hex values in components.** Use the existing blue/semantic tokens.
 - For new status/chart/UI colours, first add a CSS variable token in `globals.css`, then map in `tailwind.config.ts` if Tailwind class usage is needed.
 - Prefer semantic tokens (`--semantic-info/success/warning`) for meaning-driven UI (e.g. analytics colours, status-adjacent controls) rather than hardcoded brand shades.
+
+## Layout note
+
+- Public pages are centered by the shared `.container-base` utility in `src/app/globals.css` (`mx-auto` + `max-w-6xl`).
+- The public page flow is hosted by `src/app/layout.tsx` (`<main className="flex-1">`) to preserve normal block width behavior for centered containers.

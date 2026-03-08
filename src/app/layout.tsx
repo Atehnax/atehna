@@ -37,7 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ToastProvider>
           <WebsiteAnalyticsTracker />
           <SiteHeader searchItems={searchItems} />
-          <main className="flex min-h-0 flex-1">{children}</main>
+          <main className="flex-1">{children}</main>
           <CartDrawer />
           <SiteFooter />
           <Toaster />

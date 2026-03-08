@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { useCartStore } from '@/lib/cart/store';
+import { Button } from '@/shared/ui/button';
 
 type AddToCartButtonProps = {
   sku: string;
@@ -30,15 +31,17 @@ export default function AddToCartButton({
   const resolvedUnitPrice = unitPrice ?? price;
 
   return (
-    <button
+    <Button
       type="button"
+      variant="primary"
+      size="sm"
       onClick={() => {
         addItem({ sku, name, unit, category, unitPrice: resolvedUnitPrice });
         openDrawer();
       }}
-      className={`rounded-full bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 ${className}`}
+      className={className}
     >
       {children ?? 'Dodaj v naročilo'}
-    </button>
+    </Button>
   );
 }

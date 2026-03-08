@@ -1008,7 +1008,7 @@ export default function AdminOrdersTable({
                   variant="default"
                   onClick={handleResetDocumentFilter}
                   disabled={documentType === 'all'}
-                  className="w-[92px] rounded-none border-0 bg-transparent shadow-none"
+                  className="w-[92px] rounded-none border-0 bg-transparent shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0"
                 >
                   Ponastavi
                 </Button>

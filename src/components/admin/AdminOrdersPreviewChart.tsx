@@ -8,6 +8,7 @@ import PlotlyClient from '@/components/admin/charts/PlotlyClient';
 import { getBaseChartLayout, getChartThemeFromCssVars } from '@/components/admin/charts/chartTheme';
 import type { OrderRow } from '@/components/admin/adminOrdersTableUtils';
 import type { AnalyticsGlobalAppearance } from '@/lib/server/analyticsCharts';
+import { formatLjubljanaDateTime } from '@/lib/format/dateTime';
 
 type RangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
 type CustomerBucketKey = 'company' | 'school' | 'individual';
@@ -146,25 +147,7 @@ const formatDeltaPair = (sevenDay: number | null, thirtyDay: number | null) => {
 };
 
 
-const formatTooltipDateTime = (value: string) => {
-  const date = new Date(value);
-  if (!Number.isNaN(date.getTime())) {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${day}-${month}-${year} ${hours}:${minutes}`;
-  }
-
-  const isoMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (isoMatch) {
-    const [, year, month, day] = isoMatch;
-    return `${day}-${month}-${year} 00:00`;
-  }
-
-  return `${value} 00:00`;
-};
+const formatTooltipDateTime = (value: string) => formatLjubljanaDateTime(value, { useCurrentTimeForDateOnly: true });
 
 
 const readCssVarColor = (name: string, fallback: string) => {

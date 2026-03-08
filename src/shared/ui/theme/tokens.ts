@@ -57,13 +57,15 @@ export const buttonTokenClasses = {
   closeX:
     'inline-flex h-7 w-7 items-center justify-center rounded-md border border-rose-200 text-sm font-semibold leading-none text-rose-600 hover:bg-rose-50 disabled:text-slate-300',
   activeSuccess: 'border border-emerald-200 bg-emerald-50 text-emerald-700',
-  inactiveNeutral: 'border border-slate-200 bg-slate-100 text-slate-600'
+  inactiveNeutral: 'border border-slate-200 bg-slate-100 text-slate-600',
+  activeSuccessBorderless: 'border border-transparent bg-emerald-50 text-emerald-700',
+  inactiveNeutralBorderless: 'border border-transparent bg-slate-100 text-slate-600'
 } as const;
 
 export const iconButtonTokenClasses = {
   base: 'inline-flex items-center justify-center',
   neutral:
-    'border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100 disabled:cursor-default disabled:text-slate-300',
+    'border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-default disabled:bg-slate-200 disabled:text-slate-400',
   warning: 'border border-amber-300 text-amber-700 hover:bg-amber-100',
   danger: 'border border-rose-300 text-xs font-semibold leading-none text-rose-600 hover:bg-rose-50'
 } as const;

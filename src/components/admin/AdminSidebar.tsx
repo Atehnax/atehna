@@ -95,7 +95,7 @@ export default function AdminSidebar() {
               })}
             </nav>
 
-            <div className="mt-auto border-t border-[color:var(--semantic-info-border)] pt-3">
+            <div className="mt-3 border-t border-[color:var(--semantic-info-border)] pt-3">
               <button
                 type="button"
                 onClick={() => void handleLogout()}

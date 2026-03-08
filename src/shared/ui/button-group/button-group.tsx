@@ -16,7 +16,7 @@ export default function ButtonGroup({ children, className, ...props }: ButtonGro
     <div
       {...props}
       className={classNames(
-        'inline-flex h-9 items-stretch overflow-hidden rounded-xl border border-slate-300 bg-white divide-x divide-slate-300',
+        'inline-flex h-9 items-stretch overflow-visible rounded-xl border border-slate-300 bg-white [&>*]:rounded-none [&>*+*]:border-l [&>*+*]:border-slate-300 [&>*:first-child]:rounded-l-xl [&>*:last-child]:rounded-r-xl',
         className
       )}
     >

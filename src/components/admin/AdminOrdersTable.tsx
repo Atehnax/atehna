@@ -1022,7 +1022,7 @@ export default function AdminOrdersTable({
                   variant="default"
                   onClick={handleDownloadAllDocuments}
                   disabled={isDownloading}
-                  className="w-[140px] rounded-none border-0 bg-transparent whitespace-nowrap tabular-nums shadow-none"
+                  className="w-[80px] rounded-none border-0 bg-transparent whitespace-nowrap tabular-nums shadow-none"
                 >
                   {isDownloading ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Prenos...</span> : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
                 </Button>

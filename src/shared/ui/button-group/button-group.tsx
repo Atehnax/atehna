@@ -32,7 +32,7 @@ export function ButtonGroupItem({ children, isSelected = false, className, ...pr
       {...props}
       className={classNames(
         'relative flex items-stretch',
-        isSelected && 'z-[1] ring-2 ring-[#3e67d6] ring-inset',
+        isSelected && 'z-[1] ring-1 ring-[#3e67d6] ring-inset',
         className
       )}
     >

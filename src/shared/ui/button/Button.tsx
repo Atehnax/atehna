@@ -22,9 +22,9 @@ const sizeClassMap: Record<ButtonSize, string> = {
 
 const variantClassMap: Record<ButtonVariant, string> = {
   primary:
-    'rounded-full bg-brand-600 font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-default disabled:bg-slate-200 disabled:text-slate-400',
+    'inline-flex h-8 items-center justify-center rounded-xl bg-brand-600 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-default disabled:bg-slate-200 disabled:text-slate-400',
   brand:
-    'rounded-full bg-brand-600 font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-default disabled:bg-slate-200 disabled:text-slate-400',
+    'inline-flex h-8 items-center justify-center rounded-xl bg-brand-600 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-default disabled:bg-slate-200 disabled:text-slate-400',
   outline: buttonTokenClasses.outline,
   default: buttonTokenClasses.control,
   'admin-soft': buttonTokenClasses.adminSoft,
@@ -45,7 +45,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
       ref={ref}
       className={classNames(
         variantClassMap[variant],
-        variant === 'admin-soft' || variant === 'danger' || variant === 'restore' || variant === 'archive' || variant === 'close-x' || variant === 'default'
+        variant === 'primary' || variant === 'brand' || variant === 'admin-soft' || variant === 'danger' || variant === 'restore' || variant === 'archive' || variant === 'close-x' || variant === 'default'
           ? undefined
           : sizeClassMap[size],
         className

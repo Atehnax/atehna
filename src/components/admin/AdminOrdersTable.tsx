@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
-import { ButtonGroup } from '@/shared/ui/button-group';
+import { ButtonGroup, ButtonGroupItem } from '@/shared/ui/button-group';
 import { IconButton } from '@/shared/ui/icon-button';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
@@ -101,6 +101,7 @@ export default function AdminOrdersTable({
   const debouncedFromDate = useDebouncedValue(fromDate, 200);
   const debouncedToDate = useDebouncedValue(toDate, 200);
   const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
+  const [documentTypeMenuOpen, setDocumentTypeMenuOpen] = useState(false);
 
   const [documentType, setDocumentType] = useState<DocumentType>('all');
   const { toast } = useToast();
@@ -993,34 +994,39 @@ export default function AdminOrdersTable({
             />
 
             <ButtonGroup className="min-w-[372px]">
-              <div className="min-w-[140px]">
+              <ButtonGroupItem isSelected={documentTypeMenuOpen || documentType !== 'all'} className="min-w-[140px]">
                 <CustomSelect
                   value={documentType}
                   onChange={(next) => setDocumentType(next as DocumentType)}
                   options={documentTypeOptions}
+                  onOpenChange={setDocumentTypeMenuOpen}
                   className="h-8 min-w-[140px] rounded-none border-0 bg-transparent px-3 py-0 text-xs font-semibold shadow-none hover:bg-slate-100"
                 />
-              </div>
+              </ButtonGroupItem>
 
-              <Button
-                type="button"
-                variant="default"
-                onClick={handleResetDocumentFilter}
-                disabled={documentType === 'all'}
-                className="w-[92px] rounded-none border-0 bg-transparent shadow-none"
-              >
-                Ponastavi
-              </Button>
+              <ButtonGroupItem>
+                <Button
+                  type="button"
+                  variant="default"
+                  onClick={handleResetDocumentFilter}
+                  disabled={documentType === 'all'}
+                  className="w-[92px] rounded-none border-0 bg-transparent shadow-none"
+                >
+                  Ponastavi
+                </Button>
+              </ButtonGroupItem>
 
-              <Button
-                type="button"
-                variant="default"
-                onClick={handleDownloadAllDocuments}
-                disabled={isDownloading}
-                className="w-[140px] rounded-none border-0 bg-transparent whitespace-nowrap tabular-nums shadow-none"
-              >
-                {isDownloading ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Prenos...</span> : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
-              </Button>
+              <ButtonGroupItem>
+                <Button
+                  type="button"
+                  variant="default"
+                  onClick={handleDownloadAllDocuments}
+                  disabled={isDownloading}
+                  className="w-[140px] rounded-none border-0 bg-transparent whitespace-nowrap tabular-nums shadow-none"
+                >
+                  {isDownloading ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Prenos...</span> : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
+                </Button>
+              </ButtonGroupItem>
             </ButtonGroup>
           </>
         }

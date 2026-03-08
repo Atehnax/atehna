@@ -18,6 +18,7 @@ type CustomSelectProps = {
   className?: string;
   menuClassName?: string;
   valueClassName?: string;
+  onOpenChange?: (isOpen: boolean) => void;
 };
 
 const classNames = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ');
@@ -30,7 +31,8 @@ export default function CustomSelect({
   placeholder = '',
   className,
   menuClassName,
-  valueClassName
+  valueClassName,
+  onOpenChange
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -41,6 +43,7 @@ export default function CustomSelect({
   );
 
   useEffect(() => {
+    onOpenChange?.(isOpen);
     if (!isOpen) return;
 
     const handleOutsideClick = (event: MouseEvent) => {
@@ -62,7 +65,7 @@ export default function CustomSelect({
       document.removeEventListener('mousedown', handleOutsideClick);
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [isOpen]);
+  }, [isOpen, onOpenChange]);
 
   return (
     <div ref={containerRef} className="relative">

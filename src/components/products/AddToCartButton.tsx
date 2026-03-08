@@ -33,7 +33,7 @@ export default function AddToCartButton({
   return (
     <Button
       type="button"
-      variant="brand"
+      variant="primary"
       size="sm"
       onClick={() => {
         addItem({ sku, name, unit, category, unitPrice: resolvedUnitPrice });

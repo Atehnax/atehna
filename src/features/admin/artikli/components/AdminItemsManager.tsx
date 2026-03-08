@@ -399,7 +399,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             <Button type="button" variant="archive" onClick={archiveSelected} disabled={selectedIds.length === 0}>
               Arhiviraj
             </Button>
-            <Button type="button" variant="default" onClick={openCreate}>
+            <Button type="button" variant="primary" onClick={openCreate}>
               Nov artikel
             </Button>
           </>
@@ -520,7 +520,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             </div>
 
             <div className="mt-4 flex items-center justify-end">
-              <Button type="button" variant="brand" onClick={save}>Shrani</Button>
+              <Button type="button" variant="primary" onClick={save}>Shrani</Button>
             </div>
           </div>
         </div>

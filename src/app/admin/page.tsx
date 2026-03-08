@@ -18,7 +18,7 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-14">
+    <div className="flex w-full min-h-[70vh] items-center justify-center bg-slate-50 px-4 py-8">
       <AdminLoginForm />
     </div>
   );

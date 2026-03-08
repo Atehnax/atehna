@@ -17,7 +17,7 @@ export default function ButtonGroup({ children, className, ...props }: ButtonGro
     <div
       {...props}
       className={classNames(
-        'inline-flex h-8 items-stretch overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm divide-x divide-slate-300',
+        'inline-flex h-8 items-stretch overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm divide-x divide-slate-300 [&>[data-button-group-item]:first-child]:rounded-l-xl [&>[data-button-group-item]:first-child]:rounded-r-none [&>[data-button-group-item]:last-child]:rounded-r-xl [&>[data-button-group-item]:last-child]:rounded-l-none [&>[data-button-group-item]:not(:first-child):not(:last-child)]:rounded-none',
         className
       )}
     >
@@ -30,9 +30,10 @@ export function ButtonGroupItem({ children, isSelected = false, className, ...pr
   return (
     <div
       {...props}
+      data-button-group-item
+      data-selected={isSelected ? 'true' : 'false'}
       className={classNames(
-        'relative flex items-stretch',
-        isSelected && 'z-[1] ring-2 ring-[#3e67d6] ring-inset',
+        'relative z-0 flex items-stretch [&_button]:!rounded-none [&_a]:!rounded-none focus-within:z-10 focus-within:shadow-[inset_0_0_0_1px_#3e67d6] data-[selected=true]:z-10 data-[selected=true]:shadow-[inset_0_0_0_1px_#3e67d6]',
         className
       )}
     >

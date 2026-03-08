@@ -33,11 +33,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const searchItems = getCatalogSearchItems();
   return (
     <html lang="sl">
-      <body className="min-h-screen bg-slate-50 text-slate-900">
+      <body className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
         <ToastProvider>
           <WebsiteAnalyticsTracker />
           <SiteHeader searchItems={searchItems} />
-          <main className="min-h-[70vh]">{children}</main>
+          <main className="flex-1">{children}</main>
           <CartDrawer />
           <SiteFooter />
           <Toaster />

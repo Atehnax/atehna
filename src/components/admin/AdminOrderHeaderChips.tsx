@@ -156,7 +156,7 @@ function CompactDropdown({
         disabled={disabled}
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        className={`inline-flex h-8 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-left text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 focus:border-[#5d3ed6] focus:outline-none focus:ring-0 focus-visible:border-[#5d3ed6] disabled:cursor-default disabled:opacity-60 ${buttonClassName}`}
+        className={`inline-flex h-8 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-left text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] disabled:cursor-default disabled:opacity-60 ${buttonClassName}`}
       >
         <span className="block min-w-0 flex-1 truncate text-left">{selectedLabel}</span>
         <span className="ml-2 shrink-0 text-slate-500">▾</span>
@@ -322,7 +322,7 @@ export default function AdminOrderHeaderChips(props: Props) {
           <input
             value={draftOrderNumber}
             onChange={(event) => setDraftOrderNumber(event.target.value)}
-            className="h-9 w-full max-w-none rounded-md border border-slate-300 bg-white px-1 text-2xl font-bold tracking-tight text-slate-900 outline-none transition focus:border-[#5d3ed6] focus:ring-0 sm:max-w-[5ch]"
+            className="h-9 w-full max-w-none rounded-md border border-slate-300 bg-white px-1 text-2xl font-bold tracking-tight text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0 sm:max-w-[5ch]"
             aria-label="Številka naročila"
           />
         ) : (
@@ -402,7 +402,7 @@ export default function AdminOrderHeaderChips(props: Props) {
             onChange={(event) => setDraftTopData((prev) => ({ ...prev, orderDate: event.target.value }))}
           />
 
-          <div className="group relative rounded-xl border border-slate-300 bg-white transition-colors focus-within:border-[#5d3ed6] focus-within:ring-2 focus-within:ring-brand-100">
+          <div className="group relative rounded-xl border border-slate-300 bg-white transition-colors focus-within:border-[#3e67d6] focus-within:ring-2 focus-within:ring-brand-100">
             <label
               htmlFor="customerType"
               className="pointer-events-none absolute left-2.5 top-1.5 z-10 bg-white px-1 text-[10px] text-slate-600"
@@ -413,7 +413,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               value={activeTopData.customerType}
               onChange={(value) => setDraftTopData((prev) => ({ ...prev, customerType: value }))}
               options={CUSTOMER_TYPE_FORM_OPTIONS}
-              className="pr-7"
+              className="!pb-0 !pt-4 pr-7"
               menuClassName="max-w-[280px]"
               disabled={isTopSaving}
             />

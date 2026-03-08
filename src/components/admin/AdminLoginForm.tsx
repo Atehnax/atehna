@@ -4,6 +4,7 @@ import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FloatingInput } from '@/shared/ui/floating-field';
 import { Spinner } from '@/shared/ui/loading';
+import { Button } from '@/shared/ui/button';
 
 export default function AdminLoginForm() {
   const router = useRouter();
@@ -66,13 +67,14 @@ export default function AdminLoginForm() {
 
         {error ? <p className="text-sm font-medium text-rose-600">{error}</p> : null}
 
-        <button
+        <Button
           type="submit"
+          variant="brand"
           disabled={isSubmitting}
-          className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#5d3ed6] px-4 text-sm font-semibold text-white transition hover:bg-[#4b30b6] disabled:opacity-60"
+          className="h-11 w-full justify-center rounded-xl text-sm"
         >
           {isSubmitting ? <span className="inline-flex items-center gap-2"><Spinner size="sm" className="text-white" />Prijava ...</span> : 'Prijava'}
-        </button>
+        </Button>
       </form>
     </div>
   );

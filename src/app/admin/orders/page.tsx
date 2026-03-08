@@ -115,7 +115,7 @@ export default async function AdminOrdersPage({
     cardBg: '#ffffff',
     plotBg: '#ffffff',
     axisTextColor: '#111827',
-    seriesPalette: ['#5d3ed6', '#5d3ed6', '#5d3ed6', '#5d3ed6', '#5d3ed6'],
+    seriesPalette: ['#3e67d6', '#059669', '#a16207', '#3e67d6', '#3e67d6'],
     gridColor: '#d8d6cf',
     gridOpacity: 0.35
   };

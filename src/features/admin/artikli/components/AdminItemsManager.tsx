@@ -465,7 +465,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                       {item.active ? 'Aktiven' : 'Neaktiven'}
                     </Chip>
                   </td>
-                  <td className="px-3 py-2"><div className="flex items-center justify-center gap-1.5"><IconButton type="button" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi"><ActionIcon type="edit" /></IconButton><IconButton type="button" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji"><ActionIcon type="copy" /></IconButton><IconButton type="button" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj" className="border-amber-300 text-amber-700 hover:bg-amber-100"><ActionIcon type="archive" /></IconButton></div></td>
+                  <td className="px-3 py-2"><div className="flex items-center justify-center gap-1.5"><IconButton type="button" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi"><ActionIcon type="edit" /></IconButton><IconButton type="button" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji"><ActionIcon type="copy" /></IconButton><IconButton type="button" tone="warning" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj"><ActionIcon type="archive" /></IconButton></div></td>
                 </tr>
               ))}
             </tbody>

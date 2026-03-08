@@ -1,13 +1,26 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react';
+import Link from 'next/link';
 import { iconButtonTokenClasses } from '@/shared/ui/theme/tokens';
 
-export type IconButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className'> & {
+type SharedIconButtonProps = {
   children: ReactNode;
   className?: string;
   shape?: 'rounded' | 'square';
   size?: 'sm' | 'md';
-  tone?: 'neutral' | 'danger';
+  tone?: 'neutral' | 'warning' | 'danger';
 };
+
+type IconButtonAsButtonProps = SharedIconButtonProps &
+  Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className' | 'children' | 'href'> & {
+    href?: never;
+  };
+
+type IconButtonAsLinkProps = SharedIconButtonProps &
+  Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'className' | 'children' | 'href'> & {
+    href: string;
+  };
+
+export type IconButtonProps = IconButtonAsButtonProps | IconButtonAsLinkProps;
 
 const classNames = (...parts: Array<string | false | null | undefined>) =>
   parts.filter(Boolean).join(' ');
@@ -24,6 +37,7 @@ const sizeClassMap = {
 
 const toneClassMap = {
   neutral: iconButtonTokenClasses.neutral,
+  warning: iconButtonTokenClasses.warning,
   danger: iconButtonTokenClasses.danger
 } as const;
 
@@ -35,17 +49,25 @@ export default function IconButton({
   tone = 'neutral',
   ...props
 }: IconButtonProps) {
+  const sharedClassName = classNames(
+    iconButtonTokenClasses.base,
+    shapeClassMap[shape],
+    sizeClassMap[size],
+    toneClassMap[tone],
+    className
+  );
+
+  if ('href' in props && typeof props.href === 'string') {
+    const { href, ...linkProps } = props;
+    return (
+      <Link href={href} className={sharedClassName} {...linkProps}>
+        {children}
+      </Link>
+    );
+  }
+
   return (
-    <button
-      {...props}
-      className={classNames(
-        iconButtonTokenClasses.base,
-        shapeClassMap[shape],
-        sizeClassMap[size],
-        toneClassMap[tone],
-        className
-      )}
-    >
+    <button {...props} className={sharedClassName}>
       {children}
     </button>
   );

@@ -64,6 +64,7 @@ export const iconButtonTokenClasses = {
   base: 'inline-flex items-center justify-center',
   neutral:
     'border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100 disabled:cursor-default disabled:text-slate-300',
+  warning: 'border border-amber-300 text-amber-700 hover:bg-amber-100',
   danger: 'border border-rose-300 text-xs font-semibold leading-none text-rose-600 hover:bg-rose-50'
 } as const;
 

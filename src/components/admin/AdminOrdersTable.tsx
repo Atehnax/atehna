@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
+import { IconButton } from '@/shared/ui/icon-button';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { SegmentedControl } from '@/shared/ui/segmented';
@@ -1367,9 +1368,9 @@ export default function AdminOrdersTable({
 
                     <TD className="pl-0 pr-0 text-center" data-no-row-nav>
                       <RowActions>
-                        <a
+                        <IconButton
                           href={`/admin/orders/${order.id}`}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
+                          tone="neutral"
                           aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
                           title="Uredi"
                         >
@@ -1377,7 +1378,7 @@ export default function AdminOrdersTable({
                             <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
                             <path d="M11.5 4.5l3 3" />
                           </svg>
-                        </a>
+                        </IconButton>
                         <Button
                           type="button"
                           variant="close-x"

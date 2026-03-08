@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Button } from '@/shared/ui/button';
 import {
   type GeneratePdfType,
   type PdfDocument,
@@ -218,16 +217,15 @@ export default function AdminOrdersPdfCell({
           <p className="text-[11px] font-semibold text-slate-800">{button.full}</p>
 
           {isGenerateKey(button.key) ? (
-            <Button
+            <button
               type="button"
-              variant="admin-soft"
               data-no-row-nav
               onClick={() => handleGenerate(button.key)}
               disabled={interactionsDisabled || loadingType === button.key}
-              className="inline-flex h-6 items-center rounded-md border border-slate-300 bg-white px-2 text-[10px] font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-100 disabled:cursor-default disabled:text-slate-300"
+              className="inline-flex h-6 items-center rounded-md border border-slate-300 bg-white px-2 text-[10px] font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-default disabled:text-slate-300"
             >
               {loadingType === button.key ? <span className="inline-flex items-center gap-1"><Spinner size="sm" className="text-slate-500" />Generiram ...</span> : latest ? 'Nova verzija' : 'Ustvari'}
-            </Button>
+            </button>
           ) : null}
         </div>
 
@@ -271,12 +269,11 @@ export default function AdminOrdersPdfCell({
 
         return (
           <div key={button.key} className="relative" data-no-row-nav>
-            <Button
+            <button
               ref={(element) => {
                 buttonRefs.current[button.key] = element;
               }}
               type="button"
-              variant="admin-soft"
               data-no-row-nav
               title={button.full}
               aria-label={`${button.full} dokumenti`}
@@ -286,10 +283,10 @@ export default function AdminOrdersPdfCell({
                 setOpenType((previousType) => (previousType === button.key ? null : button.key))
               }
               disabled={interactionsDisabled}
-              className="relative inline-flex h-6 items-center rounded-md border border-slate-200 bg-slate-50 px-1.5 py-1 text-[11px] font-medium text-slate-700 transition hover:border-slate-300 hover:bg-white disabled:cursor-default disabled:text-slate-300"
+              className="relative inline-flex h-6 items-center rounded-md border border-slate-300 bg-white px-1.5 py-1 text-[11px] font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-default disabled:text-slate-300"
             >
               <span>{button.short}</span>
-            </Button>
+            </button>
           </div>
         );
       })}

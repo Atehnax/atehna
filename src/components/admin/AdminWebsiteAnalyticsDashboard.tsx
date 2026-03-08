@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/shared/ui/button';
 
 type VisitsByDay = { day: string; visits: number };
 type RetentionByDay = { day: string; returning: number };
@@ -110,9 +111,9 @@ export default function AdminWebsiteAnalyticsDashboard({
             <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">Do</label>
             <input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} className="h-9 rounded-lg border border-slate-300 px-2 text-sm" />
           </div>
-          <button type="button" onClick={applyRange} className="h-9 rounded-lg border border-brand-600 bg-brand-600 px-3 text-sm font-medium text-white hover:bg-brand-700">
+          <Button type="button" variant="brand" onClick={applyRange} className="h-9 rounded-lg px-3 text-sm font-medium">
             Uporabi obdobje
-          </button>
+          </Button>
         </div>
       </div>
 

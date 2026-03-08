@@ -6,7 +6,6 @@ type ButtonGroupProps = HTMLAttributes<HTMLDivElement> & {
 
 type ButtonGroupItemProps = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode;
-  isSelected?: boolean;
 };
 
 const classNames = (...parts: Array<string | false | null | undefined>) =>
@@ -17,7 +16,7 @@ export default function ButtonGroup({ children, className, ...props }: ButtonGro
     <div
       {...props}
       className={classNames(
-        'inline-flex h-8 items-stretch overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm divide-x divide-slate-300 [&>[data-button-group-item]:first-child]:rounded-l-xl [&>[data-button-group-item]:first-child]:rounded-r-none [&>[data-button-group-item]:last-child]:rounded-r-xl [&>[data-button-group-item]:last-child]:rounded-l-none [&>[data-button-group-item]:not(:first-child):not(:last-child)]:rounded-none',
+        'inline-flex h-8 items-stretch rounded-xl border border-slate-300 bg-white shadow-sm [&>*]:rounded-none [&>*]:border-l [&>*]:border-slate-300 [&>*:first-child]:rounded-l-xl [&>*:first-child]:border-l-0 [&>*:last-child]:rounded-r-xl',
         className
       )}
     >
@@ -26,16 +25,11 @@ export default function ButtonGroup({ children, className, ...props }: ButtonGro
   );
 }
 
-export function ButtonGroupItem({ children, isSelected = false, className, ...props }: ButtonGroupItemProps) {
+export function ButtonGroupItem({ children, className, ...props }: ButtonGroupItemProps) {
   return (
     <div
       {...props}
-      data-button-group-item
-      data-selected={isSelected ? 'true' : 'false'}
-      className={classNames(
-        'relative z-0 flex items-stretch [&_button]:!rounded-none [&_a]:!rounded-none focus-within:z-10 focus-within:shadow-[inset_0_0_0_1px_#3e67d6] data-[selected=true]:z-10 data-[selected=true]:shadow-[inset_0_0_0_1px_#3e67d6]',
-        className
-      )}
+      className={classNames('flex items-stretch', className)}
     >
       {children}
     </div>

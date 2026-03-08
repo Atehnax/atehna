@@ -16,7 +16,7 @@ export default function ButtonGroup({ children, className, ...props }: ButtonGro
     <div
       {...props}
       className={classNames(
-        'inline-flex h-8 items-stretch rounded-xl border border-slate-300 bg-white shadow-sm [&>*]:rounded-none [&>*]:border-l [&>*]:border-slate-300 [&>*:first-child]:rounded-l-xl [&>*:first-child]:border-l-0 [&>*:last-child]:rounded-r-xl',
+        'inline-flex h-8 items-stretch overflow-hidden rounded-xl border border-slate-300 bg-white divide-x divide-slate-300 [&>*]:flex [&>*]:items-stretch [&_button]:rounded-none [&_button]:border-0 [&_a]:rounded-none [&_a]:border-0',
         className
       )}
     >
@@ -29,7 +29,7 @@ export function ButtonGroupItem({ children, className, ...props }: ButtonGroupIt
   return (
     <div
       {...props}
-      className={classNames('flex items-stretch', className)}
+      className={classNames('relative flex items-stretch focus-within:z-10 focus-within:outline-none focus-within:ring-1 focus-within:ring-inset focus-within:ring-blue-500', className)}
     >
       {children}
     </div>

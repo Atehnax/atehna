@@ -998,7 +998,7 @@ export default function AdminOrdersTable({
                   value={documentType}
                   onChange={(next) => setDocumentType(next as DocumentType)}
                   options={documentTypeOptions}
-                  className="h-8 min-w-[140px] rounded-none border-0 bg-transparent px-3 py-0 text-xs font-semibold shadow-none hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0"
+                  className="h-8 min-w-[140px] rounded-none border-0 bg-transparent px-3 py-0 text-xs font-semibold shadow-none hover:bg-slate-100"
                 />
               </ButtonGroupItem>
 
@@ -1020,7 +1020,7 @@ export default function AdminOrdersTable({
                   variant="default"
                   onClick={handleDownloadAllDocuments}
                   disabled={isDownloading}
-                  className="w-[76px] px-2 rounded-none border-0 bg-transparent whitespace-nowrap tabular-nums shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0"
+                  className="w-[126px] px-4 rounded-none border-0 bg-transparent whitespace-nowrap tabular-nums shadow-none"
                 >
                   {isDownloading ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Prenos...</span> : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
                 </Button>

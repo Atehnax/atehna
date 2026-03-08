@@ -8,7 +8,7 @@ import PlotlyClient from '@/components/admin/charts/PlotlyClient';
 import { getBaseChartLayout, getChartThemeFromCssVars } from '@/components/admin/charts/chartTheme';
 import type { OrderRow } from '@/components/admin/adminOrdersTableUtils';
 import type { AnalyticsGlobalAppearance } from '@/lib/server/analyticsCharts';
-import { formatLjubljanaDateTime } from '@/lib/format/dateTime';
+import { formatLjubljanaDate } from '@/lib/format/dateTime';
 
 type RangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
 type CustomerBucketKey = 'company' | 'school' | 'individual';
@@ -147,7 +147,7 @@ const formatDeltaPair = (sevenDay: number | null, thirtyDay: number | null) => {
 };
 
 
-const formatTooltipDateTime = (value: string) => formatLjubljanaDateTime(value, { useCurrentTimeForDateOnly: true });
+const formatTooltipDate = (value: string) => formatLjubljanaDate(value);
 
 
 const readCssVarColor = (name: string, fallback: string) => {
@@ -620,7 +620,7 @@ function AdminOrdersPreviewChart({
                     style={{ left: hoverCard.left, top: hoverCard.top }}
                   >
                     <div className="mb-2 flex items-center justify-between">
-                      <p className="pr-3 text-[15px] font-semibold leading-none text-black">{formatTooltipDateTime(hoverCard.xLabel)}</p>
+                      <p className="pr-3 text-[15px] font-semibold leading-none text-black">{formatTooltipDate(hoverCard.xLabel)}</p>
                     </div>
                     <div className="mb-2 h-px w-full bg-black/15" />
                     <div className="space-y-1">

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
+import { ButtonGroup } from '@/shared/ui/button-group';
 import { IconButton } from '@/shared/ui/icon-button';
 import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
@@ -991,34 +992,36 @@ export default function AdminOrdersTable({
               className="h-8 min-w-[260px] flex-1 rounded-xl border border-slate-300 px-3 text-xs text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
             />
 
-            <div className="relative min-w-[140px]">
-              <CustomSelect
-                value={documentType}
-                onChange={(next) => setDocumentType(next as DocumentType)}
-                options={documentTypeOptions}
-                className="h-8 min-w-[140px] px-3 py-0 text-xs font-semibold"
-              />
-            </div>
+            <ButtonGroup className="min-w-[372px]">
+              <div className="min-w-[140px]">
+                <CustomSelect
+                  value={documentType}
+                  onChange={(next) => setDocumentType(next as DocumentType)}
+                  options={documentTypeOptions}
+                  className="h-8 min-w-[140px] rounded-none border-0 bg-transparent px-3 py-0 text-xs font-semibold shadow-none hover:bg-slate-100"
+                />
+              </div>
 
-            <Button
-              type="button"
-              variant="default"
-              onClick={handleResetDocumentFilter}
-              disabled={documentType === 'all'}
-              className="w-[92px]"
-            >
-              Ponastavi
-            </Button>
+              <Button
+                type="button"
+                variant="default"
+                onClick={handleResetDocumentFilter}
+                disabled={documentType === 'all'}
+                className="w-[92px] rounded-none border-0 bg-transparent shadow-none"
+              >
+                Ponastavi
+              </Button>
 
-            <Button
-              type="button"
-              variant="default"
-              onClick={handleDownloadAllDocuments}
-              disabled={isDownloading}
-              className="w-[140px] whitespace-nowrap tabular-nums"
-            >
-              {isDownloading ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Prenos...</span> : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
-            </Button>
+              <Button
+                type="button"
+                variant="default"
+                onClick={handleDownloadAllDocuments}
+                disabled={isDownloading}
+                className="w-[140px] rounded-none border-0 bg-transparent whitespace-nowrap tabular-nums shadow-none"
+              >
+                {isDownloading ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Prenos...</span> : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
+              </Button>
+            </ButtonGroup>
           </>
         }
         headerRight={

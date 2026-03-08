@@ -400,7 +400,6 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
               Arhiviraj
             </Button>
             <Button type="button" variant="default" onClick={openCreate}>
-              <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M10 4v12M4 10h12" /></svg>
               Nov artikel
             </Button>
           </>

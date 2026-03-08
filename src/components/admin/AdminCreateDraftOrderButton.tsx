@@ -45,9 +45,6 @@ export default function AdminCreateDraftOrderButton({ className }: Props) {
         aria-label="Novo naročilo"
         variant="default"
       >
-        <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-          <path d="M10 4v12M4 10h12" />
-        </svg>
         {isCreating ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Ustvarjam ...</span> : 'Novo naročilo'}
       </Button>
       {error && <p className="text-xs text-rose-600">{error}</p>}

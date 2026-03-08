@@ -1,7 +1,7 @@
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 
-type ButtonVariant = 'brand' | 'outline' | 'default' | 'admin-soft' | 'danger' | 'restore' | 'archive' | 'close-x' | 'ghost';
+type ButtonVariant = 'primary' | 'brand' | 'outline' | 'default' | 'admin-soft' | 'danger' | 'restore' | 'archive' | 'close-x' | 'ghost';
 type ButtonSize = 'xs' | 'sm' | 'md';
 
 export type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className'> & {
@@ -21,6 +21,8 @@ const sizeClassMap: Record<ButtonSize, string> = {
 };
 
 const variantClassMap: Record<ButtonVariant, string> = {
+  primary:
+    'rounded-full bg-brand-600 font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-default disabled:bg-slate-200 disabled:text-slate-400',
   brand:
     'rounded-full bg-brand-600 font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-default disabled:bg-slate-200 disabled:text-slate-400',
   outline: buttonTokenClasses.outline,

@@ -911,49 +911,49 @@ export default function AdminOrdersTable({
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('today')}
-                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:bg-[color:var(--hover-neutral)]"
+                        className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:outline-none"
                       >
                         Danes
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('yesterday')}
-                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:bg-[color:var(--hover-neutral)]"
+                        className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:outline-none"
                       >
                         Včeraj
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('7d')}
-                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:bg-[color:var(--hover-neutral)]"
+                        className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:outline-none"
                       >
                         Zadnjih 7 dni
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('30d')}
-                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:bg-[color:var(--hover-neutral)]"
+                        className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:outline-none"
                       >
                         Zadnjih 30 dni
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('3m')}
-                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:bg-[color:var(--hover-neutral)]"
+                        className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:outline-none"
                       >
                         Zadnje 3 mesece
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('6m')}
-                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:bg-[color:var(--hover-neutral)]"
+                        className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:outline-none"
                       >
                         Zadnjih 6 mesecev
                       </button>
                       <button
                         type="button"
                         onClick={() => applyQuickDateRange('1y')}
-                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:bg-[color:var(--hover-neutral)]"
+                        className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:outline-none"
                       >
                         Zadnje leto
                       </button>

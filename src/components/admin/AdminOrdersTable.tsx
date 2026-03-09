@@ -997,7 +997,7 @@ export default function AdminOrdersTable({
                 value={documentType}
                 onChange={(next) => setDocumentType(next as DocumentType)}
                 options={documentTypeOptions}
-                triggerClassName="h-9 min-w-[140px] bg-transparent border-0 rounded-none px-3 py-0 text-sm font-medium flex items-center justify-between shadow-none hover:bg-slate-100 focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10"
+                triggerClassName="h-9 min-w-[140px] bg-transparent !border-0 !rounded-l-xl !rounded-r-none px-3 py-0 text-sm font-medium flex items-center justify-between shadow-none hover:bg-slate-100 focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10"
               />
 
               <Button
@@ -1005,7 +1005,7 @@ export default function AdminOrdersTable({
                 variant="default"
                 onClick={handleResetDocumentFilter}
                 disabled={documentType === 'all'}
-                className="h-9 px-3 rounded-none border-0 bg-transparent text-sm font-medium shadow-none focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10"
+                className="h-9 px-3 !rounded-none !border-0 bg-transparent text-sm font-medium shadow-none focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10"
               >
                 Ponastavi
               </Button>
@@ -1015,7 +1015,7 @@ export default function AdminOrdersTable({
                 variant="default"
                 onClick={handleDownloadAllDocuments}
                 disabled={isDownloading}
-                className="h-9 w-[100px] px-2 rounded-none border-0 bg-transparent whitespace-nowrap text-sm font-medium tabular-nums shadow-none focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10"
+                className="h-9 w-[100px] px-2 !rounded-r-xl !rounded-l-none !border-0 bg-transparent whitespace-nowrap text-sm font-medium tabular-nums shadow-none focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10"
               >
                 {isDownloading ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Prenos...</span> : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
               </Button>

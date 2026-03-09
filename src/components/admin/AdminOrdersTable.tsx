@@ -1000,7 +1000,7 @@ export default function AdminOrdersTable({
                 value={documentType}
                 onChange={(next) => setDocumentType(next as DocumentType)}
                 options={documentTypeOptions}
-                triggerClassName={`relative h-full min-w-[140px] bg-transparent border-0 ${ADMIN_CONTROL_PADDING_X} py-0 text-sm font-medium flex items-center justify-between !rounded-l-xl !rounded-r-none shadow-none hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10`}
+                triggerClassName={`relative h-full min-w-[140px] bg-transparent border-0 ${ADMIN_CONTROL_PADDING_X} py-0 text-sm font-medium flex items-center justify-between !rounded-l-xl !rounded-r-none shadow-none hover:!bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10`}
               />
             
               <Button

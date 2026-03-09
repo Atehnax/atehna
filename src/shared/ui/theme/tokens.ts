@@ -72,7 +72,7 @@ export const buttonTokenClasses = {
 export const iconButtonTokenClasses = {
   base: 'inline-flex items-center justify-center',
   neutral:
-    `border border-slate-200 bg-transparent text-slate-600 shadow-none transition hover:border-slate-300 ${hoverTokenClasses.neutral} hover:text-slate-700 disabled:cursor-default disabled:pointer-events-none disabled:bg-transparent disabled:text-slate-400 disabled:hover:border-slate-200 disabled:hover:bg-transparent disabled:hover:text-slate-400`,
+    'border border-slate-200 bg-transparent text-slate-600 shadow-none transition hover:border-slate-300 hover:bg-[color:var(--hover-neutral)] active:bg-[color:var(--hover-neutral)] hover:text-slate-700 disabled:cursor-default disabled:pointer-events-none disabled:bg-transparent disabled:text-slate-400 disabled:hover:border-slate-200 disabled:hover:bg-transparent disabled:hover:text-slate-400',
   warning: 'border border-amber-300 text-amber-700 hover:bg-amber-100',
   danger: 'border border-rose-300 text-xs font-semibold leading-none text-rose-600 hover:bg-rose-50'
 } as const;

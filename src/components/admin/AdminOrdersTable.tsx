@@ -1016,7 +1016,7 @@ export default function AdminOrdersTable({
                 variant="default"
                 onClick={handleDownloadAllDocuments}
                 disabled={isDownloading}
-                className="relative h-full w-[80px] rounded-none border-0 bg-transparent px-2 whitespace-nowrap text-sm font-medium tabular-nums shadow-none hover:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10"
+                className="relative h-full w-[80px] inline-flex items-center justify-center rounded-none border-0 bg-transparent px-2 whitespace-nowrap text-sm font-medium tabular-nums shadow-none hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10"
               >
                 {isDownloading ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Prenos...</span> : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
               </Button>

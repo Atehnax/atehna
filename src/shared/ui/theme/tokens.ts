@@ -69,11 +69,6 @@ export const buttonTokenClasses = {
   inactiveNeutralBorderless: 'border border-transparent bg-slate-100 text-slate-600'
 } as const;
 
-export const surfaceTokenClasses = {
-  neutralHover: 'bg-slate-50',
-  disabled: 'bg-slate-50'
-} as const;
-
 export const iconButtonTokenClasses = {
   base: 'inline-flex items-center justify-center',
   neutral:

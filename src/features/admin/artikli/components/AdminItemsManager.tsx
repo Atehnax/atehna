@@ -397,10 +397,10 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
         }
         headerRight={
           <>
-            <Button type="button" variant="archive" className={`${ADMIN_CONTROL_HEIGHT} ${ADMIN_CONTROL_PADDING_X}`} onClick={archiveSelected} disabled={selectedIds.length === 0}>
+            <Button type="button" variant="archive" size="toolbar" onClick={archiveSelected} disabled={selectedIds.length === 0}>
               Arhiviraj
             </Button>
-            <Button type="button" variant="primary" className={`${ADMIN_CONTROL_HEIGHT} ${ADMIN_CONTROL_PADDING_X}`} onClick={openCreate}>
+            <Button type="button" variant="primary" size="toolbar" onClick={openCreate}>
               Nov artikel
             </Button>
           </>

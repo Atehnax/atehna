@@ -5,6 +5,7 @@ import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { IconButton } from '@/shared/ui/icon-button';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
+import { surfaceTokenClasses } from '@/shared/ui/theme/tokens';
 
 type PdfDocument = {
   id: number;
@@ -323,7 +324,7 @@ export default function AdminOrderPdfManager({
             className={`${notesBoxClass} w-full resize-y bg-white outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
           />
         ) : (
-          <p className={`${notesBoxClass} bg-slate-100 text-slate-600`}>
+          <p className={`${notesBoxClass} ${surfaceTokenClasses.disabled} text-slate-600`}>
             {persistedNotes.trim()}
           </p>
         )}

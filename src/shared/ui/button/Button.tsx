@@ -2,7 +2,7 @@ import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 
 type ButtonVariant = 'primary' | 'brand' | 'outline' | 'default' | 'admin-soft' | 'danger' | 'restore' | 'archive' | 'close-x' | 'ghost';
-type ButtonSize = 'xs' | 'sm' | 'md';
+type ButtonSize = 'xs' | 'sm' | 'md' | 'toolbar';
 
 export type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className'> & {
   children: ReactNode;
@@ -17,7 +17,8 @@ const classNames = (...parts: Array<string | false | null | undefined>) =>
 const sizeClassMap: Record<ButtonSize, string> = {
   xs: 'px-2 py-1 text-xs',
   sm: 'px-4 py-2 text-sm',
-  md: 'px-5 py-2 text-sm'
+  md: 'px-5 py-2 text-sm',
+  toolbar: 'inline-flex h-8 items-center justify-center px-3 text-xs leading-none'
 };
 
 const variantClassMap: Record<ButtonVariant, string> = {
@@ -45,9 +46,11 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
       ref={ref}
       className={classNames(
         variantClassMap[variant],
-        variant === 'admin-soft' || variant === 'danger' || variant === 'restore' || variant === 'archive' || variant === 'close-x' || variant === 'default'
-          ? undefined
-          : sizeClassMap[size],
+        size === 'toolbar'
+          ? sizeClassMap.toolbar
+          : variant === 'admin-soft' || variant === 'danger' || variant === 'restore' || variant === 'archive' || variant === 'close-x' || variant === 'default'
+            ? undefined
+            : sizeClassMap[size],
         className
       )}
     >

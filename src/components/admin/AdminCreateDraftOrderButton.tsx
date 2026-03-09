@@ -44,6 +44,7 @@ export default function AdminCreateDraftOrderButton({ className }: Props) {
         disabled={isCreating}
         aria-label="Novo naročilo"
         variant="primary"
+        size="toolbar"
       >
         {isCreating ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Ustvarjam ...</span> : 'Novo naročilo'}
       </Button>

@@ -42,25 +42,63 @@ export const surfaceTokenClasses = {
   disabled: 'bg-[color:var(--hover-neutral)]'
 } as const;
 
+const BTN_BASE =
+  'inline-flex items-center justify-center font-semibold transition disabled:pointer-events-none disabled:opacity-45';
+const BTN_FOCUS =
+  'focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0';
+const BTN_SIZE_MD = 'h-8 px-3 rounded-xl text-xs';
+const BTN_SIZE_PILL = 'h-8 px-3 rounded-full text-sm';
+
+export const semanticButtonColors = {
+  neutral: {
+    border: 'border-slate-300',
+    bg: 'bg-white',
+    text: 'text-slate-700',
+    hoverBorder: 'hover:border-slate-300',
+    hoverBg: 'hover:bg-[color:var(--hover-neutral)]',
+    activeBg: 'active:bg-[color:var(--hover-neutral)]'
+  },
+  primary: {
+    border: 'border-transparent',
+    bg: 'bg-[#3e67d6]',
+    text: 'text-white',
+    hoverBg: 'hover:bg-brand-700',
+    activeBg: 'active:bg-brand-800'
+  },
+  warning: {
+    border: 'border-amber-300',
+    bg: 'bg-amber-50',
+    text: 'text-amber-800',
+    hoverBg: 'hover:bg-amber-100',
+    activeBg: 'active:bg-amber-100'
+  },
+  danger: {
+    border: 'border-rose-300',
+    bg: 'bg-rose-50',
+    text: 'text-rose-800',
+    hoverBg: 'hover:bg-rose-100',
+    activeBg: 'active:bg-rose-100'
+  },
+  success: {
+    border: 'border-emerald-300',
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-800',
+    hoverBg: 'hover:bg-emerald-100',
+    activeBg: 'active:bg-emerald-100'
+  }
+} as const;
+
 export const buttonTokenClasses = {
-  base:
-    'inline-flex items-center justify-center font-semibold transition disabled:cursor-default disabled:opacity-60',
-  primary:
-    `rounded-md border border-slate-200 bg-white text-xs text-slate-600 hover:border-slate-300 ${hoverTokenClasses.neutral} focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0`,
-  control:
-    `inline-flex h-8 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-slate-300 ${hoverTokenClasses.neutral} focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45`,
-  outline:
-    `rounded-full border border-slate-200 bg-white text-sm text-slate-700 hover:border-slate-300 ${hoverTokenClasses.neutral} focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0`,
-  ghost:
-    `rounded-md border border-transparent bg-transparent text-xs text-slate-700 ${hoverTokenClasses.neutral} focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0`,
+  base: BTN_BASE,
+  primary: `${BTN_BASE} ${BTN_FOCUS} ${BTN_SIZE_PILL} border ${semanticButtonColors.primary.border} ${semanticButtonColors.primary.bg} ${semanticButtonColors.primary.text} ${semanticButtonColors.primary.hoverBg} ${semanticButtonColors.primary.activeBg} disabled:bg-slate-200 disabled:text-slate-400`,
+  control: `${BTN_BASE} ${BTN_FOCUS} ${BTN_SIZE_MD} border ${semanticButtonColors.neutral.border} ${semanticButtonColors.neutral.bg} ${semanticButtonColors.neutral.text} ${semanticButtonColors.neutral.hoverBorder} ${semanticButtonColors.neutral.hoverBg} ${semanticButtonColors.neutral.activeBg}`,
+  outline: `${BTN_BASE} ${BTN_FOCUS} ${BTN_SIZE_PILL} border ${semanticButtonColors.neutral.border} ${semanticButtonColors.neutral.bg} ${semanticButtonColors.neutral.text} ${semanticButtonColors.neutral.hoverBorder} ${semanticButtonColors.neutral.hoverBg} ${semanticButtonColors.neutral.activeBg}`,
+  ghost: `${BTN_BASE} ${BTN_FOCUS} rounded-md border border-transparent bg-transparent text-xs text-slate-700 ${semanticButtonColors.neutral.hoverBg} ${semanticButtonColors.neutral.activeBg}`,
   adminSoft:
-    `inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#ede8ff] bg-[#f8f7fc] px-3 text-xs font-semibold text-[#5d3ed6] shadow-sm transition hover:border-slate-300 ${hoverTokenClasses.neutral} focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-400`,
-  danger:
-    'h-8 rounded-xl border border-rose-300 bg-rose-50 px-3 text-xs font-semibold text-rose-800 transition hover:bg-rose-100 disabled:pointer-events-none disabled:opacity-45',
-  restore:
-    'h-8 rounded-xl border border-emerald-300 bg-emerald-50 px-3 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100 disabled:pointer-events-none disabled:opacity-45',
-  archive:
-    'h-8 rounded-xl border border-amber-300 bg-amber-50 px-3 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 disabled:pointer-events-none disabled:opacity-45',
+    `inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#ede8ff] bg-[#f8f7fc] px-3 text-xs font-semibold text-[#5d3ed6] shadow-sm transition hover:border-slate-300 ${hoverTokenClasses.neutral} active:bg-[color:var(--hover-neutral)] focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-400`,
+  danger: `${BTN_BASE} ${BTN_FOCUS} ${BTN_SIZE_MD} border ${semanticButtonColors.danger.border} ${semanticButtonColors.danger.bg} ${semanticButtonColors.danger.text} ${semanticButtonColors.danger.hoverBg} ${semanticButtonColors.danger.activeBg}`,
+  restore: `${BTN_BASE} ${BTN_FOCUS} ${BTN_SIZE_MD} border ${semanticButtonColors.success.border} ${semanticButtonColors.success.bg} ${semanticButtonColors.success.text} ${semanticButtonColors.success.hoverBg} ${semanticButtonColors.success.activeBg}`,
+  archive: `${BTN_BASE} ${BTN_FOCUS} ${BTN_SIZE_MD} border ${semanticButtonColors.warning.border} ${semanticButtonColors.warning.bg} ${semanticButtonColors.warning.text} ${semanticButtonColors.warning.hoverBg} ${semanticButtonColors.warning.activeBg}`,
   closeX:
     'inline-flex h-7 w-7 items-center justify-center rounded-md border border-rose-200 text-sm font-semibold leading-none text-rose-600 hover:bg-rose-50 disabled:text-slate-300',
   activeSuccess: 'border border-emerald-200 bg-emerald-50 text-emerald-700',
@@ -72,7 +110,7 @@ export const buttonTokenClasses = {
 export const iconButtonTokenClasses = {
   base: 'inline-flex items-center justify-center',
   neutral:
-  'border border-slate-200 bg-transparent text-slate-600 shadow-none transition hover:border-slate-300 hover:bg-[color:var(--hover-neutral)] active:bg-[color:var(--hover-neutral)] hover:text-slate-700 disabled:cursor-default disabled:pointer-events-none disabled:opacity-60 disabled:bg-transparent disabled:text-slate-400 disabled:hover:border-slate-200 disabled:hover:bg-transparent disabled:hover:text-slate-400',
+    'border border-slate-200 bg-transparent text-slate-600 shadow-none transition hover:border-slate-300 hover:bg-[color:var(--hover-neutral)] active:bg-[color:var(--hover-neutral)] hover:text-slate-700 disabled:cursor-default disabled:pointer-events-none disabled:opacity-60 disabled:bg-transparent disabled:text-slate-400 disabled:hover:border-slate-200 disabled:hover:bg-transparent disabled:hover:text-slate-400',
   warning: 'border border-amber-300 text-amber-700 hover:bg-amber-100',
   danger: 'border border-rose-300 text-xs font-semibold leading-none text-rose-600 hover:bg-rose-50'
 } as const;

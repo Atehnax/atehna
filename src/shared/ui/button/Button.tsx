@@ -18,14 +18,12 @@ const sizeClassMap: Record<ButtonSize, string> = {
   xs: 'px-2 py-1 text-xs',
   sm: 'px-4 py-2 text-sm',
   md: 'px-5 py-2 text-sm',
-  toolbar: 'inline-flex h-8 items-center justify-center px-3 text-xs leading-none'
+  toolbar: ''
 };
 
 const variantClassMap: Record<ButtonVariant, string> = {
-  primary:
-    'rounded-full bg-brand-600 font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-default disabled:bg-slate-200 disabled:text-slate-400',
-  brand:
-    'rounded-full bg-brand-600 font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-default disabled:bg-slate-200 disabled:text-slate-400',
+  primary: buttonTokenClasses.primary,
+  brand: buttonTokenClasses.primary,
   outline: buttonTokenClasses.outline,
   default: buttonTokenClasses.control,
   'admin-soft': buttonTokenClasses.adminSoft,
@@ -35,6 +33,8 @@ const variantClassMap: Record<ButtonVariant, string> = {
   'close-x': buttonTokenClasses.closeX,
   ghost: buttonTokenClasses.ghost
 };
+
+const fixedSizeVariants: ButtonVariant[] = ['admin-soft', 'danger', 'restore', 'archive', 'close-x', 'default', 'primary', 'brand', 'outline'];
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   { children, variant, size = 'sm', className, ...props },
@@ -46,11 +46,9 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
       ref={ref}
       className={classNames(
         variantClassMap[variant],
-        size === 'toolbar'
-          ? sizeClassMap.toolbar
-          : variant === 'admin-soft' || variant === 'danger' || variant === 'restore' || variant === 'archive' || variant === 'close-x' || variant === 'default'
-            ? undefined
-            : sizeClassMap[size],
+        size === 'toolbar' || fixedSizeVariants.includes(variant)
+          ? undefined
+          : sizeClassMap[size],
         className
       )}
     >

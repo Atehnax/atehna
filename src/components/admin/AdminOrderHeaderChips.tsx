@@ -212,7 +212,7 @@ export default function AdminOrderHeaderChips(props: Props) {
   );
 
   const topInputsEditable = topSectionMode === 'edit';
-  const topSaveDisabled = topSectionMode === 'read' || isTopSaving;
+  const topSaveDisabled = topSectionMode !== 'edit' || isTopSaving;
 
   const startEdit = () => {
     if (topSectionMode === 'edit') {

@@ -8,6 +8,7 @@ export type CatalogItem = {
   images?: string[];
   price?: number;
   discountPct?: number;
+  displayOrder?: number | null;
 };
 
 export type CatalogSubcategory = {
@@ -140,7 +141,7 @@ export function formatCatalogPrice(price: number): string {
 
 export function getCatalogSearchItems(): CatalogSearchItem[] {
   return getCatalogCategories().flatMap((category) => {
-    const categoryItems = category.items ?? [];
+    const categoryItems = sortCatalogItems(category.items ?? []);
     const directItems = categoryItems.map((item) => ({
       name: item.name,
       description: item.description,
@@ -148,7 +149,7 @@ export function getCatalogSearchItems(): CatalogSearchItem[] {
     }));
 
     const subcategoryItems = category.subcategories.flatMap((subcategory) =>
-      subcategory.items.map((item) => ({
+      sortCatalogItems(subcategory.items).map((item) => ({
         name: item.name,
         description: item.description,
         href: `/products/${category.slug}/${subcategory.slug}/${item.slug}`
@@ -156,6 +157,26 @@ export function getCatalogSearchItems(): CatalogSearchItem[] {
     );
 
     return [...directItems, ...subcategoryItems];
+  });
+}
+
+export function sortCatalogItems(items: CatalogItem[]): CatalogItem[] {
+  const nameCmp = (left: string, right: string) =>
+    left.localeCompare(right, 'sl', { sensitivity: 'base' });
+
+  return [...items].sort((leftItem, rightItem) => {
+    const leftOrder = leftItem.displayOrder ?? null;
+    const rightOrder = rightItem.displayOrder ?? null;
+
+    if (leftOrder !== null && rightOrder !== null) {
+      if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+      return nameCmp(leftItem.name, rightItem.name);
+    }
+
+    if (leftOrder !== null) return -1;
+    if (rightOrder !== null) return 1;
+
+    return nameCmp(leftItem.name, rightItem.name);
   });
 }
 

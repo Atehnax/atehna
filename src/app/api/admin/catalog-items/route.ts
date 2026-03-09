@@ -12,6 +12,7 @@ type CatalogChoice = {
   name: string;
   unit: string;
   unitPrice: number;
+  display_order: number | null;
 };
 
 const DEFAULT_UNIT = 'kos';
@@ -25,7 +26,8 @@ function collectCatalogChoices(): CatalogChoice[] {
         sku: getCatalogCategoryItemSku(category.slug, item.slug),
         name: item.name,
         unit: DEFAULT_UNIT,
-        unitPrice: item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug)
+        unitPrice: item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug),
+        display_order: item.displayOrder ?? null
       });
     }
 
@@ -35,7 +37,8 @@ function collectCatalogChoices(): CatalogChoice[] {
           sku: getCatalogItemSku(category.slug, subcategory.slug, item.slug),
           name: item.name,
           unit: DEFAULT_UNIT,
-          unitPrice: item.price ?? getCatalogItemPrice(category.slug, subcategory.slug, item.slug)
+          unitPrice: item.price ?? getCatalogItemPrice(category.slug, subcategory.slug, item.slug),
+          display_order: item.displayOrder ?? null
         });
       }
     }

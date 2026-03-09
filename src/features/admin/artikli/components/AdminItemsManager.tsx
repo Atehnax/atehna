@@ -27,12 +27,13 @@ type Item = {
   images: string[];
   updatedAt: string;
   archivedAt?: string | null;
+  displayOrder: number | null;
 };
 
 type SortKey = 'name' | 'sku' | 'category' | 'price' | 'status';
 type StatusTab = 'active' | 'inactive';
 
-const STORAGE_KEY = 'admin-items-crud-v2';
+const STORAGE_KEY = 'admin-items-crud-v3';
 const PAGE_SIZE_OPTIONS = [50, 100];
 
 const formatCurrency = (value: number) =>
@@ -52,7 +53,8 @@ const emptyItem = (): Item => ({
   active: true,
   images: [],
   updatedAt: nowIso(),
-  archivedAt: null
+  archivedAt: null,
+  displayOrder: null
 });
 
 const discountedPrice = (price: number, discountPct: number) =>
@@ -68,9 +70,11 @@ function SortIndicator({ active, direction }: { active: boolean; direction: 'asc
   return <span className="ml-1 text-slate-500">{direction === 'asc' ? '↑' : '↓'}</span>;
 }
 
-function ActionIcon({ type }: { type: 'edit' | 'copy' | 'archive' }) {
+function ActionIcon({ type }: { type: 'edit' | 'copy' | 'archive' | 'save' | 'close' }) {
   if (type === 'edit') return <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 14.8V17h2.2L15.8 6.4l-2.2-2.2L3 14.8z"/><path d="M12.9 3.1l2.2 2.2"/></svg>;
   if (type === 'copy') return <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="7" y="7" width="10" height="10" rx="2"/><rect x="3" y="3" width="10" height="10" rx="2"/></svg>;
+  if (type === 'save') return <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 3h10l2 2v12H4z"/><path d="M7 3v5h6V3"/><path d="M7 13h6"/></svg>;
+  if (type === 'close') return <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 5l10 10M15 5L5 15"/></svg>;
   return <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 6h14v11H3z"/><path d="M7 6V4h6v2"/></svg>;
 }
 
@@ -120,12 +124,14 @@ function FloatingSelect({
   label,
   value,
   onChange,
-  children
+  children,
+  disabled
 }: {
   label: string;
   value: string;
   onChange: (next: string) => void;
   children: ReactNode;
+  disabled?: boolean;
 }) {
   return (
     <div className="relative">
@@ -134,8 +140,9 @@ function FloatingSelect({
       </label>
       <select
         value={value}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
+        className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] disabled:bg-slate-100 disabled:text-slate-400"
       >
         {children}
       </select>
@@ -144,7 +151,7 @@ function FloatingSelect({
 }
 
 export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) {
-  const [items, setItems] = useState<Item[]>(seedItems.map((item) => ({ ...item, archivedAt: item.archivedAt ?? null })));
+  const [items, setItems] = useState<Item[]>(seedItems.map((item) => ({ ...item, archivedAt: item.archivedAt ?? null, displayOrder: item.displayOrder ?? null })));
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusTab, setStatusTab] = useState<StatusTab>('active');
@@ -155,6 +162,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
   const [draft, setDraft] = useState<Item>(emptyItem());
   const [newCategoryEnabled, setNewCategoryEnabled] = useState(false);
   const [newCategoryValue, setNewCategoryValue] = useState('');
+  const [editorMode, setEditorMode] = useState<'view' | 'edit'>('view');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const { toast } = useToast();
 
@@ -164,7 +172,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
     try {
       const parsed = JSON.parse(raw) as Item[];
       if (Array.isArray(parsed)) {
-        setItems(parsed.map((item) => ({ ...item, archivedAt: item.archivedAt ?? null })));
+        setItems(parsed.map((item) => ({ ...item, archivedAt: item.archivedAt ?? null, displayOrder: item.displayOrder ?? null })));
       }
     } catch {
       // ignore malformed local state
@@ -275,6 +283,8 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
     setDraft(emptyItem());
     setNewCategoryEnabled(false);
     setNewCategoryValue('');
+    setEditorMode('edit');
+    setEditorMode('view');
     setEditorOpen(true);
   };
 
@@ -288,12 +298,16 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
 
   const save = () => {
     const resolvedCategory = newCategoryEnabled ? newCategoryValue.trim() : draft.category.trim();
+    if (editorMode !== 'edit') {
+      return;
+    }
     if (!draft.name.trim() || !draft.sku.trim() || !resolvedCategory) {
       toast.error('Napaka pri shranjevanju');
       return;
     }
     const next = {
       ...draft,
+      displayOrder: draft.displayOrder === null ? null : Math.max(1, Math.floor(draft.displayOrder)),
       category: resolvedCategory,
       discountPct: Math.max(0, Math.min(100, draft.discountPct)),
       updatedAt: nowIso(),
@@ -305,6 +319,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
       return prev.map((item) => (item.id === editingId ? next : item));
     });
     setEditorOpen(false);
+    setEditorMode('view');
     toast.success(editingId ? 'Shranjeno' : 'Dodano');
   };
 
@@ -315,7 +330,8 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
       sku: `${item.sku}-copy`,
       name: `${item.name} (kopija)`,
       updatedAt: nowIso(),
-      archivedAt: null
+      archivedAt: null,
+      displayOrder: null
     };
     setItems((prev) => [copy, ...prev]);
     toast.success('Dodano');
@@ -355,6 +371,12 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
     );
     setSelectedIds([]);
     toast.success('Arhivirano');
+  };
+
+
+  const closeEditor = () => {
+    setEditorMode('view');
+    setEditorOpen(false);
   };
 
   const handleMultiImageUpload = (files: FileList | null) => {
@@ -477,35 +499,75 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
       {editorOpen ? (
         <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/30">
           <div className="h-full w-full max-w-md overflow-y-auto border-l border-slate-200 bg-white p-4 shadow-xl">
-            <div className="mb-3 flex items-center justify-between">
+            <div className="mb-3 flex items-center justify-between border-b border-slate-100 pb-2">
               <h2 className="text-base font-semibold text-slate-900">{editingId ? 'Uredi artikel' : 'Dodaj artikel'}</h2>
-              <Button type="button" variant="ghost" size="xs" className="text-sm" onClick={() => setEditorOpen(false)}>Zapri</Button>
+              <div className="flex items-center gap-1.5">
+                <IconButton type="button" tone="neutral" onClick={() => setEditorMode('edit')} title="Uredi" aria-label="Uredi">
+                  <ActionIcon type="edit" />
+                </IconButton>
+                <IconButton
+                  type="button"
+                  tone="neutral"
+                  onClick={save}
+                  disabled={editorMode !== 'edit'}
+                  title="Shrani"
+                  aria-label="Shrani"
+                >
+                  <ActionIcon type="save" />
+                </IconButton>
+                <IconButton type="button" tone="neutral" onClick={closeEditor} title="Zapri" aria-label="Zapri">
+                  <ActionIcon type="close" />
+                </IconButton>
+              </div>
             </div>
 
             <div className="space-y-3 text-sm">
-              <FloatingInput label="Naziv" value={draft.name} onChange={(value) => setDraft((prev) => ({ ...prev, name: value }))} />
+              <FloatingInput label="Naziv" value={draft.name} onChange={(value) => setDraft((prev) => ({ ...prev, name: value }))} disabled={editorMode !== 'edit'} />
               <div className="group relative" data-filled={draft.description ? 'true' : 'false'}>
-                <textarea value={draft.description} onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))} placeholder=" " className="min-h-[90px] w-full rounded-xl border border-slate-300 bg-white px-3 pb-2 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]" />
+                <textarea value={draft.description} disabled={editorMode !== 'edit'} onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))} placeholder=" " className="min-h-[90px] w-full rounded-xl border border-slate-300 bg-white px-3 pb-2 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] disabled:bg-slate-100 disabled:text-slate-400" />
                 <label className="pointer-events-none absolute left-3 top-1.5 bg-white px-1 text-[10px] text-slate-600">Opis</label>
               </div>
 
-              <FloatingSelect label="Kategorija" value={draft.category} onChange={(value) => setDraft((prev) => ({ ...prev, category: value }))}>
+              <FloatingSelect label="Kategorija" value={draft.category} disabled={editorMode !== 'edit'} onChange={(value) => setDraft((prev) => ({ ...prev, category: value }))}>
                 <option value="">Izberi kategorijo</option>
                 {categories.map((category) => <option key={category} value={category}>{category}</option>)}
               </FloatingSelect>
 
-              <label className="inline-flex items-center gap-2 text-xs text-slate-700"><input type="checkbox" checked={newCategoryEnabled} onChange={(event) => setNewCategoryEnabled(event.target.checked)} />Dodaj novo kategorijo</label>
-              <FloatingInput label="Nova Kategorija" value={newCategoryValue} onChange={(value) => setNewCategoryValue(value)} disabled={!newCategoryEnabled} />
+              <label className="inline-flex items-center gap-2 text-xs text-slate-700"><input type="checkbox" checked={newCategoryEnabled} disabled={editorMode !== 'edit'} onChange={(event) => setNewCategoryEnabled(event.target.checked)} />Dodaj novo kategorijo</label>
+              <FloatingInput label="Nova Kategorija" value={newCategoryValue} onChange={(value) => setNewCategoryValue(value)} disabled={!newCategoryEnabled || editorMode !== 'edit'} />
 
-              <FloatingInput label="Cena" value={draft.price} onChange={(value) => setDraft((prev) => ({ ...prev, price: Number(value) || 0 }))} type="number" step={0.01} />
-              <FloatingInput label="Popust (%)" value={draft.discountPct} onChange={(value) => setDraft((prev) => ({ ...prev, discountPct: Number(value) || 0 }))} type="number" min={0} max={100} step={1} />
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs text-slate-700">Sedanja cena: <span className="font-semibold text-slate-900">{formatCurrency(discountedPrice(draft.price, draft.discountPct))}</span></div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-2">
+                <p className="mb-2 text-xs font-semibold text-slate-700">Razvrščanje</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button type="button" variant={draft.displayOrder === null ? 'primary' : 'default'} size="toolbar" disabled={editorMode !== 'edit'} onClick={() => setDraft((prev) => ({ ...prev, displayOrder: null }))}>Abecedno</Button>
+                  <Button type="button" variant={draft.displayOrder !== null ? 'primary' : 'default'} size="toolbar" disabled={editorMode !== 'edit'} onClick={() => setDraft((prev) => ({ ...prev, displayOrder: prev.displayOrder ?? 1 }))}>Ročno (pozicija)</Button>
+                </div>
+                {draft.displayOrder !== null ? (
+                  <div className="mt-2">
+                    <FloatingInput
+                      label="Pozicija"
+                      value={draft.displayOrder}
+                      onChange={(value) => setDraft((prev) => ({ ...prev, displayOrder: Math.max(1, Number(value) || 1) }))}
+                      type="number"
+                      min={1}
+                      step={1}
+                      disabled={editorMode !== 'edit'}
+                    />
+                  </div>
+                ) : null}
+              </div>
 
-              <FloatingInput label="Enota" value={draft.unit} onChange={(value) => setDraft((prev) => ({ ...prev, unit: value }))} />
-              <FloatingInput label="SKU / koda" value={draft.sku} onChange={(value) => setDraft((prev) => ({ ...prev, sku: value }))} />
+              <div className="grid grid-cols-3 gap-2">
+                <FloatingInput label="Cena" value={draft.price} onChange={(value) => setDraft((prev) => ({ ...prev, price: Number(value) || 0 }))} type="number" step={0.01} disabled={editorMode !== 'edit'} />
+                <FloatingInput label="Popust (%)" value={draft.discountPct} onChange={(value) => setDraft((prev) => ({ ...prev, discountPct: Number(value) || 0 }))} type="number" min={0} max={100} step={1} disabled={editorMode !== 'edit'} />
+                <div className="flex h-11 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs text-slate-700">Sedanja cena:&nbsp;<span className="font-semibold text-slate-900">{formatCurrency(discountedPrice(draft.price, draft.discountPct))}</span></div>
+              </div>
+
+              <FloatingInput label="Enota" value={draft.unit} onChange={(value) => setDraft((prev) => ({ ...prev, unit: value }))} disabled={editorMode !== 'edit'} />
+              <FloatingInput label="SKU / koda" value={draft.sku} onChange={(value) => setDraft((prev) => ({ ...prev, sku: value }))} disabled={editorMode !== 'edit'} />
 
               <label className="block">Slike artikla (več datotek)
-                <input type="file" accept="image/*" multiple onChange={(event) => handleMultiImageUpload(event.target.files)} className="mt-1 block w-full text-xs" />
+                <input type="file" accept="image/*" multiple disabled={editorMode !== 'edit'} onChange={(event) => handleMultiImageUpload(event.target.files)} className="mt-1 block w-full text-xs" />
               </label>
               {draft.images.length > 0 ? (
                 <div className="grid grid-cols-3 gap-2">
@@ -517,11 +579,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                 </div>
               ) : null}
 
-              <label className="inline-flex items-center gap-2"><input type="checkbox" checked={draft.active} onChange={(event) => setDraft((prev) => ({ ...prev, active: event.target.checked }))} /><span>Aktiven</span></label>
-            </div>
-
-            <div className="mt-4 flex items-center justify-end">
-              <Button type="button" variant="primary" onClick={save}>Shrani</Button>
+              <label className="inline-flex items-center gap-2"><input type="checkbox" checked={draft.active} disabled={editorMode !== 'edit'} onChange={(event) => setDraft((prev) => ({ ...prev, active: event.target.checked }))} /><span>Aktiven</span></label>
             </div>
           </div>
         </div>

@@ -8,7 +8,8 @@ import {
   formatCatalogPrice,
   getDiscountedPrice,
   getCatalogSubcategory,
-  getCatalogSubcategorySlugs
+  getCatalogSubcategorySlugs,
+  sortCatalogItems
 } from '@/lib/catalog';
 import AddToCartButton from '@/components/products/AddToCartButton';
 
@@ -51,7 +52,7 @@ export default function SubcategoryPage({
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {subcategory.items.map((item) => {
+        {sortCatalogItems(subcategory.items).map((item) => {
           const itemSku = getCatalogItemSku(category.slug, subcategory.slug, item.slug);
           const basePrice = item.price ?? getCatalogItemPrice(category.slug, subcategory.slug, item.slug);
           const finalPrice = getDiscountedPrice(basePrice, item.discountPct);

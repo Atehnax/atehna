@@ -7,7 +7,8 @@ import {
   getCatalogCategoryItemPrice,
   getCatalogCategoryItemSku,
   formatCatalogPrice,
-  getDiscountedPrice
+  getDiscountedPrice,
+  sortCatalogItems
 } from '@/lib/catalog';
 import AddToCartButton from '@/components/products/AddToCartButton';
 
@@ -71,7 +72,7 @@ export default function CategoryPage({ params }: { params: { category: string } 
                   Izberite izdelek in ga dodajte v košarico.
                 </p>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  {(category.items ?? []).map((item) => {
+                  {sortCatalogItems(category.items ?? []).map((item) => {
                     const basePrice = item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug);
                     const finalPrice = getDiscountedPrice(basePrice, item.discountPct);
                     const price = formatCatalogPrice(finalPrice);

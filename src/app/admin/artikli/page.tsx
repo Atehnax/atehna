@@ -4,7 +4,8 @@ import {
   getCatalogCategoryItemPrice,
   getCatalogCategoryItemSku,
   getCatalogItemPrice,
-  getCatalogItemSku
+  getCatalogItemSku,
+  sortCatalogItems
 } from '@/lib/catalog';
 
 export const metadata = {
@@ -22,6 +23,7 @@ type SeedItem = {
   active: boolean;
   images: string[];
   discountPct: number;
+  displayOrder: number | null;
   updatedAt: string;
   archivedAt: string | null;
 };
@@ -31,7 +33,7 @@ function buildSeedItems(): SeedItem[] {
   const now = new Date().toISOString();
 
   for (const category of getCatalogCategories()) {
-    for (const item of category.items ?? []) {
+    for (const item of sortCatalogItems(category.items ?? [])) {
       items.push({
         id: getCatalogCategoryItemSku(category.slug, item.slug),
         name: item.name,
@@ -43,13 +45,14 @@ function buildSeedItems(): SeedItem[] {
         active: true,
         images: item.images?.length ? item.images : item.image ? [item.image] : [],
         discountPct: item.discountPct ?? 0,
+        displayOrder: item.displayOrder ?? null,
         updatedAt: now,
         archivedAt: null
       });
     }
 
     for (const sub of category.subcategories) {
-      for (const item of sub.items) {
+      for (const item of sortCatalogItems(sub.items)) {
         items.push({
           id: getCatalogItemSku(category.slug, sub.slug, item.slug),
           name: item.name,
@@ -61,6 +64,7 @@ function buildSeedItems(): SeedItem[] {
           active: true,
           images: item.images?.length ? item.images : item.image ? [item.image] : [],
           discountPct: item.discountPct ?? 0,
+          displayOrder: item.displayOrder ?? null,
           updatedAt: now,
           archivedAt: null
         });

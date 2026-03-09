@@ -993,23 +993,26 @@ export default function AdminOrdersTable({
               className={`${ADMIN_CONTROL_HEIGHT} min-w-[260px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} text-xs text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
             />
 
-            <ButtonGroup className={`${ADMIN_CONTROL_HEIGHT} w-fit`} rounded-xl border border-slate-300 overflow-hidden bg-white divide-x divide-slate-300`}>
+           <ButtonGroup
+              className={`${ADMIN_CONTROL_HEIGHT} w-fit rounded-xl border border-slate-300 overflow-hidden bg-white divide-x divide-slate-300`}
+            >
               <CustomSelect
                 value={documentType}
                 onChange={(next) => setDocumentType(next as DocumentType)}
                 options={documentTypeOptions}
                 triggerClassName={`relative h-full min-w-[140px] bg-transparent border-0 ${ADMIN_CONTROL_PADDING_X} py-0 text-sm font-medium flex items-center justify-between !rounded-l-xl !rounded-r-none shadow-none hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10`}
               />
-
+            
               <Button
                 type="button"
                 variant="default"
                 onClick={handleResetDocumentFilter}
                 disabled={documentType === 'all'}
                 className={`relative ${ADMIN_CONTROL_PADDING_X} h-full rounded-none border-0 bg-transparent text-sm font-medium shadow-none hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10`}
+              >
                 Ponastavi
               </Button>
-
+            
               <Button
                 type="button"
                 variant="default"
@@ -1017,7 +1020,16 @@ export default function AdminOrdersTable({
                 disabled={isDownloading}
                 className="relative h-full w-[80px] inline-flex items-center justify-center rounded-none border-0 bg-transparent px-2 whitespace-nowrap text-sm font-medium tabular-nums shadow-none hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10"
               >
-                {isDownloading ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Prenos...</span> : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
+                {isDownloading ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Spinner size="sm" className="text-slate-500" />
+                    Prenos...
+                  </span>
+                ) : selected.length > 0 ? (
+                  `Prenesi (${selected.length})`
+                ) : (
+                  'Prenesi vse'
+                )}
               </Button>
             </ButtonGroup>
           </>

@@ -222,10 +222,11 @@ function AdminOrdersPreviewChart({
         fill: toRgba(warning, 0.24)
       },
       customerStack: {
-        line: info,
-        bottom: toRgba(info, 0.38),
-        middle: toRgba(info, 0.26),
-        top: toRgba(info, 0.16)
+        totalFill: 'rgba(148, 163, 184, 0.3)',
+        totalBorder: 'rgba(100, 116, 139, 0.85)',
+        individual: toRgba(info, 0.8),
+        company: toRgba(success, 0.8),
+        school: toRgba(warning, 0.8)
       }
     };
   }, []);
@@ -305,6 +306,7 @@ function AdminOrdersPreviewChart({
     const companyDaily = rows.map((row) => row.companyOrders);
     const schoolDaily = rows.map((row) => row.schoolOrders);
     const individualDaily = rows.map((row) => row.individualOrders);
+    const totalDaily = rows.map((row) => row.companyOrders + row.schoolOrders + row.individualOrders);
 
     return {
       x,
@@ -319,7 +321,8 @@ function AdminOrdersPreviewChart({
       dailyAovMa,
       companyDaily,
       schoolDaily,
-      individualDaily
+      individualDaily,
+      totalDaily
     };
   }, [orders, fromDate, toDate]);
 
@@ -463,25 +466,24 @@ function AdminOrdersPreviewChart({
       title: 'F | P | Š',
       value: `${data.individualDaily.reduce((sum, value) => sum + value, 0)}  |  ${data.companyDaily.reduce((sum, value) => sum + value, 0)}  |  ${data.schoolDaily.reduce((sum, value) => sum + value, 0)}`,
       ...(() => {
-        const totalsSeries = data.companyDaily.map((value, index) => value + data.schoolDaily[index] + data.individualDaily[index]);
-        const delta = formatDeltaPair(periodChange(totalsSeries, 7), periodChange(totalsSeries, 30));
+        const delta = formatDeltaPair(periodChange(data.totalDaily, 7), periodChange(data.totalDaily, 30));
         return { delta: delta.text, deltaClassName: delta.className };
       })(),
       traces: [
         {
           type: 'bar',
-          name: 'Šola',
+          name: 'Skupaj',
           x: data.x,
-          y: data.schoolDaily,
-          marker: { color: semanticChartColors.customerStack.bottom },
-          hoverinfo: 'none'
-        },
-        {
-          type: 'bar',
-          name: 'Podjetje',
-          x: data.x,
-          y: data.companyDaily,
-          marker: { color: semanticChartColors.customerStack.middle },
+          y: data.totalDaily,
+          marker: {
+            color: semanticChartColors.customerStack.totalFill,
+            line: {
+              color: semanticChartColors.customerStack.totalBorder,
+              width: 1
+            }
+          },
+          width: 0.98,
+          offset: 0,
           hoverinfo: 'none'
         },
         {
@@ -489,17 +491,45 @@ function AdminOrdersPreviewChart({
           name: 'Fizična oseba',
           x: data.x,
           y: data.individualDaily,
-          marker: { color: semanticChartColors.customerStack.top },
+          marker: { color: semanticChartColors.customerStack.individual },
+          width: 0.24,
+          offset: -0.27,
+          hoverinfo: 'none'
+        },
+        {
+          type: 'bar',
+          name: 'Podjetje',
+          x: data.x,
+          y: data.companyDaily,
+          marker: { color: semanticChartColors.customerStack.company },
+          width: 0.24,
+          offset: 0,
+          hoverinfo: 'none'
+        },
+        {
+          type: 'bar',
+          name: 'Šola',
+          x: data.x,
+          y: data.schoolDaily,
+          marker: { color: semanticChartColors.customerStack.school },
+          width: 0.24,
+          offset: 0.27,
           hoverinfo: 'none'
         }
       ],
       tooltipRowsAt: (i) => [
-        { label: 'Fizična oseba', value: formatInt(data.individualDaily[i]), color: semanticChartColors.customerStack.top, numericValue: data.individualDaily[i] ?? null },
-        { label: 'Podjetje', value: formatInt(data.companyDaily[i]), color: semanticChartColors.customerStack.middle, numericValue: data.companyDaily[i] ?? null },
-        { label: 'Šola', value: formatInt(data.schoolDaily[i]), color: semanticChartColors.customerStack.bottom, numericValue: data.schoolDaily[i] ?? null }
+        { label: 'Fizična oseba', value: formatInt(data.individualDaily[i]), color: semanticChartColors.customerStack.individual, numericValue: data.individualDaily[i] ?? null },
+        { label: 'Podjetje', value: formatInt(data.companyDaily[i]), color: semanticChartColors.customerStack.company, numericValue: data.companyDaily[i] ?? null },
+        { label: 'Šola', value: formatInt(data.schoolDaily[i]), color: semanticChartColors.customerStack.school, numericValue: data.schoolDaily[i] ?? null },
+        { label: 'Skupaj', value: formatInt(data.totalDaily[i]), color: semanticChartColors.customerStack.totalBorder, numericValue: data.totalDaily[i] ?? null }
       ],
       enforceTopDownTooltipOrder: false,
-      layout: miniLayout(true)
+      layout: {
+        ...miniLayout(false),
+        barmode: 'overlay',
+        bargap: 0.02,
+        bargroupgap: 0
+      }
     }
   ];
 

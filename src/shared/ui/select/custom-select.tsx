@@ -16,6 +16,7 @@ type CustomSelectProps = {
   disabled?: boolean;
   placeholder?: string;
   className?: string;
+  triggerClassName?: string;
   menuClassName?: string;
   valueClassName?: string;
   onOpenChange?: (isOpen: boolean) => void;
@@ -30,6 +31,7 @@ export default function CustomSelect({
   disabled = false,
   placeholder = '',
   className,
+  triggerClassName,
   menuClassName,
   valueClassName,
   onOpenChange
@@ -76,9 +78,10 @@ export default function CustomSelect({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         className={classNames(
-          `relative pr-8`,
+          'relative pr-8',
           selectTokenClasses.trigger,
-          className
+          className,
+          triggerClassName
         )}
       >
         <span className={classNames('min-w-0 flex-1 truncate text-left leading-none', valueClassName)}>{selectedLabel}</span>

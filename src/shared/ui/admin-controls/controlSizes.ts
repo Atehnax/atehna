@@ -1,0 +1,4 @@
+export const ADMIN_CONTROL_HEIGHT = 'h-8';
+export const ADMIN_CONTROL_PADDING_X = 'px-3';
+
+export const ADMIN_CONTROL_SIZE = `${ADMIN_CONTROL_HEIGHT} ${ADMIN_CONTROL_PADDING_X}`;

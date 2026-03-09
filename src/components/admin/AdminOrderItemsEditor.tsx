@@ -124,7 +124,7 @@ export default function AdminOrderItemsEditor({
 
   const itemsEditable = itemsSectionMode === 'edit';
   const itemsSaveDisabled = itemsSectionMode === 'read' || isItemsSaving;
-  const addItemDisabled = itemsSectionMode === 'read';
+  const addItemDisabled = itemsSectionMode === 'read' || isItemsSaving;
 
   const activeItems = itemsEditable ? draftItems : persistedItems;
 
@@ -286,6 +286,7 @@ export default function AdminOrderItemsEditor({
               aria-label="Uredi postavke"
               onClick={startItemsEdit}
               title="Uredi"
+              tone="neutral"
               disabled={isItemsSaving}
             >
               <PencilIcon />
@@ -296,6 +297,7 @@ export default function AdminOrderItemsEditor({
               aria-label="Shrani postavke"
               onClick={() => void saveItems()}
               title="Shrani"
+              tone="neutral"
               disabled={itemsSaveDisabled}
             >
               <SaveIcon />
@@ -306,6 +308,7 @@ export default function AdminOrderItemsEditor({
               aria-label="Dodaj postavko"
               onClick={() => void openAddItem()}
               title="Dodaj"
+              tone="neutral"
               disabled={addItemDisabled}
             >
               <PlusIcon />

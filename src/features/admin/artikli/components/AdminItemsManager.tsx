@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
+import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
 import { SegmentedControl } from '@/shared/ui/segmented';
 import { CustomSelect } from '@/shared/ui/select';
 import { Table, THead, TH, TR } from '@/shared/ui/table';
@@ -377,7 +378,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Poišči po nazivu, SKU ali kategoriji …"
-              className="h-8 min-w-[240px] flex-1 rounded-xl border border-slate-300 px-3 text-xs focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
+              className={`${ADMIN_CONTROL_HEIGHT} min-w-[240px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} text-xs focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
             />
             <div className="relative min-w-[220px]">
               <CustomSelect
@@ -387,7 +388,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                   { value: 'all', label: 'Vse kategorije' },
                   ...categories.map((category) => ({ value: category, label: category }))
                 ]}
-                className="h-8 px-3 py-0 text-xs font-semibold"
+                className={`${ADMIN_CONTROL_HEIGHT} ${ADMIN_CONTROL_PADDING_X} py-0 text-xs font-semibold`}
                 valueClassName="min-w-0 flex-1 text-left"
                 menuClassName="min-w-full w-max max-w-[560px]"
               />
@@ -396,10 +397,10 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
         }
         headerRight={
           <>
-            <Button type="button" variant="archive" onClick={archiveSelected} disabled={selectedIds.length === 0}>
+            <Button type="button" variant="archive" className={`${ADMIN_CONTROL_HEIGHT} ${ADMIN_CONTROL_PADDING_X}`} onClick={archiveSelected} disabled={selectedIds.length === 0}>
               Arhiviraj
             </Button>
-            <Button type="button" variant="primary" onClick={openCreate}>
+            <Button type="button" variant="primary" className={`${ADMIN_CONTROL_HEIGHT} ${ADMIN_CONTROL_PADDING_X}`} onClick={openCreate}>
               Nov artikel
             </Button>
           </>
@@ -465,7 +466,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                       {item.active ? 'Aktiven' : 'Neaktiven'}
                     </Chip>
                   </td>
-                  <td className="px-3 py-2"><div className="flex items-center justify-center gap-1.5"><IconButton type="button" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi"><ActionIcon type="edit" /></IconButton><IconButton type="button" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji"><ActionIcon type="copy" /></IconButton><IconButton type="button" tone="warning" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj"><ActionIcon type="archive" /></IconButton></div></td>
+                  <td className="px-3 py-2"><div className="flex items-center justify-center gap-1.5"><IconButton type="button" tone="neutral" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi"><ActionIcon type="edit" /></IconButton><IconButton type="button" tone="neutral" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji"><ActionIcon type="copy" /></IconButton><IconButton type="button" tone="warning" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj"><ActionIcon type="archive" /></IconButton></div></td>
                 </tr>
               ))}
             </tbody>

@@ -54,12 +54,9 @@ import {
   toDisplayOrderNumber
 } from '@/components/admin/adminOrdersTableUtils';
 
-
 type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
 
-
 const bulkDeleteButtonClass = buttonTokenClasses.danger;
-
 const PAGE_SIZE_OPTIONS = [50, 100];
 
 export default function AdminOrdersTable({
@@ -133,35 +130,34 @@ export default function AdminOrdersTable({
     };
   }, [isDatePopoverOpen]);
 
-
   useEffect(() => {
-  if (!isStatusHeaderMenuOpen && !isPaymentHeaderMenuOpen) return;
+    if (!isStatusHeaderMenuOpen && !isPaymentHeaderMenuOpen) return;
 
-  const handleOutsideClick = (event: MouseEvent) => {
-    const target = event.target as Node;
-    if (!statusHeaderMenuRef.current?.contains(target)) {
-      setIsStatusHeaderMenuOpen(false);
-    }
-    if (!paymentHeaderMenuRef.current?.contains(target)) {
-      setIsPaymentHeaderMenuOpen(false);
-    }
-  };
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!statusHeaderMenuRef.current?.contains(target)) {
+        setIsStatusHeaderMenuOpen(false);
+      }
+      if (!paymentHeaderMenuRef.current?.contains(target)) {
+        setIsPaymentHeaderMenuOpen(false);
+      }
+    };
 
-  const handleEscape = (event: KeyboardEvent) => {
-    if (event.key === 'Escape') {
-      setIsStatusHeaderMenuOpen(false);
-      setIsPaymentHeaderMenuOpen(false);
-    }
-  };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsStatusHeaderMenuOpen(false);
+        setIsPaymentHeaderMenuOpen(false);
+      }
+    };
 
-  document.addEventListener('mousedown', handleOutsideClick);
-  document.addEventListener('keydown', handleEscape);
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
 
-  return () => {
-    document.removeEventListener('mousedown', handleOutsideClick);
-    document.removeEventListener('keydown', handleEscape);
-  };
-}, [isPaymentHeaderMenuOpen, isStatusHeaderMenuOpen]);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isPaymentHeaderMenuOpen, isStatusHeaderMenuOpen]);
 
   const latestOrderDate = useMemo(() => {
     const timestamps = orders
@@ -207,7 +203,6 @@ export default function AdminOrdersTable({
     setRangePreset(preset);
   };
 
-
   const applyAnalyticsRangePreset = (range: Exclude<OrdersRangePreset, 'custom'>) => {
     const anchorDate = new Date(latestOrderDate);
 
@@ -238,7 +233,7 @@ export default function AdminOrdersTable({
     if (!initialFrom && !initialTo) {
       applyAnalyticsRangePreset('1m');
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const applyQuickDateRange = (range: 'today' | 'yesterday' | '7d' | '30d' | '3m' | '6m' | '1y') => {
@@ -355,22 +350,14 @@ export default function AdminOrdersTable({
 
       if (debouncedFromDate) {
         const fromTimestamp = new Date(`${debouncedFromDate}T00:00:00`).getTime();
-        if (
-          !Number.isNaN(fromTimestamp) &&
-          !Number.isNaN(orderTimestamp) &&
-          orderTimestamp < fromTimestamp
-        ) {
+        if (!Number.isNaN(fromTimestamp) && !Number.isNaN(orderTimestamp) && orderTimestamp < fromTimestamp) {
           return false;
         }
       }
 
       if (debouncedToDate) {
         const toTimestamp = new Date(`${debouncedToDate}T23:59:59.999`).getTime();
-        if (
-          !Number.isNaN(toTimestamp) &&
-          !Number.isNaN(orderTimestamp) &&
-          orderTimestamp > toTimestamp
-        ) {
+        if (!Number.isNaN(toTimestamp) && !Number.isNaN(orderTimestamp) && orderTimestamp > toTimestamp) {
           return false;
         }
       }
@@ -531,7 +518,6 @@ export default function AdminOrdersTable({
 
   const allSelected = visibleOrderIds.length > 0 && selectedVisibleCount === visibleOrderIds.length;
   const selectedCount = selected.length;
-  const isBulkMode = selectedCount > 0;
   const isSingleSelection = selectedCount === 1;
 
   const [rowStatusOverrides, setRowStatusOverrides] = useState<Record<number, string>>({});
@@ -549,21 +535,14 @@ export default function AdminOrdersTable({
     selectAllRef.current.indeterminate = selectedVisibleCount > 0 && !allSelected;
   }, [allSelected, selectedVisibleCount]);
 
-
   useEffect(() => {
     const validIds = new Set(orders.map((order) => order.id));
-    setSelected((previousSelected) =>
-      previousSelected.filter((selectedOrderId) => validIds.has(selectedOrderId))
-    );
+    setSelected((previousSelected) => previousSelected.filter((selectedOrderId) => validIds.has(selectedOrderId)));
     setRowStatusOverrides((previousOverrides) =>
-      Object.fromEntries(
-        Object.entries(previousOverrides).filter(([orderId]) => validIds.has(Number(orderId)))
-      )
+      Object.fromEntries(Object.entries(previousOverrides).filter(([orderId]) => validIds.has(Number(orderId))))
     );
     setRowPaymentOverrides((previousOverrides) =>
-      Object.fromEntries(
-        Object.entries(previousOverrides).filter(([orderId]) => validIds.has(Number(orderId)))
-      )
+      Object.fromEntries(Object.entries(previousOverrides).filter(([orderId]) => validIds.has(Number(orderId))))
     );
   }, [orders]);
 
@@ -607,9 +586,7 @@ export default function AdminOrdersTable({
         selected.map((orderId) => fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' }))
       );
 
-      const failedDeletes = deleteResults.filter(
-        (result) => result.status === 'fulfilled' && !result.value.ok
-      ).length;
+      const failedDeletes = deleteResults.filter((result) => result.status === 'fulfilled' && !result.value.ok).length;
 
       if (failedDeletes > 0) {
         toast.error(`Brisanje ni uspelo za ${failedDeletes} naročil.`);
@@ -778,8 +755,8 @@ export default function AdminOrdersTable({
   }, [orders.length, hasActiveFilters, filteredAndSortedOrders.length]);
 
   const handleResetDocumentFilter = () => {
-  setDocumentType('all');
-};
+    setDocumentType('all');
+  };
 
   const downloadFile = async (fileUrl: string, downloadFilename: string) => {
     const response = await fetch(fileUrl);
@@ -803,9 +780,10 @@ export default function AdminOrdersTable({
     try {
       const filesToDownload: Array<{ url: string; filename: string }> = [];
 
-      const downloadSourceOrders = selected.length > 0
-        ? filteredAndSortedOrders.filter((order) => selected.includes(order.id))
-        : filteredAndSortedOrders;
+      const downloadSourceOrders =
+        selected.length > 0
+          ? filteredAndSortedOrders.filter((order) => selected.includes(order.id))
+          : filteredAndSortedOrders;
 
       downloadSourceOrders.forEach((order) => {
         const latestDocumentsForOrder = latestDocumentsByOrder.get(order.id) ?? [];
@@ -840,567 +818,581 @@ export default function AdminOrdersTable({
   return (
     <div className="w-full">
       <div className="mx-auto w-full max-w-[1600px]">
-      <AdminOrdersPreviewChart
-        orders={orders}
-        appearance={analyticsAppearance}
-        fromDate={debouncedFromDate}
-        toDate={debouncedToDate}
-        activeRange={rangePreset}
-        onRangeChange={applyAnalyticsRangePreset}
-      />
-      <ConfirmDialog
-        open={isBulkDeleteDialogOpen}
-        title="Izbris naročil"
-        description={`Ali ste prepričani, da želite izbrisati ${selected.length} naročil?`}
-        confirmLabel="Izbriši"
-        cancelLabel="Prekliči"
-        isDanger
-        onCancel={() => setIsBulkDeleteDialogOpen(false)}
-        onConfirm={() => {
-          void confirmDeleteSelected();
-        }}
-        confirmDisabled={isDeleting}
-      />
+        <AdminOrdersPreviewChart
+          orders={orders}
+          appearance={analyticsAppearance}
+          fromDate={debouncedFromDate}
+          toDate={debouncedToDate}
+          activeRange={rangePreset}
+          onRangeChange={applyAnalyticsRangePreset}
+        />
 
-      <ConfirmDialog
-        open={confirmDeleteRowId !== null}
-        title="Izbris naročila"
-        description="Ali ste prepričani, da želite izbrisati to naročilo?"
-        confirmLabel="Izbriši"
-        cancelLabel="Prekliči"
-        isDanger
-        onCancel={() => setConfirmDeleteRowId(null)}
-        onConfirm={() => {
-          void confirmDeleteRow();
-        }}
-        confirmDisabled={deletingRowId !== null}
-      />
+        <ConfirmDialog
+          open={isBulkDeleteDialogOpen}
+          title="Izbris naročil"
+          description={`Ali ste prepričani, da želite izbrisati ${selected.length} naročil?`}
+          confirmLabel="Izbriši"
+          cancelLabel="Prekliči"
+          isDanger
+          onCancel={() => setIsBulkDeleteDialogOpen(false)}
+          onConfirm={() => {
+            void confirmDeleteSelected();
+          }}
+          confirmDisabled={isDeleting}
+        />
 
-      <AdminTableLayout
-        className="border"
-        style={{ background: "linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)", borderColor: analyticsAppearance?.gridColor ?? "#e2e8f0", boxShadow: "0 10px 24px rgba(15,23,42,0.06)" }}
-        contentClassName="overflow-x-auto"
-        headerLeft={
-          <>
-            <div className="relative min-w-[170px]" ref={datePopoverRef}>
-              <button
-                type="button"
-                onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-                className={`${ADMIN_CONTROL_HEIGHT} min-w-[175px] rounded-xl border border-slate-300 bg-white ${ADMIN_CONTROL_PADDING_X} py-0 text-left text-xs text-slate-700 hover:bg-transparent focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
-              >
-                <span className="inline-flex h-full w-full items-center gap-1.5 leading-none"> 
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 24 24"
-                    className="h-3.5 w-3.5 text-slate-600"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
+        <ConfirmDialog
+          open={confirmDeleteRowId !== null}
+          title="Izbris naročila"
+          description="Ali ste prepričani, da želite izbrisati to naročilo?"
+          confirmLabel="Izbriši"
+          cancelLabel="Prekliči"
+          isDanger
+          onCancel={() => setConfirmDeleteRowId(null)}
+          onConfirm={() => {
+            void confirmDeleteRow();
+          }}
+          confirmDisabled={deletingRowId !== null}
+        />
+
+        <AdminTableLayout
+          className="border"
+          style={{
+            background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)',
+            borderColor: analyticsAppearance?.gridColor ?? '#e2e8f0',
+            boxShadow: '0 10px 24px rgba(15,23,42,0.06)'
+          }}
+          contentClassName="overflow-x-auto"
+          headerLeft={
+            <>
+              <div className="relative min-w-[170px]" ref={datePopoverRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
+                  className={`${ADMIN_CONTROL_HEIGHT} min-w-[175px] rounded-xl border border-slate-300 bg-transparent ${ADMIN_CONTROL_PADDING_X} py-0 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none`}
+                >
+                  <span className="inline-flex h-full w-full items-center gap-1.5 leading-none">
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 24 24"
+                      className="h-3.5 w-3.5 text-slate-600"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                    >
+                      <rect x="3" y="5" width="18" height="16" rx="2" />
+                      <path d="M16 3v4M8 3v4M3 10h18" />
+                    </svg>
+                    <span className="truncate">{dateRangeLabel}</span>
+                  </span>
+                </button>
+
+                {isDatePopoverOpen && (
+                  <div
+                    lang="sl-SI"
+                    className="absolute left-0 z-20 mt-2 w-[420px] rounded-xl border border-slate-200 bg-white p-3 shadow-lg"
                   >
-                    <rect x="3" y="5" width="18" height="16" rx="2" />
-                    <path d="M16 3v4M8 3v4M3 10h18" />
-                  </svg>
-                  <span className="truncate">{dateRangeLabel}</span>
-                </span>
-              </button>
-
-              {isDatePopoverOpen && (
-                <div lang="sl-SI" className="absolute left-0 z-20 mt-2 w-[420px] rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
-                  <div className="grid grid-cols-[180px_1fr] gap-4">
-                    <div className="space-y-1 border-r border-slate-200 pr-3">
-                      <button
-                        type="button"
-                        onClick={() => applyQuickDateRange('today')}
-                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:bg-[color:var(--hover-neutral)]"
-                      >
-                        Danes
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => applyQuickDateRange('yesterday')}
-                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:bg-[color:var(--hover-neutral)]"
-                      >
-                        Včeraj
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => applyQuickDateRange('7d')}
-                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:bg-[color:var(--hover-neutral)]"
-                      >
-                        Zadnjih 7 dni
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => applyQuickDateRange('30d')}
-                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:bg-[color:var(--hover-neutral)]"
-                      >
-                        Zadnjih 30 dni
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => applyQuickDateRange('3m')}
-                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:bg-[color:var(--hover-neutral)]"
-                      >
-                        Zadnje 3 mesece
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => applyQuickDateRange('6m')}
-                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:bg-[color:var(--hover-neutral)]"
-                      >
-                        Zadnjih 6 mesecev
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => applyQuickDateRange('1y')}
-                        className="w-full rounded-lg border border-transparent bg-white px-2 py-1 text-left text-xs text-slate-700 hover:bg-[color:var(--hover-neutral)]"
-                      >
-                        Zadnje leto
-                      </button>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-xs font-semibold uppercase text-slate-500">Od</label>
-                        <input
-                          type="date"
-                          lang="sl-SI"
-                          value={fromDate}
-                          onChange={(event) => { setFromDate(event.target.value); setRangePreset('custom'); }}
-                          className={`mt-1 ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`}
-                        />
+                    <div className="grid grid-cols-[180px_1fr] gap-4">
+                      <div className="space-y-1 border-r border-slate-200 pr-3">
+                        {[
+                          { key: 'today', label: 'Danes' },
+                          { key: 'yesterday', label: 'Včeraj' },
+                          { key: '7d', label: 'Zadnjih 7 dni' },
+                          { key: '30d', label: 'Zadnjih 30 dni' },
+                          { key: '3m', label: 'Zadnje 3 mesece' },
+                          { key: '6m', label: 'Zadnjih 6 mesecev' },
+                          { key: '1y', label: 'Zadnje leto' }
+                        ].map((item) => (
+                          <button
+                            key={item.key}
+                            type="button"
+                            onClick={() => applyQuickDateRange(item.key as any)}
+                            className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:outline-none"
+                          >
+                            {item.label}
+                          </button>
+                        ))}
                       </div>
-                      <div>
-                        <label className="text-xs font-semibold uppercase text-slate-500">Do</label>
-                        <input
-                          type="date"
-                          lang="sl-SI"
-                          value={toDate}
-                          onChange={(event) => { setToDate(event.target.value); setRangePreset('custom'); }}
-                          className={`mt-1 ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`}
-                        />
+
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-xs font-semibold uppercase text-slate-500">Od</label>
+                          <input
+                            type="date"
+                            lang="sl-SI"
+                            value={fromDate}
+                            onChange={(event) => {
+                              setFromDate(event.target.value);
+                              setRangePreset('custom');
+                            }}
+                            className={`mt-1 ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold uppercase text-slate-500">Do</label>
+                          <input
+                            type="date"
+                            lang="sl-SI"
+                            value={toDate}
+                            onChange={(event) => {
+                              setToDate(event.target.value);
+                              setRangePreset('custom');
+                            }}
+                            className={`mt-1 ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
 
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Poišči po številki, naročniku, naslovu, opombi ..."
-              className={`${ADMIN_CONTROL_HEIGHT} min-w-[260px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} text-xs text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
-            />
-
-            <ButtonGroup className={`${ADMIN_CONTROL_HEIGHT} min-w-[308px] rounded-xl border border-slate-300 overflow-hidden bg-white divide-x divide-slate-300`}>
-              <CustomSelect
-                value={documentType}
-                onChange={(next) => setDocumentType(next as DocumentType)}
-                options={documentTypeOptions}
-                triggerClassName={`relative h-full min-w-[140px] bg-transparent border-0 ${ADMIN_CONTROL_PADDING_X} py-0 text-sm font-medium flex items-center justify-between !rounded-l-xl !rounded-r-none shadow-none hover:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10`}
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Poišči po številki, naročniku, naslovu, opombi ..."
+                className={`${ADMIN_CONTROL_HEIGHT} min-w-[260px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} text-xs text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
               />
 
-              <Button
-                type="button"
-                variant="default"
-                onClick={handleResetDocumentFilter}
-                disabled={documentType === 'all'}
-                className={`relative ${ADMIN_CONTROL_PADDING_X} h-full rounded-none border-0 bg-transparent text-sm font-medium shadow-none hover:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10`}
+              <ButtonGroup
+                className={`${ADMIN_CONTROL_HEIGHT} w-fit rounded-xl border border-slate-300 overflow-hidden bg-white divide-x divide-slate-300`}
               >
-                Ponastavi
-              </Button>
-
-              <Button
-                type="button"
-                variant="default"
-                onClick={handleDownloadAllDocuments}
-                disabled={isDownloading}
-                className="relative h-full w-[80px] rounded-none border-0 bg-transparent px-2 whitespace-nowrap text-sm font-medium tabular-nums shadow-none hover:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10"
-              >
-                {isDownloading ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Prenos...</span> : selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
-              </Button>
-            </ButtonGroup>
-          </>
-        }
-        headerRight={
-          <>
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={selected.length === 0 || isDeleting}
-              className={bulkDeleteButtonClass}
-            >
-              {isDeleting ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-[var(--danger-600)]" />Brisanje...</span> : 'Izbriši'}
-            </button>
-
-            {topAction ? <div className="flex h-8 items-center">{topAction}</div> : null}
-          </>
-        }
-        filterRowLeft={
-          <SegmentedControl
-            size="sm"
-            value={statusFilter}
-            onChange={(next) => setStatusFilter(next as typeof statusFilter)}
-            options={statusTabs.map((tab) => ({ value: tab.value, label: tab.label }))}
-          />
-        }
-        filterRowRight={
-          <>
-            <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={setPageSize} />
-            <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="topPills" size="sm" showNumbers={false} />
-          </>
-        }
-        footerRight={<Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" size="sm" showNumbers={false} />}
-      >
-        <Table className="min-w-[1180px] w-full">
-          <colgroup>
-            <col style={{ width: columnWidths.selectAndDelete }} />
-            <col style={{ width: columnWidths.order }} />
-            <col style={{ width: columnWidths.date }} />
-            <col style={{ width: columnWidths.customer }} />
-            <col style={{ width: columnWidths.address }} />
-            <col style={{ width: columnWidths.type }} />
-            <col style={{ width: columnWidths.status }} />
-            <col style={{ width: columnWidths.payment }} />
-            <col style={{ width: columnWidths.total }} />
-            <col style={{ width: columnWidths.documents }} />
-            <col style={{ width: columnWidths.edit }} />
-          </colgroup>
-          <THead>
-            <TR>
-              <TH className="h-11 text-center">
-                <input
-                  type="checkbox"
-                  ref={selectAllRef}
-                  checked={allSelected}
-                  onChange={toggleAll}
-                  aria-label="Izberi vse"
+                <CustomSelect
+                  value={documentType}
+                  onChange={(next) => setDocumentType(next as DocumentType)}
+                  options={documentTypeOptions}
+                  triggerClassName={`relative h-full min-w-[140px] bg-transparent border-0 ${ADMIN_CONTROL_PADDING_X} py-0 text-sm font-medium flex items-center justify-between !rounded-l-xl !rounded-r-none shadow-none hover:!bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10`}
                 />
-              </TH>
 
-              <TH className="h-11 text-center">
-                <button
+                <Button
                   type="button"
-                  onClick={() => onSort('order_number')}
-                  className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
+                  variant="default"
+                  onClick={handleResetDocumentFilter}
+                  disabled={documentType === 'all'}
+                  className={`relative ${ADMIN_CONTROL_PADDING_X} h-full rounded-none border-0 bg-transparent text-sm font-medium shadow-none hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10`}
                 >
-                  Naročilo {sortIndicator('order_number')}
-                </button>
-              </TH>
+                  Ponastavi
+                </Button>
 
-              <TH className="h-11 text-center">
-                <button
+                <Button
                   type="button"
-                  onClick={() => onSort('created_at')}
-                  className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
+                  variant="default"
+                  onClick={handleDownloadAllDocuments}
+                  disabled={isDownloading}
+                  className="relative h-full w-[80px] inline-flex items-center justify-center rounded-none border-0 bg-transparent px-2 whitespace-nowrap text-sm font-medium tabular-nums shadow-none hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10"
                 >
-                  Datum {sortIndicator('created_at')}
-                </button>
-              </TH>
-
-              <TH>
-                <button
-                  type="button"
-                  onClick={() => onSort('customer')}
-                  className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
-                >
-                  Naročnik {sortIndicator('customer')}
-                </button>
-              </TH>
-
-              <TH>
-                <button
-                  type="button"
-                  onClick={() => onSort('address')}
-                  className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
-                >
-                  Naslov {sortIndicator('address')}
-                </button>
-              </TH>
-
-              <TH className="h-11 text-center">
-                <button
-                  type="button"
-                  onClick={() => onSort('type')}
-                  className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
-                >
-                  Tip {sortIndicator('type')}
-                </button>
-              </TH>
-
-              <TH className="h-11 text-center">
-                <div className="relative inline-flex" ref={statusHeaderMenuRef}>
-                  {selectedCount > 0 ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setIsStatusHeaderMenuOpen((previousOpen) => !previousOpen)}
-                        disabled={isBulkUpdatingStatus}
-                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
-                        aria-haspopup="menu"
-                        aria-expanded={isStatusHeaderMenuOpen}
-                      >
-                        Status ▾ ({selectedCount})
-                      </button>
-
-                      {isStatusHeaderMenuOpen && (
-                        <div role="menu">
-                          <MenuPanel className="absolute left-1/2 top-8 z-20 w-44 -translate-x-1/2">
-                            {ORDER_STATUS_OPTIONS.map((option) => (
-                              <MenuItem
-                                key={option.value}
-                                onClick={() => handleBulkStatusUpdate(option.value)}
-                                disabled={isBulkUpdatingStatus}
-                              >
-                                {option.label}
-                              </MenuItem>
-                            ))}
-                          </MenuPanel>
-                        </div>
-                      )}
-                    </>
+                  {isDownloading ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Spinner size="sm" className="text-slate-500" />
+                      Prenos...
+                    </span>
+                  ) : selected.length > 0 ? (
+                    `Prenesi (${selected.length})`
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => onSort('status')}
-                      className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
-                    >
-                      Status {sortIndicator('status')}
-                    </button>
+                    'Prenesi vse'
                   )}
-                </div>
-              </TH>
+                </Button>
+              </ButtonGroup>
+            </>
+          }
+          headerRight={
+            <>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={selected.length === 0 || isDeleting}
+                className={bulkDeleteButtonClass}
+              >
+                {isDeleting ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Spinner size="sm" className="text-[var(--danger-600)]" />
+                    Brisanje...
+                  </span>
+                ) : (
+                  'Izbriši'
+                )}
+              </button>
 
-              <TH className="h-11 text-center">
-                <div className="relative inline-flex" ref={paymentHeaderMenuRef}>
-                  {selectedCount > 0 ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setIsPaymentHeaderMenuOpen((previousOpen) => !previousOpen)}
-                        disabled={isBulkUpdatingStatus}
-                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
-                        aria-haspopup="menu"
-                        aria-expanded={isPaymentHeaderMenuOpen}
-                      >
-                        Plačilo ▾ ({selectedCount})
-                      </button>
+              {topAction ? <div className="flex h-8 items-center">{topAction}</div> : null}
+            </>
+          }
+          filterRowLeft={
+            <SegmentedControl
+              size="sm"
+              value={statusFilter}
+              onChange={(next) => setStatusFilter(next as typeof statusFilter)}
+              options={statusTabs.map((tab) => ({ value: tab.value, label: tab.label }))}
+            />
+          }
+          filterRowRight={
+            <>
+              <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={setPageSize} />
+              <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="topPills" size="sm" showNumbers={false} />
+            </>
+          }
+          footerRight={<Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" size="sm" showNumbers={false} />}
+        >
+          <Table className="min-w-[1180px] w-full">
+            <colgroup>
+              <col style={{ width: columnWidths.selectAndDelete }} />
+              <col style={{ width: columnWidths.order }} />
+              <col style={{ width: columnWidths.date }} />
+              <col style={{ width: columnWidths.customer }} />
+              <col style={{ width: columnWidths.address }} />
+              <col style={{ width: columnWidths.type }} />
+              <col style={{ width: columnWidths.status }} />
+              <col style={{ width: columnWidths.payment }} />
+              <col style={{ width: columnWidths.total }} />
+              <col style={{ width: columnWidths.documents }} />
+              <col style={{ width: columnWidths.edit }} />
+            </colgroup>
 
-                      {isPaymentHeaderMenuOpen && (
-                        <div role="menu">
-                          <MenuPanel className="absolute left-1/2 top-8 z-20 w-44 -translate-x-1/2">
-                            {PAYMENT_STATUS_OPTIONS.map((option) => (
-                              <MenuItem
-                                key={option.value}
-                                onClick={() => handleBulkPaymentUpdate(option.value)}
-                                disabled={isBulkUpdatingStatus}
-                              >
-                                {option.label}
-                              </MenuItem>
-                            ))}
-                          </MenuPanel>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => onSort('payment')}
-                      className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
-                    >
-                      Plačilo {sortIndicator('payment')}
-                    </button>
-                  )}
-                </div>
-              </TH>
-
-              <TH className="h-11 text-center">
-                <button
-                  type="button"
-                  onClick={() => onSort('total')}
-                  className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
-                >
-                  Skupaj {sortIndicator('total')}
-                </button>
-              </TH>
-
-              <TH className="min-w-[100px] text-center">PDF datoteke</TH>
-              <TH className="text-center">Uredi</TH>
-            </TR>
-          </THead>
-
-          <TBody>
-            {filteredAndSortedOrders.length === 0 ? (
+            <THead>
               <TR>
-                <TD className="py-6 text-center text-slate-500" colSpan={10}>
-                  <EmptyState title="Ni zadetkov za izbrane filtre." action={
-                    orders.length > 0 ? (
-                    <button
-                      type="button"
-                      onClick={resetAllFilters}
-                      className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
-                    >
-                      Prikaži vsa naročila
-                    </button>
-                  ) : null
-                } />
-                </TD>
-              </TR>
-            ) : (
-              pagedOrders.map((order, orderIndex) => {
-                const orderAddress = formatOrderAddress(order);
-                const typeLabel = getCustomerTypeLabel(order.customer_type);
-                const rowStatus = rowStatusOverrides[order.id] ?? order.status;
-                const rowPaymentStatus = rowPaymentOverrides[order.id] ?? order.payment_status ?? null;
-                const isRowSelected = selected.includes(order.id);
-                const canEditStatus = isSingleSelection && isRowSelected;
-                const canEditPayment = isSingleSelection && isRowSelected;
+                <TH className="h-11 text-center">
+                  <input
+                    type="checkbox"
+                    ref={selectAllRef}
+                    checked={allSelected}
+                    onChange={toggleAll}
+                    aria-label="Izberi vse"
+                  />
+                </TH>
 
-                return (
-                  <TR
-                    key={order.id}
-                    className={`border-t border-slate-100 transition-colors duration-200 ${
-                      isRowSelected ? 'bg-[#eef3ff]' : orderIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-                    } hover:bg-[#eef3ff]`}
+                <TH className="h-11 text-center">
+                  <button
+                    type="button"
+                    onClick={() => onSort('order_number')}
+                    className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
                   >
-                    <TD>
-                      <div className="flex justify-center">
-                        <input
-                          data-no-row-nav
-                          type="checkbox"
-                          checked={selected.includes(order.id)}
-                          onChange={() => toggleSelected(order.id)}
-                          aria-label={`Izberi naročilo ${toDisplayOrderNumber(order.order_number)}`}
-                        />
-                      </div>
-                    </TD>
+                    Naročilo {sortIndicator('order_number')}
+                  </button>
+                </TH>
 
-                    <TD className="text-center font-semibold text-slate-900" data-no-row-nav>
-                      <a
-                        href={`/admin/orders/${order.id}`}
-                        className="inline-flex rounded-sm px-1 text-[13px] font-semibold text-brand-700 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
-                        aria-label={`Odpri naročilo ${toDisplayOrderNumber(order.order_number)}`}
-                      >
-                        {toDisplayOrderNumber(order.order_number)}
-                      </a>
-                    </TD>
+                <TH className="h-11 text-center">
+                  <button
+                    type="button"
+                    onClick={() => onSort('created_at')}
+                    className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
+                  >
+                    Datum {sortIndicator('created_at')}
+                  </button>
+                </TH>
 
-                    <TD className="text-center whitespace-nowrap text-slate-700">
-                      <span
-                        className="inline-block rounded-sm px-1 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
-                        title={formatSlDateTime(order.created_at)}
-                        aria-label={`Datum naročila ${formatSlDateTime(order.created_at)}`}
-                        tabIndex={0}
-                      >
-                        {formatSlDate(order.created_at)}
-                      </span>
-                    </TD>
+                <TH>
+                  <button
+                    type="button"
+                    onClick={() => onSort('customer')}
+                    className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
+                  >
+                    Naročnik {sortIndicator('customer')}
+                  </button>
+                </TH>
 
-                    <TD className="text-slate-700">
-                      <span className="block truncate" title={order.organization_name || order.contact_name}>
-                        {order.organization_name || order.contact_name}
-                      </span>
-                    </TD>
+                <TH>
+                  <button
+                    type="button"
+                    onClick={() => onSort('address')}
+                    className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
+                  >
+                    Naslov {sortIndicator('address')}
+                  </button>
+                </TH>
 
-                    <TD className="text-slate-700">
-                      <span className="block truncate" title={orderAddress || '—'}>
-                        {orderAddress || '—'}
-                      </span>
-                    </TD>
+                <TH className="h-11 text-center">
+                  <button
+                    type="button"
+                    onClick={() => onSort('type')}
+                    className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
+                  >
+                    Tip {sortIndicator('type')}
+                  </button>
+                </TH>
 
-                    <TD className="text-center text-slate-700">{typeLabel}</TD>
-
-                    <TD className="text-center text-slate-700">
-                      {selectedCount > 1 ? (
-                        <div className="flex justify-center">
-                          <StatusChip status={rowStatus} />
-                        </div>
-                      ) : (
-                        <AdminOrderStatusSelect
-                          orderId={order.id}
-                          status={rowStatus}
-                          canEdit={canEditStatus}
-                          disabled={isBulkUpdatingStatus}
-                          onStatusSaved={(nextStatus) =>
-                            setRowStatusOverrides((previousOverrides) => ({
-                              ...previousOverrides,
-                              [order.id]: nextStatus
-                            }))
-                          }
-                        />
-                      )}
-                    </TD>
-
-                    <TD className="text-center">
-                      {selectedCount > 1 ? (
-                        <div className="flex justify-center">
-                          <PaymentChip status={rowPaymentStatus} />
-                        </div>
-                      ) : (
-                        <AdminOrderPaymentSelect
-                          orderId={order.id}
-                          status={rowPaymentStatus}
-                          canEdit={canEditPayment}
-                          disabled={isBulkUpdatingStatus}
-                          onStatusSaved={(nextStatus) =>
-                            setRowPaymentOverrides((previousOverrides) => ({
-                              ...previousOverrides,
-                              [order.id]: nextStatus
-                            }))
-                          }
-                        />
-                      )}
-                    </TD>
-
-                    <TD className="text-center text-slate-700">
-                      {formatCurrency(order.total)}
-                    </TD>
-
-                    <TD className="min-w-[100px] pl-0 pr-0 text-center" data-no-row-nav>
-                      <div className="flex justify-center">
-                        <AdminOrdersPdfCell
-                          orderId={order.id}
-                          documents={documentsByOrder.get(order.id) ?? []}
-                          attachments={attachmentsByOrder.get(order.id) ?? []}
-                          interactionsDisabled={false}
-                        />
-                      </div>
-                    </TD>
-
-                    <TD className="pl-0 pr-0 text-center" data-no-row-nav>
-                      <RowActions>
-                        <IconButton
-                          href={`/admin/orders/${order.id}`}
-                          tone="neutral"
-                          aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
-                          title="Uredi"
-                        >
-                          <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                            <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
-                            <path d="M11.5 4.5l3 3" />
-                          </svg>
-                        </IconButton>
-                        <Button
+                <TH className="h-11 text-center">
+                  <div className="relative inline-flex" ref={statusHeaderMenuRef}>
+                    {selectedCount > 0 ? (
+                      <>
+                        <button
                           type="button"
-                          variant="close-x"
-                          onClick={() => void handleDeleteRow(order.id)}
-                          disabled={deletingRowId === order.id}
-                          aria-label={`Izbriši naročilo ${toDisplayOrderNumber(order.order_number)}`}
-                          title="Izbriši"
+                          onClick={() => setIsStatusHeaderMenuOpen((previousOpen) => !previousOpen)}
+                          disabled={isBulkUpdatingStatus}
+                          className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
+                          aria-haspopup="menu"
+                          aria-expanded={isStatusHeaderMenuOpen}
                         >
-                          {deletingRowId === order.id ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : '×'}
-                        </Button>
-                      </RowActions>
-                    </TD>
-                  </TR>
-                );
-              })
-            )}
-          </TBody>
-        </Table>
+                          Status ▾ ({selectedCount})
+                        </button>
 
-      </AdminTableLayout>
+                        {isStatusHeaderMenuOpen && (
+                          <div role="menu">
+                            <MenuPanel className="absolute left-1/2 top-8 z-20 w-44 -translate-x-1/2">
+                              {ORDER_STATUS_OPTIONS.map((option) => (
+                                <MenuItem
+                                  key={option.value}
+                                  onClick={() => handleBulkStatusUpdate(option.value)}
+                                  disabled={isBulkUpdatingStatus}
+                                >
+                                  {option.label}
+                                </MenuItem>
+                              ))}
+                            </MenuPanel>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => onSort('status')}
+                        className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
+                      >
+                        Status {sortIndicator('status')}
+                      </button>
+                    )}
+                  </div>
+                </TH>
+
+                <TH className="h-11 text-center">
+                  <div className="relative inline-flex" ref={paymentHeaderMenuRef}>
+                    {selectedCount > 0 ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setIsPaymentHeaderMenuOpen((previousOpen) => !previousOpen)}
+                          disabled={isBulkUpdatingStatus}
+                          className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
+                          aria-haspopup="menu"
+                          aria-expanded={isPaymentHeaderMenuOpen}
+                        >
+                          Plačilo ▾ ({selectedCount})
+                        </button>
+
+                        {isPaymentHeaderMenuOpen && (
+                          <div role="menu">
+                            <MenuPanel className="absolute left-1/2 top-8 z-20 w-44 -translate-x-1/2">
+                              {PAYMENT_STATUS_OPTIONS.map((option) => (
+                                <MenuItem
+                                  key={option.value}
+                                  onClick={() => handleBulkPaymentUpdate(option.value)}
+                                  disabled={isBulkUpdatingStatus}
+                                >
+                                  {option.label}
+                                </MenuItem>
+                              ))}
+                            </MenuPanel>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => onSort('payment')}
+                        className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
+                      >
+                        Plačilo {sortIndicator('payment')}
+                      </button>
+                    )}
+                  </div>
+                </TH>
+
+                <TH className="h-11 text-center">
+                  <button
+                    type="button"
+                    onClick={() => onSort('total')}
+                    className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
+                  >
+                    Skupaj {sortIndicator('total')}
+                  </button>
+                </TH>
+
+                <TH className="min-w-[100px] text-center">PDF datoteke</TH>
+                <TH className="text-center">Uredi</TH>
+              </TR>
+            </THead>
+
+            <TBody>
+              {filteredAndSortedOrders.length === 0 ? (
+                <TR>
+                  <TD className="py-6 text-center text-slate-500" colSpan={10}>
+                    <EmptyState
+                      title="Ni zadetkov za izbrane filtre."
+                      action={
+                        orders.length > 0 ? (
+                          <button
+                            type="button"
+                            onClick={resetAllFilters}
+                            className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
+                          >
+                            Prikaži vsa naročila
+                          </button>
+                        ) : null
+                      }
+                    />
+                  </TD>
+                </TR>
+              ) : (
+                pagedOrders.map((order, orderIndex) => {
+                  const orderAddress = formatOrderAddress(order);
+                  const typeLabel = getCustomerTypeLabel(order.customer_type);
+                  const rowStatus = rowStatusOverrides[order.id] ?? order.status;
+                  const rowPaymentStatus = rowPaymentOverrides[order.id] ?? order.payment_status ?? null;
+                  const isRowSelected = selected.includes(order.id);
+                  const canEditStatus = isSingleSelection && isRowSelected;
+                  const canEditPayment = isSingleSelection && isRowSelected;
+
+                  return (
+                    <TR
+                      key={order.id}
+                      className={`border-t border-slate-100 transition-colors duration-200 ${
+                        isRowSelected ? 'bg-[#eef3ff]' : orderIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+                      } hover:bg-[#eef3ff]`}
+                    >
+                      <TD>
+                        <div className="flex justify-center">
+                          <input
+                            data-no-row-nav
+                            type="checkbox"
+                            checked={selected.includes(order.id)}
+                            onChange={() => toggleSelected(order.id)}
+                            aria-label={`Izberi naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                          />
+                        </div>
+                      </TD>
+
+                      <TD className="text-center font-semibold text-slate-900" data-no-row-nav>
+                        <a
+                          href={`/admin/orders/${order.id}`}
+                          className="inline-flex rounded-sm px-1 text-[13px] font-semibold text-brand-700 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
+                          aria-label={`Odpri naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                        >
+                          {toDisplayOrderNumber(order.order_number)}
+                        </a>
+                      </TD>
+
+                      <TD className="text-center whitespace-nowrap text-slate-700">
+                        <span
+                          className="inline-block rounded-sm px-1 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
+                          title={formatSlDateTime(order.created_at)}
+                          aria-label={`Datum naročila ${formatSlDateTime(order.created_at)}`}
+                          tabIndex={0}
+                        >
+                          {formatSlDate(order.created_at)}
+                        </span>
+                      </TD>
+
+                      <TD className="text-slate-700">
+                        <span className="block truncate" title={order.organization_name || order.contact_name}>
+                          {order.organization_name || order.contact_name}
+                        </span>
+                      </TD>
+
+                      <TD className="text-slate-700">
+                        <span className="block truncate" title={orderAddress || '—'}>
+                          {orderAddress || '—'}
+                        </span>
+                      </TD>
+
+                      <TD className="text-center text-slate-700">{typeLabel}</TD>
+
+                      <TD className="text-center text-slate-700">
+                        {selectedCount > 1 ? (
+                          <div className="flex justify-center">
+                            <StatusChip status={rowStatus} />
+                          </div>
+                        ) : (
+                          <AdminOrderStatusSelect
+                            orderId={order.id}
+                            status={rowStatus}
+                            canEdit={canEditStatus}
+                            disabled={isBulkUpdatingStatus}
+                            onStatusSaved={(nextStatus) =>
+                              setRowStatusOverrides((previousOverrides) => ({
+                                ...previousOverrides,
+                                [order.id]: nextStatus
+                              }))
+                            }
+                          />
+                        )}
+                      </TD>
+
+                      <TD className="text-center">
+                        {selectedCount > 1 ? (
+                          <div className="flex justify-center">
+                            <PaymentChip status={rowPaymentStatus} />
+                          </div>
+                        ) : (
+                          <AdminOrderPaymentSelect
+                            orderId={order.id}
+                            status={rowPaymentStatus}
+                            canEdit={canEditPayment}
+                            disabled={isBulkUpdatingStatus}
+                            onStatusSaved={(nextStatus) =>
+                              setRowPaymentOverrides((previousOverrides) => ({
+                                ...previousOverrides,
+                                [order.id]: nextStatus
+                              }))
+                            }
+                          />
+                        )}
+                      </TD>
+
+                      <TD className="text-center text-slate-700">{formatCurrency(order.total)}</TD>
+
+                      <TD className="min-w-[100px] pl-0 pr-0 text-center" data-no-row-nav>
+                        <div className="flex justify-center">
+                          <AdminOrdersPdfCell
+                            orderId={order.id}
+                            documents={documentsByOrder.get(order.id) ?? []}
+                            attachments={attachmentsByOrder.get(order.id) ?? []}
+                            interactionsDisabled={false}
+                          />
+                        </div>
+                      </TD>
+
+                      <TD className="pl-0 pr-0 text-center" data-no-row-nav>
+                        <RowActions>
+                          <IconButton
+                            href={`/admin/orders/${order.id}`}
+                            tone="neutral"
+                            aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                            title="Uredi"
+                          >
+                            <svg
+                              viewBox="0 0 20 20"
+                              className="h-3.5 w-3.5"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              aria-hidden="true"
+                            >
+                              <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
+                              <path d="M11.5 4.5l3 3" />
+                            </svg>
+                          </IconButton>
+
+                          <Button
+                            type="button"
+                            variant="close-x"
+                            onClick={() => void handleDeleteRow(order.id)}
+                            disabled={deletingRowId === order.id}
+                            aria-label={`Izbriši naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                            title="Izbriši"
+                          >
+                            {deletingRowId === order.id ? (
+                              <Spinner size="sm" className="text-[var(--danger-600)]" />
+                            ) : (
+                              '×'
+                            )}
+                          </Button>
+                        </RowActions>
+                      </TD>
+                    </TR>
+                  );
+                })
+              )}
+            </TBody>
+          </Table>
+        </AdminTableLayout>
       </div>
     </div>
   );

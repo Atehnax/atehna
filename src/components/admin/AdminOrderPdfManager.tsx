@@ -1,11 +1,11 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
-import { PdfButton } from '@/shared/ui/pdf';
 import { IconButton } from '@/shared/ui/icon-button';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
+import { surfaceTokenClasses } from '@/shared/ui/theme/tokens';
 
 type PdfDocument = {
   id: number;
@@ -114,6 +114,7 @@ export default function AdminOrderPdfManager({
   const [expandedByType, setExpandedByType] = useState<Partial<Record<PdfTypeKey, boolean>>>({});
   const [deletingDocumentId, setDeletingDocumentId] = useState<number | null>(null);
   const [confirmDeleteDocumentId, setConfirmDeleteDocumentId] = useState<number | null>(null);
+  const uploadInputRefs = useRef<Partial<Record<PdfTypeKey, HTMLInputElement | null>>>({});
 
   const [notesSectionMode, setNotesSectionMode] = useState<SectionMode>('read');
   const [persistedNotes, setPersistedNotes] = useState<string>(paymentNotes ?? '');
@@ -323,7 +324,7 @@ export default function AdminOrderPdfManager({
             className={`${notesBoxClass} w-full resize-y bg-white outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
           />
         ) : (
-          <p className={`${notesBoxClass} bg-slate-100 text-slate-600`}>
+          <p className={`${notesBoxClass} ${surfaceTokenClasses.disabled} text-slate-600`}>
             {persistedNotes.trim()}
           </p>
         )}
@@ -343,36 +344,43 @@ export default function AdminOrderPdfManager({
                   <p className="text-sm font-semibold text-slate-900">{pdfType.label}</p>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <PdfButton
+                  <IconButton
                     type="button"
                     onClick={() => void handleGenerate(pdfType.key)}
                     disabled={loadingType === pdfType.key}
                     title="Ustvari"
+                    tone="neutral"
                     aria-label={`Ustvari ${pdfType.label}`}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-default disabled:bg-slate-200 disabled:text-slate-400"
                   >
                     {loadingType === pdfType.key ? <Spinner size="sm" className="text-slate-500" /> : <GeneratePdfIcon />}
-                  </PdfButton>
+                  </IconButton>
 
-                  <label
+                  <input
+                    ref={(element) => {
+                      uploadInputRefs.current[pdfType.key] = element;
+                    }}
+                    type="file"
+                    accept="application/pdf"
+                    className="hidden"
+                    disabled={uploadingType === pdfType.key}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (!file) return;
+                      void handleUpload(pdfType.key, file);
+                      event.currentTarget.value = '';
+                    }}
+                  />
+
+                  <IconButton
+                    type="button"
+                    onClick={() => uploadInputRefs.current[pdfType.key]?.click()}
+                    disabled={uploadingType === pdfType.key}
                     title="Naloži"
+                    tone="neutral"
                     aria-label={`Naloži ${pdfType.label}`}
-                    className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:bg-slate-100"
                   >
-                    <input
-                      type="file"
-                      accept="application/pdf"
-                      className="hidden"
-                      disabled={uploadingType === pdfType.key}
-                      onChange={(event) => {
-                        const file = event.target.files?.[0];
-                        if (!file) return;
-                        void handleUpload(pdfType.key, file);
-                        event.currentTarget.value = '';
-                      }}
-                    />
                     {uploadingType === pdfType.key ? <Spinner size="sm" className="text-slate-500" /> : <UploadIcon />}
-                  </label>
+                  </IconButton>
 
                   <IconButton
                     type="button"
@@ -399,7 +407,7 @@ export default function AdminOrderPdfManager({
                         return (
                           <li
                             key={`${doc.id}-${doc.created_at}`}
-                            className="rounded-lg border border-transparent px-2 py-1 transition hover:border-slate-200 hover:bg-slate-100"
+                            className="rounded-lg border border-transparent px-2 py-1 transition hover:border-slate-200 hover:bg-[color:var(--hover-neutral)]"
                           >
                             <div className="grid min-w-0 grid-cols-[14px_minmax(0,1fr)_130px_24px] items-center gap-2">
                               <span

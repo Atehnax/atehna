@@ -12,6 +12,7 @@ import AdminHeaderField from '@/components/admin/AdminHeaderField';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { CustomSelect } from '@/shared/ui/select';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { IconButton } from '@/shared/ui/icon-button';
 import { useToast } from '@/shared/ui/toast';
 import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 
@@ -357,27 +358,27 @@ export default function AdminOrderHeaderChips(props: Props) {
             </>
           )}
 
-          <button
+          <IconButton
             type="button"
             onClick={startEdit}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100"
+            tone="neutral"
             aria-label="Uredi naročilo"
             title="Uredi"
             disabled={isTopSaving}
           >
             <PencilIcon />
-          </button>
+          </IconButton>
 
-          <button
+          <IconButton
             type="button"
             onClick={() => void saveTopSection()}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-xs text-slate-600 hover:bg-slate-100 disabled:cursor-default disabled:text-slate-300"
+            tone="neutral"
             aria-label="Shrani naročilo"
             title="Shrani"
             disabled={topSaveDisabled}
           >
             <SaveIcon />
-          </button>
+          </IconButton>
 
           <button
             type="button"

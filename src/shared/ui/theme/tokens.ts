@@ -8,8 +8,6 @@ export const UI_TOKENS = {
     accentText: 'text-[#5d3ed6]',
     accentBorder: 'border-[#5d3ed6]',
     accentBgSoft: 'bg-[#f8f7fc]',
-    hoverGrey: 'hover:bg-slate-100',
-    hoverGreySoft: 'hover:bg-slate-50',
     focusBorder: 'focus:border-[#3e67d6] focus-visible:border-[#3e67d6]',
     focusRingNone: 'focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0'
   },
@@ -35,19 +33,28 @@ export const UI_TOKENS = {
   }
 } as const;
 
+export const hoverTokenClasses = {
+  neutral: 'hover:bg-[color:var(--hover-neutral)]'
+} as const;
+
+export const surfaceTokenClasses = {
+  neutral: 'bg-[color:var(--hover-neutral)]',
+  disabled: 'bg-[color:var(--hover-neutral)]'
+} as const;
+
 export const buttonTokenClasses = {
   base:
     'inline-flex items-center justify-center font-semibold transition disabled:cursor-default disabled:opacity-60',
   primary:
-    'rounded-md border border-slate-200 bg-white text-xs text-slate-600 hover:border-slate-300 hover:bg-slate-100 focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0',
+    `rounded-md border border-slate-200 bg-white text-xs text-slate-600 hover:border-slate-300 ${hoverTokenClasses.neutral} focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0`,
   control:
-    'inline-flex h-8 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-100 focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45',
+    `inline-flex h-8 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-slate-300 ${hoverTokenClasses.neutral} focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-45`,
   outline:
-    'rounded-full border border-slate-200 bg-white text-sm text-slate-700 hover:border-slate-300 hover:bg-slate-100 focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0',
+    `rounded-full border border-slate-200 bg-white text-sm text-slate-700 hover:border-slate-300 ${hoverTokenClasses.neutral} focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0`,
   ghost:
-    'rounded-md border border-transparent bg-transparent text-xs text-slate-700 hover:bg-slate-100 focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0',
+    `rounded-md border border-transparent bg-transparent text-xs text-slate-700 ${hoverTokenClasses.neutral} focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0`,
   adminSoft:
-    'inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#ede8ff] bg-[#f8f7fc] px-3 text-xs font-semibold text-[#5d3ed6] shadow-sm transition hover:border-slate-300 hover:bg-slate-100 focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-400',
+    `inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#ede8ff] bg-[#f8f7fc] px-3 text-xs font-semibold text-[#5d3ed6] shadow-sm transition hover:border-slate-300 ${hoverTokenClasses.neutral} focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-400`,
   danger:
     'h-8 rounded-xl border border-rose-300 bg-rose-50 px-3 text-xs font-semibold text-rose-800 transition hover:bg-rose-100 disabled:pointer-events-none disabled:opacity-45',
   restore:
@@ -65,7 +72,7 @@ export const buttonTokenClasses = {
 export const iconButtonTokenClasses = {
   base: 'inline-flex items-center justify-center',
   neutral:
-    'border border-slate-200 bg-transparent text-slate-600 shadow-none transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-default disabled:bg-transparent disabled:text-slate-400',
+    `border border-slate-200 bg-transparent text-slate-600 shadow-none transition hover:border-slate-300 ${hoverTokenClasses.neutral} hover:text-slate-700 disabled:cursor-default disabled:pointer-events-none disabled:bg-transparent disabled:text-slate-400 disabled:hover:border-slate-200 disabled:hover:bg-transparent disabled:hover:text-slate-400`,
   warning: 'border border-amber-300 text-amber-700 hover:bg-amber-100',
   danger: 'border border-rose-300 text-xs font-semibold leading-none text-rose-600 hover:bg-rose-50'
 } as const;
@@ -75,7 +82,7 @@ export const pillTokenClasses = {
   itemBase:
     'font-semibold transition focus-visible:border focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0',
   itemActive: 'bg-[#e9efff] text-[#3659d6]',
-  itemIdle: 'border border-transparent bg-transparent text-slate-700 hover:bg-slate-100'
+  itemIdle: `border border-transparent bg-transparent text-slate-700 ${hoverTokenClasses.neutral}`
 } as const;
 
 export const selectTokenClasses = {
@@ -83,7 +90,7 @@ export const selectTokenClasses = {
     'inline-flex h-10 w-full items-center overflow-visible rounded-xl border border-slate-300 bg-white px-2.5 text-left text-xs text-slate-900 outline-none ring-0 transition hover:border-slate-300 hover:bg-transparent focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:opacity-60',
   menu: 'w-full border border-slate-200 bg-white shadow-sm',
   menuItem:
-    'flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none text-slate-700 transition hover:bg-slate-50 hover:text-brand-600 disabled:cursor-default disabled:text-slate-300'
+    `flex h-8 w-full items-center rounded-lg px-3 text-left text-xs font-semibold leading-none text-slate-700 transition ${hoverTokenClasses.neutral} hover:text-brand-600 disabled:cursor-default disabled:text-slate-300`
 } as const;
 
 export const dateInputTokenClasses = {

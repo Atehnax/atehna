@@ -123,8 +123,8 @@ export default function AdminOrderItemsEditor({
   );
 
   const itemsEditable = itemsSectionMode === 'edit';
-  const itemsSaveDisabled = itemsSectionMode === 'read' || isItemsSaving;
-  const addItemDisabled = itemsSectionMode === 'read' || isItemsSaving;
+  const itemsSaveDisabled = !itemsEditable || isItemsSaving;
+  const addItemDisabled = !itemsEditable || isItemsSaving;
 
   const activeItems = itemsEditable ? draftItems : persistedItems;
 

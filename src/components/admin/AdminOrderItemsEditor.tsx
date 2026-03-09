@@ -453,7 +453,7 @@ export default function AdminOrderItemsEditor({
                   key={choice.sku}
                   type="button"
                   onClick={() => addCatalogItem(choice)}
-                  className="flex w-full items-center justify-between border-b border-slate-100 px-3 py-2 text-left text-sm hover:bg-slate-100"
+                  className="flex w-full items-center justify-between border-b border-slate-100 px-3 py-2 text-left text-sm hover:bg-[color:var(--hover-neutral)]"
                 >
                   <span className="font-medium text-slate-900">{choice.name}</span>
                   <span className="text-xs text-slate-600">{formatCurrency(choice.unitPrice)}</span>

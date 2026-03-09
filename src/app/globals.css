@@ -51,6 +51,7 @@
   --admin-bg: var(--blue-50);
   --admin-accent: var(--blue-500);
   --admin-hover: var(--blue-100);
+  --hover-neutral: var(--bg);
 
   /* admin destructive controls */
   --danger-600: #de144d;

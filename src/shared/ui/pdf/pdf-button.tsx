@@ -16,7 +16,7 @@ const PdfButton = forwardRef<HTMLButtonElement, PdfButtonProps>(function PdfButt
       {...props}
       ref={ref}
       className={classNames(
-        'inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-default disabled:bg-slate-200 disabled:text-slate-400',
+        'inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-[color:var(--hover-neutral)] hover:text-slate-700 disabled:cursor-default disabled:bg-slate-200 disabled:text-slate-400',
         className
       )}
     >

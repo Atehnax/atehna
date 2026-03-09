@@ -222,7 +222,7 @@ export default function AdminOrdersPdfCell({
               data-no-row-nav
               onClick={() => handleGenerate(button.key)}
               disabled={interactionsDisabled || loadingType === button.key}
-              className="inline-flex h-6 items-center rounded-md border border-slate-300 bg-white px-2 text-[10px] font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-default disabled:text-slate-300"
+              className="inline-flex h-6 items-center rounded-md border border-slate-300 bg-white px-2 text-[10px] font-medium text-slate-700 transition hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
             >
               {loadingType === button.key ? <span className="inline-flex items-center gap-1"><Spinner size="sm" className="text-slate-500" />Generiram ...</span> : latest ? 'Nova verzija' : 'Ustvari'}
             </button>
@@ -283,7 +283,7 @@ export default function AdminOrdersPdfCell({
                 setOpenType((previousType) => (previousType === button.key ? null : button.key))
               }
               disabled={interactionsDisabled}
-              className="relative inline-flex h-6 items-center rounded-md border border-slate-300 bg-white px-1.5 py-1 text-[11px] font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-default disabled:text-slate-300"
+              className="relative inline-flex h-6 items-center rounded-md border border-slate-300 bg-white px-1.5 py-1 text-[11px] font-medium text-slate-700 transition hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
             >
               <span>{button.short}</span>
             </button>

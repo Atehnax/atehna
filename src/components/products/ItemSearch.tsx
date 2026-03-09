@@ -54,7 +54,7 @@ export default function ItemSearch({
               <Link
                 key={item.href}
                 href={item.href}
-                className="block rounded-xl px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50 hover:text-brand-600"
+                className="block rounded-xl px-3 py-2 text-sm text-slate-700 transition hover:bg-[color:var(--hover-neutral)] hover:text-brand-600"
               >
                 <p className="font-semibold text-slate-900">{item.name}</p>
                 <p className="text-xs text-slate-500">{item.description}</p>

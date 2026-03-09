@@ -407,7 +407,7 @@ export default function AdminOrderPdfManager({
                         return (
                           <li
                             key={`${doc.id}-${doc.created_at}`}
-                            className="rounded-lg border border-transparent px-2 py-1 transition hover:border-slate-200 hover:bg-slate-100"
+                            className="rounded-lg border border-transparent px-2 py-1 transition hover:border-slate-200 hover:bg-[color:var(--hover-neutral)]"
                           >
                             <div className="grid min-w-0 grid-cols-[14px_minmax(0,1fr)_130px_24px] items-center gap-2">
                               <span

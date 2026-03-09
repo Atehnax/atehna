@@ -38,7 +38,7 @@ export default function SiteHeader({ searchItems }: SiteHeaderProps) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="block rounded-lg px-3 py-2 text-slate-700 transition hover:bg-slate-50 hover:text-brand-600"
+                  className="block rounded-lg px-3 py-2 text-slate-700 transition hover:bg-[color:var(--hover-neutral)] hover:text-brand-600"
                 >
                   {item.label}
                 </Link>

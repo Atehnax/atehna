@@ -997,7 +997,7 @@ export default function AdminOrdersTable({
                 value={documentType}
                 onChange={(next) => setDocumentType(next as DocumentType)}
                 options={documentTypeOptions}
-                triggerClassName="h-full min-w-[140px] w-full bg-transparent border-0 px-3 py-0 text-sm font-medium flex items-center justify-between rounded-none shadow-none hover:bg-slate-100 focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10"
+                triggerClassName="h-full min-w-[140px] w-full bg-transparent border-0 px-3 py-0 text-sm font-medium flex items-center justify-between !rounded-none shadow-none hover:bg-slate-100 focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10"
               />
 
               <Button

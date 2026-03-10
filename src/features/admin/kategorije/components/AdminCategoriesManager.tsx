@@ -148,9 +148,7 @@ export default function AdminCategoriesManager() {
   }, [catalog.categories, selected]);
 
   const isSelectedNode = (node: TreeNodeData) =>
-    (node.kind === 'category' &&
-      selected.kind === 'category' &&
-      selected.categorySlug === node.categorySlug) ||
+    (node.kind === 'category' && selected.kind === 'category' && selected.categorySlug === node.categorySlug) ||
     (node.kind === 'subcategory' &&
       selected.kind === 'subcategory' &&
       selected.categorySlug === node.categorySlug &&
@@ -381,46 +379,85 @@ export default function AdminCategoriesManager() {
           </Button>
         </div>
 
-        <div className="mt-4">
-          <button
-            type="button"
-            onClick={() => setSelected({ kind: 'root' })}
-            className={`w-full rounded-xl border px-3 py-2 text-left text-sm transition ${
-              selected.kind === 'root'
-                ? 'border-brand-300 bg-brand-50 text-brand-700'
-                : 'border-slate-200 text-slate-700 hover:border-brand-200'
-            }`}
-          >
-            Vse kategorije
-          </button>
+        <div className="mt-4 overflow-x-auto pb-1">
+          <div className="min-w-[900px]">
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => setSelected({ kind: 'root' })}
+                className={`rounded-xl border px-4 py-2 text-sm transition ${
+                  selected.kind === 'root'
+                    ? 'border-brand-300 bg-brand-50 font-semibold text-brand-700'
+                    : 'border-slate-200 text-slate-700 hover:border-brand-200'
+                }`}
+              >
+                Vse kategorije
+              </button>
+            </div>
+            <div className="mx-auto mt-2 h-6 w-px bg-slate-300" />
 
-          <ul className="mt-3 space-y-2">
-            {tree.map((node) => (
-              <TreeNode
-                key={node.id}
-                node={node}
-                isSelected={isSelectedNode}
-                editingTreeNode={editingTreeNode}
-                treeDraftTitle={treeDraftTitle}
-                onSelect={(entry) =>
-                  setSelected(
-                    entry.kind === 'category'
-                      ? { kind: 'category', categorySlug: entry.categorySlug }
-                      : {
-                          kind: 'subcategory',
-                          categorySlug: entry.categorySlug,
-                          subcategorySlug: entry.subcategorySlug ?? ''
-                        }
-                  )
-                }
-                onStartEdit={startEditTreeNode}
-                onTreeDraftChange={setTreeDraftTitle}
-                onRename={submitTreeNodeRename}
-                onAddChild={(entry) => addNode('subcategory', entry.categorySlug)}
-                onRemove={removeNode}
-              />
-            ))}
-          </ul>
+            <div className="relative mt-2 border-t border-slate-300 pt-6">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 2xl:grid-cols-4">
+                {tree.map((node) => (
+                  <div key={node.id} className="relative space-y-3 rounded-xl border border-slate-200 bg-slate-50/40 p-3">
+                    <div className="absolute -top-6 left-1/2 h-6 w-px -translate-x-1/2 bg-slate-300" />
+                    <TreeActionCard
+                      node={node}
+                      selected={isSelectedNode(node)}
+                      editingTreeNode={editingTreeNode}
+                      treeDraftTitle={treeDraftTitle}
+                      onSelect={(entry) =>
+                        setSelected(
+                          entry.kind === 'category'
+                            ? { kind: 'category', categorySlug: entry.categorySlug }
+                            : {
+                                kind: 'subcategory',
+                                categorySlug: entry.categorySlug,
+                                subcategorySlug: entry.subcategorySlug ?? ''
+                              }
+                        )
+                      }
+                      onStartEdit={startEditTreeNode}
+                      onTreeDraftChange={setTreeDraftTitle}
+                      onRename={submitTreeNodeRename}
+                      onAddChild={(entry) => addNode('subcategory', entry.categorySlug)}
+                      onRemove={removeNode}
+                    />
+
+                    {node.children && node.children.length > 0 ? (
+                      <div className="relative border-t border-slate-300 pt-4">
+                        <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
+                          {node.children.map((child) => (
+                            <div key={child.id} className="relative pt-4">
+                              <div className="absolute left-1/2 top-0 h-4 w-px -translate-x-1/2 bg-slate-300" />
+                              <TreeActionCard
+                                node={child}
+                                selected={isSelectedNode(child)}
+                                editingTreeNode={editingTreeNode}
+                                treeDraftTitle={treeDraftTitle}
+                                onSelect={(entry) =>
+                                  setSelected({
+                                    kind: 'subcategory',
+                                    categorySlug: entry.categorySlug,
+                                    subcategorySlug: entry.subcategorySlug ?? ''
+                                  })
+                                }
+                                onStartEdit={startEditTreeNode}
+                                onTreeDraftChange={setTreeDraftTitle}
+                                onRename={submitTreeNodeRename}
+                                onAddChild={(entry) => addNode('subcategory', entry.categorySlug)}
+                                onRemove={removeNode}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -684,9 +721,9 @@ export default function AdminCategoriesManager() {
   );
 }
 
-function TreeNode({
+function TreeActionCard({
   node,
-  isSelected,
+  selected,
   editingTreeNode,
   treeDraftTitle,
   onSelect,
@@ -697,7 +734,7 @@ function TreeNode({
   onRemove
 }: {
   node: TreeNodeData;
-  isSelected: (node: TreeNodeData) => boolean;
+  selected: boolean;
   editingTreeNode: string | null;
   treeDraftTitle: string;
   onSelect: (node: TreeNodeData) => void;
@@ -708,68 +745,43 @@ function TreeNode({
   onRemove: (node: TreeNodeData) => void;
 }) {
   return (
-    <li>
-      <div className="relative rounded-xl border border-slate-200 bg-slate-50/30 p-2">
-        <div className="absolute -left-3 top-1/2 h-px w-3 bg-slate-300" />
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onSelect(node)}
-            className={`flex-1 rounded-md px-2 py-1 text-left text-sm transition ${
-              isSelected(node)
-                ? 'bg-brand-50 font-semibold text-brand-700'
-                : 'text-slate-700 hover:bg-white'
-            }`}
-          >
-            {node.title}
-          </button>
-          <Button variant="ghost" size="sm" onClick={() => onStartEdit(node)}>
-            ✎
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => onAddChild(node)}>
-            +
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => onRemove(node)}>
-            −
-          </Button>
-        </div>
-
-        {editingTreeNode === node.id ? (
-          <div className="mt-2 flex items-center gap-2">
-            <FloatingInput
-              id={`tree-edit-${node.id}`}
-              tone="admin"
-              label="Naziv"
-              value={treeDraftTitle}
-              onChange={(event) => onTreeDraftChange(event.target.value)}
-            />
-            <Button variant="outline" size="sm" onClick={() => onRename(node)}>
-              Shrani
-            </Button>
-          </div>
-        ) : null}
+    <div className="rounded-lg border border-slate-200 bg-white p-2">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onSelect(node)}
+          className={`flex-1 rounded-md px-2 py-1 text-left text-sm transition ${
+            selected ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700 hover:bg-slate-50'
+          }`}
+        >
+          {node.title}
+        </button>
+        <Button variant="ghost" size="sm" onClick={() => onStartEdit(node)}>
+          ✎
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => onAddChild(node)}>
+          +
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => onRemove(node)}>
+          −
+        </Button>
       </div>
 
-      {node.children && node.children.length > 0 ? (
-        <ul className="ml-6 mt-2 space-y-2 border-l border-slate-300 pl-4">
-          {node.children.map((child) => (
-            <TreeNode
-              key={child.id}
-              node={child}
-              isSelected={isSelected}
-              editingTreeNode={editingTreeNode}
-              treeDraftTitle={treeDraftTitle}
-              onSelect={onSelect}
-              onStartEdit={onStartEdit}
-              onTreeDraftChange={onTreeDraftChange}
-              onRename={onRename}
-              onAddChild={onAddChild}
-              onRemove={onRemove}
-            />
-          ))}
-        </ul>
+      {editingTreeNode === node.id ? (
+        <div className="mt-2 flex items-center gap-2">
+          <FloatingInput
+            id={`tree-edit-${node.id}`}
+            tone="admin"
+            label="Naziv"
+            value={treeDraftTitle}
+            onChange={(event) => onTreeDraftChange(event.target.value)}
+          />
+          <Button variant="outline" size="sm" onClick={() => onRename(node)}>
+            Shrani
+          </Button>
+        </div>
       ) : null}
-    </li>
+    </div>
   );
 }
 

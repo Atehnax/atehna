@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import {
   DndContext,
@@ -38,14 +38,13 @@ type SelectedNode =
   | { kind: 'category'; categorySlug: string }
   | { kind: 'subcategory'; categorySlug: string; subcategorySlug: string };
 
-type BranchNode = {
+type TreeNodeData = {
   id: string;
   title: string;
-  depth: number;
   kind: 'category' | 'subcategory';
-  selected: boolean;
   categorySlug: string;
   subcategorySlug?: string;
+  children?: TreeNodeData[];
 };
 
 const slugify = (value: string) =>
@@ -55,21 +54,25 @@ const slugify = (value: string) =>
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9-čšžćđ]/gi, '');
 
-function SortableRow({
+function SortableSurface({
   id,
   children
 }: {
   id: string;
-  children: (props: { dragHandleProps: Record<string, unknown> }) => ReactNode;
+  children: (props: { draggableProps: Record<string, unknown> }) => React.ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
   const style = { transform: CSS.Transform.toString(transform), transition };
 
   return (
     <div ref={setNodeRef} style={style}>
-      {children({ dragHandleProps: { ...attributes, ...listeners } })}
+      {children({ draggableProps: { ...attributes, ...listeners } })}
     </div>
   );
+}
+
+function preventDragFromField(event: React.PointerEvent<HTMLElement>) {
+  event.stopPropagation();
 }
 
 export default function AdminCategoriesManager() {
@@ -116,6 +119,24 @@ export default function AdminCategoriesManager() {
     toast.success(message);
   };
 
+  const tree = useMemo<TreeNodeData[]>(
+    () =>
+      catalog.categories.map((category) => ({
+        id: `cat:${category.slug}`,
+        title: category.title,
+        kind: 'category',
+        categorySlug: category.slug,
+        children: category.subcategories.map((subcategory) => ({
+          id: `sub:${category.slug}:${subcategory.slug}`,
+          title: subcategory.title,
+          kind: 'subcategory',
+          categorySlug: category.slug,
+          subcategorySlug: subcategory.slug
+        }))
+      })),
+    [catalog.categories]
+  );
+
   const selectedContext = useMemo(() => {
     if (selected.kind === 'root') return { kind: 'root' as const };
     const category = catalog.categories.find((entry) => entry.slug === selected.categorySlug);
@@ -126,33 +147,14 @@ export default function AdminCategoriesManager() {
     return { kind: 'subcategory' as const, category, subcategory };
   }, [catalog.categories, selected]);
 
-  const branches: BranchNode[] = useMemo(
-    () =>
-      catalog.categories.flatMap((category) => {
-        const categoryBranch: BranchNode = {
-          id: `cat:${category.slug}`,
-          title: category.title,
-          depth: 0,
-          kind: 'category',
-          selected: selected.kind === 'category' && selected.categorySlug === category.slug,
-          categorySlug: category.slug
-        };
-        const subBranch = category.subcategories.map((subcategory) => ({
-          id: `sub:${category.slug}:${subcategory.slug}`,
-          title: subcategory.title,
-          depth: 1,
-          kind: 'subcategory' as const,
-          selected:
-            selected.kind === 'subcategory' &&
-            selected.categorySlug === category.slug &&
-            selected.subcategorySlug === subcategory.slug,
-          categorySlug: category.slug,
-          subcategorySlug: subcategory.slug
-        }));
-        return [categoryBranch, ...subBranch];
-      }),
-    [catalog.categories, selected]
-  );
+  const isSelectedNode = (node: TreeNodeData) =>
+    (node.kind === 'category' &&
+      selected.kind === 'category' &&
+      selected.categorySlug === node.categorySlug) ||
+    (node.kind === 'subcategory' &&
+      selected.kind === 'subcategory' &&
+      selected.categorySlug === node.categorySlug &&
+      selected.subcategorySlug === node.subcategorySlug);
 
   const updateCategory = (categorySlug: string, patch: Partial<CatalogCategory>) => {
     const next = {
@@ -182,9 +184,10 @@ export default function AdminCategoriesManager() {
     void persist(next);
   };
 
-  const renameTreeNode = (node: BranchNode, title: string) => {
+  const renameTreeNode = (node: TreeNodeData, title: string) => {
     const nextSlug = slugify(title);
     if (!nextSlug) return;
+
     if (node.kind === 'category') {
       const next = {
         categories: catalog.categories.map((entry) =>
@@ -211,12 +214,12 @@ export default function AdminCategoriesManager() {
     void persist(next);
   };
 
-  const startEditTreeNode = (node: BranchNode) => {
+  const startEditTreeNode = (node: TreeNodeData) => {
     setEditingTreeNode(node.id);
     setTreeDraftTitle(node.title);
   };
 
-  const submitTreeNodeRename = (node: BranchNode) => {
+  const submitTreeNodeRename = (node: TreeNodeData) => {
     const nextTitle = treeDraftTitle.trim();
     if (!nextTitle || nextTitle === node.title) {
       setEditingTreeNode(null);
@@ -263,7 +266,7 @@ export default function AdminCategoriesManager() {
     void persist(next, 'Nova podkategorija dodana');
   };
 
-  const removeNode = (node: BranchNode) => {
+  const removeNode = (node: TreeNodeData) => {
     const ok = window.confirm(`Odstranim ${node.title}?`);
     if (!ok) return;
 
@@ -378,7 +381,7 @@ export default function AdminCategoriesManager() {
           </Button>
         </div>
 
-        <div className="mt-4 space-y-2">
+        <div className="mt-4">
           <button
             type="button"
             onClick={() => setSelected({ kind: 'root' })}
@@ -391,60 +394,33 @@ export default function AdminCategoriesManager() {
             Vse kategorije
           </button>
 
-          {branches.map((node) => (
-            <div
-              key={node.id}
-              className="rounded-xl border border-slate-200 bg-slate-50/40 p-2"
-              style={{ marginLeft: node.depth * 24 }}
-            >
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setSelected(
-                      node.kind === 'category'
-                        ? { kind: 'category', categorySlug: node.categorySlug }
-                        : {
-                            kind: 'subcategory',
-                            categorySlug: node.categorySlug,
-                            subcategorySlug: node.subcategorySlug ?? ''
-                          }
-                    )
-                  }
-                  className={`flex-1 rounded-md px-2 py-1 text-left text-sm ${node.selected ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700 hover:bg-white'}`}
-                >
-                  {node.title}
-                </button>
-                <Button variant="ghost" size="sm" onClick={() => startEditTreeNode(node)}>
-                  ✎
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => addNode('subcategory', node.kind === 'category' ? node.categorySlug : node.categorySlug)}
-                >
-                  +
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => removeNode(node)}>
-                  −
-                </Button>
-              </div>
-              {editingTreeNode === node.id ? (
-                <div className="mt-2 flex items-center gap-2">
-                  <FloatingInput
-                    id={`tree-edit-${node.id}`}
-                    tone="admin"
-                    label="Naziv"
-                    value={treeDraftTitle}
-                    onChange={(event) => setTreeDraftTitle(event.target.value)}
-                  />
-                  <Button variant="outline" size="sm" onClick={() => submitTreeNodeRename(node)}>
-                    Shrani
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-          ))}
+          <ul className="mt-3 space-y-2">
+            {tree.map((node) => (
+              <TreeNode
+                key={node.id}
+                node={node}
+                isSelected={isSelectedNode}
+                editingTreeNode={editingTreeNode}
+                treeDraftTitle={treeDraftTitle}
+                onSelect={(entry) =>
+                  setSelected(
+                    entry.kind === 'category'
+                      ? { kind: 'category', categorySlug: entry.categorySlug }
+                      : {
+                          kind: 'subcategory',
+                          categorySlug: entry.categorySlug,
+                          subcategorySlug: entry.subcategorySlug ?? ''
+                        }
+                  )
+                }
+                onStartEdit={startEditTreeNode}
+                onTreeDraftChange={setTreeDraftTitle}
+                onRename={submitTreeNodeRename}
+                onAddChild={(entry) => addNode('subcategory', entry.categorySlug)}
+                onRemove={removeNode}
+              />
+            ))}
+          </ul>
         </div>
       </section>
 
@@ -462,39 +438,49 @@ export default function AdminCategoriesManager() {
               <SortableContext items={catalog.categories.map((entry) => entry.slug)} strategy={rectSortingStrategy}>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {catalog.categories.map((category) => (
-                    <SortableRow key={category.slug} id={category.slug}>
-                      {({ dragHandleProps }) => (
-                        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <SortableSurface key={category.slug} id={category.slug}>
+                      {({ draggableProps }) => (
+                        <div
+                          {...draggableProps}
+                          className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                        >
                           <div className="relative h-32">
                             <Image src={category.image} alt={category.title} fill className="object-cover" />
                           </div>
                           <div className="space-y-3 p-4">
-                            <FloatingInput
-                              id={`category-title-${category.slug}`}
-                              tone="admin"
-                              label="Naziv"
-                              value={category.title}
-                              onChange={(event) => updateCategory(category.slug, { title: event.target.value })}
-                            />
-                            <FloatingTextarea
-                              id={`category-summary-${category.slug}`}
-                              tone="admin"
-                              label="Kratek opis"
-                              value={category.summary}
-                              onChange={(event) => updateCategory(category.slug, { summary: event.target.value })}
-                              className="min-h-[90px]"
-                            />
-                            <button
-                              type="button"
-                              {...dragHandleProps}
-                              className="rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-600"
-                            >
-                              ↕ Premakni kategorijo
-                            </button>
+                            <div onPointerDownCapture={preventDragFromField}>
+                              <FloatingInput
+                                id={`category-title-${category.slug}`}
+                                tone="admin"
+                                label="Naziv"
+                                value={category.title}
+                                onChange={(event) => updateCategory(category.slug, { title: event.target.value })}
+                              />
+                            </div>
+                            <div onPointerDownCapture={preventDragFromField}>
+                              <FloatingTextarea
+                                id={`category-summary-${category.slug}`}
+                                tone="admin"
+                                label="Kratek opis"
+                                value={category.summary}
+                                onChange={(event) => updateCategory(category.slug, { summary: event.target.value })}
+                                className="min-h-[90px]"
+                              />
+                            </div>
+                            <div onPointerDownCapture={preventDragFromField}>
+                              <FloatingInput
+                                id={`category-image-${category.slug}`}
+                                tone="admin"
+                                label="Slika kategorije URL"
+                                value={category.image}
+                                onChange={(event) => updateCategory(category.slug, { image: event.target.value })}
+                              />
+                            </div>
+                            <p className="text-xs text-slate-500">Povlecite kartico po praznem delu za spremembo vrstnega reda.</p>
                           </div>
                         </div>
                       )}
-                    </SortableRow>
+                    </SortableSurface>
                   ))}
                 </div>
               </SortableContext>
@@ -507,27 +493,42 @@ export default function AdminCategoriesManager() {
             <div className="mt-4 grid gap-4 lg:grid-cols-[2fr_1fr]">
               <div className="space-y-3">
                 <h2 className="text-2xl font-semibold text-slate-900">{selectedContext.category.title}</h2>
-                <FloatingTextarea
-                  id={`description-${selectedContext.category.slug}`}
-                  tone="admin"
-                  label="Opis kategorije"
-                  value={selectedContext.category.description}
-                  onChange={(event) =>
-                    updateCategory(selectedContext.category.slug, { description: event.target.value })
-                  }
-                  className="min-h-[120px]"
-                />
-                <FloatingInput
-                  id={`image-${selectedContext.category.slug}`}
-                  tone="admin"
-                  label="Slika/banner URL"
-                  value={selectedContext.category.bannerImage ?? selectedContext.category.image}
-                  onChange={(event) => updateCategory(selectedContext.category.slug, { bannerImage: event.target.value })}
-                />
+                <div onPointerDownCapture={preventDragFromField}>
+                  <FloatingTextarea
+                    id={`description-${selectedContext.category.slug}`}
+                    tone="admin"
+                    label="Opis kategorije"
+                    value={selectedContext.category.description}
+                    onChange={(event) =>
+                      updateCategory(selectedContext.category.slug, { description: event.target.value })
+                    }
+                    className="min-h-[120px]"
+                  />
+                </div>
+                <div onPointerDownCapture={preventDragFromField}>
+                  <FloatingInput
+                    id={`image-${selectedContext.category.slug}`}
+                    tone="admin"
+                    label="Slika kategorije URL"
+                    value={selectedContext.category.image}
+                    onChange={(event) => updateCategory(selectedContext.category.slug, { image: event.target.value })}
+                  />
+                </div>
+                <div onPointerDownCapture={preventDragFromField}>
+                  <FloatingInput
+                    id={`banner-${selectedContext.category.slug}`}
+                    tone="admin"
+                    label="Banner URL"
+                    value={selectedContext.category.bannerImage ?? ''}
+                    onChange={(event) =>
+                      updateCategory(selectedContext.category.slug, { bannerImage: event.target.value })
+                    }
+                  />
+                </div>
               </div>
               <div className="relative h-48 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
                 <Image
-                  src={selectedContext.category.bannerImage ?? selectedContext.category.image}
+                  src={selectedContext.category.bannerImage || selectedContext.category.image}
                   alt={selectedContext.category.title}
                   fill
                   className="object-cover"
@@ -545,35 +546,52 @@ export default function AdminCategoriesManager() {
                   >
                     <div className="mt-3 space-y-3">
                       {selectedContext.category.subcategories.map((subcategory) => (
-                        <SortableRow key={subcategory.slug} id={subcategory.slug}>
-                          {({ dragHandleProps }) => (
-                            <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <SortableSurface key={subcategory.slug} id={subcategory.slug}>
+                          {({ draggableProps }) => (
+                            <div {...draggableProps} className="rounded-xl border border-slate-200 bg-white p-4">
                               <div className="grid gap-3 md:grid-cols-[2fr_1fr]">
                                 <div className="space-y-3">
-                                  <FloatingInput
-                                    id={`sub-title-${subcategory.slug}`}
-                                    tone="admin"
-                                    label="Naziv podkategorije"
-                                    value={subcategory.title}
-                                    onChange={(event) =>
-                                      updateSubcategory(selectedContext.category.slug, subcategory.slug, {
-                                        title: event.target.value
-                                      })
-                                    }
-                                  />
-                                  <FloatingTextarea
-                                    id={`sub-desc-${subcategory.slug}`}
-                                    tone="admin"
-                                    label="Opis"
-                                    value={subcategory.description}
-                                    onChange={(event) =>
-                                      updateSubcategory(selectedContext.category.slug, subcategory.slug, {
-                                        description: event.target.value
-                                      })
-                                    }
-                                  />
+                                  <div onPointerDownCapture={preventDragFromField}>
+                                    <FloatingInput
+                                      id={`sub-title-${subcategory.slug}`}
+                                      tone="admin"
+                                      label="Naziv podkategorije"
+                                      value={subcategory.title}
+                                      onChange={(event) =>
+                                        updateSubcategory(selectedContext.category.slug, subcategory.slug, {
+                                          title: event.target.value
+                                        })
+                                      }
+                                    />
+                                  </div>
+                                  <div onPointerDownCapture={preventDragFromField}>
+                                    <FloatingTextarea
+                                      id={`sub-desc-${subcategory.slug}`}
+                                      tone="admin"
+                                      label="Opis"
+                                      value={subcategory.description}
+                                      onChange={(event) =>
+                                        updateSubcategory(selectedContext.category.slug, subcategory.slug, {
+                                          description: event.target.value
+                                        })
+                                      }
+                                    />
+                                  </div>
+                                  <div onPointerDownCapture={preventDragFromField}>
+                                    <FloatingInput
+                                      id={`sub-image-${subcategory.slug}`}
+                                      tone="admin"
+                                      label="Slika podkategorije URL"
+                                      value={subcategory.image ?? ''}
+                                      onChange={(event) =>
+                                        updateSubcategory(selectedContext.category.slug, subcategory.slug, {
+                                          image: event.target.value
+                                        })
+                                      }
+                                    />
+                                  </div>
                                 </div>
-                                <div className="flex items-end justify-between gap-2">
+                                <div className="flex items-end justify-end gap-2" onPointerDownCapture={preventDragFromField}>
                                   <Button
                                     variant="outline"
                                     size="sm"
@@ -587,18 +605,12 @@ export default function AdminCategoriesManager() {
                                   >
                                     Odpri stran
                                   </Button>
-                                  <button
-                                    type="button"
-                                    {...dragHandleProps}
-                                    className="rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-600"
-                                  >
-                                    ↕ Premakni
-                                  </button>
                                 </div>
                               </div>
+                              <p className="mt-2 text-xs text-slate-500">Povlecite kartico po praznem delu za spremembo vrstnega reda.</p>
                             </div>
                           )}
-                        </SortableRow>
+                        </SortableSurface>
                       ))}
                     </div>
                   </SortableContext>
@@ -618,40 +630,46 @@ export default function AdminCategoriesManager() {
           <>
             <div className="mt-4 max-w-3xl space-y-3">
               <p className="text-sm font-semibold uppercase tracking-widest text-brand-600">{selectedContext.category.title}</p>
-              <FloatingInput
-                id={`sub-edit-title-${selectedContext.subcategory.slug}`}
-                tone="admin"
-                label="Naziv podkategorije"
-                value={selectedContext.subcategory.title}
-                onChange={(event) =>
-                  updateSubcategory(selectedContext.category.slug, selectedContext.subcategory.slug, {
-                    title: event.target.value
-                  })
-                }
-              />
-              <FloatingTextarea
-                id={`sub-edit-description-${selectedContext.subcategory.slug}`}
-                tone="admin"
-                label="Opis"
-                value={selectedContext.subcategory.description}
-                onChange={(event) =>
-                  updateSubcategory(selectedContext.category.slug, selectedContext.subcategory.slug, {
-                    description: event.target.value
-                  })
-                }
-                className="min-h-[110px]"
-              />
-              <FloatingInput
-                id={`sub-edit-image-${selectedContext.subcategory.slug}`}
-                tone="admin"
-                label="Slika URL"
-                value={selectedContext.subcategory.image ?? ''}
-                onChange={(event) =>
-                  updateSubcategory(selectedContext.category.slug, selectedContext.subcategory.slug, {
-                    image: event.target.value
-                  })
-                }
-              />
+              <div onPointerDownCapture={preventDragFromField}>
+                <FloatingInput
+                  id={`sub-edit-title-${selectedContext.subcategory.slug}`}
+                  tone="admin"
+                  label="Naziv podkategorije"
+                  value={selectedContext.subcategory.title}
+                  onChange={(event) =>
+                    updateSubcategory(selectedContext.category.slug, selectedContext.subcategory.slug, {
+                      title: event.target.value
+                    })
+                  }
+                />
+              </div>
+              <div onPointerDownCapture={preventDragFromField}>
+                <FloatingTextarea
+                  id={`sub-edit-description-${selectedContext.subcategory.slug}`}
+                  tone="admin"
+                  label="Opis"
+                  value={selectedContext.subcategory.description}
+                  onChange={(event) =>
+                    updateSubcategory(selectedContext.category.slug, selectedContext.subcategory.slug, {
+                      description: event.target.value
+                    })
+                  }
+                  className="min-h-[110px]"
+                />
+              </div>
+              <div onPointerDownCapture={preventDragFromField}>
+                <FloatingInput
+                  id={`sub-edit-image-${selectedContext.subcategory.slug}`}
+                  tone="admin"
+                  label="Slika URL"
+                  value={selectedContext.subcategory.image ?? ''}
+                  onChange={(event) =>
+                    updateSubcategory(selectedContext.category.slug, selectedContext.subcategory.slug, {
+                      image: event.target.value
+                    })
+                  }
+                />
+              </div>
             </div>
             <ProductOrdering
               category={selectedContext.category}
@@ -663,6 +681,95 @@ export default function AdminCategoriesManager() {
         ) : null}
       </section>
     </div>
+  );
+}
+
+function TreeNode({
+  node,
+  isSelected,
+  editingTreeNode,
+  treeDraftTitle,
+  onSelect,
+  onStartEdit,
+  onTreeDraftChange,
+  onRename,
+  onAddChild,
+  onRemove
+}: {
+  node: TreeNodeData;
+  isSelected: (node: TreeNodeData) => boolean;
+  editingTreeNode: string | null;
+  treeDraftTitle: string;
+  onSelect: (node: TreeNodeData) => void;
+  onStartEdit: (node: TreeNodeData) => void;
+  onTreeDraftChange: (value: string) => void;
+  onRename: (node: TreeNodeData) => void;
+  onAddChild: (node: TreeNodeData) => void;
+  onRemove: (node: TreeNodeData) => void;
+}) {
+  return (
+    <li>
+      <div className="relative rounded-xl border border-slate-200 bg-slate-50/30 p-2">
+        <div className="absolute -left-3 top-1/2 h-px w-3 bg-slate-300" />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onSelect(node)}
+            className={`flex-1 rounded-md px-2 py-1 text-left text-sm transition ${
+              isSelected(node)
+                ? 'bg-brand-50 font-semibold text-brand-700'
+                : 'text-slate-700 hover:bg-white'
+            }`}
+          >
+            {node.title}
+          </button>
+          <Button variant="ghost" size="sm" onClick={() => onStartEdit(node)}>
+            ✎
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => onAddChild(node)}>
+            +
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => onRemove(node)}>
+            −
+          </Button>
+        </div>
+
+        {editingTreeNode === node.id ? (
+          <div className="mt-2 flex items-center gap-2">
+            <FloatingInput
+              id={`tree-edit-${node.id}`}
+              tone="admin"
+              label="Naziv"
+              value={treeDraftTitle}
+              onChange={(event) => onTreeDraftChange(event.target.value)}
+            />
+            <Button variant="outline" size="sm" onClick={() => onRename(node)}>
+              Shrani
+            </Button>
+          </div>
+        ) : null}
+      </div>
+
+      {node.children && node.children.length > 0 ? (
+        <ul className="ml-6 mt-2 space-y-2 border-l border-slate-300 pl-4">
+          {node.children.map((child) => (
+            <TreeNode
+              key={child.id}
+              node={child}
+              isSelected={isSelected}
+              editingTreeNode={editingTreeNode}
+              treeDraftTitle={treeDraftTitle}
+              onSelect={onSelect}
+              onStartEdit={onStartEdit}
+              onTreeDraftChange={onTreeDraftChange}
+              onRename={onRename}
+              onAddChild={onAddChild}
+              onRemove={onRemove}
+            />
+          ))}
+        </ul>
+      ) : null}
+    </li>
   );
 }
 
@@ -686,14 +793,14 @@ function ProductOrdering({
         <SortableContext items={items.map((item) => item.slug)} strategy={verticalListSortingStrategy}>
           <div className="mt-3 space-y-3">
             {items.map((item) => (
-              <SortableRow key={item.slug} id={item.slug}>
-                {({ dragHandleProps }) => {
+              <SortableSurface key={item.slug} id={item.slug}>
+                {({ draggableProps }) => {
                   const basePrice = subcategory
                     ? item.price ?? getCatalogItemPrice(category.slug, subcategory.slug, item.slug)
                     : item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug);
                   const finalPrice = getDiscountedPrice(basePrice, item.discountPct);
                   return (
-                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <div {...draggableProps} className="rounded-xl border border-slate-200 bg-white p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-sm font-semibold text-slate-900">{item.name}</p>
@@ -706,18 +813,12 @@ function ProductOrdering({
                               : getCatalogCategoryItemSku(category.slug, item.slug)}
                           </p>
                         </div>
-                        <button
-                          type="button"
-                          {...dragHandleProps}
-                          className="rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-600"
-                        >
-                          ↕ Premakni
-                        </button>
+                        <p className="text-xs text-slate-500">Povleci</p>
                       </div>
                     </div>
                   );
                 }}
-              </SortableRow>
+              </SortableSurface>
             ))}
           </div>
         </SortableContext>

@@ -476,7 +476,7 @@ export default function AdminCategoriesManager() {
       <div className="inline-flex flex-col items-center gap-2">
         <div
           ref={(element) => registerTreeNode(id, element)}
-          className={`flex min-w-[260px] items-center justify-between gap-2 rounded-xl border bg-white px-3 py-2 shadow-sm ${isSelected ? 'border-brand-500 ring-2 ring-brand-100' : 'border-slate-300'}`}
+          className={`flex min-w-[180px] max-w-[210px] items-center justify-between gap-1 rounded-lg border bg-white px-2 py-1.5 shadow-sm ${isSelected ? 'border-brand-500 ring-2 ring-brand-100' : 'border-slate-300'}`}
         >
           <button
             type="button"
@@ -485,7 +485,7 @@ export default function AdminCategoriesManager() {
               if (kind === 'category' && categorySlug) setSelected({ kind: 'category', categorySlug });
               if (kind === 'subcategory' && categorySlug && subcategorySlug) setSelected({ kind: 'subcategory', categorySlug, subcategorySlug });
             }}
-            className="flex-1 text-left text-sm font-semibold text-slate-800"
+            className="flex-1 text-left text-xs font-semibold leading-tight text-slate-800"
           >
             {title}
           </button>
@@ -544,9 +544,9 @@ export default function AdminCategoriesManager() {
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hierarhija kategorij</p>
           <Button variant="outline" size="sm" onClick={() => addCategory()}>+ Dodaj kategorijo</Button>
         </div>
-        <div className="overflow-x-auto pb-4">
+        <div className="overflow-x-auto pb-3">
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onTopTreeDragEnd}>
-            <div ref={treeCanvasRef} className="relative min-w-max px-6 py-4">
+            <div ref={treeCanvasRef} className="relative w-full px-2 py-3">
               <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden>
                 {treeEdges.map((edge, index) => {
                   const midY = edge.fromY + Math.max(24, (edge.toY - edge.fromY) / 2);
@@ -564,11 +564,11 @@ export default function AdminCategoriesManager() {
                 })}
               </svg>
 
-              <div className="relative z-10 flex min-w-max flex-col items-center gap-14">
+              <div className="relative z-10 flex w-full flex-col items-center gap-8">
                 <div>{renderNodeCard({ id: rootId, title: 'Vse kategorije', kind: 'root', hasChildren: catalog.categories.length > 0 })}</div>
 
                 <SortableContext items={catalog.categories.map((entry) => catId(entry.slug))} strategy={horizontalListSortingStrategy}>
-                  <div className="flex min-w-max items-start justify-center gap-6">
+                  <div className="flex w-full flex-wrap items-start justify-center gap-3">
                     {catalog.categories.map((category) => (
                       <SortableItem key={category.slug} id={catId(category.slug)}>
                         {(dragProps) => (
@@ -582,7 +582,7 @@ export default function AdminCategoriesManager() {
                 </SortableContext>
 
                 <SortableContext items={allSubcategories.map(({ category, subcategory }) => subId(category.slug, subcategory.slug))} strategy={horizontalListSortingStrategy}>
-                  <div className="flex min-w-max items-start justify-center gap-4">
+                  <div className="flex w-full flex-wrap items-start justify-center gap-2.5">
                     {allSubcategories.map(({ category, subcategory }) => (
                       <SortableItem key={`${category.slug}-${subcategory.slug}`} id={subId(category.slug, subcategory.slug)}>
                         {(dragProps) => <div {...dragProps}>{renderNodeCard({ id: subId(category.slug, subcategory.slug), title: subcategory.title, kind: 'subcategory', categorySlug: category.slug, subcategorySlug: subcategory.slug, hasChildren: false })}</div>}

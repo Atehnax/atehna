@@ -15,6 +15,8 @@ export type CatalogSubcategory = {
   slug: string;
   title: string;
   description: string;
+  adminNotes?: string;
+  image?: string;
   items: CatalogItem[];
 };
 
@@ -24,6 +26,8 @@ export type CatalogCategory = {
   summary: string;
   description: string;
   image: string;
+  adminNotes?: string;
+  bannerImage?: string;
   subcategories: CatalogSubcategory[];
   items?: CatalogItem[];
 };

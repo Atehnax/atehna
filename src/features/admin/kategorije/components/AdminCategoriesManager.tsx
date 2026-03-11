@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Image from 'next/image';
 import {
   DndContext,
@@ -13,7 +13,6 @@ import {
 import {
   SortableContext,
   arrayMove,
-  horizontalListSortingStrategy,
   rectSortingStrategy,
   useSortable
 } from '@dnd-kit/sortable';
@@ -39,7 +38,6 @@ type SelectedNode = { kind: 'root' } | { kind: 'category'; categorySlug: string 
 type DeleteTarget = { kind: 'category' | 'subcategory'; categorySlug: string; subcategorySlug?: string } | null;
 type ImageDeleteTarget = { kind: 'category' | 'subcategory'; categorySlug: string; subcategorySlug?: string } | null;
 type ContentCard = { id: string; title: string; description: string; image?: string; kind: 'category' | 'subcategory' };
-type TreeEdge = { fromX: number; fromY: number; toX: number; toY: number };
 
 const rootId = 'root';
 const catId = (slug: string) => `cat:${slug}`;
@@ -85,9 +83,6 @@ export default function AdminCategoriesManager() {
   const { toast } = useToast();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const uploadRefs = useRef<Record<string, HTMLInputElement | null>>({});
-  const treeCanvasRef = useRef<HTMLDivElement | null>(null);
-  const treeNodeRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const [treeEdges, setTreeEdges] = useState<TreeEdge[]>([]);
 
   const load = async () => {
     setLoading(true);
@@ -102,7 +97,7 @@ export default function AdminCategoriesManager() {
     setExpanded((prev) => ({
       ...prev,
       [rootId]: true,
-      ...Object.fromEntries(payload.categories.map((entry) => [catId(entry.slug), true]))
+      ...Object.fromEntries(payload.categories.map((entry) => [catId(entry.slug), false]))
     }));
     setLoading(false);
   };
@@ -206,75 +201,6 @@ export default function AdminCategoriesManager() {
     };
     setExpanded((prev) => ({ ...prev, [catId(categorySlug)]: true }));
     void persist(next, 'Podkategorija dodana');
-  };
-
-  const onTopTreeDragEnd = (event: DragEndEvent) => {
-    const active = String(event.active.id);
-    const over = event.over ? String(event.over.id) : null;
-    if (!over || active === over) return;
-
-    const activeNode = parseTreeId(active);
-    const overNode = parseTreeId(over);
-    if (!activeNode || !overNode) return;
-
-    if (activeNode.kind === 'category' && overNode.kind === 'category') {
-      const oldIndex = catalog.categories.findIndex((entry) => entry.slug === activeNode.categorySlug);
-      const newIndex = catalog.categories.findIndex((entry) => entry.slug === overNode.categorySlug);
-      if (oldIndex < 0 || newIndex < 0) return;
-      void persist({ categories: arrayMove(catalog.categories, oldIndex, newIndex) }, 'Premik kategorije shranjen');
-      return;
-    }
-
-    if (activeNode.kind !== 'subcategory') return;
-
-    const sourceCategory = catalog.categories.find((entry) => entry.slug === activeNode.categorySlug);
-    const movingSub = sourceCategory?.subcategories.find((entry) => entry.slug === activeNode.subcategorySlug);
-    if (!sourceCategory || !movingSub) return;
-
-    if (overNode.kind === 'category') {
-      const next = {
-        categories: catalog.categories.map((entry) => {
-          if (entry.slug === activeNode.categorySlug) {
-            return { ...entry, subcategories: entry.subcategories.filter((sub) => sub.slug !== activeNode.subcategorySlug) };
-          }
-          if (entry.slug === overNode.categorySlug) {
-            return { ...entry, subcategories: [...entry.subcategories, movingSub] };
-          }
-          return entry;
-        })
-      };
-      setSelected({ kind: 'subcategory', categorySlug: overNode.categorySlug, subcategorySlug: movingSub.slug });
-      void persist(next, 'Podkategorija premaknjena');
-      return;
-    }
-
-    const targetCategory = overNode.categorySlug;
-    const targetIndex = catalog.categories
-      .find((entry) => entry.slug === targetCategory)
-      ?.subcategories.findIndex((entry) => entry.slug === overNode.subcategorySlug);
-
-    if (targetIndex === undefined || targetIndex < 0) return;
-
-    const next = {
-      categories: catalog.categories.map((entry) => {
-        if (entry.slug === activeNode.categorySlug && entry.slug === targetCategory) {
-          const from = entry.subcategories.findIndex((sub) => sub.slug === activeNode.subcategorySlug);
-          return from < 0 ? entry : { ...entry, subcategories: arrayMove(entry.subcategories, from, targetIndex) };
-        }
-        if (entry.slug === activeNode.categorySlug) {
-          return { ...entry, subcategories: entry.subcategories.filter((sub) => sub.slug !== activeNode.subcategorySlug) };
-        }
-        if (entry.slug === targetCategory) {
-          const list = [...entry.subcategories];
-          list.splice(targetIndex, 0, movingSub);
-          return { ...entry, subcategories: list };
-        }
-        return entry;
-      })
-    };
-
-    setSelected({ kind: 'subcategory', categorySlug: targetCategory, subcategorySlug: movingSub.slug });
-    void persist(next, 'Vrstni red podkategorij posodobljen');
   };
 
   const onBottomReorder = (event: DragEndEvent) => {
@@ -394,59 +320,151 @@ export default function AdminCategoriesManager() {
     return [];
   }, [catalog.categories, selectedContext]);
 
-  const allSubcategories = useMemo(
-    () => catalog.categories.flatMap((category) => category.subcategories.map((subcategory) => ({ category, subcategory }))),
-    [catalog.categories]
+  const toggleExpanded = (id: string) => setExpanded((prev) => ({ ...prev, [id]: !(prev[id] ?? false) }));
+
+  const renderActionSelect = (node: { kind: 'category' | 'subcategory'; categorySlug: string; subcategorySlug?: string; id: string; title: string }) => (
+    <select
+      defaultValue=""
+      onChange={(event) => {
+        const action = event.target.value;
+        if (action === 'create-subcategory') {
+          if (node.kind === 'category') addSubcategory(node.categorySlug);
+          if (node.kind === 'subcategory' && node.subcategorySlug) addSubcategory(node.categorySlug, node.subcategorySlug);
+        }
+        if (action === 'rename') startRename(node.id, node.title);
+        if (action === 'delete') {
+          setDeleteTarget(node.kind === 'category'
+            ? { kind: 'category', categorySlug: node.categorySlug }
+            : { kind: 'subcategory', categorySlug: node.categorySlug, subcategorySlug: node.subcategorySlug });
+        }
+        event.currentTarget.selectedIndex = 0;
+      }}
+      className="h-7 w-[120px] rounded border border-slate-300 bg-white px-2 text-xs"
+    >
+      <option value="">Možnosti</option>
+      <option value="create-subcategory">Ustvari podk.</option>
+      <option value="rename">Uredi naziv</option>
+      <option value="delete">Izbriši</option>
+    </select>
   );
 
-  const registerTreeNode = useCallback((id: string, element: HTMLDivElement | null) => {
-    treeNodeRefs.current[id] = element;
-  }, []);
+  const renderTreeRow = ({
+    id,
+    title,
+    level,
+    kind,
+    categorySlug,
+    subcategorySlug,
+    description,
+    childrenCount,
+    productCount
+  }: {
+    id: string;
+    title: string;
+    level: number;
+    kind: 'root' | 'category' | 'subcategory';
+    categorySlug?: string;
+    subcategorySlug?: string;
+    description: string;
+    childrenCount: number;
+    productCount: number;
+  }) => {
+    const isSelected =
+      (selected.kind === 'root' && kind === 'root') ||
+      (selected.kind === 'category' && kind === 'category' && selected.categorySlug === categorySlug) ||
+      (selected.kind === 'subcategory' && kind === 'subcategory' && selected.categorySlug === categorySlug && selected.subcategorySlug === subcategorySlug);
 
-  useEffect(() => {
-    const computeEdges = () => {
-      const canvasRect = treeCanvasRef.current?.getBoundingClientRect();
-      if (!canvasRect) return;
+    const hasChildren = childrenCount > 0;
+    return (
+      <tr key={id} className={isSelected ? 'bg-brand-50' : 'bg-white'}>
+        <td className="border-b border-slate-200 px-3 py-2">
+          <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 20}px` }}>
+            {hasChildren ? (
+              <button type="button" className="h-5 w-5 rounded border border-slate-300 text-[10px]" onClick={() => toggleExpanded(id)}>
+                {(expanded[id] ?? false) ? '−' : '+'}
+              </button>
+            ) : <span className="inline-block h-5 w-5" />}
+            {editingNodeId === id ? (
+              <div className="flex items-center gap-2">
+                <input
+                  value={draftTitle}
+                  onChange={(event) => setDraftTitle(event.target.value)}
+                  onKeyDown={(event) => { if (event.key === 'Enter') renameNode(); }}
+                  className="h-7 rounded border border-slate-300 px-2 text-xs"
+                />
+                <Button size="sm" variant="outline" onClick={renameNode}>Shrani</Button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  if (kind === 'root') setSelected({ kind: 'root' });
+                  if (kind === 'category' && categorySlug) setSelected({ kind: 'category', categorySlug });
+                  if (kind === 'subcategory' && categorySlug && subcategorySlug) setSelected({ kind: 'subcategory', categorySlug, subcategorySlug });
+                }}
+                className="text-left text-sm font-medium text-slate-800"
+              >
+                {title}
+              </button>
+            )}
+          </div>
+        </td>
+        <td className="border-b border-slate-200 px-3 py-2 text-sm text-slate-600">{description || '—'}</td>
+        <td className="border-b border-slate-200 px-3 py-2 text-sm text-slate-600">{childrenCount}</td>
+        <td className="border-b border-slate-200 px-3 py-2 text-sm text-slate-600">{productCount}</td>
+        <td className="border-b border-slate-200 px-3 py-2">
+          {kind === 'root' || !categorySlug ? null : renderActionSelect({ kind: kind === 'category' ? 'category' : 'subcategory', categorySlug, subcategorySlug, id, title })}
+        </td>
+      </tr>
+    );
+  };
 
-      const edges: TreeEdge[] = [];
-      const rootRect = treeNodeRefs.current[rootId]?.getBoundingClientRect();
-      if (rootRect) {
-        for (const category of catalog.categories) {
-          const categoryRect = treeNodeRefs.current[catId(category.slug)]?.getBoundingClientRect();
-          if (!categoryRect) continue;
-          edges.push({
-            fromX: rootRect.left + rootRect.width / 2 - canvasRect.left,
-            fromY: rootRect.bottom - canvasRect.top,
-            toX: categoryRect.left + categoryRect.width / 2 - canvasRect.left,
-            toY: categoryRect.top - canvasRect.top
+  const treeRows: ReactNode[] = (() => {
+    const rows: ReactNode[] = [];
+    rows.push(renderTreeRow({
+      id: rootId,
+      title: 'Vse kategorije',
+      level: 0,
+      kind: 'root',
+      description: 'Root',
+      childrenCount: catalog.categories.length,
+      productCount: 0
+    }));
+
+    if (expanded[rootId] ?? true) {
+      catalog.categories.forEach((category) => {
+        const categoryNodeId = catId(category.slug);
+        rows.push(renderTreeRow({
+          id: categoryNodeId,
+          title: category.title,
+          level: 1,
+          kind: 'category',
+          categorySlug: category.slug,
+          description: category.summary,
+          childrenCount: category.subcategories.length,
+          productCount: (category.items ?? []).length
+        }));
+
+        if (expanded[categoryNodeId]) {
+          category.subcategories.forEach((subcategory) => {
+            rows.push(renderTreeRow({
+              id: subId(category.slug, subcategory.slug),
+              title: subcategory.title,
+              level: 2,
+              kind: 'subcategory',
+              categorySlug: category.slug,
+              subcategorySlug: subcategory.slug,
+              description: subcategory.description,
+              childrenCount: 0,
+              productCount: subcategory.items.length
+            }));
           });
-          for (const subcategory of category.subcategories) {
-            const subRect = treeNodeRefs.current[subId(category.slug, subcategory.slug)]?.getBoundingClientRect();
-            if (!subRect) continue;
-            edges.push({
-              fromX: categoryRect.left + categoryRect.width / 2 - canvasRect.left,
-              fromY: categoryRect.bottom - canvasRect.top,
-              toX: subRect.left + subRect.width / 2 - canvasRect.left,
-              toY: subRect.top - canvasRect.top
-            });
-          }
         }
-      }
-      setTreeEdges(edges);
-    };
+      });
+    }
 
-    computeEdges();
-    const observer = new ResizeObserver(computeEdges);
-    if (treeCanvasRef.current) observer.observe(treeCanvasRef.current);
-    Object.values(treeNodeRefs.current).forEach((node) => {
-      if (node) observer.observe(node);
-    });
-    window.addEventListener('resize', computeEdges);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', computeEdges);
-    };
-  }, [catalog.categories, expanded]);
+    return rows;
+  })();
 
   if (loading) return <p className="text-sm text-slate-500">Nalagam kategorije ...</p>;
 
@@ -474,10 +492,9 @@ export default function AdminCategoriesManager() {
 
     return (
       <div className="inline-flex flex-col items-center gap-2">
-        <div
-          ref={(element) => registerTreeNode(id, element)}
-          className={`flex min-w-[260px] items-center justify-between gap-2 rounded-xl border bg-white px-3 py-2 shadow-sm ${isSelected ? 'border-brand-500 ring-2 ring-brand-100' : 'border-slate-300'}`}
-        >
+       <div
+        className={`flex min-w-[260px] items-center justify-between gap-2 rounded-xl border bg-white px-3 py-2 shadow-sm ${isSelected ? 'border-brand-500 ring-2 ring-brand-100' : 'border-slate-300'}`}
+      >
           <button
             type="button"
             onClick={() => {
@@ -514,7 +531,7 @@ export default function AdminCategoriesManager() {
     <div className="space-y-5">
       <header>
         <h1 className="text-2xl font-semibold text-slate-900">Kategorije</h1>
-        <p className="mt-1 text-sm text-slate-600">Top: povezano obrnjeno drevo. Bottom: vsebina izbrane kategorije v storefront admin pogledu.</p>
+        <p className="mt-1 text-sm text-slate-600">Top: povezano drevo levo → desno. Bottom: vsebina izbrane kategorije v storefront admin pogledu.</p>
       </header>
 
       <ConfirmDialog
@@ -544,55 +561,19 @@ export default function AdminCategoriesManager() {
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hierarhija kategorij</p>
           <Button variant="outline" size="sm" onClick={() => addCategory()}>+ Dodaj kategorijo</Button>
         </div>
-        <div className="overflow-x-auto pb-4">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onTopTreeDragEnd}>
-            <div ref={treeCanvasRef} className="relative min-w-max px-6 py-4">
-              <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden>
-                {treeEdges.map((edge, index) => {
-                  const midY = edge.fromY + Math.max(24, (edge.toY - edge.fromY) / 2);
-                  return (
-                    <path
-                      key={`${index}-${edge.fromX}-${edge.toX}`}
-                      d={`M ${edge.fromX} ${edge.fromY} V ${midY} H ${edge.toX} V ${edge.toY}`}
-                      fill="none"
-                      stroke="#2563eb"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  );
-                })}
-              </svg>
-
-              <div className="relative z-10 flex min-w-max flex-col items-center gap-14">
-                <div>{renderNodeCard({ id: rootId, title: 'Vse kategorije', kind: 'root', hasChildren: catalog.categories.length > 0 })}</div>
-
-                <SortableContext items={catalog.categories.map((entry) => catId(entry.slug))} strategy={horizontalListSortingStrategy}>
-                  <div className="flex min-w-max items-start justify-center gap-6">
-                    {catalog.categories.map((category) => (
-                      <SortableItem key={category.slug} id={catId(category.slug)}>
-                        {(dragProps) => (
-                          <div className="flex flex-col items-center gap-3">
-                            <div {...dragProps}>{renderNodeCard({ id: catId(category.slug), title: category.title, kind: 'category', categorySlug: category.slug, hasChildren: category.subcategories.length > 0 })}</div>
-                          </div>
-                        )}
-                      </SortableItem>
-                    ))}
-                  </div>
-                </SortableContext>
-
-                <SortableContext items={allSubcategories.map(({ category, subcategory }) => subId(category.slug, subcategory.slug))} strategy={horizontalListSortingStrategy}>
-                  <div className="flex min-w-max items-start justify-center gap-4">
-                    {allSubcategories.map(({ category, subcategory }) => (
-                      <SortableItem key={`${category.slug}-${subcategory.slug}`} id={subId(category.slug, subcategory.slug)}>
-                        {(dragProps) => <div {...dragProps}>{renderNodeCard({ id: subId(category.slug, subcategory.slug), title: subcategory.title, kind: 'subcategory', categorySlug: category.slug, subcategorySlug: subcategory.slug, hasChildren: false })}</div>}
-                      </SortableItem>
-                    ))}
-                  </div>
-                </SortableContext>
-              </div>
-            </div>
-          </DndContext>
+        <div className="overflow-x-auto">
+          <table className="min-w-full border-separate border-spacing-0 overflow-hidden rounded-xl border border-slate-200">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Naziv</th>
+                <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Opis</th>
+                <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Podkategorije</th>
+                <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Izdelki</th>
+                <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Akcije</th>
+              </tr>
+            </thead>
+            <tbody>{treeRows}</tbody>
+          </table>
         </div>
       </section>
 

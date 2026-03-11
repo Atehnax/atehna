@@ -492,10 +492,9 @@ export default function AdminCategoriesManager() {
 
     return (
       <div className="inline-flex flex-col items-center gap-2">
-        <div
-          ref={(element) => registerTreeNode(id, element)}
-          className={`flex min-w-[260px] items-center justify-between gap-2 rounded-xl border bg-white px-3 py-2 shadow-sm ${isSelected ? 'border-brand-500 ring-2 ring-brand-100' : 'border-slate-300'}`}
-        >
+       <div
+        className={`flex min-w-[260px] items-center justify-between gap-2 rounded-xl border bg-white px-3 py-2 shadow-sm ${isSelected ? 'border-brand-500 ring-2 ring-brand-100' : 'border-slate-300'}`}
+      >
           <button
             type="button"
             onClick={() => {

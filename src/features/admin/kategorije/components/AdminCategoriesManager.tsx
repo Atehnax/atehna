@@ -13,9 +13,9 @@ import {
 import {
   SortableContext,
   arrayMove,
-  horizontalListSortingStrategy,
   rectSortingStrategy,
-  useSortable
+  useSortable,
+  verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { CatalogCategory, CatalogItem, CatalogSubcategory } from '@/lib/catalog';
@@ -102,7 +102,7 @@ export default function AdminCategoriesManager() {
     setExpanded((prev) => ({
       ...prev,
       [rootId]: true,
-      ...Object.fromEntries(payload.categories.map((entry) => [catId(entry.slug), true]))
+      ...Object.fromEntries(payload.categories.map((entry) => [catId(entry.slug), false]))
     }));
     setLoading(false);
   };
@@ -394,9 +394,14 @@ export default function AdminCategoriesManager() {
     return [];
   }, [catalog.categories, selectedContext]);
 
-  const allSubcategories = useMemo(
-    () => catalog.categories.flatMap((category) => category.subcategories.map((subcategory) => ({ category, subcategory }))),
-    [catalog.categories]
+  const visibleSubcategoryGroups = useMemo(
+    () => catalog.categories
+      .filter((category) => expanded[catId(category.slug)] ?? false)
+      .map((category) => ({
+        category,
+        subcategories: category.subcategories.map((subcategory) => ({ id: subId(category.slug, subcategory.slug), subcategory }))
+      })),
+    [catalog.categories, expanded]
   );
 
   const registerTreeNode = useCallback((id: string, element: HTMLDivElement | null) => {
@@ -415,19 +420,20 @@ export default function AdminCategoriesManager() {
           const categoryRect = treeNodeRefs.current[catId(category.slug)]?.getBoundingClientRect();
           if (!categoryRect) continue;
           edges.push({
-            fromX: rootRect.left + rootRect.width / 2 - canvasRect.left,
-            fromY: rootRect.bottom - canvasRect.top,
-            toX: categoryRect.left + categoryRect.width / 2 - canvasRect.left,
-            toY: categoryRect.top - canvasRect.top
+            fromX: rootRect.right - canvasRect.left,
+            fromY: rootRect.top + rootRect.height / 2 - canvasRect.top,
+            toX: categoryRect.left - canvasRect.left,
+            toY: categoryRect.top + categoryRect.height / 2 - canvasRect.top
           });
+          if (!(expanded[catId(category.slug)] ?? false)) continue;
           for (const subcategory of category.subcategories) {
             const subRect = treeNodeRefs.current[subId(category.slug, subcategory.slug)]?.getBoundingClientRect();
             if (!subRect) continue;
             edges.push({
-              fromX: categoryRect.left + categoryRect.width / 2 - canvasRect.left,
-              fromY: categoryRect.bottom - canvasRect.top,
-              toX: subRect.left + subRect.width / 2 - canvasRect.left,
-              toY: subRect.top - canvasRect.top
+              fromX: categoryRect.right - canvasRect.left,
+              fromY: categoryRect.top + categoryRect.height / 2 - canvasRect.top,
+              toX: subRect.left - canvasRect.left,
+              toY: subRect.top + subRect.height / 2 - canvasRect.top
             });
           }
         }
@@ -456,7 +462,9 @@ export default function AdminCategoriesManager() {
     kind,
     categorySlug,
     subcategorySlug,
-    hasChildren
+    hasChildren,
+    onNodeClick,
+    onNodeDoubleClick
   }: {
     id: string;
     title: string;
@@ -464,6 +472,8 @@ export default function AdminCategoriesManager() {
     categorySlug?: string;
     subcategorySlug?: string;
     hasChildren: boolean;
+    onNodeClick?: () => void;
+    onNodeDoubleClick?: () => void;
   }) => {
     const isSelected =
       (selected.kind === 'root' && kind === 'root') ||
@@ -476,7 +486,7 @@ export default function AdminCategoriesManager() {
       <div className="inline-flex flex-col items-center gap-2">
         <div
           ref={(element) => registerTreeNode(id, element)}
-          className={`flex min-w-[260px] items-center justify-between gap-2 rounded-xl border bg-white px-3 py-2 shadow-sm ${isSelected ? 'border-brand-500 ring-2 ring-brand-100' : 'border-slate-300'}`}
+          className={`flex h-7 min-w-[190px] max-w-[190px] items-center justify-between gap-1 overflow-hidden rounded-md border bg-white px-1.5 py-1 shadow-sm ${isSelected ? 'border-brand-500 ring-1 ring-brand-100' : 'border-slate-300'}`}
         >
           <button
             type="button"
@@ -484,18 +494,20 @@ export default function AdminCategoriesManager() {
               if (kind === 'root') setSelected({ kind: 'root' });
               if (kind === 'category' && categorySlug) setSelected({ kind: 'category', categorySlug });
               if (kind === 'subcategory' && categorySlug && subcategorySlug) setSelected({ kind: 'subcategory', categorySlug, subcategorySlug });
+              onNodeClick?.();
             }}
-            className="flex-1 text-left text-sm font-semibold text-slate-800"
+            onDoubleClick={() => onNodeDoubleClick?.()}
+            className="flex-1 truncate text-left text-[8px] font-bold leading-none text-slate-800"
           >
             {title}
           </button>
           <div className="flex items-center gap-1">
-            {hasChildren ? <IconButton aria-label="Razširi/skrij" onClick={() => setExpanded((prev) => ({ ...prev, [id]: !(prev[id] ?? true) }))}>{opened ? '▾' : '▸'}</IconButton> : null}
-            {kind === 'category' && categorySlug ? <IconButton aria-label="Dodaj podkategorijo" onClick={() => addSubcategory(categorySlug)}>＋</IconButton> : null}
-            {kind === 'subcategory' && categorySlug && subcategorySlug ? <IconButton aria-label="Dodaj sorojenca" onClick={() => addSubcategory(categorySlug, subcategorySlug)}>＋</IconButton> : null}
-            {kind === 'category' && categorySlug ? <IconButton aria-label="Dodaj sorojenca" onClick={() => addCategory(categorySlug)}>⟷</IconButton> : null}
-            {kind !== 'root' ? <IconButton aria-label="Uredi" onClick={() => startRename(id, title)}>✎</IconButton> : null}
-            {kind !== 'root' && categorySlug ? <IconButton tone="danger" aria-label="Izbriši" onClick={() => setDeleteTarget(kind === 'category' ? { kind: 'category', categorySlug } : { kind: 'subcategory', categorySlug, subcategorySlug })}>🗑</IconButton> : null}
+            {hasChildren ? <IconButton className="h-4 w-4 p-0" aria-label="Razširi/skrij" onClick={() => setExpanded((prev) => ({ ...prev, [id]: !(prev[id] ?? true) }))}><span className="text-[8px] font-bold leading-none">{opened ? '▾' : '▸'}</span></IconButton> : null}
+            {kind === 'category' && categorySlug ? <IconButton className="h-4 w-4 p-0" aria-label="Dodaj podkategorijo" onClick={() => addSubcategory(categorySlug)}><span className="text-[8px] font-bold leading-none">＋</span></IconButton> : null}
+            {kind === 'subcategory' && categorySlug && subcategorySlug ? <IconButton className="h-4 w-4 p-0" aria-label="Dodaj sorojenca" onClick={() => addSubcategory(categorySlug, subcategorySlug)}><span className="text-[8px] font-bold leading-none">＋</span></IconButton> : null}
+            {kind === 'category' && categorySlug ? <IconButton className="h-4 w-4 p-0" aria-label="Dodaj sorojenca" onClick={() => addCategory(categorySlug)}><span className="text-[8px] font-bold leading-none">⟷</span></IconButton> : null}
+            {kind !== 'root' ? <IconButton className="h-4 w-4 p-0" aria-label="Uredi" onClick={() => startRename(id, title)}><span className="text-[8px] font-bold leading-none">✎</span></IconButton> : null}
+            {kind !== 'root' && categorySlug ? <IconButton className="h-4 w-4 p-0" tone="danger" aria-label="Izbriši" onClick={() => setDeleteTarget(kind === 'category' ? { kind: 'category', categorySlug } : { kind: 'subcategory', categorySlug, subcategorySlug })}><span className="text-[8px] font-bold leading-none">🗑</span></IconButton> : null}
           </div>
         </div>
         {editingNodeId === id ? (
@@ -514,7 +526,7 @@ export default function AdminCategoriesManager() {
     <div className="space-y-5">
       <header>
         <h1 className="text-2xl font-semibold text-slate-900">Kategorije</h1>
-        <p className="mt-1 text-sm text-slate-600">Top: povezano obrnjeno drevo. Bottom: vsebina izbrane kategorije v storefront admin pogledu.</p>
+        <p className="mt-1 text-sm text-slate-600">Top: povezano drevo levo → desno. Bottom: vsebina izbrane kategorije v storefront admin pogledu.</p>
       </header>
 
       <ConfirmDialog
@@ -544,19 +556,19 @@ export default function AdminCategoriesManager() {
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hierarhija kategorij</p>
           <Button variant="outline" size="sm" onClick={() => addCategory()}>+ Dodaj kategorijo</Button>
         </div>
-        <div className="overflow-x-auto pb-4">
+        <div className="overflow-x-auto pb-3">
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onTopTreeDragEnd}>
-            <div ref={treeCanvasRef} className="relative min-w-max px-6 py-4">
+            <div ref={treeCanvasRef} className="relative w-full px-2 py-3">
               <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden>
                 {treeEdges.map((edge, index) => {
-                  const midY = edge.fromY + Math.max(24, (edge.toY - edge.fromY) / 2);
+                  const midX = edge.fromX + Math.max(28, (edge.toX - edge.fromX) / 2);
                   return (
                     <path
                       key={`${index}-${edge.fromX}-${edge.toX}`}
-                      d={`M ${edge.fromX} ${edge.fromY} V ${midY} H ${edge.toX} V ${edge.toY}`}
+                      d={`M ${edge.fromX} ${edge.fromY} H ${midX} V ${edge.toY} H ${edge.toX}`}
                       fill="none"
-                      stroke="#2563eb"
-                      strokeWidth="2.2"
+                      stroke="#000000"
+                      strokeWidth="1"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
@@ -564,16 +576,16 @@ export default function AdminCategoriesManager() {
                 })}
               </svg>
 
-              <div className="relative z-10 flex min-w-max flex-col items-center gap-14">
-                <div>{renderNodeCard({ id: rootId, title: 'Vse kategorije', kind: 'root', hasChildren: catalog.categories.length > 0 })}</div>
+              <div className="relative z-10 grid min-w-[920px] grid-cols-[200px_240px_1fr] items-start gap-5">
+                <div className="pt-2">{renderNodeCard({ id: rootId, title: 'Vse kategorije', kind: 'root', hasChildren: catalog.categories.length > 0 })}</div>
 
-                <SortableContext items={catalog.categories.map((entry) => catId(entry.slug))} strategy={horizontalListSortingStrategy}>
-                  <div className="flex min-w-max items-start justify-center gap-6">
+                <SortableContext items={catalog.categories.map((entry) => catId(entry.slug))} strategy={verticalListSortingStrategy}>
+                  <div className="flex flex-col items-start gap-2.5">
                     {catalog.categories.map((category) => (
                       <SortableItem key={category.slug} id={catId(category.slug)}>
                         {(dragProps) => (
-                          <div className="flex flex-col items-center gap-3">
-                            <div {...dragProps}>{renderNodeCard({ id: catId(category.slug), title: category.title, kind: 'category', categorySlug: category.slug, hasChildren: category.subcategories.length > 0 })}</div>
+                          <div className="flex flex-col items-start gap-2">
+                            <div {...dragProps}>{renderNodeCard({ id: catId(category.slug), title: category.title, kind: 'category', categorySlug: category.slug, hasChildren: category.subcategories.length > 0, onNodeClick: () => setExpanded((prev) => ({ ...prev, [catId(category.slug)]: true })), onNodeDoubleClick: () => setExpanded((prev) => ({ ...prev, [catId(category.slug)]: false })) })}</div>
                           </div>
                         )}
                       </SortableItem>
@@ -581,15 +593,20 @@ export default function AdminCategoriesManager() {
                   </div>
                 </SortableContext>
 
-                <SortableContext items={allSubcategories.map(({ category, subcategory }) => subId(category.slug, subcategory.slug))} strategy={horizontalListSortingStrategy}>
-                  <div className="flex min-w-max items-start justify-center gap-4">
-                    {allSubcategories.map(({ category, subcategory }) => (
-                      <SortableItem key={`${category.slug}-${subcategory.slug}`} id={subId(category.slug, subcategory.slug)}>
-                        {(dragProps) => <div {...dragProps}>{renderNodeCard({ id: subId(category.slug, subcategory.slug), title: subcategory.title, kind: 'subcategory', categorySlug: category.slug, subcategorySlug: subcategory.slug, hasChildren: false })}</div>}
-                      </SortableItem>
-                    ))}
+                {visibleSubcategoryGroups.map(({ category, subcategories }) => (
+                  <div key={category.slug} className="rounded-md border border-slate-200 p-1.5">
+                    <p className="mb-1 truncate text-[8px] font-bold uppercase tracking-wide text-slate-500">{category.title}</p>
+                    <SortableContext items={subcategories.map((entry) => entry.id)} strategy={verticalListSortingStrategy}>
+                      <div className="flex flex-col items-start gap-1.5">
+                        {subcategories.map(({ id, subcategory }) => (
+                          <SortableItem key={`${category.slug}-${subcategory.slug}`} id={id}>
+                            {(dragProps) => <div {...dragProps}>{renderNodeCard({ id, title: subcategory.title, kind: 'subcategory', categorySlug: category.slug, subcategorySlug: subcategory.slug, hasChildren: false })}</div>}
+                          </SortableItem>
+                        ))}
+                      </div>
+                    </SortableContext>
                   </div>
-                </SortableContext>
+                ))}
               </div>
             </div>
           </DndContext>

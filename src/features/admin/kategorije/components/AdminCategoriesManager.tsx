@@ -1,17 +1,22 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Image from 'next/image';
 import {
   DndContext,
   PointerSensor,
   closestCenter,
-  useDroppable,
   useSensor,
   useSensors,
   type DragEndEvent
 } from '@dnd-kit/core';
-import { SortableContext, arrayMove, rectSortingStrategy, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  useSortable,
+  verticalListSortingStrategy
+} from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { CatalogCategory, CatalogItem, CatalogSubcategory } from '@/lib/catalog';
 import {
@@ -24,30 +29,22 @@ import {
   sortCatalogItems
 } from '@/lib/catalog';
 import { Button } from '@/shared/ui/button';
-import { FloatingInput, FloatingTextarea } from '@/shared/ui/floating-field';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { FloatingInput, FloatingTextarea } from '@/shared/ui/floating-field';
+import { IconButton } from '@/shared/ui/icon-button';
 import { useToast } from '@/shared/ui/toast';
 
 type CatalogData = { categories: CatalogCategory[] };
 type SelectedNode = { kind: 'root' } | { kind: 'category'; categorySlug: string } | { kind: 'subcategory'; categorySlug: string; subcategorySlug: string };
 type DeleteTarget = { kind: 'category' | 'subcategory'; categorySlug: string; subcategorySlug?: string } | null;
-type ImageDeleteTarget = { kind: 'category' | 'subcategory'; categorySlug: string; subcategorySlug?: string; itemId: string } | null;
+type ImageDeleteTarget = { kind: 'category' | 'subcategory'; categorySlug: string; subcategorySlug?: string } | null;
+type ContentCard = { id: string; title: string; description: string; image?: string; kind: 'category' | 'subcategory' };
+type TreeEdge = { fromX: number; fromY: number; toX: number; toY: number };
 
-type ContentCard = { id: string; title: string; description: string; image: string; adminNotes: string };
-
-const slugify = (value: string) => value.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-čšžćđ]/gi, '');
+const rootId = 'root';
 const catId = (slug: string) => `cat:${slug}`;
 const subId = (catSlug: string, subSlug: string) => `sub:${catSlug}:${subSlug}`;
-const catDropId = (slug: string) => `drop:${slug}`;
-
-async function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Napaka pri branju datoteke'));
-    reader.onload = () => resolve(String(reader.result ?? ''));
-    reader.readAsDataURL(file);
-  });
-}
+const slugify = (value: string) => value.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-čšžćđ]/gi, '');
 
 function parseTreeId(id: string): { kind: 'category' | 'subcategory'; categorySlug: string; subcategorySlug?: string } | null {
   if (id.startsWith('cat:')) return { kind: 'category', categorySlug: id.slice(4) };
@@ -57,29 +54,40 @@ function parseTreeId(id: string): { kind: 'category' | 'subcategory'; categorySl
   return { kind: 'subcategory', categorySlug, subcategorySlug };
 }
 
-function SortableSurface({ id, children }: { id: string; children: (props: { dragProps: Record<string, unknown> }) => ReactNode }) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
-  const style = { transform: CSS.Transform.toString(transform), transition };
-  return <div ref={setNodeRef} style={style}>{children({ dragProps: { ...attributes, ...listeners } })}</div>;
+async function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ''));
+    reader.onerror = () => reject(new Error('Napaka pri branju datoteke'));
+    reader.readAsDataURL(file);
+  });
 }
 
-function DropSurface({ id, children }: { id: string; children: ReactNode }) {
-  const { setNodeRef, isOver } = useDroppable({ id });
-  return <div ref={setNodeRef} className={isOver ? 'ring-2 ring-brand-300 ring-offset-1' : ''}>{children}</div>;
+function SortableItem({ id, children }: { id: string; children: (dragHandleProps: Record<string, unknown>) => ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+  return (
+    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }}>
+      {children({ ...attributes, ...listeners })}
+    </div>
+  );
 }
 
 export default function AdminCategoriesManager() {
   const [catalog, setCatalog] = useState<CatalogData>({ categories: [] });
   const [selected, setSelected] = useState<SelectedNode>({ kind: 'root' });
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [editingNode, setEditingNode] = useState<string | null>(null);
-  const [draftNodeTitle, setDraftNodeTitle] = useState('');
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({ [rootId]: true });
+  const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
+  const [draftTitle, setDraftTitle] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
   const [imageDeleteTarget, setImageDeleteTarget] = useState<ImageDeleteTarget>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const uploadRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const treeCanvasRef = useRef<HTMLDivElement | null>(null);
+  const treeNodeRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [treeEdges, setTreeEdges] = useState<TreeEdge[]>([]);
 
   const load = async () => {
     setLoading(true);
@@ -91,7 +99,11 @@ export default function AdminCategoriesManager() {
     }
     const payload = (await response.json()) as CatalogData;
     setCatalog(payload);
-    setExpanded(Object.fromEntries(payload.categories.map((entry) => [entry.slug, true])));
+    setExpanded((prev) => ({
+      ...prev,
+      [rootId]: true,
+      ...Object.fromEntries(payload.categories.map((entry) => [catId(entry.slug), true]))
+    }));
     setLoading(false);
   };
 
@@ -104,7 +116,9 @@ export default function AdminCategoriesManager() {
     setCatalog(next);
     setSaving(true);
     const response = await fetch('/api/admin/categories', {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(next)
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(next)
     });
     setSaving(false);
     if (!response.ok) {
@@ -124,16 +138,23 @@ export default function AdminCategoriesManager() {
     return { kind: 'subcategory' as const, category, subcategory };
   }, [catalog.categories, selected]);
 
-  const renameNode = (id: string, title: string) => {
-    const parsed = parseTreeId(id);
-    const nextTitle = title.trim();
+  const startRename = (id: string, title: string) => {
+    setEditingNodeId(id);
+    setDraftTitle(title);
+  };
+
+  const renameNode = () => {
+    if (!editingNodeId) return;
+    const parsed = parseTreeId(editingNodeId);
+    const nextTitle = draftTitle.trim();
     const nextSlug = slugify(nextTitle);
     if (!parsed || !nextTitle || !nextSlug) return;
 
     if (parsed.kind === 'category') {
       const next = { categories: catalog.categories.map((entry) => entry.slug === parsed.categorySlug ? { ...entry, title: nextTitle, slug: nextSlug } : entry) };
       setSelected({ kind: 'category', categorySlug: nextSlug });
-      void persist(next);
+      setEditingNodeId(null);
+      void persist(next, 'Kategorija preimenovana');
       return;
     }
 
@@ -145,91 +166,58 @@ export default function AdminCategoriesManager() {
       )
     };
     setSelected({ kind: 'subcategory', categorySlug: parsed.categorySlug, subcategorySlug: nextSlug });
-    void persist(next);
+    setEditingNodeId(null);
+    void persist(next, 'Podkategorija preimenovana');
   };
 
   const addCategory = (afterSlug?: string) => {
-    const name = window.prompt('Ime nove kategorije');
-    if (!name) return;
-    const slug = slugify(name);
+    const title = window.prompt('Ime nove kategorije');
+    if (!title) return;
+    const slug = slugify(title);
     if (!slug) return;
-    const item: CatalogCategory = { slug, title: name, summary: name, description: '', image: '', subcategories: [], items: [] };
-    if (!afterSlug) {
-      void persist({ categories: [...catalog.categories, item] }, 'Kategorija dodana');
-      return;
-    }
-    const ix = catalog.categories.findIndex((entry) => entry.slug === afterSlug);
+    const item: CatalogCategory = { slug, title, summary: title, description: '', image: '', subcategories: [], items: [] };
     const list = [...catalog.categories];
-    if (ix < 0) list.push(item); else list.splice(ix + 1, 0, item);
+    if (!afterSlug) list.push(item);
+    else {
+      const index = list.findIndex((entry) => entry.slug === afterSlug);
+      if (index < 0) list.push(item); else list.splice(index + 1, 0, item);
+    }
+    setExpanded((prev) => ({ ...prev, [catId(slug)]: true }));
     void persist({ categories: list }, 'Kategorija dodana');
   };
 
   const addSubcategory = (categorySlug: string, afterSlug?: string) => {
-    const name = window.prompt('Ime nove podkategorije');
-    if (!name) return;
-    const slug = slugify(name);
+    const title = window.prompt('Ime nove podkategorije');
+    if (!title) return;
+    const slug = slugify(title);
     if (!slug) return;
     const next = {
       categories: catalog.categories.map((entry) => {
         if (entry.slug !== categorySlug) return entry;
-        const nextSub: CatalogSubcategory = { slug, title: name, description: '', image: '', items: [] };
+        const sub: CatalogSubcategory = { slug, title, description: '', image: '', items: [] };
         const list = [...entry.subcategories];
-        if (!afterSlug) list.push(nextSub);
+        if (!afterSlug) list.push(sub);
         else {
-          const ix = list.findIndex((sub) => sub.slug === afterSlug);
-          if (ix < 0) list.push(nextSub); else list.splice(ix + 1, 0, nextSub);
+          const index = list.findIndex((node) => node.slug === afterSlug);
+          if (index < 0) list.push(sub); else list.splice(index + 1, 0, sub);
         }
         return { ...entry, subcategories: list };
       })
     };
+    setExpanded((prev) => ({ ...prev, [catId(categorySlug)]: true }));
     void persist(next, 'Podkategorija dodana');
   };
 
-  const confirmDeleteNode = () => {
-    if (!deleteTarget) return;
-    if (deleteTarget.kind === 'category') {
-      const next = { categories: catalog.categories.filter((entry) => entry.slug !== deleteTarget.categorySlug) };
-      setSelected({ kind: 'root' });
-      setDeleteTarget(null);
-      void persist(next, 'Kategorija odstranjena');
-      return;
-    }
-
-    const next = {
-      categories: catalog.categories.map((entry) =>
-        entry.slug === deleteTarget.categorySlug
-          ? { ...entry, subcategories: entry.subcategories.filter((sub) => sub.slug !== deleteTarget.subcategorySlug) }
-          : entry
-      )
-    };
-    setSelected({ kind: 'category', categorySlug: deleteTarget.categorySlug });
-    setDeleteTarget(null);
-    void persist(next, 'Podkategorija odstranjena');
-  };
-
-  const updateSub = (categorySlug: string, subSlug: string, patch: Partial<CatalogSubcategory>) => {
-    const next = {
-      categories: catalog.categories.map((entry) =>
-        entry.slug === categorySlug
-          ? { ...entry, subcategories: entry.subcategories.map((sub) => sub.slug === subSlug ? { ...sub, ...patch } : sub) }
-          : entry
-      )
-    };
-    void persist(next);
-  };
-
-  const onTreeDragEnd = (event: DragEndEvent) => {
+  const onTopTreeDragEnd = (event: DragEndEvent) => {
     const active = String(event.active.id);
     const over = event.over ? String(event.over.id) : null;
     if (!over || active === over) return;
 
     const activeNode = parseTreeId(active);
     const overNode = parseTreeId(over);
-    const overDrop = over.startsWith('drop:') ? over.slice(5) : null;
-    if (!activeNode) return;
+    if (!activeNode || !overNode) return;
 
-    if (activeNode.kind === 'category') {
-      if (!overNode || overNode.kind !== 'category') return;
+    if (activeNode.kind === 'category' && overNode.kind === 'category') {
       const oldIndex = catalog.categories.findIndex((entry) => entry.slug === activeNode.categorySlug);
       const newIndex = catalog.categories.findIndex((entry) => entry.slug === overNode.categorySlug);
       if (oldIndex < 0 || newIndex < 0) return;
@@ -237,52 +225,59 @@ export default function AdminCategoriesManager() {
       return;
     }
 
-    const fromCat = activeNode.categorySlug;
-    const fromSub = activeNode.subcategorySlug ?? '';
-    let toCat = fromCat;
-    let toIndex: number | null = null;
+    if (activeNode.kind !== 'subcategory') return;
 
-    if (overDrop) {
-      toCat = overDrop;
-    } else if (overNode?.kind === 'subcategory') {
-      toCat = overNode.categorySlug;
-      const targetCat = catalog.categories.find((entry) => entry.slug === toCat);
-      toIndex = targetCat?.subcategories.findIndex((entry) => entry.slug === overNode.subcategorySlug) ?? null;
-    } else if (overNode?.kind === 'category') {
-      toCat = overNode.categorySlug;
-    } else {
+    const sourceCategory = catalog.categories.find((entry) => entry.slug === activeNode.categorySlug);
+    const movingSub = sourceCategory?.subcategories.find((entry) => entry.slug === activeNode.subcategorySlug);
+    if (!sourceCategory || !movingSub) return;
+
+    if (overNode.kind === 'category') {
+      const next = {
+        categories: catalog.categories.map((entry) => {
+          if (entry.slug === activeNode.categorySlug) {
+            return { ...entry, subcategories: entry.subcategories.filter((sub) => sub.slug !== activeNode.subcategorySlug) };
+          }
+          if (entry.slug === overNode.categorySlug) {
+            return { ...entry, subcategories: [...entry.subcategories, movingSub] };
+          }
+          return entry;
+        })
+      };
+      setSelected({ kind: 'subcategory', categorySlug: overNode.categorySlug, subcategorySlug: movingSub.slug });
+      void persist(next, 'Podkategorija premaknjena');
       return;
     }
 
-    const sourceCat = catalog.categories.find((entry) => entry.slug === fromCat);
-    const moving = sourceCat?.subcategories.find((entry) => entry.slug === fromSub);
-    if (!sourceCat || !moving) return;
+    const targetCategory = overNode.categorySlug;
+    const targetIndex = catalog.categories
+      .find((entry) => entry.slug === targetCategory)
+      ?.subcategories.findIndex((entry) => entry.slug === overNode.subcategorySlug);
+
+    if (targetIndex === undefined || targetIndex < 0) return;
 
     const next = {
       categories: catalog.categories.map((entry) => {
-        if (entry.slug === fromCat && entry.slug === toCat) {
-          const list = [...entry.subcategories];
-          const oldIndex = list.findIndex((item) => item.slug === fromSub);
-          const newIndex = toIndex ?? list.length - 1;
-          if (oldIndex < 0) return entry;
-          return { ...entry, subcategories: arrayMove(list, oldIndex, Math.max(0, newIndex)) };
+        if (entry.slug === activeNode.categorySlug && entry.slug === targetCategory) {
+          const from = entry.subcategories.findIndex((sub) => sub.slug === activeNode.subcategorySlug);
+          return from < 0 ? entry : { ...entry, subcategories: arrayMove(entry.subcategories, from, targetIndex) };
         }
-        if (entry.slug === fromCat) return { ...entry, subcategories: entry.subcategories.filter((item) => item.slug !== fromSub) };
-        if (entry.slug === toCat) {
+        if (entry.slug === activeNode.categorySlug) {
+          return { ...entry, subcategories: entry.subcategories.filter((sub) => sub.slug !== activeNode.subcategorySlug) };
+        }
+        if (entry.slug === targetCategory) {
           const list = [...entry.subcategories];
-          list.splice(toIndex === null || toIndex < 0 ? list.length : toIndex, 0, moving);
+          list.splice(targetIndex, 0, movingSub);
           return { ...entry, subcategories: list };
         }
         return entry;
       })
     };
 
-    setExpanded((prev) => ({ ...prev, [toCat]: true }));
-    setSelected({ kind: 'subcategory', categorySlug: toCat, subcategorySlug: moving.slug });
-    void persist(next, 'Premik podkategorije shranjen');
+    setSelected({ kind: 'subcategory', categorySlug: targetCategory, subcategorySlug: movingSub.slug });
+    void persist(next, 'Vrstni red podkategorij posodobljen');
   };
 
-  const onBottomChildrenDragEnd = (event: DragEndEvent) => {
+  const onBottomReorder = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
@@ -314,18 +309,17 @@ export default function AdminCategoriesManager() {
 
     if (selectedContext.kind === 'category') {
       const items = sortCatalogItems(selectedContext.category.items ?? []);
-      const oldIndex = items.findIndex((entry) => entry.slug === active.id);
-      const newIndex = items.findIndex((entry) => entry.slug === over.id);
+      const oldIndex = items.findIndex((item) => item.slug === active.id);
+      const newIndex = items.findIndex((item) => item.slug === over.id);
       if (oldIndex < 0 || newIndex < 0) return;
       const reordered = arrayMove(items, oldIndex, newIndex).map((item, index) => ({ ...item, displayOrder: index + 1 }));
-      const next = { categories: catalog.categories.map((entry) => entry.slug === selectedContext.category.slug ? { ...entry, items: reordered } : entry) };
-      void persist(next, 'Vrstni red izdelkov posodobljen');
+      void persist({ categories: catalog.categories.map((entry) => entry.slug === selectedContext.category.slug ? { ...entry, items: reordered } : entry) }, 'Vrstni red izdelkov shranjen');
       return;
     }
 
     const items = sortCatalogItems(selectedContext.subcategory.items);
-    const oldIndex = items.findIndex((entry) => entry.slug === active.id);
-    const newIndex = items.findIndex((entry) => entry.slug === over.id);
+    const oldIndex = items.findIndex((item) => item.slug === active.id);
+    const newIndex = items.findIndex((item) => item.slug === over.id);
     if (oldIndex < 0 || newIndex < 0) return;
     const reordered = arrayMove(items, oldIndex, newIndex).map((item, index) => ({ ...item, displayOrder: index + 1 }));
     const next = {
@@ -335,39 +329,192 @@ export default function AdminCategoriesManager() {
           : entry
       )
     };
-    void persist(next, 'Vrstni red izdelkov posodobljen');
+    void persist(next, 'Vrstni red izdelkov shranjen');
   };
 
-  const handleUploadImage = async (file: File | null, target: { kind: 'category' | 'subcategory'; categorySlug: string; subSlug?: string }) => {
+  const updateSubcategory = (categorySlug: string, subSlug: string, patch: Partial<CatalogSubcategory>) => {
+    void persist({
+      categories: catalog.categories.map((entry) =>
+        entry.slug === categorySlug
+          ? { ...entry, subcategories: entry.subcategories.map((sub) => sub.slug === subSlug ? { ...sub, ...patch } : sub) }
+          : entry
+      )
+    });
+  };
+
+  const onImageUpload = async (file: File | null, item: ContentCard, categorySlug?: string) => {
     if (!file) return;
     const dataUrl = await fileToDataUrl(file);
-    if (target.kind === 'category') {
-      const next = { categories: catalog.categories.map((entry) => entry.slug === target.categorySlug ? { ...entry, image: dataUrl } : entry) };
-      void persist(next, 'Slika shranjena');
+    if (item.kind === 'category') {
+      void persist({ categories: catalog.categories.map((entry) => entry.slug === item.id ? { ...entry, image: dataUrl } : entry) }, 'Slika shranjena');
       return;
     }
-    updateSub(target.categorySlug, target.subSlug ?? '', { image: dataUrl });
+    if (!categorySlug) return;
+    updateSubcategory(categorySlug, item.id, { image: dataUrl });
+  };
+
+  const confirmDeleteNode = () => {
+    if (!deleteTarget) return;
+    if (deleteTarget.kind === 'category') {
+      setDeleteTarget(null);
+      setSelected({ kind: 'root' });
+      void persist({ categories: catalog.categories.filter((entry) => entry.slug !== deleteTarget.categorySlug) }, 'Kategorija izbrisana');
+      return;
+    }
+
+    setDeleteTarget(null);
+    setSelected({ kind: 'category', categorySlug: deleteTarget.categorySlug });
+    void persist({
+      categories: catalog.categories.map((entry) =>
+        entry.slug === deleteTarget.categorySlug
+          ? { ...entry, subcategories: entry.subcategories.filter((sub) => sub.slug !== deleteTarget.subcategorySlug) }
+          : entry
+      )
+    }, 'Podkategorija izbrisana');
   };
 
   const confirmDeleteImage = () => {
     if (!imageDeleteTarget) return;
     if (imageDeleteTarget.kind === 'category') {
-      const next = { categories: catalog.categories.map((entry) => entry.slug === imageDeleteTarget.itemId ? { ...entry, image: '' } : entry) };
+      void persist({ categories: catalog.categories.map((entry) => entry.slug === imageDeleteTarget.categorySlug ? { ...entry, image: '' } : entry) }, 'Slika odstranjena');
       setImageDeleteTarget(null);
-      void persist(next, 'Slika odstranjena');
       return;
     }
-    updateSub(imageDeleteTarget.categorySlug, imageDeleteTarget.itemId, { image: '' });
+    updateSubcategory(imageDeleteTarget.categorySlug, imageDeleteTarget.subcategorySlug ?? '', { image: '' });
     setImageDeleteTarget(null);
   };
 
+  const visibleContent = useMemo(() => {
+    if (selectedContext?.kind === 'root') {
+      return catalog.categories.map((entry) => ({ id: entry.slug, title: entry.title, description: entry.summary, image: entry.image, kind: 'category' as const }));
+    }
+    if (selectedContext?.kind === 'category') {
+      return selectedContext.category.subcategories.map((entry) => ({ id: entry.slug, title: entry.title, description: entry.description, image: entry.image, kind: 'subcategory' as const }));
+    }
+    return [];
+  }, [catalog.categories, selectedContext]);
+
+  const allSubcategories = useMemo(
+    () => catalog.categories.flatMap((category) => category.subcategories.map((subcategory) => ({ category, subcategory }))),
+    [catalog.categories]
+  );
+
+  const registerTreeNode = useCallback((id: string, element: HTMLDivElement | null) => {
+    treeNodeRefs.current[id] = element;
+  }, []);
+
+  useEffect(() => {
+    const computeEdges = () => {
+      const canvasRect = treeCanvasRef.current?.getBoundingClientRect();
+      if (!canvasRect) return;
+
+      const edges: TreeEdge[] = [];
+      const rootRect = treeNodeRefs.current[rootId]?.getBoundingClientRect();
+      if (rootRect) {
+        for (const category of catalog.categories) {
+          const categoryRect = treeNodeRefs.current[catId(category.slug)]?.getBoundingClientRect();
+          if (!categoryRect) continue;
+          edges.push({
+            fromX: rootRect.right - canvasRect.left,
+            fromY: rootRect.top + rootRect.height / 2 - canvasRect.top,
+            toX: categoryRect.left - canvasRect.left,
+            toY: categoryRect.top + categoryRect.height / 2 - canvasRect.top
+          });
+          for (const subcategory of category.subcategories) {
+            const subRect = treeNodeRefs.current[subId(category.slug, subcategory.slug)]?.getBoundingClientRect();
+            if (!subRect) continue;
+            edges.push({
+              fromX: categoryRect.right - canvasRect.left,
+              fromY: categoryRect.top + categoryRect.height / 2 - canvasRect.top,
+              toX: subRect.left - canvasRect.left,
+              toY: subRect.top + subRect.height / 2 - canvasRect.top
+            });
+          }
+        }
+      }
+      setTreeEdges(edges);
+    };
+
+    computeEdges();
+    const observer = new ResizeObserver(computeEdges);
+    if (treeCanvasRef.current) observer.observe(treeCanvasRef.current);
+    Object.values(treeNodeRefs.current).forEach((node) => {
+      if (node) observer.observe(node);
+    });
+    window.addEventListener('resize', computeEdges);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', computeEdges);
+    };
+  }, [catalog.categories, expanded]);
+
   if (loading) return <p className="text-sm text-slate-500">Nalagam kategorije ...</p>;
+
+  const renderNodeCard = ({
+    id,
+    title,
+    kind,
+    categorySlug,
+    subcategorySlug,
+    hasChildren
+  }: {
+    id: string;
+    title: string;
+    kind: 'root' | 'category' | 'subcategory';
+    categorySlug?: string;
+    subcategorySlug?: string;
+    hasChildren: boolean;
+  }) => {
+    const isSelected =
+      (selected.kind === 'root' && kind === 'root') ||
+      (selected.kind === 'category' && kind === 'category' && selected.categorySlug === categorySlug) ||
+      (selected.kind === 'subcategory' && kind === 'subcategory' && selected.categorySlug === categorySlug && selected.subcategorySlug === subcategorySlug);
+
+    const opened = expanded[id] ?? true;
+
+    return (
+      <div className="inline-flex flex-col items-center gap-2">
+        <div
+          ref={(element) => registerTreeNode(id, element)}
+          className={`flex min-w-[180px] max-w-[210px] items-center justify-between gap-1 rounded-lg border bg-white px-2 py-1.5 shadow-sm ${isSelected ? 'border-brand-500 ring-2 ring-brand-100' : 'border-slate-300'}`}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              if (kind === 'root') setSelected({ kind: 'root' });
+              if (kind === 'category' && categorySlug) setSelected({ kind: 'category', categorySlug });
+              if (kind === 'subcategory' && categorySlug && subcategorySlug) setSelected({ kind: 'subcategory', categorySlug, subcategorySlug });
+            }}
+            className="flex-1 text-left text-xs font-semibold leading-tight text-slate-800"
+          >
+            {title}
+          </button>
+          <div className="flex items-center gap-1">
+            {hasChildren ? <IconButton aria-label="Razširi/skrij" onClick={() => setExpanded((prev) => ({ ...prev, [id]: !(prev[id] ?? true) }))}>{opened ? '▾' : '▸'}</IconButton> : null}
+            {kind === 'category' && categorySlug ? <IconButton aria-label="Dodaj podkategorijo" onClick={() => addSubcategory(categorySlug)}>＋</IconButton> : null}
+            {kind === 'subcategory' && categorySlug && subcategorySlug ? <IconButton aria-label="Dodaj sorojenca" onClick={() => addSubcategory(categorySlug, subcategorySlug)}>＋</IconButton> : null}
+            {kind === 'category' && categorySlug ? <IconButton aria-label="Dodaj sorojenca" onClick={() => addCategory(categorySlug)}>⟷</IconButton> : null}
+            {kind !== 'root' ? <IconButton aria-label="Uredi" onClick={() => startRename(id, title)}>✎</IconButton> : null}
+            {kind !== 'root' && categorySlug ? <IconButton tone="danger" aria-label="Izbriši" onClick={() => setDeleteTarget(kind === 'category' ? { kind: 'category', categorySlug } : { kind: 'subcategory', categorySlug, subcategorySlug })}>🗑</IconButton> : null}
+          </div>
+        </div>
+        {editingNodeId === id ? (
+          <div className="w-full rounded-lg border border-slate-200 bg-white p-2">
+            <FloatingInput id={`rename-${id}`} tone="admin" label="Naziv" value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} />
+            <div className="mt-2 flex justify-end">
+              <Button variant="outline" size="sm" onClick={renameNode}>Shrani</Button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-5">
       <header>
         <h1 className="text-2xl font-semibold text-slate-900">Kategorije</h1>
-        <p className="mt-1 text-sm text-slate-600">Top = vizualno drevo, bottom = vsebina izbranega vozlišča.</p>
+        <p className="mt-1 text-sm text-slate-600">Top: povezano obrnjeno drevo. Bottom: vsebina izbrane kategorije v storefront admin pogledu.</p>
       </header>
 
       <ConfirmDialog
@@ -393,108 +540,57 @@ export default function AdminCategoriesManager() {
       />
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hierarhija (inverted tree)</p>
-          <Button variant="outline" size="sm" onClick={() => addCategory()}>+ Kategorija</Button>
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hierarhija kategorij</p>
+          <Button variant="outline" size="sm" onClick={() => addCategory()}>+ Dodaj kategorijo</Button>
         </div>
+        <div className="overflow-x-auto pb-3">
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onTopTreeDragEnd}>
+            <div ref={treeCanvasRef} className="relative w-full px-2 py-3">
+              <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden>
+                {treeEdges.map((edge, index) => {
+                  const midX = edge.fromX + Math.max(28, (edge.toX - edge.fromX) / 2);
+                  return (
+                    <path
+                      key={`${index}-${edge.fromX}-${edge.toX}`}
+                      d={`M ${edge.fromX} ${edge.fromY} H ${midX} V ${edge.toY} H ${edge.toX}`}
+                      fill="none"
+                      stroke="#2563eb"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  );
+                })}
+              </svg>
 
-        <div className="overflow-x-auto">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onTreeDragEnd}>
-            <div className="min-w-[980px] pb-2">
-              <div className="flex justify-center">
-                <button
-                  type="button"
-                  onClick={() => setSelected({ kind: 'root' })}
-                  className={`rounded-xl border px-4 py-2 text-sm ${selected.kind === 'root' ? 'border-brand-300 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-700'}`}
-                >
-                  Vse kategorije
-                </button>
-              </div>
-              <div className="mx-auto mt-2 h-7 w-px bg-slate-300" />
+              <div className="relative z-10 grid min-w-[920px] grid-cols-[200px_240px_1fr] items-start gap-5">
+                <div className="pt-2">{renderNodeCard({ id: rootId, title: 'Vse kategorije', kind: 'root', hasChildren: catalog.categories.length > 0 })}</div>
 
-              <SortableContext items={catalog.categories.map((entry) => catId(entry.slug))} strategy={rectSortingStrategy}>
-                <div className="relative border-t border-slate-300 pt-8">
-                  <div className="grid gap-4 lg:grid-cols-3 2xl:grid-cols-4">
-                    {catalog.categories.map((category) => {
-                      const categorySelected = selected.kind === 'category' && selected.categorySlug === category.slug;
-                      const expandedState = expanded[category.slug] ?? true;
-
-                      return (
-                        <div key={category.slug} className="relative rounded-xl border border-slate-200 bg-slate-50/40 p-3">
-                          <div className="absolute -top-8 left-1/2 h-8 w-px -translate-x-1/2 bg-slate-300" />
-                          <DropSurface id={catDropId(category.slug)}>
-                            <SortableSurface id={catId(category.slug)}>
-                              {({ dragProps }) => (
-                                <div {...dragProps} className="rounded-xl border border-slate-200 bg-white p-2">
-                                  <div className="flex items-center gap-2">
-                                    <button type="button" className="rounded-md border border-slate-300 px-2 text-xs" onClick={(e) => { e.stopPropagation(); setExpanded((prev) => ({ ...prev, [category.slug]: !expandedState })); }}>
-                                      {expandedState ? '−' : '+'}
-                                    </button>
-                                    <button type="button" onClick={() => setSelected({ kind: 'category', categorySlug: category.slug })} className={`flex-1 rounded-md px-2 py-1 text-left text-sm ${categorySelected ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}>
-                                      {category.title}
-                                    </button>
-                                    <Button variant="ghost" size="sm" onClick={() => { setEditingNode(catId(category.slug)); setDraftNodeTitle(category.title); }}>✎</Button>
-                                    <Button variant="ghost" size="sm" onClick={() => addCategory(category.slug)}>+⟷</Button>
-                                    <Button variant="ghost" size="sm" onClick={() => addSubcategory(category.slug)}>+↓</Button>
-                                    <Button variant="ghost" size="sm" onClick={() => setDeleteTarget({ kind: 'category', categorySlug: category.slug })}>−</Button>
-                                  </div>
-                                  {editingNode === catId(category.slug) ? (
-                                    <div className="mt-2 flex items-center gap-2">
-                                      <FloatingInput id={`rename-${category.slug}`} tone="admin" label="Naziv" value={draftNodeTitle} onChange={(event) => setDraftNodeTitle(event.target.value)} />
-                                      <Button variant="outline" size="sm" onClick={() => { renameNode(catId(category.slug), draftNodeTitle); setEditingNode(null); }}>Shrani</Button>
-                                    </div>
-                                  ) : null}
-                                </div>
-                              )}
-                            </SortableSurface>
-                          </DropSurface>
-
-                          {expandedState ? (
-                            <>
-                              <div className="mx-auto mt-2 h-4 w-px bg-slate-300" />
-                              <div className="relative border-t border-slate-300 pt-4">
-                                <SortableContext items={category.subcategories.map((entry) => subId(category.slug, entry.slug))} strategy={rectSortingStrategy}>
-                                  <div className="grid gap-2 xl:grid-cols-2">
-                                    {category.subcategories.map((subcategory) => {
-                                      const sid = subId(category.slug, subcategory.slug);
-                                      const subSelected = selected.kind === 'subcategory' && selected.categorySlug === category.slug && selected.subcategorySlug === subcategory.slug;
-                                      return (
-                                        <div key={sid} className="relative pt-4">
-                                          <div className="absolute left-1/2 top-0 h-4 w-px -translate-x-1/2 bg-slate-300" />
-                                          <SortableSurface id={sid}>
-                                            {({ dragProps }) => (
-                                              <div {...dragProps} className="rounded-lg border border-slate-200 bg-white p-2">
-                                                <div className="flex items-center gap-2">
-                                                  <button type="button" onClick={() => setSelected({ kind: 'subcategory', categorySlug: category.slug, subcategorySlug: subcategory.slug })} className={`flex-1 rounded-md px-2 py-1 text-left text-sm ${subSelected ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}>
-                                                    {subcategory.title}
-                                                  </button>
-                                                  <Button variant="ghost" size="sm" onClick={() => { setEditingNode(sid); setDraftNodeTitle(subcategory.title); }}>✎</Button>
-                                                  <Button variant="ghost" size="sm" onClick={() => addSubcategory(category.slug, subcategory.slug)}>+⟷</Button>
-                                                  <Button variant="ghost" size="sm" onClick={() => setDeleteTarget({ kind: 'subcategory', categorySlug: category.slug, subcategorySlug: subcategory.slug })}>−</Button>
-                                                </div>
-                                                {editingNode === sid ? (
-                                                  <div className="mt-2 flex items-center gap-2">
-                                                    <FloatingInput id={`rename-${sid}`} tone="admin" label="Naziv" value={draftNodeTitle} onChange={(event) => setDraftNodeTitle(event.target.value)} />
-                                                    <Button variant="outline" size="sm" onClick={() => { renameNode(sid, draftNodeTitle); setEditingNode(null); }}>Shrani</Button>
-                                                  </div>
-                                                ) : null}
-                                              </div>
-                                            )}
-                                          </SortableSurface>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </SortableContext>
-                              </div>
-                            </>
-                          ) : null}
-                        </div>
-                      );
-                    })}
+                <SortableContext items={catalog.categories.map((entry) => catId(entry.slug))} strategy={verticalListSortingStrategy}>
+                  <div className="flex flex-col items-start gap-2.5">
+                    {catalog.categories.map((category) => (
+                      <SortableItem key={category.slug} id={catId(category.slug)}>
+                        {(dragProps) => (
+                          <div className="flex flex-col items-start gap-2">
+                            <div {...dragProps}>{renderNodeCard({ id: catId(category.slug), title: category.title, kind: 'category', categorySlug: category.slug, hasChildren: category.subcategories.length > 0 })}</div>
+                          </div>
+                        )}
+                      </SortableItem>
+                    ))}
                   </div>
-                </div>
-              </SortableContext>
+                </SortableContext>
+
+                <SortableContext items={allSubcategories.map(({ category, subcategory }) => subId(category.slug, subcategory.slug))} strategy={verticalListSortingStrategy}>
+                  <div className="flex flex-col items-start gap-2">
+                    {allSubcategories.map(({ category, subcategory }) => (
+                      <SortableItem key={`${category.slug}-${subcategory.slug}`} id={subId(category.slug, subcategory.slug)}>
+                        {(dragProps) => <div {...dragProps}>{renderNodeCard({ id: subId(category.slug, subcategory.slug), title: subcategory.title, kind: 'subcategory', categorySlug: category.slug, subcategorySlug: subcategory.slug, hasChildren: false })}</div>}
+                      </SortableItem>
+                    ))}
+                  </div>
+                </SortableContext>
+              </div>
             </div>
           </DndContext>
         </div>
@@ -506,128 +602,83 @@ export default function AdminCategoriesManager() {
           <p className="text-xs text-slate-400">{saving ? 'Shranjujem ...' : 'Spremembe se shranjujejo sproti.'}</p>
         </div>
 
-        {selectedContext?.kind === 'root' ? (
-          <ContentsGrid
-            title="Vse kategorije"
-            description="Top-level kategorije, kot jih vidi kupec."
-            items={catalog.categories.map((entry) => ({ id: entry.slug, title: entry.title, description: entry.summary, image: entry.image, adminNotes: entry.adminNotes ?? '' }))}
-            onDragEnd={onBottomChildrenDragEnd}
-            onOpen={(id) => setSelected({ kind: 'category', categorySlug: id })}
-            onTitleChange={(id, value) => void persist({ categories: catalog.categories.map((entry) => entry.slug === id ? { ...entry, title: value } : entry) })}
-            onDescriptionChange={(id, value) => void persist({ categories: catalog.categories.map((entry) => entry.slug === id ? { ...entry, summary: value } : entry) })}
-            onAdminNotesChange={(id, value) => void persist({ categories: catalog.categories.map((entry) => entry.slug === id ? { ...entry, adminNotes: value } : entry) })}
-            onImageUpload={(id, file) => void handleUploadImage(file, { kind: 'category', categorySlug: id })}
-            onImageDelete={(id) => setImageDeleteTarget({ kind: 'category', categorySlug: id, itemId: id })}
-            onAddChild={(id) => addSubcategory(id)}
-          />
+        {selectedContext?.kind === 'root' || (selectedContext?.kind === 'category' && visibleContent.length > 0) ? (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onBottomReorder}>
+            <SortableContext items={visibleContent.map((item) => item.id)} strategy={rectSortingStrategy}>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {visibleContent.map((item) => (
+                  <SortableItem key={item.id} id={item.id}>
+                    {(dragProps) => (
+                      <article className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                        <div className="relative h-36 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                          {item.image ? <Image src={item.image} alt={item.title} fill className="object-cover" /> : <div className="flex h-full items-center justify-center text-xs text-slate-400">Brez slike</div>}
+                        </div>
+
+                        <div className="mt-2 flex items-center gap-1">
+                          <IconButton aria-label="Premakni" {...dragProps}>⋮⋮</IconButton>
+                          <Button variant="ghost" size="sm" onClick={() => {
+                            if (item.kind === 'category') setSelected({ kind: 'category', categorySlug: item.id });
+                            else if (selectedContext?.kind === 'category') setSelected({ kind: 'subcategory', categorySlug: selectedContext.category.slug, subcategorySlug: item.id });
+                          }}>Odpri</Button>
+                          <Button variant="ghost" size="sm" onClick={() => {
+                            if (item.kind === 'category') setSelected({ kind: 'category', categorySlug: item.id });
+                            if (item.kind === 'subcategory' && selectedContext?.kind === 'category') setSelected({ kind: 'subcategory', categorySlug: selectedContext.category.slug, subcategorySlug: item.id });
+                          }}>Skok na drevo</Button>
+                        </div>
+
+                        <div className="mt-3 space-y-2">
+                          <FloatingInput
+                            id={`title-${item.id}`}
+                            tone="admin"
+                            label="Naziv"
+                            value={item.title}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              if (item.kind === 'category') {
+                                void persist({ categories: catalog.categories.map((entry) => entry.slug === item.id ? { ...entry, title: value } : entry) });
+                              } else if (selectedContext?.kind === 'category') {
+                                updateSubcategory(selectedContext.category.slug, item.id, { title: value });
+                              }
+                            }}
+                          />
+                          <FloatingTextarea
+                            id={`desc-${item.id}`}
+                            tone="admin"
+                            label="Opis"
+                            value={item.description}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              if (item.kind === 'category') {
+                                void persist({ categories: catalog.categories.map((entry) => entry.slug === item.id ? { ...entry, summary: value } : entry) });
+                              } else if (selectedContext?.kind === 'category') {
+                                updateSubcategory(selectedContext.category.slug, item.id, { description: value });
+                              }
+                            }}
+                          />
+                        </div>
+
+                        <div className="mt-2 flex items-center gap-2">
+                          <input ref={(element) => { uploadRefs.current[item.id] = element; }} type="file" accept="image/*" className="hidden" onChange={(event) => void onImageUpload(event.target.files?.[0] ?? null, item, selectedContext?.kind === 'category' ? selectedContext.category.slug : undefined)} />
+                          <Button variant="outline" size="sm" onClick={() => uploadRefs.current[item.id]?.click()}>{item.image ? 'Zamenjaj sliko' : 'Naloži sliko'}</Button>
+                          {item.image ? <Button variant="ghost" size="sm" onClick={() => setImageDeleteTarget({ kind: item.kind, categorySlug: item.kind === 'category' ? item.id : selectedContext?.kind === 'category' ? selectedContext.category.slug : '', subcategorySlug: item.kind === 'subcategory' ? item.id : undefined })}>Odstrani sliko</Button> : null}
+                        </div>
+                      </article>
+                    )}
+                  </SortableItem>
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         ) : null}
 
-        {selectedContext?.kind === 'category' ? (
-          selectedContext.category.subcategories.length > 0 ? (
-            <ContentsGrid
-              title={`${selectedContext.category.title} — podkategorije`}
-              description="Urejanje child kategorij v storefront-like pogledu."
-              items={selectedContext.category.subcategories.map((entry) => ({ id: entry.slug, title: entry.title, description: entry.description, image: entry.image ?? '', adminNotes: entry.adminNotes ?? '' }))}
-              onDragEnd={onBottomChildrenDragEnd}
-              onOpen={(id) => setSelected({ kind: 'subcategory', categorySlug: selectedContext.category.slug, subcategorySlug: id })}
-              onTitleChange={(id, value) => updateSub(selectedContext.category.slug, id, { title: value })}
-              onDescriptionChange={(id, value) => updateSub(selectedContext.category.slug, id, { description: value })}
-              onAdminNotesChange={(id, value) => updateSub(selectedContext.category.slug, id, { adminNotes: value })}
-              onImageUpload={(id, file) => void handleUploadImage(file, { kind: 'subcategory', categorySlug: selectedContext.category.slug, subSlug: id })}
-              onImageDelete={(id) => setImageDeleteTarget({ kind: 'subcategory', categorySlug: selectedContext.category.slug, subcategorySlug: id, itemId: id })}
-              onAddChild={() => addSubcategory(selectedContext.category.slug)}
-            />
-          ) : (
-            <LeafProductsView
-              title={`${selectedContext.category.title} — izdelki`}
-              category={selectedContext.category}
-              items={sortCatalogItems(selectedContext.category.items ?? [])}
-              onDragEnd={onLeafProductsDragEnd}
-            />
-          )
+        {selectedContext?.kind === 'category' && selectedContext.category.subcategories.length === 0 ? (
+          <LeafProductsView title={`${selectedContext.category.title} — izdelki`} category={selectedContext.category} items={sortCatalogItems(selectedContext.category.items ?? [])} onDragEnd={onLeafProductsDragEnd} />
         ) : null}
 
         {selectedContext?.kind === 'subcategory' ? (
-          <LeafProductsView
-            title={`${selectedContext.category.title} / ${selectedContext.subcategory.title}`}
-            category={selectedContext.category}
-            subcategory={selectedContext.subcategory}
-            items={sortCatalogItems(selectedContext.subcategory.items)}
-            onDragEnd={onLeafProductsDragEnd}
-          />
+          <LeafProductsView title={`${selectedContext.category.title} / ${selectedContext.subcategory.title}`} category={selectedContext.category} subcategory={selectedContext.subcategory} items={sortCatalogItems(selectedContext.subcategory.items)} onDragEnd={onLeafProductsDragEnd} />
         ) : null}
       </section>
-    </div>
-  );
-}
-
-function ContentsGrid({
-  title,
-  description,
-  items,
-  onDragEnd,
-  onOpen,
-  onTitleChange,
-  onDescriptionChange,
-  onAdminNotesChange,
-  onImageUpload,
-  onImageDelete,
-  onAddChild
-}: {
-  title: string;
-  description: string;
-  items: ContentCard[];
-  onDragEnd: (event: DragEndEvent) => void;
-  onOpen: (id: string) => void;
-  onTitleChange: (id: string, value: string) => void;
-  onDescriptionChange: (id: string, value: string) => void;
-  onAdminNotesChange: (id: string, value: string) => void;
-  onImageUpload: (id: string, file: File | null) => void;
-  onImageDelete: (id: string) => void;
-  onAddChild: (id: string) => void;
-}) {
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
-
-  return (
-    <div>
-      <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
-      <p className="mt-1 text-sm text-slate-600">{description}</p>
-
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-        <SortableContext items={items.map((entry) => entry.id)} strategy={rectSortingStrategy}>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {items.map((item) => (
-              <SortableSurface key={item.id} id={item.id}>
-                {({ dragProps }) => (
-                  <div {...dragProps} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                    <div className="relative h-36 bg-slate-50">
-                      {item.image ? <Image src={item.image} alt={item.title} fill className="object-cover" /> : <div className="flex h-full items-center justify-center text-xs text-slate-400">Brez slike</div>}
-                    </div>
-                    <div className="space-y-3 p-4" onPointerDownCapture={(e) => e.stopPropagation()}>
-                      <FloatingInput id={`content-title-${item.id}`} tone="admin" label="Naziv" value={item.title} onChange={(event) => onTitleChange(item.id, event.target.value)} />
-                      <FloatingTextarea id={`content-description-${item.id}`} tone="admin" label="Opis" value={item.description} onChange={(event) => onDescriptionChange(item.id, event.target.value)} className="min-h-[90px]" />
-                      <FloatingTextarea id={`content-notes-${item.id}`} tone="admin" label="Admin opombe" value={item.adminNotes} onChange={(event) => onAdminNotesChange(item.id, event.target.value)} className="min-h-[80px]" />
-
-                      <div className="flex items-center gap-2">
-                        <label className="inline-flex cursor-pointer items-center rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
-                          Naloži sliko
-                          <input type="file" accept="image/*" className="hidden" onChange={(event) => void onImageUpload(item.id, event.target.files?.[0] ?? null)} />
-                        </label>
-                        <Button variant="outline" size="sm" onClick={() => onImageDelete(item.id)}>Odstrani sliko</Button>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={() => onOpen(item.id)}>Odpri</Button>
-                        <Button variant="outline" size="sm" onClick={() => onAddChild(item.id)}>+ Otrok</Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </SortableSurface>
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
     </div>
   );
 }
@@ -646,35 +697,38 @@ function LeafProductsView({
   onDragEnd: (event: DragEndEvent) => void;
 }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
-
   return (
     <div>
-      <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
-      <p className="mt-1 text-sm text-slate-600">Leaf pogled: urejanje vrstnega reda izdelkov.</p>
-
+      <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+      <p className="mt-1 text-sm text-slate-600">Storefront-like pogled izdelkov iz izbrane kategorije.</p>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-        <SortableContext items={items.map((item) => item.slug)} strategy={verticalListSortingStrategy}>
-          <div className="mt-4 space-y-3">
+        <SortableContext items={items.map((item) => item.slug)} strategy={rectSortingStrategy}>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {items.map((item) => (
-              <SortableSurface key={item.slug} id={item.slug}>
-                {({ dragProps }) => {
-                  const basePrice = subcategory ? item.price ?? getCatalogItemPrice(category.slug, subcategory.slug, item.slug) : item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug);
+              <SortableItem key={item.slug} id={item.slug}>
+                {(dragProps) => {
+                  const basePrice = subcategory
+                    ? item.price ?? getCatalogItemPrice(category.slug, subcategory.slug, item.slug)
+                    : item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug);
                   const finalPrice = getDiscountedPrice(basePrice, item.discountPct);
                   return (
-                    <div {...dragProps} className="rounded-xl border border-slate-200 bg-white p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-slate-900">{item.name}</p>
-                          <p className="mt-1 text-xs text-slate-600">{item.description}</p>
-                          <p className="mt-2 text-xs font-semibold text-slate-900">{formatCatalogPrice(finalPrice)}</p>
-                          <p className="mt-1 text-[11px] text-slate-500">SKU: {subcategory ? getCatalogItemSku(category.slug, subcategory.slug, item.slug) : getCatalogCategoryItemSku(category.slug, item.slug)}</p>
+                    <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                      {item.image ? (
+                        <div className="relative h-24 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                          <Image src={item.images?.[0] ?? item.image} alt={item.name} fill className="object-contain p-2" />
                         </div>
-                        <span className="text-xs text-slate-500">Povleci</span>
+                      ) : null}
+                      <h4 className="mt-2 text-sm font-semibold text-slate-900">{item.name}</h4>
+                      <p className="mt-1 text-xs text-slate-600">{item.description}</p>
+                      <p className="mt-2 text-sm font-semibold text-slate-900">{formatCatalogPrice(finalPrice)}</p>
+                      <p className="mt-1 text-[11px] text-slate-500">SKU: {subcategory ? getCatalogItemSku(category.slug, subcategory.slug, item.slug) : getCatalogCategoryItemSku(category.slug, item.slug)}</p>
+                      <div className="mt-2">
+                        <IconButton aria-label="Premakni izdelek" {...dragProps}>⋮⋮</IconButton>
                       </div>
-                    </div>
+                    </article>
                   );
                 }}
-              </SortableSurface>
+              </SortableItem>
             ))}
           </div>
         </SortableContext>

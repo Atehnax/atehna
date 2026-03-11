@@ -468,6 +468,66 @@ export default function AdminCategoriesManager() {
 
   if (loading) return <p className="text-sm text-slate-500">Nalagam kategorije ...</p>;
 
+  const renderNodeCard = ({
+    id,
+    title,
+    kind,
+    categorySlug,
+    subcategorySlug,
+    hasChildren
+  }: {
+    id: string;
+    title: string;
+    kind: 'root' | 'category' | 'subcategory';
+    categorySlug?: string;
+    subcategorySlug?: string;
+    hasChildren: boolean;
+  }) => {
+    const isSelected =
+      (selected.kind === 'root' && kind === 'root') ||
+      (selected.kind === 'category' && kind === 'category' && selected.categorySlug === categorySlug) ||
+      (selected.kind === 'subcategory' && kind === 'subcategory' && selected.categorySlug === categorySlug && selected.subcategorySlug === subcategorySlug);
+
+    const opened = expanded[id] ?? true;
+
+    return (
+      <div className="inline-flex flex-col items-center gap-2">
+        <div
+          ref={(element) => registerTreeNode(id, element)}
+          className={`flex min-w-[260px] items-center justify-between gap-2 rounded-xl border bg-white px-3 py-2 shadow-sm ${isSelected ? 'border-brand-500 ring-2 ring-brand-100' : 'border-slate-300'}`}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              if (kind === 'root') setSelected({ kind: 'root' });
+              if (kind === 'category' && categorySlug) setSelected({ kind: 'category', categorySlug });
+              if (kind === 'subcategory' && categorySlug && subcategorySlug) setSelected({ kind: 'subcategory', categorySlug, subcategorySlug });
+            }}
+            className="flex-1 text-left text-sm font-semibold text-slate-800"
+          >
+            {title}
+          </button>
+          <div className="flex items-center gap-1">
+            {hasChildren ? <IconButton aria-label="Razširi/skrij" onClick={() => setExpanded((prev) => ({ ...prev, [id]: !(prev[id] ?? true) }))}>{opened ? '▾' : '▸'}</IconButton> : null}
+            {kind === 'category' && categorySlug ? <IconButton aria-label="Dodaj podkategorijo" onClick={() => addSubcategory(categorySlug)}>＋</IconButton> : null}
+            {kind === 'subcategory' && categorySlug && subcategorySlug ? <IconButton aria-label="Dodaj sorojenca" onClick={() => addSubcategory(categorySlug, subcategorySlug)}>＋</IconButton> : null}
+            {kind === 'category' && categorySlug ? <IconButton aria-label="Dodaj sorojenca" onClick={() => addCategory(categorySlug)}>⟷</IconButton> : null}
+            {kind !== 'root' ? <IconButton aria-label="Uredi" onClick={() => startRename(id, title)}>✎</IconButton> : null}
+            {kind !== 'root' && categorySlug ? <IconButton tone="danger" aria-label="Izbriši" onClick={() => setDeleteTarget(kind === 'category' ? { kind: 'category', categorySlug } : { kind: 'subcategory', categorySlug, subcategorySlug })}>🗑</IconButton> : null}
+          </div>
+        </div>
+        {editingNodeId === id ? (
+          <div className="w-full rounded-lg border border-slate-200 bg-white p-2">
+            <FloatingInput id={`rename-${id}`} tone="admin" label="Naziv" value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} />
+            <div className="mt-2 flex justify-end">
+              <Button variant="outline" size="sm" onClick={renameNode}>Shrani</Button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-5">
       <header>

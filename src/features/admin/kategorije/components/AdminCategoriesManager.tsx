@@ -127,8 +127,6 @@ function SaveIcon() {
 }
 
   const treeIndent = 32;
-  const treeRowHeight = 48;
-  const treeHalfRowHeight = treeRowHeight / 2;
   const leafConnectorWidth = 22;
   const treeButtonDiameter = 28;
   const treeButtonRadius = treeButtonDiameter / 2;
@@ -734,12 +732,12 @@ function SaveIcon() {
         </td>
   
         <td className="border-b border-slate-200 px-3 py-0 align-middle">
-          <div className="relative flex h-12 items-center gap-2 overflow-visible px-1">
+          <div className="relative flex h-full min-h-12 items-center gap-2 overflow-visible px-1">
             <div
               className="relative shrink-0 overflow-visible"
               style={{
                 width: `${gutterWidth}px`,
-                height: `${treeRowHeight}px`
+                height: '100%'
               }}
             >
               {ancestorContinuationColumns.map((continuesBelow, ancestorIndex) => {
@@ -753,8 +751,8 @@ function SaveIcon() {
                       left: `${ancestorX}px`,
                       top: `-${treeConnectorBleed}px`,
                       height: continuesBelow
-                        ? `${treeRowHeight + treeConnectorBleed * 2}px`
-                        : `${treeHalfRowHeight + treeConnectorBleed}px`
+                        ? `calc(100% + ${treeConnectorBleed * 2}px)`
+                        : `calc(50% + ${treeConnectorBleed}px)`
                     }}
                   />
                 );
@@ -765,8 +763,8 @@ function SaveIcon() {
                   className="absolute z-0 w-px bg-slate-300/90"
                   style={{
                     left: `${buttonCenterX}px`,
-                    top: `${treeHalfRowHeight + treeButtonRadius}px`,
-                    height: `${treeHalfRowHeight - treeButtonRadius + treeConnectorBleed + 1}px`
+                    top: `calc(50% + ${treeButtonRadius}px)`,
+                    height: `calc(50% - ${treeButtonRadius}px + ${treeConnectorBleed + 1}px)`
                   }}
                 />
               ) : null}
@@ -778,7 +776,7 @@ function SaveIcon() {
                     style={{
                       left: `${parentColumnX}px`,
                       top: `-${treeConnectorBleed}px`,
-                      height: `${treeHalfRowHeight + treeConnectorBleed}px`
+                      height: `calc(50% + ${treeConnectorBleed}px)`
                     }}
                   />
   
@@ -787,8 +785,8 @@ function SaveIcon() {
                       className="absolute z-0 w-px bg-slate-300/90"
                       style={{
                         left: `${parentColumnX}px`,
-                        top: `${treeHalfRowHeight}px`,
-                        height: `${treeHalfRowHeight + treeConnectorBleed + 1}px`
+                        top: '50%',
+                        height: `calc(50% + ${treeConnectorBleed + 1}px)`
                       }}
                     />
                   ) : null}
@@ -797,7 +795,7 @@ function SaveIcon() {
                     className="absolute z-0 h-px bg-slate-300/90"
                     style={{
                       left: `${parentColumnX}px`,
-                      top: `${treeHalfRowHeight}px`,
+                      top: '50%',
                       width: `${hasChildren ? buttonLeft - parentColumnX : leafConnectorWidth}px`
                     }}
                   />
@@ -847,7 +845,7 @@ function SaveIcon() {
                     setSelected({ kind: 'subcategory', categorySlug, subcategorySlug });
                   }
                 }}
-                className="text-left text-xs font-semibold text-slate-500"
+                className="min-w-0 flex-1 truncate whitespace-nowrap text-left text-xs font-semibold text-slate-500"
               >
                 {title}
               </button>

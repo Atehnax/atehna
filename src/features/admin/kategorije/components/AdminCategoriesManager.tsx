@@ -1511,7 +1511,7 @@ export default function AdminCategoriesManager() {
               <col className="w-40" />
             </colgroup>
 
-            <thead className="bg-slate-50">
+            <thead className="bg-slate-50/90">
               <tr>
                 <th className="border-b border-slate-200 px-2 py-2 text-center text-xs font-semibold text-slate-500">
                   <input

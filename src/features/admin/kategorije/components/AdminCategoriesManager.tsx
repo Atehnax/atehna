@@ -847,7 +847,7 @@ function SaveIcon() {
                     setSelected({ kind: 'subcategory', categorySlug, subcategorySlug });
                   }
                 }}
-                className="text-left text-xs font-semibold text-slate-500"
+                className="min-w-0 flex-1 truncate whitespace-nowrap text-left text-xs font-semibold text-slate-500"
               >
                 {title}
               </button>

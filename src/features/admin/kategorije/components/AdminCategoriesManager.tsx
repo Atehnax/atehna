@@ -128,7 +128,7 @@ function SaveIcon() {
   const treeRowHeight = 48;
   const treeHalfRowHeight = treeRowHeight / 2;
   const leafConnectorWidth = 28;
-  const treeButtonDiameter = 28;
+  const treeButtonDiameter = 32;
   const treeButtonRadius = treeButtonDiameter / 2;
   export default function AdminCategoriesManager() {
   const [catalog, setCatalog] = useState<CatalogData>({ categories: [] });

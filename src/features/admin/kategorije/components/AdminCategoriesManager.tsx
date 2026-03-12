@@ -636,6 +636,19 @@ export default function AdminCategoriesManager() {
                 {title}
               </button>
             )}
+            {kind === 'root' ? (
+              <IconButton type="button" tone="neutral" aria-label="Dodaj kategorijo" title="Dodaj kategorijo" onClick={() => openCreateDialog({ kind: 'category' })}>
+                <PlusIcon />
+              </IconButton>
+            ) : kind === 'category' && categorySlug ? (
+              <IconButton type="button" tone="neutral" aria-label="Dodaj podkategorijo" title="Dodaj podkategorijo" onClick={() => openCreateDialog({ kind: 'subcategory', categorySlug })}>
+                <PlusIcon />
+              </IconButton>
+            ) : kind === 'subcategory' && categorySlug && subcategorySlug ? (
+              <IconButton type="button" tone="neutral" aria-label="Dodaj podkategorijo" title="Dodaj podkategorijo" onClick={() => openCreateDialog({ kind: 'subcategory', categorySlug, afterSlug: subcategorySlug })}>
+                <PlusIcon />
+              </IconButton>
+            ) : null}
           </div>
         </td>
         <td className="border-b border-slate-200 px-3 py-2 text-sm text-slate-600">

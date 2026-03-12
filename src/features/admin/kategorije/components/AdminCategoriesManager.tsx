@@ -95,6 +95,7 @@ const slugify = (value: string) =>
 
 const treeIndent = 32;
 const treeRowHeight = 48;
+const treeHalfRowHeight = treeRowHeight / 2;
 const leafConnectorWidth = 22;
 const treeButtonDiameter = 28;
 const treeButtonRadius = treeButtonDiameter / 2;
@@ -178,7 +179,6 @@ export default function AdminCategoriesManager() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [rootMeta, setRootMeta] = useState({ title: 'Vse kategorije', description: 'Root' });
-  const [rowHeights, setRowHeights] = useState<Record<string, number>>({});
 
   const { toast } = useToast();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
@@ -186,7 +186,6 @@ export default function AdminCategoriesManager() {
   const statusMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const selectAllRef = useRef<HTMLInputElement>(null);
   const isInlineSavingRef = useRef(false);
-  const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
 
   const load = async () => {
     setLoading(true);
@@ -206,6 +205,7 @@ export default function AdminCategoriesManager() {
       [rootId]: true,
       ...Object.fromEntries(payload.categories.map((entry) => [catId(entry.slug), false]))
     }));
+
     setStatusByRow((prev) => {
       const next = { ...prev };
 
@@ -222,6 +222,7 @@ export default function AdminCategoriesManager() {
       if (!next[rootId]) next[rootId] = 'active';
       return next;
     });
+
     setLoading(false);
   };
 
@@ -525,9 +526,11 @@ export default function AdminCategoriesManager() {
       setDeletingRowId(rootId);
       setDeleteTarget(null);
       setSelected({ kind: 'root' });
+
       void persist({ categories: [] }, 'Vse kategorije izbrisane').finally(() => {
         setDeletingRowId(null);
       });
+
       return;
     }
 
@@ -541,17 +544,20 @@ export default function AdminCategoriesManager() {
     if (deleteTarget.kind === 'category') {
       setDeleteTarget(null);
       setSelected({ kind: 'root' });
+
       void persist(
         { categories: catalog.categories.filter((entry) => entry.slug !== deleteTarget.categorySlug) },
         'Kategorija izbrisana'
       ).finally(() => {
         setDeletingRowId(null);
       });
+
       return;
     }
 
     setDeleteTarget(null);
     setSelected({ kind: 'category', categorySlug: deleteTarget.categorySlug });
+
     void persist(
       {
         categories: catalog.categories.map((entry) =>
@@ -587,7 +593,9 @@ export default function AdminCategoriesManager() {
       return;
     }
 
-    updateSubcategory(imageDeleteTarget.categorySlug, imageDeleteTarget.subcategorySlug ?? '', { image: '' });
+    updateSubcategory(imageDeleteTarget.categorySlug, imageDeleteTarget.subcategorySlug ?? '', {
+      image: ''
+    });
     setImageDeleteTarget(null);
   };
 
@@ -751,35 +759,6 @@ export default function AdminCategoriesManager() {
     selectableVisibleRowIds.length > 0 && selectedVisibleCount === selectableVisibleRowIds.length;
 
   useEffect(() => {
-    if (typeof ResizeObserver === 'undefined') return;
-
-    const observers: ResizeObserver[] = [];
-
-    visibleRowIds.forEach((id) => {
-      const row = rowRefs.current[id];
-      if (!row) return;
-
-      const observer = new ResizeObserver((entries) => {
-        const entry = entries[0];
-        if (!entry) return;
-
-        const nextHeight = Math.round(entry.contentRect.height);
-        setRowHeights((prev) => {
-          if (prev[id] === nextHeight) return prev;
-          return { ...prev, [id]: nextHeight };
-        });
-      });
-
-      observer.observe(row);
-      observers.push(observer);
-    });
-
-    return () => {
-      observers.forEach((observer) => observer.disconnect());
-    };
-  }, [visibleRowIds, editingRow?.id]);
-
-  useEffect(() => {
     const validIds = new Set([
       rootId,
       ...catalog.categories.map((category) => catId(category.slug)),
@@ -877,8 +856,6 @@ export default function AdminCategoriesManager() {
       level === 1 ? 'bg-slate-100/90' : level === 2 ? 'bg-slate-200/85' : level >= 3 ? 'bg-slate-300/75' : 'bg-slate-50/90';
     const rowStatus = statusByRow[id] ?? 'active';
     const statusLabel = rowStatus === 'active' ? 'Aktivna' : 'Neaktiven';
-    const rowHeight = rowHeights[id] ?? treeRowHeight;
-    const halfRowHeight = rowHeight / 2;
 
     const toggleInlineEdit = () => {
       if (isRowEditing) {
@@ -924,13 +901,7 @@ export default function AdminCategoriesManager() {
           : (parentColumnX ?? 0) + leafConnectorWidth;
 
     return (
-      <tr
-        key={id}
-        ref={(node) => {
-          rowRefs.current[id] = node;
-        }}
-        className={`${isSelected ? 'bg-brand-50/70' : rowDepthTone} transition-colors hover:bg-[#eef3ff]`}
-      >
+      <tr key={id} className={`${isSelected ? 'bg-brand-50/70' : rowDepthTone} transition-colors hover:bg-[#eef3ff]`}>
         <td className="border-b border-slate-200 px-2 py-2 text-center align-middle">
           <div className="flex justify-center" style={{ paddingLeft: `${level > 0 ? level * treeIndent : 0}px` }}>
             <input
@@ -943,18 +914,12 @@ export default function AdminCategoriesManager() {
         </td>
 
         <td className="border-b border-slate-200 px-3 py-0 align-middle">
-          <div
-            className="relative flex items-center gap-2 overflow-visible px-1"
-            style={{
-              minHeight: `${treeRowHeight}px`,
-              height: `${rowHeight}px`
-            }}
-          >
+          <div className="relative flex h-12 items-center gap-2 overflow-visible px-1">
             <div
               className="relative shrink-0 overflow-visible"
               style={{
                 width: `${gutterWidth}px`,
-                height: `${rowHeight}px`
+                height: `${treeRowHeight}px`
               }}
             >
               {ancestorContinuationColumns.map((continuesBelow, ancestorIndex) => {
@@ -968,8 +933,8 @@ export default function AdminCategoriesManager() {
                       left: `${ancestorX}px`,
                       top: `-${treeConnectorBleed}px`,
                       height: continuesBelow
-                        ? `${rowHeight + treeConnectorBleed * 2}px`
-                        : `${halfRowHeight + treeConnectorBleed}px`
+                        ? `${treeRowHeight + treeConnectorBleed * 2}px`
+                        : `${treeHalfRowHeight + treeConnectorBleed}px`
                     }}
                   />
                 );
@@ -980,8 +945,8 @@ export default function AdminCategoriesManager() {
                   className="absolute z-0 w-px bg-slate-300/90"
                   style={{
                     left: `${buttonCenterX}px`,
-                    top: `${halfRowHeight + treeButtonRadius}px`,
-                    height: `${halfRowHeight - treeButtonRadius + treeConnectorBleed + 1}px`
+                    top: `${treeHalfRowHeight + treeButtonRadius}px`,
+                    height: `${treeHalfRowHeight - treeButtonRadius + treeConnectorBleed + 1}px`
                   }}
                 />
               ) : null}
@@ -993,7 +958,7 @@ export default function AdminCategoriesManager() {
                     style={{
                       left: `${parentColumnX}px`,
                       top: `-${treeConnectorBleed}px`,
-                      height: `${halfRowHeight + treeConnectorBleed}px`
+                      height: `${treeHalfRowHeight + treeConnectorBleed}px`
                     }}
                   />
 
@@ -1002,8 +967,8 @@ export default function AdminCategoriesManager() {
                       className="absolute z-0 w-px bg-slate-300/90"
                       style={{
                         left: `${parentColumnX}px`,
-                        top: `${halfRowHeight}px`,
-                        height: `${halfRowHeight + treeConnectorBleed + 1}px`
+                        top: `${treeHalfRowHeight}px`,
+                        height: `${treeHalfRowHeight + treeConnectorBleed + 1}px`
                       }}
                     />
                   ) : null}
@@ -1012,7 +977,7 @@ export default function AdminCategoriesManager() {
                     className="absolute z-0 h-px bg-slate-300/90"
                     style={{
                       left: `${parentColumnX}px`,
-                      top: `${halfRowHeight}px`,
+                      top: `${treeHalfRowHeight}px`,
                       width: `${hasChildren ? buttonLeft - parentColumnX : leafConnectorWidth}px`
                     }}
                   />
@@ -1040,33 +1005,36 @@ export default function AdminCategoriesManager() {
               ) : null}
             </div>
 
-            {isRowEditing ? (
-              <Input
-                value={editingRow.title}
-                onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                  setEditingRow((prev) => (prev ? { ...prev, title: event.target.value } : prev))
-                }
-                data-inline-edit-field="true"
-                onBlur={handleInlineBlur}
-                className="h-8 min-w-[10ch] max-w-[34ch] px-2 text-xs font-semibold text-slate-500"
-                style={{ width: `${Math.min(34, Math.max(10, editingRow.title.length + 2))}ch` }}
-                autoFocus
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  if (kind === 'root') setSelected({ kind: 'root' });
-                  if (kind === 'category' && categorySlug) setSelected({ kind: 'category', categorySlug });
-                  if (kind === 'subcategory' && categorySlug && subcategorySlug) {
-                    setSelected({ kind: 'subcategory', categorySlug, subcategorySlug });
+            <div className="min-w-0 flex-1">
+              {isRowEditing ? (
+                <Input
+                  value={editingRow.title}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                    setEditingRow((prev) => (prev ? { ...prev, title: event.target.value } : prev))
                   }
-                }}
-                className="text-left text-xs font-semibold text-slate-500"
-              >
-                {title}
-              </button>
-            )}
+                  data-inline-edit-field="true"
+                  onBlur={handleInlineBlur}
+                  className="h-8 min-w-[10ch] max-w-[34ch] truncate whitespace-nowrap px-2 text-xs font-semibold text-slate-500"
+                  style={{ width: `${Math.min(34, Math.max(10, editingRow.title.length + 2))}ch` }}
+                  autoFocus
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (kind === 'root') setSelected({ kind: 'root' });
+                    if (kind === 'category' && categorySlug) setSelected({ kind: 'category', categorySlug });
+                    if (kind === 'subcategory' && categorySlug && subcategorySlug) {
+                      setSelected({ kind: 'subcategory', categorySlug, subcategorySlug });
+                    }
+                  }}
+                  className="block w-full truncate whitespace-nowrap text-left text-xs font-semibold text-slate-500"
+                  title={title}
+                >
+                  {title}
+                </button>
+              )}
+            </div>
 
             {kind === 'root' ? (
               <IconButton
@@ -1102,7 +1070,7 @@ export default function AdminCategoriesManager() {
           </div>
         </td>
 
-        <td className="border-b border-slate-200 px-3 py-2 text-xs font-normal text-slate-500">
+        <td className="border-b border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500">
           {isRowEditing ? (
             <Input
               value={editingRow.description}
@@ -1111,11 +1079,13 @@ export default function AdminCategoriesManager() {
               }
               data-inline-edit-field="true"
               onBlur={handleInlineBlur}
-              className="h-8 min-w-[12ch] max-w-[42ch] px-2 text-xs font-normal text-slate-500"
+              className="h-8 min-w-[12ch] max-w-[42ch] truncate whitespace-nowrap px-2 text-xs font-semibold text-slate-500"
               style={{ width: `${Math.min(42, Math.max(12, editingRow.description.length + 2))}ch` }}
             />
           ) : (
-            description || '—'
+            <div className="truncate whitespace-nowrap" title={description || '—'}>
+              {description || '—'}
+            </div>
           )}
         </td>
 

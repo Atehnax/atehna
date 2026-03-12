@@ -41,7 +41,11 @@ import { useToast } from '@/shared/ui/toast';
 
 type CatalogData = { categories: CatalogCategory[] };
 type SelectedNode = { kind: 'root' } | { kind: 'category'; categorySlug: string } | { kind: 'subcategory'; categorySlug: string; subcategorySlug: string };
-type DeleteTarget = { kind: 'category' | 'subcategory'; categorySlug: string; subcategorySlug?: string } | null;
+type DeleteTarget =
+  | { kind: 'root' }
+  | { kind: 'category'; categorySlug: string }
+  | { kind: 'subcategory'; categorySlug: string; subcategorySlug?: string }
+  | null;
 type ImageDeleteTarget = { kind: 'category' | 'subcategory'; categorySlug: string; subcategorySlug?: string } | null;
 type ContentCard = { id: string; title: string; description: string; image?: string; kind: 'category' | 'subcategory' };
 type EditingRowDraft = {
@@ -120,7 +124,14 @@ function SaveIcon() {
   );
 }
 
-export default function AdminCategoriesManager() {
+  const treeIndent = 32;
+  const treeRowHeight = 48;
+  const treeHalfRowHeight = treeRowHeight / 2;
+  const leafConnectorWidth = 22;
+  const treeButtonDiameter = 28;
+  const treeButtonRadius = treeButtonDiameter / 2;
+  const treeConnectorBleed = 1;
+  export default function AdminCategoriesManager() {
   const [catalog, setCatalog] = useState<CatalogData>({ categories: [] });
   const [selected, setSelected] = useState<SelectedNode>({ kind: 'root' });
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ [rootId]: true });
@@ -388,29 +399,48 @@ export default function AdminCategoriesManager() {
 
   const confirmDeleteNode = () => {
     if (!deleteTarget) return;
-    const currentDeleteId =
-      deleteTarget.kind === 'category'
-        ? catId(deleteTarget.categorySlug)
-        : subId(deleteTarget.categorySlug, deleteTarget.subcategorySlug ?? '');
-    setDeletingRowId(currentDeleteId);
-    if (deleteTarget.kind === 'category') {
+  
+    if (deleteTarget.kind === 'root') {
+      setDeletingRowId(rootId);
       setDeleteTarget(null);
       setSelected({ kind: 'root' });
-      void persist({ categories: catalog.categories.filter((entry) => entry.slug !== deleteTarget.categorySlug) }, 'Kategorija izbrisana').finally(() => {
+      void persist({ categories: [] }, 'Vse kategorije izbrisane').finally(() => {
         setDeletingRowId(null);
       });
       return;
     }
-
+  
+    const currentDeleteId =
+      deleteTarget.kind === 'category'
+        ? catId(deleteTarget.categorySlug)
+        : subId(deleteTarget.categorySlug, deleteTarget.subcategorySlug ?? '');
+  
+    setDeletingRowId(currentDeleteId);
+  
+    if (deleteTarget.kind === 'category') {
+      setDeleteTarget(null);
+      setSelected({ kind: 'root' });
+      void persist(
+        { categories: catalog.categories.filter((entry) => entry.slug !== deleteTarget.categorySlug) },
+        'Kategorija izbrisana'
+      ).finally(() => {
+        setDeletingRowId(null);
+      });
+      return;
+    }
+  
     setDeleteTarget(null);
     setSelected({ kind: 'category', categorySlug: deleteTarget.categorySlug });
-    void persist({
-      categories: catalog.categories.map((entry) =>
-        entry.slug === deleteTarget.categorySlug
-          ? { ...entry, subcategories: entry.subcategories.filter((sub) => sub.slug !== deleteTarget.subcategorySlug) }
-          : entry
-      )
-    }, 'Podkategorija izbrisana').finally(() => {
+    void persist(
+      {
+        categories: catalog.categories.map((entry) =>
+          entry.slug === deleteTarget.categorySlug
+            ? { ...entry, subcategories: entry.subcategories.filter((sub) => sub.slug !== deleteTarget.subcategorySlug) }
+            : entry
+        )
+      },
+      'Podkategorija izbrisana'
+    ).finally(() => {
       setDeletingRowId(null);
     });
   };
@@ -523,7 +553,7 @@ export default function AdminCategoriesManager() {
     return ids;
   }, [catalog.categories, expanded]);
 
-  const selectableVisibleRowIds = useMemo(() => visibleRowIds.filter((id) => id !== rootId), [visibleRowIds]);
+  const selectableVisibleRowIds = useMemo(() => visibleRowIds, [visibleRowIds]);
   const selectedVisibleCount = useMemo(
     () => selectableVisibleRowIds.filter((id) => selectedRows.includes(id)).length,
     [selectableVisibleRowIds, selectedRows]
@@ -532,6 +562,7 @@ export default function AdminCategoriesManager() {
 
   useEffect(() => {
     const validIds = new Set([
+      rootId,
       ...catalog.categories.map((category) => catId(category.slug)),
       ...catalog.categories.flatMap((category) => category.subcategories.map((subcategory) => subId(category.slug, subcategory.slug)))
     ]);
@@ -588,8 +619,8 @@ export default function AdminCategoriesManager() {
     description,
     childrenCount,
     productCount,
-    isLast,
-    continuationColumns
+    ancestorContinuationColumns,
+    continueCurrentColumnBelow
   }: {
     id: string;
     title: string;
@@ -600,22 +631,26 @@ export default function AdminCategoriesManager() {
     description: string;
     childrenCount: number;
     productCount: number;
-    isLast: boolean;
-    continuationColumns: boolean[];
+    ancestorContinuationColumns: boolean[];
+    continueCurrentColumnBelow: boolean;
   }) => {
     const isSelected =
       (selected.kind === 'root' && kind === 'root') ||
       (selected.kind === 'category' && kind === 'category' && selected.categorySlug === categorySlug) ||
-      (selected.kind === 'subcategory' && kind === 'subcategory' && selected.categorySlug === categorySlug && selected.subcategorySlug === subcategorySlug);
-
+      (selected.kind === 'subcategory' &&
+        kind === 'subcategory' &&
+        selected.categorySlug === categorySlug &&
+        selected.subcategorySlug === subcategorySlug);
+  
     const hasChildren = childrenCount > 0;
+    const isExpanded = expanded[id] ?? false;
     const isRowEditing = editingRow?.id === id;
     const isChecked = selectedRows.includes(id);
-    const isRoot = kind === 'root';
-    const rowDepthTone = level === 1 ? 'bg-slate-100/90' : level === 2 ? 'bg-slate-200/85' : level >= 3 ? 'bg-slate-300/75' : 'bg-slate-50/90';
+    const rowDepthTone =
+      level === 1 ? 'bg-slate-100/90' : level === 2 ? 'bg-slate-200/85' : level >= 3 ? 'bg-slate-300/75' : 'bg-slate-50/90';
     const rowStatus = statusByRow[id] ?? 'active';
     const statusLabel = rowStatus === 'active' ? 'Aktivna' : 'Neaktiven';
-
+  
     const toggleInlineEdit = () => {
       if (isRowEditing) {
         setEditingRow(null);
@@ -633,65 +668,141 @@ export default function AdminCategoriesManager() {
       });
       setOpenStatusMenuRowId(null);
     };
-
+  
     const setStatus = (nextStatus: CategoryStatus) => {
       setEditingRow((prev) => (prev && prev.id === id ? { ...prev, status: nextStatus } : prev));
       setOpenStatusMenuRowId(null);
     };
-
+  
     const toggleChecked = () => {
       setSelectedRows((prev) => (prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]));
     };
-
-    const connectorColumns = Array.from({ length: level }, (_, index) => index);
-
+  
+    const buttonLeft = level * treeIndent;
+    const buttonCenterX = buttonLeft + treeButtonRadius;
+    const parentColumnX = level > 0 ? (level - 1) * treeIndent + treeButtonRadius : null;
+  
+    const gutterWidth =
+      level === 0
+        ? hasChildren
+          ? treeButtonDiameter
+          : 0
+        : hasChildren
+          ? buttonLeft + treeButtonDiameter
+          : (parentColumnX ?? 0) + leafConnectorWidth;
+  
     return (
       <tr key={id} className={`${isSelected ? 'bg-brand-50/70' : rowDepthTone} transition-colors hover:bg-[#eef3ff]`}>
         <td className="border-b border-slate-200 px-2 py-2 text-center align-middle">
-          {isRoot ? (
-            <span className="inline-block h-4 w-4" />
-          ) : (
-            <input
-              type="checkbox"
-              checked={isChecked}
-              onChange={toggleChecked}
-              aria-label={`Izberi ${title}`}
-            />
-          )}
+          <input
+            type="checkbox"
+            checked={isChecked}
+            onChange={toggleChecked}
+            aria-label={`Izberi ${title}`}
+          />
         </td>
-        <td className="border-b border-slate-200 px-3 py-2 align-middle">
-          <div className="relative flex min-h-8 items-center gap-2 px-1" style={{ paddingLeft: `${level * 24}px` }}>
-            {connectorColumns.map((column) => {
-              const x = 12 + (column * 24);
-              const isBranchColumn = column === level - 1;
-              const keepsGoing = continuationColumns[column] ?? false;
-
-              if (!isBranchColumn) {
-                return keepsGoing
-                  ? <span key={`col-${column}`} className="absolute top-[-28px] bottom-[-28px] w-px bg-slate-300/90" style={{ left: `${x}px` }} />
-                  : null;
-              }
-
-              return (
-                <div key={`col-${column}`}>
-                  <span className="absolute top-[-28px] h-[calc(50%+4px)] w-px bg-slate-300/90" style={{ left: `${x}px` }} />
-                  {keepsGoing ? <span className="absolute top-[calc(50%+4px)] bottom-[-28px] w-px bg-slate-300/90" style={{ left: `${x}px` }} /> : null}
-                  <span className="absolute h-3 w-3 rounded-bl-lg border-b border-l border-slate-300/90" style={{ left: `${x}px`, top: 'calc(50% + 1px)' }} />
+  
+        <td className="border-b border-slate-200 px-3 py-0 align-middle">
+          <div className="relative flex h-12 items-center gap-2 overflow-visible px-1">
+            <div
+              className="relative shrink-0 overflow-visible"
+              style={{
+                width: `${gutterWidth}px`,
+                height: `${treeRowHeight}px`
+              }}
+            >
+              {ancestorContinuationColumns.map((continuesBelow, ancestorIndex) => {
+                const ancestorX = ancestorIndex * treeIndent + treeButtonRadius;
+  
+                return (
+                  <span
+                    key={`ancestor-${ancestorIndex}`}
+                    className="absolute z-0 w-px bg-slate-300/90"
+                    style={{
+                      left: `${ancestorX}px`,
+                      top: `-${treeConnectorBleed}px`,
+                      height: continuesBelow
+                        ? `${treeRowHeight + treeConnectorBleed * 2}px`
+                        : `${treeHalfRowHeight + treeConnectorBleed}px`
+                    }}
+                  />
+                );
+              })}
+  
+              {level === 0 && hasChildren && isExpanded ? (
+                <span
+                  className="absolute z-0 w-px bg-slate-300/90"
+                  style={{
+                    left: `${buttonCenterX}px`,
+                    top: `${treeHalfRowHeight + treeButtonRadius}px`,
+                    height: `${treeHalfRowHeight - treeButtonRadius + treeConnectorBleed + 1}px`
+                  }}
+                />
+              ) : null}
+  
+              {level > 0 && parentColumnX !== null ? (
+                <>
+                  <span
+                    className="absolute z-0 w-px bg-slate-300/90"
+                    style={{
+                      left: `${parentColumnX}px`,
+                      top: `-${treeConnectorBleed}px`,
+                      height: `${treeHalfRowHeight + treeConnectorBleed}px`
+                    }}
+                  />
+  
+                  {continueCurrentColumnBelow ? (
+                    <span
+                      className="absolute z-0 w-px bg-slate-300/90"
+                      style={{
+                        left: `${parentColumnX}px`,
+                        top: `${treeHalfRowHeight}px`,
+                        height: `${treeHalfRowHeight + treeConnectorBleed + 1}px`
+                      }}
+                    />
+                  ) : null}
+  
+                  <span
+                    className="absolute z-0 h-px bg-slate-300/90"
+                    style={{
+                      left: `${parentColumnX}px`,
+                      top: `${treeHalfRowHeight}px`,
+                      width: `${hasChildren ? buttonLeft - parentColumnX : leafConnectorWidth}px`
+                    }}
+                  />
+                </>
+              ) : null}
+  
+              {hasChildren ? (
+                <div
+                  className="absolute inset-y-0 z-10 flex items-center justify-center"
+                  style={{
+                    left: `${buttonLeft}px`,
+                    width: `${treeButtonDiameter}px`
+                  }}
+                >
+                  <IconButton
+                    type="button"
+                    tone="neutral"
+                    shape="rounded"
+                    aria-label="Razširi/skrij"
+                    onClick={() => toggleExpanded(id)}
+                  >
+                    {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                  </IconButton>
                 </div>
-              );
-            })}
-            {hasChildren ? (
-              <IconButton type="button" tone="neutral" shape="rounded" aria-label="Razširi/skrij" onClick={() => toggleExpanded(id)}>
-                {(expanded[id] ?? false) ? <ChevronUpIcon /> : <ChevronDownIcon />}
-              </IconButton>
-            ) : <span className="inline-block h-5 w-5" />}
+              ) : null}
+            </div>
+  
             {isRowEditing ? (
               <Input
                 value={editingRow.title}
-                onChange={(event: ChangeEvent<HTMLInputElement>) => setEditingRow((prev) => (prev ? { ...prev, title: event.target.value } : prev))}
+                onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                  setEditingRow((prev) => (prev ? { ...prev, title: event.target.value } : prev))
+                }
                 data-inline-edit-field="true"
                 onBlur={handleInlineBlur}
-                className="h-8 min-w-[10ch] max-w-[34ch] px-2 text-xs"
+                className="h-8 min-w-[10ch] max-w-[34ch] px-2 text-xs font-semibold text-slate-500"
                 style={{ width: `${Math.min(34, Math.max(10, editingRow.title.length + 2))}ch` }}
                 autoFocus
               />
@@ -701,45 +812,78 @@ export default function AdminCategoriesManager() {
                 onClick={() => {
                   if (kind === 'root') setSelected({ kind: 'root' });
                   if (kind === 'category' && categorySlug) setSelected({ kind: 'category', categorySlug });
-                  if (kind === 'subcategory' && categorySlug && subcategorySlug) setSelected({ kind: 'subcategory', categorySlug, subcategorySlug });
+                  if (kind === 'subcategory' && categorySlug && subcategorySlug) {
+                    setSelected({ kind: 'subcategory', categorySlug, subcategorySlug });
+                  }
                 }}
-                className="text-left text-sm font-medium text-slate-800"
+                className="text-left text-xs font-semibold text-slate-500"
               >
                 {title}
               </button>
             )}
+  
             {kind === 'root' ? (
-              <IconButton type="button" tone="neutral" aria-label="Dodaj kategorijo" title="Dodaj kategorijo" onClick={() => openCreateDialog({ kind: 'category' })}>
+              <IconButton
+                type="button"
+                tone="neutral"
+                aria-label="Dodaj kategorijo"
+                title="Dodaj kategorijo"
+                onClick={() => openCreateDialog({ kind: 'category' })}
+              >
                 <PlusIcon />
               </IconButton>
             ) : kind === 'category' && categorySlug ? (
-              <IconButton type="button" tone="neutral" aria-label="Dodaj podkategorijo" title="Dodaj podkategorijo" onClick={() => openCreateDialog({ kind: 'subcategory', categorySlug })}>
+              <IconButton
+                type="button"
+                tone="neutral"
+                aria-label="Dodaj podkategorijo"
+                title="Dodaj podkategorijo"
+                onClick={() => openCreateDialog({ kind: 'subcategory', categorySlug })}
+              >
                 <PlusIcon />
               </IconButton>
             ) : kind === 'subcategory' && categorySlug && subcategorySlug ? (
-              <IconButton type="button" tone="neutral" aria-label="Dodaj podkategorijo" title="Dodaj podkategorijo" onClick={() => openCreateDialog({ kind: 'subcategory', categorySlug, afterSlug: subcategorySlug })}>
+              <IconButton
+                type="button"
+                tone="neutral"
+                aria-label="Dodaj podkategorijo"
+                title="Dodaj podkategorijo"
+                onClick={() => openCreateDialog({ kind: 'subcategory', categorySlug, afterSlug: subcategorySlug })}
+              >
                 <PlusIcon />
               </IconButton>
             ) : null}
           </div>
         </td>
-        <td className="border-b border-slate-200 px-3 py-2 text-sm text-slate-600">
+  
+        <td className="border-b border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500">
           {isRowEditing ? (
             <Input
               value={editingRow.description}
-              onChange={(event: ChangeEvent<HTMLInputElement>) => setEditingRow((prev) => (prev ? { ...prev, description: event.target.value } : prev))}
+              onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                setEditingRow((prev) => (prev ? { ...prev, description: event.target.value } : prev))
+              }
               data-inline-edit-field="true"
               onBlur={handleInlineBlur}
-              className="h-8 min-w-[12ch] max-w-[42ch] px-2 text-xs"
+              className="h-8 min-w-[12ch] max-w-[42ch] px-2 text-xs font-semibold text-slate-500"
               style={{ width: `${Math.min(42, Math.max(12, editingRow.description.length + 2))}ch` }}
             />
-          ) : (description || '—')}
+          ) : (
+            description || '—'
+          )}
         </td>
+  
         <td className="border-b border-slate-200 px-3 py-2 text-center text-sm text-slate-600">{childrenCount}</td>
         <td className="border-b border-slate-200 px-3 py-2 text-center text-sm text-slate-600">{productCount}</td>
+  
         <td className="border-b border-slate-200 px-3 py-2 text-center text-sm">
-          {isRowEditing && !isRoot ? (
-            <div className="relative inline-flex" ref={(node) => { statusMenuRefs.current[id] = node; }}>
+          {isRowEditing && kind !== 'root' ? (
+            <div
+              className="relative inline-flex"
+              ref={(node) => {
+                statusMenuRefs.current[id] = node;
+              }}
+            >
               <button
                 type="button"
                 onClick={() => setOpenStatusMenuRowId((prev) => (prev === id ? null : id))}
@@ -749,89 +893,106 @@ export default function AdminCategoriesManager() {
               >
                 <Chip
                   variant={editingRow?.status === 'active' ? 'success' : 'neutral'}
-                  className={`min-w-0 px-2.5 text-xs ${editingRow?.status === 'active' ? buttonTokenClasses.activeSuccess : buttonTokenClasses.inactiveNeutral}`}
+                  className={`min-w-0 px-2.5 text-xs ${
+                    editingRow?.status === 'active' ? buttonTokenClasses.activeSuccess : buttonTokenClasses.inactiveNeutral
+                  }`}
                 >
                   {editingRow?.status === 'active' ? 'Aktivna' : 'Neaktiven'}
                 </Chip>
               </button>
-
+  
               {openStatusMenuRowId === id ? (
                 <MenuPanel className="absolute left-1/2 top-8 z-20 w-36 -translate-x-1/2">
-                  <MenuItem onClick={() => setStatus('active')} disabled={editingRow?.status === 'active'}>Aktivna</MenuItem>
-                  <MenuItem onClick={() => setStatus('inactive')} disabled={editingRow?.status === 'inactive'}>Neaktiven</MenuItem>
+                  <MenuItem onClick={() => setStatus('active')} disabled={editingRow?.status === 'active'}>
+                    Aktivna
+                  </MenuItem>
+                  <MenuItem onClick={() => setStatus('inactive')} disabled={editingRow?.status === 'inactive'}>
+                    Neaktiven
+                  </MenuItem>
                 </MenuPanel>
               ) : null}
             </div>
           ) : (
             <Chip
               variant={rowStatus === 'active' ? 'success' : 'neutral'}
-              className={`min-w-0 px-2.5 text-xs ${rowStatus === 'active' ? buttonTokenClasses.activeSuccess : buttonTokenClasses.inactiveNeutral}`}
+              className={`min-w-0 px-2.5 text-xs ${
+                rowStatus === 'active' ? buttonTokenClasses.activeSuccess : buttonTokenClasses.inactiveNeutral
+              }`}
             >
               {statusLabel}
             </Chip>
           )}
         </td>
+  
         <td className="border-b border-slate-200 px-3 py-2 text-center">
-          {kind === 'subcategory' && !categorySlug ? null : (
-            <RowActions>
-              <IconButton type="button" tone="neutral" onClick={toggleInlineEdit} aria-label="Uredi" title="Uredi">
-                <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                  <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
-                  <path d="M11.5 4.5l3 3" />
-                </svg>
-              </IconButton>
-              <IconButton
-                type="button"
-                tone="neutral"
-                aria-label="Shrani"
-                title="Shrani"
-                onClick={() => void saveInlineEdit()}
-                disabled={!isRowEditing}
-              >
-                <SaveIcon />
-              </IconButton>
-              <IconButton
-                type="button"
-                tone="neutral"
-                aria-label="Dodaj podkategorijo"
-                title="Dodaj podkategorijo"
-                onClick={() => {
-                  if (kind === 'root') openCreateDialog({ kind: 'category' });
-                  if (kind === 'category' && categorySlug) openCreateDialog({ kind: 'subcategory', categorySlug });
-                  if (kind === 'subcategory' && categorySlug && subcategorySlug) openCreateDialog({ kind: 'subcategory', categorySlug, afterSlug: subcategorySlug });
-                }}
-              >
-                <PlusIcon />
-              </IconButton>
-
-              {kind !== 'root' ? <Button
-                type="button"
-                variant="close-x"
-                aria-label="Izbriši"
-                title="Izbriši"
-                disabled={deletingRowId === id}
-                onClick={() => {
-                  if (kind === 'category' && categorySlug) {
-                    setDeleteTarget({ kind: 'category', categorySlug });
-                    return;
-                  }
-                  if (kind === 'subcategory' && categorySlug && subcategorySlug) {
-                    setDeleteTarget({ kind: 'subcategory', categorySlug, subcategorySlug });
-                  }
-                }}
-              >
-                {deletingRowId === id ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : '×'}
-              </Button> : null}
-            </RowActions>
-          )}
+          <RowActions>
+            <IconButton type="button" tone="neutral" onClick={toggleInlineEdit} aria-label="Uredi" title="Uredi">
+              <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
+                <path d="M11.5 4.5l3 3" />
+              </svg>
+            </IconButton>
+  
+            <IconButton
+              type="button"
+              tone="neutral"
+              aria-label="Shrani"
+              title="Shrani"
+              onClick={() => void saveInlineEdit()}
+              disabled={!isRowEditing}
+            >
+              <SaveIcon />
+            </IconButton>
+  
+            <IconButton
+              type="button"
+              tone="neutral"
+              aria-label="Dodaj podkategorijo"
+              title="Dodaj podkategorijo"
+              onClick={() => {
+                if (kind === 'root') openCreateDialog({ kind: 'category' });
+                if (kind === 'category' && categorySlug) openCreateDialog({ kind: 'subcategory', categorySlug });
+                if (kind === 'subcategory' && categorySlug && subcategorySlug) {
+                  openCreateDialog({ kind: 'subcategory', categorySlug, afterSlug: subcategorySlug });
+                }
+              }}
+            >
+              <PlusIcon />
+            </IconButton>
+  
+            <Button
+              type="button"
+              variant="close-x"
+              aria-label="Izbriši"
+              title="Izbriši"
+              disabled={deletingRowId === id}
+              onClick={() => {
+                if (kind === 'root') {
+                  setDeleteTarget({ kind: 'root' });
+                  return;
+                }
+                if (kind === 'category' && categorySlug) {
+                  setDeleteTarget({ kind: 'category', categorySlug });
+                  return;
+                }
+                if (kind === 'subcategory' && categorySlug && subcategorySlug) {
+                  setDeleteTarget({ kind: 'subcategory', categorySlug, subcategorySlug });
+                }
+              }}
+            >
+              {deletingRowId === id ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : '×'}
+            </Button>
+          </RowActions>
         </td>
       </tr>
     );
   };
 
   const treeRows: ReactNode[] = (() => {
-    const rows: ReactNode[] = [];
-    rows.push(renderTreeRow({
+  const rows: ReactNode[] = [];
+
+  rows.push(
+    renderTreeRow({
       id: rootId,
       title: rootMeta.title,
       level: 0,
@@ -839,14 +1000,19 @@ export default function AdminCategoriesManager() {
       description: rootMeta.description,
       childrenCount: catalog.categories.length,
       productCount: 0,
-      isLast: true,
-      continuationColumns: []
-    }));
+      ancestorContinuationColumns: [],
+      continueCurrentColumnBelow: false
+    })
+  );
 
-    if (expanded[rootId] ?? true) {
-      catalog.categories.forEach((category, categoryIndex) => {
-        const categoryNodeId = catId(category.slug);
-        rows.push(renderTreeRow({
+  if (expanded[rootId] ?? true) {
+    catalog.categories.forEach((category, categoryIndex) => {
+      const categoryNodeId = catId(category.slug);
+      const hasVisibleChildren = (expanded[categoryNodeId] ?? false) && category.subcategories.length > 0;
+      const hasNextCategory = categoryIndex < catalog.categories.length - 1;
+
+      rows.push(
+        renderTreeRow({
           id: categoryNodeId,
           title: category.title,
           level: 1,
@@ -855,13 +1021,17 @@ export default function AdminCategoriesManager() {
           description: category.summary,
           childrenCount: category.subcategories.length,
           productCount: (category.items ?? []).length,
-          isLast: categoryIndex === catalog.categories.length - 1 && !(expanded[categoryNodeId] && category.subcategories.length > 0),
-          continuationColumns: [expanded[categoryNodeId] && category.subcategories.length > 0]
-        }));
+          ancestorContinuationColumns: [],
+          continueCurrentColumnBelow: hasVisibleChildren || hasNextCategory
+        })
+      );
 
-        if (expanded[categoryNodeId]) {
-          category.subcategories.forEach((subcategory, index) => {
-            rows.push(renderTreeRow({
+      if (expanded[categoryNodeId]) {
+        category.subcategories.forEach((subcategory, subcategoryIndex) => {
+          const hasNextSubcategory = subcategoryIndex < category.subcategories.length - 1;
+
+          rows.push(
+            renderTreeRow({
               id: subId(category.slug, subcategory.slug),
               title: subcategory.title,
               level: 2,
@@ -871,16 +1041,17 @@ export default function AdminCategoriesManager() {
               description: subcategory.description,
               childrenCount: 0,
               productCount: subcategory.items.length,
-              isLast: index === category.subcategories.length - 1,
-              continuationColumns: [index !== category.subcategories.length - 1, index !== category.subcategories.length - 1]
-            }));
-          });
-        }
-      });
-    }
+              ancestorContinuationColumns: [hasNextSubcategory || hasNextCategory],
+              continueCurrentColumnBelow: hasNextSubcategory
+            })
+          );
+        });
+      }
+    });
+  }
 
-    return rows;
-  })();
+  return rows;
+})();
 
   if (loading) return <p className="text-sm text-slate-500">Nalagam kategorije ...</p>;
 
@@ -907,8 +1078,12 @@ export default function AdminCategoriesManager() {
 
       <ConfirmDialog
         open={deleteTarget !== null}
-        title="Izbris kategorije"
-        description="Ali ste prepričani, da želite odstraniti izbrano kategorijo?"
+        title={deleteTarget?.kind === 'root' ? 'Izbris vseh kategorij' : 'Izbris kategorije'}
+        description={
+          deleteTarget?.kind === 'root'
+            ? 'Ali ste prepričani, da želite izbrisati vse kategorije?'
+            : 'Ali ste prepričani, da želite odstraniti izbrano kategorijo?'
+        }
         confirmLabel="Izbriši"
         cancelLabel="Prekliči"
         isDanger

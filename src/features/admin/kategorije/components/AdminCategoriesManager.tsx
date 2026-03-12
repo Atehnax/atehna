@@ -1014,12 +1014,15 @@ export default function AdminCategoriesManager() {
         className={`${isSelected ? 'bg-brand-50/70' : rowDepthTone} transition-[background-color,opacity,transform] duration-150 hover:bg-[#eef3ff] ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''}`}
       >
         <td className="border-b border-slate-200 px-2 py-2 text-center align-middle">
-          <div className="flex justify-center" style={{ paddingLeft: `${level > 0 ? Math.max(0, (level - 1) * treeIndent + 8) : 0}px` }}>
+          <div className="flex justify-center overflow-visible">
             <input
               type="checkbox"
               checked={isChecked}
               onChange={toggleChecked}
               aria-label={`Izberi ${title}`}
+              style={{
+                transform: level > 0 ? `translateX(${Math.max(0, 56 + level * treeIndent)}px)` : undefined
+              }}
             />
           </div>
         </td>
@@ -1459,7 +1462,7 @@ export default function AdminCategoriesManager() {
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Poišči po kategoriji ali opisu ..."
+                placeholder="Išči po kategoriji ali opisu ..."
                 className={`${ADMIN_CONTROL_HEIGHT} min-w-[260px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} text-xs text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
               />
             </>
@@ -1488,15 +1491,15 @@ export default function AdminCategoriesManager() {
             </>
           }
         >
-          <table className="min-w-full table-fixed border-separate border-spacing-0 overflow-hidden rounded-xl border-x border-b border-slate-200">
+          <table className="min-w-full table-fixed border-separate border-spacing-0 border-x border-b border-slate-200">
             <colgroup>
-              <col className="w-11" />
-              <col className="w-[38%]" />
-              <col className="w-[26%]" />
+              <col className="w-14" />
+              <col className="w-[420px]" />
+              <col className="w-[320px]" />
+              <col className="w-32" />
               <col className="w-28" />
-              <col className="w-24" />
-              <col className="w-28" />
-              <col className="w-36" />
+              <col className="w-32" />
+              <col className="w-40" />
             </colgroup>
 
             <thead className="bg-slate-50/90">

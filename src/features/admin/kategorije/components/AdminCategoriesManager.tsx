@@ -158,6 +158,8 @@ function SaveIcon() {
   const statusMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const selectAllRef = useRef<HTMLInputElement>(null);
   const isInlineSavingRef = useRef(false);
+  const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
+  const [rowHeights, setRowHeights] = useState<Record<string, number>>({});
 
   const load = async () => {
     setLoading(true);
@@ -590,6 +592,35 @@ function SaveIcon() {
   const allRowsSelected = selectableVisibleRowIds.length > 0 && selectedVisibleCount === selectableVisibleRowIds.length;
 
   useEffect(() => {
+    if (typeof ResizeObserver === 'undefined') return;
+
+    const observers: ResizeObserver[] = [];
+
+    visibleRowIds.forEach((id) => {
+      const row = rowRefs.current[id];
+      if (!row) return;
+
+      const observer = new ResizeObserver((entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+
+        const nextHeight = Math.round(entry.contentRect.height);
+        setRowHeights((prev) => {
+          if (prev[id] === nextHeight) return prev;
+          return { ...prev, [id]: nextHeight };
+        });
+      });
+
+      observer.observe(row);
+      observers.push(observer);
+    });
+
+    return () => {
+      observers.forEach((observer) => observer.disconnect());
+    };
+  }, [visibleRowIds, query, editingRow?.id]);
+
+  useEffect(() => {
     const validIds = new Set([
       rootId,
       ...catalog.categories.map((category) => catId(category.slug)),
@@ -678,7 +709,9 @@ function SaveIcon() {
     const rowDepthTone =
       level === 1 ? 'bg-slate-100/90' : level === 2 ? 'bg-slate-200/85' : level >= 3 ? 'bg-slate-300/75' : 'bg-slate-50/90';
     const rowStatus = statusByRow[id] ?? 'active';
-    const statusLabel = rowStatus === 'active' ? 'Aktivna' : 'Neaktiven';
+    const statusLabel = rowStatus === 'active' ? 'Aktivna' : 'Neaktivna';
+    const rowHeight = rowHeights[id] ?? treeRowHeight;
+    const halfRowHeight = rowHeight / 2;
   
     const toggleInlineEdit = () => {
       if (isRowEditing) {
@@ -721,7 +754,13 @@ function SaveIcon() {
           : (parentColumnX ?? 0) + leafConnectorWidth;
   
     return (
-      <tr key={id} className={`${isSelected ? 'bg-brand-50/70' : rowDepthTone} transition-colors hover:bg-[#eef3ff]`}>
+      <tr
+        key={id}
+        ref={(node) => {
+          rowRefs.current[id] = node;
+        }}
+        className={`${isSelected ? 'bg-brand-50/70' : rowDepthTone} transition-colors hover:bg-[#eef3ff]`}
+      >
         <td className="border-b border-slate-200 px-2 py-2 text-center align-middle">
           <div className="flex justify-center" style={{ paddingLeft: `${level > 0 ? level * treeIndent : 0}px` }}>
             <input
@@ -734,12 +773,18 @@ function SaveIcon() {
         </td>
   
         <td className="border-b border-slate-200 px-3 py-0 align-middle">
-          <div className="relative flex h-12 items-center gap-2 overflow-visible px-1">
+          <div
+            className="relative flex items-center gap-2 overflow-visible px-1"
+            style={{
+              minHeight: `${treeRowHeight}px`,
+              height: `${rowHeight}px`
+            }}
+          >
             <div
               className="relative shrink-0 overflow-visible"
               style={{
                 width: `${gutterWidth}px`,
-                height: `${treeRowHeight}px`
+                height: `${rowHeight}px`
               }}
             >
               {ancestorContinuationColumns.map((continuesBelow, ancestorIndex) => {
@@ -765,8 +810,8 @@ function SaveIcon() {
                   className="absolute z-0 w-px bg-slate-300/90"
                   style={{
                     left: `${buttonCenterX}px`,
-                    top: `${treeHalfRowHeight + treeButtonRadius}px`,
-                    height: `${treeHalfRowHeight - treeButtonRadius + treeConnectorBleed + 1}px`
+                    top: `${halfRowHeight + treeButtonRadius}px`,
+                    height: `${halfRowHeight - treeButtonRadius + treeConnectorBleed + 1}px`
                   }}
                 />
               ) : null}
@@ -778,7 +823,7 @@ function SaveIcon() {
                     style={{
                       left: `${parentColumnX}px`,
                       top: `-${treeConnectorBleed}px`,
-                      height: `${treeHalfRowHeight + treeConnectorBleed}px`
+                      height: `${halfRowHeight + treeConnectorBleed}px`
                     }}
                   />
   
@@ -787,8 +832,8 @@ function SaveIcon() {
                       className="absolute z-0 w-px bg-slate-300/90"
                       style={{
                         left: `${parentColumnX}px`,
-                        top: `${treeHalfRowHeight}px`,
-                        height: `${treeHalfRowHeight + treeConnectorBleed + 1}px`
+                        top: `${halfRowHeight}px`,
+                        height: `${halfRowHeight + treeConnectorBleed + 1}px`
                       }}
                     />
                   ) : null}
@@ -797,7 +842,7 @@ function SaveIcon() {
                     className="absolute z-0 h-px bg-slate-300/90"
                     style={{
                       left: `${parentColumnX}px`,
-                      top: `${treeHalfRowHeight}px`,
+                      top: `${halfRowHeight}px`,
                       width: `${hasChildren ? buttonLeft - parentColumnX : leafConnectorWidth}px`
                     }}
                   />

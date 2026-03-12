@@ -588,7 +588,8 @@ export default function AdminCategoriesManager() {
     description,
     childrenCount,
     productCount,
-    isLast
+    isLast,
+    continuationColumns
   }: {
     id: string;
     title: string;
@@ -600,6 +601,7 @@ export default function AdminCategoriesManager() {
     childrenCount: number;
     productCount: number;
     isLast: boolean;
+    continuationColumns: boolean[];
   }) => {
     const isSelected =
       (selected.kind === 'root' && kind === 'root') ||
@@ -661,14 +663,20 @@ export default function AdminCategoriesManager() {
           <div className="relative flex min-h-8 items-center gap-2 px-1" style={{ paddingLeft: `${level * 24}px` }}>
             {connectorColumns.map((column) => {
               const x = 12 + (column * 24);
-              const isCurrentColumn = column === level - 1;
-              if (!isCurrentColumn) {
-                return <span key={`col-${column}`} className="absolute top-[-24px] bottom-[-24px] w-px bg-slate-300/90" style={{ left: `${x}px` }} />;
+              const isBranchColumn = column === level - 1;
+              const keepsGoing = continuationColumns[column] ?? false;
+
+              if (!isBranchColumn) {
+                return keepsGoing
+                  ? <span key={`col-${column}`} className="absolute top-[-28px] bottom-[-28px] w-px bg-slate-300/90" style={{ left: `${x}px` }} />
+                  : null;
               }
+
               return (
                 <div key={`col-${column}`}>
-                  <span className="absolute top-[-24px] h-[calc(50%+4px)] w-3 rounded-bl-lg border-b border-l border-slate-300/90" style={{ left: `${x}px` }} />
-                  {!isLast ? <span className="absolute top-[calc(50%+4px)] bottom-[-24px] w-px bg-slate-300/90" style={{ left: `${x}px` }} /> : null}
+                  <span className="absolute top-[-28px] h-[calc(50%+4px)] w-px bg-slate-300/90" style={{ left: `${x}px` }} />
+                  {keepsGoing ? <span className="absolute top-[calc(50%+4px)] bottom-[-28px] w-px bg-slate-300/90" style={{ left: `${x}px` }} /> : null}
+                  <span className="absolute h-3 w-3 rounded-bl-lg border-b border-l border-slate-300/90" style={{ left: `${x}px`, top: 'calc(50% + 1px)' }} />
                 </div>
               );
             })}
@@ -831,7 +839,8 @@ export default function AdminCategoriesManager() {
       description: rootMeta.description,
       childrenCount: catalog.categories.length,
       productCount: 0,
-      isLast: true
+      isLast: true,
+      continuationColumns: []
     }));
 
     if (expanded[rootId] ?? true) {
@@ -846,7 +855,8 @@ export default function AdminCategoriesManager() {
           description: category.summary,
           childrenCount: category.subcategories.length,
           productCount: (category.items ?? []).length,
-          isLast: categoryIndex === catalog.categories.length - 1 && !(expanded[categoryNodeId] && category.subcategories.length > 0)
+          isLast: categoryIndex === catalog.categories.length - 1 && !(expanded[categoryNodeId] && category.subcategories.length > 0),
+          continuationColumns: [categoryIndex !== catalog.categories.length - 1]
         }));
 
         if (expanded[categoryNodeId]) {
@@ -861,7 +871,8 @@ export default function AdminCategoriesManager() {
               description: subcategory.description,
               childrenCount: 0,
               productCount: subcategory.items.length,
-              isLast: index === category.subcategories.length - 1
+              isLast: index === category.subcategories.length - 1,
+              continuationColumns: [categoryIndex !== catalog.categories.length - 1, index !== category.subcategories.length - 1]
             }));
           });
         }

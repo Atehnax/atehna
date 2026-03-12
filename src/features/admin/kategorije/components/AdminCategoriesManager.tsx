@@ -636,13 +636,17 @@ function SaveIcon() {
     const isSelected =
       (selected.kind === 'root' && kind === 'root') ||
       (selected.kind === 'category' && kind === 'category' && selected.categorySlug === categorySlug) ||
-      (selected.kind === 'subcategory' && kind === 'subcategory' && selected.categorySlug === categorySlug && selected.subcategorySlug === subcategorySlug);
+      (selected.kind === 'subcategory' &&
+        kind === 'subcategory' &&
+        selected.categorySlug === categorySlug &&
+        selected.subcategorySlug === subcategorySlug);
   
     const hasChildren = childrenCount > 0;
     const isExpanded = expanded[id] ?? false;
     const isRowEditing = editingRow?.id === id;
     const isChecked = selectedRows.includes(id);
-    const rowDepthTone = level === 1 ? 'bg-slate-100/90' : level === 2 ? 'bg-slate-200/85' : level >= 3 ? 'bg-slate-300/75' : 'bg-slate-50/90';
+    const rowDepthTone =
+      level === 1 ? 'bg-slate-100/90' : level === 2 ? 'bg-slate-200/85' : level >= 3 ? 'bg-slate-300/75' : 'bg-slate-50/90';
     const rowStatus = statusByRow[id] ?? 'active';
     const statusLabel = rowStatus === 'active' ? 'Aktivna' : 'Neaktiven';
   
@@ -710,26 +714,15 @@ function SaveIcon() {
                 const ancestorX = ancestorIndex * treeIndent + treeButtonRadius;
   
                 return (
-                  <div key={`ancestor-${ancestorIndex}`}>
-                    <span
-                      className="absolute w-px bg-slate-300/90"
-                      style={{
-                        left: `${ancestorX}px`,
-                        top: `-${treeHalfRowHeight}px`,
-                        height: `calc(50% + ${treeHalfRowHeight}px)`
-                      }}
-                    />
-                    {continuesBelow ? (
-                      <span
-                        className="absolute w-px bg-slate-300/90"
-                        style={{
-                          left: `${ancestorX}px`,
-                          top: '50%',
-                          bottom: `-${treeHalfRowHeight}px`
-                        }}
-                      />
-                    ) : null}
-                  </div>
+                  <span
+                    key={`ancestor-${ancestorIndex}`}
+                    className="absolute w-px bg-slate-300/90"
+                    style={{
+                      left: `${ancestorX}px`,
+                      top: 0,
+                      height: continuesBelow ? `${treeRowHeight + 1}px` : `${treeHalfRowHeight}px`
+                    }}
+                  />
                 );
               })}
   
@@ -737,9 +730,9 @@ function SaveIcon() {
                 <span
                   className="absolute w-px bg-slate-300/90"
                   style={{
-                    left: `${treeButtonRadius}px`,
-                    top: `calc(50% + ${treeButtonRadius}px)`,
-                    bottom: `-${treeHalfRowHeight}px`
+                    left: `${buttonCenterX}px`,
+                    top: `${treeHalfRowHeight + treeButtonRadius}px`,
+                    height: `${treeHalfRowHeight - treeButtonRadius + 1}px`
                   }}
                 />
               ) : null}
@@ -750,8 +743,8 @@ function SaveIcon() {
                     className="absolute w-px bg-slate-300/90"
                     style={{
                       left: `${parentColumnX}px`,
-                      top: `-${treeHalfRowHeight}px`,
-                      bottom: hasChildren ? `calc(50% + ${treeButtonRadius}px)` : '50%'
+                      top: 0,
+                      height: `${treeHalfRowHeight}px`
                     }}
                   />
   
@@ -760,8 +753,8 @@ function SaveIcon() {
                       className="absolute w-px bg-slate-300/90"
                       style={{
                         left: `${parentColumnX}px`,
-                        top: hasChildren ? `calc(50% + ${treeButtonRadius}px)` : '50%',
-                        bottom: `-${treeHalfRowHeight}px`
+                        top: `${treeHalfRowHeight}px`,
+                        height: `${treeHalfRowHeight + 1}px`
                       }}
                     />
                   ) : null}
@@ -770,7 +763,7 @@ function SaveIcon() {
                     className="absolute h-px bg-slate-300/90"
                     style={{
                       left: `${parentColumnX}px`,
-                      top: '50%',
+                      top: `${treeHalfRowHeight}px`,
                       width: `${hasChildren ? buttonLeft - parentColumnX : leafConnectorWidth}px`
                     }}
                   />
@@ -779,7 +772,7 @@ function SaveIcon() {
   
               {hasChildren ? (
                 <div
-                  className="absolute top-0 flex h-full items-center justify-center"
+                  className="absolute inset-y-0 z-10 flex items-center justify-center"
                   style={{
                     left: `${buttonLeft}px`,
                     width: `${treeButtonDiameter}px`
@@ -801,7 +794,9 @@ function SaveIcon() {
             {isRowEditing ? (
               <Input
                 value={editingRow.title}
-                onChange={(event: ChangeEvent<HTMLInputElement>) => setEditingRow((prev) => (prev ? { ...prev, title: event.target.value } : prev))}
+                onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                  setEditingRow((prev) => (prev ? { ...prev, title: event.target.value } : prev))
+                }
                 data-inline-edit-field="true"
                 onBlur={handleInlineBlur}
                 className="h-8 min-w-[10ch] max-w-[34ch] px-2 text-xs font-semibold text-slate-500"
@@ -814,7 +809,9 @@ function SaveIcon() {
                 onClick={() => {
                   if (kind === 'root') setSelected({ kind: 'root' });
                   if (kind === 'category' && categorySlug) setSelected({ kind: 'category', categorySlug });
-                  if (kind === 'subcategory' && categorySlug && subcategorySlug) setSelected({ kind: 'subcategory', categorySlug, subcategorySlug });
+                  if (kind === 'subcategory' && categorySlug && subcategorySlug) {
+                    setSelected({ kind: 'subcategory', categorySlug, subcategorySlug });
+                  }
                 }}
                 className="text-left text-xs font-semibold text-slate-500"
               >
@@ -823,15 +820,33 @@ function SaveIcon() {
             )}
   
             {kind === 'root' ? (
-              <IconButton type="button" tone="neutral" aria-label="Dodaj kategorijo" title="Dodaj kategorijo" onClick={() => openCreateDialog({ kind: 'category' })}>
+              <IconButton
+                type="button"
+                tone="neutral"
+                aria-label="Dodaj kategorijo"
+                title="Dodaj kategorijo"
+                onClick={() => openCreateDialog({ kind: 'category' })}
+              >
                 <PlusIcon />
               </IconButton>
             ) : kind === 'category' && categorySlug ? (
-              <IconButton type="button" tone="neutral" aria-label="Dodaj podkategorijo" title="Dodaj podkategorijo" onClick={() => openCreateDialog({ kind: 'subcategory', categorySlug })}>
+              <IconButton
+                type="button"
+                tone="neutral"
+                aria-label="Dodaj podkategorijo"
+                title="Dodaj podkategorijo"
+                onClick={() => openCreateDialog({ kind: 'subcategory', categorySlug })}
+              >
                 <PlusIcon />
               </IconButton>
             ) : kind === 'subcategory' && categorySlug && subcategorySlug ? (
-              <IconButton type="button" tone="neutral" aria-label="Dodaj podkategorijo" title="Dodaj podkategorijo" onClick={() => openCreateDialog({ kind: 'subcategory', categorySlug, afterSlug: subcategorySlug })}>
+              <IconButton
+                type="button"
+                tone="neutral"
+                aria-label="Dodaj podkategorijo"
+                title="Dodaj podkategorijo"
+                onClick={() => openCreateDialog({ kind: 'subcategory', categorySlug, afterSlug: subcategorySlug })}
+              >
                 <PlusIcon />
               </IconButton>
             ) : null}
@@ -842,13 +857,17 @@ function SaveIcon() {
           {isRowEditing ? (
             <Input
               value={editingRow.description}
-              onChange={(event: ChangeEvent<HTMLInputElement>) => setEditingRow((prev) => (prev ? { ...prev, description: event.target.value } : prev))}
+              onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                setEditingRow((prev) => (prev ? { ...prev, description: event.target.value } : prev))
+              }
               data-inline-edit-field="true"
               onBlur={handleInlineBlur}
               className="h-8 min-w-[12ch] max-w-[42ch] px-2 text-xs"
               style={{ width: `${Math.min(42, Math.max(12, editingRow.description.length + 2))}ch` }}
             />
-          ) : (description || '—')}
+          ) : (
+            description || '—'
+          )}
         </td>
   
         <td className="border-b border-slate-200 px-3 py-2 text-center text-sm text-slate-600">{childrenCount}</td>
@@ -856,7 +875,12 @@ function SaveIcon() {
   
         <td className="border-b border-slate-200 px-3 py-2 text-center text-sm">
           {isRowEditing && kind !== 'root' ? (
-            <div className="relative inline-flex" ref={(node) => { statusMenuRefs.current[id] = node; }}>
+            <div
+              className="relative inline-flex"
+              ref={(node) => {
+                statusMenuRefs.current[id] = node;
+              }}
+            >
               <button
                 type="button"
                 onClick={() => setOpenStatusMenuRowId((prev) => (prev === id ? null : id))}
@@ -866,7 +890,9 @@ function SaveIcon() {
               >
                 <Chip
                   variant={editingRow?.status === 'active' ? 'success' : 'neutral'}
-                  className={`min-w-0 px-2.5 text-xs ${editingRow?.status === 'active' ? buttonTokenClasses.activeSuccess : buttonTokenClasses.inactiveNeutral}`}
+                  className={`min-w-0 px-2.5 text-xs ${
+                    editingRow?.status === 'active' ? buttonTokenClasses.activeSuccess : buttonTokenClasses.inactiveNeutral
+                  }`}
                 >
                   {editingRow?.status === 'active' ? 'Aktivna' : 'Neaktiven'}
                 </Chip>
@@ -874,15 +900,21 @@ function SaveIcon() {
   
               {openStatusMenuRowId === id ? (
                 <MenuPanel className="absolute left-1/2 top-8 z-20 w-36 -translate-x-1/2">
-                  <MenuItem onClick={() => setStatus('active')} disabled={editingRow?.status === 'active'}>Aktivna</MenuItem>
-                  <MenuItem onClick={() => setStatus('inactive')} disabled={editingRow?.status === 'inactive'}>Neaktiven</MenuItem>
+                  <MenuItem onClick={() => setStatus('active')} disabled={editingRow?.status === 'active'}>
+                    Aktivna
+                  </MenuItem>
+                  <MenuItem onClick={() => setStatus('inactive')} disabled={editingRow?.status === 'inactive'}>
+                    Neaktiven
+                  </MenuItem>
                 </MenuPanel>
               ) : null}
             </div>
           ) : (
             <Chip
               variant={rowStatus === 'active' ? 'success' : 'neutral'}
-              className={`min-w-0 px-2.5 text-xs ${rowStatus === 'active' ? buttonTokenClasses.activeSuccess : buttonTokenClasses.inactiveNeutral}`}
+              className={`min-w-0 px-2.5 text-xs ${
+                rowStatus === 'active' ? buttonTokenClasses.activeSuccess : buttonTokenClasses.inactiveNeutral
+              }`}
             >
               {statusLabel}
             </Chip>
@@ -917,7 +949,9 @@ function SaveIcon() {
               onClick={() => {
                 if (kind === 'root') openCreateDialog({ kind: 'category' });
                 if (kind === 'category' && categorySlug) openCreateDialog({ kind: 'subcategory', categorySlug });
-                if (kind === 'subcategory' && categorySlug && subcategorySlug) openCreateDialog({ kind: 'subcategory', categorySlug, afterSlug: subcategorySlug });
+                if (kind === 'subcategory' && categorySlug && subcategorySlug) {
+                  openCreateDialog({ kind: 'subcategory', categorySlug, afterSlug: subcategorySlug });
+                }
               }}
             >
               <PlusIcon />

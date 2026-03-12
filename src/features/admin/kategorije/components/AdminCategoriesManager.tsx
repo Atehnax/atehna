@@ -124,11 +124,11 @@ function SaveIcon() {
   );
 }
 
-  const treeIndent = 24;
+  const treeIndent = 32;
   const treeRowHeight = 48;
   const treeHalfRowHeight = treeRowHeight / 2;
-  const leafConnectorWidth = 28;
-  const treeButtonDiameter = 32;
+  const leafConnectorWidth = 22;
+  const treeButtonDiameter = 28;
   const treeButtonRadius = treeButtonDiameter / 2;
   export default function AdminCategoriesManager() {
   const [catalog, setCatalog] = useState<CatalogData>({ categories: [] });
@@ -673,17 +673,18 @@ function SaveIcon() {
       setSelectedRows((prev) => (prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]));
     };
   
-    const currentColumnX = level > 0 ? (level - 1) * treeIndent + treeIndent / 2 : treeIndent / 2;
-    const expanderX = level * treeIndent;
+    const buttonLeft = level * treeIndent;
+    const buttonCenterX = buttonLeft + treeButtonRadius;
+    const parentColumnX = level > 0 ? (level - 1) * treeIndent + treeButtonRadius : null;
   
     const gutterWidth =
       level === 0
         ? hasChildren
-          ? treeIndent
+          ? treeButtonDiameter
           : 0
         : hasChildren
-          ? level * treeIndent + treeIndent
-          : currentColumnX + leafConnectorWidth;
+          ? buttonLeft + treeButtonDiameter
+          : (parentColumnX ?? 0) + leafConnectorWidth;
   
     return (
       <tr key={id} className={`${isSelected ? 'bg-brand-50/70' : rowDepthTone} transition-colors hover:bg-[#eef3ff]`}>
@@ -706,7 +707,7 @@ function SaveIcon() {
               }}
             >
               {ancestorContinuationColumns.map((continuesBelow, ancestorIndex) => {
-                const ancestorX = ancestorIndex * treeIndent + treeIndent / 2;
+                const ancestorX = ancestorIndex * treeIndent + treeButtonRadius;
   
                 return (
                   <div key={`ancestor-${ancestorIndex}`}>
@@ -736,19 +737,19 @@ function SaveIcon() {
                 <span
                   className="absolute w-px bg-slate-300/90"
                   style={{
-                    left: `${treeIndent / 2}px`,
+                    left: `${treeButtonRadius}px`,
                     top: `calc(50% + ${treeButtonRadius}px)`,
                     bottom: `-${treeHalfRowHeight}px`
                   }}
                 />
               ) : null}
   
-              {level > 0 ? (
+              {level > 0 && parentColumnX !== null ? (
                 <>
                   <span
                     className="absolute w-px bg-slate-300/90"
                     style={{
-                      left: `${currentColumnX}px`,
+                      left: `${parentColumnX}px`,
                       top: `-${treeHalfRowHeight}px`,
                       bottom: hasChildren ? `calc(50% + ${treeButtonRadius}px)` : '50%'
                     }}
@@ -758,7 +759,7 @@ function SaveIcon() {
                     <span
                       className="absolute w-px bg-slate-300/90"
                       style={{
-                        left: `${currentColumnX}px`,
+                        left: `${parentColumnX}px`,
                         top: hasChildren ? `calc(50% + ${treeButtonRadius}px)` : '50%',
                         bottom: `-${treeHalfRowHeight}px`
                       }}
@@ -768,9 +769,9 @@ function SaveIcon() {
                   <span
                     className="absolute h-px bg-slate-300/90"
                     style={{
-                      left: `${currentColumnX}px`,
+                      left: `${parentColumnX}px`,
                       top: '50%',
-                      width: `${hasChildren ? treeIndent / 2 : leafConnectorWidth}px`
+                      width: `${hasChildren ? buttonLeft - parentColumnX : leafConnectorWidth}px`
                     }}
                   />
                 </>
@@ -778,8 +779,11 @@ function SaveIcon() {
   
               {hasChildren ? (
                 <div
-                  className="absolute top-1/2 -translate-y-1/2"
-                  style={{ left: `${expanderX}px`, width: `${treeButtonDiameter}px`, height: `${treeButtonDiameter}px` }}
+                  className="absolute top-0 flex h-full items-center justify-center"
+                  style={{
+                    left: `${buttonLeft}px`,
+                    width: `${treeButtonDiameter}px`
+                  }}
                 >
                   <IconButton
                     type="button"

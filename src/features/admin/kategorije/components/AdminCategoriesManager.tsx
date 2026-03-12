@@ -34,6 +34,8 @@ import { IconButton } from '@/shared/ui/icon-button';
 import { Chip } from '@/shared/ui/badge';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActions } from '@/shared/ui/table';
+import { AdminTableLayout } from '@/shared/ui/admin-table';
+import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
 import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 import { Input } from '@/shared/ui/input';
 import { Spinner } from '@/shared/ui/loading';
@@ -143,6 +145,7 @@ function SaveIcon() {
   const [createName, setCreateName] = useState('');
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
+  const [query, setQuery] = useState('');
   const [deletingRowId, setDeletingRowId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
   const [imageDeleteTarget, setImageDeleteTarget] = useState<ImageDeleteTarget>(null);
@@ -538,20 +541,46 @@ function SaveIcon() {
 
   const handleInlineBlur = (_event: FocusEvent<HTMLInputElement>) => {};
 
+  const searchQuery = query.trim().toLowerCase();
+  const isSearchActive = searchQuery.length > 0;
+
+  const filteredCategories = useMemo(() => {
+    if (!isSearchActive) return catalog.categories;
+
+    return catalog.categories
+      .map((category) => {
+        const categoryMatches = [category.title, category.summary, category.description]
+          .join(' ')
+          .toLowerCase()
+          .includes(searchQuery);
+        const matchingSubcategories = category.subcategories.filter((subcategory) =>
+          [subcategory.title, subcategory.description].join(' ').toLowerCase().includes(searchQuery)
+        );
+
+        if (!categoryMatches && matchingSubcategories.length === 0) return null;
+
+        return {
+          ...category,
+          subcategories: categoryMatches ? category.subcategories : matchingSubcategories
+        };
+      })
+      .filter((category): category is CatalogCategory => category !== null);
+  }, [catalog.categories, isSearchActive, searchQuery]);
+
   const visibleRowIds = useMemo(() => {
     const ids = [rootId];
     if (!(expanded[rootId] ?? true)) return ids;
-    catalog.categories.forEach((category) => {
+    filteredCategories.forEach((category) => {
       const categoryNodeId = catId(category.slug);
       ids.push(categoryNodeId);
-      if (expanded[categoryNodeId]) {
+      if (isSearchActive || expanded[categoryNodeId]) {
         category.subcategories.forEach((subcategory) => {
           ids.push(subId(category.slug, subcategory.slug));
         });
       }
     });
     return ids;
-  }, [catalog.categories, expanded]);
+  }, [expanded, filteredCategories, isSearchActive]);
 
   const selectableVisibleRowIds = useMemo(() => visibleRowIds, [visibleRowIds]);
   const selectedVisibleCount = useMemo(
@@ -694,12 +723,14 @@ function SaveIcon() {
     return (
       <tr key={id} className={`${isSelected ? 'bg-brand-50/70' : rowDepthTone} transition-colors hover:bg-[#eef3ff]`}>
         <td className="border-b border-slate-200 px-2 py-2 text-center align-middle">
-          <input
-            type="checkbox"
-            checked={isChecked}
-            onChange={toggleChecked}
-            aria-label={`Izberi ${title}`}
-          />
+          <div className="flex justify-center" style={{ paddingLeft: `${level > 0 ? level * treeIndent : 0}px` }}>
+            <input
+              type="checkbox"
+              checked={isChecked}
+              onChange={toggleChecked}
+              aria-label={`Izberi ${title}`}
+            />
+          </div>
         </td>
   
         <td className="border-b border-slate-200 px-3 py-0 align-middle">
@@ -856,7 +887,7 @@ function SaveIcon() {
           </div>
         </td>
   
-        <td className="border-b border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500">
+        <td className="border-b border-slate-200 px-3 py-2 text-xs font-normal text-slate-500">
           {isRowEditing ? (
             <Input
               value={editingRow.description}
@@ -865,7 +896,7 @@ function SaveIcon() {
               }
               data-inline-edit-field="true"
               onBlur={handleInlineBlur}
-              className="h-8 min-w-[12ch] max-w-[42ch] px-2 text-xs font-semibold text-slate-500"
+              className="h-8 min-w-[12ch] max-w-[42ch] px-2 text-xs font-normal text-slate-500"
               style={{ width: `${Math.min(42, Math.max(12, editingRow.description.length + 2))}ch` }}
             />
           ) : (
@@ -998,7 +1029,7 @@ function SaveIcon() {
       level: 0,
       kind: 'root',
       description: rootMeta.description,
-      childrenCount: catalog.categories.length,
+      childrenCount: filteredCategories.length,
       productCount: 0,
       ancestorContinuationColumns: [],
       continueCurrentColumnBelow: false
@@ -1006,10 +1037,10 @@ function SaveIcon() {
   );
 
   if (expanded[rootId] ?? true) {
-    catalog.categories.forEach((category, categoryIndex) => {
+    filteredCategories.forEach((category, categoryIndex) => {
       const categoryNodeId = catId(category.slug);
-      const hasVisibleChildren = (expanded[categoryNodeId] ?? false) && category.subcategories.length > 0;
-      const hasNextCategory = categoryIndex < catalog.categories.length - 1;
+      const hasVisibleChildren = (isSearchActive || (expanded[categoryNodeId] ?? false)) && category.subcategories.length > 0;
+      const hasNextCategory = categoryIndex < filteredCategories.length - 1;
 
       rows.push(
         renderTreeRow({
@@ -1026,7 +1057,7 @@ function SaveIcon() {
         })
       );
 
-      if (expanded[categoryNodeId]) {
+      if (isSearchActive || expanded[categoryNodeId]) {
         category.subcategories.forEach((subcategory, subcategoryIndex) => {
           const hasNextSubcategory = subcategoryIndex < category.subcategories.length - 1;
 
@@ -1126,29 +1157,44 @@ function SaveIcon() {
         </div>
       </ConfirmDialog>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hierarhija kategorij</p>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleBulkDelete}
-              disabled={selectedRows.length === 0 || isBulkDeleting}
-              className={bulkDeleteButtonClass}
-            >
-              {isBulkDeleting ? (
-                <span className="inline-flex items-center gap-1.5">
-                  <Spinner size="sm" className="text-[var(--danger-600)]" />
-                  Brisanje...
-                </span>
-              ) : (
-                'Izbriši'
-              )}
-            </button>
-            <Button variant="primary" size="toolbar" onClick={() => openCreateDialog({ kind: 'category' })}>Dodaj kategorijo</Button>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
+      <section>
+        <AdminTableLayout
+          className="border"
+          contentClassName="overflow-x-auto"
+          headerLeft={
+            <>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hierarhija kategorij</p>
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Poišči po kategoriji ali opisu ..."
+                className={`${ADMIN_CONTROL_HEIGHT} min-w-[260px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} text-xs text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
+              />
+            </>
+          }
+          headerRight={
+            <>
+              <button
+                type="button"
+                onClick={handleBulkDelete}
+                disabled={selectedRows.length === 0 || isBulkDeleting}
+                className={bulkDeleteButtonClass}
+              >
+                {isBulkDeleting ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Spinner size="sm" className="text-[var(--danger-600)]" />
+                    Brisanje...
+                  </span>
+                ) : (
+                  'Izbriši'
+                )}
+              </button>
+              <Button variant="primary" size="toolbar" onClick={() => openCreateDialog({ kind: 'category' })}>
+                Dodaj kategorijo
+              </Button>
+            </>
+          }
+        >
           <table className="min-w-full table-fixed border-separate border-spacing-0 overflow-hidden rounded-xl border border-slate-200">
             <colgroup>
               <col className="w-11" />
@@ -1172,7 +1218,7 @@ function SaveIcon() {
             </thead>
             <tbody>{treeRows}</tbody>
           </table>
-        </div>
+        </AdminTableLayout>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">

@@ -120,6 +120,10 @@ function SaveIcon() {
   );
 }
 
+  const treeIndent = 24;
+  const treeRowHeight = 48;
+  const treeHalfRowHeight = treeRowHeight / 2;
+  const leafConnectorWidth = 16;
 export default function AdminCategoriesManager() {
   const [catalog, setCatalog] = useState<CatalogData>({ categories: [] });
   const [selected, setSelected] = useState<SelectedNode>({ kind: 'root' });
@@ -579,232 +583,324 @@ export default function AdminCategoriesManager() {
   };
 
   const renderTreeRow = ({
-    id,
-    title,
-    level,
-    kind,
-    categorySlug,
-    subcategorySlug,
-    description,
-    childrenCount,
-    productCount,
-    isLast,
-    continuationColumns
-  }: {
-    id: string;
-    title: string;
-    level: number;
-    kind: 'root' | 'category' | 'subcategory';
-    categorySlug?: string;
-    subcategorySlug?: string;
-    description: string;
-    childrenCount: number;
-    productCount: number;
-    isLast: boolean;
-    continuationColumns: boolean[];
-  }) => {
-    const isSelected =
-      (selected.kind === 'root' && kind === 'root') ||
-      (selected.kind === 'category' && kind === 'category' && selected.categorySlug === categorySlug) ||
-      (selected.kind === 'subcategory' && kind === 'subcategory' && selected.categorySlug === categorySlug && selected.subcategorySlug === subcategorySlug);
+  id,
+  title,
+  level,
+  kind,
+  categorySlug,
+  subcategorySlug,
+  description,
+  childrenCount,
+  productCount,
+  ancestorContinuationColumns,
+  continueCurrentColumnBelow
+}: {
+  id: string;
+  title: string;
+  level: number;
+  kind: 'root' | 'category' | 'subcategory';
+  categorySlug?: string;
+  subcategorySlug?: string;
+  description: string;
+  childrenCount: number;
+  productCount: number;
+  ancestorContinuationColumns: boolean[];
+  continueCurrentColumnBelow: boolean;
+}) => {
+  const isSelected =
+    (selected.kind === 'root' && kind === 'root') ||
+    (selected.kind === 'category' && kind === 'category' && selected.categorySlug === categorySlug) ||
+    (selected.kind === 'subcategory' && kind === 'subcategory' && selected.categorySlug === categorySlug && selected.subcategorySlug === subcategorySlug);
 
-    const hasChildren = childrenCount > 0;
-    const isRowEditing = editingRow?.id === id;
-    const isChecked = selectedRows.includes(id);
-    const isRoot = kind === 'root';
-    const rowDepthTone = level === 1 ? 'bg-slate-100/90' : level === 2 ? 'bg-slate-200/85' : level >= 3 ? 'bg-slate-300/75' : 'bg-slate-50/90';
-    const rowStatus = statusByRow[id] ?? 'active';
-    const statusLabel = rowStatus === 'active' ? 'Aktivna' : 'Neaktiven';
+  const hasChildren = childrenCount > 0;
+  const isExpanded = expanded[id] ?? false;
+  const isRowEditing = editingRow?.id === id;
+  const isChecked = selectedRows.includes(id);
+  const isRoot = kind === 'root';
+  const rowDepthTone = level === 1 ? 'bg-slate-100/90' : level === 2 ? 'bg-slate-200/85' : level >= 3 ? 'bg-slate-300/75' : 'bg-slate-50/90';
+  const rowStatus = statusByRow[id] ?? 'active';
+  const statusLabel = rowStatus === 'active' ? 'Aktivna' : 'Neaktiven';
 
-    const toggleInlineEdit = () => {
-      if (isRowEditing) {
-        setEditingRow(null);
-        setOpenStatusMenuRowId(null);
-        return;
-      }
-      setEditingRow({
-        id,
-        kind,
-        categorySlug,
-        subcategorySlug,
-        title,
-        description,
-        status: rowStatus
-      });
+  const toggleInlineEdit = () => {
+    if (isRowEditing) {
+      setEditingRow(null);
       setOpenStatusMenuRowId(null);
-    };
+      return;
+    }
+    setEditingRow({
+      id,
+      kind,
+      categorySlug,
+      subcategorySlug,
+      title,
+      description,
+      status: rowStatus
+    });
+    setOpenStatusMenuRowId(null);
+  };
 
-    const setStatus = (nextStatus: CategoryStatus) => {
-      setEditingRow((prev) => (prev && prev.id === id ? { ...prev, status: nextStatus } : prev));
-      setOpenStatusMenuRowId(null);
-    };
+  const setStatus = (nextStatus: CategoryStatus) => {
+    setEditingRow((prev) => (prev && prev.id === id ? { ...prev, status: nextStatus } : prev));
+    setOpenStatusMenuRowId(null);
+  };
 
-    const toggleChecked = () => {
-      setSelectedRows((prev) => (prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]));
-    };
+  const toggleChecked = () => {
+    setSelectedRows((prev) => (prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]));
+  };
 
-    const connectorColumns = Array.from({ length: level }, (_, index) => index);
+  const gutterWidth =
+    level === 0
+      ? hasChildren
+        ? treeIndent
+        : 0
+      : hasChildren
+        ? level * treeIndent + treeIndent
+        : level * treeIndent + leafConnectorWidth;
 
-    return (
-      <tr key={id} className={`${isSelected ? 'bg-brand-50/70' : rowDepthTone} transition-colors hover:bg-[#eef3ff]`}>
-        <td className="border-b border-slate-200 px-2 py-2 text-center align-middle">
-          {isRoot ? (
-            <span className="inline-block h-4 w-4" />
-          ) : (
-            <input
-              type="checkbox"
-              checked={isChecked}
-              onChange={toggleChecked}
-              aria-label={`Izberi ${title}`}
-            />
-          )}
-        </td>
-        <td className="border-b border-slate-200 px-3 py-2 align-middle">
-          <div className="relative flex min-h-8 items-center gap-2 px-1" style={{ paddingLeft: `${level * 24}px` }}>
-            {connectorColumns.map((column) => {
-              const x = 12 + (column * 24);
-              const isBranchColumn = column === level - 1;
-              const keepsGoing = continuationColumns[column] ?? false;
+  const currentColumnX = level > 0 ? (level - 1) * treeIndent + treeIndent / 2 : treeIndent / 2;
+  const expanderX = level * treeIndent;
 
-              if (!isBranchColumn) {
-                return keepsGoing
-                  ? <span key={`col-${column}`} className="absolute top-[-36px] bottom-[-36px] w-px bg-slate-300/90" style={{ left: `${x}px` }} />
-                  : null;
-              }
+  return (
+    <tr key={id} className={`${isSelected ? 'bg-brand-50/70' : rowDepthTone} transition-colors hover:bg-[#eef3ff]`}>
+      <td className="border-b border-slate-200 px-2 py-2 text-center align-middle">
+        {isRoot ? (
+          <span className="inline-block h-4 w-4" />
+        ) : (
+          <input
+            type="checkbox"
+            checked={isChecked}
+            onChange={toggleChecked}
+            aria-label={`Izberi ${title}`}
+          />
+        )}
+      </td>
+
+      <td className="border-b border-slate-200 px-3 py-0 align-middle">
+        <div className="relative flex h-12 items-center gap-2 px-1">
+          <div
+            className="relative shrink-0"
+            style={{
+              width: `${gutterWidth}px`,
+              height: `${treeRowHeight}px`
+            }}
+          >
+            {ancestorContinuationColumns.map((continuesBelow, ancestorIndex) => {
+              const ancestorX = ancestorIndex * treeIndent + treeIndent / 2;
 
               return (
-                <div key={`col-${column}`}>
-                  <span className="absolute top-[-36px] h-[calc(50%+1px)] w-px bg-slate-300/90" style={{ left: `${x}px` }} />
-                  {keepsGoing ? <span className="absolute top-[calc(50%+1px)] bottom-[-36px] w-px bg-slate-300/90" style={{ left: `${x}px` }} /> : null}
-                  <span className="absolute h-px w-8 bg-slate-300/90" style={{ left: `${x}px`, top: '50%' }} />
+                <div key={`ancestor-${ancestorIndex}`}>
+                  <span
+                    className="absolute w-px bg-slate-300/90"
+                    style={{
+                      left: `${ancestorX}px`,
+                      top: `-${treeHalfRowHeight}px`,
+                      height: `calc(50% + ${treeHalfRowHeight}px)`
+                    }}
+                  />
+                  {continuesBelow ? (
+                    <span
+                      className="absolute w-px bg-slate-300/90"
+                      style={{
+                        left: `${ancestorX}px`,
+                        top: '50%',
+                        bottom: `-${treeHalfRowHeight}px`
+                      }}
+                    />
+                  ) : null}
                 </div>
               );
             })}
-            {hasChildren ? (
-              <IconButton type="button" tone="neutral" shape="rounded" aria-label="Razširi/skrij" onClick={() => toggleExpanded(id)}>
-                {(expanded[id] ?? false) ? <ChevronUpIcon /> : <ChevronDownIcon />}
-              </IconButton>
-            ) : <span className="inline-block h-5 w-5" />}
-            {isRowEditing ? (
-              <Input
-                value={editingRow.title}
-                onChange={(event: ChangeEvent<HTMLInputElement>) => setEditingRow((prev) => (prev ? { ...prev, title: event.target.value } : prev))}
-                data-inline-edit-field="true"
-                onBlur={handleInlineBlur}
-                className="h-8 min-w-[10ch] max-w-[34ch] px-2 text-xs"
-                style={{ width: `${Math.min(34, Math.max(10, editingRow.title.length + 2))}ch` }}
-                autoFocus
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  if (kind === 'root') setSelected({ kind: 'root' });
-                  if (kind === 'category' && categorySlug) setSelected({ kind: 'category', categorySlug });
-                  if (kind === 'subcategory' && categorySlug && subcategorySlug) setSelected({ kind: 'subcategory', categorySlug, subcategorySlug });
+
+            {level === 0 && hasChildren && isExpanded ? (
+              <span
+                className="absolute w-px bg-slate-300/90"
+                style={{
+                  left: `${treeIndent / 2}px`,
+                  top: '50%',
+                  bottom: `-${treeHalfRowHeight}px`
                 }}
-                className="text-left text-sm font-medium text-slate-800"
+              />
+            ) : null}
+
+            {level > 0 ? (
+              <>
+                <span
+                  className="absolute w-px bg-slate-300/90"
+                  style={{
+                    left: `${currentColumnX}px`,
+                    top: `-${treeHalfRowHeight}px`,
+                    height: `calc(50% + ${treeHalfRowHeight}px)`
+                  }}
+                />
+
+                {continueCurrentColumnBelow ? (
+                  <span
+                    className="absolute w-px bg-slate-300/90"
+                    style={{
+                      left: `${currentColumnX}px`,
+                      top: '50%',
+                      bottom: `-${treeHalfRowHeight}px`
+                    }}
+                  />
+                ) : null}
+
+                <span
+                  className="absolute h-px bg-slate-300/90"
+                  style={{
+                    left: `${currentColumnX}px`,
+                    top: '50%',
+                    width: `${hasChildren ? treeIndent : leafConnectorWidth}px`
+                  }}
+                />
+              </>
+            ) : null}
+
+            {hasChildren ? (
+              <div
+                className="absolute top-1/2 -translate-y-1/2"
+                style={{ left: `${expanderX}px` }}
               >
-                {title}
-              </button>
-            )}
-            {kind === 'root' ? (
-              <IconButton type="button" tone="neutral" aria-label="Dodaj kategorijo" title="Dodaj kategorijo" onClick={() => openCreateDialog({ kind: 'category' })}>
-                <PlusIcon />
-              </IconButton>
-            ) : kind === 'category' && categorySlug ? (
-              <IconButton type="button" tone="neutral" aria-label="Dodaj podkategorijo" title="Dodaj podkategorijo" onClick={() => openCreateDialog({ kind: 'subcategory', categorySlug })}>
-                <PlusIcon />
-              </IconButton>
-            ) : kind === 'subcategory' && categorySlug && subcategorySlug ? (
-              <IconButton type="button" tone="neutral" aria-label="Dodaj podkategorijo" title="Dodaj podkategorijo" onClick={() => openCreateDialog({ kind: 'subcategory', categorySlug, afterSlug: subcategorySlug })}>
-                <PlusIcon />
-              </IconButton>
+                <IconButton
+                  type="button"
+                  tone="neutral"
+                  shape="rounded"
+                  aria-label="Razširi/skrij"
+                  onClick={() => toggleExpanded(id)}
+                >
+                  {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                </IconButton>
+              </div>
             ) : null}
           </div>
-        </td>
-        <td className="border-b border-slate-200 px-3 py-2 text-sm text-slate-600">
+
           {isRowEditing ? (
             <Input
-              value={editingRow.description}
-              onChange={(event: ChangeEvent<HTMLInputElement>) => setEditingRow((prev) => (prev ? { ...prev, description: event.target.value } : prev))}
+              value={editingRow.title}
+              onChange={(event: ChangeEvent<HTMLInputElement>) => setEditingRow((prev) => (prev ? { ...prev, title: event.target.value } : prev))}
               data-inline-edit-field="true"
               onBlur={handleInlineBlur}
-              className="h-8 min-w-[12ch] max-w-[42ch] px-2 text-xs"
-              style={{ width: `${Math.min(42, Math.max(12, editingRow.description.length + 2))}ch` }}
+              className="h-8 min-w-[10ch] max-w-[34ch] px-2 text-xs"
+              style={{ width: `${Math.min(34, Math.max(10, editingRow.title.length + 2))}ch` }}
+              autoFocus
             />
-          ) : (description || '—')}
-        </td>
-        <td className="border-b border-slate-200 px-3 py-2 text-center text-sm text-slate-600">{childrenCount}</td>
-        <td className="border-b border-slate-200 px-3 py-2 text-center text-sm text-slate-600">{productCount}</td>
-        <td className="border-b border-slate-200 px-3 py-2 text-center text-sm">
-          {isRowEditing && !isRoot ? (
-            <div className="relative inline-flex" ref={(node) => { statusMenuRefs.current[id] = node; }}>
-              <button
-                type="button"
-                onClick={() => setOpenStatusMenuRowId((prev) => (prev === id ? null : id))}
-                className="rounded-full"
-                aria-haspopup="menu"
-                aria-expanded={openStatusMenuRowId === id}
-              >
-                <Chip
-                  variant={editingRow?.status === 'active' ? 'success' : 'neutral'}
-                  className={`min-w-0 px-2.5 text-xs ${editingRow?.status === 'active' ? buttonTokenClasses.activeSuccess : buttonTokenClasses.inactiveNeutral}`}
-                >
-                  {editingRow?.status === 'active' ? 'Aktivna' : 'Neaktiven'}
-                </Chip>
-              </button>
-
-              {openStatusMenuRowId === id ? (
-                <MenuPanel className="absolute left-1/2 top-8 z-20 w-36 -translate-x-1/2">
-                  <MenuItem onClick={() => setStatus('active')} disabled={editingRow?.status === 'active'}>Aktivna</MenuItem>
-                  <MenuItem onClick={() => setStatus('inactive')} disabled={editingRow?.status === 'inactive'}>Neaktiven</MenuItem>
-                </MenuPanel>
-              ) : null}
-            </div>
           ) : (
-            <Chip
-              variant={rowStatus === 'active' ? 'success' : 'neutral'}
-              className={`min-w-0 px-2.5 text-xs ${rowStatus === 'active' ? buttonTokenClasses.activeSuccess : buttonTokenClasses.inactiveNeutral}`}
+            <button
+              type="button"
+              onClick={() => {
+                if (kind === 'root') setSelected({ kind: 'root' });
+                if (kind === 'category' && categorySlug) setSelected({ kind: 'category', categorySlug });
+                if (kind === 'subcategory' && categorySlug && subcategorySlug) setSelected({ kind: 'subcategory', categorySlug, subcategorySlug });
+              }}
+              className="text-left text-sm font-medium text-slate-800"
             >
-              {statusLabel}
-            </Chip>
+              {title}
+            </button>
           )}
-        </td>
-        <td className="border-b border-slate-200 px-3 py-2 text-center">
-          {kind === 'subcategory' && !categorySlug ? null : (
-            <RowActions>
-              <IconButton type="button" tone="neutral" onClick={toggleInlineEdit} aria-label="Uredi" title="Uredi">
-                <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                  <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
-                  <path d="M11.5 4.5l3 3" />
-                </svg>
-              </IconButton>
-              <IconButton
-                type="button"
-                tone="neutral"
-                aria-label="Shrani"
-                title="Shrani"
-                onClick={() => void saveInlineEdit()}
-                disabled={!isRowEditing}
-              >
-                <SaveIcon />
-              </IconButton>
-              <IconButton
-                type="button"
-                tone="neutral"
-                aria-label="Dodaj podkategorijo"
-                title="Dodaj podkategorijo"
-                onClick={() => {
-                  if (kind === 'root') openCreateDialog({ kind: 'category' });
-                  if (kind === 'category' && categorySlug) openCreateDialog({ kind: 'subcategory', categorySlug });
-                  if (kind === 'subcategory' && categorySlug && subcategorySlug) openCreateDialog({ kind: 'subcategory', categorySlug, afterSlug: subcategorySlug });
-                }}
-              >
-                <PlusIcon />
-              </IconButton>
 
-              {kind !== 'root' ? <Button
+          {kind === 'root' ? (
+            <IconButton type="button" tone="neutral" aria-label="Dodaj kategorijo" title="Dodaj kategorijo" onClick={() => openCreateDialog({ kind: 'category' })}>
+              <PlusIcon />
+            </IconButton>
+          ) : kind === 'category' && categorySlug ? (
+            <IconButton type="button" tone="neutral" aria-label="Dodaj podkategorijo" title="Dodaj podkategorijo" onClick={() => openCreateDialog({ kind: 'subcategory', categorySlug })}>
+              <PlusIcon />
+            </IconButton>
+          ) : kind === 'subcategory' && categorySlug && subcategorySlug ? (
+            <IconButton type="button" tone="neutral" aria-label="Dodaj podkategorijo" title="Dodaj podkategorijo" onClick={() => openCreateDialog({ kind: 'subcategory', categorySlug, afterSlug: subcategorySlug })}>
+              <PlusIcon />
+            </IconButton>
+          ) : null}
+        </div>
+      </td>
+
+      <td className="border-b border-slate-200 px-3 py-2 text-sm text-slate-600">
+        {isRowEditing ? (
+          <Input
+            value={editingRow.description}
+            onChange={(event: ChangeEvent<HTMLInputElement>) => setEditingRow((prev) => (prev ? { ...prev, description: event.target.value } : prev))}
+            data-inline-edit-field="true"
+            onBlur={handleInlineBlur}
+            className="h-8 min-w-[12ch] max-w-[42ch] px-2 text-xs"
+            style={{ width: `${Math.min(42, Math.max(12, editingRow.description.length + 2))}ch` }}
+          />
+        ) : (description || '—')}
+      </td>
+
+      <td className="border-b border-slate-200 px-3 py-2 text-center text-sm text-slate-600">{childrenCount}</td>
+      <td className="border-b border-slate-200 px-3 py-2 text-center text-sm text-slate-600">{productCount}</td>
+
+      <td className="border-b border-slate-200 px-3 py-2 text-center text-sm">
+        {isRowEditing && !isRoot ? (
+          <div className="relative inline-flex" ref={(node) => { statusMenuRefs.current[id] = node; }}>
+            <button
+              type="button"
+              onClick={() => setOpenStatusMenuRowId((prev) => (prev === id ? null : id))}
+              className="rounded-full"
+              aria-haspopup="menu"
+              aria-expanded={openStatusMenuRowId === id}
+            >
+              <Chip
+                variant={editingRow?.status === 'active' ? 'success' : 'neutral'}
+                className={`min-w-0 px-2.5 text-xs ${editingRow?.status === 'active' ? buttonTokenClasses.activeSuccess : buttonTokenClasses.inactiveNeutral}`}
+              >
+                {editingRow?.status === 'active' ? 'Aktivna' : 'Neaktiven'}
+              </Chip>
+            </button>
+
+            {openStatusMenuRowId === id ? (
+              <MenuPanel className="absolute left-1/2 top-8 z-20 w-36 -translate-x-1/2">
+                <MenuItem onClick={() => setStatus('active')} disabled={editingRow?.status === 'active'}>Aktivna</MenuItem>
+                <MenuItem onClick={() => setStatus('inactive')} disabled={editingRow?.status === 'inactive'}>Neaktiven</MenuItem>
+              </MenuPanel>
+            ) : null}
+          </div>
+        ) : (
+          <Chip
+            variant={rowStatus === 'active' ? 'success' : 'neutral'}
+            className={`min-w-0 px-2.5 text-xs ${rowStatus === 'active' ? buttonTokenClasses.activeSuccess : buttonTokenClasses.inactiveNeutral}`}
+          >
+            {statusLabel}
+          </Chip>
+        )}
+      </td>
+
+      <td className="border-b border-slate-200 px-3 py-2 text-center">
+        {kind === 'subcategory' && !categorySlug ? null : (
+          <RowActions>
+            <IconButton type="button" tone="neutral" onClick={toggleInlineEdit} aria-label="Uredi" title="Uredi">
+              <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
+                <path d="M11.5 4.5l3 3" />
+              </svg>
+            </IconButton>
+
+            <IconButton
+              type="button"
+              tone="neutral"
+              aria-label="Shrani"
+              title="Shrani"
+              onClick={() => void saveInlineEdit()}
+              disabled={!isRowEditing}
+            >
+              <SaveIcon />
+            </IconButton>
+
+            <IconButton
+              type="button"
+              tone="neutral"
+              aria-label="Dodaj podkategorijo"
+              title="Dodaj podkategorijo"
+              onClick={() => {
+                if (kind === 'root') openCreateDialog({ kind: 'category' });
+                if (kind === 'category' && categorySlug) openCreateDialog({ kind: 'subcategory', categorySlug });
+                if (kind === 'subcategory' && categorySlug && subcategorySlug) openCreateDialog({ kind: 'subcategory', categorySlug, afterSlug: subcategorySlug });
+              }}
+            >
+              <PlusIcon />
+            </IconButton>
+
+            {kind !== 'root' ? (
+              <Button
                 type="button"
                 variant="close-x"
                 aria-label="Izbriši"
@@ -821,17 +917,20 @@ export default function AdminCategoriesManager() {
                 }}
               >
                 {deletingRowId === id ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : '×'}
-              </Button> : null}
-            </RowActions>
-          )}
-        </td>
-      </tr>
-    );
-  };
+              </Button>
+            ) : null}
+          </RowActions>
+        )}
+      </td>
+    </tr>
+  );
+};
 
   const treeRows: ReactNode[] = (() => {
-    const rows: ReactNode[] = [];
-    rows.push(renderTreeRow({
+  const rows: ReactNode[] = [];
+
+  rows.push(
+    renderTreeRow({
       id: rootId,
       title: rootMeta.title,
       level: 0,
@@ -839,14 +938,19 @@ export default function AdminCategoriesManager() {
       description: rootMeta.description,
       childrenCount: catalog.categories.length,
       productCount: 0,
-      isLast: true,
-      continuationColumns: []
-    }));
+      ancestorContinuationColumns: [],
+      continueCurrentColumnBelow: false
+    })
+  );
 
-    if (expanded[rootId] ?? true) {
-      catalog.categories.forEach((category, categoryIndex) => {
-        const categoryNodeId = catId(category.slug);
-        rows.push(renderTreeRow({
+  if (expanded[rootId] ?? true) {
+    catalog.categories.forEach((category, categoryIndex) => {
+      const categoryNodeId = catId(category.slug);
+      const hasVisibleChildren = (expanded[categoryNodeId] ?? false) && category.subcategories.length > 0;
+      const hasNextCategory = categoryIndex < catalog.categories.length - 1;
+
+      rows.push(
+        renderTreeRow({
           id: categoryNodeId,
           title: category.title,
           level: 1,
@@ -855,13 +959,17 @@ export default function AdminCategoriesManager() {
           description: category.summary,
           childrenCount: category.subcategories.length,
           productCount: (category.items ?? []).length,
-          isLast: categoryIndex === catalog.categories.length - 1 && !(expanded[categoryNodeId] && category.subcategories.length > 0),
-          continuationColumns: [expanded[categoryNodeId] && category.subcategories.length > 0]
-        }));
+          ancestorContinuationColumns: [],
+          continueCurrentColumnBelow: hasVisibleChildren || hasNextCategory
+        })
+      );
 
-        if (expanded[categoryNodeId]) {
-          category.subcategories.forEach((subcategory, index) => {
-            rows.push(renderTreeRow({
+      if (expanded[categoryNodeId]) {
+        category.subcategories.forEach((subcategory, subcategoryIndex) => {
+          const hasNextSubcategory = subcategoryIndex < category.subcategories.length - 1;
+
+          rows.push(
+            renderTreeRow({
               id: subId(category.slug, subcategory.slug),
               title: subcategory.title,
               level: 2,
@@ -871,16 +979,17 @@ export default function AdminCategoriesManager() {
               description: subcategory.description,
               childrenCount: 0,
               productCount: subcategory.items.length,
-              isLast: index === category.subcategories.length - 1,
-              continuationColumns: [index !== category.subcategories.length - 1, index !== category.subcategories.length - 1]
-            }));
-          });
-        }
-      });
-    }
+              ancestorContinuationColumns: [hasNextSubcategory || hasNextCategory],
+              continueCurrentColumnBelow: hasNextSubcategory
+            })
+          );
+        });
+      }
+    });
+  }
 
-    return rows;
-  })();
+  return rows;
+})();
 
   if (loading) return <p className="text-sm text-slate-500">Nalagam kategorije ...</p>;
 

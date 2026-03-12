@@ -42,14 +42,30 @@ import { Spinner } from '@/shared/ui/loading';
 import { useToast } from '@/shared/ui/toast';
 
 type CatalogData = { categories: CatalogCategory[] };
-type SelectedNode = { kind: 'root' } | { kind: 'category'; categorySlug: string } | { kind: 'subcategory'; categorySlug: string; subcategorySlug: string };
+
+type SelectedNode =
+  | { kind: 'root' }
+  | { kind: 'category'; categorySlug: string }
+  | { kind: 'subcategory'; categorySlug: string; subcategorySlug: string };
+
 type DeleteTarget =
   | { kind: 'root' }
   | { kind: 'category'; categorySlug: string }
   | { kind: 'subcategory'; categorySlug: string; subcategorySlug?: string }
   | null;
-type ImageDeleteTarget = { kind: 'category' | 'subcategory'; categorySlug: string; subcategorySlug?: string } | null;
-type ContentCard = { id: string; title: string; description: string; image?: string; kind: 'category' | 'subcategory' };
+
+type ImageDeleteTarget =
+  | { kind: 'category' | 'subcategory'; categorySlug: string; subcategorySlug?: string }
+  | null;
+
+type ContentCard = {
+  id: string;
+  title: string;
+  description: string;
+  image?: string;
+  kind: 'category' | 'subcategory';
+};
+
 type EditingRowDraft = {
   id: string;
   kind: 'root' | 'category' | 'subcategory';
@@ -59,10 +75,12 @@ type EditingRowDraft = {
   description: string;
   status: CategoryStatus;
 };
+
 type CreateTarget =
   | { kind: 'category'; afterSlug?: string }
   | { kind: 'subcategory'; categorySlug: string; afterSlug?: string }
   | null;
+
 type CategoryStatus = 'active' | 'inactive';
 
 const bulkDeleteButtonClass = buttonTokenClasses.danger;
@@ -72,7 +90,15 @@ const ROOT_META_STORAGE_KEY = 'admin-categories-root-meta-v1';
 const rootId = 'root';
 const catId = (slug: string) => `cat:${slug}`;
 const subId = (catSlug: string, subSlug: string) => `sub:${catSlug}:${subSlug}`;
-const slugify = (value: string) => value.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-čšžćđ]/gi, '');
+const slugify = (value: string) =>
+  value.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-čšžćđ]/gi, '');
+
+const treeIndent = 32;
+const treeRowHeight = 48;
+const leafConnectorWidth = 22;
+const treeButtonDiameter = 28;
+const treeButtonRadius = treeButtonDiameter / 2;
+const treeConnectorBleed = 1;
 
 async function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -83,8 +109,15 @@ async function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
-function SortableItem({ id, children }: { id: string; children: (dragHandleProps: Record<string, unknown>) => ReactNode }) {
+function SortableItem({
+  id,
+  children
+}: {
+  id: string;
+  children: (dragHandleProps: Record<string, unknown>) => ReactNode;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+
   return (
     <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }}>
       {children({ ...attributes, ...listeners })}
@@ -126,14 +159,7 @@ function SaveIcon() {
   );
 }
 
-  const treeIndent = 32;
-  const treeRowHeight = 48;
-  const treeHalfRowHeight = treeRowHeight / 2;
-  const leafConnectorWidth = 22;
-  const treeButtonDiameter = 28;
-  const treeButtonRadius = treeButtonDiameter / 2;
-  const treeConnectorBleed = 1;
-  export default function AdminCategoriesManager() {
+export default function AdminCategoriesManager() {
   const [catalog, setCatalog] = useState<CatalogData>({ categories: [] });
   const [selected, setSelected] = useState<SelectedNode>({ kind: 'root' });
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ [rootId]: true });
@@ -152,6 +178,8 @@ function SaveIcon() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [rootMeta, setRootMeta] = useState({ title: 'Vse kategorije', description: 'Root' });
+  const [rowHeights, setRowHeights] = useState<Record<string, number>>({});
+
   const { toast } = useToast();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const uploadRefs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -159,17 +187,19 @@ function SaveIcon() {
   const selectAllRef = useRef<HTMLInputElement>(null);
   const isInlineSavingRef = useRef(false);
   const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
-  const [rowHeights, setRowHeights] = useState<Record<string, number>>({});
 
   const load = async () => {
     setLoading(true);
     const response = await fetch('/api/admin/categories', { cache: 'no-store' });
+
     if (!response.ok) {
       toast.error('Napaka pri nalaganju kategorij');
       setLoading(false);
       return;
     }
+
     const payload = (await response.json()) as CatalogData;
+
     setCatalog(payload);
     setExpanded((prev) => ({
       ...prev,
@@ -178,14 +208,17 @@ function SaveIcon() {
     }));
     setStatusByRow((prev) => {
       const next = { ...prev };
+
       payload.categories.forEach((category) => {
         const categoryId = catId(category.slug);
         if (!next[categoryId]) next[categoryId] = 'active';
+
         category.subcategories.forEach((subcategory) => {
           const subcategoryId = subId(category.slug, subcategory.slug);
           if (!next[subcategoryId]) next[subcategoryId] = 'active';
         });
       });
+
       if (!next[rootId]) next[rootId] = 'active';
       return next;
     });
@@ -194,11 +227,11 @@ function SaveIcon() {
 
   useEffect(() => {
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
     try {
       const raw = window.localStorage.getItem(CATEGORY_STATUS_STORAGE_KEY);
       if (!raw) return;
@@ -216,9 +249,11 @@ function SaveIcon() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
     try {
       const raw = window.localStorage.getItem(ROOT_META_STORAGE_KEY);
       if (!raw) return;
+
       const parsed = JSON.parse(raw) as { title?: string; description?: string };
       setRootMeta({
         title: parsed.title?.trim() || 'Vse kategorije',
@@ -251,40 +286,62 @@ function SaveIcon() {
   const persist = async (next: CatalogData, message = 'Shranjeno') => {
     setCatalog(next);
     setSaving(true);
+
     const response = await fetch('/api/admin/categories', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(next)
     });
+
     setSaving(false);
+
     if (!response.ok) {
       toast.error('Shranjevanje ni uspelo');
       return false;
     }
+
     toast.success(message);
     return true;
   };
 
   const selectedContext = useMemo(() => {
     if (selected.kind === 'root') return { kind: 'root' as const };
+
     const category = catalog.categories.find((entry) => entry.slug === selected.categorySlug);
     if (!category) return null;
+
     if (selected.kind === 'category') return { kind: 'category' as const, category };
+
     const subcategory = category.subcategories.find((entry) => entry.slug === selected.subcategorySlug);
     if (!subcategory) return null;
+
     return { kind: 'subcategory' as const, category, subcategory };
   }, [catalog.categories, selected]);
 
   const addCategory = (title: string, afterSlug?: string) => {
     const slug = slugify(title);
     if (!slug) return;
-    const item: CatalogCategory = { slug, title, summary: title, description: '', image: '', subcategories: [], items: [] };
+
+    const item: CatalogCategory = {
+      slug,
+      title,
+      summary: title,
+      description: '',
+      image: '',
+      subcategories: [],
+      items: []
+    };
+
     const list = [...catalog.categories];
-    if (!afterSlug) list.push(item);
-    else {
+
+    if (!afterSlug) {
+      list.push(item);
+    } else {
       const index = list.findIndex((entry) => entry.slug === afterSlug);
-      if (index < 0) list.push(item); else list.splice(index + 1, 0, item);
+      if (index < 0) list.push(item);
+      else list.splice(index + 1, 0, item);
     }
+
     setExpanded((prev) => ({ ...prev, [catId(slug)]: true }));
     void persist({ categories: list }, 'Kategorija dodana');
   };
@@ -292,19 +349,33 @@ function SaveIcon() {
   const addSubcategory = (categorySlug: string, title: string, afterSlug?: string) => {
     const slug = slugify(title);
     if (!slug) return;
+
     const next = {
       categories: catalog.categories.map((entry) => {
         if (entry.slug !== categorySlug) return entry;
-        const sub: CatalogSubcategory = { slug, title, description: '', image: '', items: [] };
+
+        const sub: CatalogSubcategory = {
+          slug,
+          title,
+          description: '',
+          image: '',
+          items: []
+        };
+
         const list = [...entry.subcategories];
-        if (!afterSlug) list.push(sub);
-        else {
+
+        if (!afterSlug) {
+          list.push(sub);
+        } else {
           const index = list.findIndex((node) => node.slug === afterSlug);
-          if (index < 0) list.push(sub); else list.splice(index + 1, 0, sub);
+          if (index < 0) list.push(sub);
+          else list.splice(index + 1, 0, sub);
         }
+
         return { ...entry, subcategories: list };
       })
     };
+
     setExpanded((prev) => ({ ...prev, [catId(categorySlug)]: true }));
     void persist(next, 'Podkategorija dodana');
   };
@@ -317,11 +388,13 @@ function SaveIcon() {
   const confirmCreate = () => {
     const nextName = createName.trim();
     if (!nextName || !createTarget) return;
+
     if (createTarget.kind === 'category') {
       addCategory(nextName, createTarget.afterSlug);
     } else {
       addSubcategory(createTarget.categorySlug, nextName, createTarget.afterSlug);
     }
+
     setCreateTarget(null);
     setCreateName('');
   };
@@ -334,21 +407,31 @@ function SaveIcon() {
       const oldIndex = catalog.categories.findIndex((entry) => entry.slug === active.id);
       const newIndex = catalog.categories.findIndex((entry) => entry.slug === over.id);
       if (oldIndex < 0 || newIndex < 0) return;
-      void persist({ categories: arrayMove(catalog.categories, oldIndex, newIndex) }, 'Vrstni red kategorij posodobljen');
+
+      void persist(
+        { categories: arrayMove(catalog.categories, oldIndex, newIndex) },
+        'Vrstni red kategorij posodobljen'
+      );
       return;
     }
 
     if (selected.kind !== 'category') return;
+
     const category = catalog.categories.find((entry) => entry.slug === selected.categorySlug);
     if (!category) return;
+
     const oldIndex = category.subcategories.findIndex((entry) => entry.slug === active.id);
     const newIndex = category.subcategories.findIndex((entry) => entry.slug === over.id);
     if (oldIndex < 0 || newIndex < 0) return;
+
     const next = {
       categories: catalog.categories.map((entry) =>
-        entry.slug === selected.categorySlug ? { ...entry, subcategories: arrayMove(entry.subcategories, oldIndex, newIndex) } : entry
+        entry.slug === selected.categorySlug
+          ? { ...entry, subcategories: arrayMove(entry.subcategories, oldIndex, newIndex) }
+          : entry
       )
     };
+
     void persist(next, 'Vrstni red podkategorij posodobljen');
   };
 
@@ -361,8 +444,20 @@ function SaveIcon() {
       const oldIndex = items.findIndex((item) => item.slug === active.id);
       const newIndex = items.findIndex((item) => item.slug === over.id);
       if (oldIndex < 0 || newIndex < 0) return;
-      const reordered = arrayMove(items, oldIndex, newIndex).map((item, index) => ({ ...item, displayOrder: index + 1 }));
-      void persist({ categories: catalog.categories.map((entry) => entry.slug === selectedContext.category.slug ? { ...entry, items: reordered } : entry) }, 'Vrstni red izdelkov shranjen');
+
+      const reordered = arrayMove(items, oldIndex, newIndex).map((item, index) => ({
+        ...item,
+        displayOrder: index + 1
+      }));
+
+      void persist(
+        {
+          categories: catalog.categories.map((entry) =>
+            entry.slug === selectedContext.category.slug ? { ...entry, items: reordered } : entry
+          )
+        },
+        'Vrstni red izdelkov shranjen'
+      );
       return;
     }
 
@@ -370,14 +465,25 @@ function SaveIcon() {
     const oldIndex = items.findIndex((item) => item.slug === active.id);
     const newIndex = items.findIndex((item) => item.slug === over.id);
     if (oldIndex < 0 || newIndex < 0) return;
-    const reordered = arrayMove(items, oldIndex, newIndex).map((item, index) => ({ ...item, displayOrder: index + 1 }));
+
+    const reordered = arrayMove(items, oldIndex, newIndex).map((item, index) => ({
+      ...item,
+      displayOrder: index + 1
+    }));
+
     const next = {
       categories: catalog.categories.map((entry) =>
         entry.slug === selectedContext.category.slug
-          ? { ...entry, subcategories: entry.subcategories.map((sub) => sub.slug === selectedContext.subcategory.slug ? { ...sub, items: reordered } : sub) }
+          ? {
+              ...entry,
+              subcategories: entry.subcategories.map((sub) =>
+                sub.slug === selectedContext.subcategory.slug ? { ...sub, items: reordered } : sub
+              )
+            }
           : entry
       )
     };
+
     void persist(next, 'Vrstni red izdelkov shranjen');
   };
 
@@ -385,7 +491,12 @@ function SaveIcon() {
     void persist({
       categories: catalog.categories.map((entry) =>
         entry.slug === categorySlug
-          ? { ...entry, subcategories: entry.subcategories.map((sub) => sub.slug === subSlug ? { ...sub, ...patch } : sub) }
+          ? {
+              ...entry,
+              subcategories: entry.subcategories.map((sub) =>
+                sub.slug === subSlug ? { ...sub, ...patch } : sub
+              )
+            }
           : entry
       )
     });
@@ -394,17 +505,22 @@ function SaveIcon() {
   const onImageUpload = async (file: File | null, item: ContentCard, categorySlug?: string) => {
     if (!file) return;
     const dataUrl = await fileToDataUrl(file);
+
     if (item.kind === 'category') {
-      void persist({ categories: catalog.categories.map((entry) => entry.slug === item.id ? { ...entry, image: dataUrl } : entry) }, 'Slika shranjena');
+      void persist(
+        { categories: catalog.categories.map((entry) => (entry.slug === item.id ? { ...entry, image: dataUrl } : entry)) },
+        'Slika shranjena'
+      );
       return;
     }
+
     if (!categorySlug) return;
     updateSubcategory(categorySlug, item.id, { image: dataUrl });
   };
 
   const confirmDeleteNode = () => {
     if (!deleteTarget) return;
-  
+
     if (deleteTarget.kind === 'root') {
       setDeletingRowId(rootId);
       setDeleteTarget(null);
@@ -414,14 +530,14 @@ function SaveIcon() {
       });
       return;
     }
-  
+
     const currentDeleteId =
       deleteTarget.kind === 'category'
         ? catId(deleteTarget.categorySlug)
         : subId(deleteTarget.categorySlug, deleteTarget.subcategorySlug ?? '');
-  
+
     setDeletingRowId(currentDeleteId);
-  
+
     if (deleteTarget.kind === 'category') {
       setDeleteTarget(null);
       setSelected({ kind: 'root' });
@@ -433,14 +549,19 @@ function SaveIcon() {
       });
       return;
     }
-  
+
     setDeleteTarget(null);
     setSelected({ kind: 'category', categorySlug: deleteTarget.categorySlug });
     void persist(
       {
         categories: catalog.categories.map((entry) =>
           entry.slug === deleteTarget.categorySlug
-            ? { ...entry, subcategories: entry.subcategories.filter((sub) => sub.slug !== deleteTarget.subcategorySlug) }
+            ? {
+                ...entry,
+                subcategories: entry.subcategories.filter(
+                  (sub) => sub.slug !== deleteTarget.subcategorySlug
+                )
+              }
             : entry
         )
       },
@@ -452,32 +573,58 @@ function SaveIcon() {
 
   const confirmDeleteImage = () => {
     if (!imageDeleteTarget) return;
+
     if (imageDeleteTarget.kind === 'category') {
-      void persist({ categories: catalog.categories.map((entry) => entry.slug === imageDeleteTarget.categorySlug ? { ...entry, image: '' } : entry) }, 'Slika odstranjena');
+      void persist(
+        {
+          categories: catalog.categories.map((entry) =>
+            entry.slug === imageDeleteTarget.categorySlug ? { ...entry, image: '' } : entry
+          )
+        },
+        'Slika odstranjena'
+      );
       setImageDeleteTarget(null);
       return;
     }
+
     updateSubcategory(imageDeleteTarget.categorySlug, imageDeleteTarget.subcategorySlug ?? '', { image: '' });
     setImageDeleteTarget(null);
   };
 
   const visibleContent = useMemo(() => {
     if (selectedContext?.kind === 'root') {
-      return catalog.categories.map((entry) => ({ id: entry.slug, title: entry.title, description: entry.summary, image: entry.image, kind: 'category' as const }));
+      return catalog.categories.map((entry) => ({
+        id: entry.slug,
+        title: entry.title,
+        description: entry.summary,
+        image: entry.image,
+        kind: 'category' as const
+      }));
     }
+
     if (selectedContext?.kind === 'category') {
-      return selectedContext.category.subcategories.map((entry) => ({ id: entry.slug, title: entry.title, description: entry.description, image: entry.image, kind: 'subcategory' as const }));
+      return selectedContext.category.subcategories.map((entry) => ({
+        id: entry.slug,
+        title: entry.title,
+        description: entry.description,
+        image: entry.image,
+        kind: 'subcategory' as const
+      }));
     }
+
     return [];
   }, [catalog.categories, selectedContext]);
 
-  const toggleExpanded = (id: string) => setExpanded((prev) => ({ ...prev, [id]: !(prev[id] ?? false) }));
+  const toggleExpanded = (id: string) =>
+    setExpanded((prev) => ({ ...prev, [id]: !(prev[id] ?? false) }));
 
   const saveInlineEdit = async () => {
     if (!editingRow) return;
     if (isInlineSavingRef.current) return;
+
     isInlineSavingRef.current = true;
     const nextTitle = editingRow.title.trim();
+
     if (!nextTitle) {
       toast.error('Naziv je obvezen');
       isInlineSavingRef.current = false;
@@ -498,6 +645,7 @@ function SaveIcon() {
         isInlineSavingRef.current = false;
         return;
       }
+
       const next = {
         categories: catalog.categories.map((entry) =>
           entry.slug === editingRow.categorySlug
@@ -505,11 +653,13 @@ function SaveIcon() {
             : entry
         )
       };
+
       const ok = await persist(next, 'Shranjeno');
       if (ok) {
         setStatusByRow((prev) => ({ ...prev, [editingRow.id]: editingRow.status }));
         setEditingRow(null);
       }
+
       isInlineSavingRef.current = false;
       return;
     }
@@ -533,11 +683,13 @@ function SaveIcon() {
           : entry
       )
     };
+
     const ok = await persist(next, 'Shranjeno');
     if (ok) {
       setStatusByRow((prev) => ({ ...prev, [editingRow.id]: editingRow.status }));
       setEditingRow(null);
     }
+
     isInlineSavingRef.current = false;
   };
 
@@ -555,6 +707,7 @@ function SaveIcon() {
           .join(' ')
           .toLowerCase()
           .includes(searchQuery);
+
         const matchingSubcategories = category.subcategories.filter((subcategory) =>
           [subcategory.title, subcategory.description].join(' ').toLowerCase().includes(searchQuery)
         );
@@ -572,24 +725,30 @@ function SaveIcon() {
   const visibleRowIds = useMemo(() => {
     const ids = [rootId];
     if (!(expanded[rootId] ?? true)) return ids;
+
     filteredCategories.forEach((category) => {
       const categoryNodeId = catId(category.slug);
       ids.push(categoryNodeId);
+
       if (isSearchActive || expanded[categoryNodeId]) {
         category.subcategories.forEach((subcategory) => {
           ids.push(subId(category.slug, subcategory.slug));
         });
       }
     });
+
     return ids;
   }, [expanded, filteredCategories, isSearchActive]);
 
   const selectableVisibleRowIds = useMemo(() => visibleRowIds, [visibleRowIds]);
+
   const selectedVisibleCount = useMemo(
     () => selectableVisibleRowIds.filter((id) => selectedRows.includes(id)).length,
     [selectableVisibleRowIds, selectedRows]
   );
-  const allRowsSelected = selectableVisibleRowIds.length > 0 && selectedVisibleCount === selectableVisibleRowIds.length;
+
+  const allRowsSelected =
+    selectableVisibleRowIds.length > 0 && selectedVisibleCount === selectableVisibleRowIds.length;
 
   useEffect(() => {
     if (typeof ResizeObserver === 'undefined') return;
@@ -618,14 +777,17 @@ function SaveIcon() {
     return () => {
       observers.forEach((observer) => observer.disconnect());
     };
-  }, [visibleRowIds, query, editingRow?.id]);
+  }, [visibleRowIds, editingRow?.id]);
 
   useEffect(() => {
     const validIds = new Set([
       rootId,
       ...catalog.categories.map((category) => catId(category.slug)),
-      ...catalog.categories.flatMap((category) => category.subcategories.map((subcategory) => subId(category.slug, subcategory.slug)))
+      ...catalog.categories.flatMap((category) =>
+        category.subcategories.map((subcategory) => subId(category.slug, subcategory.slug))
+      )
     ]);
+
     setSelectedRows((current) => current.filter((id) => validIds.has(id)));
   }, [catalog.categories]);
 
@@ -639,6 +801,7 @@ function SaveIcon() {
       setSelectedRows((current) => current.filter((id) => !selectableVisibleRowIds.includes(id)));
       return;
     }
+
     setSelectedRows((current) => Array.from(new Set([...current, ...selectableVisibleRowIds])));
   };
 
@@ -649,6 +812,7 @@ function SaveIcon() {
 
   const confirmBulkDelete = async () => {
     if (selectedRows.length === 0) return;
+
     setIsBulkDeleteDialogOpen(false);
     setIsBulkDeleting(true);
     const selectedSet = new Set(selectedRows);
@@ -658,7 +822,9 @@ function SaveIcon() {
         .filter((category) => !selectedSet.has(catId(category.slug)))
         .map((category) => ({
           ...category,
-          subcategories: category.subcategories.filter((subcategory) => !selectedSet.has(subId(category.slug, subcategory.slug)))
+          subcategories: category.subcategories.filter(
+            (subcategory) => !selectedSet.has(subId(category.slug, subcategory.slug))
+          )
         }))
     };
 
@@ -666,6 +832,7 @@ function SaveIcon() {
     if (ok) {
       setSelectedRows([]);
     }
+
     setIsBulkDeleting(false);
   };
 
@@ -701,7 +868,7 @@ function SaveIcon() {
         kind === 'subcategory' &&
         selected.categorySlug === categorySlug &&
         selected.subcategorySlug === subcategorySlug);
-  
+
     const hasChildren = childrenCount > 0;
     const isExpanded = expanded[id] ?? false;
     const isRowEditing = editingRow?.id === id;
@@ -709,16 +876,17 @@ function SaveIcon() {
     const rowDepthTone =
       level === 1 ? 'bg-slate-100/90' : level === 2 ? 'bg-slate-200/85' : level >= 3 ? 'bg-slate-300/75' : 'bg-slate-50/90';
     const rowStatus = statusByRow[id] ?? 'active';
-    const statusLabel = rowStatus === 'active' ? 'Aktivna' : 'Neaktivna';
+    const statusLabel = rowStatus === 'active' ? 'Aktivna' : 'Neaktiven';
     const rowHeight = rowHeights[id] ?? treeRowHeight;
     const halfRowHeight = rowHeight / 2;
-  
+
     const toggleInlineEdit = () => {
       if (isRowEditing) {
         setEditingRow(null);
         setOpenStatusMenuRowId(null);
         return;
       }
+
       setEditingRow({
         id,
         kind,
@@ -730,20 +898,22 @@ function SaveIcon() {
       });
       setOpenStatusMenuRowId(null);
     };
-  
+
     const setStatus = (nextStatus: CategoryStatus) => {
       setEditingRow((prev) => (prev && prev.id === id ? { ...prev, status: nextStatus } : prev));
       setOpenStatusMenuRowId(null);
     };
-  
+
     const toggleChecked = () => {
-      setSelectedRows((prev) => (prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]));
+      setSelectedRows((prev) =>
+        prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]
+      );
     };
-  
+
     const buttonLeft = level * treeIndent;
     const buttonCenterX = buttonLeft + treeButtonRadius;
     const parentColumnX = level > 0 ? (level - 1) * treeIndent + treeButtonRadius : null;
-  
+
     const gutterWidth =
       level === 0
         ? hasChildren
@@ -752,7 +922,7 @@ function SaveIcon() {
         : hasChildren
           ? buttonLeft + treeButtonDiameter
           : (parentColumnX ?? 0) + leafConnectorWidth;
-  
+
     return (
       <tr
         key={id}
@@ -771,7 +941,7 @@ function SaveIcon() {
             />
           </div>
         </td>
-  
+
         <td className="border-b border-slate-200 px-3 py-0 align-middle">
           <div
             className="relative flex items-center gap-2 overflow-visible px-1"
@@ -789,7 +959,7 @@ function SaveIcon() {
             >
               {ancestorContinuationColumns.map((continuesBelow, ancestorIndex) => {
                 const ancestorX = ancestorIndex * treeIndent + treeButtonRadius;
-  
+
                 return (
                   <span
                     key={`ancestor-${ancestorIndex}`}
@@ -798,13 +968,13 @@ function SaveIcon() {
                       left: `${ancestorX}px`,
                       top: `-${treeConnectorBleed}px`,
                       height: continuesBelow
-                        ? `${treeRowHeight + treeConnectorBleed * 2}px`
-                        : `${treeHalfRowHeight + treeConnectorBleed}px`
+                        ? `${rowHeight + treeConnectorBleed * 2}px`
+                        : `${halfRowHeight + treeConnectorBleed}px`
                     }}
                   />
                 );
               })}
-  
+
               {level === 0 && hasChildren && isExpanded ? (
                 <span
                   className="absolute z-0 w-px bg-slate-300/90"
@@ -815,7 +985,7 @@ function SaveIcon() {
                   }}
                 />
               ) : null}
-  
+
               {level > 0 && parentColumnX !== null ? (
                 <>
                   <span
@@ -826,7 +996,7 @@ function SaveIcon() {
                       height: `${halfRowHeight + treeConnectorBleed}px`
                     }}
                   />
-  
+
                   {continueCurrentColumnBelow ? (
                     <span
                       className="absolute z-0 w-px bg-slate-300/90"
@@ -837,7 +1007,7 @@ function SaveIcon() {
                       }}
                     />
                   ) : null}
-  
+
                   <span
                     className="absolute z-0 h-px bg-slate-300/90"
                     style={{
@@ -848,7 +1018,7 @@ function SaveIcon() {
                   />
                 </>
               ) : null}
-  
+
               {hasChildren ? (
                 <div
                   className="absolute inset-y-0 z-10 flex items-center justify-center"
@@ -869,7 +1039,7 @@ function SaveIcon() {
                 </div>
               ) : null}
             </div>
-  
+
             {isRowEditing ? (
               <Input
                 value={editingRow.title}
@@ -897,7 +1067,7 @@ function SaveIcon() {
                 {title}
               </button>
             )}
-  
+
             {kind === 'root' ? (
               <IconButton
                 type="button"
@@ -931,7 +1101,7 @@ function SaveIcon() {
             ) : null}
           </div>
         </td>
-  
+
         <td className="border-b border-slate-200 px-3 py-2 text-xs font-normal text-slate-500">
           {isRowEditing ? (
             <Input
@@ -948,10 +1118,10 @@ function SaveIcon() {
             description || '—'
           )}
         </td>
-  
+
         <td className="border-b border-slate-200 px-3 py-2 text-center text-sm text-slate-600">{childrenCount}</td>
         <td className="border-b border-slate-200 px-3 py-2 text-center text-sm text-slate-600">{productCount}</td>
-  
+
         <td className="border-b border-slate-200 px-3 py-2 text-center text-sm">
           {isRowEditing && kind !== 'root' ? (
             <div
@@ -970,13 +1140,15 @@ function SaveIcon() {
                 <Chip
                   variant={editingRow?.status === 'active' ? 'success' : 'neutral'}
                   className={`min-w-0 px-2.5 text-xs ${
-                    editingRow?.status === 'active' ? buttonTokenClasses.activeSuccess : buttonTokenClasses.inactiveNeutral
+                    editingRow?.status === 'active'
+                      ? buttonTokenClasses.activeSuccess
+                      : buttonTokenClasses.inactiveNeutral
                   }`}
                 >
                   {editingRow?.status === 'active' ? 'Aktivna' : 'Neaktiven'}
                 </Chip>
               </button>
-  
+
               {openStatusMenuRowId === id ? (
                 <MenuPanel className="absolute left-1/2 top-8 z-20 w-36 -translate-x-1/2">
                   <MenuItem onClick={() => setStatus('active')} disabled={editingRow?.status === 'active'}>
@@ -992,14 +1164,16 @@ function SaveIcon() {
             <Chip
               variant={rowStatus === 'active' ? 'success' : 'neutral'}
               className={`min-w-0 px-2.5 text-xs ${
-                rowStatus === 'active' ? buttonTokenClasses.activeSuccess : buttonTokenClasses.inactiveNeutral
+                rowStatus === 'active'
+                  ? buttonTokenClasses.activeSuccess
+                  : buttonTokenClasses.inactiveNeutral
               }`}
             >
               {statusLabel}
             </Chip>
           )}
         </td>
-  
+
         <td className="border-b border-slate-200 px-3 py-2 text-center">
           <RowActions>
             <IconButton type="button" tone="neutral" onClick={toggleInlineEdit} aria-label="Uredi" title="Uredi">
@@ -1008,7 +1182,7 @@ function SaveIcon() {
                 <path d="M11.5 4.5l3 3" />
               </svg>
             </IconButton>
-  
+
             <IconButton
               type="button"
               tone="neutral"
@@ -1019,7 +1193,7 @@ function SaveIcon() {
             >
               <SaveIcon />
             </IconButton>
-  
+
             <IconButton
               type="button"
               tone="neutral"
@@ -1035,7 +1209,7 @@ function SaveIcon() {
             >
               <PlusIcon />
             </IconButton>
-  
+
             <Button
               type="button"
               variant="close-x"
@@ -1065,69 +1239,70 @@ function SaveIcon() {
   };
 
   const treeRows: ReactNode[] = (() => {
-  const rows: ReactNode[] = [];
+    const rows: ReactNode[] = [];
 
-  rows.push(
-    renderTreeRow({
-      id: rootId,
-      title: rootMeta.title,
-      level: 0,
-      kind: 'root',
-      description: rootMeta.description,
-      childrenCount: filteredCategories.length,
-      productCount: 0,
-      ancestorContinuationColumns: [],
-      continueCurrentColumnBelow: false
-    })
-  );
+    rows.push(
+      renderTreeRow({
+        id: rootId,
+        title: rootMeta.title,
+        level: 0,
+        kind: 'root',
+        description: rootMeta.description,
+        childrenCount: filteredCategories.length,
+        productCount: 0,
+        ancestorContinuationColumns: [],
+        continueCurrentColumnBelow: false
+      })
+    );
 
-  if (expanded[rootId] ?? true) {
-    filteredCategories.forEach((category, categoryIndex) => {
-      const categoryNodeId = catId(category.slug);
-      const hasVisibleChildren = (isSearchActive || (expanded[categoryNodeId] ?? false)) && category.subcategories.length > 0;
-      const hasNextCategory = categoryIndex < filteredCategories.length - 1;
+    if (expanded[rootId] ?? true) {
+      filteredCategories.forEach((category, categoryIndex) => {
+        const categoryNodeId = catId(category.slug);
+        const hasVisibleChildren =
+          (isSearchActive || (expanded[categoryNodeId] ?? false)) && category.subcategories.length > 0;
+        const hasNextCategory = categoryIndex < filteredCategories.length - 1;
 
-      rows.push(
-        renderTreeRow({
-          id: categoryNodeId,
-          title: category.title,
-          level: 1,
-          kind: 'category',
-          categorySlug: category.slug,
-          description: category.summary,
-          childrenCount: category.subcategories.length,
-          productCount: (category.items ?? []).length,
-          ancestorContinuationColumns: [],
-          continueCurrentColumnBelow: hasVisibleChildren || hasNextCategory
-        })
-      );
+        rows.push(
+          renderTreeRow({
+            id: categoryNodeId,
+            title: category.title,
+            level: 1,
+            kind: 'category',
+            categorySlug: category.slug,
+            description: category.summary,
+            childrenCount: category.subcategories.length,
+            productCount: (category.items ?? []).length,
+            ancestorContinuationColumns: [],
+            continueCurrentColumnBelow: hasVisibleChildren || hasNextCategory
+          })
+        );
 
-      if (isSearchActive || expanded[categoryNodeId]) {
-        category.subcategories.forEach((subcategory, subcategoryIndex) => {
-          const hasNextSubcategory = subcategoryIndex < category.subcategories.length - 1;
+        if (isSearchActive || expanded[categoryNodeId]) {
+          category.subcategories.forEach((subcategory, subcategoryIndex) => {
+            const hasNextSubcategory = subcategoryIndex < category.subcategories.length - 1;
 
-          rows.push(
-            renderTreeRow({
-              id: subId(category.slug, subcategory.slug),
-              title: subcategory.title,
-              level: 2,
-              kind: 'subcategory',
-              categorySlug: category.slug,
-              subcategorySlug: subcategory.slug,
-              description: subcategory.description,
-              childrenCount: 0,
-              productCount: subcategory.items.length,
-              ancestorContinuationColumns: [hasNextSubcategory || hasNextCategory],
-              continueCurrentColumnBelow: hasNextSubcategory
-            })
-          );
-        });
-      }
-    });
-  }
+            rows.push(
+              renderTreeRow({
+                id: subId(category.slug, subcategory.slug),
+                title: subcategory.title,
+                level: 2,
+                kind: 'subcategory',
+                categorySlug: category.slug,
+                subcategorySlug: subcategory.slug,
+                description: subcategory.description,
+                childrenCount: 0,
+                productCount: subcategory.items.length,
+                ancestorContinuationColumns: [hasNextSubcategory || hasNextCategory],
+                continueCurrentColumnBelow: hasNextSubcategory
+              })
+            );
+          });
+        }
+      });
+    }
 
-  return rows;
-})();
+    return rows;
+  })();
 
   if (loading) return <p className="text-sm text-slate-500">Nalagam kategorije ...</p>;
 
@@ -1135,7 +1310,9 @@ function SaveIcon() {
     <div className="space-y-5">
       <header>
         <h1 className="text-2xl font-semibold text-slate-900">Kategorije</h1>
-        <p className="mt-1 text-sm text-slate-600">Top: povezano drevo levo → desno. Bottom: vsebina izbrane kategorije v storefront admin pogledu.</p>
+        <p className="mt-1 text-sm text-slate-600">
+          Top: povezano drevo levo → desno. Bottom: vsebina izbrane kategorije v storefront admin pogledu.
+        </p>
       </header>
 
       <ConfirmDialog
@@ -1234,6 +1411,7 @@ function SaveIcon() {
                   'Izbriši'
                 )}
               </button>
+
               <Button variant="primary" size="toolbar" onClick={() => openCreateDialog({ kind: 'category' })}>
                 Dodaj kategorijo
               </Button>
@@ -1250,17 +1428,39 @@ function SaveIcon() {
               <col className="w-28" />
               <col className="w-36" />
             </colgroup>
+
             <thead className="bg-slate-50">
               <tr>
-                <th className="border-b border-slate-200 px-2 py-2 text-center text-xs font-semibold text-slate-500"><input ref={selectAllRef} type="checkbox" checked={allRowsSelected} onChange={toggleSelectAll} aria-label="Izberi vse" /></th>
-                <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">Kategorija</th>
-                <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">Opis</th>
-                <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">Podkategorije</th>
-                <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">Izdelki</th>
-                <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">Status</th>
-                <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">Uredi</th>
+                <th className="border-b border-slate-200 px-2 py-2 text-center text-xs font-semibold text-slate-500">
+                  <input
+                    ref={selectAllRef}
+                    type="checkbox"
+                    checked={allRowsSelected}
+                    onChange={toggleSelectAll}
+                    aria-label="Izberi vse"
+                  />
+                </th>
+                <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">
+                  Kategorija
+                </th>
+                <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">
+                  Opis
+                </th>
+                <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">
+                  Podkategorije
+                </th>
+                <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">
+                  Izdelki
+                </th>
+                <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">
+                  Status
+                </th>
+                <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">
+                  Uredi
+                </th>
               </tr>
             </thead>
+
             <tbody>{treeRows}</tbody>
           </table>
         </AdminTableLayout>
@@ -1268,11 +1468,14 @@ function SaveIcon() {
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-3 flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Vsebina izbrane kategorije</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Vsebina izbrane kategorije
+          </p>
           <p className="text-xs text-slate-400">{saving ? 'Shranjujem ...' : 'Spremembe se shranjujejo sproti.'}</p>
         </div>
 
-        {selectedContext?.kind === 'root' || (selectedContext?.kind === 'category' && visibleContent.length > 0) ? (
+        {selectedContext?.kind === 'root' ||
+        (selectedContext?.kind === 'category' && visibleContent.length > 0) ? (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onBottomReorder}>
             <SortableContext items={visibleContent.map((item) => item.id)} strategy={rectSortingStrategy}>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -1281,19 +1484,56 @@ function SaveIcon() {
                     {(dragProps) => (
                       <article className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
                         <div className="relative h-36 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-                          {item.image ? <Image src={item.image} alt={item.title} fill className="object-cover" /> : <div className="flex h-full items-center justify-center text-xs text-slate-400">Brez slike</div>}
+                          {item.image ? (
+                            <Image src={item.image} alt={item.title} fill className="object-cover" />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-xs text-slate-400">
+                              Brez slike
+                            </div>
+                          )}
                         </div>
 
                         <div className="mt-2 flex items-center gap-1">
-                          <IconButton aria-label="Premakni" {...dragProps}>⋮⋮</IconButton>
-                          <Button variant="ghost" size="sm" onClick={() => {
-                            if (item.kind === 'category') setSelected({ kind: 'category', categorySlug: item.id });
-                            else if (selectedContext?.kind === 'category') setSelected({ kind: 'subcategory', categorySlug: selectedContext.category.slug, subcategorySlug: item.id });
-                          }}>Odpri</Button>
-                          <Button variant="ghost" size="sm" onClick={() => {
-                            if (item.kind === 'category') setSelected({ kind: 'category', categorySlug: item.id });
-                            if (item.kind === 'subcategory' && selectedContext?.kind === 'category') setSelected({ kind: 'subcategory', categorySlug: selectedContext.category.slug, subcategorySlug: item.id });
-                          }}>Skok na drevo</Button>
+                          <IconButton aria-label="Premakni" {...dragProps}>
+                            ⋮⋮
+                          </IconButton>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              if (item.kind === 'category') {
+                                setSelected({ kind: 'category', categorySlug: item.id });
+                              } else if (selectedContext?.kind === 'category') {
+                                setSelected({
+                                  kind: 'subcategory',
+                                  categorySlug: selectedContext.category.slug,
+                                  subcategorySlug: item.id
+                                });
+                              }
+                            }}
+                          >
+                            Odpri
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              if (item.kind === 'category') {
+                                setSelected({ kind: 'category', categorySlug: item.id });
+                              }
+                              if (item.kind === 'subcategory' && selectedContext?.kind === 'category') {
+                                setSelected({
+                                  kind: 'subcategory',
+                                  categorySlug: selectedContext.category.slug,
+                                  subcategorySlug: item.id
+                                });
+                              }
+                            }}
+                          >
+                            Skok na drevo
+                          </Button>
                         </div>
 
                         <div className="mt-3 space-y-2">
@@ -1304,13 +1544,19 @@ function SaveIcon() {
                             value={item.title}
                             onChange={(event) => {
                               const value = event.target.value;
+
                               if (item.kind === 'category') {
-                                void persist({ categories: catalog.categories.map((entry) => entry.slug === item.id ? { ...entry, title: value } : entry) });
+                                void persist({
+                                  categories: catalog.categories.map((entry) =>
+                                    entry.slug === item.id ? { ...entry, title: value } : entry
+                                  )
+                                });
                               } else if (selectedContext?.kind === 'category') {
                                 updateSubcategory(selectedContext.category.slug, item.id, { title: value });
                               }
                             }}
                           />
+
                           <FloatingTextarea
                             id={`desc-${item.id}`}
                             tone="admin"
@@ -1318,8 +1564,13 @@ function SaveIcon() {
                             value={item.description}
                             onChange={(event) => {
                               const value = event.target.value;
+
                               if (item.kind === 'category') {
-                                void persist({ categories: catalog.categories.map((entry) => entry.slug === item.id ? { ...entry, summary: value } : entry) });
+                                void persist({
+                                  categories: catalog.categories.map((entry) =>
+                                    entry.slug === item.id ? { ...entry, summary: value } : entry
+                                  )
+                                });
                               } else if (selectedContext?.kind === 'category') {
                                 updateSubcategory(selectedContext.category.slug, item.id, { description: value });
                               }
@@ -1328,9 +1579,52 @@ function SaveIcon() {
                         </div>
 
                         <div className="mt-2 flex items-center gap-2">
-                          <input ref={(element) => { uploadRefs.current[item.id] = element; }} type="file" accept="image/*" className="hidden" onChange={(event) => void onImageUpload(event.target.files?.[0] ?? null, item, selectedContext?.kind === 'category' ? selectedContext.category.slug : undefined)} />
-                          <Button variant="outline" size="sm" onClick={() => uploadRefs.current[item.id]?.click()}>{item.image ? 'Zamenjaj sliko' : 'Naloži sliko'}</Button>
-                          {item.image ? <Button variant="ghost" size="sm" onClick={() => setImageDeleteTarget({ kind: item.kind, categorySlug: item.kind === 'category' ? item.id : selectedContext?.kind === 'category' ? selectedContext.category.slug : '', subcategorySlug: item.kind === 'subcategory' ? item.id : undefined })}>Odstrani sliko</Button> : null}
+                          <input
+                            ref={(element) => {
+                              uploadRefs.current[item.id] = element;
+                            }}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(event) =>
+                              void onImageUpload(
+                                event.target.files?.[0] ?? null,
+                                item,
+                                selectedContext?.kind === 'category'
+                                  ? selectedContext.category.slug
+                                  : undefined
+                              )
+                            }
+                          />
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => uploadRefs.current[item.id]?.click()}
+                          >
+                            {item.image ? 'Zamenjaj sliko' : 'Naloži sliko'}
+                          </Button>
+
+                          {item.image ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                setImageDeleteTarget({
+                                  kind: item.kind,
+                                  categorySlug:
+                                    item.kind === 'category'
+                                      ? item.id
+                                      : selectedContext?.kind === 'category'
+                                        ? selectedContext.category.slug
+                                        : '',
+                                  subcategorySlug: item.kind === 'subcategory' ? item.id : undefined
+                                })
+                              }
+                            >
+                              Odstrani sliko
+                            </Button>
+                          ) : null}
                         </div>
                       </article>
                     )}
@@ -1342,11 +1636,22 @@ function SaveIcon() {
         ) : null}
 
         {selectedContext?.kind === 'category' && selectedContext.category.subcategories.length === 0 ? (
-          <LeafProductsView title={`${selectedContext.category.title} — izdelki`} category={selectedContext.category} items={sortCatalogItems(selectedContext.category.items ?? [])} onDragEnd={onLeafProductsDragEnd} />
+          <LeafProductsView
+            title={`${selectedContext.category.title} — izdelki`}
+            category={selectedContext.category}
+            items={sortCatalogItems(selectedContext.category.items ?? [])}
+            onDragEnd={onLeafProductsDragEnd}
+          />
         ) : null}
 
         {selectedContext?.kind === 'subcategory' ? (
-          <LeafProductsView title={`${selectedContext.category.title} / ${selectedContext.subcategory.title}`} category={selectedContext.category} subcategory={selectedContext.subcategory} items={sortCatalogItems(selectedContext.subcategory.items)} onDragEnd={onLeafProductsDragEnd} />
+          <LeafProductsView
+            title={`${selectedContext.category.title} / ${selectedContext.subcategory.title}`}
+            category={selectedContext.category}
+            subcategory={selectedContext.subcategory}
+            items={sortCatalogItems(selectedContext.subcategory.items)}
+            onDragEnd={onLeafProductsDragEnd}
+          />
         ) : null}
       </section>
     </div>
@@ -1367,10 +1672,12 @@ function LeafProductsView({
   onDragEnd: (event: DragEndEvent) => void;
 }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+
   return (
     <div>
       <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
       <p className="mt-1 text-sm text-slate-600">Storefront-like pogled izdelkov iz izbrane kategorije.</p>
+
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={items.map((item) => item.slug)} strategy={rectSortingStrategy}>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -1380,7 +1687,9 @@ function LeafProductsView({
                   const basePrice = subcategory
                     ? item.price ?? getCatalogItemPrice(category.slug, subcategory.slug, item.slug)
                     : item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug);
+
                   const finalPrice = getDiscountedPrice(basePrice, item.discountPct);
+
                   return (
                     <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                       {item.image ? (
@@ -1388,12 +1697,21 @@ function LeafProductsView({
                           <Image src={item.images?.[0] ?? item.image} alt={item.name} fill className="object-contain p-2" />
                         </div>
                       ) : null}
+
                       <h4 className="mt-2 text-sm font-semibold text-slate-900">{item.name}</h4>
                       <p className="mt-1 text-xs text-slate-600">{item.description}</p>
                       <p className="mt-2 text-sm font-semibold text-slate-900">{formatCatalogPrice(finalPrice)}</p>
-                      <p className="mt-1 text-[11px] text-slate-500">SKU: {subcategory ? getCatalogItemSku(category.slug, subcategory.slug, item.slug) : getCatalogCategoryItemSku(category.slug, item.slug)}</p>
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        SKU:{' '}
+                        {subcategory
+                          ? getCatalogItemSku(category.slug, subcategory.slug, item.slug)
+                          : getCatalogCategoryItemSku(category.slug, item.slug)}
+                      </p>
+
                       <div className="mt-2">
-                        <IconButton aria-label="Premakni izdelek" {...dragProps}>⋮⋮</IconButton>
+                        <IconButton aria-label="Premakni izdelek" {...dragProps}>
+                          ⋮⋮
+                        </IconButton>
                       </div>
                     </article>
                   );

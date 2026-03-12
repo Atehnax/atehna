@@ -56,8 +56,10 @@ type CreateTarget =
   | { kind: 'category'; afterSlug?: string }
   | { kind: 'subcategory'; categorySlug: string; afterSlug?: string }
   | null;
+type CategoryStatus = 'active' | 'inactive';
 
 const bulkDeleteButtonClass = buttonTokenClasses.danger;
+const CATEGORY_STATUS_STORAGE_KEY = 'admin-categories-status-v1';
 
 const rootId = 'root';
 const catId = (slug: string) => `cat:${slug}`;
@@ -106,22 +108,13 @@ function PlusIcon() {
   );
 }
 
-function DotsVerticalIcon() {
-  return (
-    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true">
-      <circle cx="10" cy="4.5" r="1.5" />
-      <circle cx="10" cy="10" r="1.5" />
-      <circle cx="10" cy="15.5" r="1.5" />
-    </svg>
-  );
-}
-
 export default function AdminCategoriesManager() {
   const [catalog, setCatalog] = useState<CatalogData>({ categories: [] });
   const [selected, setSelected] = useState<SelectedNode>({ kind: 'root' });
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ [rootId]: true });
   const [editingRow, setEditingRow] = useState<EditingRowDraft | null>(null);
-  const [rowMenuOpenId, setRowMenuOpenId] = useState<string | null>(null);
+  const [statusByRow, setStatusByRow] = useState<Record<string, CategoryStatus>>({});
+  const [openStatusMenuRowId, setOpenStatusMenuRowId] = useState<string | null>(null);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [createTarget, setCreateTarget] = useState<CreateTarget>(null);
   const [createName, setCreateName] = useState('');
@@ -135,8 +128,9 @@ export default function AdminCategoriesManager() {
   const { toast } = useToast();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const uploadRefs = useRef<Record<string, HTMLInputElement | null>>({});
-  const rowMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const statusMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const selectAllRef = useRef<HTMLInputElement>(null);
+  const isInlineSavingRef = useRef(false);
 
   const load = async () => {
     setLoading(true);
@@ -153,6 +147,18 @@ export default function AdminCategoriesManager() {
       [rootId]: true,
       ...Object.fromEntries(payload.categories.map((entry) => [catId(entry.slug), false]))
     }));
+    setStatusByRow((prev) => {
+      const next = { ...prev };
+      payload.categories.forEach((category) => {
+        const categoryId = catId(category.slug);
+        if (!next[categoryId]) next[categoryId] = 'active';
+        category.subcategories.forEach((subcategory) => {
+          const subcategoryId = subId(category.slug, subcategory.slug);
+          if (!next[subcategoryId]) next[subcategoryId] = 'active';
+        });
+      });
+      return next;
+    });
     setLoading(false);
   };
 
@@ -162,18 +168,35 @@ export default function AdminCategoriesManager() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = window.localStorage.getItem(CATEGORY_STATUS_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Record<string, CategoryStatus>;
+      setStatusByRow(parsed);
+    } catch {
+      // no-op
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(CATEGORY_STATUS_STORAGE_KEY, JSON.stringify(statusByRow));
+  }, [statusByRow]);
+
+  useEffect(() => {
     const closeOnOutsideClick = (event: MouseEvent) => {
-      if (!rowMenuOpenId) return;
-      const container = rowMenuRefs.current[rowMenuOpenId];
+      if (!openStatusMenuRowId) return;
+      const container = statusMenuRefs.current[openStatusMenuRowId];
       if (!container) return;
       if (!container.contains(event.target as Node)) {
-        setRowMenuOpenId(null);
+        setOpenStatusMenuRowId(null);
       }
     };
 
     window.addEventListener('mousedown', closeOnOutsideClick);
     return () => window.removeEventListener('mousedown', closeOnOutsideClick);
-  }, [rowMenuOpenId]);
+  }, [openStatusMenuRowId]);
 
   const persist = async (next: CatalogData, message = 'Shranjeno') => {
     setCatalog(next);
@@ -383,9 +406,12 @@ export default function AdminCategoriesManager() {
 
   const saveInlineEdit = async () => {
     if (!editingRow) return;
+    if (isInlineSavingRef.current) return;
+    isInlineSavingRef.current = true;
     const nextTitle = editingRow.title.trim();
     if (!nextTitle) {
       toast.error('Naziv je obvezen');
+      isInlineSavingRef.current = false;
       return;
     }
 
@@ -399,6 +425,7 @@ export default function AdminCategoriesManager() {
       };
       const ok = await persist(next, 'Shranjeno');
       if (ok) setEditingRow(null);
+      isInlineSavingRef.current = false;
       return;
     }
 
@@ -418,6 +445,7 @@ export default function AdminCategoriesManager() {
     };
     const ok = await persist(next, 'Shranjeno');
     if (ok) setEditingRow(null);
+    isInlineSavingRef.current = false;
   };
 
   const handleInlineBlur = (event: FocusEvent<HTMLInputElement>) => {
@@ -528,10 +556,17 @@ export default function AdminCategoriesManager() {
     const isRowEditing = editingRow?.id === id;
     const isChecked = selectedRows.includes(id);
     const isRoot = kind === 'root';
-    const rowDepthTone = level === 1 ? 'bg-blue-50/60' : level >= 2 ? 'bg-violet-50/60' : 'bg-slate-50/70';
+    const rowDepthTone = level === 1 ? 'bg-slate-100/90' : level === 2 ? 'bg-slate-200/80' : level >= 3 ? 'bg-slate-300/70' : 'bg-slate-50/90';
+    const rowStatus = statusByRow[id] ?? 'active';
+    const statusLabel = rowStatus === 'active' ? 'Aktivna' : 'Neaktiven';
 
-    const startInlineEdit = () => {
+    const toggleInlineEdit = () => {
       if (!categorySlug || isRoot) return;
+      if (isRowEditing) {
+        void saveInlineEdit();
+        setOpenStatusMenuRowId(null);
+        return;
+      }
       setEditingRow({
         id,
         kind: kind === 'category' ? 'category' : 'subcategory',
@@ -540,7 +575,15 @@ export default function AdminCategoriesManager() {
         title,
         description
       });
-      setRowMenuOpenId(null);
+      setOpenStatusMenuRowId(null);
+    };
+
+    const setStatus = (nextStatus: CategoryStatus) => {
+      setStatusByRow((prev) => ({ ...prev, [id]: nextStatus }));
+      setOpenStatusMenuRowId(null);
+      if (isRowEditing) {
+        setEditingRow(null);
+      }
     };
 
     const toggleChecked = () => {
@@ -562,9 +605,9 @@ export default function AdminCategoriesManager() {
           )}
         </td>
         <td className="border-b border-slate-200 px-3 py-2 align-middle">
-          <div className={`relative flex min-h-8 items-center gap-2 rounded-md px-1 ${rowDepthTone}`} style={{ paddingLeft: `${level * 22}px` }}>
-            {level > 0 ? <span className="absolute bottom-1/2 left-3 h-px w-3 bg-slate-300" style={{ transform: `translateX(${(level - 1) * 22}px)` }} /> : null}
-            {level > 0 && !isLast ? <span className="absolute left-3 top-[-14px] bottom-[-14px] w-px bg-slate-300" style={{ transform: `translateX(${(level - 1) * 22}px)` }} /> : null}
+          <div className={`relative flex min-h-8 items-center gap-2 rounded-md px-1 ${rowDepthTone}`} style={{ paddingLeft: `${level * 24}px` }}>
+            {level > 0 ? <span className="absolute left-3 top-[-16px] h-1/2 w-3 rounded-bl-lg border-b border-l border-slate-300" style={{ transform: `translateX(${(level - 1) * 24}px)` }} /> : null}
+            {level > 0 && !isLast ? <span className="absolute left-3 top-1/2 bottom-[-16px] w-px bg-slate-300" style={{ transform: `translateX(${(level - 1) * 24}px)` }} /> : null}
             {hasChildren ? (
               <IconButton type="button" tone="neutral" aria-label="Razširi/skrij" onClick={() => toggleExpanded(id)}>
                 {(expanded[id] ?? false) ? <ChevronUpIcon /> : <ChevronDownIcon />}
@@ -576,7 +619,8 @@ export default function AdminCategoriesManager() {
                 onChange={(event: ChangeEvent<HTMLInputElement>) => setEditingRow((prev) => (prev ? { ...prev, title: event.target.value } : prev))}
                 data-inline-edit-field="true"
                 onBlur={handleInlineBlur}
-                className="h-8 w-full min-w-[180px] px-2 text-xs"
+                className="h-8 min-w-[10ch] max-w-[34ch] px-2 text-xs"
+                style={{ width: `${Math.min(34, Math.max(10, editingRow.title.length + 2))}ch` }}
                 autoFocus
               />
             ) : (
@@ -614,56 +658,68 @@ export default function AdminCategoriesManager() {
               onChange={(event: ChangeEvent<HTMLInputElement>) => setEditingRow((prev) => (prev ? { ...prev, description: event.target.value } : prev))}
               data-inline-edit-field="true"
               onBlur={handleInlineBlur}
-              className="h-8 w-full px-2 text-xs"
+              className="h-8 min-w-[12ch] max-w-[42ch] px-2 text-xs"
+              style={{ width: `${Math.min(42, Math.max(12, editingRow.description.length + 2))}ch` }}
             />
           ) : (description || '—')}
         </td>
         <td className="border-b border-slate-200 px-3 py-2 text-center text-sm text-slate-600">{childrenCount}</td>
         <td className="border-b border-slate-200 px-3 py-2 text-center text-sm text-slate-600">{productCount}</td>
         <td className="border-b border-slate-200 px-3 py-2 text-center text-sm">
-          <Chip variant="success" className={`min-w-0 px-2.5 text-xs ${buttonTokenClasses.activeSuccess}`}>
-            Aktivna
-          </Chip>
+          {isRowEditing && !isRoot ? (
+            <div className="relative inline-flex" ref={(node) => { statusMenuRefs.current[id] = node; }}>
+              <button
+                type="button"
+                onClick={() => setOpenStatusMenuRowId((prev) => (prev === id ? null : id))}
+                className="rounded-full"
+                aria-haspopup="menu"
+                aria-expanded={openStatusMenuRowId === id}
+              >
+                <Chip
+                  variant={rowStatus === 'active' ? 'success' : 'neutral'}
+                  className={`min-w-0 px-2.5 text-xs ${rowStatus === 'active' ? buttonTokenClasses.activeSuccess : buttonTokenClasses.inactiveNeutral}`}
+                >
+                  {statusLabel}
+                </Chip>
+              </button>
+
+              {openStatusMenuRowId === id ? (
+                <MenuPanel className="absolute left-1/2 top-8 z-20 w-36 -translate-x-1/2">
+                  <MenuItem onClick={() => setStatus('active')} disabled={rowStatus === 'active'}>Aktivna</MenuItem>
+                  <MenuItem onClick={() => setStatus('inactive')} disabled={rowStatus === 'inactive'}>Neaktiven</MenuItem>
+                </MenuPanel>
+              ) : null}
+            </div>
+          ) : (
+            <Chip
+              variant={rowStatus === 'active' ? 'success' : 'neutral'}
+              className={`min-w-0 px-2.5 text-xs ${rowStatus === 'active' ? buttonTokenClasses.activeSuccess : buttonTokenClasses.inactiveNeutral}`}
+            >
+              {statusLabel}
+            </Chip>
+          )}
         </td>
         <td className="border-b border-slate-200 px-3 py-2 text-center">
           {kind === 'root' || !categorySlug ? null : (
             <RowActions>
-              <IconButton type="button" tone="neutral" onClick={startInlineEdit} aria-label="Uredi" title="Uredi">
+              <IconButton type="button" tone="neutral" onClick={toggleInlineEdit} aria-label="Uredi" title="Uredi">
                 <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                   <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
                   <path d="M11.5 4.5l3 3" />
                 </svg>
               </IconButton>
-
-              <div className="relative" ref={(node) => { rowMenuRefs.current[id] = node; }}>
-                <IconButton
-                  type="button"
-                  tone="neutral"
-                  onClick={() => setRowMenuOpenId((prev) => (prev === id ? null : id))}
-                  aria-label="Možnosti"
-                  title="Možnosti"
-                >
-                  <DotsVerticalIcon />
-                </IconButton>
-
-                {rowMenuOpenId === id ? (
-                  <MenuPanel className="absolute right-0 top-8 z-20 w-40">
-                    <MenuItem onClick={() => {
-                      if (kind === 'category') openCreateDialog({ kind: 'subcategory', categorySlug });
-                      if (kind === 'subcategory' && subcategorySlug) openCreateDialog({ kind: 'subcategory', categorySlug, afterSlug: subcategorySlug });
-                      setRowMenuOpenId(null);
-                    }}>
-                      Dodaj podkategorijo
-                    </MenuItem>
-                    <MenuItem onClick={() => {
-                      startInlineEdit();
-                      setRowMenuOpenId(null);
-                    }}>
-                      Uredi
-                    </MenuItem>
-                  </MenuPanel>
-                ) : null}
-              </div>
+              <IconButton
+                type="button"
+                tone="neutral"
+                aria-label="Dodaj podkategorijo"
+                title="Dodaj podkategorijo"
+                onClick={() => {
+                  if (kind === 'category') openCreateDialog({ kind: 'subcategory', categorySlug });
+                  if (kind === 'subcategory' && subcategorySlug) openCreateDialog({ kind: 'subcategory', categorySlug, afterSlug: subcategorySlug });
+                }}
+              >
+                <PlusIcon />
+              </IconButton>
 
               <Button
                 type="button"

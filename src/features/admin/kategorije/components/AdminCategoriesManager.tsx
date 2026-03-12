@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode } from 'react';
 import Image from 'next/image';
 import {
   DndContext,
@@ -31,6 +31,12 @@ import { Button } from '@/shared/ui/button';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { FloatingInput, FloatingTextarea } from '@/shared/ui/floating-field';
 import { IconButton } from '@/shared/ui/icon-button';
+import { Chip } from '@/shared/ui/badge';
+import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import { RowActions } from '@/shared/ui/table';
+import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
+import { Input } from '@/shared/ui/input';
+import { Spinner } from '@/shared/ui/loading';
 import { useToast } from '@/shared/ui/toast';
 
 type CatalogData = { categories: CatalogCategory[] };
@@ -38,19 +44,29 @@ type SelectedNode = { kind: 'root' } | { kind: 'category'; categorySlug: string 
 type DeleteTarget = { kind: 'category' | 'subcategory'; categorySlug: string; subcategorySlug?: string } | null;
 type ImageDeleteTarget = { kind: 'category' | 'subcategory'; categorySlug: string; subcategorySlug?: string } | null;
 type ContentCard = { id: string; title: string; description: string; image?: string; kind: 'category' | 'subcategory' };
+type EditingRowDraft = {
+  id: string;
+  kind: 'root' | 'category' | 'subcategory';
+  categorySlug?: string;
+  subcategorySlug?: string;
+  title: string;
+  description: string;
+  status: CategoryStatus;
+};
+type CreateTarget =
+  | { kind: 'category'; afterSlug?: string }
+  | { kind: 'subcategory'; categorySlug: string; afterSlug?: string }
+  | null;
+type CategoryStatus = 'active' | 'inactive';
+
+const bulkDeleteButtonClass = buttonTokenClasses.danger;
+const CATEGORY_STATUS_STORAGE_KEY = 'admin-categories-status-v1';
+const ROOT_META_STORAGE_KEY = 'admin-categories-root-meta-v1';
 
 const rootId = 'root';
 const catId = (slug: string) => `cat:${slug}`;
 const subId = (catSlug: string, subSlug: string) => `sub:${catSlug}:${subSlug}`;
 const slugify = (value: string) => value.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-čšžćđ]/gi, '');
-
-function parseTreeId(id: string): { kind: 'category' | 'subcategory'; categorySlug: string; subcategorySlug?: string } | null {
-  if (id.startsWith('cat:')) return { kind: 'category', categorySlug: id.slice(4) };
-  if (!id.startsWith('sub:')) return null;
-  const [, categorySlug, subcategorySlug] = id.split(':');
-  if (!categorySlug || !subcategorySlug) return null;
-  return { kind: 'subcategory', categorySlug, subcategorySlug };
-}
 
 async function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -70,19 +86,64 @@ function SortableItem({ id, children }: { id: string; children: (dragHandleProps
   );
 }
 
+function ChevronDownIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M5 8l5 5 5-5" />
+    </svg>
+  );
+}
+
+function ChevronUpIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M5 12l5-5 5 5" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M10 4v12M4 10h12" />
+    </svg>
+  );
+}
+
+function SaveIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M4 3h9l3 3v11H4z" />
+      <path d="M7 3v5h6V3" />
+      <path d="M7 13h6" />
+    </svg>
+  );
+}
+
 export default function AdminCategoriesManager() {
   const [catalog, setCatalog] = useState<CatalogData>({ categories: [] });
   const [selected, setSelected] = useState<SelectedNode>({ kind: 'root' });
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ [rootId]: true });
-  const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
-  const [draftTitle, setDraftTitle] = useState('');
+  const [editingRow, setEditingRow] = useState<EditingRowDraft | null>(null);
+  const [statusByRow, setStatusByRow] = useState<Record<string, CategoryStatus>>({});
+  const [openStatusMenuRowId, setOpenStatusMenuRowId] = useState<string | null>(null);
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [createTarget, setCreateTarget] = useState<CreateTarget>(null);
+  const [createName, setCreateName] = useState('');
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
+  const [deletingRowId, setDeletingRowId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
   const [imageDeleteTarget, setImageDeleteTarget] = useState<ImageDeleteTarget>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [rootMeta, setRootMeta] = useState({ title: 'Vse kategorije', description: 'Root' });
   const { toast } = useToast();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const uploadRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const statusMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const selectAllRef = useRef<HTMLInputElement>(null);
+  const isInlineSavingRef = useRef(false);
 
   const load = async () => {
     setLoading(true);
@@ -99,6 +160,19 @@ export default function AdminCategoriesManager() {
       [rootId]: true,
       ...Object.fromEntries(payload.categories.map((entry) => [catId(entry.slug), false]))
     }));
+    setStatusByRow((prev) => {
+      const next = { ...prev };
+      payload.categories.forEach((category) => {
+        const categoryId = catId(category.slug);
+        if (!next[categoryId]) next[categoryId] = 'active';
+        category.subcategories.forEach((subcategory) => {
+          const subcategoryId = subId(category.slug, subcategory.slug);
+          if (!next[subcategoryId]) next[subcategoryId] = 'active';
+        });
+      });
+      if (!next[rootId]) next[rootId] = 'active';
+      return next;
+    });
     setLoading(false);
   };
 
@@ -106,6 +180,57 @@ export default function AdminCategoriesManager() {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = window.localStorage.getItem(CATEGORY_STATUS_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Record<string, CategoryStatus>;
+      setStatusByRow(parsed);
+    } catch {
+      // no-op
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(CATEGORY_STATUS_STORAGE_KEY, JSON.stringify(statusByRow));
+  }, [statusByRow]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = window.localStorage.getItem(ROOT_META_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { title?: string; description?: string };
+      setRootMeta({
+        title: parsed.title?.trim() || 'Vse kategorije',
+        description: parsed.description ?? 'Root'
+      });
+    } catch {
+      // no-op
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(ROOT_META_STORAGE_KEY, JSON.stringify(rootMeta));
+  }, [rootMeta]);
+
+  useEffect(() => {
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!openStatusMenuRowId) return;
+      const container = statusMenuRefs.current[openStatusMenuRowId];
+      if (!container) return;
+      if (!container.contains(event.target as Node)) {
+        setOpenStatusMenuRowId(null);
+      }
+    };
+
+    window.addEventListener('mousedown', closeOnOutsideClick);
+    return () => window.removeEventListener('mousedown', closeOnOutsideClick);
+  }, [openStatusMenuRowId]);
 
   const persist = async (next: CatalogData, message = 'Shranjeno') => {
     setCatalog(next);
@@ -118,9 +243,10 @@ export default function AdminCategoriesManager() {
     setSaving(false);
     if (!response.ok) {
       toast.error('Shranjevanje ni uspelo');
-      return;
+      return false;
     }
     toast.success(message);
+    return true;
   };
 
   const selectedContext = useMemo(() => {
@@ -133,41 +259,7 @@ export default function AdminCategoriesManager() {
     return { kind: 'subcategory' as const, category, subcategory };
   }, [catalog.categories, selected]);
 
-  const startRename = (id: string, title: string) => {
-    setEditingNodeId(id);
-    setDraftTitle(title);
-  };
-
-  const renameNode = () => {
-    if (!editingNodeId) return;
-    const parsed = parseTreeId(editingNodeId);
-    const nextTitle = draftTitle.trim();
-    const nextSlug = slugify(nextTitle);
-    if (!parsed || !nextTitle || !nextSlug) return;
-
-    if (parsed.kind === 'category') {
-      const next = { categories: catalog.categories.map((entry) => entry.slug === parsed.categorySlug ? { ...entry, title: nextTitle, slug: nextSlug } : entry) };
-      setSelected({ kind: 'category', categorySlug: nextSlug });
-      setEditingNodeId(null);
-      void persist(next, 'Kategorija preimenovana');
-      return;
-    }
-
-    const next = {
-      categories: catalog.categories.map((entry) =>
-        entry.slug === parsed.categorySlug
-          ? { ...entry, subcategories: entry.subcategories.map((sub) => sub.slug === parsed.subcategorySlug ? { ...sub, title: nextTitle, slug: nextSlug } : sub) }
-          : entry
-      )
-    };
-    setSelected({ kind: 'subcategory', categorySlug: parsed.categorySlug, subcategorySlug: nextSlug });
-    setEditingNodeId(null);
-    void persist(next, 'Podkategorija preimenovana');
-  };
-
-  const addCategory = (afterSlug?: string) => {
-    const title = window.prompt('Ime nove kategorije');
-    if (!title) return;
+  const addCategory = (title: string, afterSlug?: string) => {
     const slug = slugify(title);
     if (!slug) return;
     const item: CatalogCategory = { slug, title, summary: title, description: '', image: '', subcategories: [], items: [] };
@@ -181,9 +273,7 @@ export default function AdminCategoriesManager() {
     void persist({ categories: list }, 'Kategorija dodana');
   };
 
-  const addSubcategory = (categorySlug: string, afterSlug?: string) => {
-    const title = window.prompt('Ime nove podkategorije');
-    if (!title) return;
+  const addSubcategory = (categorySlug: string, title: string, afterSlug?: string) => {
     const slug = slugify(title);
     if (!slug) return;
     const next = {
@@ -201,6 +291,23 @@ export default function AdminCategoriesManager() {
     };
     setExpanded((prev) => ({ ...prev, [catId(categorySlug)]: true }));
     void persist(next, 'Podkategorija dodana');
+  };
+
+  const openCreateDialog = (target: CreateTarget) => {
+    setCreateTarget(target);
+    setCreateName('');
+  };
+
+  const confirmCreate = () => {
+    const nextName = createName.trim();
+    if (!nextName || !createTarget) return;
+    if (createTarget.kind === 'category') {
+      addCategory(nextName, createTarget.afterSlug);
+    } else {
+      addSubcategory(createTarget.categorySlug, nextName, createTarget.afterSlug);
+    }
+    setCreateTarget(null);
+    setCreateName('');
   };
 
   const onBottomReorder = (event: DragEndEvent) => {
@@ -281,10 +388,17 @@ export default function AdminCategoriesManager() {
 
   const confirmDeleteNode = () => {
     if (!deleteTarget) return;
+    const currentDeleteId =
+      deleteTarget.kind === 'category'
+        ? catId(deleteTarget.categorySlug)
+        : subId(deleteTarget.categorySlug, deleteTarget.subcategorySlug ?? '');
+    setDeletingRowId(currentDeleteId);
     if (deleteTarget.kind === 'category') {
       setDeleteTarget(null);
       setSelected({ kind: 'root' });
-      void persist({ categories: catalog.categories.filter((entry) => entry.slug !== deleteTarget.categorySlug) }, 'Kategorija izbrisana');
+      void persist({ categories: catalog.categories.filter((entry) => entry.slug !== deleteTarget.categorySlug) }, 'Kategorija izbrisana').finally(() => {
+        setDeletingRowId(null);
+      });
       return;
     }
 
@@ -296,7 +410,9 @@ export default function AdminCategoriesManager() {
           ? { ...entry, subcategories: entry.subcategories.filter((sub) => sub.slug !== deleteTarget.subcategorySlug) }
           : entry
       )
-    }, 'Podkategorija izbrisana');
+    }, 'Podkategorija izbrisana').finally(() => {
+      setDeletingRowId(null);
+    });
   };
 
   const confirmDeleteImage = () => {
@@ -322,31 +438,145 @@ export default function AdminCategoriesManager() {
 
   const toggleExpanded = (id: string) => setExpanded((prev) => ({ ...prev, [id]: !(prev[id] ?? false) }));
 
-  const renderActionSelect = (node: { kind: 'category' | 'subcategory'; categorySlug: string; subcategorySlug?: string; id: string; title: string }) => (
-    <select
-      defaultValue=""
-      onChange={(event) => {
-        const action = event.target.value;
-        if (action === 'create-subcategory') {
-          if (node.kind === 'category') addSubcategory(node.categorySlug);
-          if (node.kind === 'subcategory' && node.subcategorySlug) addSubcategory(node.categorySlug, node.subcategorySlug);
-        }
-        if (action === 'rename') startRename(node.id, node.title);
-        if (action === 'delete') {
-          setDeleteTarget(node.kind === 'category'
-            ? { kind: 'category', categorySlug: node.categorySlug }
-            : { kind: 'subcategory', categorySlug: node.categorySlug, subcategorySlug: node.subcategorySlug });
-        }
-        event.currentTarget.selectedIndex = 0;
-      }}
-      className="h-7 w-[120px] rounded border border-slate-300 bg-white px-2 text-xs"
-    >
-      <option value="">Možnosti</option>
-      <option value="create-subcategory">Ustvari podk.</option>
-      <option value="rename">Uredi naziv</option>
-      <option value="delete">Izbriši</option>
-    </select>
+  const saveInlineEdit = async () => {
+    if (!editingRow) return;
+    if (isInlineSavingRef.current) return;
+    isInlineSavingRef.current = true;
+    const nextTitle = editingRow.title.trim();
+    if (!nextTitle) {
+      toast.error('Naziv je obvezen');
+      isInlineSavingRef.current = false;
+      return;
+    }
+
+    if (editingRow.kind === 'root') {
+      setRootMeta({ title: nextTitle, description: editingRow.description });
+      setStatusByRow((prev) => ({ ...prev, [rootId]: editingRow.status }));
+      toast.success('Shranjeno');
+      setEditingRow(null);
+      isInlineSavingRef.current = false;
+      return;
+    }
+
+    if (editingRow.kind === 'category') {
+      if (!editingRow.categorySlug) {
+        isInlineSavingRef.current = false;
+        return;
+      }
+      const next = {
+        categories: catalog.categories.map((entry) =>
+          entry.slug === editingRow.categorySlug
+            ? { ...entry, title: nextTitle, summary: editingRow.description }
+            : entry
+        )
+      };
+      const ok = await persist(next, 'Shranjeno');
+      if (ok) {
+        setStatusByRow((prev) => ({ ...prev, [editingRow.id]: editingRow.status }));
+        setEditingRow(null);
+      }
+      isInlineSavingRef.current = false;
+      return;
+    }
+
+    if (!editingRow.categorySlug || !editingRow.subcategorySlug) {
+      isInlineSavingRef.current = false;
+      return;
+    }
+
+    const next = {
+      categories: catalog.categories.map((entry) =>
+        entry.slug === editingRow.categorySlug
+          ? {
+              ...entry,
+              subcategories: entry.subcategories.map((sub) =>
+                sub.slug === editingRow.subcategorySlug
+                  ? { ...sub, title: nextTitle, description: editingRow.description }
+                  : sub
+              )
+            }
+          : entry
+      )
+    };
+    const ok = await persist(next, 'Shranjeno');
+    if (ok) {
+      setStatusByRow((prev) => ({ ...prev, [editingRow.id]: editingRow.status }));
+      setEditingRow(null);
+    }
+    isInlineSavingRef.current = false;
+  };
+
+  const handleInlineBlur = (_event: FocusEvent<HTMLInputElement>) => {};
+
+  const visibleRowIds = useMemo(() => {
+    const ids = [rootId];
+    if (!(expanded[rootId] ?? true)) return ids;
+    catalog.categories.forEach((category) => {
+      const categoryNodeId = catId(category.slug);
+      ids.push(categoryNodeId);
+      if (expanded[categoryNodeId]) {
+        category.subcategories.forEach((subcategory) => {
+          ids.push(subId(category.slug, subcategory.slug));
+        });
+      }
+    });
+    return ids;
+  }, [catalog.categories, expanded]);
+
+  const selectableVisibleRowIds = useMemo(() => visibleRowIds.filter((id) => id !== rootId), [visibleRowIds]);
+  const selectedVisibleCount = useMemo(
+    () => selectableVisibleRowIds.filter((id) => selectedRows.includes(id)).length,
+    [selectableVisibleRowIds, selectedRows]
   );
+  const allRowsSelected = selectableVisibleRowIds.length > 0 && selectedVisibleCount === selectableVisibleRowIds.length;
+
+  useEffect(() => {
+    const validIds = new Set([
+      ...catalog.categories.map((category) => catId(category.slug)),
+      ...catalog.categories.flatMap((category) => category.subcategories.map((subcategory) => subId(category.slug, subcategory.slug)))
+    ]);
+    setSelectedRows((current) => current.filter((id) => validIds.has(id)));
+  }, [catalog.categories]);
+
+  useEffect(() => {
+    if (!selectAllRef.current) return;
+    selectAllRef.current.indeterminate = selectedVisibleCount > 0 && !allRowsSelected;
+  }, [allRowsSelected, selectedVisibleCount]);
+
+  const toggleSelectAll = () => {
+    if (allRowsSelected) {
+      setSelectedRows((current) => current.filter((id) => !selectableVisibleRowIds.includes(id)));
+      return;
+    }
+    setSelectedRows((current) => Array.from(new Set([...current, ...selectableVisibleRowIds])));
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedRows.length === 0) return;
+    setIsBulkDeleteDialogOpen(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    if (selectedRows.length === 0) return;
+    setIsBulkDeleteDialogOpen(false);
+    setIsBulkDeleting(true);
+    const selectedSet = new Set(selectedRows);
+
+    const next = {
+      categories: catalog.categories
+        .filter((category) => !selectedSet.has(catId(category.slug)))
+        .map((category) => ({
+          ...category,
+          subcategories: category.subcategories.filter((subcategory) => !selectedSet.has(subId(category.slug, subcategory.slug)))
+        }))
+    };
+
+    const ok = await persist(next, 'Izbrisano');
+    if (ok) {
+      setSelectedRows([]);
+    }
+    setIsBulkDeleting(false);
+  };
 
   const renderTreeRow = ({
     id,
@@ -357,7 +587,8 @@ export default function AdminCategoriesManager() {
     subcategorySlug,
     description,
     childrenCount,
-    productCount
+    productCount,
+    isLast
   }: {
     id: string;
     title: string;
@@ -368,6 +599,7 @@ export default function AdminCategoriesManager() {
     description: string;
     childrenCount: number;
     productCount: number;
+    isLast: boolean;
   }) => {
     const isSelected =
       (selected.kind === 'root' && kind === 'root') ||
@@ -375,25 +607,73 @@ export default function AdminCategoriesManager() {
       (selected.kind === 'subcategory' && kind === 'subcategory' && selected.categorySlug === categorySlug && selected.subcategorySlug === subcategorySlug);
 
     const hasChildren = childrenCount > 0;
+    const isRowEditing = editingRow?.id === id;
+    const isChecked = selectedRows.includes(id);
+    const isRoot = kind === 'root';
+    const rowDepthTone = level === 1 ? 'bg-slate-100/90' : level === 2 ? 'bg-slate-200/85' : level >= 3 ? 'bg-slate-300/75' : 'bg-slate-50/90';
+    const rowStatus = statusByRow[id] ?? 'active';
+    const statusLabel = rowStatus === 'active' ? 'Aktivna' : 'Neaktiven';
+
+    const toggleInlineEdit = () => {
+      if (isRowEditing) {
+        setEditingRow(null);
+        setOpenStatusMenuRowId(null);
+        return;
+      }
+      setEditingRow({
+        id,
+        kind,
+        categorySlug,
+        subcategorySlug,
+        title,
+        description,
+        status: rowStatus
+      });
+      setOpenStatusMenuRowId(null);
+    };
+
+    const setStatus = (nextStatus: CategoryStatus) => {
+      setEditingRow((prev) => (prev && prev.id === id ? { ...prev, status: nextStatus } : prev));
+      setOpenStatusMenuRowId(null);
+    };
+
+    const toggleChecked = () => {
+      setSelectedRows((prev) => (prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]));
+    };
+
     return (
-      <tr key={id} className={isSelected ? 'bg-brand-50' : 'bg-white'}>
-        <td className="border-b border-slate-200 px-3 py-2">
-          <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 20}px` }}>
+      <tr key={id} className={`${isSelected ? 'bg-brand-50/70' : rowDepthTone} transition-colors hover:bg-[#eef3ff]`}>
+        <td className="border-b border-slate-200 px-2 py-2 text-center align-middle">
+          {isRoot ? (
+            <span className="inline-block h-4 w-4" />
+          ) : (
+            <input
+              type="checkbox"
+              checked={isChecked}
+              onChange={toggleChecked}
+              aria-label={`Izberi ${title}`}
+            />
+          )}
+        </td>
+        <td className="border-b border-slate-200 px-3 py-2 align-middle">
+          <div className="relative flex min-h-8 items-center gap-2 px-1" style={{ paddingLeft: `${level * 24}px` }}>
+            {level > 0 ? <span className="absolute left-3 top-[-22px] h-[calc(50%+4px)] w-3 rounded-bl-lg border-b border-l border-slate-300/90" style={{ transform: `translateX(${(level - 1) * 24}px)` }} /> : null}
+            {level > 0 && !isLast ? <span className="absolute left-3 top-[calc(50%+4px)] bottom-[-22px] w-px bg-slate-300/90" style={{ transform: `translateX(${(level - 1) * 24}px)` }} /> : null}
             {hasChildren ? (
-              <button type="button" className="h-5 w-5 rounded border border-slate-300 text-[10px]" onClick={() => toggleExpanded(id)}>
-                {(expanded[id] ?? false) ? '−' : '+'}
-              </button>
+              <IconButton type="button" tone="neutral" aria-label="Razširi/skrij" onClick={() => toggleExpanded(id)}>
+                {(expanded[id] ?? false) ? <ChevronUpIcon /> : <ChevronDownIcon />}
+              </IconButton>
             ) : <span className="inline-block h-5 w-5" />}
-            {editingNodeId === id ? (
-              <div className="flex items-center gap-2">
-                <input
-                  value={draftTitle}
-                  onChange={(event) => setDraftTitle(event.target.value)}
-                  onKeyDown={(event) => { if (event.key === 'Enter') renameNode(); }}
-                  className="h-7 rounded border border-slate-300 px-2 text-xs"
-                />
-                <Button size="sm" variant="outline" onClick={renameNode}>Shrani</Button>
-              </div>
+            {isRowEditing ? (
+              <Input
+                value={editingRow.title}
+                onChange={(event: ChangeEvent<HTMLInputElement>) => setEditingRow((prev) => (prev ? { ...prev, title: event.target.value } : prev))}
+                data-inline-edit-field="true"
+                onBlur={handleInlineBlur}
+                className="h-8 min-w-[10ch] max-w-[34ch] px-2 text-xs"
+                style={{ width: `${Math.min(34, Math.max(10, editingRow.title.length + 2))}ch` }}
+                autoFocus
+              />
             ) : (
               <button
                 type="button"
@@ -409,11 +689,107 @@ export default function AdminCategoriesManager() {
             )}
           </div>
         </td>
-        <td className="border-b border-slate-200 px-3 py-2 text-sm text-slate-600">{description || '—'}</td>
-        <td className="border-b border-slate-200 px-3 py-2 text-sm text-slate-600">{childrenCount}</td>
-        <td className="border-b border-slate-200 px-3 py-2 text-sm text-slate-600">{productCount}</td>
-        <td className="border-b border-slate-200 px-3 py-2">
-          {kind === 'root' || !categorySlug ? null : renderActionSelect({ kind: kind === 'category' ? 'category' : 'subcategory', categorySlug, subcategorySlug, id, title })}
+        <td className="border-b border-slate-200 px-3 py-2 text-sm text-slate-600">
+          {isRowEditing ? (
+            <Input
+              value={editingRow.description}
+              onChange={(event: ChangeEvent<HTMLInputElement>) => setEditingRow((prev) => (prev ? { ...prev, description: event.target.value } : prev))}
+              data-inline-edit-field="true"
+              onBlur={handleInlineBlur}
+              className="h-8 min-w-[12ch] max-w-[42ch] px-2 text-xs"
+              style={{ width: `${Math.min(42, Math.max(12, editingRow.description.length + 2))}ch` }}
+            />
+          ) : (description || '—')}
+        </td>
+        <td className="border-b border-slate-200 px-3 py-2 text-center text-sm text-slate-600">{childrenCount}</td>
+        <td className="border-b border-slate-200 px-3 py-2 text-center text-sm text-slate-600">{productCount}</td>
+        <td className="border-b border-slate-200 px-3 py-2 text-center text-sm">
+          {isRowEditing && !isRoot ? (
+            <div className="relative inline-flex" ref={(node) => { statusMenuRefs.current[id] = node; }}>
+              <button
+                type="button"
+                onClick={() => setOpenStatusMenuRowId((prev) => (prev === id ? null : id))}
+                className="rounded-full"
+                aria-haspopup="menu"
+                aria-expanded={openStatusMenuRowId === id}
+              >
+                <Chip
+                  variant={editingRow?.status === 'active' ? 'success' : 'neutral'}
+                  className={`min-w-0 px-2.5 text-xs ${editingRow?.status === 'active' ? buttonTokenClasses.activeSuccess : buttonTokenClasses.inactiveNeutral}`}
+                >
+                  {editingRow?.status === 'active' ? 'Aktivna' : 'Neaktiven'}
+                </Chip>
+              </button>
+
+              {openStatusMenuRowId === id ? (
+                <MenuPanel className="absolute left-1/2 top-8 z-20 w-36 -translate-x-1/2">
+                  <MenuItem onClick={() => setStatus('active')} disabled={editingRow?.status === 'active'}>Aktivna</MenuItem>
+                  <MenuItem onClick={() => setStatus('inactive')} disabled={editingRow?.status === 'inactive'}>Neaktiven</MenuItem>
+                </MenuPanel>
+              ) : null}
+            </div>
+          ) : (
+            <Chip
+              variant={rowStatus === 'active' ? 'success' : 'neutral'}
+              className={`min-w-0 px-2.5 text-xs ${rowStatus === 'active' ? buttonTokenClasses.activeSuccess : buttonTokenClasses.inactiveNeutral}`}
+            >
+              {statusLabel}
+            </Chip>
+          )}
+        </td>
+        <td className="border-b border-slate-200 px-3 py-2 text-center">
+          {kind === 'subcategory' && !categorySlug ? null : (
+            <RowActions>
+              <IconButton type="button" tone="neutral" onClick={toggleInlineEdit} aria-label="Uredi" title="Uredi">
+                <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
+                  <path d="M11.5 4.5l3 3" />
+                </svg>
+              </IconButton>
+              <IconButton
+                type="button"
+                tone="neutral"
+                aria-label="Shrani"
+                title="Shrani"
+                onClick={() => void saveInlineEdit()}
+                disabled={!isRowEditing}
+              >
+                <SaveIcon />
+              </IconButton>
+              <IconButton
+                type="button"
+                tone="neutral"
+                aria-label="Dodaj podkategorijo"
+                title="Dodaj podkategorijo"
+                onClick={() => {
+                  if (kind === 'root') openCreateDialog({ kind: 'category' });
+                  if (kind === 'category' && categorySlug) openCreateDialog({ kind: 'subcategory', categorySlug });
+                  if (kind === 'subcategory' && categorySlug && subcategorySlug) openCreateDialog({ kind: 'subcategory', categorySlug, afterSlug: subcategorySlug });
+                }}
+              >
+                <PlusIcon />
+              </IconButton>
+
+              {kind !== 'root' ? <Button
+                type="button"
+                variant="close-x"
+                aria-label="Izbriši"
+                title="Izbriši"
+                disabled={deletingRowId === id}
+                onClick={() => {
+                  if (kind === 'category' && categorySlug) {
+                    setDeleteTarget({ kind: 'category', categorySlug });
+                    return;
+                  }
+                  if (kind === 'subcategory' && categorySlug && subcategorySlug) {
+                    setDeleteTarget({ kind: 'subcategory', categorySlug, subcategorySlug });
+                  }
+                }}
+              >
+                {deletingRowId === id ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : '×'}
+              </Button> : null}
+            </RowActions>
+          )}
         </td>
       </tr>
     );
@@ -423,16 +799,17 @@ export default function AdminCategoriesManager() {
     const rows: ReactNode[] = [];
     rows.push(renderTreeRow({
       id: rootId,
-      title: 'Vse kategorije',
+      title: rootMeta.title,
       level: 0,
       kind: 'root',
-      description: 'Root',
+      description: rootMeta.description,
       childrenCount: catalog.categories.length,
-      productCount: 0
+      productCount: 0,
+      isLast: true
     }));
 
     if (expanded[rootId] ?? true) {
-      catalog.categories.forEach((category) => {
+      catalog.categories.forEach((category, categoryIndex) => {
         const categoryNodeId = catId(category.slug);
         rows.push(renderTreeRow({
           id: categoryNodeId,
@@ -442,11 +819,12 @@ export default function AdminCategoriesManager() {
           categorySlug: category.slug,
           description: category.summary,
           childrenCount: category.subcategories.length,
-          productCount: (category.items ?? []).length
+          productCount: (category.items ?? []).length,
+          isLast: categoryIndex === catalog.categories.length - 1 && !(expanded[categoryNodeId] && category.subcategories.length > 0)
         }));
 
         if (expanded[categoryNodeId]) {
-          category.subcategories.forEach((subcategory) => {
+          category.subcategories.forEach((subcategory, index) => {
             rows.push(renderTreeRow({
               id: subId(category.slug, subcategory.slug),
               title: subcategory.title,
@@ -456,7 +834,8 @@ export default function AdminCategoriesManager() {
               subcategorySlug: subcategory.slug,
               description: subcategory.description,
               childrenCount: 0,
-              productCount: subcategory.items.length
+              productCount: subcategory.items.length,
+              isLast: index === category.subcategories.length - 1
             }));
           });
         }
@@ -468,71 +847,26 @@ export default function AdminCategoriesManager() {
 
   if (loading) return <p className="text-sm text-slate-500">Nalagam kategorije ...</p>;
 
-  const renderNodeCard = ({
-    id,
-    title,
-    kind,
-    categorySlug,
-    subcategorySlug,
-    hasChildren
-  }: {
-    id: string;
-    title: string;
-    kind: 'root' | 'category' | 'subcategory';
-    categorySlug?: string;
-    subcategorySlug?: string;
-    hasChildren: boolean;
-  }) => {
-    const isSelected =
-      (selected.kind === 'root' && kind === 'root') ||
-      (selected.kind === 'category' && kind === 'category' && selected.categorySlug === categorySlug) ||
-      (selected.kind === 'subcategory' && kind === 'subcategory' && selected.categorySlug === categorySlug && selected.subcategorySlug === subcategorySlug);
-
-    const opened = expanded[id] ?? true;
-
-    return (
-      <div className="inline-flex flex-col items-center gap-2">
-       <div
-        className={`flex min-w-[260px] items-center justify-between gap-2 rounded-xl border bg-white px-3 py-2 shadow-sm ${isSelected ? 'border-brand-500 ring-2 ring-brand-100' : 'border-slate-300'}`}
-      >
-          <button
-            type="button"
-            onClick={() => {
-              if (kind === 'root') setSelected({ kind: 'root' });
-              if (kind === 'category' && categorySlug) setSelected({ kind: 'category', categorySlug });
-              if (kind === 'subcategory' && categorySlug && subcategorySlug) setSelected({ kind: 'subcategory', categorySlug, subcategorySlug });
-            }}
-            className="flex-1 text-left text-sm font-semibold text-slate-800"
-          >
-            {title}
-          </button>
-          <div className="flex items-center gap-1">
-            {hasChildren ? <IconButton aria-label="Razširi/skrij" onClick={() => setExpanded((prev) => ({ ...prev, [id]: !(prev[id] ?? true) }))}>{opened ? '▾' : '▸'}</IconButton> : null}
-            {kind === 'category' && categorySlug ? <IconButton aria-label="Dodaj podkategorijo" onClick={() => addSubcategory(categorySlug)}>＋</IconButton> : null}
-            {kind === 'subcategory' && categorySlug && subcategorySlug ? <IconButton aria-label="Dodaj sorojenca" onClick={() => addSubcategory(categorySlug, subcategorySlug)}>＋</IconButton> : null}
-            {kind === 'category' && categorySlug ? <IconButton aria-label="Dodaj sorojenca" onClick={() => addCategory(categorySlug)}>⟷</IconButton> : null}
-            {kind !== 'root' ? <IconButton aria-label="Uredi" onClick={() => startRename(id, title)}>✎</IconButton> : null}
-            {kind !== 'root' && categorySlug ? <IconButton tone="danger" aria-label="Izbriši" onClick={() => setDeleteTarget(kind === 'category' ? { kind: 'category', categorySlug } : { kind: 'subcategory', categorySlug, subcategorySlug })}>🗑</IconButton> : null}
-          </div>
-        </div>
-        {editingNodeId === id ? (
-          <div className="w-full rounded-lg border border-slate-200 bg-white p-2">
-            <FloatingInput id={`rename-${id}`} tone="admin" label="Naziv" value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} />
-            <div className="mt-2 flex justify-end">
-              <Button variant="outline" size="sm" onClick={renameNode}>Shrani</Button>
-            </div>
-          </div>
-        ) : null}
-      </div>
-    );
-  };
-
   return (
     <div className="space-y-5">
       <header>
         <h1 className="text-2xl font-semibold text-slate-900">Kategorije</h1>
         <p className="mt-1 text-sm text-slate-600">Top: povezano drevo levo → desno. Bottom: vsebina izbrane kategorije v storefront admin pogledu.</p>
       </header>
+
+      <ConfirmDialog
+        open={isBulkDeleteDialogOpen}
+        title="Izbris kategorij"
+        description={`Ali ste prepričani, da želite izbrisati ${selectedRows.length} izbranih vrstic?`}
+        confirmLabel="Izbriši"
+        cancelLabel="Prekliči"
+        isDanger
+        onCancel={() => setIsBulkDeleteDialogOpen(false)}
+        onConfirm={() => {
+          void confirmBulkDelete();
+        }}
+        confirmDisabled={isBulkDeleting}
+      />
 
       <ConfirmDialog
         open={deleteTarget !== null}
@@ -556,20 +890,72 @@ export default function AdminCategoriesManager() {
         onConfirm={confirmDeleteImage}
       />
 
+      <ConfirmDialog
+        open={createTarget !== null}
+        title={createTarget?.kind === 'category' ? 'Nova kategorija' : 'Nova podkategorija'}
+        description="Vnesite ime kategorije."
+        confirmLabel="Dodaj"
+        cancelLabel="Prekliči"
+        onCancel={() => {
+          setCreateTarget(null);
+          setCreateName('');
+        }}
+        onConfirm={confirmCreate}
+        confirmDisabled={createName.trim().length === 0}
+      >
+        <div className="mt-3">
+          <Input
+            value={createName}
+            onChange={(event: ChangeEvent<HTMLInputElement>) => setCreateName(event.target.value)}
+            placeholder="Ime kategorije"
+            className="h-9 w-full rounded-xl px-3 text-sm"
+            autoFocus
+          />
+        </div>
+      </ConfirmDialog>
+
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-3 flex items-center justify-between">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hierarhija kategorij</p>
-          <Button variant="outline" size="sm" onClick={() => addCategory()}>+ Dodaj kategorijo</Button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleBulkDelete}
+              disabled={selectedRows.length === 0 || isBulkDeleting}
+              className={bulkDeleteButtonClass}
+            >
+              {isBulkDeleting ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <Spinner size="sm" className="text-[var(--danger-600)]" />
+                  Brisanje...
+                </span>
+              ) : (
+                'Izbriši'
+              )}
+            </button>
+            <Button variant="primary" size="toolbar" onClick={() => openCreateDialog({ kind: 'category' })}>Dodaj kategorijo</Button>
+          </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-full border-separate border-spacing-0 overflow-hidden rounded-xl border border-slate-200">
+          <table className="min-w-full table-fixed border-separate border-spacing-0 overflow-hidden rounded-xl border border-slate-200">
+            <colgroup>
+              <col className="w-11" />
+              <col className="w-[38%]" />
+              <col className="w-[26%]" />
+              <col className="w-28" />
+              <col className="w-24" />
+              <col className="w-28" />
+              <col className="w-36" />
+            </colgroup>
             <thead className="bg-slate-50">
               <tr>
-                <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Naziv</th>
-                <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Opis</th>
-                <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Podkategorije</th>
-                <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Izdelki</th>
-                <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Akcije</th>
+                <th className="border-b border-slate-200 px-2 py-2 text-center text-xs font-semibold text-slate-500"><input ref={selectAllRef} type="checkbox" checked={allRowsSelected} onChange={toggleSelectAll} aria-label="Izberi vse" /></th>
+                <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">Kategorija</th>
+                <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">Opis</th>
+                <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">Podkategorije</th>
+                <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">Izdelki</th>
+                <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">Status</th>
+                <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">Uredi</th>
               </tr>
             </thead>
             <tbody>{treeRows}</tbody>

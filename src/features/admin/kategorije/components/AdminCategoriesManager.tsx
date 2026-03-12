@@ -130,6 +130,7 @@ function SaveIcon() {
   const leafConnectorWidth = 22;
   const treeButtonDiameter = 28;
   const treeButtonRadius = treeButtonDiameter / 2;
+  const treeConnectorBleed = 1;
   export default function AdminCategoriesManager() {
   const [catalog, setCatalog] = useState<CatalogData>({ categories: [] });
   const [selected, setSelected] = useState<SelectedNode>({ kind: 'root' });
@@ -702,9 +703,9 @@ function SaveIcon() {
         </td>
   
         <td className="border-b border-slate-200 px-3 py-0 align-middle">
-          <div className="relative flex h-12 items-center gap-2 px-1">
+          <div className="relative flex h-12 items-center gap-2 overflow-visible px-1">
             <div
-              className="relative shrink-0"
+              className="relative shrink-0 overflow-visible"
               style={{
                 width: `${gutterWidth}px`,
                 height: `${treeRowHeight}px`
@@ -716,11 +717,13 @@ function SaveIcon() {
                 return (
                   <span
                     key={`ancestor-${ancestorIndex}`}
-                    className="absolute w-px bg-slate-300/90"
+                    className="absolute z-0 w-px bg-slate-300/90"
                     style={{
                       left: `${ancestorX}px`,
-                      top: 0,
-                      height: continuesBelow ? `${treeRowHeight + 1}px` : `${treeHalfRowHeight}px`
+                      top: `-${treeConnectorBleed}px`,
+                      height: continuesBelow
+                        ? `${treeRowHeight + treeConnectorBleed * 2}px`
+                        : `${treeHalfRowHeight + treeConnectorBleed}px`
                     }}
                   />
                 );
@@ -728,11 +731,11 @@ function SaveIcon() {
   
               {level === 0 && hasChildren && isExpanded ? (
                 <span
-                  className="absolute w-px bg-slate-300/90"
+                  className="absolute z-0 w-px bg-slate-300/90"
                   style={{
                     left: `${buttonCenterX}px`,
                     top: `${treeHalfRowHeight + treeButtonRadius}px`,
-                    height: `${treeHalfRowHeight - treeButtonRadius + 1}px`
+                    height: `${treeHalfRowHeight - treeButtonRadius + treeConnectorBleed + 1}px`
                   }}
                 />
               ) : null}
@@ -740,27 +743,27 @@ function SaveIcon() {
               {level > 0 && parentColumnX !== null ? (
                 <>
                   <span
-                    className="absolute w-px bg-slate-300/90"
+                    className="absolute z-0 w-px bg-slate-300/90"
                     style={{
                       left: `${parentColumnX}px`,
-                      top: 0,
-                      height: `${treeHalfRowHeight}px`
+                      top: `-${treeConnectorBleed}px`,
+                      height: `${treeHalfRowHeight + treeConnectorBleed}px`
                     }}
                   />
   
                   {continueCurrentColumnBelow ? (
                     <span
-                      className="absolute w-px bg-slate-300/90"
+                      className="absolute z-0 w-px bg-slate-300/90"
                       style={{
                         left: `${parentColumnX}px`,
                         top: `${treeHalfRowHeight}px`,
-                        height: `${treeHalfRowHeight + 1}px`
+                        height: `${treeHalfRowHeight + treeConnectorBleed + 1}px`
                       }}
                     />
                   ) : null}
   
                   <span
-                    className="absolute h-px bg-slate-300/90"
+                    className="absolute z-0 h-px bg-slate-300/90"
                     style={{
                       left: `${parentColumnX}px`,
                       top: `${treeHalfRowHeight}px`,
@@ -853,7 +856,7 @@ function SaveIcon() {
           </div>
         </td>
   
-        <td className="border-b border-slate-200 px-3 py-2 text-sm text-slate-600">
+        <td className="border-b border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500">
           {isRowEditing ? (
             <Input
               value={editingRow.description}
@@ -862,7 +865,7 @@ function SaveIcon() {
               }
               data-inline-edit-field="true"
               onBlur={handleInlineBlur}
-              className="h-8 min-w-[12ch] max-w-[42ch] px-2 text-xs"
+              className="h-8 min-w-[12ch] max-w-[42ch] px-2 text-xs font-semibold text-slate-500"
               style={{ width: `${Math.min(42, Math.max(12, editingRow.description.length + 2))}ch` }}
             />
           ) : (

@@ -641,6 +641,8 @@ export default function AdminCategoriesManager() {
       setSelectedRows((prev) => (prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]));
     };
 
+    const connectorColumns = Array.from({ length: level }, (_, index) => index);
+
     return (
       <tr key={id} className={`${isSelected ? 'bg-brand-50/70' : rowDepthTone} transition-colors hover:bg-[#eef3ff]`}>
         <td className="border-b border-slate-200 px-2 py-2 text-center align-middle">
@@ -657,10 +659,21 @@ export default function AdminCategoriesManager() {
         </td>
         <td className="border-b border-slate-200 px-3 py-2 align-middle">
           <div className="relative flex min-h-8 items-center gap-2 px-1" style={{ paddingLeft: `${level * 24}px` }}>
-            {level > 0 ? <span className="absolute left-3 top-[-22px] h-[calc(50%+4px)] w-3 rounded-bl-lg border-b border-l border-slate-300/90" style={{ transform: `translateX(${(level - 1) * 24}px)` }} /> : null}
-            {level > 0 && !isLast ? <span className="absolute left-3 top-[calc(50%+4px)] bottom-[-22px] w-px bg-slate-300/90" style={{ transform: `translateX(${(level - 1) * 24}px)` }} /> : null}
+            {connectorColumns.map((column) => {
+              const x = 12 + (column * 24);
+              const isCurrentColumn = column === level - 1;
+              if (!isCurrentColumn) {
+                return <span key={`col-${column}`} className="absolute top-[-24px] bottom-[-24px] w-px bg-slate-300/90" style={{ left: `${x}px` }} />;
+              }
+              return (
+                <div key={`col-${column}`}>
+                  <span className="absolute top-[-24px] h-[calc(50%+4px)] w-3 rounded-bl-lg border-b border-l border-slate-300/90" style={{ left: `${x}px` }} />
+                  {!isLast ? <span className="absolute top-[calc(50%+4px)] bottom-[-24px] w-px bg-slate-300/90" style={{ left: `${x}px` }} /> : null}
+                </div>
+              );
+            })}
             {hasChildren ? (
-              <IconButton type="button" tone="neutral" aria-label="Razširi/skrij" onClick={() => toggleExpanded(id)}>
+              <IconButton type="button" tone="neutral" shape="rounded" aria-label="Razširi/skrij" onClick={() => toggleExpanded(id)}>
                 {(expanded[id] ?? false) ? <ChevronUpIcon /> : <ChevronDownIcon />}
               </IconButton>
             ) : <span className="inline-block h-5 w-5" />}

@@ -856,7 +856,7 @@ export default function AdminCategoriesManager() {
           childrenCount: category.subcategories.length,
           productCount: (category.items ?? []).length,
           isLast: categoryIndex === catalog.categories.length - 1 && !(expanded[categoryNodeId] && category.subcategories.length > 0),
-          continuationColumns: [categoryIndex !== catalog.categories.length - 1]
+          continuationColumns: [expanded[categoryNodeId] && category.subcategories.length > 0]
         }));
 
         if (expanded[categoryNodeId]) {
@@ -872,7 +872,7 @@ export default function AdminCategoriesManager() {
               childrenCount: 0,
               productCount: subcategory.items.length,
               isLast: index === category.subcategories.length - 1,
-              continuationColumns: [categoryIndex !== catalog.categories.length - 1, index !== category.subcategories.length - 1]
+              continuationColumns: [index !== category.subcategories.length - 1, index !== category.subcategories.length - 1]
             }));
           });
         }

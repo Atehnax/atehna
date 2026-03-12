@@ -100,6 +100,7 @@ const leafConnectorWidth = 22;
 const treeButtonDiameter = 28;
 const treeButtonRadius = treeButtonDiameter / 2;
 const treeConnectorBleed = 1;
+const expandTransitionMs = 140;
 
 async function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -167,6 +168,7 @@ export default function AdminCategoriesManager() {
   const [editingRow, setEditingRow] = useState<EditingRowDraft | null>(null);
   const [statusByRow, setStatusByRow] = useState<Record<string, CategoryStatus>>({});
   const [openStatusMenuRowId, setOpenStatusMenuRowId] = useState<string | null>(null);
+  const [isStatusHeaderMenuOpen, setIsStatusHeaderMenuOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [createTarget, setCreateTarget] = useState<CreateTarget>(null);
   const [createName, setCreateName] = useState('');
@@ -175,6 +177,9 @@ export default function AdminCategoriesManager() {
   const [query, setQuery] = useState('');
   const [deletingRowId, setDeletingRowId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
+  const [warningDialog, setWarningDialog] = useState<{ title: string; description: string } | null>(null);
+  const [openingRowIds, setOpeningRowIds] = useState<string[]>([]);
+  const [closingRowIds, setClosingRowIds] = useState<string[]>([]);
   const [imageDeleteTarget, setImageDeleteTarget] = useState<ImageDeleteTarget>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -184,6 +189,7 @@ export default function AdminCategoriesManager() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const uploadRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const statusMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const statusHeaderMenuRef = useRef<HTMLDivElement>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
   const isInlineSavingRef = useRef(false);
 
@@ -272,17 +278,34 @@ export default function AdminCategoriesManager() {
 
   useEffect(() => {
     const closeOnOutsideClick = (event: MouseEvent) => {
-      if (!openStatusMenuRowId) return;
-      const container = statusMenuRefs.current[openStatusMenuRowId];
-      if (!container) return;
-      if (!container.contains(event.target as Node)) {
+      const target = event.target as Node;
+
+      if (openStatusMenuRowId) {
+        const container = statusMenuRefs.current[openStatusMenuRowId];
+        if (container && !container.contains(target)) {
+          setOpenStatusMenuRowId(null);
+        }
+      }
+
+      if (isStatusHeaderMenuOpen && statusHeaderMenuRef.current && !statusHeaderMenuRef.current.contains(target)) {
+        setIsStatusHeaderMenuOpen(false);
+      }
+    };
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
         setOpenStatusMenuRowId(null);
+        setIsStatusHeaderMenuOpen(false);
       }
     };
 
     window.addEventListener('mousedown', closeOnOutsideClick);
-    return () => window.removeEventListener('mousedown', closeOnOutsideClick);
-  }, [openStatusMenuRowId]);
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      window.removeEventListener('mousedown', closeOnOutsideClick);
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [isStatusHeaderMenuOpen, openStatusMenuRowId]);
 
   const persist = async (next: CatalogData, message = 'Shranjeno') => {
     setCatalog(next);
@@ -623,8 +646,60 @@ export default function AdminCategoriesManager() {
     return [];
   }, [catalog.categories, selectedContext]);
 
-  const toggleExpanded = (id: string) =>
-    setExpanded((prev) => ({ ...prev, [id]: !(prev[id] ?? false) }));
+  const getDescendantIds = (id: string) => {
+    if (id === rootId) {
+      return catalog.categories.flatMap((category) => [
+        catId(category.slug),
+        ...category.subcategories.map((subcategory) => subId(category.slug, subcategory.slug))
+      ]);
+    }
+
+    if (id.startsWith('cat:')) {
+      const categorySlug = id.slice(4);
+      const category = catalog.categories.find((entry) => entry.slug === categorySlug);
+      if (!category) return [];
+      return category.subcategories.map((subcategory) => subId(category.slug, subcategory.slug));
+    }
+
+    return [];
+  };
+
+  const showDeleteSelectionWarning = () => {
+    setWarningDialog({
+      title: 'Brisanje ni dovoljeno',
+      description:
+        'Kategorije ali podkategorije ni mogoče izbrisati, dokler niso izbrane vse njene podrejene podkategorije.'
+    });
+  };
+
+  const hasIncompleteDescendantSelection = (selectedIds: string[]) => {
+    const selectedSet = new Set(selectedIds);
+
+    return selectedIds.some((id) => {
+      if (!id.startsWith('cat:') && id !== rootId) return false;
+      const descendants = getDescendantIds(id);
+      return descendants.some((descendantId) => !selectedSet.has(descendantId));
+    });
+  };
+
+  const toggleExpanded = (id: string) => {
+    const currentlyExpanded = expanded[id] ?? false;
+
+    if (currentlyExpanded) {
+      setClosingRowIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+      setExpanded((prev) => ({ ...prev, [id]: false }));
+      window.setTimeout(() => {
+        setClosingRowIds((prev) => prev.filter((entry) => entry !== id));
+      }, expandTransitionMs);
+      return;
+    }
+
+    setOpeningRowIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    setExpanded((prev) => ({ ...prev, [id]: true }));
+    window.setTimeout(() => {
+      setOpeningRowIds((prev) => prev.filter((entry) => entry !== id));
+    }, expandTransitionMs);
+  };
 
   const saveInlineEdit = async () => {
     if (!editingRow) return;
@@ -732,13 +807,13 @@ export default function AdminCategoriesManager() {
 
   const visibleRowIds = useMemo(() => {
     const ids = [rootId];
-    if (!(expanded[rootId] ?? true)) return ids;
+    if (!(expanded[rootId] ?? true) && !closingRowIds.includes(rootId)) return ids;
 
     filteredCategories.forEach((category) => {
       const categoryNodeId = catId(category.slug);
       ids.push(categoryNodeId);
 
-      if (isSearchActive || expanded[categoryNodeId]) {
+      if (isSearchActive || expanded[categoryNodeId] || closingRowIds.includes(categoryNodeId)) {
         category.subcategories.forEach((subcategory) => {
           ids.push(subId(category.slug, subcategory.slug));
         });
@@ -746,7 +821,7 @@ export default function AdminCategoriesManager() {
     });
 
     return ids;
-  }, [expanded, filteredCategories, isSearchActive]);
+  }, [closingRowIds, expanded, filteredCategories, isSearchActive]);
 
   const selectableVisibleRowIds = useMemo(() => visibleRowIds, [visibleRowIds]);
 
@@ -781,16 +856,33 @@ export default function AdminCategoriesManager() {
       return;
     }
 
-    setSelectedRows((current) => Array.from(new Set([...current, ...selectableVisibleRowIds])));
+    setSelectedRows((current) => {
+      const nextSet = new Set(current);
+
+      selectableVisibleRowIds.forEach((id) => {
+        nextSet.add(id);
+        getDescendantIds(id).forEach((descendantId) => nextSet.add(descendantId));
+      });
+
+      return Array.from(nextSet);
+    });
   };
 
   const handleBulkDelete = () => {
     if (selectedRows.length === 0) return;
+    if (hasIncompleteDescendantSelection(selectedRows)) {
+      showDeleteSelectionWarning();
+      return;
+    }
     setIsBulkDeleteDialogOpen(true);
   };
 
   const confirmBulkDelete = async () => {
     if (selectedRows.length === 0) return;
+    if (hasIncompleteDescendantSelection(selectedRows)) {
+      showDeleteSelectionWarning();
+      return;
+    }
 
     setIsBulkDeleteDialogOpen(false);
     setIsBulkDeleting(true);
@@ -826,7 +918,8 @@ export default function AdminCategoriesManager() {
     childrenCount,
     productCount,
     ancestorContinuationColumns,
-    continueCurrentColumnBelow
+    continueCurrentColumnBelow,
+    parentIsAnimating
   }: {
     id: string;
     title: string;
@@ -839,6 +932,7 @@ export default function AdminCategoriesManager() {
     productCount: number;
     ancestorContinuationColumns: boolean[];
     continueCurrentColumnBelow: boolean;
+    parentIsAnimating?: boolean;
   }) => {
     const isSelected =
       (selected.kind === 'root' && kind === 'root') ||
@@ -855,7 +949,7 @@ export default function AdminCategoriesManager() {
     const rowDepthTone =
       level === 1 ? 'bg-slate-100/90' : level === 2 ? 'bg-slate-200/85' : level >= 3 ? 'bg-slate-300/75' : 'bg-slate-50/90';
     const rowStatus = statusByRow[id] ?? 'active';
-    const statusLabel = rowStatus === 'active' ? 'Aktivna' : 'Neaktiven';
+    const statusLabel = rowStatus === 'active' ? 'Aktivna' : 'Neaktivna';
 
     const toggleInlineEdit = () => {
       if (isRowEditing) {
@@ -881,10 +975,24 @@ export default function AdminCategoriesManager() {
       setOpenStatusMenuRowId(null);
     };
 
+    const isOpening = parentIsAnimating && openingRowIds.length > 0;
+    const isClosing = parentIsAnimating && closingRowIds.length > 0;
+
     const toggleChecked = () => {
-      setSelectedRows((prev) =>
-        prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]
-      );
+      setSelectedRows((prev) => {
+        const descendants = getDescendantIds(id);
+        const nextSet = new Set(prev);
+
+        if (nextSet.has(id)) {
+          nextSet.delete(id);
+          descendants.forEach((descendantId) => nextSet.delete(descendantId));
+        } else {
+          nextSet.add(id);
+          descendants.forEach((descendantId) => nextSet.add(descendantId));
+        }
+
+        return Array.from(nextSet);
+      });
     };
 
     const buttonLeft = level * treeIndent;
@@ -901,14 +1009,20 @@ export default function AdminCategoriesManager() {
           : (parentColumnX ?? 0) + leafConnectorWidth;
 
     return (
-      <tr key={id} className={`${isSelected ? 'bg-brand-50/70' : rowDepthTone} transition-colors hover:bg-[#eef3ff]`}>
+      <tr
+        key={id}
+        className={`${isSelected ? 'bg-brand-50/70' : rowDepthTone} transition-[background-color,opacity,transform] duration-150 hover:bg-[#eef3ff] ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''}`}
+      >
         <td className="border-b border-slate-200 px-2 py-2 text-center align-middle">
-          <div className="flex justify-center" style={{ paddingLeft: `${level > 0 ? level * treeIndent : 0}px` }}>
+          <div className="flex justify-center overflow-visible">
             <input
               type="checkbox"
               checked={isChecked}
               onChange={toggleChecked}
               aria-label={`Izberi ${title}`}
+              style={{
+                transform: level > 0 ? `translateX(${Math.max(0, level * treeIndent - 12)}px)` : undefined
+              }}
             />
           </div>
         </td>
@@ -1035,42 +1149,10 @@ export default function AdminCategoriesManager() {
                 </button>
               )}
             </div>
-
-            {kind === 'root' ? (
-              <IconButton
-                type="button"
-                tone="neutral"
-                aria-label="Dodaj kategorijo"
-                title="Dodaj kategorijo"
-                onClick={() => openCreateDialog({ kind: 'category' })}
-              >
-                <PlusIcon />
-              </IconButton>
-            ) : kind === 'category' && categorySlug ? (
-              <IconButton
-                type="button"
-                tone="neutral"
-                aria-label="Dodaj podkategorijo"
-                title="Dodaj podkategorijo"
-                onClick={() => openCreateDialog({ kind: 'subcategory', categorySlug })}
-              >
-                <PlusIcon />
-              </IconButton>
-            ) : kind === 'subcategory' && categorySlug && subcategorySlug ? (
-              <IconButton
-                type="button"
-                tone="neutral"
-                aria-label="Dodaj podkategorijo"
-                title="Dodaj podkategorijo"
-                onClick={() => openCreateDialog({ kind: 'subcategory', categorySlug, afterSlug: subcategorySlug })}
-              >
-                <PlusIcon />
-              </IconButton>
-            ) : null}
           </div>
         </td>
 
-        <td className="border-b border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500">
+        <td className="border-b border-slate-200 px-3 py-2 text-xs font-normal text-slate-500">
           {isRowEditing ? (
             <Input
               value={editingRow.description}
@@ -1079,7 +1161,7 @@ export default function AdminCategoriesManager() {
               }
               data-inline-edit-field="true"
               onBlur={handleInlineBlur}
-              className="h-8 min-w-[12ch] max-w-[42ch] truncate whitespace-nowrap px-2 text-xs font-semibold text-slate-500"
+              className="h-8 min-w-[12ch] max-w-[42ch] truncate whitespace-nowrap px-2 text-xs font-normal text-slate-500"
               style={{ width: `${Math.min(42, Math.max(12, editingRow.description.length + 2))}ch` }}
             />
           ) : (
@@ -1115,7 +1197,7 @@ export default function AdminCategoriesManager() {
                       : buttonTokenClasses.inactiveNeutral
                   }`}
                 >
-                  {editingRow?.status === 'active' ? 'Aktivna' : 'Neaktiven'}
+                  {editingRow?.status === 'active' ? 'Aktivna' : 'Neaktivna'}
                 </Chip>
               </button>
 
@@ -1125,7 +1207,7 @@ export default function AdminCategoriesManager() {
                     Aktivna
                   </MenuItem>
                   <MenuItem onClick={() => setStatus('inactive')} disabled={editingRow?.status === 'inactive'}>
-                    Neaktiven
+                    Neaktivna
                   </MenuItem>
                 </MenuPanel>
               ) : null}
@@ -1192,6 +1274,15 @@ export default function AdminCategoriesManager() {
                   return;
                 }
                 if (kind === 'category' && categorySlug) {
+                  const categoryId = catId(categorySlug);
+                  const descendants = getDescendantIds(categoryId);
+                  const selectedSet = new Set(selectedRows);
+
+                  if (selectedSet.has(categoryId) && descendants.some((descendantId) => !selectedSet.has(descendantId))) {
+                    showDeleteSelectionWarning();
+                    return;
+                  }
+
                   setDeleteTarget({ kind: 'category', categorySlug });
                   return;
                 }
@@ -1221,15 +1312,17 @@ export default function AdminCategoriesManager() {
         childrenCount: filteredCategories.length,
         productCount: 0,
         ancestorContinuationColumns: [],
-        continueCurrentColumnBelow: false
+        continueCurrentColumnBelow: false,
+        parentIsAnimating: false
       })
     );
 
-    if (expanded[rootId] ?? true) {
+    if ((expanded[rootId] ?? true) || closingRowIds.includes(rootId)) {
       filteredCategories.forEach((category, categoryIndex) => {
         const categoryNodeId = catId(category.slug);
         const hasVisibleChildren =
-          (isSearchActive || (expanded[categoryNodeId] ?? false)) && category.subcategories.length > 0;
+          (isSearchActive || (expanded[categoryNodeId] ?? false) || closingRowIds.includes(categoryNodeId)) &&
+          category.subcategories.length > 0;
         const hasNextCategory = categoryIndex < filteredCategories.length - 1;
 
         rows.push(
@@ -1243,11 +1336,12 @@ export default function AdminCategoriesManager() {
             childrenCount: category.subcategories.length,
             productCount: (category.items ?? []).length,
             ancestorContinuationColumns: [],
-            continueCurrentColumnBelow: hasVisibleChildren || hasNextCategory
+            continueCurrentColumnBelow: hasVisibleChildren || hasNextCategory,
+            parentIsAnimating: openingRowIds.includes(rootId) || closingRowIds.includes(rootId)
           })
         );
 
-        if (isSearchActive || expanded[categoryNodeId]) {
+        if (isSearchActive || expanded[categoryNodeId] || closingRowIds.includes(categoryNodeId)) {
           category.subcategories.forEach((subcategory, subcategoryIndex) => {
             const hasNextSubcategory = subcategoryIndex < category.subcategories.length - 1;
 
@@ -1263,7 +1357,8 @@ export default function AdminCategoriesManager() {
                 childrenCount: 0,
                 productCount: subcategory.items.length,
                 ancestorContinuationColumns: [hasNextSubcategory || hasNextCategory],
-                continueCurrentColumnBelow: hasNextSubcategory
+                continueCurrentColumnBelow: hasNextSubcategory,
+                parentIsAnimating: openingRowIds.includes(categoryNodeId) || closingRowIds.includes(categoryNodeId)
               })
             );
           });
@@ -1315,6 +1410,15 @@ export default function AdminCategoriesManager() {
       />
 
       <ConfirmDialog
+        open={warningDialog !== null}
+        title={warningDialog?.title ?? 'Opozorilo'}
+        description={warningDialog?.description}
+        confirmLabel="V redu"
+        onCancel={() => setWarningDialog(null)}
+        onConfirm={() => setWarningDialog(null)}
+      />
+
+      <ConfirmDialog
         open={imageDeleteTarget !== null}
         title="Odstrani sliko"
         description="Ali ste prepričani, da želite odstraniti sliko?"
@@ -1355,11 +1459,10 @@ export default function AdminCategoriesManager() {
           contentClassName="overflow-x-auto"
           headerLeft={
             <>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hierarhija kategorij</p>
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Poišči po kategoriji ali opisu ..."
+                placeholder="Išči po kategoriji ali opisu ..."
                 className={`${ADMIN_CONTROL_HEIGHT} min-w-[260px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} text-xs text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
               />
             </>
@@ -1388,15 +1491,15 @@ export default function AdminCategoriesManager() {
             </>
           }
         >
-          <table className="min-w-full table-fixed border-separate border-spacing-0 overflow-hidden rounded-xl border border-slate-200">
+          <table className="min-w-full table-fixed border-separate border-spacing-0 border-x border-b border-slate-200">
             <colgroup>
-              <col className="w-11" />
-              <col className="w-[38%]" />
-              <col className="w-[26%]" />
+              <col className="w-14" />
+              <col className="w-[420px]" />
+              <col className="w-[320px]" />
+              <col className="w-32" />
               <col className="w-28" />
-              <col className="w-24" />
-              <col className="w-28" />
-              <col className="w-36" />
+              <col className="w-32" />
+              <col className="w-40" />
             </colgroup>
 
             <thead className="bg-slate-50">
@@ -1423,7 +1526,50 @@ export default function AdminCategoriesManager() {
                   Izdelki
                 </th>
                 <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">
-                  Status
+                  <div className="relative inline-flex" ref={statusHeaderMenuRef}>
+                    {selectedRows.length > 0 ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setIsStatusHeaderMenuOpen((previousOpen) => !previousOpen)}
+                          className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-[color:var(--hover-neutral)]"
+                          aria-haspopup="menu"
+                          aria-expanded={isStatusHeaderMenuOpen}
+                        >
+                          Status ▾ ({selectedRows.length})
+                        </button>
+
+                        {isStatusHeaderMenuOpen ? (
+                          <MenuPanel className="absolute left-1/2 top-8 z-20 w-36 -translate-x-1/2">
+                            <MenuItem
+                              onClick={() => {
+                                setStatusByRow((prev) => ({
+                                  ...prev,
+                                  ...Object.fromEntries(selectedRows.map((rowId) => [rowId, 'active']))
+                                }));
+                                setIsStatusHeaderMenuOpen(false);
+                              }}
+                            >
+                              Aktivna
+                            </MenuItem>
+                            <MenuItem
+                              onClick={() => {
+                                setStatusByRow((prev) => ({
+                                  ...prev,
+                                  ...Object.fromEntries(selectedRows.map((rowId) => [rowId, 'inactive']))
+                                }));
+                                setIsStatusHeaderMenuOpen(false);
+                              }}
+                            >
+                              Neaktivna
+                            </MenuItem>
+                          </MenuPanel>
+                        ) : null}
+                      </>
+                    ) : (
+                      'Status'
+                    )}
+                  </div>
                 </th>
                 <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">
                   Uredi

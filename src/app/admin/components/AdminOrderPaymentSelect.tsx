@@ -1,8 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+<<<<<<<< HEAD:src/app/admin/components/AdminOrderPaymentSelect.tsx
 import PaymentChip from '@/app/admin/components/PaymentChip';
 import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/product/lib/paymentStatus';
+========
+import PaymentChip from '@/admin/components/PaymentChip';
+import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/lib/paymentStatus';
+>>>>>>>> origin/main:src/admin/components/AdminOrderPaymentSelect.tsx
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { useToast } from '@/shared/ui/toast';
 

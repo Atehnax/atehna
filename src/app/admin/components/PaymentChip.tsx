@@ -1,5 +1,5 @@
 import { Chip } from '@/shared/ui/badge';
-import { getPaymentBadgeVariant, getPaymentLabel, isPaymentStatus } from '@/lib/paymentStatus';
+import { getPaymentBadgeVariant, getPaymentLabel, isPaymentStatus } from '@/product/lib/paymentStatus';
 
 type Props = {
   status?: string | null;

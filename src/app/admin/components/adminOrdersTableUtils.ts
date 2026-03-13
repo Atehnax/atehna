@@ -1,4 +1,4 @@
-import { getStatusLabel, isOrderStatus } from '@/lib/orderStatus';
+import { getStatusLabel, isOrderStatus } from '@/product/lib/orderStatus';
 
 export type OrderRow = {
   id: number;

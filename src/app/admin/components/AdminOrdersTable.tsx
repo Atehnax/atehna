@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
 import { ButtonGroup } from '@/shared/ui/button-group';
 import { IconButton } from '@/shared/ui/icon-button';
-import AdminOrderStatusSelect from '@/admin/components/AdminOrderStatusSelect';
+import AdminOrderStatusSelect from '@/app/admin/components/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { SegmentedControl } from '@/shared/ui/segmented';
 import { CustomSelect } from '@/shared/ui/select';
@@ -22,15 +22,15 @@ import {
   getAdminStripedRowToneClass
 } from '@/shared/ui/theme/tokens';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
-import AdminOrdersPdfCell from '@/admin/components/AdminOrdersPdfCell';
-import AdminOrderPaymentSelect from '@/admin/components/AdminOrderPaymentSelect';
-import AdminOrdersPreviewChart from '@/admin/components/AdminOrdersPreviewChart';
-import StatusChip from '@/admin/components/StatusChip';
-import PaymentChip from '@/admin/components/PaymentChip';
-import { getCustomerTypeLabel } from '@/lib/customerType';
-import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
-import { formatSlDate, formatSlDateFromDateInput, formatSlDateTime } from '@/lib/format/dateTime';
-import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, isPaymentStatus } from '@/lib/paymentStatus';
+import AdminOrdersPdfCell from '@/app/admin/components/AdminOrdersPdfCell';
+import AdminOrderPaymentSelect from '@/app/admin/components/AdminOrderPaymentSelect';
+import AdminOrdersPreviewChart from '@/app/admin/components/AdminOrdersPreviewChart';
+import StatusChip from '@/app/admin/components/StatusChip';
+import PaymentChip from '@/app/admin/components/PaymentChip';
+import { getCustomerTypeLabel } from '@/product/lib/customerType';
+import { ORDER_STATUS_OPTIONS } from '@/product/lib/orderStatus';
+import { formatSlDate, formatSlDateFromDateInput, formatSlDateTime } from '@/product/lib/format/dateTime';
+import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, isPaymentStatus } from '@/product/lib/paymentStatus';
 import type { AnalyticsGlobalAppearance } from '@/lib/server/analyticsCharts';
 
 import {
@@ -57,7 +57,7 @@ import {
   toAmount,
   toDateInputValue,
   toDisplayOrderNumber
-} from '@/admin/components/adminOrdersTableUtils';
+} from '@/app/admin/components/adminOrdersTableUtils';
 
 type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
 

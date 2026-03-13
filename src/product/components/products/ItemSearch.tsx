@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import type { CatalogSearchItem } from '@/lib/catalog';
+import type { CatalogSearchItem } from '@/product/lib/catalog';
 
 type ItemSearchProps = {
   items: CatalogSearchItem[];

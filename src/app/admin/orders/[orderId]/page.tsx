@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import AdminOrderItemsEditor from '@/admin/components/AdminOrderItemsEditor';
-import AdminOrderPdfManager from '@/admin/components/AdminOrderPdfManager';
-import AdminOrderHeaderChips from '@/admin/components/AdminOrderHeaderChips';
-import { toDisplayOrderNumber } from '@/admin/components/adminOrdersTableUtils';
+import AdminOrderItemsEditor from '@/app/admin/components/AdminOrderItemsEditor';
+import AdminOrderPdfManager from '@/app/admin/components/AdminOrderPdfManager';
+import AdminOrderHeaderChips from '@/app/admin/components/AdminOrderHeaderChips';
+import { toDisplayOrderNumber } from '@/app/admin/components/adminOrdersTableUtils';
 import {
   fetchOrderById,
   fetchOrderDocuments,

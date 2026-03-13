@@ -1,4 +1,4 @@
-import catalogData from '../../content/catalog.json';
+import catalogData from '../../../content/catalog.json';
 
 export type CatalogItem = {
   slug: string;

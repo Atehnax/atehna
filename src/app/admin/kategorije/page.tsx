@@ -1,4 +1,4 @@
-import AdminCategoriesManager from '@/admin/features/kategorije/components/AdminCategoriesManager';
+import AdminCategoriesManager from '@/app/admin/features/kategorije/components/AdminCategoriesManager';
 
 export const dynamic = 'force-dynamic';
 

@@ -5,7 +5,7 @@ import {
   getCatalogCategoryItemSku,
   getCatalogItemPrice,
   getCatalogItemSku
-} from '@/lib/catalog';
+} from '@/product/lib/catalog';
 
 type CatalogChoice = {
   sku: string;

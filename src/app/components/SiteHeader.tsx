@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import CartButton from '@/product/components/cart/CartButton';
 import ItemSearch from '@/product/components/products/ItemSearch';
-import type { CatalogSearchItem } from '@/lib/catalog';
+import type { CatalogSearchItem } from '@/product/lib/catalog';
 
 const navItems = [
   { href: '/products', label: 'Izdelki' },

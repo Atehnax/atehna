@@ -1,5 +1,5 @@
-import AdminAnalyticsDashboard from '@/admin/components/AdminAnalyticsDashboard';
-import AdminAnalyticsTopTabs from '@/admin/components/AdminAnalyticsTopTabs';
+import AdminAnalyticsDashboard from '@/app/admin/components/AdminAnalyticsDashboard';
+import AdminAnalyticsTopTabs from '@/app/admin/components/AdminAnalyticsTopTabs';
 import { emptyOrdersAnalyticsResponse, fetchOrdersAnalytics } from '@/lib/server/orderAnalytics';
 import { fetchAnalyticsCharts, fetchGlobalAnalyticsAppearance } from '@/lib/server/analyticsCharts';
 import { getDatabaseUrl } from '@/lib/server/db';

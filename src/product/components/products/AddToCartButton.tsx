@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useCartStore } from '@/lib/cart/store';
+import { useCartStore } from '@/product/lib/cart/store';
 import { Button } from '@/shared/ui/button';
 
 type AddToCartButtonProps = {

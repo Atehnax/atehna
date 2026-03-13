@@ -1,5 +1,5 @@
 import { Chip } from '@/shared/ui/badge';
-import { getStatusChipVariant, getStatusLabel, isOrderStatus } from '@/lib/orderStatus';
+import { getStatusChipVariant, getStatusLabel, isOrderStatus } from '@/product/lib/orderStatus';
 
 type Props = {
   status: string;

@@ -7,9 +7,9 @@ import {
   type FormEvent,
 } from 'react';
 import Link from 'next/link';
-import { useCartStore } from '@/lib/cart/store';
-import { CUSTOMER_TYPE_FORM_OPTIONS, type CustomerType } from '@/lib/customerType';
-import { SLOVENIAN_ADDRESSES } from '@/data/slovenianAddresses';
+import { useCartStore } from '@/product/lib/cart/store';
+import { CUSTOMER_TYPE_FORM_OPTIONS, type CustomerType } from '@/product/lib/customerType';
+import { SLOVENIAN_ADDRESSES } from '@/product/data/slovenianAddresses';
 import { FloatingInput, FloatingTextarea } from '@/shared/ui/floating-field';
 import { Spinner } from '@/shared/ui/loading';
 import { CustomSelect } from '@/shared/ui/select';

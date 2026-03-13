@@ -1,5 +1,5 @@
-import AdminOrdersTable from '@/admin/components/AdminOrdersTable';
-import AdminCreateDraftOrderButton from '@/admin/components/AdminCreateDraftOrderButton';
+import AdminOrdersTable from '@/app/admin/components/AdminOrdersTable';
+import AdminCreateDraftOrderButton from '@/app/admin/components/AdminCreateDraftOrderButton';
 import {
   type OrderAttachmentRow,
   type OrderDocumentRow,

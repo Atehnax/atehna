@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import AdminLoginForm from '@/admin/components/AdminLoginForm';
+import AdminLoginForm from '@/app/admin/components/AdminLoginForm';
 
 const ADMIN_SESSION_COOKIE = 'atehna_admin_session';
 

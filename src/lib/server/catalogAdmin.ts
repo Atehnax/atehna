@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import type { CatalogCategory } from '@/lib/catalog';
+import type { CatalogCategory } from '@/product/lib/catalog';
 
 type CatalogData = { categories: CatalogCategory[] };
 

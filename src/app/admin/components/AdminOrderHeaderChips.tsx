@@ -2,13 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import PaymentChip from '@/admin/components/PaymentChip';
-import StatusChip from '@/admin/components/StatusChip';
-import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/lib/customerType';
-import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
-import { toDateInputValue } from '@/lib/format/dateTime';
-import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/lib/paymentStatus';
-import AdminHeaderField from '@/admin/components/AdminHeaderField';
+import PaymentChip from '@/app/admin/components/PaymentChip';
+import StatusChip from '@/app/admin/components/StatusChip';
+import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/product/lib/customerType';
+import { ORDER_STATUS_OPTIONS } from '@/product/lib/orderStatus';
+import { toDateInputValue } from '@/product/lib/format/dateTime';
+import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/product/lib/paymentStatus';
+import AdminHeaderField from '@/app/admin/components/AdminHeaderField';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { CustomSelect } from '@/shared/ui/select';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';

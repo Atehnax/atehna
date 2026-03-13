@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { getPageContent } from '@/lib/content';
-import { getCatalogCategories, getCatalogSearchItems } from '@/lib/catalog';
-import MdxContent from '@/components/MdxContent';
+import { getPageContent } from '@/product/lib/content';
+import { getCatalogCategories, getCatalogSearchItems } from '@/product/lib/catalog';
+import MdxContent from '@/app/components/MdxContent';
 import ItemSearch from '@/product/components/products/ItemSearch';
 
 export default function HomePage() {

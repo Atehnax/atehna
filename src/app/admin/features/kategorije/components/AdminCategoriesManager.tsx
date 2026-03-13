@@ -17,7 +17,7 @@ import {
   useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { CatalogCategory, CatalogItem, CatalogSubcategory } from '@/lib/catalog';
+import type { CatalogCategory, CatalogItem, CatalogSubcategory } from '@/product/lib/catalog';
 import {
   formatCatalogPrice,
   getCatalogCategoryItemPrice,
@@ -26,7 +26,7 @@ import {
   getCatalogItemSku,
   getDiscountedPrice,
   sortCatalogItems
-} from '@/lib/catalog';
+} from '@/product/lib/catalog';
 import { Button } from '@/shared/ui/button';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { FloatingInput, FloatingTextarea } from '@/shared/ui/floating-field';

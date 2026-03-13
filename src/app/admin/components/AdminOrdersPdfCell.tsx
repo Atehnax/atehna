@@ -10,7 +10,7 @@ import {
   groupDocumentsByType,
   isGenerateKey,
   routeMap
-} from '@/admin/components/adminOrdersPdfCellUtils';
+} from '@/app/admin/components/adminOrdersPdfCellUtils';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 

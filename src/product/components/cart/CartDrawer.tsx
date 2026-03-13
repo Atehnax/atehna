@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCartStore } from '@/lib/cart/store';
+import { useCartStore } from '@/product/lib/cart/store';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { QuantityInput } from '@/shared/ui/quantity-input';

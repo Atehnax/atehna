@@ -9,7 +9,7 @@ import {
   getCatalogCategoryItemSlugs,
   getCatalogCategorySlugs,
   getDiscountedPrice
-} from '@/lib/catalog';
+} from '@/product/lib/catalog';
 import AddToCartButton from '@/product/components/products/AddToCartButton';
 
 export function generateStaticParams() {

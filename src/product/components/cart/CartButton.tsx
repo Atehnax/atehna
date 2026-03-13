@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useCartStore } from '@/lib/cart/store';
+import { useCartStore } from '@/product/lib/cart/store';
 
 export default function CartButton() {
   const items = useCartStore((state) => state.items);

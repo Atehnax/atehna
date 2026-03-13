@@ -4,11 +4,11 @@ import { memo, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import type { Data, Layout } from 'plotly.js';
-import PlotlyClient from '@/admin/components/charts/PlotlyClient';
-import { getBaseChartLayout, getChartThemeFromCssVars } from '@/admin/components/charts/chartTheme';
-import type { OrderRow } from '@/admin/components/adminOrdersTableUtils';
+import PlotlyClient from '@/app/admin/components/charts/PlotlyClient';
+import { getBaseChartLayout, getChartThemeFromCssVars } from '@/app/admin/components/charts/chartTheme';
+import type { OrderRow } from '@/app/admin/components/adminOrdersTableUtils';
 import type { AnalyticsGlobalAppearance } from '@/lib/server/analyticsCharts';
-import { formatLjubljanaDate } from '@/lib/format/dateTime';
+import { formatLjubljanaDate } from '@/product/lib/format/dateTime';
 
 type RangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
 type CustomerBucketKey = 'company' | 'school' | 'individual';

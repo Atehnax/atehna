@@ -39,24 +39,24 @@ export const hoverTokenClasses = {
 
 export const adminTableRowToneClasses = {
   even: 'bg-white',
-  odd: 'bg-[#e7eef8]',
-  hover: 'hover:bg-[#dbe7fb]',
-  selected: 'bg-[#dbe7fb]'
+  odd: 'bg-[#edf1f5]',
+  hover: 'hover:bg-[#e3e9f0]',
+  selected: 'bg-[#e3e9f0]'
 } as const;
 
 export const adminCategoryRowToneByLevel: Record<number, string> = {
   0: 'bg-[#b1caf6]',
-  1: 'bg-[#dce7f8]',
-  2: 'bg-[#e8effb]',
-  3: 'bg-[#f0f5fd]',
-  4: 'bg-[#f5f8fe]'
+  1: 'bg-[#e7edf3]',
+  2: 'bg-[#eff3f7]',
+  3: 'bg-[#f5f7fa]',
+  4: 'bg-[#f9fbfc]'
 };
 
 export const getAdminStripedRowToneClass = (rowIndex: number) =>
   rowIndex % 2 === 0 ? adminTableRowToneClasses.even : adminTableRowToneClasses.odd;
 
 export const getAdminCategoryRowToneClass = (level: number) =>
-  adminCategoryRowToneByLevel[level] ?? 'bg-[#f9fbff]';
+  adminCategoryRowToneByLevel[level] ?? 'bg-[#fcfdfe]';
 
 export const surfaceTokenClasses = {
   neutral: 'bg-[color:var(--hover-neutral)]',

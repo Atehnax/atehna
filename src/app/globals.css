@@ -163,7 +163,7 @@ body {
 }
 
 .admin-scope table tbody tr:hover {
-  background-color: #dbe7fb !important;
+  background-color: #e3e9f0 !important;
 }
 
 [data-floating-field] input:-webkit-autofill,

@@ -36,7 +36,11 @@ import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActions } from '@/shared/ui/table';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
 import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
-import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
+import {
+  adminTableRowToneClasses,
+  buttonTokenClasses,
+  getAdminCategoryRowToneClass
+} from '@/shared/ui/theme/tokens';
 import { Input } from '@/shared/ui/input';
 import { Spinner } from '@/shared/ui/loading';
 import { useToast } from '@/shared/ui/toast';
@@ -972,8 +976,7 @@ export default function AdminCategoriesManager() {
     const isExpanded = expanded[id] ?? false;
     const isRowEditing = editingRow?.id === id;
     const isChecked = selectedRows.includes(id);
-    const rowDepthTone =
-      level === 1 ? 'bg-slate-100/90' : level === 2 ? 'bg-slate-200/85' : level >= 3 ? 'bg-slate-300/75' : 'bg-slate-50/90';
+    const rowDepthTone = getAdminCategoryRowToneClass(level);
     const rowStatus = statusByRow[id] ?? 'active';
     const statusLabel = rowStatus === 'active' ? 'Aktivna' : 'Neaktivna';
 
@@ -1038,7 +1041,7 @@ export default function AdminCategoriesManager() {
     return (
       <tr
         key={id}
-        className={`${isSelected ? 'bg-brand-50/70' : rowDepthTone} transition-[background-color,opacity,transform] duration-150 hover:bg-[#eef3ff] ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''}`}
+        className={`${isSelected ? adminTableRowToneClasses.selected : rowDepthTone} transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''}`}
       >
         <td className="relative overflow-visible border-b border-slate-200 px-2 py-2 text-center align-middle">
           <div

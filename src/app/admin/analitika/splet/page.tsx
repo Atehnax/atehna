@@ -1,5 +1,5 @@
-import AdminWebsiteAnalyticsDashboard from '@/components/admin/AdminWebsiteAnalyticsDashboard';
-import AdminAnalyticsTopTabs from '@/components/admin/AdminAnalyticsTopTabs';
+import AdminWebsiteAnalyticsDashboard from '@/admin/components/AdminWebsiteAnalyticsDashboard';
+import AdminAnalyticsTopTabs from '@/admin/components/AdminAnalyticsTopTabs';
 import { fetchWebsiteAnalytics } from '@/lib/server/websiteAnalytics';
 import { getDatabaseUrl } from '@/lib/server/db';
 

@@ -1,4 +1,4 @@
-import AdminItemsManager from '@/features/admin/artikli/components/AdminItemsManager';
+import AdminItemsManager from '@/admin/features/artikli/components/AdminItemsManager';
 import {
   getCatalogCategories,
   getCatalogCategoryItemPrice,

@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import CartButton from '@/components/cart/CartButton';
-import ItemSearch from '@/components/products/ItemSearch';
+import CartButton from '@/product/components/cart/CartButton';
+import ItemSearch from '@/product/components/products/ItemSearch';
 import type { CatalogSearchItem } from '@/lib/catalog';
 
 const navItems = [

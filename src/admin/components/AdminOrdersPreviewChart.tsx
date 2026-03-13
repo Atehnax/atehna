@@ -4,9 +4,9 @@ import { memo, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import type { Data, Layout } from 'plotly.js';
-import PlotlyClient from '@/components/admin/charts/PlotlyClient';
-import { getBaseChartLayout, getChartThemeFromCssVars } from '@/components/admin/charts/chartTheme';
-import type { OrderRow } from '@/components/admin/adminOrdersTableUtils';
+import PlotlyClient from '@/admin/components/charts/PlotlyClient';
+import { getBaseChartLayout, getChartThemeFromCssVars } from '@/admin/components/charts/chartTheme';
+import type { OrderRow } from '@/admin/components/adminOrdersTableUtils';
 import type { AnalyticsGlobalAppearance } from '@/lib/server/analyticsCharts';
 import { formatLjubljanaDate } from '@/lib/format/dateTime';
 

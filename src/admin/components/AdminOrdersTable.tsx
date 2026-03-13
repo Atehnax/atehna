@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
 import { ButtonGroup } from '@/shared/ui/button-group';
 import { IconButton } from '@/shared/ui/icon-button';
-import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
+import AdminOrderStatusSelect from '@/admin/components/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { SegmentedControl } from '@/shared/ui/segmented';
 import { CustomSelect } from '@/shared/ui/select';
@@ -22,11 +22,11 @@ import {
   getAdminStripedRowToneClass
 } from '@/shared/ui/theme/tokens';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
-import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
-import AdminOrderPaymentSelect from '@/components/admin/AdminOrderPaymentSelect';
-import AdminOrdersPreviewChart from '@/components/admin/AdminOrdersPreviewChart';
-import StatusChip from '@/components/admin/StatusChip';
-import PaymentChip from '@/components/admin/PaymentChip';
+import AdminOrdersPdfCell from '@/admin/components/AdminOrdersPdfCell';
+import AdminOrderPaymentSelect from '@/admin/components/AdminOrderPaymentSelect';
+import AdminOrdersPreviewChart from '@/admin/components/AdminOrdersPreviewChart';
+import StatusChip from '@/admin/components/StatusChip';
+import PaymentChip from '@/admin/components/PaymentChip';
 import { getCustomerTypeLabel } from '@/lib/customerType';
 import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 import { formatSlDate, formatSlDateFromDateInput, formatSlDateTime } from '@/lib/format/dateTime';
@@ -57,7 +57,7 @@ import {
   toAmount,
   toDateInputValue,
   toDisplayOrderNumber
-} from '@/components/admin/adminOrdersTableUtils';
+} from '@/admin/components/adminOrdersTableUtils';
 
 type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
 

@@ -4,20 +4,12 @@ import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-<<<<<<<< HEAD:src/app/admin/components/AdminAnalyticsDashboard.tsx
 import PlotlyClient from '@/app/admin/components/charts/PlotlyClient';
-========
-import PlotlyClient from '@/admin/components/charts/PlotlyClient';
->>>>>>>> origin/main:src/admin/components/AdminAnalyticsDashboard.tsx
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToast } from '@/shared/ui/toast';
 import { SegmentedControl } from '@/shared/ui/segmented';
 import { Spinner, TableSkeleton } from '@/shared/ui/loading';
-<<<<<<<< HEAD:src/app/admin/components/AdminAnalyticsDashboard.tsx
 import { getBaseChartLayout, getChartThemeFromCssVars, type ChartTheme } from '@/app/admin/components/charts/chartTheme';
-========
-import { getBaseChartLayout, getChartThemeFromCssVars, type ChartTheme } from '@/admin/components/charts/chartTheme';
->>>>>>>> origin/main:src/admin/components/AdminAnalyticsDashboard.tsx
 import type { Data, Layout } from 'plotly.js';
 import type { OrdersAnalyticsResponse } from '@/lib/server/orderAnalytics';
 import type {

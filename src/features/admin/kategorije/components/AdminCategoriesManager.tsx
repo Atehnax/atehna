@@ -102,6 +102,27 @@ const treeButtonRadius = treeButtonDiameter / 2;
 const treeConnectorBleed = 1;
 const expandTransitionMs = 140;
 
+const ADMIN_ORDERS_ROW_DARK_BASE = 'bg-slate-50';
+const ADMIN_ORDERS_ROW_LIGHT_BASE = 'bg-white';
+
+const CATEGORY_TREE_ROW_DEPTH_TONES = {
+  root: 'bg-slate-100',
+  category: ADMIN_ORDERS_ROW_DARK_BASE,
+  firstSubcategory: ADMIN_ORDERS_ROW_LIGHT_BASE,
+  subSubcategory: 'bg-[#ffffff]',
+  subSubSubcategory: 'bg-[#ffffff]',
+  subSubSubSubcategory: 'bg-[#ffffff]'
+} as const;
+
+const getCategoryTreeRowDepthTone = (level: number) => {
+  if (level <= 0) return CATEGORY_TREE_ROW_DEPTH_TONES.root;
+  if (level === 1) return CATEGORY_TREE_ROW_DEPTH_TONES.category;
+  if (level === 2) return CATEGORY_TREE_ROW_DEPTH_TONES.firstSubcategory;
+  if (level === 3) return CATEGORY_TREE_ROW_DEPTH_TONES.subSubcategory;
+  if (level === 4) return CATEGORY_TREE_ROW_DEPTH_TONES.subSubSubcategory;
+  return CATEGORY_TREE_ROW_DEPTH_TONES.subSubSubSubcategory;
+};
+
 async function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -946,8 +967,7 @@ export default function AdminCategoriesManager() {
     const isExpanded = expanded[id] ?? false;
     const isRowEditing = editingRow?.id === id;
     const isChecked = selectedRows.includes(id);
-    const rowDepthTone =
-      level === 1 ? 'bg-slate-100/90' : level === 2 ? 'bg-slate-200/85' : level >= 3 ? 'bg-slate-300/75' : 'bg-slate-50/90';
+    const rowDepthTone = getCategoryTreeRowDepthTone(level);
     const rowStatus = statusByRow[id] ?? 'active';
     const statusLabel = rowStatus === 'active' ? 'Aktivna' : 'Neaktivna';
 

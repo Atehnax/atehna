@@ -72,7 +72,7 @@ export default function AdminSidebar() {
       <aside className="h-full min-h-full overflow-y-auto overflow-x-visible border-r border-[color:var(--semantic-info-border)] bg-slate-50/90 shadow-sm">
         <div className={`relative z-10 flex h-full min-h-full flex-col px-3 py-10 transition-opacity duration-200 ${isCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100'}`}>
           <div className="mb-5 px-2 pr-4">
-            <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[color:var(--semantic-info)]">Administracija</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[color:var(--blue-500)]">Administracija</p>
           </div>
 
           <div className="flex h-full min-h-full flex-col">
@@ -85,8 +85,8 @@ export default function AdminSidebar() {
                       href={link.href}
                       className={`flex items-center gap-2 rounded-xl px-2.5 py-2 pr-4 text-sm transition ${
                         isActive
-                          ? 'font-semibold text-[color:var(--blue-700)]'
-                          : 'text-[color:var(--semantic-info)] hover:bg-white/75 hover:text-[color:var(--blue-700)]'
+                          ? 'font-semibold text-[color:var(--blue-500)]'
+                          : 'text-[color:var(--semantic-info)] hover:bg-white/75 hover:text-[color:var(--blue-500)]'
                       }`}
                     >
                       <SidebarIcon type={link.icon} />

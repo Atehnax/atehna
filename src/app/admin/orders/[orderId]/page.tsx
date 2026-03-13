@@ -174,7 +174,7 @@ export default async function AdminOrderDetailPage({
   return (
     <div className="w-full">
       <div className="mx-auto max-w-7xl">
-        <Link href="/admin/orders" className="text-sm font-semibold text-brand-600">
+        <Link href="/admin/orders" className="text-sm font-semibold text-[color:var(--blue-500)] hover:text-[color:var(--blue-600)]">
           ← Nazaj na seznam
         </Link>
 

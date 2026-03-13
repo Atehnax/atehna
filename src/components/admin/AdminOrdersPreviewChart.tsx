@@ -571,7 +571,7 @@ function AdminOrdersPreviewChart({
               key={chart.key}
               type="button"
               onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(chart.focusKey)}`)}
-              className="flex min-h-[124px] flex-col overflow-visible rounded-xl border px-3 py-2 text-left shadow-sm transition hover:border-[#b9c8ff] hover:bg-[#eef3ff] md:flex-row md:items-center md:justify-between"
+              className="flex min-h-[124px] flex-col overflow-visible rounded-xl border px-3 py-2 text-left shadow-sm transition hover:border-[color:var(--blue-500)] hover:bg-[#dbe7fb] md:flex-row md:items-center md:justify-between"
               style={{
                 background: `linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,248,251,0.96) 100%)`,
                 borderColor: appearance.gridColor

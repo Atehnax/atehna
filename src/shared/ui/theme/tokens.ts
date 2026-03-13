@@ -37,6 +37,27 @@ export const hoverTokenClasses = {
   neutral: 'hover:bg-[color:var(--hover-neutral)]'
 } as const;
 
+export const adminTableRowToneClasses = {
+  even: 'bg-white',
+  odd: 'bg-[#edf1f5]',
+  hover: 'hover:bg-[#e3e9f0]',
+  selected: 'bg-[#e3e9f0]'
+} as const;
+
+export const adminCategoryRowToneByLevel: Record<number, string> = {
+  0: 'bg-[#b1caf6]',
+  1: 'bg-[#e7edf3]',
+  2: 'bg-[#eff3f7]',
+  3: 'bg-[#f5f7fa]',
+  4: 'bg-[#f9fbfc]'
+};
+
+export const getAdminStripedRowToneClass = (rowIndex: number) =>
+  rowIndex % 2 === 0 ? adminTableRowToneClasses.even : adminTableRowToneClasses.odd;
+
+export const getAdminCategoryRowToneClass = (level: number) =>
+  adminCategoryRowToneByLevel[level] ?? 'bg-[#fcfdfe]';
+
 export const surfaceTokenClasses = {
   neutral: 'bg-[color:var(--hover-neutral)]',
   disabled: 'bg-[color:var(--hover-neutral)]'
@@ -45,7 +66,7 @@ export const surfaceTokenClasses = {
 const BTN_BASE =
   'inline-flex items-center justify-center font-semibold transition disabled:pointer-events-none disabled:opacity-45';
 const BTN_FOCUS =
-  'focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0';
+  'focus:border-[color:var(--blue-500)] focus:outline-none focus:ring-0 focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0';
 const BTN_SIZE_MD = 'h-8 px-3 rounded-xl text-xs';
 const BTN_SIZE_PILL = 'h-8 px-3 rounded-full text-sm';
 
@@ -60,10 +81,10 @@ export const semanticButtonColors = {
   },
   primary: {
     border: 'border-transparent',
-    bg: 'bg-[#3e67d6]',
+    bg: 'bg-[color:var(--blue-500)]',
     text: 'text-white',
-    hoverBg: 'hover:bg-brand-700',
-    activeBg: 'active:bg-brand-800'
+    hoverBg: 'hover:bg-[color:var(--blue-600)]',
+    activeBg: 'active:bg-[color:var(--blue-700)]'
   },
   warning: {
     border: 'border-amber-300',

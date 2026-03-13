@@ -12,7 +12,7 @@ import { Chip } from '@/shared/ui/badge';
 import { useToast } from '@/shared/ui/toast';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
-import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
+import { adminTableRowToneClasses, buttonTokenClasses, getAdminStripedRowToneClass } from '@/shared/ui/theme/tokens';
 
 type Item = {
   id: string;
@@ -472,7 +472,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
             </THead>
             <tbody>
               {pagedItems.map((item, index) => (
-                <tr key={item.id} className={`border-t border-slate-200 transition-colors ${index % 2 === 0 ? "bg-white/70" : "bg-slate-50/60"} hover:bg-[#eef3ff]`}>
+                <tr key={item.id} className={`border-t border-slate-200 transition-colors ${getAdminStripedRowToneClass(index)} ${adminTableRowToneClasses.hover}`}>
                   <td className="px-3 py-2 text-center"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleOne(item.id)} aria-label={`Izberi ${item.name}`} /></td>
                   <td className="px-3 py-2 font-medium text-slate-900">{item.name}</td>
                   <td className="px-3 py-2 text-slate-600">{item.sku}</td>

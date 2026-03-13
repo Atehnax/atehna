@@ -12,12 +12,12 @@ Atehna includes:
 ## Admin analytics extension guide
 
 ### Add a new metric or dimension source
-1. Extend the analytics payload in `src/lib/server/orderAnalytics.ts` (`OrdersAnalyticsDay`) and compute the field in `fetchOrdersAnalytics`.
+1. Extend the analytics payload in `src/shared/server/orderAnalytics.ts` (`OrdersAnalyticsDay`) and compute the field in `fetchOrdersAnalytics`.
 2. Ensure `GET /api/admin/analytics/orders` returns the new field (already passes through server payload).
-3. Register the metric in builder/UI options inside `src/components/admin/AdminAnalyticsDashboard.tsx` (`metricOptions`) and (optionally) add system chart series in `src/lib/server/analyticsCharts.ts`.
+3. Register the metric in builder/UI options inside `src/admin/components/AdminAnalyticsDashboard.tsx` (`metricOptions`) and (optionally) add system chart series in `src/shared/server/analyticsCharts.ts`.
 
 ### Define or adjust system charts
-1. Open `src/lib/server/analyticsCharts.ts`.
+1. Open `src/shared/server/analyticsCharts.ts`.
 2. Update `buildSystemCharts(dashboardKey)` entries.
 3. Configure per chart:
    - `chart_type`
@@ -28,20 +28,20 @@ Atehna includes:
 ### Extend builder capabilities
 Builder state is persisted via `config_json` in `analytics_charts`.
 Key places:
-- UI controls and series table: `src/components/admin/AdminAnalyticsDashboard.tsx` (BuilderModal).
+- UI controls and series table: `src/admin/components/AdminAnalyticsDashboard.tsx` (BuilderModal).
 - CRUD/reorder APIs:
   - `src/app/api/admin/analytics/charts/route.ts`
   - `src/app/api/admin/analytics/charts/[chartId]/route.ts`
   - `src/app/api/admin/analytics/charts/reorder/route.ts`
-- Validation/normalization: `src/lib/server/analyticsCharts.ts` (`parseConfig`).
+- Validation/normalization: `src/shared/server/analyticsCharts.ts` (`parseConfig`).
 
 ### Theme tokens (global + per-chart appearance)
 Global chart appearance is stored in DB and edited from the `Appearance / Theme` panel on `/admin/analitika` (API: `/api/admin/analytics/charts/appearance`).
 
 Key places:
 - CSS defaults: `src/app/globals.css` (`--chart-*` variables).
-- Runtime adapter: `src/components/admin/charts/chartTheme.ts` (`getChartThemeFromCssVars`).
-- Per-chart overrides persisted in `config_json.appearance` via `src/lib/server/analyticsCharts.ts`.
+- Runtime adapter: `src/admin/components/charts/chartTheme.ts` (`getChartThemeFromCssVars`).
+- Per-chart overrides persisted in `config_json.appearance` via `src/shared/server/analyticsCharts.ts`.
 
 # DB migration
 Run SQL migrations in `migrations/`, including:

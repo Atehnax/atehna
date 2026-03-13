@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import SiteHeader from '@/app/components/SiteHeader';
-import SiteFooter from '@/app/components/SiteFooter';
-import CartDrawer from '@/product/components/cart/CartDrawer';
-import WebsiteAnalyticsTracker from '@/app/components/WebsiteAnalyticsTracker';
+import SiteHeader from '@/commercial/components/SiteHeader';
+import SiteFooter from '@/commercial/components/SiteFooter';
+import CartDrawer from '@/commercial/features/cart/CartDrawer';
+import WebsiteAnalyticsTracker from '@/commercial/components/WebsiteAnalyticsTracker';
 import { ToastProvider, Toaster } from '@/shared/ui/toast';
-import { getCatalogSearchItems } from '@/product/lib/catalog';
+import { getCatalogSearchItems } from '@/commercial/catalog/catalog';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://atehna.si'),

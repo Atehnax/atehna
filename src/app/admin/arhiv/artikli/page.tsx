@@ -1,5 +1,5 @@
-import AdminArchiveTabs from '@/components/admin/AdminArchiveTabs';
-import AdminArchivedItemsTable from '@/components/admin/AdminArchivedItemsTable';
+import AdminArchiveTabs from '@/app/admin/components/AdminArchiveTabs';
+import AdminArchivedItemsTable from '@/app/admin/components/AdminArchivedItemsTable';
 
 export const metadata = {
   title: 'Arhiv artiklov'

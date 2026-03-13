@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { revalidateAdminOrderPaths } from '@/lib/server/revalidateAdminOrders';
-import { isPaymentStatus } from '@/lib/paymentStatus';
+import { isPaymentStatus } from '@/product/lib/paymentStatus';
 import { getPool } from '@/lib/server/db';
 
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import type { CatalogCategory } from '@/lib/catalog';
+import type { CatalogCategory } from '@/product/lib/catalog';
 import { readCatalogFile, writeCatalogFile } from '@/lib/server/catalogAdmin';
 
 export async function GET() {

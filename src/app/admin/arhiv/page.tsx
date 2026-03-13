@@ -1,5 +1,5 @@
-import AdminDeletedArchiveTable from '@/components/admin/AdminDeletedArchiveTable';
-import AdminArchiveTabs from '@/components/admin/AdminArchiveTabs';
+import AdminDeletedArchiveTable from '@/app/admin/components/AdminDeletedArchiveTable';
+import AdminArchiveTabs from '@/app/admin/components/AdminArchiveTabs';
 import { fetchArchiveEntries } from '@/lib/server/deletedArchive';
 import { getDatabaseUrl } from '@/lib/server/db';
 

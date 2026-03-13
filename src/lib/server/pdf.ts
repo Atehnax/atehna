@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import fontkit from '@pdf-lib/fontkit';
 import { PDFDocument, StandardFonts, rgb, type PDFFont } from 'pdf-lib';
-import { COMPANY_INFO } from '@/lib/constants';
+import { COMPANY_INFO } from '@/product/lib/constants';
 
 export type PdfItem = {
   sku: string;

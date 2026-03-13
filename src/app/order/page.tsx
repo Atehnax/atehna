@@ -1,4 +1,4 @@
-import OrderPageClient from '@/features/order/components/OrderPageClient';
+import OrderPageClient from '@/product/order/components/OrderPageClient';
 
 export const metadata = {
   title: 'Naročilo'

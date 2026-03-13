@@ -12,10 +12,11 @@
   --text-muted: #4b5563;
 
   /* Minimal blue palette (single hue family) */
-  --blue-50: #eef4ff;
-  --blue-100: #dbe8ff;
-  --blue-500: #3e67d6;
-  --blue-700: #2f53c0;
+  --blue-50: #f2f6fe;
+  --blue-100: #dfeafe;
+  --blue-500: #6495ed;
+  --blue-600: #4f7fd8;
+  --blue-700: #3f6ac0;
 
   /* Semantic tokens */
   --semantic-info: var(--blue-500);
@@ -35,7 +36,7 @@
   --surface-2: var(--surface-subtle);
 
   --primary: var(--blue-500);
-  --primary-hover: var(--blue-700);
+  --primary-hover: var(--blue-600);
   --primary-active: var(--blue-700);
   --primary-soft: var(--blue-100);
   --primary-foreground: #ffffff;
@@ -52,6 +53,9 @@
   --admin-accent: var(--blue-500);
   --admin-hover: var(--blue-100);
   --hover-neutral: var(--bg);
+
+  --admin-table-row-hover: #e3e9f0;
+  --admin-table-row-selected: #e3e9f0;
 
   /* admin destructive controls */
   --danger-600: #de144d;
@@ -161,9 +165,6 @@ body {
   filter: drop-shadow(0 6px 18px rgba(2, 6, 23, 0.35));
 }
 
-.admin-scope table tbody tr:hover {
-  background-color: #f8f7fc !important;
-}
 
 [data-floating-field] input:-webkit-autofill,
 [data-floating-field] textarea:-webkit-autofill,

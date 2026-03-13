@@ -9,8 +9,8 @@ import {
   getCatalogCategoryItemSlugs,
   getCatalogCategorySlugs,
   getDiscountedPrice
-} from '@/lib/catalog';
-import AddToCartButton from '@/components/products/AddToCartButton';
+} from '@/product/lib/catalog';
+import AddToCartButton from '@/product/components/products/AddToCartButton';
 
 export function generateStaticParams() {
   return getCatalogCategorySlugs().flatMap((category) =>

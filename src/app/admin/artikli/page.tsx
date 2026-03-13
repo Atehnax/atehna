@@ -1,4 +1,4 @@
-import AdminItemsManager from '@/features/admin/artikli/components/AdminItemsManager';
+import AdminItemsManager from '@/app/admin/features/artikli/components/AdminItemsManager';
 import {
   getCatalogCategories,
   getCatalogCategoryItemPrice,
@@ -6,7 +6,7 @@ import {
   getCatalogItemPrice,
   getCatalogItemSku,
   sortCatalogItems
-} from '@/lib/catalog';
+} from '@/product/lib/catalog';
 
 export const metadata = {
   title: 'Administracija artikli'

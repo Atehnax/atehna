@@ -1,5 +1,5 @@
-import MdxContent from '@/components/MdxContent';
-import { getPageContent } from '@/lib/content';
+import MdxContent from '@/app/components/MdxContent';
+import { getPageContent } from '@/product/lib/content';
 
 export const metadata = {
   title: 'Kontakt'

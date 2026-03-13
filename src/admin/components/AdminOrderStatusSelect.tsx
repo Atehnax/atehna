@@ -1,34 +1,34 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import PaymentChip from '@/components/admin/PaymentChip';
-import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/lib/paymentStatus';
+import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
+import StatusChip from '@/admin/components/StatusChip';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { useToast } from '@/shared/ui/toast';
 
 type Props = {
   orderId: number;
-  status?: string | null;
+  status: string;
   canEdit: boolean;
   disabled?: boolean;
   onStatusSaved?: (nextStatus: string) => void;
 };
 
-export default function AdminOrderPaymentSelect({
+export default function AdminOrderStatusSelect({
   orderId,
   status,
   canEdit,
   disabled = false,
   onStatusSaved
 }: Props) {
-  const [currentStatus, setCurrentStatus] = useState(status ?? null);
+  const [currentStatus, setCurrentStatus] = useState(status);
   const [isSaving, setIsSaving] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    setCurrentStatus(status ?? null);
+    setCurrentStatus(status);
   }, [status]);
 
   useEffect(() => {
@@ -56,10 +56,10 @@ export default function AdminOrderPaymentSelect({
   const handleChange = async (value: string) => {
     setIsSaving(true);
     try {
-      const response = await fetch(`/api/admin/orders/${orderId}/payment-status`, {
+      const response = await fetch(`/api/admin/orders/${orderId}/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: value, note: '' })
+        body: JSON.stringify({ status: value })
       });
 
       if (!response.ok) {
@@ -79,13 +79,10 @@ export default function AdminOrderPaymentSelect({
     }
   };
 
-  const knownStatus = currentStatus && isPaymentStatus(currentStatus);
-  const allowEdit = canEdit && !disabled && knownStatus;
-
-  if (!allowEdit) {
+  if (!canEdit || disabled) {
     return (
       <div className="flex justify-center">
-        <PaymentChip status={currentStatus} isSaving={isSaving} />
+        <StatusChip status={currentStatus} isSaving={isSaving} />
       </div>
     );
   }
@@ -98,21 +95,23 @@ export default function AdminOrderPaymentSelect({
         className="rounded-full focus:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        aria-label={`Spremeni plačilni status naročila ${orderId}`}
+        aria-label={`Spremeni status naročila ${orderId}`}
       >
-        <PaymentChip status={currentStatus} isSaving={isSaving} />
+        <StatusChip status={currentStatus} isSaving={isSaving} />
       </button>
 
       {isOpen && (
         <div role="menu">
-          <MenuPanel className="absolute left-1/2 top-9 z-20 w-44 -translate-x-1/2">
-            {PAYMENT_STATUS_OPTIONS.map((option) => (
+          <MenuPanel className="absolute left-1/2 top-9 z-20 min-w-[180px] -translate-x-1/2">
+            {ORDER_STATUS_OPTIONS.map((option) => (
               <MenuItem
                 key={option.value}
                 onClick={() => handleChange(option.value)}
                 disabled={isSaving || option.value === currentStatus}
+                className="justify-between"
               >
-                {option.label}
+                <span>{option.label}</span>
+                {option.value === currentStatus && <span aria-hidden>✓</span>}
               </MenuItem>
             ))}
           </MenuPanel>

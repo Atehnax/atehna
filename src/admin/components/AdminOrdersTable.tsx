@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
 import { ButtonGroup } from '@/shared/ui/button-group';
 import { IconButton } from '@/shared/ui/icon-button';
-import AdminOrderStatusSelect from '@/components/admin/AdminOrderStatusSelect';
+import AdminOrderStatusSelect from '@/admin/components/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { SegmentedControl } from '@/shared/ui/segmented';
 import { CustomSelect } from '@/shared/ui/select';
@@ -15,13 +15,18 @@ import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
-import { buttonTokenClasses, dateInputTokenClasses } from '@/shared/ui/theme/tokens';
+import {
+  adminTableRowToneClasses,
+  buttonTokenClasses,
+  dateInputTokenClasses,
+  getAdminStripedRowToneClass
+} from '@/shared/ui/theme/tokens';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
-import AdminOrdersPdfCell from '@/components/admin/AdminOrdersPdfCell';
-import AdminOrderPaymentSelect from '@/components/admin/AdminOrderPaymentSelect';
-import AdminOrdersPreviewChart from '@/components/admin/AdminOrdersPreviewChart';
-import StatusChip from '@/components/admin/StatusChip';
-import PaymentChip from '@/components/admin/PaymentChip';
+import AdminOrdersPdfCell from '@/admin/components/AdminOrdersPdfCell';
+import AdminOrderPaymentSelect from '@/admin/components/AdminOrderPaymentSelect';
+import AdminOrdersPreviewChart from '@/admin/components/AdminOrdersPreviewChart';
+import StatusChip from '@/admin/components/StatusChip';
+import PaymentChip from '@/admin/components/PaymentChip';
 import { getCustomerTypeLabel } from '@/lib/customerType';
 import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
 import { formatSlDate, formatSlDateFromDateInput, formatSlDateTime } from '@/lib/format/dateTime';
@@ -52,7 +57,7 @@ import {
   toAmount,
   toDateInputValue,
   toDisplayOrderNumber
-} from '@/components/admin/adminOrdersTableUtils';
+} from '@/admin/components/adminOrdersTableUtils';
 
 type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
 
@@ -1221,7 +1226,7 @@ export default function AdminOrdersTable({
                           <button
                             type="button"
                             onClick={resetAllFilters}
-                            className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
+                            className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:border-[color:var(--blue-500)] hover:bg-[#dbe7fb]"
                           >
                             Prikaži vsa naročila
                           </button>
@@ -1244,8 +1249,8 @@ export default function AdminOrdersTable({
                     <TR
                       key={order.id}
                       className={`border-t border-slate-100 transition-colors duration-200 ${
-                        isRowSelected ? 'bg-[#eef3ff]' : orderIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-                      } hover:bg-[#eef3ff]`}
+                        isRowSelected ? adminTableRowToneClasses.selected : getAdminStripedRowToneClass(orderIndex)
+                      } ${adminTableRowToneClasses.hover}`}
                     >
                       <TD>
                         <div className="flex justify-center">
@@ -1262,7 +1267,7 @@ export default function AdminOrdersTable({
                       <TD className="text-center font-semibold text-slate-900" data-no-row-nav>
                         <a
                           href={`/admin/orders/${order.id}`}
-                          className="inline-flex rounded-sm px-1 text-[13px] font-semibold text-brand-700 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
+                          className="inline-flex rounded-sm px-1 text-[13px] font-semibold text-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
                           aria-label={`Odpri naročilo ${toDisplayOrderNumber(order.order_number)}`}
                         >
                           {toDisplayOrderNumber(order.order_number)}

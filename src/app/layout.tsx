@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
-import CartDrawer from '@/components/cart/CartDrawer';
+import CartDrawer from '@/product/components/cart/CartDrawer';
 import WebsiteAnalyticsTracker from '@/components/WebsiteAnalyticsTracker';
 import { ToastProvider, Toaster } from '@/shared/ui/toast';
 import { getCatalogSearchItems } from '@/lib/catalog';

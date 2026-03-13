@@ -20,6 +20,7 @@ export default {
           50: 'var(--blue-50)',
           100: 'var(--blue-100)',
           500: 'var(--blue-500)',
+          600: 'var(--blue-600)',
           700: 'var(--blue-700)'
         },
         semantic: {

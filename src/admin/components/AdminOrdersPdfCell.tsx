@@ -10,7 +10,7 @@ import {
   groupDocumentsByType,
   isGenerateKey,
   routeMap
-} from '@/components/admin/adminOrdersPdfCellUtils';
+} from '@/admin/components/adminOrdersPdfCellUtils';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 
@@ -242,7 +242,7 @@ export default function AdminOrdersPdfCell({
                   role="menuitem"
                   data-no-row-nav
                   onClick={() => setOpenType(null)}
-                  className="flex items-center justify-between rounded-md border border-transparent bg-white px-2 py-1 text-[10px] text-slate-700 transition hover:border-[#b9c8ff] hover:bg-[#eef3ff]"
+                  className="flex items-center justify-between rounded-md border border-transparent bg-white px-2 py-1 text-[10px] text-slate-700 transition hover:border-[color:var(--blue-500)] hover:bg-[#dbe7fb]"
                   title={documentOption.filename}
                 >
                   <span className="truncate font-medium">{documentOption.filename}</span>

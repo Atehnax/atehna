@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import AdminOrderItemsEditor from '@/components/admin/AdminOrderItemsEditor';
-import AdminOrderPdfManager from '@/components/admin/AdminOrderPdfManager';
-import AdminOrderHeaderChips from '@/components/admin/AdminOrderHeaderChips';
-import { toDisplayOrderNumber } from '@/components/admin/adminOrdersTableUtils';
+import AdminOrderItemsEditor from '@/admin/components/AdminOrderItemsEditor';
+import AdminOrderPdfManager from '@/admin/components/AdminOrderPdfManager';
+import AdminOrderHeaderChips from '@/admin/components/AdminOrderHeaderChips';
+import { toDisplayOrderNumber } from '@/admin/components/adminOrdersTableUtils';
 import {
   fetchOrderById,
   fetchOrderDocuments,
@@ -174,7 +174,7 @@ export default async function AdminOrderDetailPage({
   return (
     <div className="w-full">
       <div className="mx-auto max-w-7xl">
-        <Link href="/admin/orders" className="text-sm font-semibold text-brand-600">
+        <Link href="/admin/orders" className="text-sm font-semibold text-[color:var(--blue-500)] hover:text-[color:var(--blue-600)]">
           ← Nazaj na seznam
         </Link>
 

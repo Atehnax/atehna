@@ -999,6 +999,15 @@ export default function AdminCategoriesManager() {
     const buttonCenterX = buttonLeft + treeButtonRadius;
     const parentColumnX = level > 0 ? (level - 1) * treeIndent + treeButtonRadius : null;
 
+    const rightmostConnectorX = hasChildren
+      ? buttonCenterX
+      : level > 0 && parentColumnX !== null
+        ? parentColumnX + leafConnectorWidth
+        : 0;
+
+    const checkboxOffsetX =
+      kind === 'root' ? undefined : `translateX(${rightmostConnectorX - 50}px)`;
+
     const gutterWidth =
       level === 0
         ? hasChildren
@@ -1021,7 +1030,7 @@ export default function AdminCategoriesManager() {
               onChange={toggleChecked}
               aria-label={`Izberi ${title}`}
               style={{
-                transform: level > 0 ? `translateX(${Math.max(0, 56 + level * treeIndent)}px)` : undefined
+                transform: checkboxOffsetX
               }}
             />
           </div>

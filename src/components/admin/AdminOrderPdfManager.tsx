@@ -426,7 +426,7 @@ export default function AdminOrderPdfManager({
                                   href={doc.blob_url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className={`truncate text-brand-600 hover:text-brand-700 ${
+                                  className={`truncate text-[color:var(--blue-500)] hover:text-[color:var(--blue-600)] ${
                                     isNewest ? 'font-semibold' : 'font-medium'
                                   }`}
                                   title={doc.filename}

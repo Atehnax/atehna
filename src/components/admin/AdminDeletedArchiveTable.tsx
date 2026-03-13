@@ -9,7 +9,7 @@ import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 import { EmptyState, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
-import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
+import { adminTableRowToneClasses, buttonTokenClasses, getAdminStripedRowToneClass } from '@/shared/ui/theme/tokens';
 
 type ArchiveEntry = {
   id: number;
@@ -383,7 +383,7 @@ export default function AdminDeletedArchiveTable({
                     })();
 
               return (
-                <TR key={entry.id} className={`border-b border-slate-100 transition-colors ${index % 2 === 0 ? "bg-white/70" : "bg-slate-50/60"} hover:bg-[#ede8ff]`}>
+                <TR key={entry.id} className={`border-b border-slate-100 transition-colors ${getAdminStripedRowToneClass(index)} ${adminTableRowToneClasses.hover}`}>
                   <TD className="px-0 py-2 text-center">
                     <input
                       type="checkbox"
@@ -399,7 +399,7 @@ export default function AdminDeletedArchiveTable({
                   </TD>
                   <TD className={`px-0 py-2 text-slate-800 ${isChild ? 'pl-6' : ''}`}>
                     {entry.item_type === 'order' && entry.order_id ? (
-                      <a href={`/admin/orders/${entry.order_id}`} className="font-medium text-brand-700 hover:text-brand-800">
+                      <a href={`/admin/orders/${entry.order_id}`} className="font-medium text-[color:var(--blue-500)] hover:text-[color:var(--blue-600)]">
                         {entry.label}
                       </a>
                     ) : (

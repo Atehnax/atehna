@@ -1,5 +1,5 @@
 import { MetadataRoute } from 'next';
-import { getCategorySlugs } from '@/product/lib/content';
+import { getCategorySlugs } from '@/commercial/content/content';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://atehna.si';

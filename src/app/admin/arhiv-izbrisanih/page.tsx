@@ -1,7 +1,2 @@
-import { redirect } from 'next/navigation';
-
-export const dynamic = 'force-dynamic';
-
-export default function AdminDeletedArchiveRedirectPage() {
-  redirect('/admin/arhiv');
-}
+export * from '@/admin/pages/arhiv-izbrisanih/page';
+export { default } from '@/admin/pages/arhiv-izbrisanih/page';

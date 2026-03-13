@@ -1,13 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-<<<<<<<< HEAD:src/app/admin/components/AdminOrderStatusSelect.tsx
 import { ORDER_STATUS_OPTIONS } from '@/product/lib/orderStatus';
 import StatusChip from '@/app/admin/components/StatusChip';
-========
-import { ORDER_STATUS_OPTIONS } from '@/lib/orderStatus';
-import StatusChip from '@/admin/components/StatusChip';
->>>>>>>> origin/main:src/admin/components/AdminOrderStatusSelect.tsx
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { useToast } from '@/shared/ui/toast';
 

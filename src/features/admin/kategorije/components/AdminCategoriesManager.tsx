@@ -101,6 +101,32 @@ const treeButtonDiameter = 28;
 const treeButtonRadius = treeButtonDiameter / 2;
 const treeConnectorBleed = 1;
 const expandTransitionMs = 140;
+const treeCheckboxSize = 16;
+const treeCheckboxHalf = treeCheckboxSize / 2;
+
+const getCheckboxLeftFromTreeStart = (
+  kind: 'root' | 'category' | 'subcategory',
+  buttonLeft: number,
+  parentColumnX: number | null
+) => {
+  if (kind === 'root') return 0;
+
+  // category row: place checkbox in the space before the expand connector/button area
+  if (kind === 'category') {
+    const targetCenterX = buttonLeft / 2;
+    return targetCenterX - treeCheckboxHalf;
+  }
+
+  // subcategory row: place checkbox exactly between the two vertical lines
+  if (parentColumnX !== null) {
+    const leftConnectorX = parentColumnX - treeIndent;
+    const rightConnectorX = parentColumnX;
+    const targetCenterX = (leftConnectorX + rightConnectorX) / 2 + 18;
+    return targetCenterX - treeCheckboxHalf;
+  }
+
+  return 0;
+};
 
 async function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -998,6 +1024,7 @@ export default function AdminCategoriesManager() {
     const buttonLeft = level * treeIndent;
     const buttonCenterX = buttonLeft + treeButtonRadius;
     const parentColumnX = level > 0 ? (level - 1) * treeIndent + treeButtonRadius : null;
+    const checkboxLeftFromTreeStart = getCheckboxLeftFromTreeStart(kind, buttonLeft, parentColumnX);
 
     const gutterWidth =
       level === 0
@@ -1013,16 +1040,26 @@ export default function AdminCategoriesManager() {
         key={id}
         className={`${isSelected ? 'bg-brand-50/70' : rowDepthTone} transition-[background-color,opacity,transform] duration-150 hover:bg-[#eef3ff] ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''}`}
       >
-        <td className="border-b border-slate-200 px-2 py-2 text-center align-middle">
-          <div className="flex justify-center overflow-visible">
+        <td className="relative overflow-visible border-b border-slate-200 px-2 py-2 text-center align-middle">
+          <div
+            className="absolute top-1/2 z-20"
+            style={
+              kind === 'root'
+                ? {
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)'
+                  }
+                : {
+                    left: `calc(100% + ${checkboxLeftFromTreeStart}px)`,
+                    transform: 'translateY(-50%)'
+                  }
+            }
+          >
             <input
               type="checkbox"
               checked={isChecked}
               onChange={toggleChecked}
               aria-label={`Izberi ${title}`}
-              style={{
-                transform: level > 0 ? `translateX(${Math.max(0, 56 + level * treeIndent)}px)` : undefined
-              }}
             />
           </div>
         </td>
@@ -1054,7 +1091,7 @@ export default function AdminCategoriesManager() {
                 );
               })}
 
-              {level === 0 && hasChildren && isExpanded ? (
+              {hasChildren && isExpanded ? (
                 <span
                   className="absolute z-0 w-px bg-slate-300/90"
                   style={{
@@ -1525,50 +1562,52 @@ export default function AdminCategoriesManager() {
                 <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">
                   Izdelki
                 </th>
-                <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">
-                  <div className="relative inline-flex" ref={statusHeaderMenuRef}>
-                    {selectedRows.length > 0 ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => setIsStatusHeaderMenuOpen((previousOpen) => !previousOpen)}
-                          className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-[color:var(--hover-neutral)]"
-                          aria-haspopup="menu"
-                          aria-expanded={isStatusHeaderMenuOpen}
-                        >
-                          Status ▾ ({selectedRows.length})
-                        </button>
+                <th className="h-11 border-b border-slate-200 px-3 py-0 text-center text-xs font-semibold text-slate-500 align-middle">
+                  <div className="relative flex h-8 items-center justify-center" ref={statusHeaderMenuRef}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (selectedRows.length === 0) return;
+                        setIsStatusHeaderMenuOpen((previousOpen) => !previousOpen);
+                      }}
+                      className={`inline-flex h-7 items-center rounded-full border px-2 text-xs font-semibold ${
+                        selectedRows.length > 0
+                          ? 'border-slate-300 bg-white text-slate-700 hover:bg-[color:var(--hover-neutral)]'
+                          : 'border-transparent bg-transparent text-slate-500 cursor-default'
+                      }`}
+                      aria-haspopup="menu"
+                      aria-expanded={selectedRows.length > 0 ? isStatusHeaderMenuOpen : false}
+                      disabled={selectedRows.length === 0}
+                    >
+                      {selectedRows.length > 0 ? `Status ▾ (${selectedRows.length})` : 'Status'}
+                    </button>
 
-                        {isStatusHeaderMenuOpen ? (
-                          <MenuPanel className="absolute left-1/2 top-8 z-20 w-36 -translate-x-1/2">
-                            <MenuItem
-                              onClick={() => {
-                                setStatusByRow((prev) => ({
-                                  ...prev,
-                                  ...Object.fromEntries(selectedRows.map((rowId) => [rowId, 'active']))
-                                }));
-                                setIsStatusHeaderMenuOpen(false);
-                              }}
-                            >
-                              Aktivna
-                            </MenuItem>
-                            <MenuItem
-                              onClick={() => {
-                                setStatusByRow((prev) => ({
-                                  ...prev,
-                                  ...Object.fromEntries(selectedRows.map((rowId) => [rowId, 'inactive']))
-                                }));
-                                setIsStatusHeaderMenuOpen(false);
-                              }}
-                            >
-                              Neaktivna
-                            </MenuItem>
-                          </MenuPanel>
-                        ) : null}
-                      </>
-                    ) : (
-                      'Status'
-                    )}
+                    {selectedRows.length > 0 && isStatusHeaderMenuOpen ? (
+                      <MenuPanel className="absolute left-1/2 top-8 z-20 w-36 -translate-x-1/2">
+                        <MenuItem
+                          onClick={() => {
+                            setStatusByRow((prev) => ({
+                              ...prev,
+                              ...Object.fromEntries(selectedRows.map((rowId) => [rowId, 'active']))
+                            }));
+                            setIsStatusHeaderMenuOpen(false);
+                          }}
+                        >
+                          Aktivna
+                        </MenuItem>
+                        <MenuItem
+                          onClick={() => {
+                            setStatusByRow((prev) => ({
+                              ...prev,
+                              ...Object.fromEntries(selectedRows.map((rowId) => [rowId, 'inactive']))
+                            }));
+                            setIsStatusHeaderMenuOpen(false);
+                          }}
+                        >
+                          Neaktivna
+                        </MenuItem>
+                      </MenuPanel>
+                    ) : null}
                   </div>
                 </th>
                 <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">

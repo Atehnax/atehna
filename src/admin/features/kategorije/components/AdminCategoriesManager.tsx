@@ -947,6 +947,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   const saveInlineEdit = async () => {
     if (!editingRow) return;
     if (isInlineSavingRef.current) return;
+    if (saving) return;
 
     isInlineSavingRef.current = true;
     const nextTitle = editingRow.title.trim();
@@ -1487,7 +1488,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
               aria-label="Shrani"
               title="Shrani"
               onClick={() => void saveInlineEdit()}
-              disabled={!isRowEditing}
+              disabled={!isRowEditing || saving}
             >
               <SaveIcon />
             </IconButton>

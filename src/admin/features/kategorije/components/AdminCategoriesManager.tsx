@@ -343,6 +343,14 @@ function summarizeCatalogChanges(
     }
   }
 
+  const labelById = new Map<string, string>();
+  nextCats.forEach((category) => {
+    labelById.set(catId(category.slug), category.title);
+    category.subcategories.forEach((subcategory) => {
+      labelById.set(subId(category.slug, subcategory.slug), subcategory.title);
+    });
+  });
+
   const allStatusIds = new Set([...Object.keys(previousStatuses), ...Object.keys(nextStatuses)]);
   for (const id of allStatusIds) {
     const before = previousStatuses[id] ?? 'active';
@@ -350,12 +358,14 @@ function summarizeCatalogChanges(
     if (before === after) continue;
 
     if (id.startsWith('cat:')) {
-      lines.push(`spremenjen status kategorije na ${after === 'active' ? 'Aktivna' : 'Neaktivna'}`);
+      const label = labelById.get(id) ?? id.slice(4);
+      lines.push(`spremenjen status kategorije "${label}" na ${after === 'active' ? 'Aktivna' : 'Neaktivna'}`);
       continue;
     }
 
     if (id.startsWith('sub:')) {
-      lines.push(`spremenjen status podkategorije na ${after === 'active' ? 'Aktivna' : 'Neaktivna'}`);
+      const label = labelById.get(id) ?? id;
+      lines.push(`spremenjen status podkategorije "${label}" na ${after === 'active' ? 'Aktivna' : 'Neaktivna'}`);
     }
   }
 
@@ -364,13 +374,20 @@ function summarizeCatalogChanges(
 
 type CategoriesView = 'table' | 'miller';
 
-export default function AdminCategoriesManager({ initialView = 'table' }: { initialView?: CategoriesView }) {
+export default function AdminCategoriesManager({
+  initialView = 'table',
+  initialPayload
+}: {
+  initialView?: CategoriesView;
+  initialPayload?: AdminCategoriesPayload;
+}) {
   const [catalog, setCatalog] = useState<CatalogData>({ categories: [] });
   const [selected, setSelected] = useState<SelectedNode>({ kind: 'root' });
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [editingRow, setEditingRow] = useState<EditingRowDraft | null>(null);
   const [statusByRow, setStatusByRow] = useState<Record<string, CategoryStatus>>({});
   const [openStatusMenuRowId, setOpenStatusMenuRowId] = useState<string | null>(null);
+  const [statusMenuPlacement, setStatusMenuPlacement] = useState<Record<string, 'top' | 'bottom'>>({});
   const [isStatusHeaderMenuOpen, setIsStatusHeaderMenuOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [createTarget, setCreateTarget] = useState<CreateTarget>(null);
@@ -384,7 +401,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   const [openingRowIds, setOpeningRowIds] = useState<string[]>([]);
   const [closingRowIds, setClosingRowIds] = useState<string[]>([]);
   const [imageDeleteTarget, setImageDeleteTarget] = useState<ImageDeleteTarget>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialPayload);
   const [saving, setSaving] = useState(false);
   const [tableDirty, setTableDirty] = useState(false);
   const [tableError, setTableError] = useState<string | null>(null);
@@ -417,6 +434,38 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   const persistedMillerRef = useRef<CatalogData>({ categories: [] });
   const persistedStatusRef = useRef<Record<string, CategoryStatus>>({});
 
+  const applyPayloadState = useCallback((payloadRaw: AdminCategoriesPayload) => {
+    const payload = normalizeCatalogData(payloadRaw);
+    const nextStatuses = payloadRaw.statuses ?? {};
+
+    setCatalog(payload);
+    setMillerCatalog(payload);
+    persistedTableRef.current = payload;
+    persistedMillerRef.current = payload;
+    setTableDirty(false);
+    setTableError(null);
+    setMillerDirty(false);
+    setMillerSelection([]);
+    setExpanded((prev) => ({
+      ...prev,
+      ...Object.fromEntries(payload.categories.map((entry) => [catId(entry.slug), prev[catId(entry.slug)] ?? false]))
+    }));
+
+    setStatusByRow(() => {
+      const next = { ...nextStatuses };
+      payload.categories.forEach((category) => {
+        const categoryId = catId(category.slug);
+        if (!next[categoryId]) next[categoryId] = 'active';
+        (category.subcategories ?? []).forEach((subcategory) => {
+          const subcategoryId = subId(category.slug, subcategory.slug);
+          if (!next[subcategoryId]) next[subcategoryId] = 'active';
+        });
+      });
+      persistedStatusRef.current = next;
+      return next;
+    });
+  }, []);
+
   const load = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!silent) setLoading(true);
 
@@ -429,51 +478,26 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
       }
 
       const payloadRaw = (await response.json()) as AdminCategoriesPayload;
-      const payload = normalizeCatalogData(payloadRaw);
-      const nextStatuses = payloadRaw.statuses ?? {};
-
-      setCatalog(payload);
-      setMillerCatalog(payload);
-      persistedTableRef.current = payload;
-      persistedMillerRef.current = payload;
-      setTableDirty(false);
-      setTableError(null);
-      setMillerDirty(false);
-      setMillerSelection([]);
-      setExpanded((prev) => ({
-        ...prev,
-        ...Object.fromEntries(payload.categories.map((entry) => [catId(entry.slug), prev[catId(entry.slug)] ?? false]))
-      }));
-
-      setStatusByRow(() => {
-        const next = { ...nextStatuses };
-
-        payload.categories.forEach((category) => {
-          const categoryId = catId(category.slug);
-          if (!next[categoryId]) next[categoryId] = 'active';
-
-          (category.subcategories ?? []).forEach((subcategory) => {
-            const subcategoryId = subId(category.slug, subcategory.slug);
-            if (!next[subcategoryId]) next[subcategoryId] = 'active';
-          });
-        });
-        persistedStatusRef.current = next;
-        return next;
-      });
+      applyPayloadState(payloadRaw);
     } catch {
       toastRef.current.error('Napaka pri nalaganju kategorij');
     } finally {
       if (!silent) setLoading(false);
     }
-  }, []);
+  }, [applyPayloadState]);
 
   useEffect(() => {
     toastRef.current = toast;
   }, [toast]);
 
   useEffect(() => {
+    if (initialPayload) {
+      applyPayloadState(initialPayload);
+      setLoading(false);
+      return;
+    }
     void load();
-  }, [load]);
+  }, [applyPayloadState, initialPayload, load]);
 
   useEffect(() => {
     setActiveView(pathname?.endsWith('/miller-view') ? 'miller' : 'table');
@@ -948,6 +972,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
 
   const applyMillerMove = (targetId: string) => {
     if (millerSelection.length === 0) return;
+    if (millerSelection.includes(targetId)) return;
 
     const selectedCategories = millerSelection.filter((entry) => entry.startsWith('cat:'));
     const selectedSubcategories = millerSelection.filter((entry) => entry.startsWith('sub:'));
@@ -1636,6 +1661,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
 
     const setStatus = (nextStatus: CategoryStatus) => {
       setEditingRow((prev) => (prev && prev.id === id ? { ...prev, status: nextStatus } : prev));
+      setStatusByRow((prev) => ({ ...prev, [id]: nextStatus }));
       setTableDirty(true);
       setOpenStatusMenuRowId(null);
     };
@@ -1675,7 +1701,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
           : (parentColumnX ?? 0) + leafConnectorWidth;
 
     return (
-      <SortableTreeRow id={id} disabled={kind === 'root'}>
+      <SortableTreeRow key={id} id={id} disabled={kind === 'root'}>
         {({ dragHandleProps, setNodeRef, style, isDragging }) => (
       <tr
         ref={setNodeRef}
@@ -1865,7 +1891,19 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
             >
               <button
                 type="button"
-                onClick={() => setOpenStatusMenuRowId((prev) => (prev === id ? null : id))}
+                onClick={(event) => {
+                  setOpenStatusMenuRowId((prev) => {
+                    const nextOpen = prev === id ? null : id;
+                    if (nextOpen) {
+                      const triggerRect = (event.currentTarget as HTMLButtonElement).getBoundingClientRect();
+                      const viewportHeight = window.innerHeight;
+                      const estimatedMenuHeight = 112;
+                      const spaceBelow = viewportHeight - triggerRect.bottom;
+                      setStatusMenuPlacement((placements) => ({ ...placements, [id]: spaceBelow >= estimatedMenuHeight ? 'bottom' : 'top' }));
+                    }
+                    return nextOpen;
+                  });
+                }}
                 className="rounded-full"
                 aria-haspopup="menu"
                 aria-expanded={openStatusMenuRowId === id}
@@ -1883,7 +1921,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
               </button>
 
               {openStatusMenuRowId === id ? (
-                <MenuPanel className="absolute left-1/2 top-8 z-20 w-36 -translate-x-1/2">
+                <MenuPanel className={`absolute left-1/2 z-20 w-36 -translate-x-1/2 ${statusMenuPlacement[id] === 'top' ? 'bottom-8' : 'top-8'}`}>
                   <MenuItem onClick={() => setStatus('active')} disabled={editingRow?.status === 'active'}>
                     Aktivna
                   </MenuItem>
@@ -1927,7 +1965,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
                 if (kind === 'root') openCreateDialog({ kind: 'category' });
                 if (kind === 'category' && categorySlug) openCreateDialog({ kind: 'subcategory', categorySlug });
                 if (kind === 'subcategory' && categorySlug) {
-                  openCreateDialog({ kind: 'subcategory', categorySlug, afterSlug: subcategorySlug });
+                  openCreateDialog({ kind: 'subcategory', categorySlug });
                 }
               }}
             >
@@ -1985,7 +2023,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
         description: 'Pogled vseh kategorij',
         childrenCount: catalog.categories.length,
         productCount: 0,
-        ancestorContinuationColumns: [],
+        ancestorContinuationColumns: [false],
         continueCurrentColumnBelow: filteredCategories.length > 0,
         parentIsAnimating: false
       })
@@ -2002,13 +2040,13 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
           renderTreeRow({
             id: categoryNodeId,
             title: category.title,
-            level: 0,
+            level: 1,
             kind: 'category',
             categorySlug: category.slug,
             description: category.summary,
             childrenCount: category.subcategories.length,
             productCount: (category.items ?? []).length,
-            ancestorContinuationColumns: [],
+            ancestorContinuationColumns: [false],
             continueCurrentColumnBelow: hasVisibleChildren || hasNextCategory,
             parentIsAnimating: false
           })
@@ -2022,14 +2060,14 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
               renderTreeRow({
                 id: subId(category.slug, subcategory.slug),
                 title: subcategory.title,
-                level: 1,
+                level: 2,
                 kind: 'subcategory',
                 categorySlug: category.slug,
                 subcategorySlug: subcategory.slug,
                 description: subcategory.description,
                 childrenCount: 0,
                 productCount: subcategory.items.length,
-                ancestorContinuationColumns: [true, hasNextCategory],
+                ancestorContinuationColumns: [false, true, hasNextCategory],
                 continueCurrentColumnBelow: hasNextSubcategory,
                 parentIsAnimating: openingRowIds.includes(categoryNodeId) || closingRowIds.includes(categoryNodeId)
               })
@@ -2040,6 +2078,20 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
 
     return rows;
   })();
+
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <header>
+          <h1 className="text-2xl font-semibold text-slate-900">Kategorije</h1>
+        </header>
+        <div className="rounded-2xl border border-slate-200 bg-white p-6">
+          <div className="inline-flex items-center gap-2 text-sm text-slate-600"><Spinner size="sm" /> Nalaganje kategorij ...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -2301,25 +2353,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         {tableError ? <p className="mb-3 rounded-lg border border-[var(--danger-300)] bg-[var(--danger-100)] px-3 py-2 text-xs text-[var(--danger-700)]">{tableError}</p> : null}
         <div className="mb-3 flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            {selectedContext?.kind === 'subcategory'
-              ? 'Vsebina izbrane podkategorije'
-              : selectedContext?.kind === 'root'
-                ? 'Vsebina kategorij'
-                : 'Vsebina izbrane kategorije'}
-          </p>
-          <Button
-            variant="primary"
-            size="toolbar"
-            onClick={() => {
-              const summary = summarizeCatalogChanges(persistedTableRef.current, catalog, persistedStatusRef.current, statusByRow);
-              setTableSaveSummary(summary);
-              setIsTableSaveDialogOpen(true);
-            }}
-            disabled={!tableDirty || saving}
-          >
-            Shrani spremembe
-          </Button>
+          <p className="text-sm font-semibold text-slate-700">Predogled</p>
         </div>
 
         {selectedContext?.kind === 'root' ||
@@ -2330,7 +2364,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
                 {visibleContent.map((item) => (
                   <SortableItem key={item.id} id={item.id}>
                     {(dragProps) => (
-                      <article {...dragProps} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm cursor-grab active:cursor-grabbing">
+                      <article {...dragProps} className="h-[300px] rounded-xl border border-slate-200 bg-white p-3 shadow-sm cursor-grab active:cursor-grabbing">
                         <button
                           type="button"
                           className="relative h-36 w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-50 text-left"
@@ -2344,22 +2378,26 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
                               Brez slike
                             </div>
                           )}
-                          <div className="absolute right-2 top-2 flex items-center gap-1">
+                          <div className="absolute inset-0 flex items-center justify-center gap-2">
                             <button
                               type="button"
-                              className="rounded-full bg-black/35 p-1 text-white hover:bg-black/50"
+                              className="rounded-full bg-black/35 p-2 text-white backdrop-blur-sm hover:bg-black/50"
                               onPointerDown={(event) => event.stopPropagation()}
                               onClick={(event) => {
                                 event.stopPropagation();
                                 uploadRefs.current[item.id]?.click();
                               }}
+                              aria-label="Dodaj sliko"
                             >
-                              📷
+                              <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                                <rect x="3.5" y="5" width="13" height="10" rx="2" />
+                                <path d="M10 8v4M8 10h4" />
+                              </svg>
                             </button>
                             {item.image ? (
                               <button
                                 type="button"
-                                className="rounded-full bg-black/35 px-1.5 py-0.5 text-white hover:bg-black/50"
+                                className="rounded-full bg-black/35 p-2 text-white backdrop-blur-sm hover:bg-black/50"
                                 onPointerDown={(event) => event.stopPropagation()}
                                 onClick={(event) => {
                                   event.stopPropagation();
@@ -2374,6 +2412,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
                                     subcategorySlug: item.kind === 'subcategory' ? item.id : undefined
                                   });
                                 }}
+                                aria-label="Odstrani sliko"
                               >
                                 ✕
                               </button>
@@ -2382,9 +2421,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
                         </button>
 
                         <div className="mt-3 space-y-1">
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Naziv</p>
                           <p className="text-sm font-semibold text-slate-700">{item.title}</p>
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Opis</p>
                           <p className="text-xs text-slate-600">{item.description || '—'}</p>
                         </div>
 
@@ -2437,7 +2474,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
         ) : null}
 
         <div className="mt-4 flex items-center justify-end gap-3">
-          <label className="flex items-center gap-3 text-xs text-slate-600">
+          <label className="mr-2 flex items-center gap-2 text-[11px] text-slate-500">
             Elementov na vrstico
             <input
               type="range"
@@ -2445,10 +2482,22 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
               max={12}
               value={lowerViewCount}
               onChange={(event) => setLowerViewCount(Number(event.target.value || 4))}
-              className="h-2 w-32 accent-[#3e67d6]"
+              className="h-1.5 w-28 accent-[#3e67d6]"
             />
-            <span className="w-4 text-right font-semibold text-slate-700">{lowerViewCount}</span>
+            <span className="w-4 text-right text-slate-600">{lowerViewCount}</span>
           </label>
+          <Button
+            variant="primary"
+            size="toolbar"
+            onClick={() => {
+              const summary = summarizeCatalogChanges(persistedTableRef.current, catalog, persistedStatusRef.current, statusByRow);
+              setTableSaveSummary(summary);
+              setIsTableSaveDialogOpen(true);
+            }}
+            disabled={!tableDirty || saving}
+          >
+            Shrani spremembe
+          </Button>
         </div>
       </section>
       </div>
@@ -2552,7 +2601,9 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
                 }}
                 onDrop={(event) => {
                   event.preventDefault();
-                  applyMillerMove(millerDropTarget ?? (column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget ?? rootId));
+                  const dropTarget = column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget ?? rootId;
+                  applyMillerMove(dropTarget);
+                  setMillerDropTarget(null);
                 }}
               >
                 {column.rows.length === 0 ? <p className="px-2 py-3 text-xs text-slate-500">Ni zapisov.</p> : column.rows.map((row) => (
@@ -2563,6 +2614,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
                     onClick={row.onClick}
                     draggable
                     onDragStart={(event) => { event.dataTransfer.setData('text/plain', row.id); row.onDragStart(); }}
+                    onDragEnd={() => setMillerDropTarget(null)}
                     onDragOver={(event) => {
                       event.preventDefault();
                       setMillerDropTarget(row.id);

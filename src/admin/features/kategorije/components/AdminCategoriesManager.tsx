@@ -369,28 +369,34 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   }, [isStatusHeaderMenuOpen, openStatusMenuRowId]);
 
   const persist = async (next: CatalogData, message = 'Shranjeno') => {
-    const previous = catalogRef.current;
     setCatalog(next);
     catalogRef.current = next;
 
     const runPersist = async () => {
       setSaving(true);
-      const response = await fetch('/api/admin/categories', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(next)
-      });
-      setSaving(false);
 
-      if (!response.ok) {
-        setCatalog(previous);
-        catalogRef.current = previous;
+      try {
+        const response = await fetch('/api/admin/categories', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(next)
+        });
+
+        if (!response.ok) {
+          toast.error('Shranjevanje ni uspelo');
+          await load();
+          return false;
+        }
+
+        toast.success(message);
+        return true;
+      } catch {
         toast.error('Shranjevanje ni uspelo');
+        await load();
         return false;
+      } finally {
+        setSaving(false);
       }
-
-      toast.success(message);
-      return true;
     };
 
     persistQueueRef.current = persistQueueRef.current.then(runPersist, runPersist);

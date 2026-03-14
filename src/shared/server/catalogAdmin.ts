@@ -12,5 +12,8 @@ export async function readCatalogFile(): Promise<CatalogData> {
 }
 
 export async function writeCatalogFile(data: CatalogData): Promise<void> {
-  await fs.writeFile(catalogPath, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+  const nextPayload = `${JSON.stringify(data, null, 2)}\n`;
+  const tempPath = `${catalogPath}.tmp`;
+  await fs.writeFile(tempPath, nextPayload, 'utf8');
+  await fs.rename(tempPath, catalogPath);
 }

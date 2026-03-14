@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import {
-  getCatalogCategories,
   getCatalogCategoryItemPrice,
   getCatalogCategoryItemSku,
   getCatalogItemPrice,
   getCatalogItemSku
 } from '@/commercial/catalog/catalog';
+import { getCatalogCategoriesServer } from '@/commercial/catalog/catalogServer';
 
 type CatalogChoice = {
   sku: string;
@@ -17,10 +17,10 @@ type CatalogChoice = {
 
 const DEFAULT_UNIT = 'kos';
 
-function collectCatalogChoices(): CatalogChoice[] {
+async function collectCatalogChoices(): Promise<CatalogChoice[]> {
   const items: CatalogChoice[] = [];
 
-  for (const category of getCatalogCategories()) {
+  for (const category of await getCatalogCategoriesServer()) {
     for (const item of category.items ?? []) {
       items.push({
         sku: getCatalogCategoryItemSku(category.slug, item.slug),
@@ -51,7 +51,7 @@ function collectCatalogChoices(): CatalogChoice[] {
 
 export async function GET() {
   try {
-    const items = collectCatalogChoices();
+    const items = await collectCatalogChoices();
     return NextResponse.json({ items });
   } catch (error) {
     return NextResponse.json(

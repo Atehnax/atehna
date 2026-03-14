@@ -1,6 +1,7 @@
 {
   "categories": [
     {
+      "id": "id-1f33v1n",
       "slug": "materiali",
       "title": "Materiali",
       "summary": "Kovine, les, plastika ter papirni materiali za tehnične projekte.",
@@ -8,9 +9,11 @@
       "image": "/images/categories/metal-plates.svg",
       "subcategories": [
         {
+          "id": "id-1f6cc63",
           "slug": "kovine-plocevina",
           "title": "Kovine – pločevina",
           "description": "Pločevina iz jekla, aluminija, bakra in medenine v dimenzijah za vaje in projekte.",
+          "image": "",
           "items": [
             {
               "slug": "jeklena-plocevina-plosca",
@@ -159,9 +162,11 @@
           ]
         },
         {
+          "id": "id-1y49p9w",
           "slug": "les-in-lesni-materiali",
           "title": "Les in lesni materiali",
           "description": "Plošče, letvice in leseni elementi za konstrukcije in modele.",
+          "image": "",
           "items": [
             {
               "slug": "vezana-plosca-300x200",
@@ -292,9 +297,11 @@
           ]
         },
         {
+          "id": "id-15du7x0",
           "slug": "plastika-pene-izolacijski",
           "title": "Plastika, pene, izolacijski materiali",
           "description": "Plošče in folije iz plastike ter izolacijskih materialov.",
+          "image": "",
           "items": [
             {
               "slug": "penjeni-pvc-300x200x3",
@@ -329,9 +336,11 @@
           ]
         },
         {
+          "id": "id-jqtft0",
           "slug": "papir-karton-lepenka",
           "title": "Papir, karton, lepenka (risalni in tehnični)",
           "description": "Papirni in kartonski materiali za risanje, modeliranje in tehnične naloge.",
+          "image": "",
           "items": [
             {
               "slug": "pisarniski-papir-a4",
@@ -449,9 +458,11 @@
             }
           ]
         }
-      ]
+      ],
+      "items": []
     },
     {
+      "id": "id-ur8ih8",
       "slug": "stroji-in-naprave",
       "title": "Stroji in naprave",
       "summary": "Stroji za rezanje, vrtanje, brušenje in oblikovanje materialov.",
@@ -540,6 +551,7 @@
       ]
     },
     {
+      "id": "id-5440fd",
       "slug": "rocno-orodje-in-pribor",
       "title": "Ročno orodje in delavniški pribor",
       "summary": "Ročno orodje, pripomočki in pribor za delavnice.",
@@ -547,9 +559,11 @@
       "image": "/images/categories/rezalni-pripomocki.svg",
       "subcategories": [
         {
+          "id": "id-1pg9gu9",
           "slug": "rezanje-zaganje-brusenje",
           "title": "Rezanje, žaganje, brušenje (ročno)",
           "description": "Ročni pripomočki za rezanje in brušenje.",
+          "image": "",
           "items": [
             {
               "slug": "pila-rocna",
@@ -572,9 +586,11 @@
           ]
         },
         {
+          "id": "id-106s6ys",
           "slug": "kladiva",
           "title": "Kladiva",
           "description": "Kladiva za različne obdelave.",
+          "image": "",
           "items": [
             {
               "slug": "kladivo-200",
@@ -597,9 +613,11 @@
           ]
         },
         {
+          "id": "id-163rnh",
           "slug": "klesce",
           "title": "Klešče",
           "description": "Klešče za različne prijeme.",
+          "image": "",
           "items": [
             {
               "slug": "kombinirane-klesce",
@@ -622,9 +640,11 @@
           ]
         },
         {
+          "id": "id-ljk0xa",
           "slug": "tockanje-zarisovanje",
           "title": "Točkanje in zarisovanje",
           "description": "Orodja za označevanje in zarisovanje.",
+          "image": "",
           "items": [
             {
               "slug": "tockalo-100x3",
@@ -653,9 +673,11 @@
           ]
         },
         {
+          "id": "id-yexa0u",
           "slug": "skarje-plocevina",
           "title": "Škarje (pločevina)",
           "description": "Škarje za rezanje pločevine.",
+          "image": "",
           "items": [
             {
               "slug": "skarje-za-plocevino-zlatar",
@@ -672,9 +694,11 @@
           ]
         },
         {
+          "id": "id-36e128",
           "slug": "ostalo",
           "title": "Ostalo",
           "description": "Dodatni delavniški pripomočki.",
+          "image": "",
           "items": [
             {
               "slug": "pestilo-za-kovine",
@@ -703,9 +727,11 @@
           ]
         },
         {
+          "id": "id-83rflj",
           "slug": "zagice",
           "title": "Žagice",
           "description": "Žagice in potrošni material za žaganje.",
+          "image": "",
           "items": [
             {
               "slug": "zagice-les-plastika-fini",
@@ -775,9 +801,11 @@
             }
           ]
         }
-      ]
+      ],
+      "items": []
     },
     {
+      "id": "id-1hfqf8t",
       "slug": "merilno-orodje-in-geometrija",
       "title": "Merilno orodje in geometrija",
       "summary": "Merilni pripomočki in geometrijska orodja za pouk.",
@@ -785,9 +813,11 @@
       "image": "/images/categories/rulers-measurement.svg",
       "subcategories": [
         {
+          "id": "id-11efn95",
           "slug": "merjenje",
           "title": "Merjenje",
           "description": "Merilni pripomočki za natančne meritve.",
+          "image": "",
           "items": [
             {
               "slug": "digitalno-pomicno-merilo-150",
@@ -810,9 +840,11 @@
           ]
         },
         {
+          "id": "id-14dk2h9",
           "slug": "ravnila-kotniki-kotomeri",
           "title": "Ravnila, kotniki, kotomeri",
           "description": "Ravnila, kotniki in kotomeri za geometrijo.",
+          "image": "",
           "items": [
             {
               "slug": "aluminijasto-ravnilo-40",
@@ -847,9 +879,11 @@
           ]
         },
         {
+          "id": "id-8m3zpd",
           "slug": "didakticni-pripomocki",
           "title": "Didaktični pripomočki",
           "description": "Didaktični pripomočki za razlago geometrije.",
+          "image": "",
           "items": [
             {
               "slug": "geometrijska-telesa",
@@ -889,9 +923,11 @@
             }
           ]
         }
-      ]
+      ],
+      "items": []
     },
     {
+      "id": "id-16q3xmz",
       "slug": "dodatki-in-nadomestni-deli",
       "title": "Dodatki in nadomestni deli",
       "summary": "Pripomočki in nadomestni deli za didaktične pripomočke.",
@@ -914,6 +950,7 @@
       ]
     },
     {
+      "id": "id-1khy6c7",
       "slug": "lepila-trakovi-lotanje",
       "title": "Lepila, trakovi, spajkanje/varjenje",
       "summary": "Lepila, trakovi in material za spajkanje.",
@@ -921,9 +958,11 @@
       "image": "/images/categories/lepila-kompleti.svg",
       "subcategories": [
         {
+          "id": "id-1bntmch",
           "slug": "lepila",
           "title": "Lepila",
           "description": "Različna lepila za šolske delavnice.",
+          "image": "",
           "items": [
             {
               "slug": "mekol-1001",
@@ -952,9 +991,11 @@
           ]
         },
         {
+          "id": "id-xn67u0",
           "slug": "lepilni-trakovi",
           "title": "Lepilni trakovi",
           "description": "Lepilni trakovi za montažo in zaščito.",
+          "image": "",
           "items": [
             {
               "slug": "aluminijasti-trak",
@@ -977,9 +1018,11 @@
           ]
         },
         {
+          "id": "id-16f6ct1",
           "slug": "lotanje-varjenje",
           "title": "Lotanje / varjenje",
           "description": "Material za spajkanje in varjenje.",
+          "image": "",
           "items": [
             {
               "slug": "zica-za-lotanje-100",
@@ -995,9 +1038,11 @@
             }
           ]
         }
-      ]
+      ],
+      "items": []
     },
     {
+      "id": "id-yme241",
       "slug": "osebna-zascita-in-varnost",
       "title": "Osebna zaščita in varnost",
       "summary": "Osebna zaščita in oprema za varno delo.",
@@ -1032,6 +1077,7 @@
       ]
     },
     {
+      "id": "id-ubsl1u",
       "slug": "elektrika-mehanika",
       "title": "Električni in mehanični elementi",
       "summary": "Osnovni električni elementi za projekte.",

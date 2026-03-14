@@ -98,6 +98,23 @@ const subId = (catSlug: string, subSlug: string) => `sub:${catSlug}:${subSlug}`;
 const slugify = (value: string) =>
   value.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-čšžćđ]/gi, '');
 
+
+const createNodeId = () =>
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `id-${Math.random().toString(36).slice(2, 11)}`;
+
+const normalizeNodeId = (value: unknown, fallbackSeed: string) => {
+  if (typeof value === 'string' && value.trim().length > 0) return value.trim();
+
+  let hash = 0;
+  for (const char of fallbackSeed) {
+    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  }
+
+  return `id-${hash.toString(36)}`;
+};
+
 const treeIndent = 32;
 const treeRowHeight = 48;
 const treeHalfRowHeight = treeRowHeight / 2;
@@ -245,7 +262,10 @@ function normalizeCatalogData(input: unknown): CatalogData {
       if (!slug) return null;
 
       const subcategoriesSource = Array.isArray(category.subcategories) ? category.subcategories : [];
+      const categoryId = normalizeNodeId(category.id, `cat-${slug}`);
+
       return {
+        id: categoryId,
         slug,
         title: typeof category.title === 'string' ? category.title : slug,
         summary: typeof category.summary === 'string' ? category.summary : '',
@@ -260,6 +280,7 @@ function normalizeCatalogData(input: unknown): CatalogData {
             const subSlug = typeof subcategory.slug === 'string' ? subcategory.slug.trim() : '';
             if (!subSlug) return null;
             return {
+              id: normalizeNodeId(subcategory.id, `sub-${categoryId}-${slug}-${subSlug}`),
               slug: subSlug,
               title: typeof subcategory.title === 'string' ? subcategory.title : subSlug,
               description: typeof subcategory.description === 'string' ? subcategory.description : '',
@@ -473,6 +494,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     }
 
     const item: CatalogCategory = {
+      id: createNodeId(),
       slug,
       title,
       summary: title,
@@ -512,6 +534,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
         if (entry.slug !== categorySlug) return entry;
 
         const sub: CatalogSubcategory = {
+          id: createNodeId(),
           slug,
           title,
           description: '',

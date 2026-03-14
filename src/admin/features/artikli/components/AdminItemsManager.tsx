@@ -19,6 +19,8 @@ type Item = {
   name: string;
   description: string;
   category: string;
+  categoryId: string | null;
+  subcategoryId: string | null;
   price: number;
   discountPct: number;
   unit: string;
@@ -46,6 +48,8 @@ const emptyItem = (): Item => ({
   name: '',
   description: '',
   category: '',
+  categoryId: null,
+  subcategoryId: null,
   price: 0,
   discountPct: 0,
   unit: 'kos',
@@ -151,7 +155,7 @@ function FloatingSelect({
 }
 
 export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) {
-  const [items, setItems] = useState<Item[]>(seedItems.map((item) => ({ ...item, archivedAt: item.archivedAt ?? null, displayOrder: item.displayOrder ?? null })));
+  const [items, setItems] = useState<Item[]>(seedItems.map((item) => ({ ...item, categoryId: item.categoryId ?? null, subcategoryId: item.subcategoryId ?? null, archivedAt: item.archivedAt ?? null, displayOrder: item.displayOrder ?? null })));
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusTab, setStatusTab] = useState<StatusTab>('active');
@@ -172,12 +176,25 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
     try {
       const parsed = JSON.parse(raw) as Item[];
       if (Array.isArray(parsed)) {
-        setItems(parsed.map((item) => ({ ...item, archivedAt: item.archivedAt ?? null, displayOrder: item.displayOrder ?? null })));
+        const canonicalBySku = new Map(seedItems.map((item) => [item.sku, item]));
+        setItems(
+          parsed.map((item) => {
+            const canonical = canonicalBySku.get(item.sku);
+            return {
+              ...item,
+              category: canonical?.category ?? item.category,
+              categoryId: canonical?.categoryId ?? item.categoryId ?? null,
+              subcategoryId: canonical?.subcategoryId ?? item.subcategoryId ?? null,
+              archivedAt: item.archivedAt ?? null,
+              displayOrder: item.displayOrder ?? null
+            };
+          })
+        );
       }
     } catch {
       // ignore malformed local state
     }
-  }, []);
+  }, [seedItems]);
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
@@ -309,6 +326,8 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
       ...draft,
       displayOrder: draft.displayOrder === null ? null : Math.max(1, Math.floor(draft.displayOrder)),
       category: resolvedCategory,
+      categoryId: newCategoryEnabled ? null : draft.categoryId ?? null,
+      subcategoryId: newCategoryEnabled ? null : draft.subcategoryId ?? null,
       discountPct: Math.max(0, Math.min(100, draft.discountPct)),
       updatedAt: nowIso(),
       archivedAt: null

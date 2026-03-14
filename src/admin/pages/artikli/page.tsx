@@ -8,6 +8,8 @@ import {
   sortCatalogItems
 } from '@/commercial/catalog/catalog';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Administracija artikli'
 };
@@ -17,6 +19,8 @@ type SeedItem = {
   name: string;
   description: string;
   category: string;
+  categoryId: string;
+  subcategoryId: string | null;
   price: number;
   unit: string;
   sku: string;
@@ -39,6 +43,8 @@ function buildSeedItems(): SeedItem[] {
         name: item.name,
         description: item.description,
         category: category.title,
+        categoryId: category.id,
+        subcategoryId: null,
         price: item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug),
         unit: 'kos',
         sku: getCatalogCategoryItemSku(category.slug, item.slug),
@@ -58,6 +64,8 @@ function buildSeedItems(): SeedItem[] {
           name: item.name,
           description: item.description,
           category: `${category.title} / ${sub.title}`,
+          categoryId: category.id,
+          subcategoryId: sub.id,
           price: item.price ?? getCatalogItemPrice(category.slug, sub.slug, item.slug),
           unit: 'kos',
           sku: getCatalogItemSku(category.slug, sub.slug, item.slug),

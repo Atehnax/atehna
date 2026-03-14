@@ -40,9 +40,11 @@ function normalizeCategory(raw: unknown): CatalogCategory | null {
   const slug = typeof category.slug === 'string' ? category.slug.trim() : '';
   if (!slug) return null;
 
+  const categoryId = normalizeNodeId(category.id, `cat-${slug}`);
   const subcategoriesSource = Array.isArray(category.subcategories) ? category.subcategories : [];
 
   return {
+    id: categoryId,
     slug,
     title: typeof category.title === 'string' ? category.title : slug,
     summary: typeof category.summary === 'string' ? category.summary : '',
@@ -51,13 +53,17 @@ function normalizeCategory(raw: unknown): CatalogCategory | null {
     adminNotes: typeof category.adminNotes === 'string' ? category.adminNotes : undefined,
     bannerImage: typeof category.bannerImage === 'string' ? category.bannerImage : undefined,
     subcategories: subcategoriesSource
-      .map((rawSubcategory) => normalizeSubcategory(rawSubcategory))
+      .map((rawSubcategory) => normalizeSubcategory(rawSubcategory, categoryId, slug))
       .filter((entry): entry is NonNullable<typeof entry> => entry !== null),
     items: Array.isArray(category.items) ? category.items : []
   };
 }
 
-function normalizeSubcategory(raw: unknown): CatalogCategory['subcategories'][number] | null {
+function normalizeSubcategory(
+  raw: unknown,
+  categoryId: string,
+  categorySlug: string
+): CatalogCategory['subcategories'][number] | null {
   if (typeof raw !== 'object' || raw === null) return null;
 
   const subcategory = raw as Partial<CatalogCategory['subcategories'][number]>;
@@ -65,6 +71,7 @@ function normalizeSubcategory(raw: unknown): CatalogCategory['subcategories'][nu
   if (!slug) return null;
 
   return {
+    id: normalizeNodeId(subcategory.id, `sub-${categoryId}-${categorySlug}-${slug}`),
     slug,
     title: typeof subcategory.title === 'string' ? subcategory.title : slug,
     description: typeof subcategory.description === 'string' ? subcategory.description : '',
@@ -72,4 +79,17 @@ function normalizeSubcategory(raw: unknown): CatalogCategory['subcategories'][nu
     image: typeof subcategory.image === 'string' ? subcategory.image : '',
     items: Array.isArray(subcategory.items) ? subcategory.items : []
   };
+}
+
+function normalizeNodeId(value: unknown, fallbackSeed: string): string {
+  if (typeof value === 'string' && value.trim().length > 0) return value.trim();
+  return stableIdFromSeed(fallbackSeed);
+}
+
+function stableIdFromSeed(seed: string): string {
+  let hash = 0;
+  for (const char of seed) {
+    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  }
+  return `id-${hash.toString(36)}`;
 }

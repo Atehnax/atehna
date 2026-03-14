@@ -12,6 +12,7 @@ export type CatalogItem = {
 };
 
 export type CatalogSubcategory = {
+  id: string;
   slug: string;
   title: string;
   description: string;
@@ -21,6 +22,7 @@ export type CatalogSubcategory = {
 };
 
 export type CatalogCategory = {
+  id: string;
   slug: string;
   title: string;
   summary: string;

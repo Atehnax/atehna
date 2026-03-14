@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode, type CSSProperties } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
@@ -31,7 +31,6 @@ import {
 } from '@/commercial/catalog/catalog';
 import { Button } from '@/shared/ui/button';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
-import { FloatingInput, FloatingTextarea } from '@/shared/ui/floating-field';
 import { IconButton } from '@/shared/ui/icon-button';
 import { Chip } from '@/shared/ui/badge';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
@@ -305,6 +304,54 @@ function normalizeCatalogData(input: unknown): CatalogData {
   return { categories };
 }
 
+
+function summarizeCatalogChanges(previous: CatalogData, next: CatalogData): string[] {
+  const lines: string[] = [];
+  const prevCats = previous.categories;
+  const nextCats = next.categories;
+  const prevById = new Map(prevCats.map((c, i) => [c.id, { c, i }]));
+  const nextById = new Map(nextCats.map((c, i) => [c.id, { c, i }]));
+
+  for (const { c } of prevById.values()) {
+    if (!nextById.has(c.id)) lines.push(`izbrisana kategorija "${c.title}"`);
+  }
+  for (const { c } of nextById.values()) {
+    if (!prevById.has(c.id)) lines.push(`dodana kategorija "${c.title}"`);
+  }
+
+  for (const [id, { c: oldCat, i: oldIndex }] of prevById.entries()) {
+    const match = nextById.get(id);
+    if (!match) continue;
+    const newCat = match.c;
+    if (oldCat.title !== newCat.title) lines.push(`preimenovana kategorija "${oldCat.title}" → "${newCat.title}"`);
+    if ((oldCat.image ?? '') !== (newCat.image ?? '')) lines.push(`spremenjena slika za kategorijo "${newCat.title}"`);
+    if (oldIndex !== match.i) lines.push(`premaknjena kategorija "${newCat.title}"`);
+
+    const oldSubs = oldCat.subcategories ?? [];
+    const newSubs = newCat.subcategories ?? [];
+    const oldSubsById = new Map(oldSubs.map((sub, i) => [sub.id, { sub, i }]));
+    const newSubsById = new Map(newSubs.map((sub, i) => [sub.id, { sub, i }]));
+
+    for (const { sub } of oldSubsById.values()) {
+      if (!newSubsById.has(sub.id)) lines.push(`izbrisana podkategorija "${sub.title}"`);
+    }
+    for (const { sub } of newSubsById.values()) {
+      if (!oldSubsById.has(sub.id)) lines.push(`dodana podkategorija pod "${newCat.title}": "${sub.title}"`);
+    }
+
+    for (const [subId, { sub: oldSub, i: oldSubIndex }] of oldSubsById.entries()) {
+      const nextSubMatch = newSubsById.get(subId);
+      if (!nextSubMatch) continue;
+      const newSub = nextSubMatch.sub;
+      if (oldSub.title !== newSub.title) lines.push(`preimenovana podkategorija "${oldSub.title}" → "${newSub.title}"`);
+      if ((oldSub.image ?? '') !== (newSub.image ?? '')) lines.push(`spremenjena slika za podkategorijo "${newSub.title}"`);
+      if (oldSubIndex !== nextSubMatch.i) lines.push(`premaknjena podkategorija "${newSub.title}"`);
+    }
+  }
+
+  return lines;
+}
+
 type CategoriesView = 'table' | 'miller';
 
 export default function AdminCategoriesManager({ initialView = 'table' }: { initialView?: CategoriesView }) {
@@ -329,6 +376,10 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   const [imageDeleteTarget, setImageDeleteTarget] = useState<ImageDeleteTarget>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [tableDirty, setTableDirty] = useState(false);
+  const [tableError, setTableError] = useState<string | null>(null);
+  const [isTableSaveDialogOpen, setIsTableSaveDialogOpen] = useState(false);
+  const [lowerViewCount, setLowerViewCount] = useState(4);
   const [isDragModeActive, setIsDragModeActive] = useState(false);
   const [millerCatalog, setMillerCatalog] = useState<CatalogData>({ categories: [] });
   const [millerSelection, setMillerSelection] = useState<string[]>([]);
@@ -337,6 +388,8 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   const [millerDeleteTarget, setMillerDeleteTarget] = useState<MillerDeleteTarget>(null);
   const [isMillerSaveDialogOpen, setIsMillerSaveDialogOpen] = useState(false);
   const [millerError, setMillerError] = useState<string | null>(null);
+  const [tableSaveSummary, setTableSaveSummary] = useState<string[]>([]);
+  const [millerSaveSummary, setMillerSaveSummary] = useState<string[]>([]);
 
   const { toast } = useToast();
   const pathname = usePathname();
@@ -349,6 +402,8 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   const selectAllRef = useRef<HTMLInputElement>(null);
   const isInlineSavingRef = useRef(false);
   const toastRef = useRef(toast);
+  const persistedTableRef = useRef<CatalogData>({ categories: [] });
+  const persistedMillerRef = useRef<CatalogData>({ categories: [] });
 
   const load = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!silent) setLoading(true);
@@ -365,6 +420,10 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
 
       setCatalog(payload);
       setMillerCatalog(payload);
+      persistedTableRef.current = payload;
+      persistedMillerRef.current = payload;
+      setTableDirty(false);
+      setTableError(null);
       setMillerDirty(false);
       setMillerSelection([]);
       setExpanded((prev) => ({
@@ -522,6 +581,12 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     setMillerError(null);
   };
 
+  const stageTableCatalog = (next: CatalogData) => {
+    setCatalog(normalizeCatalogData(next));
+    setTableDirty(true);
+    setTableError(null);
+  };
+
   const addCategory = (title: string, afterSlug?: string) => {
     const slug = slugify(title);
     if (!slug) return;
@@ -558,7 +623,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     if (activeView === 'miller') {
       stageMillerCatalog({ categories: list });
     } else {
-      void persist({ categories: list }, 'Kategorija dodana');
+      stageTableCatalog({ categories: list });
     }
   };
 
@@ -605,7 +670,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     if (activeView === 'miller') {
       stageMillerCatalog(next);
     } else {
-      void persist(next, 'Podkategorija dodana');
+      stageTableCatalog(next);
     }
   };
 
@@ -641,7 +706,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
       const newIndex = catalog.categories.findIndex((entry) => catId(entry.slug) === overId);
       if (oldIndex < 0 || newIndex < 0) return;
 
-      void persist({ categories: arrayMove(catalog.categories, oldIndex, newIndex) }, 'Vrstni red kategorij posodobljen');
+      stageTableCatalog({ categories: arrayMove(catalog.categories, oldIndex, newIndex) });
       return;
     }
 
@@ -666,7 +731,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
         subcategories: []
       });
 
-      void persist({ categories: nextCategories }, 'Podkategorija premaknjena na vrh');
+      stageTableCatalog({ categories: nextCategories });
       return;
     }
 
@@ -687,7 +752,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
       });
 
       setExpanded((prev) => ({ ...prev, [catId(targetCategorySlug)]: true }));
-      void persist({ categories: nextCategories }, 'Podkategorija premaknjena');
+      stageTableCatalog({ categories: nextCategories });
       return;
     }
 
@@ -705,7 +770,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
           : entry
       );
 
-      void persist({ categories: nextCategories }, 'Vrstni red podkategorij posodobljen');
+      stageTableCatalog({ categories: nextCategories });
       return;
     }
 
@@ -729,7 +794,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     });
 
     setExpanded((prev) => ({ ...prev, [catId(overCategorySlug)]: true }));
-    void persist({ categories: nextCategories }, 'Podkategorija premaknjena');
+    stageTableCatalog({ categories: nextCategories });
   };
 
   const onBottomReorder = (event: DragEndEvent) => {
@@ -741,10 +806,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
       const newIndex = catalog.categories.findIndex((entry) => entry.slug === over.id);
       if (oldIndex < 0 || newIndex < 0) return;
 
-      void persist(
-        { categories: arrayMove(catalog.categories, oldIndex, newIndex) },
-        'Vrstni red kategorij posodobljen'
-      );
+      stageTableCatalog({ categories: arrayMove(catalog.categories, oldIndex, newIndex) });
       return;
     }
 
@@ -765,7 +827,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
       )
     };
 
-    void persist(next, 'Vrstni red podkategorij posodobljen');
+    stageTableCatalog(next);
   };
 
   const onLeafProductsDragEnd = (event: DragEndEvent) => {
@@ -783,14 +845,11 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
         displayOrder: index + 1
       }));
 
-      void persist(
-        {
-          categories: catalog.categories.map((entry) =>
-            entry.slug === selectedContext.category.slug ? { ...entry, items: reordered } : entry
-          )
-        },
-        'Vrstni red izdelkov shranjen'
-      );
+      stageTableCatalog({
+        categories: catalog.categories.map((entry) =>
+          entry.slug === selectedContext.category.slug ? { ...entry, items: reordered } : entry
+        )
+      });
       return;
     }
 
@@ -817,7 +876,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
       )
     };
 
-    void persist(next, 'Vrstni red izdelkov shranjen');
+    stageTableCatalog(next);
   };
 
 
@@ -1004,8 +1063,21 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
       return;
     }
 
+    persistedMillerRef.current = normalizeCatalogData(millerCatalog);
     setMillerDirty(false);
     setMillerError(null);
+  };
+
+  const saveTableChanges = async () => {
+    const ok = await persist(catalog, 'Spremembe shranjene');
+    if (!ok) {
+      setTableError('Shranjevanje sprememb ni uspelo. Lokalno stanje je ohranjeno.');
+      return;
+    }
+
+    persistedTableRef.current = normalizeCatalogData(catalog);
+    setTableDirty(false);
+    setTableError(null);
   };
 
 
@@ -1099,7 +1171,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   }, [millerCatalog.categories, millerSelection, selected]);
 
   const updateSubcategory = (categorySlug: string, subSlug: string, patch: Partial<CatalogSubcategory>) => {
-    void persist({
+    stageTableCatalog({
       categories: catalog.categories.map((entry) =>
         entry.slug === categorySlug
           ? {
@@ -1118,10 +1190,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     const dataUrl = await fileToDataUrl(file);
 
     if (item.kind === 'category') {
-      void persist(
-        { categories: catalog.categories.map((entry) => (entry.slug === item.id ? { ...entry, image: dataUrl } : entry)) },
-        'Slika shranjena'
-      );
+      stageTableCatalog({ categories: catalog.categories.map((entry) => (entry.slug === item.id ? { ...entry, image: dataUrl } : entry)) });
       return;
     }
 
@@ -1133,57 +1202,31 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     if (!deleteTarget) return;
 
     if (deleteTarget.kind === 'root') {
-      setDeletingRowId(rootId);
       setDeleteTarget(null);
       setSelected({ kind: 'root' });
-
-      void persist({ categories: [] }, 'Vse kategorije izbrisane').finally(() => {
-        setDeletingRowId(null);
-      });
-
+      stageTableCatalog({ categories: [] });
       return;
     }
-
-    const currentDeleteId =
-      deleteTarget.kind === 'category'
-        ? catId(deleteTarget.categorySlug)
-        : subId(deleteTarget.categorySlug, deleteTarget.subcategorySlug ?? '');
-
-    setDeletingRowId(currentDeleteId);
 
     if (deleteTarget.kind === 'category') {
       setDeleteTarget(null);
       setSelected({ kind: 'root' });
-
-      void persist(
-        { categories: catalog.categories.filter((entry) => entry.slug !== deleteTarget.categorySlug) },
-        'Kategorija izbrisana'
-      ).finally(() => {
-        setDeletingRowId(null);
-      });
-
+      stageTableCatalog({ categories: catalog.categories.filter((entry) => entry.slug !== deleteTarget.categorySlug) });
       return;
     }
 
     setDeleteTarget(null);
     setSelected({ kind: 'category', categorySlug: deleteTarget.categorySlug });
 
-    void persist(
-      {
-        categories: catalog.categories.map((entry) =>
-          entry.slug === deleteTarget.categorySlug
-            ? {
-                ...entry,
-                subcategories: entry.subcategories.filter(
-                  (sub) => sub.slug !== deleteTarget.subcategorySlug
-                )
-              }
-            : entry
-        )
-      },
-      'Podkategorija izbrisana'
-    ).finally(() => {
-      setDeletingRowId(null);
+    stageTableCatalog({
+      categories: catalog.categories.map((entry) =>
+        entry.slug === deleteTarget.categorySlug
+          ? {
+              ...entry,
+              subcategories: entry.subcategories.filter((sub) => sub.slug !== deleteTarget.subcategorySlug)
+            }
+          : entry
+      )
     });
   };
 
@@ -1191,14 +1234,11 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     if (!imageDeleteTarget) return;
 
     if (imageDeleteTarget.kind === 'category') {
-      void persist(
-        {
-          categories: catalog.categories.map((entry) =>
-            entry.slug === imageDeleteTarget.categorySlug ? { ...entry, image: '' } : entry
-          )
-        },
-        'Slika odstranjena'
-      );
+      stageTableCatalog({
+        categories: catalog.categories.map((entry) =>
+          entry.slug === imageDeleteTarget.categorySlug ? { ...entry, image: '' } : entry
+        )
+      });
       setImageDeleteTarget(null);
       return;
     }
@@ -1288,50 +1328,32 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     }, expandTransitionMs);
   };
 
-  const saveInlineEdit = async () => {
+  const saveInlineEdit = () => {
     if (!editingRow) return;
-    if (isInlineSavingRef.current) return;
-    if (saving) return;
-
-    isInlineSavingRef.current = true;
     const nextTitle = editingRow.title.trim();
 
     if (!nextTitle) {
       toast.error('Naziv je obvezen');
-      isInlineSavingRef.current = false;
       return;
     }
 
     if (editingRow.kind === 'category') {
-      if (!editingRow.categorySlug) {
-        isInlineSavingRef.current = false;
-        return;
-      }
-
-      const next = {
+      if (!editingRow.categorySlug) return;
+      stageTableCatalog({
         categories: catalog.categories.map((entry) =>
           entry.slug === editingRow.categorySlug
             ? { ...entry, title: nextTitle, summary: editingRow.description }
             : entry
         )
-      };
-
-      const ok = await persist(next, 'Shranjeno');
-      if (ok) {
-        setStatusByRow((prev) => ({ ...prev, [editingRow.id]: editingRow.status }));
-        setEditingRow(null);
-      }
-
-      isInlineSavingRef.current = false;
+      });
+      setStatusByRow((prev) => ({ ...prev, [editingRow.id]: editingRow.status }));
+      setEditingRow(null);
       return;
     }
 
-    if (!editingRow.categorySlug || !editingRow.subcategorySlug) {
-      isInlineSavingRef.current = false;
-      return;
-    }
+    if (!editingRow.categorySlug || !editingRow.subcategorySlug) return;
 
-    const next = {
+    stageTableCatalog({
       categories: catalog.categories.map((entry) =>
         entry.slug === editingRow.categorySlug
           ? {
@@ -1344,18 +1366,16 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
             }
           : entry
       )
-    };
+    });
 
-    const ok = await persist(next, 'Shranjeno');
-    if (ok) {
-      setStatusByRow((prev) => ({ ...prev, [editingRow.id]: editingRow.status }));
-      setEditingRow(null);
-    }
-
-    isInlineSavingRef.current = false;
+    setStatusByRow((prev) => ({ ...prev, [editingRow.id]: editingRow.status }));
+    setEditingRow(null);
   };
 
-  const handleInlineBlur = (_event: FocusEvent<HTMLInputElement>) => {};
+  const handleInlineBlur = () => {
+    saveInlineEdit();
+  };
+
 
   const searchQuery = query.trim().toLowerCase();
   const isSearchActive = searchQuery.length > 0;
@@ -1476,11 +1496,8 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
         }))
     };
 
-    const ok = await persist(next, 'Izbrisano');
-    if (ok) {
-      setSelectedRows([]);
-    }
-
+    stageTableCatalog(next);
+    setSelectedRows([]);
     setIsBulkDeleting(false);
   };
 
@@ -1826,16 +1843,6 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
               </svg>
             </IconButton>
 
-            <IconButton
-              type="button"
-              tone="neutral"
-              aria-label="Shrani"
-              title="Shrani"
-              onClick={() => void saveInlineEdit()}
-              disabled={!isRowEditing || saving}
-            >
-              <SaveIcon />
-            </IconButton>
 
             <IconButton
               type="button"
@@ -1845,8 +1852,8 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
               onClick={() => {
                 if (kind === 'root') openCreateDialog({ kind: 'category' });
                 if (kind === 'category' && categorySlug) openCreateDialog({ kind: 'subcategory', categorySlug });
-                if (kind === 'subcategory' && categorySlug && subcategorySlug) {
-                  openCreateDialog({ kind: 'subcategory', categorySlug, afterSlug: subcategorySlug });
+                if (kind === 'subcategory' && categorySlug) {
+                  openCreateDialog({ kind: 'subcategory', categorySlug });
                 }
               }}
             >
@@ -1858,31 +1865,30 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
               variant="close-x"
               aria-label="Izbriši"
               title="Izbriši"
-              disabled={deletingRowId === id}
               onClick={() => {
                 if (kind === 'root') {
-                  setDeleteTarget({ kind: 'root' });
+                  stageTableCatalog({ categories: [] });
+                  setSelected({ kind: 'root' });
                   return;
                 }
                 if (kind === 'category' && categorySlug) {
-                  const categoryId = catId(categorySlug);
-                  const descendants = getDescendantIds(categoryId);
-                  const selectedSet = new Set(selectedRows);
-
-                  if (selectedSet.has(categoryId) && descendants.some((descendantId) => !selectedSet.has(descendantId))) {
-                    showDeleteSelectionWarning();
-                    return;
-                  }
-
-                  setDeleteTarget({ kind: 'category', categorySlug });
+                  stageTableCatalog({ categories: catalog.categories.filter((entry) => entry.slug !== categorySlug) });
+                  setSelected({ kind: 'root' });
                   return;
                 }
                 if (kind === 'subcategory' && categorySlug && subcategorySlug) {
-                  setDeleteTarget({ kind: 'subcategory', categorySlug, subcategorySlug });
+                  stageTableCatalog({
+                    categories: catalog.categories.map((entry) =>
+                      entry.slug === categorySlug
+                        ? { ...entry, subcategories: entry.subcategories.filter((sub) => sub.slug !== subcategorySlug) }
+                        : entry
+                    )
+                  });
+                  setSelected({ kind: 'category', categorySlug });
                 }
               }}
             >
-              {deletingRowId === id ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : '×'}
+              ×
             </Button>
           </RowActions>
         </td>
@@ -1894,6 +1900,21 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
 
   const treeRows: ReactNode[] = (() => {
     const rows: ReactNode[] = [];
+
+    rows.push(
+      renderTreeRow({
+        id: rootId,
+        title: 'Vse kategorije',
+        level: 0,
+        kind: 'root',
+        description: 'Pogled vseh kategorij',
+        childrenCount: catalog.categories.length,
+        productCount: 0,
+        ancestorContinuationColumns: [],
+        continueCurrentColumnBelow: filteredCategories.length > 0,
+        parentIsAnimating: false
+      })
+    );
 
     filteredCategories.forEach((category, categoryIndex) => {
         const categoryNodeId = catId(category.slug);
@@ -1993,21 +2014,6 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
       />
 
       <ConfirmDialog
-        open={deleteTarget !== null}
-        title={deleteTarget?.kind === 'root' ? 'Izbris vseh kategorij' : 'Izbris kategorije'}
-        description={
-          deleteTarget?.kind === 'root'
-            ? 'Ali ste prepričani, da želite izbrisati vse kategorije?'
-            : 'Ali ste prepričani, da želite odstraniti izbrano kategorijo?'
-        }
-        confirmLabel="Izbriši"
-        cancelLabel="Prekliči"
-        isDanger
-        onCancel={() => setDeleteTarget(null)}
-        onConfirm={confirmDeleteNode}
-      />
-
-      <ConfirmDialog
         open={warningDialog !== null}
         title={warningDialog?.title ?? 'Opozorilo'}
         description={warningDialog?.description}
@@ -2095,8 +2101,17 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
                 )}
               </button>
 
-              <Button variant="primary" size="toolbar" onClick={() => openCreateDialog({ kind: 'category' })}>
-                Dodaj kategorijo
+              <Button
+                variant="primary"
+                size="toolbar"
+                onClick={() => {
+                  const summary = summarizeCatalogChanges(persistedTableRef.current, catalog);
+                  setTableSaveSummary(summary);
+                  setIsTableSaveDialogOpen(true);
+                }}
+                disabled={!tableDirty || saving}
+              >
+                Shrani spremembe
               </Button>
             </>
           }
@@ -2199,11 +2214,16 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        {tableError ? <p className="mb-3 rounded-lg border border-[var(--danger-300)] bg-[var(--danger-100)] px-3 py-2 text-xs text-[var(--danger-700)]">{tableError}</p> : null}
         <div className="mb-3 flex items-center justify-between">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Vsebina izbrane kategorije
+            {selectedContext?.kind === 'subcategory'
+              ? 'Vsebina izbrane podkategorije'
+              : selectedContext?.kind === 'root'
+                ? 'Vsebina vseh kategorij'
+                : 'Vsebina izbrane kategorije'}
           </p>
-          <p className="text-xs text-slate-400">{saving ? 'Shranjujem ...' : 'Spremembe se shranjujejo sproti.'}</p>
+          <p className="text-xs text-slate-400">{tableDirty ? 'Ne-shranjene spremembe' : 'Brez ne-shranjenih sprememb'}</p>
         </div>
 
         {selectedContext?.kind === 'root' ||
@@ -2211,11 +2231,11 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onBottomReorder}>
             <SortableContext items={visibleContent.map((item) => item.id)} strategy={rectSortingStrategy}>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {visibleContent.map((item) => (
+                {visibleContent.slice(0, lowerViewCount).map((item) => (
                   <SortableItem key={item.id} id={item.id}>
                     {(dragProps) => (
                       <article className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-                        <div className="relative h-36 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                        <button type="button" className="relative h-36 w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-50 text-left" onClick={() => uploadRefs.current[item.id]?.click()}>
                           {item.image ? (
                             <Image src={item.image} alt={item.title} fill className="object-cover" />
                           ) : (
@@ -2223,91 +2243,18 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
                               Brez slike
                             </div>
                           )}
-                        </div>
+                        </button>
 
                         <div className="mt-2 flex items-center gap-1">
                           <IconButton aria-label="Premakni" {...dragProps}>
                             ⋮⋮
                           </IconButton>
-
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              if (item.kind === 'category') {
-                                setSelected({ kind: 'category', categorySlug: item.id });
-                              } else if (selectedContext?.kind === 'category') {
-                                setSelected({
-                                  kind: 'subcategory',
-                                  categorySlug: selectedContext.category.slug,
-                                  subcategorySlug: item.id
-                                });
-                              }
-                            }}
-                          >
-                            Odpri
-                          </Button>
-
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              if (item.kind === 'category') {
-                                setSelected({ kind: 'category', categorySlug: item.id });
-                              }
-                              if (item.kind === 'subcategory' && selectedContext?.kind === 'category') {
-                                setSelected({
-                                  kind: 'subcategory',
-                                  categorySlug: selectedContext.category.slug,
-                                  subcategorySlug: item.id
-                                });
-                              }
-                            }}
-                          >
-                            Skok na drevo
-                          </Button>
                         </div>
-
-                        <div className="mt-3 space-y-2">
-                          <FloatingInput
-                            id={`title-${item.id}`}
-                            tone="admin"
-                            label="Naziv"
-                            value={item.title}
-                            onChange={(event) => {
-                              const value = event.target.value;
-
-                              if (item.kind === 'category') {
-                                void persist({
-                                  categories: catalog.categories.map((entry) =>
-                                    entry.slug === item.id ? { ...entry, title: value } : entry
-                                  )
-                                });
-                              } else if (selectedContext?.kind === 'category') {
-                                updateSubcategory(selectedContext.category.slug, item.id, { title: value });
-                              }
-                            }}
-                          />
-
-                          <FloatingTextarea
-                            id={`desc-${item.id}`}
-                            tone="admin"
-                            label="Opis"
-                            value={item.description}
-                            onChange={(event) => {
-                              const value = event.target.value;
-
-                              if (item.kind === 'category') {
-                                void persist({
-                                  categories: catalog.categories.map((entry) =>
-                                    entry.slug === item.id ? { ...entry, summary: value } : entry
-                                  )
-                                });
-                              } else if (selectedContext?.kind === 'category') {
-                                updateSubcategory(selectedContext.category.slug, item.id, { description: value });
-                              }
-                            }}
-                          />
+                        <div className="mt-3 space-y-1">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Naziv</p>
+                          <p className="text-sm font-semibold text-slate-700">{item.title}</p>
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Opis</p>
+                          <p className="text-xs text-slate-600">{item.description || '—'}</p>
                         </div>
 
                         <div className="mt-2 flex items-center gap-2">
@@ -2334,7 +2281,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
                             size="sm"
                             onClick={() => uploadRefs.current[item.id]?.click()}
                           >
-                            {item.image ? 'Zamenjaj sliko' : 'Naloži sliko'}
+                            Spremeni sliko
                           </Button>
 
                           {item.image ? (
@@ -2385,8 +2332,46 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
             onDragEnd={onLeafProductsDragEnd}
           />
         ) : null}
+
+        <div className="mt-4 flex items-center justify-end gap-3">
+          <label className="flex items-center gap-2 text-xs text-slate-600">Prikaz
+            <Input type="number" min={1} max={15} value={lowerViewCount} onChange={(event) => setLowerViewCount(Math.max(1, Math.min(15, Number(event.target.value || 4))))} className="h-8 w-16 px-2 text-xs" />
+          </label>
+          <Button
+            variant="primary"
+            size="toolbar"
+            onClick={() => {
+              const summary = summarizeCatalogChanges(persistedTableRef.current, catalog);
+              setTableSaveSummary(summary);
+              setIsTableSaveDialogOpen(true);
+            }}
+            disabled={!tableDirty || saving}
+          >
+            Shrani spremembe
+          </Button>
+        </div>
       </section>
       </div>
+
+
+      <ConfirmDialog
+        open={isTableSaveDialogOpen}
+        title="Shrani spremembe"
+        description="Pregled pripravljenih sprememb:"
+        confirmLabel="Shrani"
+        cancelLabel="Prekliči"
+        onCancel={() => setIsTableSaveDialogOpen(false)}
+        onConfirm={() => {
+          setIsTableSaveDialogOpen(false);
+          void saveTableChanges();
+        }}
+      >
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-600">
+          {(tableSaveSummary.length > 0 ? tableSaveSummary : ['Ni sprememb za shranjevanje.']).map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={millerDeleteTarget !== null}
@@ -2402,7 +2387,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
       <ConfirmDialog
         open={isMillerSaveDialogOpen}
         title="Shrani Miller spremembe"
-        description="Vse lokalno pripravljene spremembe bodo zapisane v bazo. Nadaljujem?"
+        description="Pregled pripravljenih sprememb:"
         confirmLabel="Shrani"
         cancelLabel="Prekliči"
         onCancel={() => setIsMillerSaveDialogOpen(false)}
@@ -2410,7 +2395,14 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
           setIsMillerSaveDialogOpen(false);
           void saveMillerChanges();
         }}
-      />
+      >
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-600">
+          {(millerSaveSummary.length > 0 ? millerSaveSummary : ['Ni sprememb za shranjevanje.']).map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      </ConfirmDialog>
+
 
       <section className={activeView === 'miller' ? 'rounded-2xl border border-slate-200 bg-white p-3 shadow-sm' : 'hidden'}>
         <div className="mb-3 flex items-center justify-between">
@@ -2421,7 +2413,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
             type="button"
             variant="primary"
             size="toolbar"
-            onClick={() => setIsMillerSaveDialogOpen(true)}
+            onClick={() => { const summary = summarizeCatalogChanges(persistedMillerRef.current, millerCatalog); setMillerSaveSummary(summary); setIsMillerSaveDialogOpen(true); }}
             disabled={!millerDirty || saving}
           >
             Shrani spremembe
@@ -2472,7 +2464,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
                     className={`block w-full rounded-md border px-2 py-1 text-left text-xs font-medium transition ${millerSelection.includes(row.id) || row.tone === 'focused' ? 'border-[#3e67d6]/50 bg-[#f0f4ff] text-[#1f3f93]' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-100'}`}
                     onClick={row.onClick}
                     draggable
-                    onDragStart={row.onDragStart}
+                    onDragStart={(event) => { event.dataTransfer.setData('text/plain', row.id); row.onDragStart(); }}
                   >
                     {row.label}
                   </button>

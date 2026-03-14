@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode, type CSSProperties } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
@@ -97,6 +97,23 @@ const catId = (slug: string) => `cat:${slug}`;
 const subId = (catSlug: string, subSlug: string) => `sub:${catSlug}:${subSlug}`;
 const slugify = (value: string) =>
   value.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-čšžćđ]/gi, '');
+
+
+const createNodeId = () =>
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `id-${Math.random().toString(36).slice(2, 11)}`;
+
+const normalizeNodeId = (value: unknown, fallbackSeed: string) => {
+  if (typeof value === 'string' && value.trim().length > 0) return value.trim();
+
+  let hash = 0;
+  for (const char of fallbackSeed) {
+    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  }
+
+  return `id-${hash.toString(36)}`;
+};
 
 const treeIndent = 32;
 const treeRowHeight = 48;
@@ -230,6 +247,57 @@ function DragModeIcon() {
   );
 }
 
+
+function normalizeCatalogData(input: unknown): CatalogData {
+  const source =
+    typeof input === 'object' && input !== null && Array.isArray((input as { categories?: unknown }).categories)
+      ? (input as { categories: unknown[] }).categories
+      : [];
+
+  const categories = source
+    .map((rawCategory) => {
+      if (typeof rawCategory !== 'object' || rawCategory === null) return null;
+      const category = rawCategory as Partial<CatalogCategory>;
+      const slug = typeof category.slug === 'string' ? category.slug.trim() : '';
+      if (!slug) return null;
+
+      const subcategoriesSource = Array.isArray(category.subcategories) ? category.subcategories : [];
+      const categoryId = normalizeNodeId(category.id, `cat-${slug}`);
+
+      return {
+        id: categoryId,
+        slug,
+        title: typeof category.title === 'string' ? category.title : slug,
+        summary: typeof category.summary === 'string' ? category.summary : '',
+        description: typeof category.description === 'string' ? category.description : '',
+        image: typeof category.image === 'string' ? category.image : '',
+        adminNotes: typeof category.adminNotes === 'string' ? category.adminNotes : undefined,
+        bannerImage: typeof category.bannerImage === 'string' ? category.bannerImage : undefined,
+        subcategories: subcategoriesSource
+          .map((rawSubcategory) => {
+            if (typeof rawSubcategory !== 'object' || rawSubcategory === null) return null;
+            const subcategory = rawSubcategory as Partial<CatalogSubcategory>;
+            const subSlug = typeof subcategory.slug === 'string' ? subcategory.slug.trim() : '';
+            if (!subSlug) return null;
+            return {
+              id: normalizeNodeId(subcategory.id, `sub-${categoryId}-${slug}-${subSlug}`),
+              slug: subSlug,
+              title: typeof subcategory.title === 'string' ? subcategory.title : subSlug,
+              description: typeof subcategory.description === 'string' ? subcategory.description : '',
+              adminNotes: typeof subcategory.adminNotes === 'string' ? subcategory.adminNotes : undefined,
+              image: typeof subcategory.image === 'string' ? subcategory.image : '',
+              items: Array.isArray(subcategory.items) ? subcategory.items : []
+            } as CatalogSubcategory;
+          })
+          .filter((entry): entry is CatalogSubcategory => entry !== null),
+        items: Array.isArray(category.items) ? category.items : []
+      } as CatalogCategory;
+    })
+    .filter((entry): entry is CatalogCategory => entry !== null);
+
+  return { categories };
+}
+
 type CategoriesView = 'table' | 'miller';
 
 export default function AdminCategoriesManager({ initialView = 'table' }: { initialView?: CategoriesView }) {
@@ -266,46 +334,55 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   const statusHeaderMenuRef = useRef<HTMLDivElement>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
   const isInlineSavingRef = useRef(false);
+  const toastRef = useRef(toast);
 
-  const load = async () => {
-    setLoading(true);
-    const response = await fetch('/api/admin/categories', { cache: 'no-store' });
+  const load = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!silent) setLoading(true);
 
-    if (!response.ok) {
-      toast.error('Napaka pri nalaganju kategorij');
-      setLoading(false);
-      return;
-    }
+    try {
+      const response = await fetch('/api/admin/categories', { cache: 'no-store' });
 
-    const payload = (await response.json()) as CatalogData;
+      if (!response.ok) {
+        toastRef.current.error('Napaka pri nalaganju kategorij');
+        return;
+      }
 
-    setCatalog(payload);
-    setExpanded((prev) => ({
-      ...prev,
-      ...Object.fromEntries(payload.categories.map((entry) => [catId(entry.slug), false]))
-    }));
+      const payload = normalizeCatalogData(await response.json());
 
-    setStatusByRow((prev) => {
-      const next = { ...prev };
+      setCatalog(payload);
+      setExpanded((prev) => ({
+        ...prev,
+        ...Object.fromEntries(payload.categories.map((entry) => [catId(entry.slug), prev[catId(entry.slug)] ?? false]))
+      }));
 
-      payload.categories.forEach((category) => {
-        const categoryId = catId(category.slug);
-        if (!next[categoryId]) next[categoryId] = 'active';
+      setStatusByRow((prev) => {
+        const next = { ...prev };
 
-        category.subcategories.forEach((subcategory) => {
-          const subcategoryId = subId(category.slug, subcategory.slug);
-          if (!next[subcategoryId]) next[subcategoryId] = 'active';
+        payload.categories.forEach((category) => {
+          const categoryId = catId(category.slug);
+          if (!next[categoryId]) next[categoryId] = 'active';
+
+          (category.subcategories ?? []).forEach((subcategory) => {
+            const subcategoryId = subId(category.slug, subcategory.slug);
+            if (!next[subcategoryId]) next[subcategoryId] = 'active';
+          });
         });
+        return next;
       });
-      return next;
-    });
+    } catch {
+      toastRef.current.error('Napaka pri nalaganju kategorij');
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, []);
 
-    setLoading(false);
-  };
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
 
   useEffect(() => {
     setActiveView(pathname?.endsWith('/miller-view') ? 'miller' : 'table');
@@ -361,24 +438,36 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   }, [isStatusHeaderMenuOpen, openStatusMenuRowId]);
 
   const persist = async (next: CatalogData, message = 'Shranjeno') => {
-    setCatalog(next);
+    const previousCatalog = catalog;
+    const normalizedNext = normalizeCatalogData(next);
+
+    setCatalog(normalizedNext);
     setSaving(true);
 
-    const response = await fetch('/api/admin/categories', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(next)
-    });
+    try {
+      const response = await fetch('/api/admin/categories', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(normalizedNext)
+      });
 
-    setSaving(false);
+      if (!response.ok) {
+        setCatalog(previousCatalog);
+        const payload = (await response.json().catch(() => null)) as { message?: string } | null;
+        toast.error(payload?.message || 'Shranjevanje ni uspelo');
+        return false;
+      }
 
-    if (!response.ok) {
+      await load({ silent: true });
+      toast.success(message);
+      return true;
+    } catch {
+      setCatalog(previousCatalog);
       toast.error('Shranjevanje ni uspelo');
       return false;
+    } finally {
+      setSaving(false);
     }
-
-    toast.success(message);
-    return true;
   };
 
   const selectedContext = useMemo(() => {
@@ -399,7 +488,13 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     const slug = slugify(title);
     if (!slug) return;
 
+    if (catalog.categories.some((entry) => entry.slug === slug)) {
+      toast.error('Kategorija s tem nazivom že obstaja');
+      return;
+    }
+
     const item: CatalogCategory = {
+      id: createNodeId(),
       slug,
       title,
       summary: title,
@@ -427,11 +522,19 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     const slug = slugify(title);
     if (!slug) return;
 
+    const parentCategory = catalog.categories.find((entry) => entry.slug === categorySlug);
+    if (!parentCategory) return;
+    if (parentCategory.subcategories.some((entry) => entry.slug === slug)) {
+      toast.error('Podkategorija s tem nazivom že obstaja');
+      return;
+    }
+
     const next = {
       categories: catalog.categories.map((entry) => {
         if (entry.slug !== categorySlug) return entry;
 
         const sub: CatalogSubcategory = {
+          id: createNodeId(),
           slug,
           title,
           description: '',

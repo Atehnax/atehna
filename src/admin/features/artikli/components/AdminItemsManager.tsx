@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
@@ -19,6 +19,8 @@ type Item = {
   name: string;
   description: string;
   category: string;
+  categoryId: string | null;
+  subcategoryId: string | null;
   price: number;
   discountPct: number;
   unit: string;
@@ -46,6 +48,8 @@ const emptyItem = (): Item => ({
   name: '',
   description: '',
   category: '',
+  categoryId: null,
+  subcategoryId: null,
   price: 0,
   discountPct: 0,
   unit: 'kos',
@@ -151,7 +155,7 @@ function FloatingSelect({
 }
 
 export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) {
-  const [items, setItems] = useState<Item[]>(seedItems.map((item) => ({ ...item, archivedAt: item.archivedAt ?? null, displayOrder: item.displayOrder ?? null })));
+  const [items, setItems] = useState<Item[]>(seedItems.map((item) => ({ ...item, categoryId: item.categoryId ?? null, subcategoryId: item.subcategoryId ?? null, archivedAt: item.archivedAt ?? null, displayOrder: item.displayOrder ?? null })));
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusTab, setStatusTab] = useState<StatusTab>('active');
@@ -172,16 +176,46 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
     try {
       const parsed = JSON.parse(raw) as Item[];
       if (Array.isArray(parsed)) {
-        setItems(parsed.map((item) => ({ ...item, archivedAt: item.archivedAt ?? null, displayOrder: item.displayOrder ?? null })));
+        const canonicalBySku = new Map(seedItems.map((item) => [item.sku, item]));
+        setItems(
+          parsed.map((item) => {
+            const canonical = canonicalBySku.get(item.sku);
+            return {
+              ...item,
+              category: canonical?.category ?? item.category,
+              categoryId: canonical?.categoryId ?? item.categoryId ?? null,
+              subcategoryId: canonical?.subcategoryId ?? item.subcategoryId ?? null,
+              archivedAt: item.archivedAt ?? null,
+              displayOrder: item.displayOrder ?? null
+            };
+          })
+        );
       }
     } catch {
       // ignore malformed local state
     }
-  }, []);
+  }, [seedItems]);
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items]);
+
+
+  const canonicalCategoryLabelByRef = useMemo(() => {
+    const map = new Map<string, string>();
+
+    seedItems.forEach((item) => {
+      if (!item.categoryId) return;
+      map.set(`${item.categoryId}:${item.subcategoryId ?? ''}`, item.category);
+    });
+
+    return map;
+  }, [seedItems]);
+
+  const getResolvedCategoryLabel = useCallback((item: Item) => {
+    if (!item.categoryId) return item.category;
+    return canonicalCategoryLabelByRef.get(`${item.categoryId}:${item.subcategoryId ?? ''}`) ?? item.category;
+  }, [canonicalCategoryLabelByRef]);
 
   const categories = useMemo(
     () =>
@@ -189,11 +223,11 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
         new Set(
           items
             .filter((item) => !item.archivedAt)
-            .map((item) => item.category)
+            .map((item) => getResolvedCategoryLabel(item))
             .filter(Boolean)
         )
       ).sort((a, b) => a.localeCompare(b, 'sl')),
-    [items]
+    [getResolvedCategoryLabel, items]
   );
 
   const selectedCategoryLabel =
@@ -212,12 +246,13 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
     const q = search.trim().toLowerCase();
     const next = items.filter((item) => {
       if (item.archivedAt) return false;
+      const resolvedCategory = getResolvedCategoryLabel(item);
       const matchesSearch =
         !q ||
         item.name.toLowerCase().includes(q) ||
         item.sku.toLowerCase().includes(q) ||
-        item.category.toLowerCase().includes(q);
-      const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
+        resolvedCategory.toLowerCase().includes(q);
+      const matchesCategory = categoryFilter === 'all' || resolvedCategory === categoryFilter;
       const matchesStatus = statusTab === 'active' ? item.active : !item.active;
       return matchesSearch && matchesCategory && matchesStatus;
     });
@@ -232,7 +267,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
     });
 
     return next;
-  }, [categoryFilter, items, search, sortDirection, sortKey, statusTab]);
+  }, [categoryFilter, getResolvedCategoryLabel, items, search, sortDirection, sortKey, statusTab]);
 
   const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
     totalCount: filteredItems.length,
@@ -290,7 +325,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
 
   const openEdit = (item: Item) => {
     setEditingId(item.id);
-    setDraft(item);
+    setDraft({ ...item, category: getResolvedCategoryLabel(item) });
     setNewCategoryEnabled(false);
     setNewCategoryValue('');
     setEditorOpen(true);
@@ -309,6 +344,8 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
       ...draft,
       displayOrder: draft.displayOrder === null ? null : Math.max(1, Math.floor(draft.displayOrder)),
       category: resolvedCategory,
+      categoryId: newCategoryEnabled ? null : draft.categoryId ?? null,
+      subcategoryId: newCategoryEnabled ? null : draft.subcategoryId ?? null,
       discountPct: Math.max(0, Math.min(100, draft.discountPct)),
       updatedAt: nowIso(),
       archivedAt: null
@@ -476,7 +513,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                   <td className="px-3 py-2 text-center"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleOne(item.id)} aria-label={`Izberi ${item.name}`} /></td>
                   <td className="px-3 py-2 font-medium text-slate-900">{item.name}</td>
                   <td className="px-3 py-2 text-slate-600">{item.sku}</td>
-                  <td className="px-3 py-2 text-slate-600">{item.category}</td>
+                  <td className="px-3 py-2 text-slate-600">{getResolvedCategoryLabel(item)}</td>
                   <td className="px-3 py-2 text-center text-slate-600">{formatCurrency(item.price)}</td>
                   <td className="px-3 py-2 text-center text-slate-600">{item.discountPct}%</td>
                   <td className="px-3 py-2 text-center text-slate-600">{formatCurrency(discountedPrice(item.price, item.discountPct))}</td>

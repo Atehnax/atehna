@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
@@ -200,17 +200,34 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items]);
 
+
+  const canonicalCategoryLabelByRef = useMemo(() => {
+    const map = new Map<string, string>();
+
+    seedItems.forEach((item) => {
+      if (!item.categoryId) return;
+      map.set(`${item.categoryId}:${item.subcategoryId ?? ''}`, item.category);
+    });
+
+    return map;
+  }, [seedItems]);
+
+  const getResolvedCategoryLabel = useCallback((item: Item) => {
+    if (!item.categoryId) return item.category;
+    return canonicalCategoryLabelByRef.get(`${item.categoryId}:${item.subcategoryId ?? ''}`) ?? item.category;
+  }, [canonicalCategoryLabelByRef]);
+
   const categories = useMemo(
     () =>
       Array.from(
         new Set(
           items
             .filter((item) => !item.archivedAt)
-            .map((item) => item.category)
+            .map((item) => getResolvedCategoryLabel(item))
             .filter(Boolean)
         )
       ).sort((a, b) => a.localeCompare(b, 'sl')),
-    [items]
+    [getResolvedCategoryLabel, items]
   );
 
   const selectedCategoryLabel =
@@ -229,12 +246,13 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
     const q = search.trim().toLowerCase();
     const next = items.filter((item) => {
       if (item.archivedAt) return false;
+      const resolvedCategory = getResolvedCategoryLabel(item);
       const matchesSearch =
         !q ||
         item.name.toLowerCase().includes(q) ||
         item.sku.toLowerCase().includes(q) ||
-        item.category.toLowerCase().includes(q);
-      const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
+        resolvedCategory.toLowerCase().includes(q);
+      const matchesCategory = categoryFilter === 'all' || resolvedCategory === categoryFilter;
       const matchesStatus = statusTab === 'active' ? item.active : !item.active;
       return matchesSearch && matchesCategory && matchesStatus;
     });
@@ -249,7 +267,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
     });
 
     return next;
-  }, [categoryFilter, items, search, sortDirection, sortKey, statusTab]);
+  }, [categoryFilter, getResolvedCategoryLabel, items, search, sortDirection, sortKey, statusTab]);
 
   const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
     totalCount: filteredItems.length,
@@ -307,7 +325,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
 
   const openEdit = (item: Item) => {
     setEditingId(item.id);
-    setDraft(item);
+    setDraft({ ...item, category: getResolvedCategoryLabel(item) });
     setNewCategoryEnabled(false);
     setNewCategoryValue('');
     setEditorOpen(true);
@@ -495,7 +513,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
                   <td className="px-3 py-2 text-center"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleOne(item.id)} aria-label={`Izberi ${item.name}`} /></td>
                   <td className="px-3 py-2 font-medium text-slate-900">{item.name}</td>
                   <td className="px-3 py-2 text-slate-600">{item.sku}</td>
-                  <td className="px-3 py-2 text-slate-600">{item.category}</td>
+                  <td className="px-3 py-2 text-slate-600">{getResolvedCategoryLabel(item)}</td>
                   <td className="px-3 py-2 text-center text-slate-600">{formatCurrency(item.price)}</td>
                   <td className="px-3 py-2 text-center text-slate-600">{item.discountPct}%</td>
                   <td className="px-3 py-2 text-center text-slate-600">{formatCurrency(discountedPrice(item.price, item.discountPct))}</td>

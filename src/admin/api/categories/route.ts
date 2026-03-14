@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import type { CatalogCategory } from '@/commercial/catalog/catalog';
-import { normalizeCatalogData, readCatalogFile, writeCatalogFile } from '@/shared/server/catalogAdmin';
+import { normalizeCatalogData } from '@/shared/server/catalogAdmin';
+import { getCatalogDataFromDatabase, replaceCategoryTree } from '@/shared/server/catalogCategories';
 
 export async function GET() {
   try {
-    const catalog = await readCatalogFile();
+    const catalog = await getCatalogDataFromDatabase();
     return NextResponse.json(catalog);
   } catch (error) {
     return NextResponse.json({ message: error instanceof Error ? error.message : 'Napaka pri nalaganju.' }, { status: 500 });
@@ -25,7 +26,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ message: 'Neveljavna struktura kategorij.' }, { status: 400 });
     }
 
-    await writeCatalogFile(normalized);
+    await replaceCategoryTree(normalized);
     revalidatePath('/');
     revalidatePath('/products');
     revalidatePath('/products/[category]', 'page');

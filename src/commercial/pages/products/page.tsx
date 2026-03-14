@@ -1,16 +1,16 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { getPageContent } from '@/commercial/content/content';
-import { getCatalogCategories } from '@/commercial/catalog/catalog';
+import { getCatalogCategoriesServer } from '@/commercial/catalog/catalogServer';
 import MdxContent from '@/commercial/components/MdxContent';
 
 export const metadata = {
   title: 'Izdelki'
 };
 
-export default function ProductsPage() {
+export default async function ProductsPage() {
   const page = getPageContent('products');
-  const categories = getCatalogCategories();
+  const categories = await getCatalogCategoriesServer();
 
   return (
     <div className="container-base py-12">

@@ -2,44 +2,42 @@ import Image from 'next/image';
 import Link from 'next/link';
 import {
   formatCatalogPrice,
-  getCatalogCategory,
-  getCatalogCategoryItem,
   getCatalogCategoryItemPrice,
   getCatalogCategoryItemSku,
-  getCatalogCategoryItemSlugs,
-  getCatalogCategorySlugs,
   getDiscountedPrice
 } from '@/commercial/catalog/catalog';
+import { getCatalogCategoryItemServer, getCatalogCategoryItemSlugsServer, getCatalogCategoryServer, getCatalogCategorySlugsServer } from '@/commercial/catalog/catalogServer';
 import AddToCartButton from '@/commercial/features/products/AddToCartButton';
 
-export function generateStaticParams() {
-  return getCatalogCategorySlugs().flatMap((category) =>
-    getCatalogCategoryItemSlugs(category).map((item) => ({
-      category,
-      item
-    }))
-  );
+export async function generateStaticParams() {
+  const categories = await getCatalogCategorySlugsServer();
+  const params = [];
+  for (const category of categories) {
+    const items = await getCatalogCategoryItemSlugsServer(category);
+    for (const item of items) params.push({ category, item });
+  }
+  return params;
 }
 
-export function generateMetadata({
+export async function generateMetadata({
   params
 }: {
   params: { category: string; item: string };
 }) {
-  const item = getCatalogCategoryItem(params.category, params.item);
+  const item = await getCatalogCategoryItemServer(params.category, params.item);
   return {
     title: item.name,
     description: item.description
   };
 }
 
-export default function CategoryItemPage({
+export default async function CategoryItemPage({
   params
 }: {
   params: { category: string; item: string };
 }) {
-  const category = getCatalogCategory(params.category);
-  const item = getCatalogCategoryItem(params.category, params.item);
+  const category = await getCatalogCategoryServer(params.category);
+  const item = await getCatalogCategoryItemServer(params.category, params.item);
   const itemSku = getCatalogCategoryItemSku(category.slug, item.slug);
   const basePrice = item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug);
   const effectivePrice = getDiscountedPrice(basePrice, item.discountPct);

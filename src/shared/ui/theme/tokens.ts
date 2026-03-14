@@ -39,15 +39,15 @@ export const hoverTokenClasses = {
 
 export const adminTableRowToneClasses = {
   even: 'bg-white',
-  odd: 'bg-[#edf1f5]',
+  odd: 'bg-[#eef1f8]', // 'bg-[#edf1f5]',
   hover: 'hover:bg-[color:var(--admin-table-row-hover)]',
   selected: 'bg-[color:var(--admin-table-row-selected)]'
 } as const;
 
 export const adminCategoryRowToneByLevel: Record<number, string> = {
-  0: 'bg-[#b1caf6]',
-  1: 'bg-[#e7edf3]',
-  2: 'bg-[#eff3f7]',
+  0: 'bg-[#eef1f8]',
+  1: 'bg-[#eef1f8]',
+  2: 'bg-[#ffffff]',
   3: 'bg-[#f5f7fa]',
   4: 'bg-[#f9fbfc]'
 };

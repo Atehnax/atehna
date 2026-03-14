@@ -54,7 +54,7 @@
   --admin-hover: var(--blue-100);
   --hover-neutral: var(--bg);
 
-  --admin-table-row-hover: #e3e9f0;
+  --admin-table-row-hover: var(--blue-50); /* #e3e9f0; */
   --admin-table-row-selected: #e3e9f0;
 
   /* admin destructive controls */

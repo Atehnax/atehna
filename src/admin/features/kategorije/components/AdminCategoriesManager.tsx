@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode, type CSSProperties } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
@@ -255,6 +255,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isDragModeActive, setIsDragModeActive] = useState(false);
+  const [itemMoveTargets, setItemMoveTargets] = useState<Record<string, string>>({});
 
   const { toast } = useToast();
   const pathname = usePathname();
@@ -266,8 +267,10 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   const statusHeaderMenuRef = useRef<HTMLDivElement>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
   const isInlineSavingRef = useRef(false);
+  const catalogRef = useRef<CatalogData>({ categories: [] });
+  const persistQueueRef = useRef(Promise.resolve(true));
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     const response = await fetch('/api/admin/categories', { cache: 'no-store' });
 
@@ -280,6 +283,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     const payload = (await response.json()) as CatalogData;
 
     setCatalog(payload);
+    catalogRef.current = payload;
     setExpanded((prev) => ({
       ...prev,
       ...Object.fromEntries(payload.categories.map((entry) => [catId(entry.slug), false]))
@@ -301,11 +305,15 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     });
 
     setLoading(false);
-  };
+  }, [toast]);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
+
+  useEffect(() => {
+    catalogRef.current = catalog;
+  }, [catalog]);
 
   useEffect(() => {
     setActiveView(pathname?.endsWith('/miller-view') ? 'miller' : 'table');
@@ -361,24 +369,32 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   }, [isStatusHeaderMenuOpen, openStatusMenuRowId]);
 
   const persist = async (next: CatalogData, message = 'Shranjeno') => {
+    const previous = catalogRef.current;
     setCatalog(next);
-    setSaving(true);
+    catalogRef.current = next;
 
-    const response = await fetch('/api/admin/categories', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(next)
-    });
+    const runPersist = async () => {
+      setSaving(true);
+      const response = await fetch('/api/admin/categories', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(next)
+      });
+      setSaving(false);
 
-    setSaving(false);
+      if (!response.ok) {
+        setCatalog(previous);
+        catalogRef.current = previous;
+        toast.error('Shranjevanje ni uspelo');
+        return false;
+      }
 
-    if (!response.ok) {
-      toast.error('Shranjevanje ni uspelo');
-      return false;
-    }
+      toast.success(message);
+      return true;
+    };
 
-    toast.success(message);
-    return true;
+    persistQueueRef.current = persistQueueRef.current.then(runPersist, runPersist);
+    return persistQueueRef.current;
   };
 
   const selectedContext = useMemo(() => {
@@ -1497,12 +1513,160 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     return rows;
   })();
 
-  if (loading) return <p className="text-sm text-slate-500">Nalagam kategorije ...</p>;
+
+  const millerCategory = selected.kind === 'root'
+    ? null
+    : catalog.categories.find((entry) => entry.slug === selected.categorySlug) ?? null;
+
+  const millerSubcategory =
+    selected.kind === 'subcategory' && millerCategory
+      ? millerCategory.subcategories.find((entry) => entry.slug === selected.subcategorySlug) ?? null
+      : null;
+
+  const millerColumns: Array<{ key: string; title: string; entries: Array<{ id: string; label: string; meta?: string; onClick: () => void; selected: boolean }> }> = [
+    {
+      key: 'categories',
+      title: 'Kategorije',
+      entries: catalog.categories.map((category) => ({
+        id: category.slug,
+        label: category.title,
+        meta: `${category.subcategories.length} podkategorij · ${(category.items ?? []).length} izdelkov`,
+        selected: selected.kind !== 'root' && selected.categorySlug === category.slug,
+        onClick: () => setSelected({ kind: 'category', categorySlug: category.slug })
+      }))
+    }
+  ];
+
+  if (millerCategory) {
+    millerColumns.push({
+      key: `children-${millerCategory.slug}`,
+      title: millerCategory.title,
+      entries: [
+        ...millerCategory.subcategories.map((subcategory) => ({
+          id: `sub-${subcategory.slug}`,
+          label: subcategory.title,
+          meta: `${subcategory.items.length} izdelkov`,
+          selected: selected.kind === 'subcategory' && selected.subcategorySlug === subcategory.slug,
+          onClick: () =>
+            setSelected({ kind: 'subcategory', categorySlug: millerCategory.slug, subcategorySlug: subcategory.slug })
+        })),
+        ...sortCatalogItems(millerCategory.items ?? []).map((item) => ({
+          id: `item-cat-${item.slug}`,
+          label: item.name,
+          meta: 'izdelek',
+          selected: false,
+          onClick: () => undefined
+        }))
+      ]
+    });
+  }
+
+  if (millerSubcategory && millerCategory) {
+    millerColumns.push({
+      key: `items-${millerSubcategory.slug}`,
+      title: millerSubcategory.title,
+      entries: sortCatalogItems(millerSubcategory.items).map((item) => ({
+        id: `item-sub-${item.slug}`,
+        label: item.name,
+        meta: 'izdelek',
+        selected: false,
+        onClick: () => undefined
+      }))
+    });
+  }
+
+  const moveCategory = async (categorySlug: string, targetSlug: string) => {
+    const fromIndex = catalog.categories.findIndex((entry) => entry.slug === categorySlug);
+    const toIndex = catalog.categories.findIndex((entry) => entry.slug === targetSlug);
+    if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return;
+    await persist({ categories: arrayMove(catalog.categories, fromIndex, toIndex) }, 'Kategorija premaknjena');
+  };
+
+  const moveSelectedSubcategory = async (targetCategorySlug: string) => {
+    if (selected.kind !== 'subcategory') return;
+    if (selected.categorySlug === targetCategorySlug) return;
+    const sourceCategory = catalog.categories.find((entry) => entry.slug === selected.categorySlug);
+    const subcategory = sourceCategory?.subcategories.find((entry) => entry.slug === selected.subcategorySlug);
+    if (!sourceCategory || !subcategory) return;
+
+    const next = {
+      categories: catalog.categories.map((entry) => {
+        if (entry.slug === sourceCategory.slug) {
+          return { ...entry, subcategories: entry.subcategories.filter((node) => node.slug !== subcategory.slug) };
+        }
+        if (entry.slug === targetCategorySlug) {
+          return { ...entry, subcategories: [...entry.subcategories, subcategory] };
+        }
+        return entry;
+      })
+    };
+
+    const ok = await persist(next, 'Podkategorija premaknjena');
+    if (ok) {
+      setSelected({ kind: 'subcategory', categorySlug: targetCategorySlug, subcategorySlug: subcategory.slug });
+    }
+  };
+  const moveItemToDestination = async (
+    itemSlug: string,
+    source: { categorySlug: string; subcategorySlug?: string },
+    destination: string
+  ) => {
+    if (!destination) return;
+    const [targetCategorySlug, targetSubcategorySlug] = destination.split('/');
+    if (source.categorySlug === targetCategorySlug && (source.subcategorySlug ?? '') === (targetSubcategorySlug ?? '')) return;
+
+    let movingItem: CatalogItem | null = null;
+
+    const stripped = catalog.categories.map((category) => {
+      if (category.slug !== source.categorySlug) return category;
+
+      if (!source.subcategorySlug) {
+        const items = category.items ?? [];
+        movingItem = items.find((entry) => entry.slug === itemSlug) ?? null;
+        return { ...category, items: items.filter((entry) => entry.slug !== itemSlug) };
+      }
+
+      return {
+        ...category,
+        subcategories: category.subcategories.map((subcategory) => {
+          if (subcategory.slug !== source.subcategorySlug) return subcategory;
+          movingItem = subcategory.items.find((entry) => entry.slug === itemSlug) ?? null;
+          return { ...subcategory, items: subcategory.items.filter((entry) => entry.slug !== itemSlug) };
+        })
+      };
+    });
+
+    if (!movingItem) return;
+
+    const next = {
+      categories: stripped.map((category) => {
+        if (category.slug !== targetCategorySlug) return category;
+        if (!targetSubcategorySlug) {
+          return { ...category, items: [...(category.items ?? []), movingItem as CatalogItem] };
+        }
+        return {
+          ...category,
+          subcategories: category.subcategories.map((subcategory) =>
+            subcategory.slug === targetSubcategorySlug
+              ? { ...subcategory, items: [...subcategory.items, movingItem as CatalogItem] }
+              : subcategory
+          )
+        };
+      })
+    };
+
+    await persist(next, 'Izdelek premaknjen');
+  };
+
+
 
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="text-2xl font-semibold text-slate-900">Kategorije</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold text-slate-900">Kategorije</h1>
+          {loading ? <Spinner size="sm" className="text-slate-400" /> : null}
+        </div>
         <p className="mt-1 text-sm text-slate-600">
           Top: povezano drevo levo → desno. Bottom: vsebina izbrane kategorije v storefront admin pogledu.
         </p>
@@ -1942,46 +2106,139 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
       </section>
       </div>
 
-      <section className={activeView === 'miller' ? 'rounded-2xl border border-slate-200 bg-white p-3 shadow-sm' : 'hidden'}>
-        <div className="grid gap-3 md:grid-cols-3">
-          <div>
-            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Kategorije</p>
-            <div className="max-h-[520px] space-y-1 overflow-auto rounded-xl border border-slate-200 bg-slate-50/40 p-1.5">
-              {catalog.categories.map((category) => (
-                <button
-                  key={category.slug}
-                  type="button"
-                  className={`block w-full rounded-lg border px-2.5 py-1.5 text-left text-xs font-medium transition ${selected.kind === 'category' && selected.categorySlug === category.slug ? 'border-[#3e67d6]/50 bg-[#f0f4ff] text-[#1f3f93]' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-100'}`}
-                  onClick={() => setSelected({ kind: 'category', categorySlug: category.slug })}
-                >
-                  {category.title}
-                </button>
-              ))}
-            </div>
+      <section className={activeView === 'miller' ? 'rounded-2xl border border-slate-200 bg-white p-2 shadow-sm' : 'hidden'}>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Millerjev pogled</p>
+          <div className="flex items-center gap-1.5">
+            <Button variant="outline" size="sm" onClick={() => openCreateDialog({ kind: 'category' })}>Dodaj kategorijo</Button>
+            {millerCategory ? (
+              <Button variant="ghost" size="sm" onClick={() => openCreateDialog({ kind: 'subcategory', categorySlug: millerCategory.slug })}>Dodaj podkategorijo</Button>
+            ) : null}
           </div>
-          <div>
-            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Podkategorije</p>
-            <div className="max-h-[520px] space-y-1 overflow-auto rounded-xl border border-slate-200 bg-slate-50/40 p-1.5">
-              {selectedContext?.kind === 'category' ? selectedContext.category.subcategories.map((subcategory) => (
-                <button
-                  key={subcategory.slug}
-                  type="button"
-                  className={`block w-full rounded-lg border px-2.5 py-1.5 text-left text-xs font-medium transition ${selected.kind === 'subcategory' && selected.subcategorySlug === subcategory.slug ? 'border-[#3e67d6]/50 bg-[#f0f4ff] text-[#1f3f93]' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-100'}`}
-                  onClick={() => setSelected({ kind: 'subcategory', categorySlug: selectedContext.category.slug, subcategorySlug: subcategory.slug })}
-                >
-                  {subcategory.title}
-                </button>
-              )) : <p className="px-1 py-2 text-xs text-slate-500">Izberite kategorijo.</p>}
+        </div>
+        <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-4">
+          {millerColumns.map((column) => (
+            <div key={column.key} className="rounded-lg border border-slate-200 bg-slate-50/60 p-1.5">
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">{column.title}</p>
+              <div className="max-h-[520px] space-y-1 overflow-auto">
+                {column.entries.length === 0 ? <p className="px-1 py-1 text-[11px] text-slate-500">Ni elementov.</p> : null}
+                {column.entries.map((entry) => (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    onClick={entry.onClick}
+                    className={`block w-full rounded-md border px-2 py-1 text-left text-xs transition ${entry.selected ? 'border-[#3e67d6]/50 bg-[#f0f4ff] text-[#1f3f93]' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-100'}`}
+                  >
+                    <div className="truncate font-medium">{entry.label}</div>
+                    {entry.meta ? <div className="truncate text-[10px] text-slate-500">{entry.meta}</div> : null}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-          <div>
-            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Izdelki</p>
-            <div className="max-h-[520px] space-y-1 overflow-auto rounded-xl border border-slate-200 bg-slate-50/40 p-1.5">
-              {selectedContext?.kind === 'subcategory' ? sortCatalogItems(selectedContext.subcategory.items).map((item) => (
-                <div key={item.slug} className="rounded-lg border border-transparent bg-white px-2.5 py-1.5 text-xs text-slate-700">{item.name}</div>
-              )) : <p className="px-1 py-2 text-xs text-slate-500">Izberite podkategorijo.</p>}
+          ))}
+
+          {millerCategory ? (
+            <div className="rounded-lg border border-slate-200 bg-white p-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Upravljanje</p>
+              <div className="mt-2 space-y-2 text-xs">
+                <FloatingInput
+                  id="miller-category-title"
+                  tone="admin"
+                  label="Naziv kategorije"
+                  value={millerCategory.title}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    void persist({ categories: catalog.categories.map((entry) => entry.slug === millerCategory.slug ? { ...entry, title: value } : entry) }, 'Kategorija posodobljena');
+                  }}
+                />
+                <FloatingTextarea
+                  id="miller-category-summary"
+                  tone="admin"
+                  label="Opis"
+                  value={millerCategory.summary}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    void persist({ categories: catalog.categories.map((entry) => entry.slug === millerCategory.slug ? { ...entry, summary: value } : entry) }, 'Opis posodobljen');
+                  }}
+                />
+                <div className="flex items-center gap-1">
+                  <select
+                    className="h-8 flex-1 rounded-md border border-slate-200 px-2 text-xs"
+                    defaultValue=""
+                    onChange={(event) => {
+                      if (!event.target.value) return;
+                      void moveCategory(millerCategory.slug, event.target.value);
+                      event.currentTarget.value = '';
+                    }}
+                  >
+                    <option value="">Premakni kategorijo pred ...</option>
+                    {catalog.categories.filter((entry) => entry.slug !== millerCategory.slug).map((entry) => <option key={entry.slug} value={entry.slug}>{entry.title}</option>)}
+                  </select>
+                  <Button variant="ghost" size="sm" onClick={() => setDeleteTarget({ kind: 'category', categorySlug: millerCategory.slug })}>Izbriši</Button>
+                </div>
+
+                {millerSubcategory ? (
+                  <>
+                    <FloatingInput
+                      id="miller-subcategory-title"
+                      tone="admin"
+                      label="Naziv podkategorije"
+                      value={millerSubcategory.title}
+                      onChange={(event) => updateSubcategory(millerCategory.slug, millerSubcategory.slug, { title: event.target.value })}
+                    />
+                    <FloatingTextarea
+                      id="miller-subcategory-description"
+                      tone="admin"
+                      label="Opis podkategorije"
+                      value={millerSubcategory.description}
+                      onChange={(event) => updateSubcategory(millerCategory.slug, millerSubcategory.slug, { description: event.target.value })}
+                    />
+                    <div className="flex items-center gap-1">
+                      <select
+                        className="h-8 flex-1 rounded-md border border-slate-200 px-2 text-xs"
+                        defaultValue=""
+                        onChange={(event) => {
+                          if (!event.target.value) return;
+                          void moveSelectedSubcategory(event.target.value);
+                          event.currentTarget.value = '';
+                        }}
+                      >
+                        <option value="">Premakni podkategorijo v ...</option>
+                        {catalog.categories.filter((entry) => entry.slug !== millerCategory.slug).map((entry) => <option key={entry.slug} value={entry.slug}>{entry.title}</option>)}
+                      </select>
+                      <Button variant="ghost" size="sm" onClick={() => setDeleteTarget({ kind: 'subcategory', categorySlug: millerCategory.slug, subcategorySlug: millerSubcategory.slug })}>Izbriši</Button>
+                    </div>
+                    <div className="space-y-1">
+                      {sortCatalogItems(millerSubcategory.items).map((item) => {
+                        const moveKey = `${millerCategory.slug}/${millerSubcategory.slug}/${item.slug}`;
+                        return (
+                          <div key={item.slug} className="flex items-center gap-1 text-[11px]">
+                            <span className="min-w-0 flex-1 truncate">{item.name}</span>
+                            <select
+                              className="h-7 rounded-md border border-slate-200 px-1 text-[11px]"
+                              value={itemMoveTargets[moveKey] ?? ''}
+                              onChange={(event) => setItemMoveTargets((prev) => ({ ...prev, [moveKey]: event.target.value }))}
+                            >
+                              <option value="">Cilj</option>
+                              {catalog.categories.map((category) => (
+                                <optgroup key={category.slug} label={category.title}>
+                                  <option value={category.slug}>{category.title} (direktno)</option>
+                                  {category.subcategories.map((subcategory) => (
+                                    <option key={subcategory.slug} value={`${category.slug}/${subcategory.slug}`}>{category.title} / {subcategory.title}</option>
+                                  ))}
+                                </optgroup>
+                              ))}
+                            </select>
+                            <Button variant="ghost" size="sm" onClick={() => void moveItemToDestination(item.slug, { categorySlug: millerCategory.slug, subcategorySlug: millerSubcategory.slug }, itemMoveTargets[moveKey] ?? '')}>Premakni</Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : null}
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
       </section>
     </div>

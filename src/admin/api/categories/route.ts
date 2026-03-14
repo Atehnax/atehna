@@ -22,6 +22,9 @@ export async function PUT(request: Request) {
     await writeCatalogFile({ categories: payload.categories });
     revalidatePath('/');
     revalidatePath('/products');
+    revalidatePath('/products/[category]', 'page');
+    revalidatePath('/products/[category]/[subcategory]', 'page');
+    revalidatePath('/products/[category]/items/[item]', 'page');
     revalidatePath('/admin/kategorije');
     revalidatePath('/admin/kategorije/miller-view');
     revalidatePath('/admin/artikli');

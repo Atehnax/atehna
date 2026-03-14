@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode, type CSSProperties, type Key } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode, type CSSProperties } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
@@ -46,10 +46,7 @@ import {
 import { Input } from '@/shared/ui/input';
 import { Spinner } from '@/shared/ui/loading';
 import { useToast } from '@/shared/ui/toast';
-import { Tabs, Tab } from 'baseui/tabs-motion';
-import { BaseProvider, LightTheme } from 'baseui';
-import { Client as Styletron } from 'styletron-engine-atomic';
-import { Provider as StyletronProvider } from 'styletron-react';
+import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 
 type CatalogData = { categories: CatalogCategory[] };
 
@@ -222,6 +219,17 @@ function SaveIcon() {
   );
 }
 
+function DragModeIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+      <path d="M7 4.5h6M7 10h6M7 15.5h6" />
+      <circle cx="4.5" cy="4.5" r="1" fill="currentColor" stroke="none" />
+      <circle cx="4.5" cy="10" r="1" fill="currentColor" stroke="none" />
+      <circle cx="4.5" cy="15.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 type CategoriesView = 'table' | 'miller';
 
 export default function AdminCategoriesManager({ initialView = 'table' }: { initialView?: CategoriesView }) {
@@ -246,12 +254,12 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   const [imageDeleteTarget, setImageDeleteTarget] = useState<ImageDeleteTarget>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isDragModeActive, setIsDragModeActive] = useState(false);
 
   const { toast } = useToast();
   const pathname = usePathname();
   const router = useRouter();
   const [activeView, setActiveView] = useState<CategoriesView>(initialView);
-  const [styletronEngine, setStyletronEngine] = useState<Styletron | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const uploadRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const statusMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -302,12 +310,6 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   useEffect(() => {
     setActiveView(pathname?.endsWith('/miller-view') ? 'miller' : 'table');
   }, [pathname]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    setStyletronEngine(new Styletron());
-  }, []);
-
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -1136,12 +1138,13 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
           : (parentColumnX ?? 0) + leafConnectorWidth;
 
     return (
-      <SortableTreeRow id={id} disabled={kind === 'root'}>
+      <SortableTreeRow id={id} disabled={kind === 'root' || !isDragModeActive}>
         {({ dragHandleProps, setNodeRef, style, isDragging }) => (
       <tr
         ref={setNodeRef}
         style={style}
-        className={`${isSelected ? adminTableRowToneClasses.selected : rowDepthTone} transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''} ${isDragging ? 'opacity-70' : ''}`}
+        className={`${isSelected ? adminTableRowToneClasses.selected : rowDepthTone} transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''} ${isDragging ? 'opacity-70' : ''} ${isDragModeActive && kind !== 'root' ? 'cursor-grab active:cursor-grabbing select-none' : ''}`}
+        {...dragHandleProps}
       >
         <td className="relative overflow-visible border-b border-slate-200 px-2 py-2 text-center align-middle">
           <div
@@ -1259,7 +1262,6 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
               ) : null}
             </div>
 
-            <IconButton type="button" tone="neutral" aria-label="Premakni vrstico" title="Premakni vrstico" {...dragHandleProps}>⋮⋮</IconButton>
             <div className="min-w-0 flex-1">
               {isRowEditing ? (
                 <Input
@@ -1506,23 +1508,29 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
         </p>
       </header>
 
-      {styletronEngine ? (
-      <StyletronProvider value={styletronEngine}>
-        <BaseProvider theme={LightTheme}>
-          <Tabs
-            activeKey={activeView}
-            onChange={({ activeKey }: { activeKey: Key }) => {
-              const next = activeKey as CategoriesView;
-              setActiveView(next);
-              router.push(next === 'table' ? '/admin/kategorije' : '/admin/kategorije/miller-view');
-            }}
+      <Tabs
+        value={activeView}
+        onValueChange={(next) => {
+          const nextView = next as CategoriesView;
+          setActiveView(nextView);
+          router.push(nextView === 'table' ? '/admin/kategorije' : '/admin/kategorije/miller-view');
+        }}
+      >
+        <TabsList className="h-9 gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+          <TabsTrigger
+            value="table"
+            className="h-7 rounded-lg px-3 text-xs font-semibold data-[active=true]:border data-[active=true]:border-[#3e67d6]/40 data-[active=true]:bg-white data-[active=true]:text-[#2749a5]"
           >
-            <Tab title="Seznam" key="table" />
-            <Tab title="Millerjev pogled" key="miller" />
-          </Tabs>
-        </BaseProvider>
-      </StyletronProvider>
-      ) : null}
+            Seznam
+          </TabsTrigger>
+          <TabsTrigger
+            value="miller"
+            className="h-7 rounded-lg px-3 text-xs font-semibold data-[active=true]:border data-[active=true]:border-[#3e67d6]/40 data-[active=true]:bg-white data-[active=true]:text-[#2749a5]"
+          >
+            Millerjev pogled
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       <ConfirmDialog
         open={isBulkDeleteDialogOpen}
@@ -1614,6 +1622,17 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
           }
           headerRight={
             <>
+              <IconButton
+                type="button"
+                tone="neutral"
+                aria-label="Vklopi ali izklopi način premikanja"
+                title={isDragModeActive ? 'Način premikanja je vklopljen' : 'Vklopi način premikanja'}
+                onClick={() => setIsDragModeActive((prev) => !prev)}
+                className={isDragModeActive ? 'text-[#2f56c4] ring-1 ring-[#adc0f7]' : ''}
+              >
+                <DragModeIcon />
+              </IconButton>
+
               <button
                 type="button"
                 onClick={handleBulkDelete}
@@ -1923,30 +1942,44 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
       </section>
       </div>
 
-      <section className={activeView === 'miller' ? 'rounded-2xl border border-slate-200 bg-white p-4 shadow-sm' : 'hidden'}>
-        <div className="grid gap-4 md:grid-cols-3">
+      <section className={activeView === 'miller' ? 'rounded-2xl border border-slate-200 bg-white p-3 shadow-sm' : 'hidden'}>
+        <div className="grid gap-3 md:grid-cols-3">
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Kategorije</p>
-            <div className="space-y-2">
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Kategorije</p>
+            <div className="max-h-[520px] space-y-1 overflow-auto rounded-xl border border-slate-200 bg-slate-50/40 p-1.5">
               {catalog.categories.map((category) => (
-                <button key={category.slug} type="button" className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-left text-sm" onClick={() => setSelected({ kind: 'category', categorySlug: category.slug })}>{category.title}</button>
+                <button
+                  key={category.slug}
+                  type="button"
+                  className={`block w-full rounded-lg border px-2.5 py-1.5 text-left text-xs font-medium transition ${selected.kind === 'category' && selected.categorySlug === category.slug ? 'border-[#3e67d6]/50 bg-[#f0f4ff] text-[#1f3f93]' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-100'}`}
+                  onClick={() => setSelected({ kind: 'category', categorySlug: category.slug })}
+                >
+                  {category.title}
+                </button>
               ))}
             </div>
           </div>
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Podkategorije</p>
-            <div className="space-y-2">
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Podkategorije</p>
+            <div className="max-h-[520px] space-y-1 overflow-auto rounded-xl border border-slate-200 bg-slate-50/40 p-1.5">
               {selectedContext?.kind === 'category' ? selectedContext.category.subcategories.map((subcategory) => (
-                <button key={subcategory.slug} type="button" className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-left text-sm" onClick={() => setSelected({ kind: 'subcategory', categorySlug: selectedContext.category.slug, subcategorySlug: subcategory.slug })}>{subcategory.title}</button>
-              )) : <p className="text-xs text-slate-500">Izberite kategorijo.</p>}
+                <button
+                  key={subcategory.slug}
+                  type="button"
+                  className={`block w-full rounded-lg border px-2.5 py-1.5 text-left text-xs font-medium transition ${selected.kind === 'subcategory' && selected.subcategorySlug === subcategory.slug ? 'border-[#3e67d6]/50 bg-[#f0f4ff] text-[#1f3f93]' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-100'}`}
+                  onClick={() => setSelected({ kind: 'subcategory', categorySlug: selectedContext.category.slug, subcategorySlug: subcategory.slug })}
+                >
+                  {subcategory.title}
+                </button>
+              )) : <p className="px-1 py-2 text-xs text-slate-500">Izberite kategorijo.</p>}
             </div>
           </div>
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Izdelki</p>
-            <div className="space-y-2">
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Izdelki</p>
+            <div className="max-h-[520px] space-y-1 overflow-auto rounded-xl border border-slate-200 bg-slate-50/40 p-1.5">
               {selectedContext?.kind === 'subcategory' ? sortCatalogItems(selectedContext.subcategory.items).map((item) => (
-                <div key={item.slug} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">{item.name}</div>
-              )) : <p className="text-xs text-slate-500">Izberite podkategorijo.</p>}
+                <div key={item.slug} className="rounded-lg border border-transparent bg-white px-2.5 py-1.5 text-xs text-slate-700">{item.name}</div>
+              )) : <p className="px-1 py-2 text-xs text-slate-500">Izberite podkategorijo.</p>}
             </div>
           </div>
         </div>

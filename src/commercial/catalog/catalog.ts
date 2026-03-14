@@ -43,7 +43,20 @@ type CatalogData = {
 };
 
 export function getCatalog(): CatalogData {
-  return catalogData as unknown as CatalogData;
+  if (typeof window !== 'undefined') {
+    return catalogData as unknown as CatalogData;
+  }
+
+  try {
+    const req = eval('require') as NodeRequire;
+    const fs = req('fs') as typeof import('fs');
+    const path = req('path') as typeof import('path');
+    const catalogPath = path.join(process.cwd(), 'src/commercial/content/data/catalog.json');
+    const raw = fs.readFileSync(catalogPath, 'utf8');
+    return JSON.parse(raw) as CatalogData;
+  } catch {
+    return catalogData as unknown as CatalogData;
+  }
 }
 
 export function getCatalogCategories(): CatalogCategory[] {

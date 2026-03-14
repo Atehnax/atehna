@@ -101,6 +101,7 @@ export function TabsTrigger({ value, disabled, children, className }: TabsTrigge
       type="button"
       role="tab"
       data-value={value}
+      data-active={isActive ? 'true' : 'false'}
       id={`${baseId}-trigger-${value}`}
       aria-controls={`${baseId}-panel-${value}`}
       aria-selected={isActive}

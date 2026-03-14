@@ -30,16 +30,16 @@ Builder state is persisted via `config_json` in `analytics_charts`.
 Key places:
 - UI controls and series table: `src/admin/components/AdminAnalyticsDashboard.tsx` (BuilderModal).
 - CRUD/reorder APIs:
-  - `src/app/api/admin/analytics/charts/route.ts`
-  - `src/app/api/admin/analytics/charts/[chartId]/route.ts`
-  - `src/app/api/admin/analytics/charts/reorder/route.ts`
+  - `src/admin/api/analytics/charts/route.ts`
+  - `src/admin/api/analytics/charts/[chartId]/route.ts`
+  - `src/admin/api/analytics/charts/reorder/route.ts`
 - Validation/normalization: `src/shared/server/analyticsCharts.ts` (`parseConfig`).
 
 ### Theme tokens (global + per-chart appearance)
 Global chart appearance is stored in DB and edited from the `Appearance / Theme` panel on `/admin/analitika` (API: `/api/admin/analytics/charts/appearance`).
 
 Key places:
-- CSS defaults: `src/app/globals.css` (`--chart-*` variables).
+- CSS defaults: `src/shared/styles/globals.css` (`--chart-*` variables).
 - Runtime adapter: `src/admin/components/charts/chartTheme.ts` (`getChartThemeFromCssVars`).
 - Per-chart overrides persisted in `config_json.appearance` via `src/shared/server/analyticsCharts.ts`.
 

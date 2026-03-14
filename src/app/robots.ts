@@ -1,11 +1,1 @@
-import { MetadataRoute } from 'next';
-
-export default function robots(): MetadataRoute.Robots {
-  return {
-    rules: {
-      userAgent: '*',
-      allow: '/'
-    },
-    sitemap: 'https://atehna.si/sitemap.xml'
-  };
-}
+export { default } from '@/commercial/shell/robots';

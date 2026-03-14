@@ -1,10 +1,10 @@
 # Theme tokens (source of truth)
 
-This project uses **CSS variables in `src/app/globals.css`** as the source of truth for colour and surface styling, with Tailwind mappings in `tailwind.config.ts`.
+This project uses **CSS variables in `src/shared/styles/globals.css`** as the source of truth for colour and surface styling, with Tailwind mappings in `tailwind.config.ts`.
 
 ## Where to change colours
 
-- **Primary theme variables:** `src/app/globals.css`
+- **Primary theme variables:** `src/shared/styles/globals.css`
 - **Tailwind token mapping:** `tailwind.config.ts`
 - **Component-level UI tokens/classes:** `src/shared/ui/theme/tokens.ts`
 
@@ -35,5 +35,5 @@ This project uses **CSS variables in `src/app/globals.css`** as the source of tr
 
 ## Layout note
 
-- Public pages are centered by the shared `.container-base` utility in `src/app/globals.css` (`mx-auto` + `max-w-6xl`).
-- The public page flow is hosted by `src/app/layout.tsx` (`<main className="flex-1">`) to preserve normal block width behavior for centered containers.
+- Public pages are centered by the shared `.container-base` utility in `src/shared/styles/globals.css` (`mx-auto` + `max-w-6xl`).
+- The public page flow is hosted by `src/commercial/shell/rootLayout.tsx (re-exported by src/app/layout.tsx shell)` (`<main className="flex-1">`) to preserve normal block width behavior for centered containers.

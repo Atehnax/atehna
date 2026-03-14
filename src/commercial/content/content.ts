@@ -24,7 +24,7 @@ export type CategoryContent = {
   content: string;
 };
 
-const contentRoot = path.join(process.cwd(), 'content');
+const contentRoot = path.join(process.cwd(), 'src/commercial/content/data');
 
 function readMdxFile(folder: string, slug: string) {
   const filePath = path.join(contentRoot, folder, `${slug}.mdx`);

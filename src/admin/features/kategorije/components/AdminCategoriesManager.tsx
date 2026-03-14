@@ -258,6 +258,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   const [itemMoveTargets, setItemMoveTargets] = useState<Record<string, string>>({});
 
   const { toast } = useToast();
+  const toastRef = useRef(toast);
   const pathname = usePathname();
   const router = useRouter();
   const [activeView, setActiveView] = useState<CategoriesView>(initialView);
@@ -275,7 +276,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     const response = await fetch('/api/admin/categories', { cache: 'no-store' });
 
     if (!response.ok) {
-      toast.error('Napaka pri nalaganju kategorij');
+      toastRef.current.error('Napaka pri nalaganju kategorij');
       setLoading(false);
       return;
     }
@@ -305,11 +306,15 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     });
 
     setLoading(false);
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   useEffect(() => {
     catalogRef.current = catalog;

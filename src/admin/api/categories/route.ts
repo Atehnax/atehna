@@ -20,9 +20,7 @@ export async function PUT(request: Request) {
     }
 
     await writeCatalogFile({ categories: payload.categories });
-    revalidatePath('/products');
-    revalidatePath('/products/[category]', 'page');
-    revalidatePath('/products/[category]/[subcategory]', 'page');
+    revalidatePath('/products', 'layout');
     return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json({ message: error instanceof Error ? error.message : 'Napaka pri shranjevanju.' }, { status: 500 });

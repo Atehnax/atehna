@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   DndContext,
@@ -44,6 +45,7 @@ import {
 import { Input } from '@/shared/ui/input';
 import { Spinner } from '@/shared/ui/loading';
 import { useToast } from '@/shared/ui/toast';
+import { Tabs, Tab } from 'baseui/tabs-motion';
 
 type CatalogData = { categories: CatalogCategory[] };
 
@@ -89,8 +91,6 @@ type CategoryStatus = 'active' | 'inactive';
 
 const bulkDeleteButtonClass = buttonTokenClasses.danger;
 const CATEGORY_STATUS_STORAGE_KEY = 'admin-categories-status-v1';
-const ROOT_META_STORAGE_KEY = 'admin-categories-root-meta-v1';
-
 const rootId = 'root';
 const catId = (slug: string) => `cat:${slug}`;
 const subId = (catSlug: string, subSlug: string) => `sub:${catSlug}:${subSlug}`;
@@ -117,8 +117,7 @@ const getCheckboxLeftFromTreeStart = (
 
   // category row: place checkbox in the space before the expand connector/button area
   if (kind === 'category') {
-    const targetCenterX = buttonLeft / 2;
-    return targetCenterX - treeCheckboxHalf;
+    return 0;
   }
 
   // subcategory row: place checkbox exactly between the two vertical lines
@@ -191,10 +190,12 @@ function SaveIcon() {
   );
 }
 
-export default function AdminCategoriesManager() {
+type CategoriesView = 'table' | 'miller';
+
+export default function AdminCategoriesManager({ initialView = 'table' }: { initialView?: CategoriesView }) {
   const [catalog, setCatalog] = useState<CatalogData>({ categories: [] });
   const [selected, setSelected] = useState<SelectedNode>({ kind: 'root' });
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({ [rootId]: true });
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [editingRow, setEditingRow] = useState<EditingRowDraft | null>(null);
   const [statusByRow, setStatusByRow] = useState<Record<string, CategoryStatus>>({});
   const [openStatusMenuRowId, setOpenStatusMenuRowId] = useState<string | null>(null);
@@ -213,9 +214,11 @@ export default function AdminCategoriesManager() {
   const [imageDeleteTarget, setImageDeleteTarget] = useState<ImageDeleteTarget>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [rootMeta, setRootMeta] = useState({ title: 'Vse kategorije', description: 'Root' });
 
   const { toast } = useToast();
+  const pathname = usePathname();
+  const router = useRouter();
+  const [activeView, setActiveView] = useState<CategoriesView>(initialView);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const uploadRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const statusMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -238,7 +241,6 @@ export default function AdminCategoriesManager() {
     setCatalog(payload);
     setExpanded((prev) => ({
       ...prev,
-      [rootId]: true,
       ...Object.fromEntries(payload.categories.map((entry) => [catId(entry.slug), false]))
     }));
 
@@ -254,8 +256,6 @@ export default function AdminCategoriesManager() {
           if (!next[subcategoryId]) next[subcategoryId] = 'active';
         });
       });
-
-      if (!next[rootId]) next[rootId] = 'active';
       return next;
     });
 
@@ -265,6 +265,10 @@ export default function AdminCategoriesManager() {
   useEffect(() => {
     void load();
   }, []);
+
+  useEffect(() => {
+    setActiveView(pathname?.endsWith('/miller-view') ? 'miller' : 'table');
+  }, [pathname]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -283,28 +287,6 @@ export default function AdminCategoriesManager() {
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(CATEGORY_STATUS_STORAGE_KEY, JSON.stringify(statusByRow));
   }, [statusByRow]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    try {
-      const raw = window.localStorage.getItem(ROOT_META_STORAGE_KEY);
-      if (!raw) return;
-
-      const parsed = JSON.parse(raw) as { title?: string; description?: string };
-      setRootMeta({
-        title: parsed.title?.trim() || 'Vse kategorije',
-        description: parsed.description ?? 'Root'
-      });
-    } catch {
-      // no-op
-    }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(ROOT_META_STORAGE_KEY, JSON.stringify(rootMeta));
-  }, [rootMeta]);
 
   useEffect(() => {
     const closeOnOutsideClick = (event: MouseEvent) => {
@@ -744,15 +726,6 @@ export default function AdminCategoriesManager() {
       return;
     }
 
-    if (editingRow.kind === 'root') {
-      setRootMeta({ title: nextTitle, description: editingRow.description });
-      setStatusByRow((prev) => ({ ...prev, [rootId]: editingRow.status }));
-      toast.success('Shranjeno');
-      setEditingRow(null);
-      isInlineSavingRef.current = false;
-      return;
-    }
-
     if (editingRow.kind === 'category') {
       if (!editingRow.categorySlug) {
         isInlineSavingRef.current = false;
@@ -836,8 +809,7 @@ export default function AdminCategoriesManager() {
   }, [catalog.categories, isSearchActive, searchQuery]);
 
   const visibleRowIds = useMemo(() => {
-    const ids = [rootId];
-    if (!(expanded[rootId] ?? true) && !closingRowIds.includes(rootId)) return ids;
+    const ids: string[] = [];
 
     filteredCategories.forEach((category) => {
       const categoryNodeId = catId(category.slug);
@@ -865,7 +837,6 @@ export default function AdminCategoriesManager() {
 
   useEffect(() => {
     const validIds = new Set([
-      rootId,
       ...catalog.categories.map((category) => catId(category.slug)),
       ...catalog.categories.flatMap((category) =>
         category.subcategories.map((subcategory) => subId(category.slug, subcategory.slug))
@@ -1342,23 +1313,7 @@ export default function AdminCategoriesManager() {
   const treeRows: ReactNode[] = (() => {
     const rows: ReactNode[] = [];
 
-    rows.push(
-      renderTreeRow({
-        id: rootId,
-        title: rootMeta.title,
-        level: 0,
-        kind: 'root',
-        description: rootMeta.description,
-        childrenCount: filteredCategories.length,
-        productCount: 0,
-        ancestorContinuationColumns: [],
-        continueCurrentColumnBelow: false,
-        parentIsAnimating: false
-      })
-    );
-
-    if ((expanded[rootId] ?? true) || closingRowIds.includes(rootId)) {
-      filteredCategories.forEach((category, categoryIndex) => {
+    filteredCategories.forEach((category, categoryIndex) => {
         const categoryNodeId = catId(category.slug);
         const hasVisibleChildren =
           (isSearchActive || (expanded[categoryNodeId] ?? false) || closingRowIds.includes(categoryNodeId)) &&
@@ -1369,7 +1324,7 @@ export default function AdminCategoriesManager() {
           renderTreeRow({
             id: categoryNodeId,
             title: category.title,
-            level: 1,
+            level: 0,
             kind: 'category',
             categorySlug: category.slug,
             description: category.summary,
@@ -1377,7 +1332,7 @@ export default function AdminCategoriesManager() {
             productCount: (category.items ?? []).length,
             ancestorContinuationColumns: [],
             continueCurrentColumnBelow: hasVisibleChildren || hasNextCategory,
-            parentIsAnimating: openingRowIds.includes(rootId) || closingRowIds.includes(rootId)
+            parentIsAnimating: false
           })
         );
 
@@ -1389,7 +1344,7 @@ export default function AdminCategoriesManager() {
               renderTreeRow({
                 id: subId(category.slug, subcategory.slug),
                 title: subcategory.title,
-                level: 2,
+                level: 1,
                 kind: 'subcategory',
                 categorySlug: category.slug,
                 subcategorySlug: subcategory.slug,
@@ -1404,7 +1359,6 @@ export default function AdminCategoriesManager() {
           });
         }
       });
-    }
 
     return rows;
   })();
@@ -1419,6 +1373,18 @@ export default function AdminCategoriesManager() {
           Top: povezano drevo levo → desno. Bottom: vsebina izbrane kategorije v storefront admin pogledu.
         </p>
       </header>
+
+      <Tabs
+        activeKey={activeView}
+        onChange={({ activeKey }: { activeKey: any }) => {
+          const next = activeKey as CategoriesView;
+          setActiveView(next);
+          router.push(next === 'table' ? '/admin/kategorije' : '/admin/kategorije/miller-view');
+        }}
+      >
+        <Tab title="Seznam" key="table" />
+        <Tab title="Millerjev pogled" key="miller" />
+      </Tabs>
 
       <ConfirmDialog
         open={isBulkDeleteDialogOpen}
@@ -1493,6 +1459,7 @@ export default function AdminCategoriesManager() {
         </div>
       </ConfirmDialog>
 
+      <div className={activeView === 'table' ? 'space-y-5' : 'hidden'}>
       <section>
         <AdminTableLayout
           className="border"
@@ -1811,6 +1778,36 @@ export default function AdminCategoriesManager() {
             onDragEnd={onLeafProductsDragEnd}
           />
         ) : null}
+      </section>
+      </div>
+
+      <section className={activeView === 'miller' ? 'rounded-2xl border border-slate-200 bg-white p-4 shadow-sm' : 'hidden'}>
+        <div className="grid gap-4 md:grid-cols-3">
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Kategorije</p>
+            <div className="space-y-2">
+              {catalog.categories.map((category) => (
+                <button key={category.slug} type="button" className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-left text-sm" onClick={() => setSelected({ kind: 'category', categorySlug: category.slug })}>{category.title}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Podkategorije</p>
+            <div className="space-y-2">
+              {selectedContext?.kind === 'category' ? selectedContext.category.subcategories.map((subcategory) => (
+                <button key={subcategory.slug} type="button" className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-left text-sm" onClick={() => setSelected({ kind: 'subcategory', categorySlug: selectedContext.category.slug, subcategorySlug: subcategory.slug })}>{subcategory.title}</button>
+              )) : <p className="text-xs text-slate-500">Izberite kategorijo.</p>}
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Izdelki</p>
+            <div className="space-y-2">
+              {selectedContext?.kind === 'subcategory' ? sortCatalogItems(selectedContext.subcategory.items).map((item) => (
+                <div key={item.slug} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">{item.name}</div>
+              )) : <p className="text-xs text-slate-500">Izberite podkategorijo.</p>}
+            </div>
+          </div>
+        </div>
       </section>
     </div>
   );

@@ -323,6 +323,9 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isDragModeActive, setIsDragModeActive] = useState(false);
+  const [millerSelection, setMillerSelection] = useState<string[]>([]);
+  const [millerDropTarget, setMillerDropTarget] = useState<string | null>(null);
+  const [millerCreateParent, setMillerCreateParent] = useState<string | null>(null);
 
   const { toast } = useToast();
   const pathname = usePathname();
@@ -604,6 +607,23 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     const movingSubcategory = sourceCategory.subcategories.find((entry) => entry.slug === activeSubSlug);
     if (!movingSubcategory) return;
 
+    if (overId === rootId) {
+      const nextCategories = catalog.categories.map((entry) => ({
+        ...entry,
+        subcategories: entry.subcategories.filter((sub) => sub.slug !== activeSubSlug)
+      }));
+
+      nextCategories.push({
+        ...movingSubcategory,
+        summary: '',
+        image: movingSubcategory.image ?? '',
+        subcategories: []
+      });
+
+      void persist({ categories: nextCategories }, 'Podkategorija premaknjena na vrh');
+      return;
+    }
+
     if (overId.startsWith('cat:')) {
       const targetCategorySlug = overId.slice(4);
       if (targetCategorySlug === activeCategorySlug) return;
@@ -752,6 +772,111 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     };
 
     void persist(next, 'Vrstni red izdelkov shranjen');
+  };
+
+  const toggleMillerSelection = (id: string, event: React.MouseEvent<HTMLButtonElement>) => {
+    setMillerSelection((prev) => {
+      if (event.metaKey || event.ctrlKey) {
+        return prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id];
+      }
+
+      if (event.shiftKey && prev.length > 0) {
+        return [...new Set([...prev, id])];
+      }
+
+      return [id];
+    });
+  };
+
+  const applyMillerMove = (targetId: string) => {
+    if (millerSelection.length === 0) return;
+
+    const selectedCategories = millerSelection.filter((entry) => entry.startsWith('cat:'));
+    const selectedSubcategories = millerSelection.filter((entry) => entry.startsWith('sub:'));
+
+    if (targetId.startsWith('sub:')) {
+      toast.error('Premik v podkategorijo trenutno ni dovoljen.');
+      return;
+    }
+
+    let nextCategories = [...catalog.categories];
+
+    if (targetId === rootId && selectedSubcategories.length > 0) {
+      const toPromote = new Map<string, CatalogSubcategory>();
+      selectedSubcategories.forEach((id) => {
+        const [, catSlug, subSlug] = id.split(':');
+        const source = catalog.categories.find((cat) => cat.slug === catSlug)?.subcategories.find((sub) => sub.slug === subSlug);
+        if (source) toPromote.set(id, source);
+      });
+
+      nextCategories = nextCategories.map((category) => ({
+        ...category,
+        subcategories: category.subcategories.filter((sub) => !selectedSubcategories.includes(subId(category.slug, sub.slug)))
+      }));
+
+      toPromote.forEach((sub) => {
+        nextCategories.push({ ...sub, summary: '', image: sub.image ?? '', subcategories: [] });
+      });
+    }
+
+    if (targetId.startsWith('cat:') && selectedSubcategories.length > 0) {
+      const targetSlug = targetId.slice(4);
+      const moved: CatalogSubcategory[] = [];
+
+      nextCategories = nextCategories.map((category) => {
+        const nextSubs = category.subcategories.filter((sub) => {
+          const isMoving = selectedSubcategories.includes(subId(category.slug, sub.slug));
+          if (isMoving) moved.push(sub);
+          return !isMoving;
+        });
+
+        return { ...category, subcategories: nextSubs };
+      });
+
+      nextCategories = nextCategories.map((category) =>
+        category.slug === targetSlug ? { ...category, subcategories: [...category.subcategories, ...moved] } : category
+      );
+    }
+
+    if (targetId === rootId && selectedCategories.length > 0) {
+      const ordered = catalog.categories.filter((category) => !selectedCategories.includes(catId(category.slug)));
+      const moved = catalog.categories.filter((category) => selectedCategories.includes(catId(category.slug)));
+      nextCategories = [...ordered, ...moved];
+    }
+
+    void persist({ categories: nextCategories }, 'Miller premik shranjen');
+    setMillerDropTarget(null);
+  };
+
+  const deleteMillerSelection = () => {
+    if (millerSelection.length === 0) return;
+
+    const selectedCategories = new Set(millerSelection.filter((entry) => entry.startsWith('cat:')).map((id) => id.slice(4)));
+    const selectedSubcategories = new Set(millerSelection.filter((entry) => entry.startsWith('sub:')));
+
+    const nextCategories = catalog.categories
+      .filter((category) => !selectedCategories.has(category.slug))
+      .map((category) => ({
+        ...category,
+        subcategories: category.subcategories.filter((subcategory) => !selectedSubcategories.has(subId(category.slug, subcategory.slug)))
+      }));
+
+    void persist({ categories: nextCategories }, 'Izbrane kategorije odstranjene');
+    setMillerSelection([]);
+  };
+
+  const addMillerNode = (targetParent: string | null) => {
+    if (!targetParent || targetParent === rootId) {
+      openCreateDialog({ kind: 'category' });
+      return;
+    }
+
+    if (targetParent.startsWith('cat:')) {
+      openCreateDialog({ kind: 'subcategory', categorySlug: targetParent.slice(4) });
+      return;
+    }
+
+    toast.error('Dodajanje v podkategorijo trenutno ni podprto.');
   };
 
   const updateSubcategory = (categorySlug: string, subSlug: string, patch: Partial<CatalogSubcategory>) => {
@@ -1601,8 +1726,6 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     return rows;
   })();
 
-  if (loading) return <p className="text-sm text-slate-500">Nalagam kategorije ...</p>;
-
   return (
     <div className="space-y-5">
       <header>
@@ -2047,16 +2170,69 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
       </div>
 
       <section className={activeView === 'miller' ? 'rounded-2xl border border-slate-200 bg-white p-3 shadow-sm' : 'hidden'}>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="text-xs text-slate-600">Izbrano: {millerSelection.length}</div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-lg px-2 text-xs"
+              onClick={() => {
+                const nextParent =
+                  selected.kind === 'subcategory'
+                    ? subId(selected.categorySlug, selected.subcategorySlug)
+                    : selected.kind === 'category'
+                      ? catId(selected.categorySlug)
+                      : rootId;
+                setMillerCreateParent(nextParent);
+                addMillerNode(nextParent);
+              }}
+            >
+              + Dodaj
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-lg px-2 text-xs text-[var(--danger-700)]"
+              onClick={deleteMillerSelection}
+              disabled={millerSelection.length === 0}
+            >
+              Izbriši
+            </Button>
+          </div>
+        </div>
         <div className="grid gap-3 md:grid-cols-3">
           <div>
             <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Kategorije</p>
-            <div className="max-h-[520px] space-y-1 overflow-auto rounded-xl border border-slate-200 bg-slate-50/40 p-1.5">
+            <div
+              className={`max-h-[520px] space-y-1 overflow-auto rounded-xl border border-slate-200 bg-slate-50/40 p-1.5 ${millerDropTarget === rootId ? 'ring-2 ring-[#3e67d6]/40' : ''}`}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setMillerDropTarget(rootId);
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                applyMillerMove(rootId);
+              }}
+            >
               {catalog.categories.map((category) => (
                 <button
                   key={category.slug}
                   type="button"
-                  className={`block w-full rounded-lg border px-2.5 py-1.5 text-left text-xs font-medium transition ${selected.kind === 'category' && selected.categorySlug === category.slug ? 'border-[#3e67d6]/50 bg-[#f0f4ff] text-[#1f3f93]' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-100'}`}
-                  onClick={() => setSelected({ kind: 'category', categorySlug: category.slug })}
+                  className={`block w-full rounded-md border px-2 py-1 text-left text-xs font-medium transition ${millerSelection.includes(catId(category.slug)) || (selected.kind === 'category' && selected.categorySlug === category.slug) ? 'border-[#3e67d6]/50 bg-[#f0f4ff] text-[#1f3f93]' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-100'}`}
+                  onClick={(event) => {
+                    setSelected({ kind: 'category', categorySlug: category.slug });
+                    toggleMillerSelection(catId(category.slug), event);
+                    setMillerCreateParent(catId(category.slug));
+                  }}
+                  draggable
+                  onDragStart={() => {
+                    if (!millerSelection.includes(catId(category.slug))) {
+                      setMillerSelection([catId(category.slug)]);
+                    }
+                  }}
                 >
                   {category.title}
                 </button>
@@ -2070,8 +2246,27 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
                 <button
                   key={subcategory.slug}
                   type="button"
-                  className={`block w-full rounded-lg border px-2.5 py-1.5 text-left text-xs font-medium transition ${selected.kind === 'subcategory' && selected.subcategorySlug === subcategory.slug ? 'border-[#3e67d6]/50 bg-[#f0f4ff] text-[#1f3f93]' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-100'}`}
-                  onClick={() => setSelected({ kind: 'subcategory', categorySlug: selectedContext.category.slug, subcategorySlug: subcategory.slug })}
+                  className={`block w-full rounded-md border px-2 py-1 text-left text-xs font-medium transition ${millerSelection.includes(subId(selectedContext.category.slug, subcategory.slug)) || (selected.kind === 'subcategory' && selected.subcategorySlug === subcategory.slug) ? 'border-[#3e67d6]/50 bg-[#f0f4ff] text-[#1f3f93]' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-100'}`}
+                  onClick={(event) => {
+                    setSelected({ kind: 'subcategory', categorySlug: selectedContext.category.slug, subcategorySlug: subcategory.slug });
+                    toggleMillerSelection(subId(selectedContext.category.slug, subcategory.slug), event);
+                    setMillerCreateParent(subId(selectedContext.category.slug, subcategory.slug));
+                  }}
+                  draggable
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setMillerDropTarget(catId(selectedContext.category.slug));
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    applyMillerMove(catId(selectedContext.category.slug));
+                  }}
+                  onDragStart={() => {
+                    const id = subId(selectedContext.category.slug, subcategory.slug);
+                    if (!millerSelection.includes(id)) {
+                      setMillerSelection([id]);
+                    }
+                  }}
                 >
                   {subcategory.title}
                 </button>

@@ -6,7 +6,7 @@ import { getCatalogDataFromDatabase, replaceCategoryTree } from '@/shared/server
 
 export async function GET() {
   try {
-    const catalog = await getCatalogDataFromDatabase();
+    const catalog = await getCatalogDataFromDatabase({ includeInactive: true, includeStatuses: true });
     return NextResponse.json(catalog);
   } catch (error) {
     return NextResponse.json({ message: error instanceof Error ? error.message : 'Napaka pri nalaganju.' }, { status: 500 });
@@ -15,7 +15,7 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    const payload = (await request.json()) as { categories?: CatalogCategory[] };
+    const payload = (await request.json()) as { categories?: CatalogCategory[]; statuses?: Record<string, 'active' | 'inactive'> };
     const normalized = normalizeCatalogData(payload);
 
     if (!Array.isArray(payload.categories)) {
@@ -26,7 +26,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ message: 'Neveljavna struktura kategorij.' }, { status: 400 });
     }
 
-    await replaceCategoryTree(normalized);
+    await replaceCategoryTree(normalized, payload.statuses ?? {});
     revalidatePath('/');
     revalidatePath('/products');
     revalidatePath('/products/[category]', 'page');

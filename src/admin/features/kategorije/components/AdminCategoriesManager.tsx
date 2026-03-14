@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode, type CSSProperties } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
@@ -48,6 +48,7 @@ import { useToast } from '@/shared/ui/toast';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 
 type CatalogData = { categories: CatalogCategory[] };
+type AdminCategoriesPayload = { categories: CatalogCategory[]; statuses?: Record<string, CategoryStatus> };
 
 type SelectedNode =
   | { kind: 'root' }
@@ -242,18 +243,6 @@ function SaveIcon() {
   );
 }
 
-function DragModeIcon() {
-  return (
-    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-      <path d="M7 4.5h6M7 10h6M7 15.5h6" />
-      <circle cx="4.5" cy="4.5" r="1" fill="currentColor" stroke="none" />
-      <circle cx="4.5" cy="10" r="1" fill="currentColor" stroke="none" />
-      <circle cx="4.5" cy="15.5" r="1" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-
 function normalizeCatalogData(input: unknown): CatalogData {
   const source =
     typeof input === 'object' && input !== null && Array.isArray((input as { categories?: unknown }).categories)
@@ -305,7 +294,12 @@ function normalizeCatalogData(input: unknown): CatalogData {
 }
 
 
-function summarizeCatalogChanges(previous: CatalogData, next: CatalogData): string[] {
+function summarizeCatalogChanges(
+  previous: CatalogData,
+  next: CatalogData,
+  previousStatuses: Record<string, CategoryStatus> = {},
+  nextStatuses: Record<string, CategoryStatus> = {}
+): string[] {
   const lines: string[] = [];
   const prevCats = previous.categories;
   const nextCats = next.categories;
@@ -349,6 +343,22 @@ function summarizeCatalogChanges(previous: CatalogData, next: CatalogData): stri
     }
   }
 
+  const allStatusIds = new Set([...Object.keys(previousStatuses), ...Object.keys(nextStatuses)]);
+  for (const id of allStatusIds) {
+    const before = previousStatuses[id] ?? 'active';
+    const after = nextStatuses[id] ?? 'active';
+    if (before === after) continue;
+
+    if (id.startsWith('cat:')) {
+      lines.push(`spremenjen status kategorije na ${after === 'active' ? 'Aktivna' : 'Neaktivna'}`);
+      continue;
+    }
+
+    if (id.startsWith('sub:')) {
+      lines.push(`spremenjen status podkategorije na ${after === 'active' ? 'Aktivna' : 'Neaktivna'}`);
+    }
+  }
+
   return lines;
 }
 
@@ -380,7 +390,6 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   const [tableError, setTableError] = useState<string | null>(null);
   const [isTableSaveDialogOpen, setIsTableSaveDialogOpen] = useState(false);
   const [lowerViewCount, setLowerViewCount] = useState(4);
-  const [isDragModeActive, setIsDragModeActive] = useState(false);
   const [millerCatalog, setMillerCatalog] = useState<CatalogData>({ categories: [] });
   const [millerSelection, setMillerSelection] = useState<string[]>([]);
   const [millerDropTarget, setMillerDropTarget] = useState<string | null>(null);
@@ -390,6 +399,8 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   const [millerError, setMillerError] = useState<string | null>(null);
   const [tableSaveSummary, setTableSaveSummary] = useState<string[]>([]);
   const [millerSaveSummary, setMillerSaveSummary] = useState<string[]>([]);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+  const [isUnsavedLeaveDialogOpen, setIsUnsavedLeaveDialogOpen] = useState(false);
 
   const { toast } = useToast();
   const pathname = usePathname();
@@ -404,6 +415,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   const toastRef = useRef(toast);
   const persistedTableRef = useRef<CatalogData>({ categories: [] });
   const persistedMillerRef = useRef<CatalogData>({ categories: [] });
+  const persistedStatusRef = useRef<Record<string, CategoryStatus>>({});
 
   const load = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!silent) setLoading(true);
@@ -416,7 +428,9 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
         return;
       }
 
-      const payload = normalizeCatalogData(await response.json());
+      const payloadRaw = (await response.json()) as AdminCategoriesPayload;
+      const payload = normalizeCatalogData(payloadRaw);
+      const nextStatuses = payloadRaw.statuses ?? {};
 
       setCatalog(payload);
       setMillerCatalog(payload);
@@ -431,8 +445,8 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
         ...Object.fromEntries(payload.categories.map((entry) => [catId(entry.slug), prev[catId(entry.slug)] ?? false]))
       }));
 
-      setStatusByRow((prev) => {
-        const next = { ...prev };
+      setStatusByRow(() => {
+        const next = { ...nextStatuses };
 
         payload.categories.forEach((category) => {
           const categoryId = catId(category.slug);
@@ -443,6 +457,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
             if (!next[subcategoryId]) next[subcategoryId] = 'active';
           });
         });
+        persistedStatusRef.current = next;
         return next;
       });
     } catch {
@@ -463,19 +478,6 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   useEffect(() => {
     setActiveView(pathname?.endsWith('/miller-view') ? 'miller' : 'table');
   }, [pathname]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    try {
-      const raw = window.localStorage.getItem(CATEGORY_STATUS_STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as Record<string, CategoryStatus>;
-      setStatusByRow(parsed);
-    } catch {
-      // no-op
-    }
-  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -513,7 +515,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     };
   }, [isStatusHeaderMenuOpen, openStatusMenuRowId]);
 
-  const persist = async (next: CatalogData, message = 'Shranjeno') => {
+  const persist = async (next: CatalogData, statuses: Record<string, CategoryStatus>, message = 'Shranjeno') => {
     const previousCatalog = catalog;
     const normalizedNext = normalizeCatalogData(next);
 
@@ -524,7 +526,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
       const response = await fetch('/api/admin/categories', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(normalizedNext)
+        body: JSON.stringify({ ...normalizedNext, statuses })
       });
 
       if (!response.ok) {
@@ -585,6 +587,49 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     setCatalog(normalizeCatalogData(next));
     setTableDirty(true);
     setTableError(null);
+  };
+
+  const hasUnsavedChanges = tableDirty || millerDirty;
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!hasUnsavedChanges) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  useEffect(() => {
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (!hasUnsavedChanges) return;
+      const target = event.target as HTMLElement | null;
+      const anchor = target?.closest('a[href]') as HTMLAnchorElement | null;
+      if (!anchor) return;
+      const href = anchor.getAttribute('href');
+      if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+      if (!href.startsWith('/')) return;
+      if (href === pathname) return;
+      event.preventDefault();
+      setPendingNavigation(href);
+      setIsUnsavedLeaveDialogOpen(true);
+    };
+
+    document.addEventListener('click', handleDocumentClick);
+    return () => document.removeEventListener('click', handleDocumentClick);
+  }, [hasUnsavedChanges, pathname]);
+
+  const guardedNavigate = (nextPath: string) => {
+    if (nextPath === pathname) return;
+    if (!hasUnsavedChanges) {
+      router.push(nextPath);
+      return;
+    }
+
+    setPendingNavigation(nextPath);
+    setIsUnsavedLeaveDialogOpen(true);
   };
 
   const addCategory = (title: string, afterSlug?: string) => {
@@ -916,8 +961,20 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
       nextCategories = [...ordered, ...moved];
     }
 
-    if (targetId.startsWith('cat:') && selectedSubcategories.length > 0) {
+    if (targetId.startsWith('cat:') && selectedCategories.length > 0) {
       const targetSlug = targetId.slice(4);
+      const moved = nextCategories.filter((category) => selectedCategories.includes(catId(category.slug)));
+      const remaining = nextCategories.filter((category) => !selectedCategories.includes(catId(category.slug)));
+      const targetIndex = remaining.findIndex((category) => category.slug === targetSlug);
+      if (targetIndex >= 0) {
+        remaining.splice(targetIndex, 0, ...moved);
+        nextCategories = remaining;
+      }
+    }
+
+    if ((targetId.startsWith('cat:') || targetId.startsWith('sub:')) && selectedSubcategories.length > 0) {
+      const targetSlug = targetId.startsWith('cat:') ? targetId.slice(4) : targetId.split(':')[1];
+      const targetSubSlug = targetId.startsWith('sub:') ? targetId.split(':')[2] : null;
       const moved: CatalogSubcategory[] = [];
 
       nextCategories = nextCategories.map((category) => {
@@ -930,9 +987,15 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
         return { ...category, subcategories: nextSubs };
       });
 
-      nextCategories = nextCategories.map((category) =>
-        category.slug === targetSlug ? { ...category, subcategories: [...category.subcategories, ...moved] } : category
-      );
+      nextCategories = nextCategories.map((category) => {
+        if (category.slug !== targetSlug) return category;
+        if (!targetSubSlug) return { ...category, subcategories: [...category.subcategories, ...moved] };
+        const targetIndex = category.subcategories.findIndex((sub) => sub.slug === targetSubSlug);
+        if (targetIndex < 0) return { ...category, subcategories: [...category.subcategories, ...moved] };
+        const nextSubs = [...category.subcategories];
+        nextSubs.splice(targetIndex, 0, ...moved);
+        return { ...category, subcategories: nextSubs };
+      });
     }
 
     if ((targetId.startsWith('cat:') || targetId.startsWith('sub:')) && selectedItems.length > 0) {
@@ -1057,26 +1120,30 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   };
 
   const saveMillerChanges = async () => {
-    const ok = await persist(millerCatalog, 'Miller spremembe shranjene');
+    const ok = await persist(millerCatalog, statusByRow, 'Miller spremembe shranjene');
     if (!ok) {
       setMillerError('Shranjevanje Miller sprememb ni uspelo. Lokalno stanje je ohranjeno.');
       return;
     }
 
     persistedMillerRef.current = normalizeCatalogData(millerCatalog);
+    persistedStatusRef.current = { ...statusByRow };
     setMillerDirty(false);
+    setTableDirty(false);
     setMillerError(null);
   };
 
   const saveTableChanges = async () => {
-    const ok = await persist(catalog, 'Spremembe shranjene');
+    const ok = await persist(catalog, statusByRow, 'Spremembe shranjene');
     if (!ok) {
       setTableError('Shranjevanje sprememb ni uspelo. Lokalno stanje je ohranjeno.');
       return;
     }
 
     persistedTableRef.current = normalizeCatalogData(catalog);
+    persistedStatusRef.current = { ...statusByRow };
     setTableDirty(false);
+    setMillerDirty(false);
     setTableError(null);
   };
 
@@ -1372,7 +1439,11 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     setEditingRow(null);
   };
 
-  const handleInlineBlur = () => {
+  const handleInlineBlur = (event: FocusEvent<HTMLElement>) => {
+    const nextTarget = event.relatedTarget as Node | null;
+    if (nextTarget && event.currentTarget.closest('tr')?.contains(nextTarget)) {
+      return;
+    }
     saveInlineEdit();
   };
 
@@ -1565,6 +1636,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
 
     const setStatus = (nextStatus: CategoryStatus) => {
       setEditingRow((prev) => (prev && prev.id === id ? { ...prev, status: nextStatus } : prev));
+      setTableDirty(true);
       setOpenStatusMenuRowId(null);
     };
 
@@ -1603,12 +1675,12 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
           : (parentColumnX ?? 0) + leafConnectorWidth;
 
     return (
-      <SortableTreeRow id={id} disabled={kind === 'root' || !isDragModeActive}>
+      <SortableTreeRow id={id} disabled={kind === 'root'}>
         {({ dragHandleProps, setNodeRef, style, isDragging }) => (
       <tr
         ref={setNodeRef}
         style={style}
-        className={`${isSelected ? adminTableRowToneClasses.selected : rowDepthTone} transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''} ${isDragging ? 'opacity-70' : ''} ${isDragModeActive && kind !== 'root' ? 'cursor-grab active:cursor-grabbing select-none' : ''}`}
+        className={`${isSelected ? adminTableRowToneClasses.selected : rowDepthTone} transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''} ${isDragging ? 'opacity-70' : ''} ${kind !== 'root' ? 'cursor-grab active:cursor-grabbing select-none' : ''}`}
         {...dragHandleProps}
       >
         <td className="relative overflow-visible border-b border-slate-200 px-2 py-2 text-center align-middle">
@@ -1719,6 +1791,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
                     tone="neutral"
                     shape="rounded"
                     aria-label="Razširi/skrij"
+                    onPointerDown={(event) => event.stopPropagation()}
                     onClick={() => toggleExpanded(id)}
                   >
                     {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
@@ -1769,8 +1842,8 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
               }
               data-inline-edit-field="true"
               onBlur={handleInlineBlur}
-              className="h-8 min-w-[12ch] max-w-[42ch] truncate whitespace-nowrap px-2 text-xs font-normal text-slate-500"
-              style={{ width: `${Math.min(42, Math.max(12, editingRow.description.length + 2))}ch` }}
+              className="h-8 min-w-[18ch] max-w-[64ch] truncate whitespace-nowrap px-2 text-xs font-normal text-slate-500"
+              style={{ width: `${Math.min(64, Math.max(18, editingRow.description.length + 2))}ch` }}
             />
           ) : (
             <div className="truncate whitespace-nowrap" title={description || '—'}>
@@ -1836,7 +1909,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
 
         <td className="border-b border-slate-200 px-3 py-2 text-center">
           <RowActions>
-            <IconButton type="button" tone="neutral" onClick={toggleInlineEdit} aria-label="Uredi" title="Uredi">
+            <IconButton type="button" tone="neutral" onPointerDown={(event) => event.stopPropagation()} onClick={toggleInlineEdit} aria-label="Uredi" title="Uredi">
               <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                 <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
                 <path d="M11.5 4.5l3 3" />
@@ -1849,11 +1922,12 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
               tone="neutral"
               aria-label="Dodaj podkategorijo"
               title="Dodaj podkategorijo"
+              onPointerDown={(event) => event.stopPropagation()}
               onClick={() => {
                 if (kind === 'root') openCreateDialog({ kind: 'category' });
                 if (kind === 'category' && categorySlug) openCreateDialog({ kind: 'subcategory', categorySlug });
                 if (kind === 'subcategory' && categorySlug) {
-                  openCreateDialog({ kind: 'subcategory', categorySlug });
+                  openCreateDialog({ kind: 'subcategory', categorySlug, afterSlug: subcategorySlug });
                 }
               }}
             >
@@ -1865,6 +1939,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
               variant="close-x"
               aria-label="Izbriši"
               title="Izbriši"
+              onPointerDown={(event) => event.stopPropagation()}
               onClick={() => {
                 if (kind === 'root') {
                   stageTableCatalog({ categories: [] });
@@ -1954,7 +2029,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
                 description: subcategory.description,
                 childrenCount: 0,
                 productCount: subcategory.items.length,
-                ancestorContinuationColumns: [hasNextCategory],
+                ancestorContinuationColumns: [true, hasNextCategory],
                 continueCurrentColumnBelow: hasNextSubcategory,
                 parentIsAnimating: openingRowIds.includes(categoryNodeId) || closingRowIds.includes(categoryNodeId)
               })
@@ -1980,7 +2055,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
         onValueChange={(next) => {
           const nextView = next as CategoriesView;
           setActiveView(nextView);
-          router.push(nextView === 'table' ? '/admin/kategorije' : '/admin/kategorije/miller-view');
+          guardedNavigate(nextView === 'table' ? '/admin/kategorije' : '/admin/kategorije/miller-view');
         }}
       >
         <TabsList className="h-9 gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
@@ -2020,6 +2095,25 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
         confirmLabel="V redu"
         onCancel={() => setWarningDialog(null)}
         onConfirm={() => setWarningDialog(null)}
+      />
+
+      <ConfirmDialog
+        open={isUnsavedLeaveDialogOpen}
+        title="Ne-shranjene spremembe"
+        description="Imate ne-shranjene spremembe. Če zapustite stran, bodo lokalne spremembe izgubljene."
+        confirmLabel="Zapusti stran"
+        cancelLabel="Ostani"
+        isDanger
+        onCancel={() => {
+          setIsUnsavedLeaveDialogOpen(false);
+          setPendingNavigation(null);
+        }}
+        onConfirm={() => {
+          const nextPath = pendingNavigation;
+          setIsUnsavedLeaveDialogOpen(false);
+          setPendingNavigation(null);
+          if (nextPath) router.push(nextPath);
+        }}
       />
 
       <ConfirmDialog
@@ -2074,17 +2168,6 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
           }
           headerRight={
             <>
-              <IconButton
-                type="button"
-                tone="neutral"
-                aria-label="Vklopi ali izklopi način premikanja"
-                title={isDragModeActive ? 'Način premikanja je vklopljen' : 'Vklopi način premikanja'}
-                onClick={() => setIsDragModeActive((prev) => !prev)}
-                className={isDragModeActive ? 'text-[#2f56c4] ring-1 ring-[#adc0f7]' : ''}
-              >
-                <DragModeIcon />
-              </IconButton>
-
               <button
                 type="button"
                 onClick={handleBulkDelete}
@@ -2105,7 +2188,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
                 variant="primary"
                 size="toolbar"
                 onClick={() => {
-                  const summary = summarizeCatalogChanges(persistedTableRef.current, catalog);
+                  const summary = summarizeCatalogChanges(persistedTableRef.current, catalog, persistedStatusRef.current, statusByRow);
                   setTableSaveSummary(summary);
                   setIsTableSaveDialogOpen(true);
                 }}
@@ -2180,6 +2263,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
                               ...prev,
                               ...Object.fromEntries(selectedRows.map((rowId) => [rowId, 'active']))
                             }));
+                            setTableDirty(true);
                             setIsStatusHeaderMenuOpen(false);
                           }}
                         >
@@ -2191,6 +2275,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
                               ...prev,
                               ...Object.fromEntries(selectedRows.map((rowId) => [rowId, 'inactive']))
                             }));
+                            setTableDirty(true);
                             setIsStatusHeaderMenuOpen(false);
                           }}
                         >
@@ -2220,22 +2305,38 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
             {selectedContext?.kind === 'subcategory'
               ? 'Vsebina izbrane podkategorije'
               : selectedContext?.kind === 'root'
-                ? 'Vsebina vseh kategorij'
+                ? 'Vsebina kategorij'
                 : 'Vsebina izbrane kategorije'}
           </p>
-          <p className="text-xs text-slate-400">{tableDirty ? 'Ne-shranjene spremembe' : 'Brez ne-shranjenih sprememb'}</p>
+          <Button
+            variant="primary"
+            size="toolbar"
+            onClick={() => {
+              const summary = summarizeCatalogChanges(persistedTableRef.current, catalog, persistedStatusRef.current, statusByRow);
+              setTableSaveSummary(summary);
+              setIsTableSaveDialogOpen(true);
+            }}
+            disabled={!tableDirty || saving}
+          >
+            Shrani spremembe
+          </Button>
         </div>
 
         {selectedContext?.kind === 'root' ||
         (selectedContext?.kind === 'category' && visibleContent.length > 0) ? (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onBottomReorder}>
             <SortableContext items={visibleContent.map((item) => item.id)} strategy={rectSortingStrategy}>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {visibleContent.slice(0, lowerViewCount).map((item) => (
+              <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.max(1, lowerViewCount)}, minmax(0, 1fr))` }}>
+                {visibleContent.map((item) => (
                   <SortableItem key={item.id} id={item.id}>
                     {(dragProps) => (
-                      <article className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-                        <button type="button" className="relative h-36 w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-50 text-left" onClick={() => uploadRefs.current[item.id]?.click()}>
+                      <article {...dragProps} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm cursor-grab active:cursor-grabbing">
+                        <button
+                          type="button"
+                          className="relative h-36 w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-50 text-left"
+                          onClick={() => uploadRefs.current[item.id]?.click()}
+                          onPointerDown={(event) => event.stopPropagation()}
+                        >
                           {item.image ? (
                             <Image src={item.image} alt={item.title} fill className="object-cover" />
                           ) : (
@@ -2243,13 +2344,43 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
                               Brez slike
                             </div>
                           )}
+                          <div className="absolute right-2 top-2 flex items-center gap-1">
+                            <button
+                              type="button"
+                              className="rounded-full bg-black/35 p-1 text-white hover:bg-black/50"
+                              onPointerDown={(event) => event.stopPropagation()}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                uploadRefs.current[item.id]?.click();
+                              }}
+                            >
+                              📷
+                            </button>
+                            {item.image ? (
+                              <button
+                                type="button"
+                                className="rounded-full bg-black/35 px-1.5 py-0.5 text-white hover:bg-black/50"
+                                onPointerDown={(event) => event.stopPropagation()}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setImageDeleteTarget({
+                                    kind: item.kind,
+                                    categorySlug:
+                                      item.kind === 'category'
+                                        ? item.id
+                                        : selectedContext?.kind === 'category'
+                                          ? selectedContext.category.slug
+                                          : '',
+                                    subcategorySlug: item.kind === 'subcategory' ? item.id : undefined
+                                  });
+                                }}
+                              >
+                                ✕
+                              </button>
+                            ) : null}
+                          </div>
                         </button>
 
-                        <div className="mt-2 flex items-center gap-1">
-                          <IconButton aria-label="Premakni" {...dragProps}>
-                            ⋮⋮
-                          </IconButton>
-                        </div>
                         <div className="mt-3 space-y-1">
                           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Naziv</p>
                           <p className="text-sm font-semibold text-slate-700">{item.title}</p>
@@ -2257,7 +2388,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
                           <p className="text-xs text-slate-600">{item.description || '—'}</p>
                         </div>
 
-                        <div className="mt-2 flex items-center gap-2">
+                        <div className="mt-2 flex items-center gap-2" onPointerDown={(event) => event.stopPropagation()}>
                           <input
                             ref={(element) => {
                               uploadRefs.current[item.id] = element;
@@ -2276,34 +2407,6 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
                             }
                           />
 
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => uploadRefs.current[item.id]?.click()}
-                          >
-                            Spremeni sliko
-                          </Button>
-
-                          {item.image ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                setImageDeleteTarget({
-                                  kind: item.kind,
-                                  categorySlug:
-                                    item.kind === 'category'
-                                      ? item.id
-                                      : selectedContext?.kind === 'category'
-                                        ? selectedContext.category.slug
-                                        : '',
-                                  subcategorySlug: item.kind === 'subcategory' ? item.id : undefined
-                                })
-                              }
-                            >
-                              Odstrani sliko
-                            </Button>
-                          ) : null}
                         </div>
                       </article>
                     )}
@@ -2334,21 +2437,18 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
         ) : null}
 
         <div className="mt-4 flex items-center justify-end gap-3">
-          <label className="flex items-center gap-2 text-xs text-slate-600">Prikaz
-            <Input type="number" min={1} max={15} value={lowerViewCount} onChange={(event) => setLowerViewCount(Math.max(1, Math.min(15, Number(event.target.value || 4))))} className="h-8 w-16 px-2 text-xs" />
+          <label className="flex items-center gap-3 text-xs text-slate-600">
+            Elementov na vrstico
+            <input
+              type="range"
+              min={1}
+              max={12}
+              value={lowerViewCount}
+              onChange={(event) => setLowerViewCount(Number(event.target.value || 4))}
+              className="h-2 w-32 accent-[#3e67d6]"
+            />
+            <span className="w-4 text-right font-semibold text-slate-700">{lowerViewCount}</span>
           </label>
-          <Button
-            variant="primary"
-            size="toolbar"
-            onClick={() => {
-              const summary = summarizeCatalogChanges(persistedTableRef.current, catalog);
-              setTableSaveSummary(summary);
-              setIsTableSaveDialogOpen(true);
-            }}
-            disabled={!tableDirty || saving}
-          >
-            Shrani spremembe
-          </Button>
         </div>
       </section>
       </div>
@@ -2406,14 +2506,12 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
 
       <section className={activeView === 'miller' ? 'rounded-2xl border border-slate-200 bg-white p-3 shadow-sm' : 'hidden'}>
         <div className="mb-3 flex items-center justify-between">
-          <div className="text-xs text-slate-600">
-            {millerDirty ? 'Ne-shranjene spremembe' : 'Brez ne-shranjenih sprememb'}
-          </div>
+          <div className="text-xs text-slate-600">{millerDirty ? 'Ne-shranjene spremembe' : ''}</div>
           <Button
             type="button"
             variant="primary"
             size="toolbar"
-            onClick={() => { const summary = summarizeCatalogChanges(persistedMillerRef.current, millerCatalog); setMillerSaveSummary(summary); setIsMillerSaveDialogOpen(true); }}
+            onClick={() => { const summary = summarizeCatalogChanges(persistedMillerRef.current, millerCatalog, persistedStatusRef.current, statusByRow); setMillerSaveSummary(summary); setIsMillerSaveDialogOpen(true); }}
             disabled={!millerDirty || saving}
           >
             Shrani spremembe
@@ -2454,7 +2552,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
                 }}
                 onDrop={(event) => {
                   event.preventDefault();
-                  applyMillerMove(column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget ?? rootId);
+                  applyMillerMove(millerDropTarget ?? (column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget ?? rootId));
                 }}
               >
                 {column.rows.length === 0 ? <p className="px-2 py-3 text-xs text-slate-500">Ni zapisov.</p> : column.rows.map((row) => (
@@ -2465,6 +2563,14 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
                     onClick={row.onClick}
                     draggable
                     onDragStart={(event) => { event.dataTransfer.setData('text/plain', row.id); row.onDragStart(); }}
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      setMillerDropTarget(row.id);
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      applyMillerMove(row.id);
+                    }}
                   >
                     {row.label}
                   </button>
@@ -2511,9 +2617,9 @@ function LeafProductsView({
                   const finalPrice = getDiscountedPrice(basePrice, item.discountPct);
 
                   return (
-                    <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <article {...dragProps} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm cursor-grab active:cursor-grabbing">
                       {item.image ? (
-                        <div className="relative h-24 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                        <div className="relative h-24 overflow-hidden rounded-lg border border-slate-200 bg-slate-50" onPointerDown={(event) => event.stopPropagation()}>
                           <Image src={item.images?.[0] ?? item.image} alt={item.name} fill className="object-contain p-2" />
                         </div>
                       ) : null}
@@ -2527,12 +2633,6 @@ function LeafProductsView({
                           ? getCatalogItemSku(category.slug, subcategory.slug, item.slug)
                           : getCatalogCategoryItemSku(category.slug, item.slug)}
                       </p>
-
-                      <div className="mt-2">
-                        <IconButton aria-label="Premakni izdelek" {...dragProps}>
-                          ⋮⋮
-                        </IconButton>
-                      </div>
                     </article>
                   );
                 }}

@@ -3,6 +3,8 @@ import type { CatalogCategory } from '@/commercial/catalog/catalog';
 import { normalizeCatalogData, readCatalogFile } from '@/shared/server/catalogAdmin';
 
 type CatalogData = { categories: CatalogCategory[] };
+type CategoryStatus = 'active' | 'inactive';
+type CatalogDataWithStatuses = CatalogData & { statuses: Record<string, CategoryStatus> };
 
 type CategoryRow = {
   id: string;
@@ -80,7 +82,8 @@ function rowToCategory(row: CategoryRow): CatalogCategory {
   };
 }
 
-export async function getCatalogDataFromDatabase(): Promise<CatalogData> {
+export async function getCatalogDataFromDatabase(options: { includeInactive?: boolean; includeStatuses?: boolean } = {}): Promise<CatalogData | CatalogDataWithStatuses> {
+  const { includeInactive = false, includeStatuses = false } = options;
   if (!getDatabaseUrl()) {
     return normalizeCatalogData(await readCatalogFile());
   }
@@ -92,7 +95,7 @@ export async function getCatalogDataFromDatabase(): Promise<CatalogData> {
   const result = await pool.query(`
     select id, parent_id, slug, title, summary, description, image, admin_notes, banner_image, items, position, status
     from catalog_categories
-    where status = 'active'
+    ${includeInactive ? '' : "where status = 'active'"}
     order by coalesce(parent_id, ''), position asc, title asc
   `);
 
@@ -107,7 +110,9 @@ export async function getCatalogDataFromDatabase(): Promise<CatalogData> {
     childrenByParent.set(row.parent_id, list);
   }
 
-  return {
+  const categorySlugById = new Map(topLevel.map((entry) => [entry.id, entry.slug]));
+
+  const payload: CatalogDataWithStatuses = {
     categories: topLevel.map((row) => {
       const category = rowToCategory(row);
       const children = (childrenByParent.get(row.id) ?? []).map((child) => ({
@@ -121,11 +126,23 @@ export async function getCatalogDataFromDatabase(): Promise<CatalogData> {
       }));
       category.subcategories = children;
       return category;
-    })
+    }),
+    statuses: Object.fromEntries(
+      rows
+        .filter((row) => row.parent_id !== null || topLevel.some((top) => top.id === row.id))
+        .map((row) => {
+          const key = row.parent_id
+            ? `sub:${categorySlugById.get(row.parent_id) ?? row.parent_id}:${row.slug}`
+            : `cat:${row.slug}`;
+          return [key, row.status === 'inactive' ? 'inactive' : 'active'] as const;
+        })
+    )
   };
+
+  return includeStatuses ? payload : { categories: payload.categories };
 }
 
-export async function replaceCategoryTree(input: unknown): Promise<CatalogData> {
+export async function replaceCategoryTree(input: unknown, statuses: Record<string, CategoryStatus> = {}): Promise<CatalogData> {
   const normalized = normalizeCatalogData(input);
 
   if (!getDatabaseUrl()) {
@@ -148,7 +165,7 @@ export async function replaceCategoryTree(input: unknown): Promise<CatalogData> 
           insert into catalog_categories
             (id, parent_id, slug, title, summary, description, image, admin_notes, banner_image, items, position, status, updated_at)
           values
-            ($1, null, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, 'active', now())
+            ($1, null, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, now())
           on conflict (id) do update set
             parent_id = excluded.parent_id,
             slug = excluded.slug,
@@ -160,7 +177,7 @@ export async function replaceCategoryTree(input: unknown): Promise<CatalogData> 
             banner_image = excluded.banner_image,
             items = excluded.items,
             position = excluded.position,
-            status = 'active',
+            status = excluded.status,
             updated_at = now()
         `,
         [
@@ -173,7 +190,8 @@ export async function replaceCategoryTree(input: unknown): Promise<CatalogData> 
           category.adminNotes ?? null,
           category.bannerImage ?? null,
           JSON.stringify(Array.isArray(category.items) ? category.items : []),
-          categoryIndex
+          categoryIndex,
+          statuses[`cat:${category.slug}`] ?? 'active'
         ]
       );
 
@@ -184,7 +202,7 @@ export async function replaceCategoryTree(input: unknown): Promise<CatalogData> 
             insert into catalog_categories
               (id, parent_id, slug, title, summary, description, image, admin_notes, banner_image, items, position, status, updated_at)
             values
-              ($1, $2, $3, $4, '', $5, $6, $7, null, $8::jsonb, $9, 'active', now())
+              ($1, $2, $3, $4, '', $5, $6, $7, null, $8::jsonb, $9, $10, now())
             on conflict (id) do update set
               parent_id = excluded.parent_id,
               slug = excluded.slug,
@@ -196,7 +214,7 @@ export async function replaceCategoryTree(input: unknown): Promise<CatalogData> 
               banner_image = null,
               items = excluded.items,
               position = excluded.position,
-              status = 'active',
+              status = excluded.status,
               updated_at = now()
           `,
           [
@@ -208,7 +226,8 @@ export async function replaceCategoryTree(input: unknown): Promise<CatalogData> 
             subcategory.image ?? '',
             subcategory.adminNotes ?? null,
             JSON.stringify(Array.isArray(subcategory.items) ? subcategory.items : []),
-            subcategoryIndex
+            subcategoryIndex,
+            statuses[`sub:${category.slug}:${subcategory.slug}`] ?? 'active'
           ]
         );
       }

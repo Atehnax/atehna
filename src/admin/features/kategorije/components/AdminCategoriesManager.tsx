@@ -96,6 +96,8 @@ type MillerDeleteTarget =
 
 type CategoryStatus = 'active' | 'inactive';
 
+type MillerRenameDraft = { id: string; value: string };
+
 const bulkDeleteButtonClass = buttonTokenClasses.danger;
 const CATEGORY_STATUS_STORAGE_KEY = 'admin-categories-status-v1';
 const rootId = 'root';
@@ -414,6 +416,7 @@ export default function AdminCategoriesManager({
   const [millerDeleteTarget, setMillerDeleteTarget] = useState<MillerDeleteTarget>(null);
   const [isMillerSaveDialogOpen, setIsMillerSaveDialogOpen] = useState(false);
   const [millerError, setMillerError] = useState<string | null>(null);
+  const [millerRename, setMillerRename] = useState<MillerRenameDraft | null>(null);
   const [tableSaveSummary, setTableSaveSummary] = useState<string[]>([]);
   const [millerSaveSummary, setMillerSaveSummary] = useState<string[]>([]);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
@@ -974,91 +977,217 @@ export default function AdminCategoriesManager({
     if (millerSelection.length === 0) return;
     if (millerSelection.includes(targetId)) return;
 
-    const selectedCategories = millerSelection.filter((entry) => entry.startsWith('cat:'));
-    const selectedSubcategories = millerSelection.filter((entry) => entry.startsWith('sub:'));
-    const selectedItems = millerSelection.filter((entry) => entry.startsWith('item:'));
+    const parseCategoryId = (id: string) => (id.startsWith('cat:') ? id.slice(4) : null);
+    const parseSubcategoryId = (id: string) => {
+      if (!id.startsWith('sub:')) return null;
+      const [, categorySlug, subcategorySlug] = id.split(':');
+      if (!categorySlug || !subcategorySlug) return null;
+      return { categorySlug, subcategorySlug };
+    };
 
-    let nextCategories = [...millerCatalog.categories];
+    const selectedCategorySlugs = new Set(
+      millerSelection
+        .map(parseCategoryId)
+        .filter((entry): entry is string => entry !== null)
+    );
+    const selectedSubKeys = new Set(
+      millerSelection.filter((entry) => entry.startsWith('sub:'))
+    );
+    const selectedItemKeys = new Set(
+      millerSelection.filter((entry) => entry.startsWith('item:'))
+    );
 
-    if (targetId === rootId && selectedCategories.length > 0) {
-      const ordered = nextCategories.filter((category) => !selectedCategories.includes(catId(category.slug)));
-      const moved = nextCategories.filter((category) => selectedCategories.includes(catId(category.slug)));
-      nextCategories = [...ordered, ...moved];
-    }
+    const targetCategorySlug = parseCategoryId(targetId);
+    const targetSub = parseSubcategoryId(targetId);
 
-    if (targetId.startsWith('cat:') && selectedCategories.length > 0) {
-      const targetSlug = targetId.slice(4);
-      const moved = nextCategories.filter((category) => selectedCategories.includes(catId(category.slug)));
-      const remaining = nextCategories.filter((category) => !selectedCategories.includes(catId(category.slug)));
-      const targetIndex = remaining.findIndex((category) => category.slug === targetSlug);
-      if (targetIndex >= 0) {
-        remaining.splice(targetIndex, 0, ...moved);
-        nextCategories = remaining;
+    let nextCategories: CatalogCategory[] = millerCatalog.categories.map((category) => ({
+      ...category,
+      subcategories: category.subcategories.map((subcategory) => ({
+        ...subcategory,
+        items: [...subcategory.items]
+      })),
+      items: [...(category.items ?? [])]
+    }));
+
+    if (selectedCategorySlugs.size > 0) {
+      if (targetId === rootId || targetCategorySlug) {
+        const moved = nextCategories.filter((category) => selectedCategorySlugs.has(category.slug));
+        const remaining = nextCategories.filter((category) => !selectedCategorySlugs.has(category.slug));
+
+        if (targetId === rootId) {
+          nextCategories = [...remaining, ...moved];
+        } else if (targetCategorySlug) {
+          const targetIndex = remaining.findIndex((category) => category.slug === targetCategorySlug);
+          if (targetIndex >= 0) {
+            remaining.splice(targetIndex, 0, ...moved);
+            nextCategories = remaining;
+          }
+        }
+      }
+
+      if (targetSub || targetCategorySlug) {
+        const destinationCategorySlug = targetSub?.categorySlug ?? targetCategorySlug;
+
+        if (destinationCategorySlug) {
+          const movedCategories = nextCategories.filter((category) => selectedCategorySlugs.has(category.slug));
+          const withChildren = movedCategories.filter((category) => category.subcategories.length > 0);
+
+          const asSubcategories = movedCategories.map((category) => ({
+            id: category.id,
+            slug: category.slug,
+            title: category.title,
+            description: category.description || category.summary,
+            adminNotes: category.adminNotes,
+            image: category.image,
+            items: [...(category.items ?? [])]
+          }));
+
+          const promotedFormerChildren = movedCategories.flatMap((category) => category.subcategories);
+          const candidateSlugs = new Set<string>();
+          [...asSubcategories, ...promotedFormerChildren].forEach((subcategory) => {
+            if (candidateSlugs.has(subcategory.slug)) {
+              toast.error('Premik ni možen zaradi podvojenih slugov podkategorij.');
+            }
+            candidateSlugs.add(subcategory.slug);
+          });
+
+          nextCategories = nextCategories
+            .filter((category) => !selectedCategorySlugs.has(category.slug))
+            .map((category) => {
+              if (category.slug !== destinationCategorySlug) return category;
+              const destinationExisting = new Set(category.subcategories.map((sub) => sub.slug));
+              const duplicates = [...candidateSlugs].filter((slug) => destinationExisting.has(slug));
+              if (duplicates.length > 0) {
+                toast.error('Premik ni možen zaradi podvojenih slugov podkategorij.');
+                return category;
+              }
+
+              const insertion = [...asSubcategories, ...promotedFormerChildren];
+              if (targetSub) {
+                const targetIndex = category.subcategories.findIndex((sub) => sub.slug === targetSub.subcategorySlug);
+                if (targetIndex >= 0) {
+                  const nextSubs = [...category.subcategories];
+                  nextSubs.splice(targetIndex, 0, ...insertion);
+                  return { ...category, subcategories: nextSubs };
+                }
+              }
+
+              return { ...category, subcategories: [...category.subcategories, ...insertion] };
+            });
+        }
       }
     }
 
-    if ((targetId.startsWith('cat:') || targetId.startsWith('sub:')) && selectedSubcategories.length > 0) {
-      const targetSlug = targetId.startsWith('cat:') ? targetId.slice(4) : targetId.split(':')[1];
-      const targetSubSlug = targetId.startsWith('sub:') ? targetId.split(':')[2] : null;
-      const moved: CatalogSubcategory[] = [];
+    if (selectedSubKeys.size > 0) {
+      if (targetId === rootId) {
+        const promoted: CatalogCategory[] = [];
+        nextCategories = nextCategories
+          .map((category) => {
+            const remainingSubs = category.subcategories.filter((subcategory) => {
+              const key = subId(category.slug, subcategory.slug);
+              if (!selectedSubKeys.has(key)) return true;
+              promoted.push({
+                id: subcategory.id,
+                slug: subcategory.slug,
+                title: subcategory.title,
+                summary: subcategory.title,
+                description: subcategory.description,
+                image: subcategory.image ?? '',
+                adminNotes: subcategory.adminNotes,
+                subcategories: [],
+                items: [...subcategory.items]
+              });
+              return false;
+            });
+            return { ...category, subcategories: remainingSubs };
+          });
+        nextCategories = [...nextCategories, ...promoted];
+      } else if (targetCategorySlug || targetSub) {
+        const destinationCategorySlug = targetSub?.categorySlug ?? targetCategorySlug;
+        if (destinationCategorySlug) {
+          const movedSubs: CatalogSubcategory[] = [];
 
-      nextCategories = nextCategories.map((category) => {
-        const nextSubs = category.subcategories.filter((sub) => {
-          const isMoving = selectedSubcategories.includes(subId(category.slug, sub.slug));
-          if (isMoving) moved.push(sub);
-          return !isMoving;
-        });
+          nextCategories = nextCategories.map((category) => ({
+            ...category,
+            subcategories: category.subcategories.filter((subcategory) => {
+              const key = subId(category.slug, subcategory.slug);
+              const moving = selectedSubKeys.has(key);
+              if (moving) movedSubs.push(subcategory);
+              return !moving;
+            })
+          }));
 
-        return { ...category, subcategories: nextSubs };
-      });
+          const duplicateWithinMoved = new Set<string>();
+          for (const moved of movedSubs) {
+            if (duplicateWithinMoved.has(moved.slug)) {
+              toast.error('Premik ni možen zaradi podvojenih slugov podkategorij.');
+              return;
+            }
+            duplicateWithinMoved.add(moved.slug);
+          }
 
-      nextCategories = nextCategories.map((category) => {
-        if (category.slug !== targetSlug) return category;
-        if (!targetSubSlug) return { ...category, subcategories: [...category.subcategories, ...moved] };
-        const targetIndex = category.subcategories.findIndex((sub) => sub.slug === targetSubSlug);
-        if (targetIndex < 0) return { ...category, subcategories: [...category.subcategories, ...moved] };
-        const nextSubs = [...category.subcategories];
-        nextSubs.splice(targetIndex, 0, ...moved);
-        return { ...category, subcategories: nextSubs };
-      });
+          nextCategories = nextCategories.map((category) => {
+            if (category.slug !== destinationCategorySlug) return category;
+            const existing = new Set(category.subcategories.map((sub) => sub.slug));
+            const hasCollision = movedSubs.some((sub) => existing.has(sub.slug));
+            if (hasCollision) {
+              toast.error('Premik ni možen zaradi podvojenih slugov podkategorij.');
+              return category;
+            }
+
+            if (targetSub) {
+              const targetIndex = category.subcategories.findIndex((sub) => sub.slug === targetSub.subcategorySlug);
+              if (targetIndex >= 0) {
+                const nextSubs = [...category.subcategories];
+                nextSubs.splice(targetIndex, 0, ...movedSubs);
+                return { ...category, subcategories: nextSubs };
+              }
+            }
+
+            return { ...category, subcategories: [...category.subcategories, ...movedSubs] };
+          });
+        }
+      }
     }
 
-    if ((targetId.startsWith('cat:') || targetId.startsWith('sub:')) && selectedItems.length > 0) {
+    if (selectedItemKeys.size > 0 && (targetCategorySlug || targetSub)) {
       const movedItems: CatalogItem[] = [];
       nextCategories = nextCategories.map((category) => ({
         ...category,
         items: (category.items ?? []).filter((item) => {
-          const id = itemId(category.slug, item.slug);
-          const moving = selectedItems.includes(id);
+          const key = itemId(category.slug, item.slug);
+          const moving = selectedItemKeys.has(key);
           if (moving) movedItems.push(item);
           return !moving;
         }),
-        subcategories: category.subcategories.map((sub) => ({
-          ...sub,
-          items: sub.items.filter((item) => {
-            const id = itemId(category.slug, item.slug, sub.slug);
-            const moving = selectedItems.includes(id);
+        subcategories: category.subcategories.map((subcategory) => ({
+          ...subcategory,
+          items: subcategory.items.filter((item) => {
+            const key = itemId(category.slug, item.slug, subcategory.slug);
+            const moving = selectedItemKeys.has(key);
             if (moving) movedItems.push(item);
             return !moving;
           })
         }))
       }));
 
-      if (targetId.startsWith('cat:')) {
-        const targetSlug = targetId.slice(4);
+      if (targetSub) {
         nextCategories = nextCategories.map((category) =>
-          category.slug === targetSlug ? { ...category, items: [...(category.items ?? []), ...movedItems] } : category
-        );
-      } else {
-        const [, targetCat, targetSub] = targetId.split(':');
-        nextCategories = nextCategories.map((category) =>
-          category.slug === targetCat
-            ? {
+          category.slug !== targetSub.categorySlug
+            ? category
+            : {
                 ...category,
-                subcategories: category.subcategories.map((sub) =>
-                  sub.slug === targetSub ? { ...sub, items: [...sub.items, ...movedItems] } : sub
+                subcategories: category.subcategories.map((subcategory) =>
+                  subcategory.slug === targetSub.subcategorySlug
+                    ? { ...subcategory, items: [...subcategory.items, ...movedItems] }
+                    : subcategory
                 )
               }
+        );
+      } else if (targetCategorySlug) {
+        nextCategories = nextCategories.map((category) =>
+          category.slug === targetCategorySlug
+            ? { ...category, items: [...(category.items ?? []), ...movedItems] }
             : category
         );
       }
@@ -1066,6 +1195,43 @@ export default function AdminCategoriesManager({
 
     stageMillerCatalog({ categories: nextCategories });
     setMillerDropTarget(null);
+  };
+
+  const applyMillerRename = () => {
+    if (!millerRename) return;
+    const value = millerRename.value.trim();
+    if (!value) {
+      toast.error('Naziv je obvezen');
+      return;
+    }
+
+    if (millerRename.id.startsWith('cat:')) {
+      const slug = millerRename.id.slice(4);
+      stageMillerCatalog({
+        categories: millerCatalog.categories.map((category) =>
+          category.slug === slug ? { ...category, title: value, summary: value } : category
+        )
+      });
+      setMillerRename(null);
+      return;
+    }
+
+    if (millerRename.id.startsWith('sub:')) {
+      const [, categorySlug, subcategorySlug] = millerRename.id.split(':');
+      stageMillerCatalog({
+        categories: millerCatalog.categories.map((category) =>
+          category.slug !== categorySlug
+            ? category
+            : {
+                ...category,
+                subcategories: category.subcategories.map((subcategory) =>
+                  subcategory.slug === subcategorySlug ? { ...subcategory, title: value } : subcategory
+                )
+              }
+        )
+      });
+      setMillerRename(null);
+    }
   };
 
   const requestDeleteMillerSelection = (column: 'categories' | 'subcategories' | 'items') => {
@@ -1174,7 +1340,7 @@ export default function AdminCategoriesManager({
 
 
   const millerColumns = useMemo(() => {
-    const columns: Array<{ key: string; title: string; ids: string[]; rows: Array<{ id: string; label: string; tone: string; onClick: (event: React.MouseEvent<HTMLButtonElement>) => void; onDragStart: () => void; onDropTarget: string; }>; kind: 'categories' | 'subcategories' | 'items' }> = [];
+    const columns: Array<{ key: string; title: string; ids: string[]; rows: Array<{ id: string; label: string; tone: string; kind: 'category' | 'subcategory' | 'item'; onClick: (event: React.MouseEvent<HTMLButtonElement>) => void; onDragStart: () => void; onDropTarget: string; }>; kind: 'categories' | 'subcategories' | 'items' }> = [];
 
     const categoryIds = millerCatalog.categories.map((category) => catId(category.slug));
     columns.push({
@@ -1193,7 +1359,8 @@ export default function AdminCategoriesManager({
         onDragStart: () => {
           if (!millerSelection.includes(catId(category.slug))) setMillerSelection([catId(category.slug)]);
         },
-        onDropTarget: rootId
+        onDropTarget: rootId,
+        kind: 'category'
       }))
     });
 
@@ -1223,7 +1390,8 @@ export default function AdminCategoriesManager({
             const id = subId(activeCategory.slug, subcategory.slug);
             if (!millerSelection.includes(id)) setMillerSelection([id]);
           },
-          onDropTarget: catId(activeCategory.slug)
+          onDropTarget: catId(activeCategory.slug),
+          kind: 'subcategory'
         }))
       });
     }
@@ -1253,7 +1421,8 @@ export default function AdminCategoriesManager({
             onDragStart: () => {
               if (!millerSelection.includes(id)) setMillerSelection([id]);
             },
-            onDropTarget: selected.kind === 'subcategory' ? subId(activeCategory.slug, selected.subcategorySlug) : catId(activeCategory.slug)
+            onDropTarget: selected.kind === 'subcategory' ? subId(activeCategory.slug, selected.subcategorySlug) : catId(activeCategory.slug),
+            kind: 'item'
           };
         })
       });
@@ -2607,25 +2776,44 @@ export default function AdminCategoriesManager({
                 }}
               >
                 {column.rows.length === 0 ? <p className="px-2 py-3 text-xs text-slate-500">Ni zapisov.</p> : column.rows.map((row) => (
-                  <button
-                    key={row.id}
-                    type="button"
-                    className={`block w-full rounded-md border px-2 py-1 text-left text-xs font-medium transition ${millerSelection.includes(row.id) || row.tone === 'focused' ? 'border-[#3e67d6]/50 bg-[#f0f4ff] text-[#1f3f93]' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-100'}`}
-                    onClick={row.onClick}
-                    draggable
-                    onDragStart={(event) => { event.dataTransfer.setData('text/plain', row.id); row.onDragStart(); }}
-                    onDragEnd={() => setMillerDropTarget(null)}
-                    onDragOver={(event) => {
-                      event.preventDefault();
-                      setMillerDropTarget(row.id);
-                    }}
-                    onDrop={(event) => {
-                      event.preventDefault();
-                      applyMillerMove(row.id);
-                    }}
-                  >
-                    {row.label}
-                  </button>
+                  millerRename?.id === row.id && row.kind !== 'item' ? (
+                    <input
+                      key={row.id}
+                      value={millerRename.value}
+                      onChange={(event) => setMillerRename({ id: row.id, value: event.target.value })}
+                      onBlur={applyMillerRename}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') applyMillerRename();
+                        if (event.key === 'Escape') setMillerRename(null);
+                      }}
+                      className="block w-full rounded-md border border-[#3e67d6]/40 bg-white px-2 py-1 text-xs font-medium text-slate-700 outline-none"
+                      autoFocus
+                    />
+                  ) : (
+                    <button
+                      key={row.id}
+                      type="button"
+                      className={`block w-full rounded-md border px-2 py-1 text-left text-xs font-medium transition ${millerSelection.includes(row.id) || row.tone === 'focused' ? 'border-[#3e67d6]/50 bg-[#f0f4ff] text-[#1f3f93]' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-100'}`}
+                      onClick={row.onClick}
+                      onDoubleClick={() => {
+                        if (row.kind === 'item') return;
+                        setMillerRename({ id: row.id, value: row.label });
+                      }}
+                      draggable
+                      onDragStart={(event) => { event.dataTransfer.setData('text/plain', row.id); row.onDragStart(); }}
+                      onDragEnd={() => setMillerDropTarget(null)}
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        setMillerDropTarget(row.id);
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        applyMillerMove(row.id);
+                      }}
+                    >
+                      {row.label}
+                    </button>
+                  )
                 ))}
               </div>
             </div>

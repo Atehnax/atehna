@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode, type CSSProperties, type Key } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   DndContext,
@@ -14,7 +15,8 @@ import {
   SortableContext,
   arrayMove,
   rectSortingStrategy,
-  useSortable
+  useSortable,
+  verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { CatalogCategory, CatalogItem, CatalogSubcategory } from '@/commercial/catalog/catalog';
@@ -44,6 +46,10 @@ import {
 import { Input } from '@/shared/ui/input';
 import { Spinner } from '@/shared/ui/loading';
 import { useToast } from '@/shared/ui/toast';
+import { Tabs, Tab } from 'baseui/tabs-motion';
+import { BaseProvider, LightTheme } from 'baseui';
+import { Client as Styletron } from 'styletron-engine-atomic';
+import { Provider as StyletronProvider } from 'styletron-react';
 
 type CatalogData = { categories: CatalogCategory[] };
 
@@ -89,8 +95,6 @@ type CategoryStatus = 'active' | 'inactive';
 
 const bulkDeleteButtonClass = buttonTokenClasses.danger;
 const CATEGORY_STATUS_STORAGE_KEY = 'admin-categories-status-v1';
-const ROOT_META_STORAGE_KEY = 'admin-categories-root-meta-v1';
-
 const rootId = 'root';
 const catId = (slug: string) => `cat:${slug}`;
 const subId = (catSlug: string, subSlug: string) => `sub:${catSlug}:${subSlug}`;
@@ -117,8 +121,7 @@ const getCheckboxLeftFromTreeStart = (
 
   // category row: place checkbox in the space before the expand connector/button area
   if (kind === 'category') {
-    const targetCenterX = buttonLeft / 2;
-    return targetCenterX - treeCheckboxHalf;
+    return 0;
   }
 
   // subcategory row: place checkbox exactly between the two vertical lines
@@ -157,6 +160,34 @@ function SortableItem({
   );
 }
 
+
+function SortableTreeRow({
+  id,
+  disabled = false,
+  children
+}: {
+  id: string;
+  disabled?: boolean;
+  children: (args: {
+    dragHandleProps: Record<string, unknown>;
+    setNodeRef: (node: HTMLElement | null) => void;
+    style: CSSProperties;
+    isDragging: boolean;
+  }) => ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    disabled
+  });
+
+  return children({
+    dragHandleProps: disabled ? {} : { ...attributes, ...listeners },
+    setNodeRef,
+    style: { transform: CSS.Transform.toString(transform), transition },
+    isDragging
+  });
+}
+
 function ChevronDownIcon() {
   return (
     <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
@@ -191,10 +222,12 @@ function SaveIcon() {
   );
 }
 
-export default function AdminCategoriesManager() {
+type CategoriesView = 'table' | 'miller';
+
+export default function AdminCategoriesManager({ initialView = 'table' }: { initialView?: CategoriesView }) {
   const [catalog, setCatalog] = useState<CatalogData>({ categories: [] });
   const [selected, setSelected] = useState<SelectedNode>({ kind: 'root' });
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({ [rootId]: true });
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [editingRow, setEditingRow] = useState<EditingRowDraft | null>(null);
   const [statusByRow, setStatusByRow] = useState<Record<string, CategoryStatus>>({});
   const [openStatusMenuRowId, setOpenStatusMenuRowId] = useState<string | null>(null);
@@ -213,9 +246,12 @@ export default function AdminCategoriesManager() {
   const [imageDeleteTarget, setImageDeleteTarget] = useState<ImageDeleteTarget>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [rootMeta, setRootMeta] = useState({ title: 'Vse kategorije', description: 'Root' });
 
   const { toast } = useToast();
+  const pathname = usePathname();
+  const router = useRouter();
+  const [activeView, setActiveView] = useState<CategoriesView>(initialView);
+  const [styletronEngine, setStyletronEngine] = useState<Styletron | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const uploadRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const statusMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -238,7 +274,6 @@ export default function AdminCategoriesManager() {
     setCatalog(payload);
     setExpanded((prev) => ({
       ...prev,
-      [rootId]: true,
       ...Object.fromEntries(payload.categories.map((entry) => [catId(entry.slug), false]))
     }));
 
@@ -254,8 +289,6 @@ export default function AdminCategoriesManager() {
           if (!next[subcategoryId]) next[subcategoryId] = 'active';
         });
       });
-
-      if (!next[rootId]) next[rootId] = 'active';
       return next;
     });
 
@@ -265,6 +298,16 @@ export default function AdminCategoriesManager() {
   useEffect(() => {
     void load();
   }, []);
+
+  useEffect(() => {
+    setActiveView(pathname?.endsWith('/miller-view') ? 'miller' : 'table');
+  }, [pathname]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setStyletronEngine(new Styletron());
+  }, []);
+
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -283,28 +326,6 @@ export default function AdminCategoriesManager() {
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(CATEGORY_STATUS_STORAGE_KEY, JSON.stringify(statusByRow));
   }, [statusByRow]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    try {
-      const raw = window.localStorage.getItem(ROOT_META_STORAGE_KEY);
-      if (!raw) return;
-
-      const parsed = JSON.parse(raw) as { title?: string; description?: string };
-      setRootMeta({
-        title: parsed.title?.trim() || 'Vse kategorije',
-        description: parsed.description ?? 'Root'
-      });
-    } catch {
-      // no-op
-    }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(ROOT_META_STORAGE_KEY, JSON.stringify(rootMeta));
-  }, [rootMeta]);
 
   useEffect(() => {
     const closeOnOutsideClick = (event: MouseEvent) => {
@@ -451,6 +472,93 @@ export default function AdminCategoriesManager() {
 
     setCreateTarget(null);
     setCreateName('');
+  };
+
+
+  const onTreeDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const activeId = String(active.id);
+    const overId = String(over.id);
+
+    if (activeId.startsWith('cat:') && overId.startsWith('cat:')) {
+      const oldIndex = catalog.categories.findIndex((entry) => catId(entry.slug) === activeId);
+      const newIndex = catalog.categories.findIndex((entry) => catId(entry.slug) === overId);
+      if (oldIndex < 0 || newIndex < 0) return;
+
+      void persist({ categories: arrayMove(catalog.categories, oldIndex, newIndex) }, 'Vrstni red kategorij posodobljen');
+      return;
+    }
+
+    if (!activeId.startsWith('sub:')) return;
+
+    const [, activeCategorySlug, activeSubSlug] = activeId.split(':');
+    const sourceCategory = catalog.categories.find((entry) => entry.slug === activeCategorySlug);
+    if (!sourceCategory) return;
+    const movingSubcategory = sourceCategory.subcategories.find((entry) => entry.slug === activeSubSlug);
+    if (!movingSubcategory) return;
+
+    if (overId.startsWith('cat:')) {
+      const targetCategorySlug = overId.slice(4);
+      if (targetCategorySlug === activeCategorySlug) return;
+
+      const nextCategories = catalog.categories.map((entry) => {
+        if (entry.slug === activeCategorySlug) {
+          return { ...entry, subcategories: entry.subcategories.filter((sub) => sub.slug !== activeSubSlug) };
+        }
+
+        if (entry.slug === targetCategorySlug) {
+          return { ...entry, subcategories: [...entry.subcategories, movingSubcategory] };
+        }
+
+        return entry;
+      });
+
+      setExpanded((prev) => ({ ...prev, [catId(targetCategorySlug)]: true }));
+      void persist({ categories: nextCategories }, 'Podkategorija premaknjena');
+      return;
+    }
+
+    if (!overId.startsWith('sub:')) return;
+    const [, overCategorySlug, overSubSlug] = overId.split(':');
+
+    if (activeCategorySlug === overCategorySlug) {
+      const oldIndex = sourceCategory.subcategories.findIndex((entry) => entry.slug === activeSubSlug);
+      const newIndex = sourceCategory.subcategories.findIndex((entry) => entry.slug === overSubSlug);
+      if (oldIndex < 0 || newIndex < 0) return;
+
+      const nextCategories = catalog.categories.map((entry) =>
+        entry.slug === activeCategorySlug
+          ? { ...entry, subcategories: arrayMove(entry.subcategories, oldIndex, newIndex) }
+          : entry
+      );
+
+      void persist({ categories: nextCategories }, 'Vrstni red podkategorij posodobljen');
+      return;
+    }
+
+    const targetCategory = catalog.categories.find((entry) => entry.slug === overCategorySlug);
+    if (!targetCategory) return;
+    const targetIndex = targetCategory.subcategories.findIndex((entry) => entry.slug === overSubSlug);
+    if (targetIndex < 0) return;
+
+    const nextCategories = catalog.categories.map((entry) => {
+      if (entry.slug === activeCategorySlug) {
+        return { ...entry, subcategories: entry.subcategories.filter((sub) => sub.slug !== activeSubSlug) };
+      }
+
+      if (entry.slug === overCategorySlug) {
+        const nextSubs = [...entry.subcategories];
+        nextSubs.splice(targetIndex, 0, movingSubcategory);
+        return { ...entry, subcategories: nextSubs };
+      }
+
+      return entry;
+    });
+
+    setExpanded((prev) => ({ ...prev, [catId(overCategorySlug)]: true }));
+    void persist({ categories: nextCategories }, 'Podkategorija premaknjena');
   };
 
   const onBottomReorder = (event: DragEndEvent) => {
@@ -744,15 +852,6 @@ export default function AdminCategoriesManager() {
       return;
     }
 
-    if (editingRow.kind === 'root') {
-      setRootMeta({ title: nextTitle, description: editingRow.description });
-      setStatusByRow((prev) => ({ ...prev, [rootId]: editingRow.status }));
-      toast.success('Shranjeno');
-      setEditingRow(null);
-      isInlineSavingRef.current = false;
-      return;
-    }
-
     if (editingRow.kind === 'category') {
       if (!editingRow.categorySlug) {
         isInlineSavingRef.current = false;
@@ -836,8 +935,7 @@ export default function AdminCategoriesManager() {
   }, [catalog.categories, isSearchActive, searchQuery]);
 
   const visibleRowIds = useMemo(() => {
-    const ids = [rootId];
-    if (!(expanded[rootId] ?? true) && !closingRowIds.includes(rootId)) return ids;
+    const ids: string[] = [];
 
     filteredCategories.forEach((category) => {
       const categoryNodeId = catId(category.slug);
@@ -865,7 +963,6 @@ export default function AdminCategoriesManager() {
 
   useEffect(() => {
     const validIds = new Set([
-      rootId,
       ...catalog.categories.map((category) => catId(category.slug)),
       ...catalog.categories.flatMap((category) =>
         category.subcategories.map((subcategory) => subId(category.slug, subcategory.slug))
@@ -1039,15 +1136,18 @@ export default function AdminCategoriesManager() {
           : (parentColumnX ?? 0) + leafConnectorWidth;
 
     return (
+      <SortableTreeRow id={id} disabled={kind === 'root'}>
+        {({ dragHandleProps, setNodeRef, style, isDragging }) => (
       <tr
-        key={id}
-        className={`${isSelected ? adminTableRowToneClasses.selected : rowDepthTone} transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''}`}
+        ref={setNodeRef}
+        style={style}
+        className={`${isSelected ? adminTableRowToneClasses.selected : rowDepthTone} transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''} ${isDragging ? 'opacity-70' : ''}`}
       >
         <td className="relative overflow-visible border-b border-slate-200 px-2 py-2 text-center align-middle">
           <div
             className="absolute top-1/2 z-20"
             style={
-              kind === 'root'
+              level === 0
                 ? {
                     left: '50%',
                     transform: 'translate(-50%, -50%)'
@@ -1159,6 +1259,7 @@ export default function AdminCategoriesManager() {
               ) : null}
             </div>
 
+            <IconButton type="button" tone="neutral" aria-label="Premakni vrstico" title="Premakni vrstico" {...dragHandleProps}>⋮⋮</IconButton>
             <div className="min-w-0 flex-1">
               {isRowEditing ? (
                 <Input
@@ -1336,29 +1437,15 @@ export default function AdminCategoriesManager() {
           </RowActions>
         </td>
       </tr>
+        )}
+      </SortableTreeRow>
     );
   };
 
   const treeRows: ReactNode[] = (() => {
     const rows: ReactNode[] = [];
 
-    rows.push(
-      renderTreeRow({
-        id: rootId,
-        title: rootMeta.title,
-        level: 0,
-        kind: 'root',
-        description: rootMeta.description,
-        childrenCount: filteredCategories.length,
-        productCount: 0,
-        ancestorContinuationColumns: [],
-        continueCurrentColumnBelow: false,
-        parentIsAnimating: false
-      })
-    );
-
-    if ((expanded[rootId] ?? true) || closingRowIds.includes(rootId)) {
-      filteredCategories.forEach((category, categoryIndex) => {
+    filteredCategories.forEach((category, categoryIndex) => {
         const categoryNodeId = catId(category.slug);
         const hasVisibleChildren =
           (isSearchActive || (expanded[categoryNodeId] ?? false) || closingRowIds.includes(categoryNodeId)) &&
@@ -1369,7 +1456,7 @@ export default function AdminCategoriesManager() {
           renderTreeRow({
             id: categoryNodeId,
             title: category.title,
-            level: 1,
+            level: 0,
             kind: 'category',
             categorySlug: category.slug,
             description: category.summary,
@@ -1377,7 +1464,7 @@ export default function AdminCategoriesManager() {
             productCount: (category.items ?? []).length,
             ancestorContinuationColumns: [],
             continueCurrentColumnBelow: hasVisibleChildren || hasNextCategory,
-            parentIsAnimating: openingRowIds.includes(rootId) || closingRowIds.includes(rootId)
+            parentIsAnimating: false
           })
         );
 
@@ -1389,14 +1476,14 @@ export default function AdminCategoriesManager() {
               renderTreeRow({
                 id: subId(category.slug, subcategory.slug),
                 title: subcategory.title,
-                level: 2,
+                level: 1,
                 kind: 'subcategory',
                 categorySlug: category.slug,
                 subcategorySlug: subcategory.slug,
                 description: subcategory.description,
                 childrenCount: 0,
                 productCount: subcategory.items.length,
-                ancestorContinuationColumns: [hasNextSubcategory || hasNextCategory],
+                ancestorContinuationColumns: [hasNextCategory],
                 continueCurrentColumnBelow: hasNextSubcategory,
                 parentIsAnimating: openingRowIds.includes(categoryNodeId) || closingRowIds.includes(categoryNodeId)
               })
@@ -1404,7 +1491,6 @@ export default function AdminCategoriesManager() {
           });
         }
       });
-    }
 
     return rows;
   })();
@@ -1419,6 +1505,24 @@ export default function AdminCategoriesManager() {
           Top: povezano drevo levo → desno. Bottom: vsebina izbrane kategorije v storefront admin pogledu.
         </p>
       </header>
+
+      {styletronEngine ? (
+      <StyletronProvider value={styletronEngine}>
+        <BaseProvider theme={LightTheme}>
+          <Tabs
+            activeKey={activeView}
+            onChange={({ activeKey }: { activeKey: Key }) => {
+              const next = activeKey as CategoriesView;
+              setActiveView(next);
+              router.push(next === 'table' ? '/admin/kategorije' : '/admin/kategorije/miller-view');
+            }}
+          >
+            <Tab title="Seznam" key="table" />
+            <Tab title="Millerjev pogled" key="miller" />
+          </Tabs>
+        </BaseProvider>
+      </StyletronProvider>
+      ) : null}
 
       <ConfirmDialog
         open={isBulkDeleteDialogOpen}
@@ -1493,6 +1597,7 @@ export default function AdminCategoriesManager() {
         </div>
       </ConfirmDialog>
 
+      <div className={activeView === 'table' ? 'space-y-5' : 'hidden'}>
       <section>
         <AdminTableLayout
           className="border"
@@ -1531,6 +1636,8 @@ export default function AdminCategoriesManager() {
             </>
           }
         >
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onTreeDragEnd}>
+            <SortableContext items={visibleRowIds} strategy={verticalListSortingStrategy}>
           <table className="min-w-full table-fixed border-separate border-spacing-0 border-x border-b border-slate-200">
             <colgroup>
               <col className="w-14" />
@@ -1621,6 +1728,8 @@ export default function AdminCategoriesManager() {
 
             <tbody>{treeRows}</tbody>
           </table>
+            </SortableContext>
+          </DndContext>
         </AdminTableLayout>
       </section>
 
@@ -1811,6 +1920,36 @@ export default function AdminCategoriesManager() {
             onDragEnd={onLeafProductsDragEnd}
           />
         ) : null}
+      </section>
+      </div>
+
+      <section className={activeView === 'miller' ? 'rounded-2xl border border-slate-200 bg-white p-4 shadow-sm' : 'hidden'}>
+        <div className="grid gap-4 md:grid-cols-3">
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Kategorije</p>
+            <div className="space-y-2">
+              {catalog.categories.map((category) => (
+                <button key={category.slug} type="button" className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-left text-sm" onClick={() => setSelected({ kind: 'category', categorySlug: category.slug })}>{category.title}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Podkategorije</p>
+            <div className="space-y-2">
+              {selectedContext?.kind === 'category' ? selectedContext.category.subcategories.map((subcategory) => (
+                <button key={subcategory.slug} type="button" className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-left text-sm" onClick={() => setSelected({ kind: 'subcategory', categorySlug: selectedContext.category.slug, subcategorySlug: subcategory.slug })}>{subcategory.title}</button>
+              )) : <p className="text-xs text-slate-500">Izberite kategorijo.</p>}
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Izdelki</p>
+            <div className="space-y-2">
+              {selectedContext?.kind === 'subcategory' ? sortCatalogItems(selectedContext.subcategory.items).map((item) => (
+                <div key={item.slug} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">{item.name}</div>
+              )) : <p className="text-xs text-slate-500">Izberite podkategorijo.</p>}
+            </div>
+          </div>
+        </div>
       </section>
     </div>
   );

@@ -20,7 +20,11 @@ export async function PUT(request: Request) {
     }
 
     await writeCatalogFile({ categories: payload.categories });
-    revalidatePath('/products', 'layout');
+    revalidatePath('/');
+    revalidatePath('/products');
+    revalidatePath('/admin/kategorije');
+    revalidatePath('/admin/kategorije/miller-view');
+    revalidatePath('/admin/artikli');
     return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json({ message: error instanceof Error ? error.message : 'Napaka pri shranjevanju.' }, { status: 500 });

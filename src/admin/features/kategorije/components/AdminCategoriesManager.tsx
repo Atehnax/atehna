@@ -313,15 +313,16 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   const statusHeaderMenuRef = useRef<HTMLDivElement>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
   const isInlineSavingRef = useRef(false);
+  const toastRef = useRef(toast);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!silent) setLoading(true);
 
     try {
       const response = await fetch('/api/admin/categories', { cache: 'no-store' });
 
       if (!response.ok) {
-        toast.error('Napaka pri nalaganju kategorij');
+        toastRef.current.error('Napaka pri nalaganju kategorij');
         return;
       }
 
@@ -348,10 +349,14 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
         return next;
       });
     } catch {
-      toast.error('Napaka pri nalaganju kategorij');
+      toastRef.current.error('Napaka pri nalaganju kategorij');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    toastRef.current = toast;
   }, [toast]);
 
   useEffect(() => {
@@ -432,7 +437,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
         return false;
       }
 
-      await load();
+      await load({ silent: true });
       toast.success(message);
       return true;
     } catch {

@@ -1,4 +1,5 @@
 import fs from 'fs/promises';
+import { randomUUID } from 'crypto';
 import path from 'path';
 import type { CatalogCategory } from '@/commercial/catalog/catalog';
 
@@ -14,7 +15,7 @@ export async function readCatalogFile(): Promise<CatalogData> {
 
 export async function writeCatalogFile(data: CatalogData): Promise<void> {
   const normalized = normalizeCatalogData(data);
-  const tempPath = `${catalogPath}.tmp`;
+  const tempPath = `${catalogPath}.${randomUUID()}.tmp`;
 
   await fs.writeFile(tempPath, `${JSON.stringify(normalized, null, 2)}\n`, 'utf8');
   await fs.rename(tempPath, catalogPath);

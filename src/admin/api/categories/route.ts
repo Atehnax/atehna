@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import type { CatalogCategory } from '@/commercial/catalog/catalog';
 import { readCatalogFile, writeCatalogFile } from '@/shared/server/catalogAdmin';
 
@@ -19,6 +20,9 @@ export async function PUT(request: Request) {
     }
 
     await writeCatalogFile({ categories: payload.categories });
+    revalidatePath('/products');
+    revalidatePath('/products/[category]', 'page');
+    revalidatePath('/products/[category]/[subcategory]', 'page');
     return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json({ message: error instanceof Error ? error.message : 'Napaka pri shranjevanju.' }, { status: 500 });

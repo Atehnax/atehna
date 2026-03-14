@@ -2,6 +2,6 @@ import AdminCategoriesManager from '@/admin/features/kategorije/components/Admin
 
 export const dynamic = 'force-dynamic';
 
-export default function AdminCategoriesPage() {
-  return <AdminCategoriesManager initialView="table" />;
+export default function AdminCategoriesMillerPage() {
+  return <AdminCategoriesManager initialView="miller" />;
 }

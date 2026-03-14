@@ -88,6 +88,12 @@ type CreateTarget =
   | { kind: 'subcategory'; categorySlug: string; afterSlug?: string }
   | null;
 
+type MillerDeleteTarget =
+  | { column: 'categories'; ids: string[] }
+  | { column: 'subcategories'; ids: string[]; categorySlug: string }
+  | { column: 'items'; ids: string[]; categorySlug: string; subcategorySlug?: string }
+  | null;
+
 type CategoryStatus = 'active' | 'inactive';
 
 const bulkDeleteButtonClass = buttonTokenClasses.danger;
@@ -95,6 +101,7 @@ const CATEGORY_STATUS_STORAGE_KEY = 'admin-categories-status-v1';
 const rootId = 'root';
 const catId = (slug: string) => `cat:${slug}`;
 const subId = (catSlug: string, subSlug: string) => `sub:${catSlug}:${subSlug}`;
+const itemId = (catSlug: string, itemSlug: string, subSlug?: string) => `item:${catSlug}:${subSlug ?? '_'}:${itemSlug}`;
 const slugify = (value: string) =>
   value.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-čšžćđ]/gi, '');
 
@@ -323,9 +330,13 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isDragModeActive, setIsDragModeActive] = useState(false);
+  const [millerCatalog, setMillerCatalog] = useState<CatalogData>({ categories: [] });
   const [millerSelection, setMillerSelection] = useState<string[]>([]);
   const [millerDropTarget, setMillerDropTarget] = useState<string | null>(null);
-  const [millerCreateParent, setMillerCreateParent] = useState<string | null>(null);
+  const [millerDirty, setMillerDirty] = useState(false);
+  const [millerDeleteTarget, setMillerDeleteTarget] = useState<MillerDeleteTarget>(null);
+  const [isMillerSaveDialogOpen, setIsMillerSaveDialogOpen] = useState(false);
+  const [millerError, setMillerError] = useState<string | null>(null);
 
   const { toast } = useToast();
   const pathname = usePathname();
@@ -353,6 +364,9 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
       const payload = normalizeCatalogData(await response.json());
 
       setCatalog(payload);
+      setMillerCatalog(payload);
+      setMillerDirty(false);
+      setMillerSelection([]);
       setExpanded((prev) => ({
         ...prev,
         ...Object.fromEntries(payload.categories.map((entry) => [catId(entry.slug), prev[catId(entry.slug)] ?? false]))
@@ -487,11 +501,34 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     return { kind: 'subcategory' as const, category, subcategory };
   }, [catalog.categories, selected]);
 
+
+  const millerSelectedContext = useMemo(() => {
+    if (selected.kind === 'root') return { kind: 'root' as const };
+
+    const category = millerCatalog.categories.find((entry) => entry.slug === selected.categorySlug);
+    if (!category) return null;
+
+    if (selected.kind === 'category') return { kind: 'category' as const, category };
+
+    const subcategory = category.subcategories.find((entry) => entry.slug === selected.subcategorySlug);
+    if (!subcategory) return null;
+
+    return { kind: 'subcategory' as const, category, subcategory };
+  }, [millerCatalog.categories, selected]);
+
+  const stageMillerCatalog = (next: CatalogData) => {
+    setMillerCatalog(normalizeCatalogData(next));
+    setMillerDirty(true);
+    setMillerError(null);
+  };
+
   const addCategory = (title: string, afterSlug?: string) => {
     const slug = slugify(title);
     if (!slug) return;
 
-    if (catalog.categories.some((entry) => entry.slug === slug)) {
+    const sourceCatalog = activeView === 'miller' ? millerCatalog : catalog;
+
+    if (sourceCatalog.categories.some((entry) => entry.slug === slug)) {
       toast.error('Kategorija s tem nazivom že obstaja');
       return;
     }
@@ -507,7 +544,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
       items: []
     };
 
-    const list = [...catalog.categories];
+    const list = [...sourceCatalog.categories];
 
     if (!afterSlug) {
       list.push(item);
@@ -518,14 +555,19 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     }
 
     setExpanded((prev) => ({ ...prev, [catId(slug)]: true }));
-    void persist({ categories: list }, 'Kategorija dodana');
+    if (activeView === 'miller') {
+      stageMillerCatalog({ categories: list });
+    } else {
+      void persist({ categories: list }, 'Kategorija dodana');
+    }
   };
 
   const addSubcategory = (categorySlug: string, title: string, afterSlug?: string) => {
     const slug = slugify(title);
     if (!slug) return;
 
-    const parentCategory = catalog.categories.find((entry) => entry.slug === categorySlug);
+    const sourceCatalog = activeView === 'miller' ? millerCatalog : catalog;
+    const parentCategory = sourceCatalog.categories.find((entry) => entry.slug === categorySlug);
     if (!parentCategory) return;
     if (parentCategory.subcategories.some((entry) => entry.slug === slug)) {
       toast.error('Podkategorija s tem nazivom že obstaja');
@@ -533,7 +575,7 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     }
 
     const next = {
-      categories: catalog.categories.map((entry) => {
+      categories: sourceCatalog.categories.map((entry) => {
         if (entry.slug !== categorySlug) return entry;
 
         const sub: CatalogSubcategory = {
@@ -560,7 +602,11 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     };
 
     setExpanded((prev) => ({ ...prev, [catId(categorySlug)]: true }));
-    void persist(next, 'Podkategorija dodana');
+    if (activeView === 'miller') {
+      stageMillerCatalog(next);
+    } else {
+      void persist(next, 'Podkategorija dodana');
+    }
   };
 
   const openCreateDialog = (target: CreateTarget) => {
@@ -774,14 +820,22 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
     void persist(next, 'Vrstni red izdelkov shranjen');
   };
 
-  const toggleMillerSelection = (id: string, event: React.MouseEvent<HTMLButtonElement>) => {
+
+  const toggleMillerSelection = (id: string, event: React.MouseEvent<HTMLButtonElement>, columnIds: string[]) => {
     setMillerSelection((prev) => {
-      if (event.metaKey || event.ctrlKey) {
-        return prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id];
+      if (event.shiftKey && prev.length > 0) {
+        const last = prev[prev.length - 1];
+        const start = columnIds.indexOf(last);
+        const finish = columnIds.indexOf(id);
+        if (start >= 0 && finish >= 0) {
+          const [a, b] = start < finish ? [start, finish] : [finish, start];
+          const range = columnIds.slice(a, b + 1);
+          return [...new Set([...prev.filter((entry) => !columnIds.includes(entry)), ...range])];
+        }
       }
 
-      if (event.shiftKey && prev.length > 0) {
-        return [...new Set([...prev, id])];
+      if (event.metaKey || event.ctrlKey) {
+        return prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id];
       }
 
       return [id];
@@ -793,30 +847,14 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
 
     const selectedCategories = millerSelection.filter((entry) => entry.startsWith('cat:'));
     const selectedSubcategories = millerSelection.filter((entry) => entry.startsWith('sub:'));
+    const selectedItems = millerSelection.filter((entry) => entry.startsWith('item:'));
 
-    if (targetId.startsWith('sub:')) {
-      toast.error('Premik v podkategorijo trenutno ni dovoljen.');
-      return;
-    }
+    let nextCategories = [...millerCatalog.categories];
 
-    let nextCategories = [...catalog.categories];
-
-    if (targetId === rootId && selectedSubcategories.length > 0) {
-      const toPromote = new Map<string, CatalogSubcategory>();
-      selectedSubcategories.forEach((id) => {
-        const [, catSlug, subSlug] = id.split(':');
-        const source = catalog.categories.find((cat) => cat.slug === catSlug)?.subcategories.find((sub) => sub.slug === subSlug);
-        if (source) toPromote.set(id, source);
-      });
-
-      nextCategories = nextCategories.map((category) => ({
-        ...category,
-        subcategories: category.subcategories.filter((sub) => !selectedSubcategories.includes(subId(category.slug, sub.slug)))
-      }));
-
-      toPromote.forEach((sub) => {
-        nextCategories.push({ ...sub, summary: '', image: sub.image ?? '', subcategories: [] });
-      });
+    if (targetId === rootId && selectedCategories.length > 0) {
+      const ordered = nextCategories.filter((category) => !selectedCategories.includes(catId(category.slug)));
+      const moved = nextCategories.filter((category) => selectedCategories.includes(catId(category.slug)));
+      nextCategories = [...ordered, ...moved];
     }
 
     if (targetId.startsWith('cat:') && selectedSubcategories.length > 0) {
@@ -838,46 +876,227 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
       );
     }
 
-    if (targetId === rootId && selectedCategories.length > 0) {
-      const ordered = catalog.categories.filter((category) => !selectedCategories.includes(catId(category.slug)));
-      const moved = catalog.categories.filter((category) => selectedCategories.includes(catId(category.slug)));
-      nextCategories = [...ordered, ...moved];
+    if ((targetId.startsWith('cat:') || targetId.startsWith('sub:')) && selectedItems.length > 0) {
+      const movedItems: CatalogItem[] = [];
+      nextCategories = nextCategories.map((category) => ({
+        ...category,
+        items: (category.items ?? []).filter((item) => {
+          const id = itemId(category.slug, item.slug);
+          const moving = selectedItems.includes(id);
+          if (moving) movedItems.push(item);
+          return !moving;
+        }),
+        subcategories: category.subcategories.map((sub) => ({
+          ...sub,
+          items: sub.items.filter((item) => {
+            const id = itemId(category.slug, item.slug, sub.slug);
+            const moving = selectedItems.includes(id);
+            if (moving) movedItems.push(item);
+            return !moving;
+          })
+        }))
+      }));
+
+      if (targetId.startsWith('cat:')) {
+        const targetSlug = targetId.slice(4);
+        nextCategories = nextCategories.map((category) =>
+          category.slug === targetSlug ? { ...category, items: [...(category.items ?? []), ...movedItems] } : category
+        );
+      } else {
+        const [, targetCat, targetSub] = targetId.split(':');
+        nextCategories = nextCategories.map((category) =>
+          category.slug === targetCat
+            ? {
+                ...category,
+                subcategories: category.subcategories.map((sub) =>
+                  sub.slug === targetSub ? { ...sub, items: [...sub.items, ...movedItems] } : sub
+                )
+              }
+            : category
+        );
+      }
     }
 
-    void persist({ categories: nextCategories }, 'Miller premik shranjen');
+    stageMillerCatalog({ categories: nextCategories });
     setMillerDropTarget(null);
   };
 
-  const deleteMillerSelection = () => {
-    if (millerSelection.length === 0) return;
+  const requestDeleteMillerSelection = (column: 'categories' | 'subcategories' | 'items') => {
+    const ids = millerSelection.filter((entry) =>
+      column === 'categories' ? entry.startsWith('cat:') : column === 'subcategories' ? entry.startsWith('sub:') : entry.startsWith('item:')
+    );
 
-    const selectedCategories = new Set(millerSelection.filter((entry) => entry.startsWith('cat:')).map((id) => id.slice(4)));
-    const selectedSubcategories = new Set(millerSelection.filter((entry) => entry.startsWith('sub:')));
+    if (ids.length === 0) return;
 
-    const nextCategories = catalog.categories
-      .filter((category) => !selectedCategories.has(category.slug))
-      .map((category) => ({
+    if (column === 'subcategories' && selected.kind !== 'root') {
+      setMillerDeleteTarget({ column, ids, categorySlug: selected.categorySlug });
+      return;
+    }
+
+    if (column === 'items' && selected.kind !== 'root') {
+      setMillerDeleteTarget({
+        column,
+        ids,
+        categorySlug: selected.categorySlug,
+        subcategorySlug: selected.kind === 'subcategory' ? selected.subcategorySlug : undefined
+      });
+      return;
+    }
+
+    if (column === 'categories') {
+      setMillerDeleteTarget({ column: 'categories', ids });
+    }
+  };
+
+  const confirmMillerDelete = () => {
+    if (!millerDeleteTarget) return;
+
+    let nextCategories = [...millerCatalog.categories];
+
+    if (millerDeleteTarget.column === 'categories') {
+      const selectedCategories = new Set(millerDeleteTarget.ids.map((id) => id.slice(4)));
+      nextCategories = nextCategories.filter((category) => !selectedCategories.has(category.slug));
+    }
+
+    if (millerDeleteTarget.column === 'subcategories') {
+      const selectedSubcategories = new Set(millerDeleteTarget.ids);
+      nextCategories = nextCategories.map((category) => ({
         ...category,
         subcategories: category.subcategories.filter((subcategory) => !selectedSubcategories.has(subId(category.slug, subcategory.slug)))
       }));
+    }
 
-    void persist({ categories: nextCategories }, 'Izbrane kategorije odstranjene');
+    if (millerDeleteTarget.column === 'items') {
+      const selectedItems = new Set(millerDeleteTarget.ids);
+      nextCategories = nextCategories.map((category) => ({
+        ...category,
+        items: (category.items ?? []).filter((item) => !selectedItems.has(itemId(category.slug, item.slug))),
+        subcategories: category.subcategories.map((sub) => ({
+          ...sub,
+          items: sub.items.filter((item) => !selectedItems.has(itemId(category.slug, item.slug, sub.slug)))
+        }))
+      }));
+    }
+
+    stageMillerCatalog({ categories: nextCategories });
     setMillerSelection([]);
+    setMillerDeleteTarget(null);
   };
 
-  const addMillerNode = (targetParent: string | null) => {
-    if (!targetParent || targetParent === rootId) {
+  const addMillerNode = (column: 'categories' | 'subcategories' | 'items') => {
+    if (column === 'categories') {
       openCreateDialog({ kind: 'category' });
       return;
     }
 
-    if (targetParent.startsWith('cat:')) {
-      openCreateDialog({ kind: 'subcategory', categorySlug: targetParent.slice(4) });
+    if (column === 'subcategories' && selected.kind !== 'root') {
+      openCreateDialog({ kind: 'subcategory', categorySlug: selected.categorySlug });
       return;
     }
 
-    toast.error('Dodajanje v podkategorijo trenutno ni podprto.');
+    toast.error('Dodajanje artiklov v Miller pogledu trenutno ni podprto.');
   };
+
+  const saveMillerChanges = async () => {
+    const ok = await persist(millerCatalog, 'Miller spremembe shranjene');
+    if (!ok) {
+      setMillerError('Shranjevanje Miller sprememb ni uspelo. Lokalno stanje je ohranjeno.');
+      return;
+    }
+
+    setMillerDirty(false);
+    setMillerError(null);
+  };
+
+
+  const millerColumns = useMemo(() => {
+    const columns: Array<{ key: string; title: string; ids: string[]; rows: Array<{ id: string; label: string; tone: string; onClick: (event: React.MouseEvent<HTMLButtonElement>) => void; onDragStart: () => void; onDropTarget: string; }>; kind: 'categories' | 'subcategories' | 'items' }> = [];
+
+    const categoryIds = millerCatalog.categories.map((category) => catId(category.slug));
+    columns.push({
+      key: 'categories',
+      title: 'Kategorije',
+      kind: 'categories',
+      ids: categoryIds,
+      rows: millerCatalog.categories.map((category) => ({
+        id: catId(category.slug),
+        label: category.title,
+        tone: selected.kind !== 'root' && selected.categorySlug === category.slug ? 'focused' : 'default',
+        onClick: (event) => {
+          setSelected({ kind: 'category', categorySlug: category.slug });
+          toggleMillerSelection(catId(category.slug), event, categoryIds);
+        },
+        onDragStart: () => {
+          if (!millerSelection.includes(catId(category.slug))) setMillerSelection([catId(category.slug)]);
+        },
+        onDropTarget: rootId
+      }))
+    });
+
+    if (selected.kind === 'root') return columns;
+
+    const activeCategory = millerCatalog.categories.find((entry) => entry.slug === selected.categorySlug);
+    if (!activeCategory) return columns;
+
+    const hasSubcategories = activeCategory.subcategories.length > 0;
+
+    if (hasSubcategories) {
+      const subIds = activeCategory.subcategories.map((sub) => subId(activeCategory.slug, sub.slug));
+      columns.push({
+        key: `sub-${activeCategory.slug}`,
+        title: 'Podkategorije',
+        kind: 'subcategories',
+        ids: subIds,
+        rows: activeCategory.subcategories.map((subcategory) => ({
+          id: subId(activeCategory.slug, subcategory.slug),
+          label: subcategory.title,
+          tone: selected.kind === 'subcategory' && selected.subcategorySlug === subcategory.slug ? 'focused' : 'default',
+          onClick: (event) => {
+            setSelected({ kind: 'subcategory', categorySlug: activeCategory.slug, subcategorySlug: subcategory.slug });
+            toggleMillerSelection(subId(activeCategory.slug, subcategory.slug), event, subIds);
+          },
+          onDragStart: () => {
+            const id = subId(activeCategory.slug, subcategory.slug);
+            if (!millerSelection.includes(id)) setMillerSelection([id]);
+          },
+          onDropTarget: catId(activeCategory.slug)
+        }))
+      });
+    }
+
+    const itemSource = selected.kind === 'subcategory'
+      ? activeCategory.subcategories.find((sub) => sub.slug === selected.subcategorySlug)?.items ?? []
+      : !hasSubcategories
+        ? (activeCategory.items ?? [])
+        : [];
+
+    const showItems = selected.kind === 'subcategory' || !hasSubcategories;
+
+    if (showItems) {
+      const itemIds = itemSource.map((item) => itemId(activeCategory.slug, item.slug, selected.kind === 'subcategory' ? selected.subcategorySlug : undefined));
+      columns.push({
+        key: `item-${activeCategory.slug}-${selected.kind === 'subcategory' ? selected.subcategorySlug : 'cat'}`,
+        title: 'Artikli',
+        kind: 'items',
+        ids: itemIds,
+        rows: itemSource.map((item) => {
+          const id = itemId(activeCategory.slug, item.slug, selected.kind === 'subcategory' ? selected.subcategorySlug : undefined);
+          return {
+            id,
+            label: item.name,
+            tone: 'default',
+            onClick: (event: React.MouseEvent<HTMLButtonElement>) => toggleMillerSelection(id, event, itemIds),
+            onDragStart: () => {
+              if (!millerSelection.includes(id)) setMillerSelection([id]);
+            },
+            onDropTarget: selected.kind === 'subcategory' ? subId(activeCategory.slug, selected.subcategorySlug) : catId(activeCategory.slug)
+          };
+        })
+      });
+    }
+
+    return columns;
+  }, [millerCatalog.categories, millerSelection, selected]);
 
   const updateSubcategory = (categorySlug: string, subSlug: string, patch: Partial<CatalogSubcategory>) => {
     void persist({
@@ -2169,118 +2388,98 @@ export default function AdminCategoriesManager({ initialView = 'table' }: { init
       </section>
       </div>
 
+      <ConfirmDialog
+        open={millerDeleteTarget !== null}
+        title="Izbriši izbrane vnose"
+        description="Ali ste prepričani, da želite izbrisati izbrane vnose v tem stolpcu?"
+        confirmLabel="Izbriši"
+        cancelLabel="Prekliči"
+        isDanger
+        onCancel={() => setMillerDeleteTarget(null)}
+        onConfirm={confirmMillerDelete}
+      />
+
+      <ConfirmDialog
+        open={isMillerSaveDialogOpen}
+        title="Shrani Miller spremembe"
+        description="Vse lokalno pripravljene spremembe bodo zapisane v bazo. Nadaljujem?"
+        confirmLabel="Shrani"
+        cancelLabel="Prekliči"
+        onCancel={() => setIsMillerSaveDialogOpen(false)}
+        onConfirm={() => {
+          setIsMillerSaveDialogOpen(false);
+          void saveMillerChanges();
+        }}
+      />
+
       <section className={activeView === 'miller' ? 'rounded-2xl border border-slate-200 bg-white p-3 shadow-sm' : 'hidden'}>
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <div className="text-xs text-slate-600">Izbrano: {millerSelection.length}</div>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 rounded-lg px-2 text-xs"
-              onClick={() => {
-                const nextParent =
-                  selected.kind === 'subcategory'
-                    ? subId(selected.categorySlug, selected.subcategorySlug)
-                    : selected.kind === 'category'
-                      ? catId(selected.categorySlug)
-                      : rootId;
-                setMillerCreateParent(nextParent);
-                addMillerNode(nextParent);
-              }}
-            >
-              + Dodaj
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 rounded-lg px-2 text-xs text-[var(--danger-700)]"
-              onClick={deleteMillerSelection}
-              disabled={millerSelection.length === 0}
-            >
-              Izbriši
-            </Button>
+        <div className="mb-3 flex items-center justify-between">
+          <div className="text-xs text-slate-600">
+            {millerDirty ? 'Ne-shranjene spremembe' : 'Brez ne-shranjenih sprememb'}
           </div>
+          <Button
+            type="button"
+            variant="primary"
+            size="toolbar"
+            onClick={() => setIsMillerSaveDialogOpen(true)}
+            disabled={!millerDirty || saving}
+          >
+            Shrani spremembe
+          </Button>
         </div>
-        <div className="grid gap-3 md:grid-cols-3">
-          <div>
-            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Kategorije</p>
-            <div
-              className={`max-h-[520px] space-y-1 overflow-auto rounded-xl border border-slate-200 bg-slate-50/40 p-1.5 ${millerDropTarget === rootId ? 'ring-2 ring-[#3e67d6]/40' : ''}`}
-              onDragOver={(event) => {
-                event.preventDefault();
-                setMillerDropTarget(rootId);
-              }}
-              onDrop={(event) => {
-                event.preventDefault();
-                applyMillerMove(rootId);
-              }}
-            >
-              {catalog.categories.map((category) => (
-                <button
-                  key={category.slug}
-                  type="button"
-                  className={`block w-full rounded-md border px-2 py-1 text-left text-xs font-medium transition ${millerSelection.includes(catId(category.slug)) || (selected.kind === 'category' && selected.categorySlug === category.slug) ? 'border-[#3e67d6]/50 bg-[#f0f4ff] text-[#1f3f93]' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-100'}`}
-                  onClick={(event) => {
-                    setSelected({ kind: 'category', categorySlug: category.slug });
-                    toggleMillerSelection(catId(category.slug), event);
-                    setMillerCreateParent(catId(category.slug));
-                  }}
-                  draggable
-                  onDragStart={() => {
-                    if (!millerSelection.includes(catId(category.slug))) {
-                      setMillerSelection([catId(category.slug)]);
-                    }
-                  }}
-                >
-                  {category.title}
-                </button>
-              ))}
+
+        {millerError ? <p className="mb-3 rounded-lg border border-[var(--danger-300)] bg-[var(--danger-100)] px-3 py-2 text-xs text-[var(--danger-700)]">{millerError}</p> : null}
+
+        <div
+          className="grid gap-3"
+          style={{ gridTemplateColumns: `repeat(${Math.max(1, millerColumns.length)}, minmax(0, 1fr))` }}
+        >
+          {millerColumns.map((column) => (
+            <div key={column.key} className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/40">
+              <div className="flex items-center justify-between border-b border-slate-200 bg-white px-2.5 py-2">
+                <h3 className="text-xs font-semibold text-slate-700">{column.title}</h3>
+                <div className="flex items-center gap-1">
+                  <IconButton type="button" tone="neutral" aria-label="Dodaj" onClick={() => addMillerNode(column.kind)}>
+                    <PlusIcon />
+                  </IconButton>
+                  <IconButton
+                    type="button"
+                    tone="danger"
+                    aria-label="Izbriši"
+                    onClick={() => requestDeleteMillerSelection(column.kind)}
+                    disabled={!millerSelection.some((id) => column.ids.includes(id))}
+                  >
+                    ✕
+                  </IconButton>
+                </div>
+              </div>
+
+              <div
+                className={`max-h-[520px] space-y-1 overflow-auto p-1.5 ${millerDropTarget === (column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget) ? 'ring-2 ring-[#3e67d6]/40' : ''}`}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  setMillerDropTarget(column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget ?? null);
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  applyMillerMove(column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget ?? rootId);
+                }}
+              >
+                {column.rows.length === 0 ? <p className="px-2 py-3 text-xs text-slate-500">Ni zapisov.</p> : column.rows.map((row) => (
+                  <button
+                    key={row.id}
+                    type="button"
+                    className={`block w-full rounded-md border px-2 py-1 text-left text-xs font-medium transition ${millerSelection.includes(row.id) || row.tone === 'focused' ? 'border-[#3e67d6]/50 bg-[#f0f4ff] text-[#1f3f93]' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-100'}`}
+                    onClick={row.onClick}
+                    draggable
+                    onDragStart={row.onDragStart}
+                  >
+                    {row.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-          <div>
-            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Podkategorije</p>
-            <div className="max-h-[520px] space-y-1 overflow-auto rounded-xl border border-slate-200 bg-slate-50/40 p-1.5">
-              {selectedContext?.kind === 'category' ? selectedContext.category.subcategories.map((subcategory) => (
-                <button
-                  key={subcategory.slug}
-                  type="button"
-                  className={`block w-full rounded-md border px-2 py-1 text-left text-xs font-medium transition ${millerSelection.includes(subId(selectedContext.category.slug, subcategory.slug)) || (selected.kind === 'subcategory' && selected.subcategorySlug === subcategory.slug) ? 'border-[#3e67d6]/50 bg-[#f0f4ff] text-[#1f3f93]' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-100'}`}
-                  onClick={(event) => {
-                    setSelected({ kind: 'subcategory', categorySlug: selectedContext.category.slug, subcategorySlug: subcategory.slug });
-                    toggleMillerSelection(subId(selectedContext.category.slug, subcategory.slug), event);
-                    setMillerCreateParent(subId(selectedContext.category.slug, subcategory.slug));
-                  }}
-                  draggable
-                  onDragOver={(event) => {
-                    event.preventDefault();
-                    setMillerDropTarget(catId(selectedContext.category.slug));
-                  }}
-                  onDrop={(event) => {
-                    event.preventDefault();
-                    applyMillerMove(catId(selectedContext.category.slug));
-                  }}
-                  onDragStart={() => {
-                    const id = subId(selectedContext.category.slug, subcategory.slug);
-                    if (!millerSelection.includes(id)) {
-                      setMillerSelection([id]);
-                    }
-                  }}
-                >
-                  {subcategory.title}
-                </button>
-              )) : <p className="px-1 py-2 text-xs text-slate-500">Izberite kategorijo.</p>}
-            </div>
-          </div>
-          <div>
-            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Izdelki</p>
-            <div className="max-h-[520px] space-y-1 overflow-auto rounded-xl border border-slate-200 bg-slate-50/40 p-1.5">
-              {selectedContext?.kind === 'subcategory' ? sortCatalogItems(selectedContext.subcategory.items).map((item) => (
-                <div key={item.slug} className="rounded-lg border border-transparent bg-white px-2.5 py-1.5 text-xs text-slate-700">{item.name}</div>
-              )) : <p className="px-1 py-2 text-xs text-slate-500">Izberite podkategorijo.</p>}
-            </div>
-          </div>
+          ))}
         </div>
       </section>
     </div>

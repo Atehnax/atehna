@@ -103,6 +103,7 @@ type MillerDeleteTarget =
 type CategoryStatus = 'active' | 'inactive';
 
 type MillerRenameDraft = { id: string; value: string };
+type HistorySnapshot = { catalog: CatalogData; statuses: Record<string, CategoryStatus> };
 
 const bulkDeleteButtonClass = buttonTokenClasses.danger;
 const CATEGORY_STATUS_STORAGE_KEY = 'admin-categories-status-v1';
@@ -444,11 +445,12 @@ export default function AdminCategoriesManager({
   const persistedTableRef = useRef<CatalogData>({ categories: [] });
   const persistedMillerRef = useRef<CatalogData>({ categories: [] });
   const persistedStatusRef = useRef<Record<string, CategoryStatus>>({});
-  const stagedTableHistoryRef = useRef<CatalogData[]>([]);
-  const stagedMillerHistoryRef = useRef<CatalogData[]>([]);
-  const committedHistoryRef = useRef<Array<{ catalog: CatalogData; statuses: Record<string, CategoryStatus> }>>([]);
+  const stagedTableHistoryRef = useRef<HistorySnapshot[]>([]);
+  const stagedMillerHistoryRef = useRef<HistorySnapshot[]>([]);
+  const committedHistoryRef = useRef<HistorySnapshot[]>([]);
   const committedHistoryIndexRef = useRef(0);
-  const historyMenuRef = useRef<HTMLDivElement | null>(null);
+  const tableHistoryMenuRef = useRef<HTMLDivElement | null>(null);
+  const millerHistoryMenuRef = useRef<HTMLDivElement | null>(null);
   const millerViewportRef = useRef<HTMLDivElement | null>(null);
 
   const applyPayloadState = useCallback((payloadRaw: AdminCategoriesPayload) => {
@@ -481,9 +483,10 @@ export default function AdminCategoriesManager({
       persistedStatusRef.current = next;
       return next;
     });
-    stagedTableHistoryRef.current = [payload];
-    stagedMillerHistoryRef.current = [payload];
-    committedHistoryRef.current = [{ catalog: payload, statuses: { ...nextStatuses } }];
+    const initialSnapshot = { catalog: payload, statuses: { ...persistedStatusRef.current } };
+    stagedTableHistoryRef.current = [];
+    stagedMillerHistoryRef.current = [];
+    committedHistoryRef.current = [initialSnapshot];
     committedHistoryIndexRef.current = 0;
   }, []);
 
@@ -581,7 +584,6 @@ export default function AdminCategoriesManager({
         return false;
       }
 
-      await load({ silent: true });
       toast.success(message);
       return true;
     } catch {
@@ -622,20 +624,47 @@ export default function AdminCategoriesManager({
     return { kind: 'subcategory' as const, category, subcategory };
   }, [millerCatalog.categories, selected]);
 
-  const stageMillerCatalog = (next: CatalogData) => {
+  const stageMillerCatalog = (next: CatalogData, nextStatuses: Record<string, CategoryStatus> = statusByRow) => {
     const normalized = normalizeCatalogData(next);
-    stagedMillerHistoryRef.current.push(normalized);
+    stagedMillerHistoryRef.current.push({
+      catalog: normalizeCatalogData(millerCatalog),
+      statuses: { ...statusByRow }
+    });
     setMillerCatalog(normalized);
+    setStatusByRow(nextStatuses);
     setMillerDirty(true);
     setMillerError(null);
   };
 
-  const stageTableCatalog = (next: CatalogData) => {
+  const stageTableCatalog = (next: CatalogData, nextStatuses: Record<string, CategoryStatus> = statusByRow) => {
     const normalized = normalizeCatalogData(next);
-    stagedTableHistoryRef.current.push(normalized);
+    stagedTableHistoryRef.current.push({
+      catalog: normalizeCatalogData(catalog),
+      statuses: { ...statusByRow }
+    });
     setCatalog(normalized);
+    setStatusByRow(nextStatuses);
     setTableDirty(true);
     setTableError(null);
+  };
+
+  const stageStatusChange = (nextStatuses: Record<string, CategoryStatus>) => {
+    const snapshot = {
+      catalog: normalizeCatalogData(activeView === 'miller' ? millerCatalog : catalog),
+      statuses: { ...statusByRow }
+    };
+
+    if (activeView === 'miller') {
+      stagedMillerHistoryRef.current.push(snapshot);
+      setMillerDirty(true);
+      setMillerError(null);
+    } else {
+      stagedTableHistoryRef.current.push(snapshot);
+      setTableDirty(true);
+      setTableError(null);
+    }
+
+    setStatusByRow(nextStatuses);
   };
 
   const hasUnsavedChanges = tableDirty || millerDirty;
@@ -666,22 +695,23 @@ export default function AdminCategoriesManager({
       setIsUnsavedLeaveDialogOpen(true);
     };
 
-    document.addEventListener('click', handleDocumentClick);
-    return () => document.removeEventListener('click', handleDocumentClick);
+    document.addEventListener('click', handleDocumentClick, true);
+    return () => document.removeEventListener('click', handleDocumentClick, true);
   }, [hasUnsavedChanges, pathname]);
 
   useEffect(() => {
     const closeHistoryMenuOnOutside = (event: MouseEvent) => {
       if (!isHistoryMenuOpen) return;
       const target = event.target as Node | null;
-      if (historyMenuRef.current && target && !historyMenuRef.current.contains(target)) {
+      const activeMenuRef = activeView === 'miller' ? millerHistoryMenuRef.current : tableHistoryMenuRef.current;
+      if (activeMenuRef && target && !activeMenuRef.contains(target)) {
         setIsHistoryMenuOpen(false);
       }
     };
 
     document.addEventListener('mousedown', closeHistoryMenuOnOutside);
     return () => document.removeEventListener('mousedown', closeHistoryMenuOnOutside);
-  }, [isHistoryMenuOpen]);
+  }, [activeView, isHistoryMenuOpen]);
 
   const guardedNavigate = (nextPath: string) => {
     if (nextPath === pathname) return;
@@ -697,33 +727,37 @@ export default function AdminCategoriesManager({
 
   const undoStagedChanges = () => {
     if (activeView === 'miller') {
-      const previous = committedHistoryRef.current[committedHistoryIndexRef.current]?.catalog ?? persistedMillerRef.current;
-      setMillerCatalog(normalizeCatalogData(previous));
-      setMillerDirty(false);
-      stagedMillerHistoryRef.current = [normalizeCatalogData(previous)];
+      const previous = stagedMillerHistoryRef.current.pop();
+      if (!previous) return;
+      setMillerCatalog(normalizeCatalogData(previous.catalog));
+      setStatusByRow({ ...previous.statuses });
+      setMillerDirty(stagedMillerHistoryRef.current.length > 0);
       return;
     }
 
-    const previous = committedHistoryRef.current[committedHistoryIndexRef.current]?.catalog ?? persistedTableRef.current;
-    setCatalog(normalizeCatalogData(previous));
-    setTableDirty(false);
-    stagedTableHistoryRef.current = [normalizeCatalogData(previous)];
+    const previous = stagedTableHistoryRef.current.pop();
+    if (!previous) return;
+    setCatalog(normalizeCatalogData(previous.catalog));
+    setStatusByRow({ ...previous.statuses });
+    setTableDirty(stagedTableHistoryRef.current.length > 0);
   };
 
   const restoreCommittedHistory = () => {
-    const nextIndex = committedHistoryIndexRef.current + 1;
-    if (nextIndex >= committedHistoryRef.current.length) {
-      toast.error('Ni novejše shranjene verzije za obnovitev.');
+    const previousIndex = committedHistoryIndexRef.current - 1;
+    if (previousIndex < 0) {
+      toast.error('Ni starejše shranjene verzije za obnovitev.');
       return;
     }
 
-    committedHistoryIndexRef.current = nextIndex;
-    const snapshot = committedHistoryRef.current[nextIndex];
+    committedHistoryIndexRef.current = previousIndex;
+    const snapshot = committedHistoryRef.current[previousIndex];
     setCatalog(normalizeCatalogData(snapshot.catalog));
     setMillerCatalog(normalizeCatalogData(snapshot.catalog));
     setStatusByRow({ ...snapshot.statuses });
     setTableDirty(true);
     setMillerDirty(true);
+    stagedTableHistoryRef.current = [];
+    stagedMillerHistoryRef.current = [];
   };
 
   const addCategory = (title: string, afterSlug?: string) => {
@@ -1034,6 +1068,10 @@ export default function AdminCategoriesManager({
 
       if (event.metaKey || event.ctrlKey) {
         return prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id];
+      }
+
+      if (prev.includes(id) && prev.length > 1) {
+        return prev;
       }
 
       return [id];
@@ -1387,8 +1425,11 @@ export default function AdminCategoriesManager({
     persistedMillerRef.current = normalizeCatalogData(millerCatalog);
     persistedStatusRef.current = { ...statusByRow };
     committedHistoryRef.current = committedHistoryRef.current.slice(0, committedHistoryIndexRef.current + 1);
-    committedHistoryRef.current.push({ catalog: normalizeCatalogData(millerCatalog), statuses: { ...statusByRow } });
+    const snapshot = { catalog: normalizeCatalogData(millerCatalog), statuses: { ...statusByRow } };
+    committedHistoryRef.current.push(snapshot);
     committedHistoryIndexRef.current = committedHistoryRef.current.length - 1;
+    stagedMillerHistoryRef.current = [];
+    stagedTableHistoryRef.current = [];
     setMillerDirty(false);
     setTableDirty(false);
     setMillerError(null);
@@ -1404,8 +1445,11 @@ export default function AdminCategoriesManager({
     persistedTableRef.current = normalizeCatalogData(catalog);
     persistedStatusRef.current = { ...statusByRow };
     committedHistoryRef.current = committedHistoryRef.current.slice(0, committedHistoryIndexRef.current + 1);
-    committedHistoryRef.current.push({ catalog: normalizeCatalogData(catalog), statuses: { ...statusByRow } });
+    const snapshot = { catalog: normalizeCatalogData(catalog), statuses: { ...statusByRow } };
+    committedHistoryRef.current.push(snapshot);
     committedHistoryIndexRef.current = committedHistoryRef.current.length - 1;
+    stagedTableHistoryRef.current = [];
+    stagedMillerHistoryRef.current = [];
     setTableDirty(false);
     setMillerDirty(false);
     setTableError(null);
@@ -1673,20 +1717,21 @@ export default function AdminCategoriesManager({
 
     if (editingRow.kind === 'category') {
       if (!editingRow.categorySlug) return;
+      const nextStatuses = { ...statusByRow, [editingRow.id]: editingRow.status };
       stageTableCatalog({
         categories: catalog.categories.map((entry) =>
           entry.slug === editingRow.categorySlug
             ? { ...entry, title: nextTitle, summary: editingRow.description }
             : entry
         )
-      });
-      setStatusByRow((prev) => ({ ...prev, [editingRow.id]: editingRow.status }));
+      }, nextStatuses);
       setEditingRow(null);
       return;
     }
 
     if (!editingRow.categorySlug || !editingRow.subcategorySlug) return;
 
+    const nextStatuses = { ...statusByRow, [editingRow.id]: editingRow.status };
     stageTableCatalog({
       categories: catalog.categories.map((entry) =>
         entry.slug === editingRow.categorySlug
@@ -1700,9 +1745,8 @@ export default function AdminCategoriesManager({
             }
           : entry
       )
-    });
+    }, nextStatuses);
 
-    setStatusByRow((prev) => ({ ...prev, [editingRow.id]: editingRow.status }));
     setEditingRow(null);
   };
 
@@ -1902,9 +1946,13 @@ export default function AdminCategoriesManager({
     };
 
     const setStatus = (nextStatus: CategoryStatus) => {
-      setEditingRow((prev) => (prev && prev.id === id ? { ...prev, status: nextStatus } : prev));
-      setStatusByRow((prev) => ({ ...prev, [id]: nextStatus }));
-      setTableDirty(true);
+      setEditingRow((prev) => {
+        if (!prev || prev.id !== id) return prev;
+        const next = { ...prev, status: nextStatus };
+        const nextStatuses = { ...statusByRow, [id]: nextStatus };
+        stageStatusChange(nextStatuses);
+        return next;
+      });
       setOpenStatusMenuRowId(null);
     };
 
@@ -2091,6 +2139,7 @@ export default function AdminCategoriesManager({
                       setSelected({ kind: 'subcategory', categorySlug, subcategorySlug });
                     }
                   }}
+                  onPointerDown={(event) => event.stopPropagation()}
                   className="block w-full truncate whitespace-nowrap text-left text-xs font-semibold text-slate-500"
                   title={title}
                 >
@@ -2207,7 +2256,7 @@ export default function AdminCategoriesManager({
                 if (kind === 'root') openCreateDialog({ kind: 'category' });
                 if (kind === 'category' && categorySlug) openCreateDialog({ kind: 'subcategory', categorySlug });
                 if (kind === 'subcategory' && categorySlug && subcategorySlug) {
-                  openCreateDialog({ kind: 'subcategory', categorySlug, afterSlug: subcategorySlug });
+                  openCreateDialog({ kind: 'subcategory', categorySlug });
                 }
               }}
             >
@@ -2393,8 +2442,8 @@ export default function AdminCategoriesManager({
 
       <ConfirmDialog
         open={isUnsavedLeaveDialogOpen}
-        title="Ne-shranjene spremembe"
-        description="Imate ne-shranjene spremembe. Če zapustite stran, bodo lokalne spremembe izgubljene."
+        title="Neshranjene spremembe"
+        description="Imate neshranjene spremembe. Če zapustite stran, bodo lokalne spremembe izgubljene."
         confirmLabel="Zapusti stran"
         cancelLabel="Ostani"
         isDanger
@@ -2491,7 +2540,7 @@ export default function AdminCategoriesManager({
                 Shrani spremembe
               </Button>
 
-              <div className="relative" ref={historyMenuRef}>
+              <div className="relative" ref={tableHistoryMenuRef}>
                 <IconButton type="button" tone="neutral" aria-label="Zgodovina" onClick={() => setIsHistoryMenuOpen((prev) => !prev)}>
                   ⋮
                 </IconButton>
@@ -2565,11 +2614,11 @@ export default function AdminCategoriesManager({
                       <MenuPanel className="absolute left-1/2 top-8 z-20 w-36 -translate-x-1/2">
                         <MenuItem
                           onClick={() => {
-                            setStatusByRow((prev) => ({
-                              ...prev,
-                              ...Object.fromEntries(selectedRows.map((rowId) => [rowId, 'active']))
-                            }));
-                            setTableDirty(true);
+                            const nextStatuses = {
+                              ...statusByRow,
+                              ...Object.fromEntries(selectedRows.map((rowId) => [rowId, 'active' as CategoryStatus]))
+                            };
+                            stageStatusChange(nextStatuses);
                             setIsStatusHeaderMenuOpen(false);
                           }}
                         >
@@ -2577,11 +2626,11 @@ export default function AdminCategoriesManager({
                         </MenuItem>
                         <MenuItem
                           onClick={() => {
-                            setStatusByRow((prev) => ({
-                              ...prev,
-                              ...Object.fromEntries(selectedRows.map((rowId) => [rowId, 'inactive']))
-                            }));
-                            setTableDirty(true);
+                            const nextStatuses = {
+                              ...statusByRow,
+                              ...Object.fromEntries(selectedRows.map((rowId) => [rowId, 'inactive' as CategoryStatus]))
+                            };
+                            stageStatusChange(nextStatuses);
                             setIsStatusHeaderMenuOpen(false);
                           }}
                         >
@@ -2809,7 +2858,7 @@ export default function AdminCategoriesManager({
 
       <section className={activeView === 'miller' ? 'rounded-2xl border border-slate-200 bg-white p-3 shadow-sm' : 'hidden'}>
         <div className="mb-3 flex items-center justify-between">
-          <div className="text-xs text-slate-600">{millerDirty ? 'Ne-shranjene spremembe' : ''}</div>
+          <div className="text-xs text-slate-600">{millerDirty ? 'Neshranjene spremembe' : ''}</div>
           <div className="flex items-center gap-2">
             <Button
               type="button"
@@ -2820,7 +2869,7 @@ export default function AdminCategoriesManager({
             >
               Shrani spremembe
             </Button>
-            <div className="relative" ref={historyMenuRef}>
+            <div className="relative" ref={millerHistoryMenuRef}>
               <IconButton type="button" tone="neutral" aria-label="Zgodovina" onClick={() => setIsHistoryMenuOpen((prev) => !prev)}>⋮</IconButton>
               {isHistoryMenuOpen ? (
                 <MenuPanel className="absolute right-0 top-9 z-20 w-40">
@@ -2837,13 +2886,13 @@ export default function AdminCategoriesManager({
         <Selecto
           container={millerViewportRef.current ?? undefined}
           selectableTargets={[".miller-select-item"]}
-          selectByClick
-          selectFromInside
+          selectByClick={false}
+          selectFromInside={false}
           hitRate={0}
-          onSelectEnd={(event) => {
+          onSelectEnd={(event: { selected: Element[] }) => {
             const ids = event.selected
-              .map((node) => (node as HTMLElement).dataset.millerId)
-              .filter((id): id is string => Boolean(id));
+              .map((node: Element) => (node as HTMLElement).dataset.millerId)
+              .filter((id: string | undefined): id is string => Boolean(id));
             if (ids.length > 0) setMillerSelection(ids);
           }}
         />

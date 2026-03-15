@@ -5,11 +5,16 @@ import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   closestCenter,
+  useDraggable,
+  useDroppable,
   useSensor,
   useSensors,
-  type DragEndEvent
+  type DragEndEvent,
+  type DragOverEvent,
+  type DragStartEvent
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -46,6 +51,7 @@ import { Input } from '@/shared/ui/input';
 import { Spinner } from '@/shared/ui/loading';
 import { useToast } from '@/shared/ui/toast';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
+import Selecto from 'react-selecto';
 
 type CatalogData = { categories: CatalogCategory[] };
 type AdminCategoriesPayload = { categories: CatalogCategory[]; statuses?: Record<string, CategoryStatus> };
@@ -421,6 +427,8 @@ export default function AdminCategoriesManager({
   const [millerSaveSummary, setMillerSaveSummary] = useState<string[]>([]);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
   const [isUnsavedLeaveDialogOpen, setIsUnsavedLeaveDialogOpen] = useState(false);
+  const [isHistoryMenuOpen, setIsHistoryMenuOpen] = useState(false);
+  const [activeMillerDragId, setActiveMillerDragId] = useState<string | null>(null);
 
   const { toast } = useToast();
   const pathname = usePathname();
@@ -436,6 +444,12 @@ export default function AdminCategoriesManager({
   const persistedTableRef = useRef<CatalogData>({ categories: [] });
   const persistedMillerRef = useRef<CatalogData>({ categories: [] });
   const persistedStatusRef = useRef<Record<string, CategoryStatus>>({});
+  const stagedTableHistoryRef = useRef<CatalogData[]>([]);
+  const stagedMillerHistoryRef = useRef<CatalogData[]>([]);
+  const committedHistoryRef = useRef<Array<{ catalog: CatalogData; statuses: Record<string, CategoryStatus> }>>([]);
+  const committedHistoryIndexRef = useRef(0);
+  const historyMenuRef = useRef<HTMLDivElement | null>(null);
+  const millerViewportRef = useRef<HTMLDivElement | null>(null);
 
   const applyPayloadState = useCallback((payloadRaw: AdminCategoriesPayload) => {
     const payload = normalizeCatalogData(payloadRaw);
@@ -467,6 +481,10 @@ export default function AdminCategoriesManager({
       persistedStatusRef.current = next;
       return next;
     });
+    stagedTableHistoryRef.current = [payload];
+    stagedMillerHistoryRef.current = [payload];
+    committedHistoryRef.current = [{ catalog: payload, statuses: { ...nextStatuses } }];
+    committedHistoryIndexRef.current = 0;
   }, []);
 
   const load = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
@@ -605,13 +623,17 @@ export default function AdminCategoriesManager({
   }, [millerCatalog.categories, selected]);
 
   const stageMillerCatalog = (next: CatalogData) => {
-    setMillerCatalog(normalizeCatalogData(next));
+    const normalized = normalizeCatalogData(next);
+    stagedMillerHistoryRef.current.push(normalized);
+    setMillerCatalog(normalized);
     setMillerDirty(true);
     setMillerError(null);
   };
 
   const stageTableCatalog = (next: CatalogData) => {
-    setCatalog(normalizeCatalogData(next));
+    const normalized = normalizeCatalogData(next);
+    stagedTableHistoryRef.current.push(normalized);
+    setCatalog(normalized);
     setTableDirty(true);
     setTableError(null);
   };
@@ -648,6 +670,19 @@ export default function AdminCategoriesManager({
     return () => document.removeEventListener('click', handleDocumentClick);
   }, [hasUnsavedChanges, pathname]);
 
+  useEffect(() => {
+    const closeHistoryMenuOnOutside = (event: MouseEvent) => {
+      if (!isHistoryMenuOpen) return;
+      const target = event.target as Node | null;
+      if (historyMenuRef.current && target && !historyMenuRef.current.contains(target)) {
+        setIsHistoryMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', closeHistoryMenuOnOutside);
+    return () => document.removeEventListener('mousedown', closeHistoryMenuOnOutside);
+  }, [isHistoryMenuOpen]);
+
   const guardedNavigate = (nextPath: string) => {
     if (nextPath === pathname) return;
     if (!hasUnsavedChanges) {
@@ -657,6 +692,38 @@ export default function AdminCategoriesManager({
 
     setPendingNavigation(nextPath);
     setIsUnsavedLeaveDialogOpen(true);
+  };
+
+
+  const undoStagedChanges = () => {
+    if (activeView === 'miller') {
+      const previous = committedHistoryRef.current[committedHistoryIndexRef.current]?.catalog ?? persistedMillerRef.current;
+      setMillerCatalog(normalizeCatalogData(previous));
+      setMillerDirty(false);
+      stagedMillerHistoryRef.current = [normalizeCatalogData(previous)];
+      return;
+    }
+
+    const previous = committedHistoryRef.current[committedHistoryIndexRef.current]?.catalog ?? persistedTableRef.current;
+    setCatalog(normalizeCatalogData(previous));
+    setTableDirty(false);
+    stagedTableHistoryRef.current = [normalizeCatalogData(previous)];
+  };
+
+  const restoreCommittedHistory = () => {
+    const nextIndex = committedHistoryIndexRef.current + 1;
+    if (nextIndex >= committedHistoryRef.current.length) {
+      toast.error('Ni novejše shranjene verzije za obnovitev.');
+      return;
+    }
+
+    committedHistoryIndexRef.current = nextIndex;
+    const snapshot = committedHistoryRef.current[nextIndex];
+    setCatalog(normalizeCatalogData(snapshot.catalog));
+    setMillerCatalog(normalizeCatalogData(snapshot.catalog));
+    setStatusByRow({ ...snapshot.statuses });
+    setTableDirty(true);
+    setMillerDirty(true);
   };
 
   const addCategory = (title: string, afterSlug?: string) => {
@@ -1319,6 +1386,9 @@ export default function AdminCategoriesManager({
 
     persistedMillerRef.current = normalizeCatalogData(millerCatalog);
     persistedStatusRef.current = { ...statusByRow };
+    committedHistoryRef.current = committedHistoryRef.current.slice(0, committedHistoryIndexRef.current + 1);
+    committedHistoryRef.current.push({ catalog: normalizeCatalogData(millerCatalog), statuses: { ...statusByRow } });
+    committedHistoryIndexRef.current = committedHistoryRef.current.length - 1;
     setMillerDirty(false);
     setTableDirty(false);
     setMillerError(null);
@@ -1333,6 +1403,9 @@ export default function AdminCategoriesManager({
 
     persistedTableRef.current = normalizeCatalogData(catalog);
     persistedStatusRef.current = { ...statusByRow };
+    committedHistoryRef.current = committedHistoryRef.current.slice(0, committedHistoryIndexRef.current + 1);
+    committedHistoryRef.current.push({ catalog: normalizeCatalogData(catalog), statuses: { ...statusByRow } });
+    committedHistoryIndexRef.current = committedHistoryRef.current.length - 1;
     setTableDirty(false);
     setMillerDirty(false);
     setTableError(null);
@@ -2133,8 +2206,8 @@ export default function AdminCategoriesManager({
               onClick={() => {
                 if (kind === 'root') openCreateDialog({ kind: 'category' });
                 if (kind === 'category' && categorySlug) openCreateDialog({ kind: 'subcategory', categorySlug });
-                if (kind === 'subcategory' && categorySlug) {
-                  openCreateDialog({ kind: 'subcategory', categorySlug });
+                if (kind === 'subcategory' && categorySlug && subcategorySlug) {
+                  openCreateDialog({ kind: 'subcategory', categorySlug, afterSlug: subcategorySlug });
                 }
               }}
             >
@@ -2417,6 +2490,18 @@ export default function AdminCategoriesManager({
               >
                 Shrani spremembe
               </Button>
+
+              <div className="relative" ref={historyMenuRef}>
+                <IconButton type="button" tone="neutral" aria-label="Zgodovina" onClick={() => setIsHistoryMenuOpen((prev) => !prev)}>
+                  ⋮
+                </IconButton>
+                {isHistoryMenuOpen ? (
+                  <MenuPanel className="absolute right-0 top-9 z-20 w-40">
+                    <MenuItem onClick={() => { undoStagedChanges(); setIsHistoryMenuOpen(false); }}>Razveljavi</MenuItem>
+                    <MenuItem onClick={() => { restoreCommittedHistory(); setIsHistoryMenuOpen(false); }}>Obnovi</MenuItem>
+                  </MenuPanel>
+                ) : null}
+              </div>
             </>
           }
         >
@@ -2521,8 +2606,34 @@ export default function AdminCategoriesManager({
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         {tableError ? <p className="mb-3 rounded-lg border border-[var(--danger-300)] bg-[var(--danger-100)] px-3 py-2 text-xs text-[var(--danger-700)]">{tableError}</p> : null}
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-sm font-semibold text-slate-700">Predogled</p>
+          <div className="flex items-center gap-3">
+            <label className="mr-2 flex items-center gap-2 text-[11px] text-slate-500">
+              Elementov na vrstico
+              <input
+                type="range"
+                min={1}
+                max={12}
+                value={lowerViewCount}
+                onChange={(event) => setLowerViewCount(Number(event.target.value || 4))}
+                className="h-1.5 w-28 accent-[#3e67d6]"
+              />
+              <span className="w-4 text-right text-slate-600">{lowerViewCount}</span>
+            </label>
+            <Button
+              variant="primary"
+              size="toolbar"
+              onClick={() => {
+                const summary = summarizeCatalogChanges(persistedTableRef.current, catalog, persistedStatusRef.current, statusByRow);
+                setTableSaveSummary(summary);
+                setIsTableSaveDialogOpen(true);
+              }}
+              disabled={!tableDirty || saving}
+            >
+              Shrani spremembe
+            </Button>
+          </div>
         </div>
 
         {selectedContext?.kind === 'root' ||
@@ -2550,7 +2661,7 @@ export default function AdminCategoriesManager({
                           <div className="absolute inset-0 flex items-center justify-center gap-2">
                             <button
                               type="button"
-                              className="rounded-full bg-black/35 p-2 text-white backdrop-blur-sm hover:bg-black/50"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-500 backdrop-blur-sm hover:bg-white"
                               onPointerDown={(event) => event.stopPropagation()}
                               onClick={(event) => {
                                 event.stopPropagation();
@@ -2566,7 +2677,7 @@ export default function AdminCategoriesManager({
                             {item.image ? (
                               <button
                                 type="button"
-                                className="rounded-full bg-black/35 p-2 text-white backdrop-blur-sm hover:bg-black/50"
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-500 backdrop-blur-sm hover:bg-white"
                                 onPointerDown={(event) => event.stopPropagation()}
                                 onClick={(event) => {
                                   event.stopPropagation();
@@ -2642,32 +2753,6 @@ export default function AdminCategoriesManager({
           />
         ) : null}
 
-        <div className="mt-4 flex items-center justify-end gap-3">
-          <label className="mr-2 flex items-center gap-2 text-[11px] text-slate-500">
-            Elementov na vrstico
-            <input
-              type="range"
-              min={1}
-              max={12}
-              value={lowerViewCount}
-              onChange={(event) => setLowerViewCount(Number(event.target.value || 4))}
-              className="h-1.5 w-28 accent-[#3e67d6]"
-            />
-            <span className="w-4 text-right text-slate-600">{lowerViewCount}</span>
-          </label>
-          <Button
-            variant="primary"
-            size="toolbar"
-            onClick={() => {
-              const summary = summarizeCatalogChanges(persistedTableRef.current, catalog, persistedStatusRef.current, statusByRow);
-              setTableSaveSummary(summary);
-              setIsTableSaveDialogOpen(true);
-            }}
-            disabled={!tableDirty || saving}
-          >
-            Shrani spremembe
-          </Button>
-        </div>
       </section>
       </div>
 
@@ -2725,20 +2810,46 @@ export default function AdminCategoriesManager({
       <section className={activeView === 'miller' ? 'rounded-2xl border border-slate-200 bg-white p-3 shadow-sm' : 'hidden'}>
         <div className="mb-3 flex items-center justify-between">
           <div className="text-xs text-slate-600">{millerDirty ? 'Ne-shranjene spremembe' : ''}</div>
-          <Button
-            type="button"
-            variant="primary"
-            size="toolbar"
-            onClick={() => { const summary = summarizeCatalogChanges(persistedMillerRef.current, millerCatalog, persistedStatusRef.current, statusByRow); setMillerSaveSummary(summary); setIsMillerSaveDialogOpen(true); }}
-            disabled={!millerDirty || saving}
-          >
-            Shrani spremembe
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="primary"
+              size="toolbar"
+              onClick={() => { const summary = summarizeCatalogChanges(persistedMillerRef.current, millerCatalog, persistedStatusRef.current, statusByRow); setMillerSaveSummary(summary); setIsMillerSaveDialogOpen(true); }}
+              disabled={!millerDirty || saving}
+            >
+              Shrani spremembe
+            </Button>
+            <div className="relative" ref={historyMenuRef}>
+              <IconButton type="button" tone="neutral" aria-label="Zgodovina" onClick={() => setIsHistoryMenuOpen((prev) => !prev)}>⋮</IconButton>
+              {isHistoryMenuOpen ? (
+                <MenuPanel className="absolute right-0 top-9 z-20 w-40">
+                  <MenuItem onClick={() => { undoStagedChanges(); setIsHistoryMenuOpen(false); }}>Razveljavi</MenuItem>
+                  <MenuItem onClick={() => { restoreCommittedHistory(); setIsHistoryMenuOpen(false); }}>Obnovi</MenuItem>
+                </MenuPanel>
+              ) : null}
+            </div>
+          </div>
         </div>
 
         {millerError ? <p className="mb-3 rounded-lg border border-[var(--danger-300)] bg-[var(--danger-100)] px-3 py-2 text-xs text-[var(--danger-700)]">{millerError}</p> : null}
 
+        <Selecto
+          container={millerViewportRef.current ?? undefined}
+          selectableTargets={[".miller-select-item"]}
+          selectByClick
+          selectFromInside
+          hitRate={0}
+          onSelectEnd={(event) => {
+            const ids = event.selected
+              .map((node) => (node as HTMLElement).dataset.millerId)
+              .filter((id): id is string => Boolean(id));
+            if (ids.length > 0) setMillerSelection(ids);
+          }}
+        />
+
         <div
+          ref={millerViewportRef}
           className="grid gap-3"
           style={{ gridTemplateColumns: `repeat(${Math.max(1, millerColumns.length)}, minmax(0, 1fr))` }}
         >
@@ -2793,10 +2904,16 @@ export default function AdminCategoriesManager({
                     <button
                       key={row.id}
                       type="button"
-                      className={`block w-full rounded-md border px-2 py-1 text-left text-xs font-medium transition ${millerSelection.includes(row.id) || row.tone === 'focused' ? 'border-[#3e67d6]/50 bg-[#f0f4ff] text-[#1f3f93]' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-100'}`}
+                      data-miller-id={row.id}
+                      className={`miller-select-item block w-full rounded-md border px-2 py-1 text-left text-xs font-medium transition ${millerSelection.includes(row.id) || row.tone === 'focused' ? 'border-[#3e67d6]/50 bg-[#f0f4ff] text-[#1f3f93]' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-100'}`}
                       onClick={row.onClick}
                       onDoubleClick={() => {
                         if (row.kind === 'item') return;
+                        setMillerRename({ id: row.id, value: row.label });
+                      }}
+                      onContextMenu={(event) => {
+                        if (row.kind === 'item') return;
+                        event.preventDefault();
                         setMillerRename({ id: row.id, value: row.label });
                       }}
                       draggable

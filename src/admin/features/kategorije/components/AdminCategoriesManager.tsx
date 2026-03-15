@@ -53,18 +53,38 @@ import { useToast } from '@/shared/ui/toast';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 import Selecto from 'react-selecto';
 
-type CatalogData = { categories: CatalogCategory[] };
+type RecursiveCatalogSubcategory = Omit<CatalogSubcategory, 'items'> & {
+  items: CatalogItem[];
+  subcategories: RecursiveCatalogSubcategory[];
+};
+
+type RecursiveCatalogCategory = Omit<CatalogCategory, 'subcategories' | 'items'> & {
+  subcategories: RecursiveCatalogSubcategory[];
+  items: CatalogItem[];
+};
+
+type CatalogData = { categories: RecursiveCatalogCategory[] };
 type AdminCategoriesPayload = { categories: CatalogCategory[]; statuses?: Record<string, CategoryStatus> };
 
 type SelectedNode =
   | { kind: 'root' }
   | { kind: 'category'; categorySlug: string }
-  | { kind: 'subcategory'; categorySlug: string; subcategorySlug: string };
+  | {
+      kind: 'subcategory';
+      categorySlug: string;
+      subcategoryPath?: string[];
+      subcategorySlug?: string;
+    };
 
 type DeleteTarget =
   | { kind: 'root' }
   | { kind: 'category'; categorySlug: string }
-  | { kind: 'subcategory'; categorySlug: string; subcategorySlug?: string }
+  | {
+      kind: 'subcategory';
+      categorySlug: string;
+      subcategoryPath?: string[];
+      subcategorySlug?: string;
+    }
   | null;
 
 type ImageDeleteTarget =
@@ -83,6 +103,7 @@ type EditingRowDraft = {
   id: string;
   kind: 'root' | 'category' | 'subcategory';
   categorySlug?: string;
+  subcategoryPath?: string[];
   subcategorySlug?: string;
   title: string;
   description: string;
@@ -91,7 +112,7 @@ type EditingRowDraft = {
 
 type CreateTarget =
   | { kind: 'category'; afterSlug?: string }
-  | { kind: 'subcategory'; categorySlug: string; afterSlug?: string }
+  | { kind: 'subcategory'; categorySlug: string; parentPath?: string[]; afterSlug?: string }
   | null;
 
 type MillerDeleteTarget =
@@ -109,8 +130,12 @@ const bulkDeleteButtonClass = buttonTokenClasses.danger;
 const CATEGORY_STATUS_STORAGE_KEY = 'admin-categories-status-v1';
 const rootId = 'root';
 const catId = (slug: string) => `cat:${slug}`;
-const subId = (catSlug: string, subSlug: string) => `sub:${catSlug}:${subSlug}`;
-const itemId = (catSlug: string, itemSlug: string, subSlug?: string) => `item:${catSlug}:${subSlug ?? '_'}:${itemSlug}`;
+const subPathKey = (subPath: string[]) => subPath.join('__');
+const subId = (categorySlug: string, subPath: string | string[]) =>
+  `sub:${categorySlug}:${subPathKey(Array.isArray(subPath) ? subPath : [subPath])}`;
+
+const itemId = (catSlug: string, itemSlug: string, subSlug?: string) =>
+  `item:${catSlug}:${subSlug ?? '_'}:${itemSlug}`;
 const slugify = (value: string) =>
   value.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-čšžćđ]/gi, '');
 
@@ -130,6 +155,170 @@ const normalizeNodeId = (value: unknown, fallbackSeed: string) => {
 
   return `id-${hash.toString(36)}`;
 };
+
+type RecursiveNode = RecursiveCatalogSubcategory;
+
+const toSubcategoryPath = (value?: string | string[]) =>
+  Array.isArray(value) ? value : value ? [value] : [];
+
+const pathEquals = (left?: string | string[], right?: string | string[]) => {
+  const normalizedLeft = toSubcategoryPath(left);
+  const normalizedRight = toSubcategoryPath(right);
+
+  return (
+    normalizedLeft.length === normalizedRight.length &&
+    normalizedLeft.every((part, index) => part === normalizedRight[index])
+  );
+};
+
+const parseSubNodeId = (value: string): { categorySlug: string; subcategoryPath: string[] } | null => {
+  if (!value.startsWith('sub:')) return null;
+
+  const [, categorySlug, pathKey = ''] = value.split(':');
+  if (!categorySlug) return null;
+
+  return {
+    categorySlug,
+    subcategoryPath: pathKey ? pathKey.split('__').filter(Boolean) : []
+  };
+};
+
+function normalizeRecursiveSubcategory(
+  input: unknown,
+  categoryIdSeed: string,
+  parentPath: string[]
+): RecursiveNode | null {
+  if (typeof input !== 'object' || input === null) return null;
+
+  const subcategory = input as Partial<CatalogSubcategory> & { subcategories?: unknown[] };
+  const slug = typeof subcategory.slug === 'string' ? subcategory.slug.trim() : '';
+  if (!slug) return null;
+
+  const currentPath = [...parentPath, slug];
+
+  return {
+    id: normalizeNodeId(subcategory.id, `sub-${categoryIdSeed}-${currentPath.join('-')}`),
+    slug,
+    title: typeof subcategory.title === 'string' ? subcategory.title : slug,
+    description: typeof subcategory.description === 'string' ? subcategory.description : '',
+    adminNotes: typeof subcategory.adminNotes === 'string' ? subcategory.adminNotes : undefined,
+    image: typeof subcategory.image === 'string' ? subcategory.image : '',
+    items: Array.isArray(subcategory.items) ? subcategory.items : [],
+    subcategories: Array.isArray(subcategory.subcategories)
+      ? subcategory.subcategories
+          .map((child) => normalizeRecursiveSubcategory(child, categoryIdSeed, currentPath))
+          .filter((entry): entry is RecursiveNode => entry !== null)
+      : []
+  };
+}
+
+function findSubcategoryByPath(
+  nodes: RecursiveNode[],
+  path: string[]
+): RecursiveNode | null {
+  if (path.length === 0) return null;
+
+  const current = nodes.find((node) => node.slug === path[0]);
+  if (!current) return null;
+  if (path.length === 1) return current;
+
+  return findSubcategoryByPath(current.subcategories, path.slice(1));
+}
+
+function updateSubcategoryTree(
+  nodes: RecursiveNode[],
+  path: string[],
+  updater: (node: RecursiveNode) => RecursiveNode
+): RecursiveNode[] {
+  if (path.length === 0) return nodes;
+
+  return nodes.map((node) => {
+    if (node.slug !== path[0]) return node;
+
+    if (path.length === 1) {
+      return updater(node);
+    }
+
+    return {
+      ...node,
+      subcategories: updateSubcategoryTree(node.subcategories, path.slice(1), updater)
+    };
+  });
+}
+
+function removeSubcategoryTree(
+  nodes: RecursiveNode[],
+  path: string[]
+): RecursiveNode[] {
+  if (path.length === 0) return nodes;
+
+  if (path.length === 1) {
+    return nodes.filter((node) => node.slug !== path[0]);
+  }
+
+  return nodes.map((node) => {
+    if (node.slug !== path[0]) return node;
+
+    return {
+      ...node,
+      subcategories: removeSubcategoryTree(node.subcategories, path.slice(1))
+    };
+  });
+}
+
+function collectSubcategoryIds(
+  categorySlug: string,
+  nodes: RecursiveNode[],
+  parentPath: string[] = []
+): string[] {
+  return nodes.flatMap((node) => {
+    const currentPath = [...parentPath, node.slug];
+    return [
+      subId(categorySlug, currentPath),
+      ...collectSubcategoryIds(categorySlug, node.subcategories, currentPath)
+    ];
+  });
+}
+
+function filterSubcategoryTree(
+  nodes: RecursiveNode[],
+  searchQuery: string
+): RecursiveNode[] {
+  return nodes.flatMap((node) => {
+    const selfMatches = [node.title, node.description].join(' ').toLowerCase().includes(searchQuery);
+    const matchingChildren = filterSubcategoryTree(node.subcategories, searchQuery);
+
+    if (!selfMatches && matchingChildren.length === 0) return [];
+
+    return [
+      {
+        ...node,
+        subcategories: selfMatches ? node.subcategories : matchingChildren
+      }
+    ];
+  });
+}
+
+function pruneSelectedSubcategoryTree(
+  categorySlug: string,
+  nodes: RecursiveNode[],
+  selectedIds: Set<string>,
+  parentPath: string[] = []
+): RecursiveNode[] {
+  return nodes.flatMap((node) => {
+    const currentPath = [...parentPath, node.slug];
+    const currentId = subId(categorySlug, currentPath);
+
+    if (selectedIds.has(currentId)) return [];
+
+    return [
+      {
+        ...node,
+        subcategories: pruneSelectedSubcategoryTree(categorySlug, node.subcategories, selectedIds, currentPath)
+      }
+    ];
+  });
+}
 
 const treeIndent = 32;
 const treeRowHeight = 48;
@@ -261,7 +450,8 @@ function normalizeCatalogData(input: unknown): CatalogData {
   const categories = source
     .map((rawCategory) => {
       if (typeof rawCategory !== 'object' || rawCategory === null) return null;
-      const category = rawCategory as Partial<CatalogCategory>;
+
+      const category = rawCategory as Partial<CatalogCategory> & { subcategories?: unknown[] };
       const slug = typeof category.slug === 'string' ? category.slug.trim() : '';
       if (!slug) return null;
 
@@ -278,30 +468,70 @@ function normalizeCatalogData(input: unknown): CatalogData {
         adminNotes: typeof category.adminNotes === 'string' ? category.adminNotes : undefined,
         bannerImage: typeof category.bannerImage === 'string' ? category.bannerImage : undefined,
         subcategories: subcategoriesSource
-          .map((rawSubcategory) => {
-            if (typeof rawSubcategory !== 'object' || rawSubcategory === null) return null;
-            const subcategory = rawSubcategory as Partial<CatalogSubcategory>;
-            const subSlug = typeof subcategory.slug === 'string' ? subcategory.slug.trim() : '';
-            if (!subSlug) return null;
-            return {
-              id: normalizeNodeId(subcategory.id, `sub-${categoryId}-${slug}-${subSlug}`),
-              slug: subSlug,
-              title: typeof subcategory.title === 'string' ? subcategory.title : subSlug,
-              description: typeof subcategory.description === 'string' ? subcategory.description : '',
-              adminNotes: typeof subcategory.adminNotes === 'string' ? subcategory.adminNotes : undefined,
-              image: typeof subcategory.image === 'string' ? subcategory.image : '',
-              items: Array.isArray(subcategory.items) ? subcategory.items : []
-            } as CatalogSubcategory;
-          })
-          .filter((entry): entry is CatalogSubcategory => entry !== null),
+          .map((rawSubcategory) => normalizeRecursiveSubcategory(rawSubcategory, categoryId, []))
+          .filter((entry): entry is RecursiveNode => entry !== null),
         items: Array.isArray(category.items) ? category.items : []
-      } as CatalogCategory;
+      } as RecursiveCatalogCategory;
     })
-    .filter((entry): entry is CatalogCategory => entry !== null);
+    .filter((entry): entry is RecursiveCatalogCategory => entry !== null);
 
   return { categories };
 }
 
+function flattenSubcategories(
+  categorySlug: string,
+  nodes: RecursiveNode[],
+  parentPath: string[] = [],
+  parentLabel: string
+): Array<{
+  id: string;
+  title: string;
+  image: string;
+  index: number;
+  parentId: string;
+  parentLabel: string;
+}> {
+  return nodes.flatMap((node, index) => {
+    const currentPath = [...parentPath, node.slug];
+    const currentId = subId(categorySlug, currentPath);
+    const current = {
+      id: currentId,
+      title: node.title,
+      image: node.image ?? '',
+      index,
+      parentId:
+        parentPath.length === 0
+          ? catId(categorySlug)
+          : subId(categorySlug, parentPath),
+      parentLabel
+    };
+
+    return [
+      current,
+      ...flattenSubcategories(categorySlug, node.subcategories, currentPath, node.title)
+    ];
+  });
+}
+
+function buildLabelMap(categories: RecursiveCatalogCategory[]) {
+  const labelById = new Map<string, string>();
+
+  categories.forEach((category) => {
+    labelById.set(catId(category.slug), category.title);
+
+    const visit = (nodes: RecursiveNode[], parentPath: string[] = []) => {
+      nodes.forEach((node) => {
+        const currentPath = [...parentPath, node.slug];
+        labelById.set(subId(category.slug, currentPath), node.title);
+        visit(node.subcategories, currentPath);
+      });
+    };
+
+    visit(category.subcategories);
+  });
+
+  return labelById;
+}
 
 function summarizeCatalogChanges(
   previous: CatalogData,
@@ -312,55 +542,106 @@ function summarizeCatalogChanges(
   const lines: string[] = [];
   const prevCats = previous.categories;
   const nextCats = next.categories;
-  const prevById = new Map(prevCats.map((c, i) => [c.id, { c, i }]));
-  const nextById = new Map(nextCats.map((c, i) => [c.id, { c, i }]));
+  const prevById = new Map(prevCats.map((category, index) => [category.id, { category, index }]));
+  const nextById = new Map(nextCats.map((category, index) => [category.id, { category, index }]));
 
-  for (const { c } of prevById.values()) {
-    if (!nextById.has(c.id)) lines.push(`izbrisana kategorija "${c.title}"`);
-  }
-  for (const { c } of nextById.values()) {
-    if (!prevById.has(c.id)) lines.push(`dodana kategorija "${c.title}"`);
-  }
-
-  for (const [id, { c: oldCat, i: oldIndex }] of prevById.entries()) {
-    const match = nextById.get(id);
-    if (!match) continue;
-    const newCat = match.c;
-    if (oldCat.title !== newCat.title) lines.push(`preimenovana kategorija "${oldCat.title}" → "${newCat.title}"`);
-    if ((oldCat.image ?? '') !== (newCat.image ?? '')) lines.push(`spremenjena slika za kategorijo "${newCat.title}"`);
-    if (oldIndex !== match.i) lines.push(`premaknjena kategorija "${newCat.title}"`);
-
-    const oldSubs = oldCat.subcategories ?? [];
-    const newSubs = newCat.subcategories ?? [];
-    const oldSubsById = new Map(oldSubs.map((sub, i) => [sub.id, { sub, i }]));
-    const newSubsById = new Map(newSubs.map((sub, i) => [sub.id, { sub, i }]));
-
-    for (const { sub } of oldSubsById.values()) {
-      if (!newSubsById.has(sub.id)) lines.push(`izbrisana podkategorija "${sub.title}"`);
-    }
-    for (const { sub } of newSubsById.values()) {
-      if (!oldSubsById.has(sub.id)) lines.push(`dodana podkategorija pod "${newCat.title}": "${sub.title}"`);
-    }
-
-    for (const [subId, { sub: oldSub, i: oldSubIndex }] of oldSubsById.entries()) {
-      const nextSubMatch = newSubsById.get(subId);
-      if (!nextSubMatch) continue;
-      const newSub = nextSubMatch.sub;
-      if (oldSub.title !== newSub.title) lines.push(`preimenovana podkategorija "${oldSub.title}" → "${newSub.title}"`);
-      if ((oldSub.image ?? '') !== (newSub.image ?? '')) lines.push(`spremenjena slika za podkategorijo "${newSub.title}"`);
-      if (oldSubIndex !== nextSubMatch.i) lines.push(`premaknjena podkategorija "${newSub.title}"`);
+  for (const { category } of prevById.values()) {
+    if (!nextById.has(category.id)) {
+      lines.push(`izbrisana kategorija "${category.title}"`);
     }
   }
 
-  const labelById = new Map<string, string>();
-  nextCats.forEach((category) => {
-    labelById.set(catId(category.slug), category.title);
-    category.subcategories.forEach((subcategory) => {
-      labelById.set(subId(category.slug, subcategory.slug), subcategory.title);
+  for (const { category } of nextById.values()) {
+    if (!prevById.has(category.id)) {
+      lines.push(`dodana kategorija "${category.title}"`);
+    }
+  }
+
+  const prevSubsById = new Map<
+    string,
+    {
+      title: string;
+      image: string;
+      index: number;
+      parentId: string;
+      parentLabel: string;
+    }
+  >();
+
+  const nextSubsById = new Map<
+    string,
+    {
+      title: string;
+      image: string;
+      index: number;
+      parentId: string;
+      parentLabel: string;
+    }
+  >();
+
+  prevCats.forEach((category) => {
+    flattenSubcategories(category.slug, category.subcategories, [], category.title).forEach((entry) => {
+      prevSubsById.set(entry.id, entry);
     });
   });
 
+  nextCats.forEach((category) => {
+    flattenSubcategories(category.slug, category.subcategories, [], category.title).forEach((entry) => {
+      nextSubsById.set(entry.id, entry);
+    });
+  });
+
+  for (const [id, prevSub] of prevSubsById.entries()) {
+    if (!nextSubsById.has(id)) {
+      lines.push(`izbrisana podkategorija "${prevSub.title}"`);
+    }
+  }
+
+  for (const [id, nextSub] of nextSubsById.entries()) {
+    if (!prevSubsById.has(id)) {
+      lines.push(`dodana podkategorija pod "${nextSub.parentLabel}": "${nextSub.title}"`);
+    }
+  }
+
+  for (const [id, prevSub] of prevSubsById.entries()) {
+    const nextSub = nextSubsById.get(id);
+    if (!nextSub) continue;
+
+    if (prevSub.title !== nextSub.title) {
+      lines.push(`preimenovana podkategorija "${prevSub.title}" → "${nextSub.title}"`);
+    }
+
+    if (prevSub.image !== nextSub.image) {
+      lines.push(`spremenjena slika za podkategorijo "${nextSub.title}"`);
+    }
+
+    if (prevSub.parentId !== nextSub.parentId || prevSub.index !== nextSub.index) {
+      lines.push(`premaknjena podkategorija "${nextSub.title}"`);
+    }
+  }
+
+  for (const [id, { category: oldCat, index: oldIndex }] of prevById.entries()) {
+    const match = nextById.get(id);
+    if (!match) continue;
+
+    const newCat = match.category;
+
+    if (oldCat.title !== newCat.title) {
+      lines.push(`preimenovana kategorija "${oldCat.title}" → "${newCat.title}"`);
+    }
+
+    if ((oldCat.image ?? '') !== (newCat.image ?? '')) {
+      lines.push(`spremenjena slika za kategorijo "${newCat.title}"`);
+    }
+
+    if (oldIndex !== match.index) {
+      lines.push(`premaknjena kategorija "${newCat.title}"`);
+    }
+  }
+
+  const labelById = buildLabelMap(nextCats);
   const allStatusIds = new Set([...Object.keys(previousStatuses), ...Object.keys(nextStatuses)]);
+
   for (const id of allStatusIds) {
     const before = previousStatuses[id] ?? 'active';
     const after = nextStatuses[id] ?? 'active';
@@ -452,6 +733,15 @@ export default function AdminCategoriesManager({
   const tableHistoryMenuRef = useRef<HTMLDivElement | null>(null);
   const millerHistoryMenuRef = useRef<HTMLDivElement | null>(null);
   const millerViewportRef = useRef<HTMLDivElement | null>(null);
+  const canUndoStagedChanges =
+    activeView === 'miller'
+      ? stagedMillerHistoryRef.current.length > 0
+      : stagedTableHistoryRef.current.length > 0;
+
+  const hasPendingStagedChanges =
+    stagedTableHistoryRef.current.length > 0 || stagedMillerHistoryRef.current.length > 0;
+
+  const canRestoreCommittedHistory = committedHistoryIndexRef.current > 0;
 
   const applyPayloadState = useCallback((payloadRaw: AdminCategoriesPayload) => {
     const payload = normalizeCatalogData(payloadRaw);
@@ -467,6 +757,7 @@ export default function AdminCategoriesManager({
     setMillerSelection([]);
     setExpanded((prev) => ({
       ...prev,
+      [rootId]: prev[rootId] ?? true,
       ...Object.fromEntries(payload.categories.map((entry) => [catId(entry.slug), prev[catId(entry.slug)] ?? false]))
     }));
 
@@ -603,12 +894,12 @@ export default function AdminCategoriesManager({
 
     if (selected.kind === 'category') return { kind: 'category' as const, category };
 
-    const subcategory = category.subcategories.find((entry) => entry.slug === selected.subcategorySlug);
+    const subcategoryPath = toSubcategoryPath(selected.subcategoryPath ?? selected.subcategorySlug);
+    const subcategory = findSubcategoryByPath(category.subcategories, subcategoryPath);
     if (!subcategory) return null;
 
     return { kind: 'subcategory' as const, category, subcategory };
   }, [catalog.categories, selected]);
-
 
   const millerSelectedContext = useMemo(() => {
     if (selected.kind === 'root') return { kind: 'root' as const };
@@ -618,7 +909,8 @@ export default function AdminCategoriesManager({
 
     if (selected.kind === 'category') return { kind: 'category' as const, category };
 
-    const subcategory = category.subcategories.find((entry) => entry.slug === selected.subcategorySlug);
+    const subcategoryPath = toSubcategoryPath(selected.subcategoryPath ?? selected.subcategorySlug);
+    const subcategory = findSubcategoryByPath(category.subcategories, subcategoryPath);
     if (!subcategory) return null;
 
     return { kind: 'subcategory' as const, category, subcategory };
@@ -729,35 +1021,70 @@ export default function AdminCategoriesManager({
     if (activeView === 'miller') {
       const previous = stagedMillerHistoryRef.current.pop();
       if (!previous) return;
-      setMillerCatalog(normalizeCatalogData(previous.catalog));
+
+      const normalizedCatalog = normalizeCatalogData(previous.catalog);
+
+      setMillerCatalog(normalizedCatalog);
       setStatusByRow({ ...previous.statuses });
+      setMillerSelection([]);
+      setMillerRename(null);
+      setMillerDropTarget(null);
       setMillerDirty(stagedMillerHistoryRef.current.length > 0);
+      setMillerError(null);
       return;
     }
 
     const previous = stagedTableHistoryRef.current.pop();
     if (!previous) return;
-    setCatalog(normalizeCatalogData(previous.catalog));
+
+    const normalizedCatalog = normalizeCatalogData(previous.catalog);
+
+    setCatalog(normalizedCatalog);
     setStatusByRow({ ...previous.statuses });
+    setEditingRow(null);
+    setOpenStatusMenuRowId(null);
+    setIsStatusHeaderMenuOpen(false);
     setTableDirty(stagedTableHistoryRef.current.length > 0);
+    setTableError(null);
   };
 
   const restoreCommittedHistory = () => {
+    if (hasPendingStagedChanges) {
+      toast.error('Najprej razveljavite ali shranite neshranjene spremembe.');
+      return;
+    }
+
     const previousIndex = committedHistoryIndexRef.current - 1;
     if (previousIndex < 0) {
       toast.error('Ni starejše shranjene verzije za obnovitev.');
       return;
     }
 
-    committedHistoryIndexRef.current = previousIndex;
     const snapshot = committedHistoryRef.current[previousIndex];
-    setCatalog(normalizeCatalogData(snapshot.catalog));
-    setMillerCatalog(normalizeCatalogData(snapshot.catalog));
+    const normalizedCatalog = normalizeCatalogData(snapshot.catalog);
+
+    committedHistoryIndexRef.current = previousIndex;
+
+    setCatalog(normalizedCatalog);
+    setMillerCatalog(normalizedCatalog);
     setStatusByRow({ ...snapshot.statuses });
-    setTableDirty(true);
-    setMillerDirty(true);
+
+    setEditingRow(null);
+    setOpenStatusMenuRowId(null);
+    setIsStatusHeaderMenuOpen(false);
+    setMillerSelection([]);
+    setMillerRename(null);
+    setMillerDropTarget(null);
+
     stagedTableHistoryRef.current = [];
     stagedMillerHistoryRef.current = [];
+
+    setTableDirty(true);
+    setMillerDirty(true);
+    setTableError(null);
+    setMillerError(null);
+
+    toast.success('Obnovljena je bila prejšnja shranjena verzija. Za potrditev kliknite "Shrani spremembe".');
   };
 
   const addCategory = (title: string, afterSlug?: string) => {
@@ -771,7 +1098,7 @@ export default function AdminCategoriesManager({
       return;
     }
 
-    const item: CatalogCategory = {
+    const item: RecursiveCatalogCategory = {
       id: createNodeId(),
       slug,
       title,
@@ -792,7 +1119,7 @@ export default function AdminCategoriesManager({
       else list.splice(index + 1, 0, item);
     }
 
-    setExpanded((prev) => ({ ...prev, [catId(slug)]: true }));
+    setExpanded((prev) => ({ ...prev, [rootId]: true, [catId(slug)]: true }));
     if (activeView === 'miller') {
       stageMillerCatalog({ categories: list });
     } else {
@@ -800,46 +1127,91 @@ export default function AdminCategoriesManager({
     }
   };
 
-  const addSubcategory = (categorySlug: string, title: string, afterSlug?: string) => {
+  const addSubcategory = (
+    categorySlug: string,
+    title: string,
+    parentPathOrAfterSlug?: string[] | string,
+    afterSlug?: string
+  ) => {
     const slug = slugify(title);
     if (!slug) return;
+
+    const parentPath = Array.isArray(parentPathOrAfterSlug) ? parentPathOrAfterSlug : [];
+    const resolvedAfterSlug = typeof parentPathOrAfterSlug === 'string' ? parentPathOrAfterSlug : afterSlug;
 
     const sourceCatalog = activeView === 'miller' ? millerCatalog : catalog;
     const parentCategory = sourceCatalog.categories.find((entry) => entry.slug === categorySlug);
     if (!parentCategory) return;
-    if (parentCategory.subcategories.some((entry) => entry.slug === slug)) {
-      toast.error('Podkategorija s tem nazivom že obstaja');
-      return;
-    }
+
+    const newNode: RecursiveCatalogSubcategory = {
+      id: createNodeId(),
+      slug,
+      title,
+      description: '',
+      image: '',
+      items: [],
+      subcategories: []
+    };
 
     const next = {
       categories: sourceCatalog.categories.map((entry) => {
         if (entry.slug !== categorySlug) return entry;
 
-        const sub: CatalogSubcategory = {
-          id: createNodeId(),
-          slug,
-          title,
-          description: '',
-          image: '',
-          items: []
-        };
+        if (parentPath.length === 0) {
+          if (entry.subcategories.some((node) => node.slug === slug)) {
+            toast.error('Podkategorija s tem nazivom že obstaja');
+            return entry;
+          }
 
-        const list = [...entry.subcategories];
+          const list = [...entry.subcategories];
+          if (!resolvedAfterSlug) {
+            list.push(newNode);
+          } else {
+            const index = list.findIndex((node) => node.slug === resolvedAfterSlug);
+            if (index < 0) list.push(newNode);
+            else list.splice(index + 1, 0, newNode);
+          }
 
-        if (!afterSlug) {
-          list.push(sub);
-        } else {
-          const index = list.findIndex((node) => node.slug === afterSlug);
-          if (index < 0) list.push(sub);
-          else list.splice(index + 1, 0, sub);
+          return { ...entry, subcategories: list };
         }
 
-        return { ...entry, subcategories: list };
+        const parentNode = findSubcategoryByPath(entry.subcategories, parentPath);
+        if (!parentNode) return entry;
+
+        if (parentNode.subcategories.some((node) => node.slug === slug)) {
+          toast.error('Podkategorija s tem nazivom že obstaja');
+          return entry;
+        }
+
+        return {
+          ...entry,
+          subcategories: updateSubcategoryTree(entry.subcategories, parentPath, (node) => {
+            const list = [...node.subcategories];
+            if (!resolvedAfterSlug) {
+              list.push(newNode);
+            } else {
+              const index = list.findIndex((child) => child.slug === resolvedAfterSlug);
+              if (index < 0) list.push(newNode);
+              else list.splice(index + 1, 0, newNode);
+            }
+
+            return {
+              ...node,
+              subcategories: list
+            };
+          })
+        };
       })
     };
 
-    setExpanded((prev) => ({ ...prev, [catId(categorySlug)]: true }));
+    setExpanded((prev) => {
+      const nextExpanded = { ...prev, [catId(categorySlug)]: true };
+      for (let index = 1; index <= parentPath.length; index += 1) {
+        nextExpanded[subId(categorySlug, parentPath.slice(0, index))] = true;
+      }
+      return nextExpanded;
+    });
+
     if (activeView === 'miller') {
       stageMillerCatalog(next);
     } else {
@@ -859,7 +1231,12 @@ export default function AdminCategoriesManager({
     if (createTarget.kind === 'category') {
       addCategory(nextName, createTarget.afterSlug);
     } else {
-      addSubcategory(createTarget.categorySlug, nextName, createTarget.afterSlug);
+      addSubcategory(
+        createTarget.categorySlug,
+        nextName,
+        createTarget.parentPath,
+        createTarget.afterSlug
+      );
     }
 
     setCreateTarget(null);
@@ -1105,7 +1482,7 @@ export default function AdminCategoriesManager({
     const targetCategorySlug = parseCategoryId(targetId);
     const targetSub = parseSubcategoryId(targetId);
 
-    let nextCategories: CatalogCategory[] = millerCatalog.categories.map((category) => ({
+    let nextCategories: RecursiveCatalogCategory[] = millerCatalog.categories.map((category) => ({
       ...category,
       subcategories: category.subcategories.map((subcategory) => ({
         ...subcategory,
@@ -1137,14 +1514,15 @@ export default function AdminCategoriesManager({
           const movedCategories = nextCategories.filter((category) => selectedCategorySlugs.has(category.slug));
           const withChildren = movedCategories.filter((category) => category.subcategories.length > 0);
 
-          const asSubcategories = movedCategories.map((category) => ({
+          const asSubcategories: RecursiveCatalogSubcategory[] = movedCategories.map((category) => ({
             id: category.id,
             slug: category.slug,
             title: category.title,
             description: category.description || category.summary,
             adminNotes: category.adminNotes,
             image: category.image,
-            items: [...(category.items ?? [])]
+            items: [...(category.items ?? [])],
+            subcategories: []
           }));
 
           const promotedFormerChildren = movedCategories.flatMap((category) => category.subcategories);
@@ -1185,7 +1563,7 @@ export default function AdminCategoriesManager({
 
     if (selectedSubKeys.size > 0) {
       if (targetId === rootId) {
-        const promoted: CatalogCategory[] = [];
+        const promoted: RecursiveCatalogCategory[] = [];
         nextCategories = nextCategories
           .map((category) => {
             const remainingSubs = category.subcategories.filter((subcategory) => {
@@ -1210,7 +1588,7 @@ export default function AdminCategoriesManager({
       } else if (targetCategorySlug || targetSub) {
         const destinationCategorySlug = targetSub?.categorySlug ?? targetCategorySlug;
         if (destinationCategorySlug) {
-          const movedSubs: CatalogSubcategory[] = [];
+          const movedSubs: RecursiveCatalogSubcategory[] = [];
 
           nextCategories = nextCategories.map((category) => ({
             ...category,
@@ -1416,43 +1794,65 @@ export default function AdminCategoriesManager({
   };
 
   const saveMillerChanges = async () => {
-    const ok = await persist(millerCatalog, statusByRow, 'Miller spremembe shranjene');
+    const savedCatalog = normalizeCatalogData(millerCatalog);
+    const ok = await persist(savedCatalog, statusByRow, 'Miller spremembe shranjene');
+
     if (!ok) {
       setMillerError('Shranjevanje Miller sprememb ni uspelo. Lokalno stanje je ohranjeno.');
       return;
     }
 
-    persistedMillerRef.current = normalizeCatalogData(millerCatalog);
+    persistedTableRef.current = savedCatalog;
+    persistedMillerRef.current = savedCatalog;
     persistedStatusRef.current = { ...statusByRow };
+
     committedHistoryRef.current = committedHistoryRef.current.slice(0, committedHistoryIndexRef.current + 1);
-    const snapshot = { catalog: normalizeCatalogData(millerCatalog), statuses: { ...statusByRow } };
-    committedHistoryRef.current.push(snapshot);
+    committedHistoryRef.current.push({
+      catalog: savedCatalog,
+      statuses: { ...statusByRow }
+    });
     committedHistoryIndexRef.current = committedHistoryRef.current.length - 1;
+
     stagedMillerHistoryRef.current = [];
     stagedTableHistoryRef.current = [];
+
+    setCatalog(savedCatalog);
+    setMillerCatalog(savedCatalog);
     setMillerDirty(false);
     setTableDirty(false);
     setMillerError(null);
+    setTableError(null);
   };
 
   const saveTableChanges = async () => {
-    const ok = await persist(catalog, statusByRow, 'Spremembe shranjene');
+    const savedCatalog = normalizeCatalogData(catalog);
+    const ok = await persist(savedCatalog, statusByRow, 'Spremembe shranjene');
+
     if (!ok) {
       setTableError('Shranjevanje sprememb ni uspelo. Lokalno stanje je ohranjeno.');
       return;
     }
 
-    persistedTableRef.current = normalizeCatalogData(catalog);
+    persistedTableRef.current = savedCatalog;
+    persistedMillerRef.current = savedCatalog;
     persistedStatusRef.current = { ...statusByRow };
+
     committedHistoryRef.current = committedHistoryRef.current.slice(0, committedHistoryIndexRef.current + 1);
-    const snapshot = { catalog: normalizeCatalogData(catalog), statuses: { ...statusByRow } };
-    committedHistoryRef.current.push(snapshot);
+    committedHistoryRef.current.push({
+      catalog: savedCatalog,
+      statuses: { ...statusByRow }
+    });
     committedHistoryIndexRef.current = committedHistoryRef.current.length - 1;
+
     stagedTableHistoryRef.current = [];
     stagedMillerHistoryRef.current = [];
+
+    setCatalog(savedCatalog);
+    setMillerCatalog(savedCatalog);
     setTableDirty(false);
     setMillerDirty(false);
     setTableError(null);
+    setMillerError(null);
   };
 
 
@@ -1513,8 +1913,12 @@ export default function AdminCategoriesManager({
       });
     }
 
+    const selectedSubcategoryPath = toSubcategoryPath(
+      selected.kind === 'subcategory' ? (selected.subcategoryPath ?? selected.subcategorySlug) : undefined
+    );
+
     const itemSource = selected.kind === 'subcategory'
-      ? activeCategory.subcategories.find((sub) => sub.slug === selected.subcategorySlug)?.items ?? []
+      ? findSubcategoryByPath(activeCategory.subcategories, selectedSubcategoryPath)?.items ?? []
       : !hasSubcategories
         ? (activeCategory.items ?? [])
         : [];
@@ -1538,7 +1942,7 @@ export default function AdminCategoriesManager({
             onDragStart: () => {
               if (!millerSelection.includes(id)) setMillerSelection([id]);
             },
-            onDropTarget: selected.kind === 'subcategory' ? subId(activeCategory.slug, selected.subcategorySlug) : catId(activeCategory.slug),
+            onDropTarget: selected.kind === 'subcategory' ? subId(activeCategory.slug, selectedSubcategoryPath) : catId(activeCategory.slug),
             kind: 'item'
           };
         })
@@ -1548,15 +1952,23 @@ export default function AdminCategoriesManager({
     return columns;
   }, [millerCatalog.categories, millerSelection, selected]);
 
-  const updateSubcategory = (categorySlug: string, subSlug: string, patch: Partial<CatalogSubcategory>) => {
+  const updateSubcategory = (
+    categorySlug: string,
+    subcategoryPathOrSlug: string | string[],
+    patch: Partial<RecursiveCatalogSubcategory>
+  ) => {
+    const subcategoryPath = toSubcategoryPath(subcategoryPathOrSlug);
+    if (subcategoryPath.length === 0) return;
+
     stageTableCatalog({
       categories: catalog.categories.map((entry) =>
         entry.slug === categorySlug
           ? {
               ...entry,
-              subcategories: entry.subcategories.map((sub) =>
-                sub.slug === subSlug ? { ...sub, ...patch } : sub
-              )
+              subcategories: updateSubcategoryTree(entry.subcategories, subcategoryPath, (sub) => ({
+                ...sub,
+                ...patch
+              }))
             }
           : entry
       )
@@ -1576,7 +1988,7 @@ export default function AdminCategoriesManager({
     updateSubcategory(categorySlug, item.id, { image: dataUrl });
   };
 
-  const confirmDeleteNode = () => {
+ const confirmDeleteNode = () => {
     if (!deleteTarget) return;
 
     if (deleteTarget.kind === 'root') {
@@ -1589,9 +2001,13 @@ export default function AdminCategoriesManager({
     if (deleteTarget.kind === 'category') {
       setDeleteTarget(null);
       setSelected({ kind: 'root' });
-      stageTableCatalog({ categories: catalog.categories.filter((entry) => entry.slug !== deleteTarget.categorySlug) });
+      stageTableCatalog({
+        categories: catalog.categories.filter((entry) => entry.slug !== deleteTarget.categorySlug)
+      });
       return;
     }
+
+    const subcategoryPath = toSubcategoryPath(deleteTarget.subcategoryPath ?? deleteTarget.subcategorySlug);
 
     setDeleteTarget(null);
     setSelected({ kind: 'category', categorySlug: deleteTarget.categorySlug });
@@ -1601,7 +2017,7 @@ export default function AdminCategoriesManager({
         entry.slug === deleteTarget.categorySlug
           ? {
               ...entry,
-              subcategories: entry.subcategories.filter((sub) => sub.slug !== deleteTarget.subcategorySlug)
+              subcategories: removeSubcategoryTree(entry.subcategories, subcategoryPath)
             }
           : entry
       )
@@ -1655,7 +2071,7 @@ export default function AdminCategoriesManager({
     if (id === rootId) {
       return catalog.categories.flatMap((category) => [
         catId(category.slug),
-        ...category.subcategories.map((subcategory) => subId(category.slug, subcategory.slug))
+        ...collectSubcategoryIds(category.slug, category.subcategories)
       ]);
     }
 
@@ -1663,7 +2079,20 @@ export default function AdminCategoriesManager({
       const categorySlug = id.slice(4);
       const category = catalog.categories.find((entry) => entry.slug === categorySlug);
       if (!category) return [];
-      return category.subcategories.map((subcategory) => subId(category.slug, subcategory.slug));
+      return collectSubcategoryIds(category.slug, category.subcategories);
+    }
+
+    if (id.startsWith('sub:')) {
+      const parsed = parseSubNodeId(id);
+      if (!parsed) return [];
+
+      const category = catalog.categories.find((entry) => entry.slug === parsed.categorySlug);
+      if (!category) return [];
+
+      const subcategory = findSubcategoryByPath(category.subcategories, parsed.subcategoryPath);
+      if (!subcategory) return [];
+
+      return collectSubcategoryIds(parsed.categorySlug, subcategory.subcategories, parsed.subcategoryPath);
     }
 
     return [];
@@ -1717,35 +2146,48 @@ export default function AdminCategoriesManager({
 
     if (editingRow.kind === 'category') {
       if (!editingRow.categorySlug) return;
+
       const nextStatuses = { ...statusByRow, [editingRow.id]: editingRow.status };
-      stageTableCatalog({
-        categories: catalog.categories.map((entry) =>
-          entry.slug === editingRow.categorySlug
-            ? { ...entry, title: nextTitle, summary: editingRow.description }
-            : entry
-        )
-      }, nextStatuses);
+
+      stageTableCatalog(
+        {
+          categories: catalog.categories.map((entry) =>
+            entry.slug === editingRow.categorySlug
+              ? { ...entry, title: nextTitle, summary: editingRow.description }
+              : entry
+          )
+        },
+        nextStatuses
+      );
+
       setEditingRow(null);
       return;
     }
 
-    if (!editingRow.categorySlug || !editingRow.subcategorySlug) return;
+    if (!editingRow.categorySlug) return;
+
+    const subcategoryPath = toSubcategoryPath(editingRow.subcategoryPath ?? editingRow.subcategorySlug);
+    if (subcategoryPath.length === 0) return;
 
     const nextStatuses = { ...statusByRow, [editingRow.id]: editingRow.status };
-    stageTableCatalog({
-      categories: catalog.categories.map((entry) =>
-        entry.slug === editingRow.categorySlug
-          ? {
-              ...entry,
-              subcategories: entry.subcategories.map((sub) =>
-                sub.slug === editingRow.subcategorySlug
-                  ? { ...sub, title: nextTitle, description: editingRow.description }
-                  : sub
-              )
-            }
-          : entry
-      )
-    }, nextStatuses);
+
+    stageTableCatalog(
+      {
+        categories: catalog.categories.map((entry) =>
+          entry.slug === editingRow.categorySlug
+            ? {
+                ...entry,
+                subcategories: updateSubcategoryTree(entry.subcategories, subcategoryPath, (sub) => ({
+                  ...sub,
+                  title: nextTitle,
+                  description: editingRow.description
+                }))
+              }
+            : entry
+        )
+      },
+      nextStatuses
+    );
 
     setEditingRow(null);
   };
@@ -1772,31 +2214,51 @@ export default function AdminCategoriesManager({
           .toLowerCase()
           .includes(searchQuery);
 
-        const matchingSubcategories = category.subcategories.filter((subcategory) =>
-          [subcategory.title, subcategory.description].join(' ').toLowerCase().includes(searchQuery)
-        );
+        const matchingSubcategories = categoryMatches
+          ? category.subcategories
+          : filterSubcategoryTree(category.subcategories, searchQuery);
 
         if (!categoryMatches && matchingSubcategories.length === 0) return null;
 
         return {
           ...category,
-          subcategories: categoryMatches ? category.subcategories : matchingSubcategories
+          subcategories: matchingSubcategories
         };
       })
-      .filter((category): category is CatalogCategory => category !== null);
+      .filter((category): category is RecursiveCatalogCategory => category !== null);
   }, [catalog.categories, isSearchActive, searchQuery]);
 
   const visibleRowIds = useMemo(() => {
-    const ids: string[] = [];
+    const ids: string[] = [rootId];
+    const isRootExpanded =
+      isSearchActive || (expanded[rootId] ?? true) || closingRowIds.includes(rootId);
+
+    if (!isRootExpanded) {
+      return ids;
+    }
+
+    const appendVisibleSubcategoryIds = (
+      categorySlug: string,
+      nodes: RecursiveNode[],
+      parentPath: string[] = []
+    ) => {
+      nodes.forEach((subcategory) => {
+        const currentPath = [...parentPath, subcategory.slug];
+        const currentId = subId(categorySlug, currentPath);
+        ids.push(currentId);
+
+        if (isSearchActive || expanded[currentId] || closingRowIds.includes(currentId)) {
+          appendVisibleSubcategoryIds(categorySlug, subcategory.subcategories, currentPath);
+        }
+      });
+    };
 
     filteredCategories.forEach((category) => {
       const categoryNodeId = catId(category.slug);
       ids.push(categoryNodeId);
 
       if (isSearchActive || expanded[categoryNodeId] || closingRowIds.includes(categoryNodeId)) {
-        category.subcategories.forEach((subcategory) => {
-          ids.push(subId(category.slug, subcategory.slug));
-        });
+        appendVisibleSubcategoryIds(category.slug, category.subcategories);
       }
     });
 
@@ -1816,9 +2278,7 @@ export default function AdminCategoriesManager({
   useEffect(() => {
     const validIds = new Set([
       ...catalog.categories.map((category) => catId(category.slug)),
-      ...catalog.categories.flatMap((category) =>
-        category.subcategories.map((subcategory) => subId(category.slug, subcategory.slug))
-      )
+      ...catalog.categories.flatMap((category) => collectSubcategoryIds(category.slug, category.subcategories))
     ]);
 
     setSelectedRows((current) => current.filter((id) => validIds.has(id)));
@@ -1872,9 +2332,7 @@ export default function AdminCategoriesManager({
         .filter((category) => !selectedSet.has(catId(category.slug)))
         .map((category) => ({
           ...category,
-          subcategories: category.subcategories.filter(
-            (subcategory) => !selectedSet.has(subId(category.slug, subcategory.slug))
-          )
+          subcategories: pruneSelectedSubcategoryTree(category.slug, category.subcategories, selectedSet)
         }))
     };
 
@@ -1889,7 +2347,7 @@ export default function AdminCategoriesManager({
     level,
     kind,
     categorySlug,
-    subcategorySlug,
+    subcategoryPath,
     description,
     childrenCount,
     productCount,
@@ -1902,7 +2360,7 @@ export default function AdminCategoriesManager({
     level: number;
     kind: 'root' | 'category' | 'subcategory';
     categorySlug?: string;
-    subcategorySlug?: string;
+    subcategoryPath?: string[];
     description: string;
     childrenCount: number;
     productCount: number;
@@ -1910,13 +2368,15 @@ export default function AdminCategoriesManager({
     continueCurrentColumnBelow: boolean;
     parentIsAnimating?: boolean;
   }) => {
+    const resolvedSubcategoryPath = toSubcategoryPath(subcategoryPath);
+
     const isSelected =
       (selected.kind === 'root' && kind === 'root') ||
       (selected.kind === 'category' && kind === 'category' && selected.categorySlug === categorySlug) ||
       (selected.kind === 'subcategory' &&
         kind === 'subcategory' &&
         selected.categorySlug === categorySlug &&
-        selected.subcategorySlug === subcategorySlug);
+        pathEquals(selected.subcategoryPath ?? selected.subcategorySlug, resolvedSubcategoryPath));
 
     const hasChildren = childrenCount > 0;
     const isExpanded = expanded[id] ?? false;
@@ -1937,7 +2397,8 @@ export default function AdminCategoriesManager({
         id,
         kind,
         categorySlug,
-        subcategorySlug,
+        subcategoryPath: resolvedSubcategoryPath,
+        subcategorySlug: resolvedSubcategoryPath.at(-1),
         title,
         description,
         status: rowStatus
@@ -1991,319 +2452,400 @@ export default function AdminCategoriesManager({
           : (parentColumnX ?? 0) + leafConnectorWidth;
 
     return (
-      <SortableTreeRow key={id} id={id} disabled={kind === 'root'}>
-        {({ dragHandleProps, setNodeRef, style, isDragging }) => (
-      <tr
-        ref={setNodeRef}
-        style={style}
-        className={`${isSelected ? adminTableRowToneClasses.selected : rowDepthTone} transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''} ${isDragging ? 'opacity-70' : ''} ${kind !== 'root' ? 'cursor-grab active:cursor-grabbing select-none' : ''}`}
-        {...dragHandleProps}
+      <SortableTreeRow
+        key={id}
+        id={id}
+        disabled={kind === 'root' || (kind === 'subcategory' && resolvedSubcategoryPath.length > 1)}
       >
-        <td className="relative overflow-visible border-b border-slate-200 px-2 py-2 text-center align-middle">
-          <div
-            className="absolute top-1/2 z-20"
-            style={
-              level === 0
-                ? {
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)'
-                  }
-                : {
-                    left: `calc(100% + ${checkboxLeftFromTreeStart}px)`,
-                    transform: 'translateY(-50%)'
-                  }
-            }
+        {({ dragHandleProps, setNodeRef, style, isDragging }) => (
+          <tr
+            ref={setNodeRef}
+            style={style}
+            className={`${isSelected ? adminTableRowToneClasses.selected : rowDepthTone} transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''} ${isDragging ? 'opacity-70' : ''} ${kind !== 'root' ? 'cursor-grab active:cursor-grabbing select-none' : ''}`}
+            {...dragHandleProps}
           >
-            <input
-              type="checkbox"
-              checked={isChecked}
-              onChange={toggleChecked}
-              aria-label={`Izberi ${title}`}
-            />
-          </div>
-        </td>
-
-        <td className="border-b border-slate-200 px-3 py-0 align-middle">
-          <div className="relative flex h-12 items-center gap-2 overflow-visible px-1">
-            <div
-              className="relative shrink-0 overflow-visible"
-              style={{
-                width: `${gutterWidth}px`,
-                height: `${treeRowHeight}px`
-              }}
-            >
-              {ancestorContinuationColumns.map((continuesBelow, ancestorIndex) => {
-                const ancestorX = ancestorIndex * treeIndent + treeButtonRadius;
-
-                return (
-                  <span
-                    key={`ancestor-${ancestorIndex}`}
-                    className="absolute z-0 w-px bg-slate-300/90"
-                    style={{
-                      left: `${ancestorX}px`,
-                      top: `-${treeConnectorBleed}px`,
-                      height: continuesBelow
-                        ? `${treeRowHeight + treeConnectorBleed * 2}px`
-                        : `${treeHalfRowHeight + treeConnectorBleed}px`
-                    }}
-                  />
-                );
-              })}
-
-              {hasChildren && isExpanded ? (
-                <span
-                  className="absolute z-0 w-px bg-slate-300/90"
-                  style={{
-                    left: `${buttonCenterX}px`,
-                    top: `${treeHalfRowHeight + treeButtonRadius}px`,
-                    height: `${treeHalfRowHeight - treeButtonRadius + treeConnectorBleed + 1}px`
-                  }}
+            <td className="relative overflow-visible border-b border-slate-200 px-2 py-2 text-center align-middle">
+              <div
+                className="absolute top-1/2 z-20"
+                style={
+                  level === 0
+                    ? {
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)'
+                      }
+                    : {
+                        left: `calc(100% + ${checkboxLeftFromTreeStart}px)`,
+                        transform: 'translateY(-50%)'
+                      }
+                }
+              >
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={toggleChecked}
+                  aria-label={`Izberi ${title}`}
                 />
-              ) : null}
+              </div>
+            </td>
 
-              {level > 0 && parentColumnX !== null ? (
-                <>
-                  <span
-                    className="absolute z-0 w-px bg-slate-300/90"
-                    style={{
-                      left: `${parentColumnX}px`,
-                      top: `-${treeConnectorBleed}px`,
-                      height: `${treeHalfRowHeight + treeConnectorBleed}px`
-                    }}
-                  />
+            <td className="border-b border-slate-200 px-3 py-0 align-middle">
+              <div className="relative flex h-12 items-center gap-2 overflow-visible px-1">
+                <div
+                  className="relative shrink-0 overflow-visible"
+                  style={{
+                    width: `${gutterWidth}px`,
+                    height: `${treeRowHeight}px`
+                  }}
+                >
+                  {ancestorContinuationColumns.map((shouldContinue, ancestorIndex) => {
+                    if (!shouldContinue) return null;
 
-                  {continueCurrentColumnBelow ? (
+                    const ancestorX = ancestorIndex * treeIndent + treeButtonRadius;
+
+                    return (
+                      <span
+                        key={`ancestor-${ancestorIndex}`}
+                        className="absolute z-0 w-px bg-slate-300/90"
+                        style={{
+                          left: `${ancestorX}px`,
+                          top: `-${treeConnectorBleed}px`,
+                          height: `${treeRowHeight + treeConnectorBleed * 2}px`
+                        }}
+                      />
+                    );
+                  })}
+
+                  {hasChildren && isExpanded ? (
                     <span
                       className="absolute z-0 w-px bg-slate-300/90"
                       style={{
-                        left: `${parentColumnX}px`,
-                        top: `${treeHalfRowHeight}px`,
-                        height: `${treeHalfRowHeight + treeConnectorBleed + 1}px`
+                        left: `${buttonCenterX}px`,
+                        top: `${treeHalfRowHeight + treeButtonRadius + 1}px`,
+                        height: `${treeHalfRowHeight - treeButtonRadius + treeConnectorBleed}px`
                       }}
                     />
                   ) : null}
 
-                  <span
-                    className="absolute z-0 h-px bg-slate-300/90"
-                    style={{
-                      left: `${parentColumnX}px`,
-                      top: `${treeHalfRowHeight}px`,
-                      width: `${hasChildren ? buttonLeft - parentColumnX : leafConnectorWidth}px`
-                    }}
-                  />
-                </>
-              ) : null}
+                  {level > 0 && parentColumnX !== null ? (
+                    <>
+                      <span
+                        className="absolute z-0 w-px bg-slate-300/90"
+                        style={{
+                          left: `${parentColumnX}px`,
+                          top: `-${treeConnectorBleed}px`,
+                          height: `${treeHalfRowHeight + treeConnectorBleed}px`
+                        }}
+                      />
 
-              {hasChildren ? (
-                <div
-                  className="absolute inset-y-0 z-10 flex items-center justify-center"
-                  style={{
-                    left: `${buttonLeft}px`,
-                    width: `${treeButtonDiameter}px`
-                  }}
-                >
-                  <IconButton
-                    type="button"
-                    tone="neutral"
-                    shape="rounded"
-                    aria-label="Razširi/skrij"
-                    onPointerDown={(event) => event.stopPropagation()}
-                    onClick={() => toggleExpanded(id)}
-                  >
-                    {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
-                  </IconButton>
+                      {continueCurrentColumnBelow ? (
+                        <span
+                          className="absolute z-0 w-px bg-slate-300/90"
+                          style={{
+                            left: `${parentColumnX}px`,
+                            top: `${treeHalfRowHeight}px`,
+                            height: `${treeHalfRowHeight + treeConnectorBleed + 1}px`
+                          }}
+                        />
+                      ) : null}
+
+                      <span
+                        className="absolute z-0 h-px bg-slate-300/90"
+                        style={{
+                          left: `${parentColumnX}px`,
+                          top: `${treeHalfRowHeight}px`,
+                          width: `${hasChildren ? buttonLeft - parentColumnX : leafConnectorWidth}px`
+                        }}
+                      />
+                    </>
+                  ) : null}
+
+                  {hasChildren ? (
+                    <div
+                      className="absolute inset-y-0 z-10 flex items-center justify-center"
+                      style={{
+                        left: `${buttonLeft}px`,
+                        width: `${treeButtonDiameter}px`
+                      }}
+                    >
+                      <IconButton
+                        type="button"
+                        tone="neutral"
+                        shape="rounded"
+                        aria-label="Razširi/skrij"
+                        onPointerDown={(event) => event.stopPropagation()}
+                        onClick={() => toggleExpanded(id)}
+                      >
+                        {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                      </IconButton>
+                    </div>
+                  ) : null}
                 </div>
-              ) : null}
-            </div>
 
-            <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1">
+                  {isRowEditing ? (
+                    <Input
+                      value={editingRow.title}
+                      onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                        setEditingRow((prev) => (prev ? { ...prev, title: event.target.value } : prev))
+                      }
+                      data-inline-edit-field="true"
+                      onBlur={handleInlineBlur}
+                      className="h-8 min-w-[10ch] max-w-[34ch] truncate whitespace-nowrap px-2 text-xs font-semibold text-slate-500"
+                      style={{ width: `${Math.min(34, Math.max(10, editingRow.title.length + 2))}ch` }}
+                      autoFocus
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (kind === 'root') setSelected({ kind: 'root' });
+                        if (kind === 'category' && categorySlug) setSelected({ kind: 'category', categorySlug });
+                        if (kind === 'subcategory' && categorySlug) {
+                          setSelected({
+                            kind: 'subcategory',
+                            categorySlug,
+                            subcategoryPath: resolvedSubcategoryPath,
+                            subcategorySlug: resolvedSubcategoryPath.at(-1)
+                          });
+                        }
+                      }}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      className="block w-full truncate whitespace-nowrap text-left text-xs font-semibold text-slate-500"
+                      title={title}
+                    >
+                      {title}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </td>
+
+            <td className="border-b border-slate-200 px-3 py-2 text-xs font-normal text-slate-500">
               {isRowEditing ? (
                 <Input
-                  value={editingRow.title}
+                  value={editingRow.description}
                   onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                    setEditingRow((prev) => (prev ? { ...prev, title: event.target.value } : prev))
+                    setEditingRow((prev) => (prev ? { ...prev, description: event.target.value } : prev))
                   }
                   data-inline-edit-field="true"
                   onBlur={handleInlineBlur}
-                  className="h-8 min-w-[10ch] max-w-[34ch] truncate whitespace-nowrap px-2 text-xs font-semibold text-slate-500"
-                  style={{ width: `${Math.min(34, Math.max(10, editingRow.title.length + 2))}ch` }}
-                  autoFocus
+                  className="h-8 min-w-[18ch] max-w-[64ch] truncate whitespace-nowrap px-2 text-xs font-normal text-slate-500"
+                  style={{ width: `${Math.min(64, Math.max(18, editingRow.description.length + 2))}ch` }}
                 />
               ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (kind === 'root') setSelected({ kind: 'root' });
-                    if (kind === 'category' && categorySlug) setSelected({ kind: 'category', categorySlug });
-                    if (kind === 'subcategory' && categorySlug && subcategorySlug) {
-                      setSelected({ kind: 'subcategory', categorySlug, subcategorySlug });
-                    }
-                  }}
-                  onPointerDown={(event) => event.stopPropagation()}
-                  className="block w-full truncate whitespace-nowrap text-left text-xs font-semibold text-slate-500"
-                  title={title}
-                >
-                  {title}
-                </button>
+                <div className="truncate whitespace-nowrap" title={description || '—'}>
+                  {description || '—'}
+                </div>
               )}
-            </div>
-          </div>
-        </td>
+            </td>
 
-        <td className="border-b border-slate-200 px-3 py-2 text-xs font-normal text-slate-500">
-          {isRowEditing ? (
-            <Input
-              value={editingRow.description}
-              onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                setEditingRow((prev) => (prev ? { ...prev, description: event.target.value } : prev))
-              }
-              data-inline-edit-field="true"
-              onBlur={handleInlineBlur}
-              className="h-8 min-w-[18ch] max-w-[64ch] truncate whitespace-nowrap px-2 text-xs font-normal text-slate-500"
-              style={{ width: `${Math.min(64, Math.max(18, editingRow.description.length + 2))}ch` }}
-            />
-          ) : (
-            <div className="truncate whitespace-nowrap" title={description || '—'}>
-              {description || '—'}
-            </div>
-          )}
-        </td>
+            <td className="border-b border-slate-200 px-3 py-2 text-center text-sm text-slate-600">{childrenCount}</td>
+            <td className="border-b border-slate-200 px-3 py-2 text-center text-sm text-slate-600">{productCount}</td>
 
-        <td className="border-b border-slate-200 px-3 py-2 text-center text-sm text-slate-600">{childrenCount}</td>
-        <td className="border-b border-slate-200 px-3 py-2 text-center text-sm text-slate-600">{productCount}</td>
+            <td className="border-b border-slate-200 px-3 py-2 text-center text-sm">
+              {isRowEditing && kind !== 'root' ? (
+                <div
+                  className="relative inline-flex"
+                  ref={(node) => {
+                    statusMenuRefs.current[id] = node;
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      setOpenStatusMenuRowId((prev) => {
+                        const nextOpen = prev === id ? null : id;
+                        if (nextOpen) {
+                          const triggerRect = (event.currentTarget as HTMLButtonElement).getBoundingClientRect();
+                          const viewportHeight = window.innerHeight;
+                          const estimatedMenuHeight = 112;
+                          const spaceBelow = viewportHeight - triggerRect.bottom;
+                          setStatusMenuPlacement((placements) => ({
+                            ...placements,
+                            [id]: spaceBelow >= estimatedMenuHeight ? 'bottom' : 'top'
+                          }));
+                        }
+                        return nextOpen;
+                      });
+                    }}
+                    className="rounded-full"
+                    aria-haspopup="menu"
+                    aria-expanded={openStatusMenuRowId === id}
+                  >
+                    <Chip
+                      variant={editingRow?.status === 'active' ? 'success' : 'neutral'}
+                      className={`min-w-0 px-2.5 text-xs ${
+                        editingRow?.status === 'active'
+                          ? buttonTokenClasses.activeSuccess
+                          : buttonTokenClasses.inactiveNeutral
+                      }`}
+                    >
+                      {editingRow?.status === 'active' ? 'Aktivna' : 'Neaktivna'}
+                    </Chip>
+                  </button>
 
-        <td className="border-b border-slate-200 px-3 py-2 text-center text-sm">
-          {isRowEditing && kind !== 'root' ? (
-            <div
-              className="relative inline-flex"
-              ref={(node) => {
-                statusMenuRefs.current[id] = node;
-              }}
-            >
-              <button
-                type="button"
-                onClick={(event) => {
-                  setOpenStatusMenuRowId((prev) => {
-                    const nextOpen = prev === id ? null : id;
-                    if (nextOpen) {
-                      const triggerRect = (event.currentTarget as HTMLButtonElement).getBoundingClientRect();
-                      const viewportHeight = window.innerHeight;
-                      const estimatedMenuHeight = 112;
-                      const spaceBelow = viewportHeight - triggerRect.bottom;
-                      setStatusMenuPlacement((placements) => ({ ...placements, [id]: spaceBelow >= estimatedMenuHeight ? 'bottom' : 'top' }));
-                    }
-                    return nextOpen;
-                  });
-                }}
-                className="rounded-full"
-                aria-haspopup="menu"
-                aria-expanded={openStatusMenuRowId === id}
-              >
+                  {openStatusMenuRowId === id ? (
+                    <MenuPanel className={`absolute left-1/2 z-20 w-36 -translate-x-1/2 ${statusMenuPlacement[id] === 'top' ? 'bottom-8' : 'top-8'}`}>
+                      <MenuItem onClick={() => setStatus('active')} disabled={editingRow?.status === 'active'}>
+                        Aktivna
+                      </MenuItem>
+                      <MenuItem onClick={() => setStatus('inactive')} disabled={editingRow?.status === 'inactive'}>
+                        Neaktivna
+                      </MenuItem>
+                    </MenuPanel>
+                  ) : null}
+                </div>
+              ) : (
                 <Chip
-                  variant={editingRow?.status === 'active' ? 'success' : 'neutral'}
+                  variant={rowStatus === 'active' ? 'success' : 'neutral'}
                   className={`min-w-0 px-2.5 text-xs ${
-                    editingRow?.status === 'active'
+                    rowStatus === 'active'
                       ? buttonTokenClasses.activeSuccess
                       : buttonTokenClasses.inactiveNeutral
                   }`}
                 >
-                  {editingRow?.status === 'active' ? 'Aktivna' : 'Neaktivna'}
+                  {statusLabel}
                 </Chip>
-              </button>
+              )}
+            </td>
 
-              {openStatusMenuRowId === id ? (
-                <MenuPanel className={`absolute left-1/2 z-20 w-36 -translate-x-1/2 ${statusMenuPlacement[id] === 'top' ? 'bottom-8' : 'top-8'}`}>
-                  <MenuItem onClick={() => setStatus('active')} disabled={editingRow?.status === 'active'}>
-                    Aktivna
-                  </MenuItem>
-                  <MenuItem onClick={() => setStatus('inactive')} disabled={editingRow?.status === 'inactive'}>
-                    Neaktivna
-                  </MenuItem>
-                </MenuPanel>
-              ) : null}
-            </div>
-          ) : (
-            <Chip
-              variant={rowStatus === 'active' ? 'success' : 'neutral'}
-              className={`min-w-0 px-2.5 text-xs ${
-                rowStatus === 'active'
-                  ? buttonTokenClasses.activeSuccess
-                  : buttonTokenClasses.inactiveNeutral
-              }`}
-            >
-              {statusLabel}
-            </Chip>
-          )}
-        </td>
+            <td className="border-b border-slate-200 px-3 py-2 text-center">
+              <RowActions>
+                <IconButton type="button" tone="neutral" onPointerDown={(event) => event.stopPropagation()} onClick={toggleInlineEdit} aria-label="Uredi" title="Uredi">
+                  <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                    <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
+                    <path d="M11.5 4.5l3 3" />
+                  </svg>
+                </IconButton>
 
-        <td className="border-b border-slate-200 px-3 py-2 text-center">
-          <RowActions>
-            <IconButton type="button" tone="neutral" onPointerDown={(event) => event.stopPropagation()} onClick={toggleInlineEdit} aria-label="Uredi" title="Uredi">
-              <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
-                <path d="M11.5 4.5l3 3" />
-              </svg>
-            </IconButton>
+                <IconButton
+                  type="button"
+                  tone="neutral"
+                  aria-label="Dodaj podkategorijo"
+                  title="Dodaj podkategorijo"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={() => {
+                    if (kind === 'root') {
+                      openCreateDialog({ kind: 'category' });
+                      return;
+                    }
 
+                    if (kind === 'category' && categorySlug) {
+                      openCreateDialog({ kind: 'subcategory', categorySlug, parentPath: [] });
+                      return;
+                    }
 
-            <IconButton
-              type="button"
-              tone="neutral"
-              aria-label="Dodaj podkategorijo"
-              title="Dodaj podkategorijo"
-              onPointerDown={(event) => event.stopPropagation()}
-              onClick={() => {
-                if (kind === 'root') openCreateDialog({ kind: 'category' });
-                if (kind === 'category' && categorySlug) openCreateDialog({ kind: 'subcategory', categorySlug });
-                if (kind === 'subcategory' && categorySlug && subcategorySlug) {
-                  openCreateDialog({ kind: 'subcategory', categorySlug });
-                }
-              }}
-            >
-              <PlusIcon />
-            </IconButton>
+                    if (kind === 'subcategory' && categorySlug) {
+                      openCreateDialog({
+                        kind: 'subcategory',
+                        categorySlug,
+                        parentPath: resolvedSubcategoryPath
+                      });
+                    }
+                  }}
+                >
+                  <PlusIcon />
+                </IconButton>
 
-            <Button
-              type="button"
-              variant="close-x"
-              aria-label="Izbriši"
-              title="Izbriši"
-              onPointerDown={(event) => event.stopPropagation()}
-              onClick={() => {
-                if (kind === 'root') {
-                  stageTableCatalog({ categories: [] });
-                  setSelected({ kind: 'root' });
-                  return;
-                }
-                if (kind === 'category' && categorySlug) {
-                  stageTableCatalog({ categories: catalog.categories.filter((entry) => entry.slug !== categorySlug) });
-                  setSelected({ kind: 'root' });
-                  return;
-                }
-                if (kind === 'subcategory' && categorySlug && subcategorySlug) {
-                  stageTableCatalog({
-                    categories: catalog.categories.map((entry) =>
-                      entry.slug === categorySlug
-                        ? { ...entry, subcategories: entry.subcategories.filter((sub) => sub.slug !== subcategorySlug) }
-                        : entry
-                    )
-                  });
-                  setSelected({ kind: 'category', categorySlug });
-                }
-              }}
-            >
-              ×
-            </Button>
-          </RowActions>
-        </td>
-      </tr>
+                <Button
+                  type="button"
+                  variant="close-x"
+                  aria-label="Izbriši"
+                  title="Izbriši"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={() => {
+                    if (kind === 'root') {
+                      stageTableCatalog({ categories: [] });
+                      setSelected({ kind: 'root' });
+                      return;
+                    }
+
+                    if (kind === 'category' && categorySlug) {
+                      stageTableCatalog({
+                        categories: catalog.categories.filter((entry) => entry.slug !== categorySlug)
+                      });
+                      setSelected({ kind: 'root' });
+                      return;
+                    }
+
+                    if (kind === 'subcategory' && categorySlug) {
+                      stageTableCatalog({
+                        categories: catalog.categories.map((entry) =>
+                          entry.slug === categorySlug
+                            ? {
+                                ...entry,
+                                subcategories: removeSubcategoryTree(entry.subcategories, resolvedSubcategoryPath)
+                              }
+                            : entry
+                        )
+                      });
+                      setSelected({ kind: 'category', categorySlug });
+                    }
+                  }}
+                >
+                  ×
+                </Button>
+              </RowActions>
+            </td>
+          </tr>
         )}
       </SortableTreeRow>
     );
+  };  
+
+  const buildSubcategoryRows = (
+    category: RecursiveCatalogCategory,
+    nodes: RecursiveNode[],
+    level: number,
+    parentPath: string[] = [],
+    ancestorContinuationColumns: boolean[] = []
+  ): ReactNode[] => {
+    const rows: ReactNode[] = [];
+
+    nodes.forEach((subcategory, index) => {
+      const currentPath = [...parentPath, subcategory.slug];
+      const currentId = subId(category.slug, currentPath);
+      const isLastSibling = index === nodes.length - 1;
+      const isExpandedHere =
+        isSearchActive || expanded[currentId] || closingRowIds.includes(currentId);
+      const hasVisibleChildren = isExpandedHere && subcategory.subcategories.length > 0;
+
+      rows.push(
+        renderTreeRow({
+          id: currentId,
+          title: subcategory.title,
+          level,
+          kind: 'subcategory',
+          categorySlug: category.slug,
+          subcategoryPath: currentPath,
+          description: subcategory.description,
+          childrenCount: subcategory.subcategories.length,
+          productCount: subcategory.items.length,
+          ancestorContinuationColumns,
+          continueCurrentColumnBelow: !isLastSibling,
+          parentIsAnimating: openingRowIds.includes(currentId) || closingRowIds.includes(currentId)
+        })
+      );
+
+      if (hasVisibleChildren) {
+        rows.push(
+          ...buildSubcategoryRows(
+            category,
+            subcategory.subcategories,
+            level + 1,
+            currentPath,
+            [...ancestorContinuationColumns, !isLastSibling]
+          )
+        );
+      }
+    });
+
+    return rows;
   };
 
   const treeRows: ReactNode[] = (() => {
     const rows: ReactNode[] = [];
+    const isRootExpanded = isSearchActive || (expanded[rootId] ?? true) || closingRowIds.includes(rootId);
 
     rows.push(
       renderTreeRow({
@@ -2314,58 +2856,51 @@ export default function AdminCategoriesManager({
         description: 'Pogled vseh kategorij',
         childrenCount: catalog.categories.length,
         productCount: 0,
-        ancestorContinuationColumns: [false],
-        continueCurrentColumnBelow: filteredCategories.length > 0,
+        ancestorContinuationColumns: [],
+        continueCurrentColumnBelow: isRootExpanded && filteredCategories.length > 0,
         parentIsAnimating: false
       })
     );
 
+    if (!isRootExpanded) {
+      return rows;
+    }
+
     filteredCategories.forEach((category, categoryIndex) => {
-        const categoryNodeId = catId(category.slug);
-        const hasVisibleChildren =
-          (isSearchActive || (expanded[categoryNodeId] ?? false) || closingRowIds.includes(categoryNodeId)) &&
-          category.subcategories.length > 0;
-        const hasNextCategory = categoryIndex < filteredCategories.length - 1;
+      const categoryNodeId = catId(category.slug);
+      const isCategoryExpanded =
+        isSearchActive || (expanded[categoryNodeId] ?? false) || closingRowIds.includes(categoryNodeId);
+      const hasVisibleChildren = isCategoryExpanded && category.subcategories.length > 0;
+      const hasNextCategory = categoryIndex < filteredCategories.length - 1;
 
+      rows.push(
+        renderTreeRow({
+          id: categoryNodeId,
+          title: category.title,
+          level: 1,
+          kind: 'category',
+          categorySlug: category.slug,
+          description: category.summary,
+          childrenCount: category.subcategories.length,
+          productCount: (category.items ?? []).length,
+          ancestorContinuationColumns: [],
+          continueCurrentColumnBelow: hasVisibleChildren || hasNextCategory,
+          parentIsAnimating: openingRowIds.includes(rootId) || closingRowIds.includes(rootId)
+        })
+      );
+
+      if (isCategoryExpanded) {
         rows.push(
-          renderTreeRow({
-            id: categoryNodeId,
-            title: category.title,
-            level: 1,
-            kind: 'category',
-            categorySlug: category.slug,
-            description: category.summary,
-            childrenCount: category.subcategories.length,
-            productCount: (category.items ?? []).length,
-            ancestorContinuationColumns: [false],
-            continueCurrentColumnBelow: hasVisibleChildren || hasNextCategory,
-            parentIsAnimating: false
-          })
+          ...buildSubcategoryRows(
+          category,
+          category.subcategories,
+          2,
+          [],
+          [hasNextCategory]
+        )
         );
-
-        if (isSearchActive || expanded[categoryNodeId] || closingRowIds.includes(categoryNodeId)) {
-          category.subcategories.forEach((subcategory, subcategoryIndex) => {
-            const hasNextSubcategory = subcategoryIndex < category.subcategories.length - 1;
-
-            rows.push(
-              renderTreeRow({
-                id: subId(category.slug, subcategory.slug),
-                title: subcategory.title,
-                level: 2,
-                kind: 'subcategory',
-                categorySlug: category.slug,
-                subcategorySlug: subcategory.slug,
-                description: subcategory.description,
-                childrenCount: 0,
-                productCount: subcategory.items.length,
-                ancestorContinuationColumns: [false, true, hasNextCategory],
-                continueCurrentColumnBelow: hasNextSubcategory,
-                parentIsAnimating: openingRowIds.includes(categoryNodeId) || closingRowIds.includes(categoryNodeId)
-              })
-            );
-          });
-        }
-      });
+      }
+    });
 
     return rows;
   })();
@@ -2546,8 +3081,27 @@ export default function AdminCategoriesManager({
                 </IconButton>
                 {isHistoryMenuOpen ? (
                   <MenuPanel className="absolute right-0 top-9 z-20 w-40">
-                    <MenuItem onClick={() => { undoStagedChanges(); setIsHistoryMenuOpen(false); }}>Razveljavi</MenuItem>
-                    <MenuItem onClick={() => { restoreCommittedHistory(); setIsHistoryMenuOpen(false); }}>Obnovi</MenuItem>
+                    <MenuItem
+                      disabled={!canUndoStagedChanges}
+                      onClick={() => {
+                        if (!canUndoStagedChanges) return;
+                        undoStagedChanges();
+                        setIsHistoryMenuOpen(false);
+                      }}
+                    >
+                      Razveljavi
+                    </MenuItem>
+
+                    <MenuItem
+                      disabled={!canRestoreCommittedHistory || hasPendingStagedChanges}
+                      onClick={() => {
+                        if (!canRestoreCommittedHistory || hasPendingStagedChanges) return;
+                        restoreCommittedHistory();
+                        setIsHistoryMenuOpen(false);
+                      }}
+                    >
+                      Obnovi
+                    </MenuItem>
                   </MenuPanel>
                 ) : null}
               </div>
@@ -2873,8 +3427,27 @@ export default function AdminCategoriesManager({
               <IconButton type="button" tone="neutral" aria-label="Zgodovina" onClick={() => setIsHistoryMenuOpen((prev) => !prev)}>⋮</IconButton>
               {isHistoryMenuOpen ? (
                 <MenuPanel className="absolute right-0 top-9 z-20 w-40">
-                  <MenuItem onClick={() => { undoStagedChanges(); setIsHistoryMenuOpen(false); }}>Razveljavi</MenuItem>
-                  <MenuItem onClick={() => { restoreCommittedHistory(); setIsHistoryMenuOpen(false); }}>Obnovi</MenuItem>
+                  <MenuItem
+                    disabled={!canUndoStagedChanges}
+                    onClick={() => {
+                      if (!canUndoStagedChanges) return;
+                      undoStagedChanges();
+                      setIsHistoryMenuOpen(false);
+                    }}
+                  >
+                    Razveljavi
+                  </MenuItem>
+
+                  <MenuItem
+                    disabled={!canRestoreCommittedHistory || hasPendingStagedChanges}
+                    onClick={() => {
+                      if (!canRestoreCommittedHistory || hasPendingStagedChanges) return;
+                      restoreCommittedHistory();
+                      setIsHistoryMenuOpen(false);
+                    }}
+                  >
+                    Obnovi
+                  </MenuItem>
                 </MenuPanel>
               ) : null}
             </div>

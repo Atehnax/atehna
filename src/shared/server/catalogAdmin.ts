@@ -1,8 +1,18 @@
 import fs from 'fs/promises';
 import path from 'path';
-import type { CatalogCategory } from '@/commercial/catalog/catalog';
+import type { CatalogCategory, CatalogItem, CatalogSubcategory } from '@/commercial/catalog/catalog';
 
-type CatalogData = { categories: CatalogCategory[] };
+export type RecursiveCatalogSubcategory = Omit<CatalogSubcategory, 'items'> & {
+  items: CatalogItem[];
+  subcategories: RecursiveCatalogSubcategory[];
+};
+
+export type RecursiveCatalogCategory = Omit<CatalogCategory, 'subcategories' | 'items'> & {
+  subcategories: RecursiveCatalogSubcategory[];
+  items: CatalogItem[];
+};
+
+export type CatalogData = { categories: RecursiveCatalogCategory[] };
 
 const catalogPath = path.join(process.cwd(), 'src/commercial/content/data/catalog.json');
 
@@ -20,15 +30,15 @@ export function normalizeCatalogData(input: unknown): CatalogData {
 
   const categories = categoriesSource
     .map((rawCategory) => normalizeCategory(rawCategory))
-    .filter((entry): entry is CatalogCategory => entry !== null);
+    .filter((entry): entry is RecursiveCatalogCategory => entry !== null);
 
   return { categories };
 }
 
-function normalizeCategory(raw: unknown): CatalogCategory | null {
+function normalizeCategory(raw: unknown): RecursiveCatalogCategory | null {
   if (typeof raw !== 'object' || raw === null) return null;
 
-  const category = raw as Partial<CatalogCategory>;
+  const category = raw as Partial<CatalogCategory> & { subcategories?: unknown[] };
   const slug = typeof category.slug === 'string' ? category.slug.trim() : '';
   if (!slug) return null;
 
@@ -45,8 +55,8 @@ function normalizeCategory(raw: unknown): CatalogCategory | null {
     adminNotes: typeof category.adminNotes === 'string' ? category.adminNotes : undefined,
     bannerImage: typeof category.bannerImage === 'string' ? category.bannerImage : undefined,
     subcategories: subcategoriesSource
-      .map((rawSubcategory) => normalizeSubcategory(rawSubcategory, categoryId, slug))
-      .filter((entry): entry is NonNullable<typeof entry> => entry !== null),
+      .map((rawSubcategory) => normalizeSubcategory(rawSubcategory, categoryId, []))
+      .filter((entry): entry is RecursiveCatalogSubcategory => entry !== null),
     items: Array.isArray(category.items) ? category.items : []
   };
 }
@@ -54,22 +64,28 @@ function normalizeCategory(raw: unknown): CatalogCategory | null {
 function normalizeSubcategory(
   raw: unknown,
   categoryId: string,
-  categorySlug: string
-): CatalogCategory['subcategories'][number] | null {
+  parentPath: string[]
+): RecursiveCatalogSubcategory | null {
   if (typeof raw !== 'object' || raw === null) return null;
 
-  const subcategory = raw as Partial<CatalogCategory['subcategories'][number]>;
+  const subcategory = raw as Partial<CatalogSubcategory> & { subcategories?: unknown[] };
   const slug = typeof subcategory.slug === 'string' ? subcategory.slug.trim() : '';
   if (!slug) return null;
 
+  const currentPath = [...parentPath, slug];
+  const childrenSource = Array.isArray(subcategory.subcategories) ? subcategory.subcategories : [];
+
   return {
-    id: normalizeNodeId(subcategory.id, `sub-${categoryId}-${categorySlug}-${slug}`),
+    id: normalizeNodeId(subcategory.id, `sub-${categoryId}-${currentPath.join('-')}`),
     slug,
     title: typeof subcategory.title === 'string' ? subcategory.title : slug,
     description: typeof subcategory.description === 'string' ? subcategory.description : '',
     adminNotes: typeof subcategory.adminNotes === 'string' ? subcategory.adminNotes : undefined,
     image: typeof subcategory.image === 'string' ? subcategory.image : '',
-    items: Array.isArray(subcategory.items) ? subcategory.items : []
+    items: Array.isArray(subcategory.items) ? subcategory.items : [],
+    subcategories: childrenSource
+      .map((child) => normalizeSubcategory(child, categoryId, currentPath))
+      .filter((entry): entry is RecursiveCatalogSubcategory => entry !== null)
   };
 }
 

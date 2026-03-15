@@ -1,8 +1,13 @@
 import { getPool, getDatabaseUrl } from '@/shared/server/db';
-import type { CatalogCategory } from '@/commercial/catalog/catalog';
-import { normalizeCatalogData, readCatalogFile } from '@/shared/server/catalogAdmin';
+import type { CatalogItem } from '@/commercial/catalog/catalog';
+import {
+  normalizeCatalogData,
+  readCatalogFile,
+  type CatalogData,
+  type RecursiveCatalogCategory,
+  type RecursiveCatalogSubcategory
+} from '@/shared/server/catalogAdmin';
 
-type CatalogData = { categories: CatalogCategory[] };
 type CategoryStatus = 'active' | 'inactive';
 type CatalogDataWithStatuses = CatalogData & { statuses: Record<string, CategoryStatus> };
 
@@ -54,20 +59,30 @@ async function ensureTable() {
 
 async function seedIfEmpty() {
   if (seeded) return;
+
   const pool = await getPool();
   const countResult = await pool.query('select count(*)::int as count from catalog_categories');
   const count = Number(countResult.rows[0]?.count ?? 0);
+
   if (count > 0) {
     seeded = true;
     return;
   }
 
-  const fromFile = normalizeCatalogData(await readCatalogFile());
+  const fromFile = await readCatalogFile();
   await replaceCategoryTree(fromFile);
   seeded = true;
 }
 
-function rowToCategory(row: CategoryRow): CatalogCategory {
+function normalizeStatus(value: string): CategoryStatus {
+  return value === 'inactive' ? 'inactive' : 'active';
+}
+
+function getRowItems(row: CategoryRow): CatalogItem[] {
+  return Array.isArray(row.items) ? (row.items as CatalogItem[]) : [];
+}
+
+function rowToCategory(row: CategoryRow): RecursiveCatalogCategory {
   return {
     id: row.id,
     slug: row.slug,
@@ -78,14 +93,76 @@ function rowToCategory(row: CategoryRow): CatalogCategory {
     adminNotes: row.admin_notes ?? undefined,
     bannerImage: row.banner_image ?? undefined,
     subcategories: [],
-    items: Array.isArray(row.items) ? row.items : []
+    items: getRowItems(row)
   };
 }
 
-export async function getCatalogDataFromDatabase(options: { includeInactive?: boolean; includeStatuses?: boolean } = {}): Promise<CatalogData | CatalogDataWithStatuses> {
+function rowToSubcategory(row: CategoryRow): RecursiveCatalogSubcategory {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    description: row.description,
+    adminNotes: row.admin_notes ?? undefined,
+    image: row.image,
+    items: getRowItems(row),
+    subcategories: []
+  };
+}
+
+function buildDefaultStatuses(categories: RecursiveCatalogCategory[]): Record<string, CategoryStatus> {
+  const statuses: Record<string, CategoryStatus> = {};
+
+  const visit = (
+    categorySlug: string,
+    nodes: RecursiveCatalogSubcategory[],
+    parentPath: string[] = []
+  ) => {
+    for (const node of nodes) {
+      const currentPath = [...parentPath, node.slug];
+      statuses[`sub:${categorySlug}:${currentPath.join('__')}`] = 'active';
+      visit(categorySlug, node.subcategories, currentPath);
+    }
+  };
+
+  for (const category of categories) {
+    statuses[`cat:${category.slug}`] = 'active';
+    visit(category.slug, category.subcategories);
+  }
+
+  return statuses;
+}
+
+function buildSubcategoryTree(
+  parentId: string,
+  topCategorySlug: string,
+  childrenByParent: Map<string, CategoryRow[]>,
+  statuses: Record<string, CategoryStatus>,
+  parentPath: string[] = []
+): RecursiveCatalogSubcategory[] {
+  const children = childrenByParent.get(parentId) ?? [];
+
+  return children.map((row) => {
+    const currentPath = [...parentPath, row.slug];
+    const node = rowToSubcategory(row);
+
+    statuses[`sub:${topCategorySlug}:${currentPath.join('__')}`] = normalizeStatus(row.status);
+    node.subcategories = buildSubcategoryTree(row.id, topCategorySlug, childrenByParent, statuses, currentPath);
+
+    return node;
+  });
+}
+
+export async function getCatalogDataFromDatabase(
+  options: { includeInactive?: boolean; includeStatuses?: boolean } = {}
+): Promise<CatalogData | CatalogDataWithStatuses> {
   const { includeInactive = false, includeStatuses = false } = options;
+
   if (!getDatabaseUrl()) {
-    return normalizeCatalogData(await readCatalogFile());
+    const normalized = await readCatalogFile();
+    return includeStatuses
+      ? { categories: normalized.categories, statuses: buildDefaultStatuses(normalized.categories) }
+      : normalized;
   }
 
   await ensureTable();
@@ -110,39 +187,26 @@ export async function getCatalogDataFromDatabase(options: { includeInactive?: bo
     childrenByParent.set(row.parent_id, list);
   }
 
-  const categorySlugById = new Map(topLevel.map((entry) => [entry.id, entry.slug]));
+  const statuses: Record<string, CategoryStatus> = {};
+  const categories = topLevel.map((row) => {
+    const category = rowToCategory(row);
+    statuses[`cat:${row.slug}`] = normalizeStatus(row.status);
+    category.subcategories = buildSubcategoryTree(row.id, row.slug, childrenByParent, statuses);
+    return category;
+  });
 
   const payload: CatalogDataWithStatuses = {
-    categories: topLevel.map((row) => {
-      const category = rowToCategory(row);
-      const children = (childrenByParent.get(row.id) ?? []).map((child) => ({
-        id: child.id,
-        slug: child.slug,
-        title: child.title,
-        description: child.description,
-        adminNotes: child.admin_notes ?? undefined,
-        image: child.image,
-        items: Array.isArray(child.items) ? child.items : []
-      }));
-      category.subcategories = children;
-      return category;
-    }),
-    statuses: Object.fromEntries(
-      rows
-        .filter((row) => row.parent_id !== null || topLevel.some((top) => top.id === row.id))
-        .map((row) => {
-          const key = row.parent_id
-            ? `sub:${categorySlugById.get(row.parent_id) ?? row.parent_id}:${row.slug}`
-            : `cat:${row.slug}`;
-          return [key, row.status === 'inactive' ? 'inactive' : 'active'] as const;
-        })
-    )
+    categories,
+    statuses
   };
 
   return includeStatuses ? payload : { categories: payload.categories };
 }
 
-export async function replaceCategoryTree(input: unknown, statuses: Record<string, CategoryStatus> = {}): Promise<CatalogData> {
+export async function replaceCategoryTree(
+  input: unknown,
+  statuses: Record<string, CategoryStatus> = {}
+): Promise<CatalogData> {
   const normalized = normalizeCatalogData(input);
 
   if (!getDatabaseUrl()) {
@@ -158,8 +222,57 @@ export async function replaceCategoryTree(input: unknown, statuses: Record<strin
 
     const idsToKeep: string[] = [];
 
+    const upsertSubcategoryTree = async (
+      topCategorySlug: string,
+      parentId: string,
+      nodes: RecursiveCatalogSubcategory[],
+      parentPath: string[] = []
+    ) => {
+      for (const [position, node] of nodes.entries()) {
+        const currentPath = [...parentPath, node.slug];
+        idsToKeep.push(node.id);
+
+        await client.query(
+          `
+            insert into catalog_categories
+              (id, parent_id, slug, title, summary, description, image, admin_notes, banner_image, items, position, status, updated_at)
+            values
+              ($1, $2, $3, $4, '', $5, $6, $7, null, $8::jsonb, $9, $10, now())
+            on conflict (id) do update set
+              parent_id = excluded.parent_id,
+              slug = excluded.slug,
+              title = excluded.title,
+              summary = excluded.summary,
+              description = excluded.description,
+              image = excluded.image,
+              admin_notes = excluded.admin_notes,
+              banner_image = null,
+              items = excluded.items,
+              position = excluded.position,
+              status = excluded.status,
+              updated_at = now()
+          `,
+          [
+            node.id,
+            parentId,
+            node.slug,
+            node.title,
+            node.description,
+            node.image ?? '',
+            node.adminNotes ?? null,
+            JSON.stringify(Array.isArray(node.items) ? node.items : []),
+            position,
+            statuses[`sub:${topCategorySlug}:${currentPath.join('__')}`] ?? 'active'
+          ]
+        );
+
+        await upsertSubcategoryTree(topCategorySlug, node.id, node.subcategories, currentPath);
+      }
+    };
+
     for (const [categoryIndex, category] of normalized.categories.entries()) {
       idsToKeep.push(category.id);
+
       await client.query(
         `
           insert into catalog_categories
@@ -195,42 +308,7 @@ export async function replaceCategoryTree(input: unknown, statuses: Record<strin
         ]
       );
 
-      for (const [subcategoryIndex, subcategory] of category.subcategories.entries()) {
-        idsToKeep.push(subcategory.id);
-        await client.query(
-          `
-            insert into catalog_categories
-              (id, parent_id, slug, title, summary, description, image, admin_notes, banner_image, items, position, status, updated_at)
-            values
-              ($1, $2, $3, $4, '', $5, $6, $7, null, $8::jsonb, $9, $10, now())
-            on conflict (id) do update set
-              parent_id = excluded.parent_id,
-              slug = excluded.slug,
-              title = excluded.title,
-              summary = excluded.summary,
-              description = excluded.description,
-              image = excluded.image,
-              admin_notes = excluded.admin_notes,
-              banner_image = null,
-              items = excluded.items,
-              position = excluded.position,
-              status = excluded.status,
-              updated_at = now()
-          `,
-          [
-            subcategory.id,
-            category.id,
-            subcategory.slug,
-            subcategory.title,
-            subcategory.description,
-            subcategory.image ?? '',
-            subcategory.adminNotes ?? null,
-            JSON.stringify(Array.isArray(subcategory.items) ? subcategory.items : []),
-            subcategoryIndex,
-            statuses[`sub:${category.slug}:${subcategory.slug}`] ?? 'active'
-          ]
-        );
-      }
+      await upsertSubcategoryTree(category.slug, category.id, category.subcategories);
     }
 
     if (idsToKeep.length > 0) {

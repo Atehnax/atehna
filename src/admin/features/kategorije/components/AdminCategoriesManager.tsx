@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode, type CSSProperties } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import Image from 'next/image';
 import {
   DndContext,
   DragOverlay,
@@ -19,7 +18,6 @@ import {
 import {
   SortableContext,
   arrayMove,
-  rectSortingStrategy,
   useSortable,
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
@@ -51,7 +49,9 @@ import { Input } from '@/shared/ui/input';
 import { Spinner } from '@/shared/ui/loading';
 import { useToast } from '@/shared/ui/toast';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
-import Selecto from 'react-selecto';
+import { AdminCategoriesMainTable } from './AdminCategoriesMainTable';
+import { AdminCategoriesPreview } from './AdminCategoriesPreview';
+import { AdminCategoriesMiller } from './AdminCategoriesMiller';
 
 type RecursiveCatalogSubcategory = Omit<CatalogSubcategory, 'items'> & {
   items: CatalogItem[];
@@ -3029,336 +3029,82 @@ export default function AdminCategoriesManager({
         </div>
       </ConfirmDialog>
 
-      <div className={activeView === 'table' ? 'space-y-5' : 'hidden'}>
-      <section>
-        <AdminTableLayout
-          className="border"
-          contentClassName="overflow-x-auto"
-          headerLeft={
-            <>
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Išči po kategoriji ali opisu ..."
-                className={`${ADMIN_CONTROL_HEIGHT} min-w-[260px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} text-xs text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
-              />
-            </>
-          }
-          headerRight={
-            <>
-              <button
-                type="button"
-                onClick={handleBulkDelete}
-                disabled={selectedRows.length === 0 || isBulkDeleting}
-                className={bulkDeleteButtonClass}
-              >
-                {isBulkDeleting ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Spinner size="sm" className="text-[var(--danger-600)]" />
-                    Brisanje...
-                  </span>
-                ) : (
-                  'Izbriši'
-                )}
-              </button>
 
-              <Button
-                variant="primary"
-                size="toolbar"
-                onClick={() => {
-                  const summary = summarizeCatalogChanges(persistedTableRef.current, catalog, persistedStatusRef.current, statusByRow);
-                  setTableSaveSummary(summary);
-                  setIsTableSaveDialogOpen(true);
-                }}
-                disabled={!tableDirty || saving}
-              >
-                Shrani spremembe
-              </Button>
+      <AdminCategoriesMainTable
+        activeView={activeView}
+        query={query}
+        onQueryChange={setQuery}
+        onBulkDelete={handleBulkDelete}
+        selectedRows={selectedRows}
+        isBulkDeleting={isBulkDeleting}
+        bulkDeleteButtonClass={bulkDeleteButtonClass}
+        onRequestSave={() => {
+          const summary = summarizeCatalogChanges(persistedTableRef.current, catalog, persistedStatusRef.current, statusByRow);
+          setTableSaveSummary(summary);
+          setIsTableSaveDialogOpen(true);
+        }}
+        tableDirty={tableDirty}
+        saving={saving}
+        tableHistoryMenuRef={tableHistoryMenuRef}
+        isHistoryMenuOpen={isHistoryMenuOpen}
+        onToggleHistoryMenu={() => setIsHistoryMenuOpen((prev) => !prev)}
+        canUndoStagedChanges={canUndoStagedChanges}
+        onUndo={() => {
+          undoStagedChanges();
+          setIsHistoryMenuOpen(false);
+        }}
+        canRestoreCommittedHistory={canRestoreCommittedHistory}
+        hasPendingStagedChanges={hasPendingStagedChanges}
+        onRestore={() => {
+          restoreCommittedHistory();
+          setIsHistoryMenuOpen(false);
+        }}
+        sensors={sensors}
+        onTreeDragEnd={onTreeDragEnd}
+        visibleRowIds={visibleRowIds}
+        selectAllRef={selectAllRef}
+        allRowsSelected={allRowsSelected}
+        onToggleSelectAll={toggleSelectAll}
+        statusHeaderMenuRef={statusHeaderMenuRef}
+        onToggleStatusHeaderMenu={() => {
+          if (selectedRows.length === 0) return;
+          setIsStatusHeaderMenuOpen((previousOpen) => !previousOpen);
+        }}
+        isStatusHeaderMenuOpen={isStatusHeaderMenuOpen}
+        statusByRow={statusByRow}
+        onStageStatusChange={(nextStatuses) => {
+          stageStatusChange(nextStatuses);
+          setIsStatusHeaderMenuOpen(false);
+        }}
+        treeRows={treeRows}
+      />
 
-              <div className="relative" ref={tableHistoryMenuRef}>
-                <IconButton type="button" tone="neutral" aria-label="Zgodovina" onClick={() => setIsHistoryMenuOpen((prev) => !prev)}>
-                  ⋮
-                </IconButton>
-                {isHistoryMenuOpen ? (
-                  <MenuPanel className="absolute right-0 top-9 z-20 w-40">
-                    <MenuItem
-                      disabled={!canUndoStagedChanges}
-                      onClick={() => {
-                        if (!canUndoStagedChanges) return;
-                        undoStagedChanges();
-                        setIsHistoryMenuOpen(false);
-                      }}
-                    >
-                      Razveljavi
-                    </MenuItem>
-
-                    <MenuItem
-                      disabled={!canRestoreCommittedHistory || hasPendingStagedChanges}
-                      onClick={() => {
-                        if (!canRestoreCommittedHistory || hasPendingStagedChanges) return;
-                        restoreCommittedHistory();
-                        setIsHistoryMenuOpen(false);
-                      }}
-                    >
-                      Obnovi
-                    </MenuItem>
-                  </MenuPanel>
-                ) : null}
-              </div>
-            </>
-          }
-        >
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onTreeDragEnd}>
-            <SortableContext items={visibleRowIds} strategy={verticalListSortingStrategy}>
-          <table className="min-w-full table-fixed border-separate border-spacing-0 border-x border-b border-slate-200">
-            <colgroup>
-              <col className="w-14" />
-              <col className="w-[420px]" />
-              <col className="w-[320px]" />
-              <col className="w-32" />
-              <col className="w-28" />
-              <col className="w-32" />
-              <col className="w-40" />
-            </colgroup>
-
-            <thead className="bg-slate-50/90">
-              <tr>
-                <th className="border-b border-slate-200 px-2 py-2 text-center text-xs font-semibold text-slate-500">
-                  <input
-                    ref={selectAllRef}
-                    type="checkbox"
-                    checked={allRowsSelected}
-                    onChange={toggleSelectAll}
-                    aria-label="Izberi vse"
-                  />
-                </th>
-                <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">
-                  Kategorija
-                </th>
-                <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">
-                  Opis
-                </th>
-                <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">
-                  Podkategorije
-                </th>
-                <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">
-                  Izdelki
-                </th>
-                <th className="h-11 border-b border-slate-200 px-3 py-0 text-center text-xs font-semibold text-slate-500 align-middle">
-                  <div className="relative flex h-8 items-center justify-center" ref={statusHeaderMenuRef}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (selectedRows.length === 0) return;
-                        setIsStatusHeaderMenuOpen((previousOpen) => !previousOpen);
-                      }}
-                      className={`inline-flex h-7 items-center rounded-full border px-2 text-xs font-semibold ${
-                        selectedRows.length > 0
-                          ? 'border-slate-300 bg-white text-slate-700 hover:bg-[color:var(--hover-neutral)]'
-                          : 'border-transparent bg-transparent text-slate-500 cursor-default'
-                      }`}
-                      aria-haspopup="menu"
-                      aria-expanded={selectedRows.length > 0 ? isStatusHeaderMenuOpen : false}
-                      disabled={selectedRows.length === 0}
-                    >
-                      {selectedRows.length > 0 ? `Status ▾ (${selectedRows.length})` : 'Status'}
-                    </button>
-
-                    {selectedRows.length > 0 && isStatusHeaderMenuOpen ? (
-                      <MenuPanel className="absolute left-1/2 top-8 z-20 w-36 -translate-x-1/2">
-                        <MenuItem
-                          onClick={() => {
-                            const nextStatuses = {
-                              ...statusByRow,
-                              ...Object.fromEntries(selectedRows.map((rowId) => [rowId, 'active' as CategoryStatus]))
-                            };
-                            stageStatusChange(nextStatuses);
-                            setIsStatusHeaderMenuOpen(false);
-                          }}
-                        >
-                          Aktivna
-                        </MenuItem>
-                        <MenuItem
-                          onClick={() => {
-                            const nextStatuses = {
-                              ...statusByRow,
-                              ...Object.fromEntries(selectedRows.map((rowId) => [rowId, 'inactive' as CategoryStatus]))
-                            };
-                            stageStatusChange(nextStatuses);
-                            setIsStatusHeaderMenuOpen(false);
-                          }}
-                        >
-                          Neaktivna
-                        </MenuItem>
-                      </MenuPanel>
-                    ) : null}
-                  </div>
-                </th>
-                <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">
-                  Uredi
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>{treeRows}</tbody>
-          </table>
-            </SortableContext>
-          </DndContext>
-        </AdminTableLayout>
-      </section>
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        {tableError ? <p className="mb-3 rounded-lg border border-[var(--danger-300)] bg-[var(--danger-100)] px-3 py-2 text-xs text-[var(--danger-700)]">{tableError}</p> : null}
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="text-sm font-semibold text-slate-700">Predogled</p>
-          <div className="flex items-center gap-3">
-            <label className="mr-2 flex items-center gap-2 text-[11px] text-slate-500">
-              Elementov na vrstico
-              <input
-                type="range"
-                min={1}
-                max={12}
-                value={lowerViewCount}
-                onChange={(event) => setLowerViewCount(Number(event.target.value || 4))}
-                className="h-1.5 w-28 accent-[#3e67d6]"
-              />
-              <span className="w-4 text-right text-slate-600">{lowerViewCount}</span>
-            </label>
-            <Button
-              variant="primary"
-              size="toolbar"
-              onClick={() => {
-                const summary = summarizeCatalogChanges(persistedTableRef.current, catalog, persistedStatusRef.current, statusByRow);
-                setTableSaveSummary(summary);
-                setIsTableSaveDialogOpen(true);
-              }}
-              disabled={!tableDirty || saving}
-            >
-              Shrani spremembe
-            </Button>
-          </div>
-        </div>
-
-        {selectedContext?.kind === 'root' ||
-        (selectedContext?.kind === 'category' && visibleContent.length > 0) ? (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onBottomReorder}>
-            <SortableContext items={visibleContent.map((item) => item.id)} strategy={rectSortingStrategy}>
-              <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.max(1, lowerViewCount)}, minmax(0, 1fr))` }}>
-                {visibleContent.map((item) => (
-                  <SortableItem key={item.id} id={item.id}>
-                    {(dragProps) => (
-                      <article {...dragProps} className="h-[300px] rounded-xl border border-slate-200 bg-white p-3 shadow-sm cursor-grab active:cursor-grabbing">
-                        <button
-                          type="button"
-                          className="relative h-36 w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-50 text-left"
-                          onClick={() => uploadRefs.current[item.id]?.click()}
-                          onPointerDown={(event) => event.stopPropagation()}
-                        >
-                          {item.image ? (
-                            <Image src={item.image} alt={item.title} fill className="object-cover" />
-                          ) : (
-                            <div className="flex h-full items-center justify-center text-xs text-slate-400">
-                              Brez slike
-                            </div>
-                          )}
-                          <div className="absolute inset-0 flex items-center justify-center gap-2">
-                            <button
-                              type="button"
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-500 backdrop-blur-sm hover:bg-white"
-                              onPointerDown={(event) => event.stopPropagation()}
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                uploadRefs.current[item.id]?.click();
-                              }}
-                              aria-label="Dodaj sliko"
-                            >
-                              <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                                <rect x="3.5" y="5" width="13" height="10" rx="2" />
-                                <path d="M10 8v4M8 10h4" />
-                              </svg>
-                            </button>
-                            {item.image ? (
-                              <button
-                                type="button"
-                                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-500 backdrop-blur-sm hover:bg-white"
-                                onPointerDown={(event) => event.stopPropagation()}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  setImageDeleteTarget({
-                                    kind: item.kind,
-                                    categorySlug:
-                                      item.kind === 'category'
-                                        ? item.id
-                                        : selectedContext?.kind === 'category'
-                                          ? selectedContext.category.slug
-                                          : '',
-                                    subcategorySlug: item.kind === 'subcategory' ? item.id : undefined
-                                  });
-                                }}
-                                aria-label="Odstrani sliko"
-                              >
-                                ✕
-                              </button>
-                            ) : null}
-                          </div>
-                        </button>
-
-                        <div className="mt-3 space-y-1">
-                          <p className="text-sm font-semibold text-slate-700">{item.title}</p>
-                          <p className="text-xs text-slate-600">{item.description || '—'}</p>
-                        </div>
-
-                        <div className="mt-2 flex items-center gap-2" onPointerDown={(event) => event.stopPropagation()}>
-                          <input
-                            ref={(element) => {
-                              uploadRefs.current[item.id] = element;
-                            }}
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(event) =>
-                              void onImageUpload(
-                                event.target.files?.[0] ?? null,
-                                item,
-                                selectedContext?.kind === 'category'
-                                  ? selectedContext.category.slug
-                                  : undefined
-                              )
-                            }
-                          />
-
-                        </div>
-                      </article>
-                    )}
-                  </SortableItem>
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-        ) : null}
-
-        {selectedContext?.kind === 'category' && selectedContext.category.subcategories.length === 0 ? (
-          <LeafProductsView
-            title={`${selectedContext.category.title} — izdelki`}
-            category={selectedContext.category}
-            items={sortCatalogItems(selectedContext.category.items ?? [])}
-            onDragEnd={onLeafProductsDragEnd}
-          />
-        ) : null}
-
-        {selectedContext?.kind === 'subcategory' ? (
-          <LeafProductsView
-            title={`${selectedContext.category.title} / ${selectedContext.subcategory.title}`}
-            category={selectedContext.category}
-            subcategory={selectedContext.subcategory}
-            items={sortCatalogItems(selectedContext.subcategory.items)}
-            onDragEnd={onLeafProductsDragEnd}
-          />
-        ) : null}
-
-      </section>
-      </div>
-
+      <AdminCategoriesPreview
+        activeView={activeView}
+        tableError={tableError}
+        lowerViewCount={lowerViewCount}
+        onLowerViewCountChange={setLowerViewCount}
+        onRequestSave={() => {
+          const summary = summarizeCatalogChanges(persistedTableRef.current, catalog, persistedStatusRef.current, statusByRow);
+          setTableSaveSummary(summary);
+          setIsTableSaveDialogOpen(true);
+        }}
+        tableDirty={tableDirty}
+        saving={saving}
+        selectedContext={selectedContext}
+        visibleContent={visibleContent}
+        onBottomReorder={onBottomReorder}
+        renderSortableItem={(id, children) => (
+          <SortableItem key={id} id={id}>
+            {(dragProps) => children(dragProps)}
+          </SortableItem>
+        )}
+        uploadRefs={uploadRefs}
+        onSetImageDeleteTarget={setImageDeleteTarget}
+        onImageUpload={onImageUpload}
+        onLeafProductsDragEnd={onLeafProductsDragEnd}
+        sortCatalogItems={sortCatalogItems}
+      />
 
       <ConfirmDialog
         open={isTableSaveDialogOpen}
@@ -3409,217 +3155,47 @@ export default function AdminCategoriesManager({
         </ul>
       </ConfirmDialog>
 
+      <AdminCategoriesMiller
+        activeView={activeView}
+        millerDirty={millerDirty}
+        onRequestSave={() => {
+          const summary = summarizeCatalogChanges(persistedMillerRef.current, millerCatalog, persistedStatusRef.current, statusByRow);
+          setMillerSaveSummary(summary);
+          setIsMillerSaveDialogOpen(true);
+        }}
+        saving={saving}
+        millerHistoryMenuRef={millerHistoryMenuRef}
+        isHistoryMenuOpen={isHistoryMenuOpen}
+        onToggleHistoryMenu={() => setIsHistoryMenuOpen((prev) => !prev)}
+        canUndoStagedChanges={canUndoStagedChanges}
+        onUndo={() => {
+          undoStagedChanges();
+          setIsHistoryMenuOpen(false);
+        }}
+        canRestoreCommittedHistory={canRestoreCommittedHistory}
+        hasPendingStagedChanges={hasPendingStagedChanges}
+        onRestore={() => {
+          restoreCommittedHistory();
+          setIsHistoryMenuOpen(false);
+        }}
+        millerError={millerError}
+        millerViewportRef={millerViewportRef}
+        onSelectIds={(ids) => setMillerSelection(ids)}
+        millerColumns={millerColumns}
+        plusIcon={<PlusIcon />}
+        onAddNode={addMillerNode}
+        onRequestDelete={requestDeleteMillerSelection}
+        millerSelection={millerSelection}
+        millerDropTarget={millerDropTarget}
+        rootId={rootId}
+        setMillerDropTarget={setMillerDropTarget}
+        applyMillerMove={applyMillerMove}
+        millerRename={millerRename}
+        setMillerRename={setMillerRename}
+        applyMillerRename={applyMillerRename}
+      />
 
-      <section className={activeView === 'miller' ? 'rounded-2xl border border-slate-200 bg-white p-3 shadow-sm' : 'hidden'}>
-        <div className="mb-3 flex items-center justify-between">
-          <div className="text-xs text-slate-600">{millerDirty ? 'Neshranjene spremembe' : ''}</div>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="primary"
-              size="toolbar"
-              onClick={() => { const summary = summarizeCatalogChanges(persistedMillerRef.current, millerCatalog, persistedStatusRef.current, statusByRow); setMillerSaveSummary(summary); setIsMillerSaveDialogOpen(true); }}
-              disabled={!millerDirty || saving}
-            >
-              Shrani spremembe
-            </Button>
-            <div className="relative" ref={millerHistoryMenuRef}>
-              <IconButton type="button" tone="neutral" aria-label="Zgodovina" onClick={() => setIsHistoryMenuOpen((prev) => !prev)}>⋮</IconButton>
-              {isHistoryMenuOpen ? (
-                <MenuPanel className="absolute right-0 top-9 z-20 w-40">
-                  <MenuItem
-                    disabled={!canUndoStagedChanges}
-                    onClick={() => {
-                      if (!canUndoStagedChanges) return;
-                      undoStagedChanges();
-                      setIsHistoryMenuOpen(false);
-                    }}
-                  >
-                    Razveljavi
-                  </MenuItem>
 
-                  <MenuItem
-                    disabled={!canRestoreCommittedHistory || hasPendingStagedChanges}
-                    onClick={() => {
-                      if (!canRestoreCommittedHistory || hasPendingStagedChanges) return;
-                      restoreCommittedHistory();
-                      setIsHistoryMenuOpen(false);
-                    }}
-                  >
-                    Obnovi
-                  </MenuItem>
-                </MenuPanel>
-              ) : null}
-            </div>
-          </div>
-        </div>
-
-        {millerError ? <p className="mb-3 rounded-lg border border-[var(--danger-300)] bg-[var(--danger-100)] px-3 py-2 text-xs text-[var(--danger-700)]">{millerError}</p> : null}
-
-        <Selecto
-          container={millerViewportRef.current ?? undefined}
-          selectableTargets={[".miller-select-item"]}
-          selectByClick={false}
-          selectFromInside={false}
-          hitRate={0}
-          onSelectEnd={(event: { selected: Element[] }) => {
-            const ids = event.selected
-              .map((node: Element) => (node as HTMLElement).dataset.millerId)
-              .filter((id: string | undefined): id is string => Boolean(id));
-            if (ids.length > 0) setMillerSelection(ids);
-          }}
-        />
-
-        <div
-          ref={millerViewportRef}
-          className="grid gap-3"
-          style={{ gridTemplateColumns: `repeat(${Math.max(1, millerColumns.length)}, minmax(0, 1fr))` }}
-        >
-          {millerColumns.map((column) => (
-            <div key={column.key} className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/40">
-              <div className="flex items-center justify-between border-b border-slate-200 bg-white px-2.5 py-2">
-                <h3 className="text-xs font-semibold text-slate-700">{column.title}</h3>
-                <div className="flex items-center gap-1">
-                  <IconButton type="button" tone="neutral" aria-label="Dodaj" onClick={() => addMillerNode(column.kind)}>
-                    <PlusIcon />
-                  </IconButton>
-                  <IconButton
-                    type="button"
-                    tone="danger"
-                    aria-label="Izbriši"
-                    onClick={() => requestDeleteMillerSelection(column.kind)}
-                    disabled={!millerSelection.some((id) => column.ids.includes(id))}
-                  >
-                    ✕
-                  </IconButton>
-                </div>
-              </div>
-
-              <div
-                className={`max-h-[520px] space-y-1 overflow-auto p-1.5 ${millerDropTarget === (column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget) ? 'ring-2 ring-[#3e67d6]/40' : ''}`}
-                onDragOver={(event) => {
-                  event.preventDefault();
-                  setMillerDropTarget(column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget ?? null);
-                }}
-                onDrop={(event) => {
-                  event.preventDefault();
-                  const dropTarget = column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget ?? rootId;
-                  applyMillerMove(dropTarget);
-                  setMillerDropTarget(null);
-                }}
-              >
-                {column.rows.length === 0 ? <p className="px-2 py-3 text-xs text-slate-500">Ni zapisov.</p> : column.rows.map((row) => (
-                  millerRename?.id === row.id && row.kind !== 'item' ? (
-                    <input
-                      key={row.id}
-                      value={millerRename.value}
-                      onChange={(event) => setMillerRename({ id: row.id, value: event.target.value })}
-                      onBlur={applyMillerRename}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter') applyMillerRename();
-                        if (event.key === 'Escape') setMillerRename(null);
-                      }}
-                      className="block w-full rounded-md border border-[#3e67d6]/40 bg-white px-2 py-1 text-xs font-medium text-slate-700 outline-none"
-                      autoFocus
-                    />
-                  ) : (
-                    <button
-                      key={row.id}
-                      type="button"
-                      data-miller-id={row.id}
-                      className={`miller-select-item block w-full rounded-md border px-2 py-1 text-left text-xs font-medium transition ${millerSelection.includes(row.id) || row.tone === 'focused' ? 'border-[#3e67d6]/50 bg-[#f0f4ff] text-[#1f3f93]' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-100'}`}
-                      onClick={row.onClick}
-                      onDoubleClick={() => {
-                        if (row.kind === 'item') return;
-                        setMillerRename({ id: row.id, value: row.label });
-                      }}
-                      onContextMenu={(event) => {
-                        if (row.kind === 'item') return;
-                        event.preventDefault();
-                        setMillerRename({ id: row.id, value: row.label });
-                      }}
-                      draggable
-                      onDragStart={(event) => { event.dataTransfer.setData('text/plain', row.id); row.onDragStart(); }}
-                      onDragEnd={() => setMillerDropTarget(null)}
-                      onDragOver={(event) => {
-                        event.preventDefault();
-                        setMillerDropTarget(row.id);
-                      }}
-                      onDrop={(event) => {
-                        event.preventDefault();
-                        applyMillerMove(row.id);
-                      }}
-                    >
-                      {row.label}
-                    </button>
-                  )
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function LeafProductsView({
-  title,
-  category,
-  subcategory,
-  items,
-  onDragEnd
-}: {
-  title: string;
-  category: CatalogCategory;
-  subcategory?: CatalogSubcategory;
-  items: CatalogItem[];
-  onDragEnd: (event: DragEndEvent) => void;
-}) {
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
-
-  return (
-    <div>
-      <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-      <p className="mt-1 text-sm text-slate-600">Storefront-like pogled izdelkov iz izbrane kategorije.</p>
-
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-        <SortableContext items={items.map((item) => item.slug)} strategy={rectSortingStrategy}>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {items.map((item) => (
-              <SortableItem key={item.slug} id={item.slug}>
-                {(dragProps) => {
-                  const basePrice = subcategory
-                    ? item.price ?? getCatalogItemPrice(category.slug, subcategory.slug, item.slug)
-                    : item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug);
-
-                  const finalPrice = getDiscountedPrice(basePrice, item.discountPct);
-
-                  return (
-                    <article {...dragProps} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm cursor-grab active:cursor-grabbing">
-                      {item.image ? (
-                        <div className="relative h-24 overflow-hidden rounded-lg border border-slate-200 bg-slate-50" onPointerDown={(event) => event.stopPropagation()}>
-                          <Image src={item.images?.[0] ?? item.image} alt={item.name} fill className="object-contain p-2" />
-                        </div>
-                      ) : null}
-
-                      <h4 className="mt-2 text-sm font-semibold text-slate-900">{item.name}</h4>
-                      <p className="mt-1 text-xs text-slate-600">{item.description}</p>
-                      <p className="mt-2 text-sm font-semibold text-slate-900">{formatCatalogPrice(finalPrice)}</p>
-                      <p className="mt-1 text-[11px] text-slate-500">
-                        SKU:{' '}
-                        {subcategory
-                          ? getCatalogItemSku(category.slug, subcategory.slug, item.slug)
-                          : getCatalogCategoryItemSku(category.slug, item.slug)}
-                      </p>
-                    </article>
-                  );
-                }}
-              </SortableItem>
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
     </div>
   );
 }

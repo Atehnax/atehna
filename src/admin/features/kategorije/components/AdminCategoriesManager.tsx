@@ -449,7 +449,8 @@ export default function AdminCategoriesManager({
   const stagedMillerHistoryRef = useRef<HistorySnapshot[]>([]);
   const committedHistoryRef = useRef<HistorySnapshot[]>([]);
   const committedHistoryIndexRef = useRef(0);
-  const historyMenuRef = useRef<HTMLDivElement | null>(null);
+  const tableHistoryMenuRef = useRef<HTMLDivElement | null>(null);
+  const millerHistoryMenuRef = useRef<HTMLDivElement | null>(null);
   const millerViewportRef = useRef<HTMLDivElement | null>(null);
 
   const applyPayloadState = useCallback((payloadRaw: AdminCategoriesPayload) => {
@@ -483,8 +484,8 @@ export default function AdminCategoriesManager({
       return next;
     });
     const initialSnapshot = { catalog: payload, statuses: { ...persistedStatusRef.current } };
-    stagedTableHistoryRef.current = [initialSnapshot];
-    stagedMillerHistoryRef.current = [initialSnapshot];
+    stagedTableHistoryRef.current = [];
+    stagedMillerHistoryRef.current = [];
     committedHistoryRef.current = [initialSnapshot];
     committedHistoryIndexRef.current = 0;
   }, []);
@@ -583,7 +584,6 @@ export default function AdminCategoriesManager({
         return false;
       }
 
-      await load({ silent: true });
       toast.success(message);
       return true;
     } catch {
@@ -626,7 +626,10 @@ export default function AdminCategoriesManager({
 
   const stageMillerCatalog = (next: CatalogData, nextStatuses: Record<string, CategoryStatus> = statusByRow) => {
     const normalized = normalizeCatalogData(next);
-    stagedMillerHistoryRef.current.push({ catalog: normalized, statuses: { ...nextStatuses } });
+    stagedMillerHistoryRef.current.push({
+      catalog: normalizeCatalogData(millerCatalog),
+      statuses: { ...statusByRow }
+    });
     setMillerCatalog(normalized);
     setStatusByRow(nextStatuses);
     setMillerDirty(true);
@@ -635,7 +638,10 @@ export default function AdminCategoriesManager({
 
   const stageTableCatalog = (next: CatalogData, nextStatuses: Record<string, CategoryStatus> = statusByRow) => {
     const normalized = normalizeCatalogData(next);
-    stagedTableHistoryRef.current.push({ catalog: normalized, statuses: { ...nextStatuses } });
+    stagedTableHistoryRef.current.push({
+      catalog: normalizeCatalogData(catalog),
+      statuses: { ...statusByRow }
+    });
     setCatalog(normalized);
     setStatusByRow(nextStatuses);
     setTableDirty(true);
@@ -645,7 +651,7 @@ export default function AdminCategoriesManager({
   const stageStatusChange = (nextStatuses: Record<string, CategoryStatus>) => {
     const snapshot = {
       catalog: normalizeCatalogData(activeView === 'miller' ? millerCatalog : catalog),
-      statuses: { ...nextStatuses }
+      statuses: { ...statusByRow }
     };
 
     if (activeView === 'miller') {
@@ -697,14 +703,15 @@ export default function AdminCategoriesManager({
     const closeHistoryMenuOnOutside = (event: MouseEvent) => {
       if (!isHistoryMenuOpen) return;
       const target = event.target as Node | null;
-      if (historyMenuRef.current && target && !historyMenuRef.current.contains(target)) {
+      const activeMenuRef = activeView === 'miller' ? millerHistoryMenuRef.current : tableHistoryMenuRef.current;
+      if (activeMenuRef && target && !activeMenuRef.contains(target)) {
         setIsHistoryMenuOpen(false);
       }
     };
 
     document.addEventListener('mousedown', closeHistoryMenuOnOutside);
     return () => document.removeEventListener('mousedown', closeHistoryMenuOnOutside);
-  }, [isHistoryMenuOpen]);
+  }, [activeView, isHistoryMenuOpen]);
 
   const guardedNavigate = (nextPath: string) => {
     if (nextPath === pathname) return;
@@ -720,21 +727,19 @@ export default function AdminCategoriesManager({
 
   const undoStagedChanges = () => {
     if (activeView === 'miller') {
-      if (stagedMillerHistoryRef.current.length <= 1) return;
-      stagedMillerHistoryRef.current.pop();
-      const previous = stagedMillerHistoryRef.current[stagedMillerHistoryRef.current.length - 1];
+      const previous = stagedMillerHistoryRef.current.pop();
+      if (!previous) return;
       setMillerCatalog(normalizeCatalogData(previous.catalog));
       setStatusByRow({ ...previous.statuses });
-      setMillerDirty(stagedMillerHistoryRef.current.length > 1);
+      setMillerDirty(stagedMillerHistoryRef.current.length > 0);
       return;
     }
 
-    if (stagedTableHistoryRef.current.length <= 1) return;
-    stagedTableHistoryRef.current.pop();
-    const previous = stagedTableHistoryRef.current[stagedTableHistoryRef.current.length - 1];
+    const previous = stagedTableHistoryRef.current.pop();
+    if (!previous) return;
     setCatalog(normalizeCatalogData(previous.catalog));
     setStatusByRow({ ...previous.statuses });
-    setTableDirty(stagedTableHistoryRef.current.length > 1);
+    setTableDirty(stagedTableHistoryRef.current.length > 0);
   };
 
   const restoreCommittedHistory = () => {
@@ -751,8 +756,8 @@ export default function AdminCategoriesManager({
     setStatusByRow({ ...snapshot.statuses });
     setTableDirty(true);
     setMillerDirty(true);
-    stagedTableHistoryRef.current = [{ catalog: normalizeCatalogData(snapshot.catalog), statuses: { ...snapshot.statuses } }];
-    stagedMillerHistoryRef.current = [{ catalog: normalizeCatalogData(snapshot.catalog), statuses: { ...snapshot.statuses } }];
+    stagedTableHistoryRef.current = [];
+    stagedMillerHistoryRef.current = [];
   };
 
   const addCategory = (title: string, afterSlug?: string) => {
@@ -1423,8 +1428,8 @@ export default function AdminCategoriesManager({
     const snapshot = { catalog: normalizeCatalogData(millerCatalog), statuses: { ...statusByRow } };
     committedHistoryRef.current.push(snapshot);
     committedHistoryIndexRef.current = committedHistoryRef.current.length - 1;
-    stagedMillerHistoryRef.current = [snapshot];
-    stagedTableHistoryRef.current = [snapshot];
+    stagedMillerHistoryRef.current = [];
+    stagedTableHistoryRef.current = [];
     setMillerDirty(false);
     setTableDirty(false);
     setMillerError(null);
@@ -1443,8 +1448,8 @@ export default function AdminCategoriesManager({
     const snapshot = { catalog: normalizeCatalogData(catalog), statuses: { ...statusByRow } };
     committedHistoryRef.current.push(snapshot);
     committedHistoryIndexRef.current = committedHistoryRef.current.length - 1;
-    stagedTableHistoryRef.current = [snapshot];
-    stagedMillerHistoryRef.current = [snapshot];
+    stagedTableHistoryRef.current = [];
+    stagedMillerHistoryRef.current = [];
     setTableDirty(false);
     setMillerDirty(false);
     setTableError(null);
@@ -2535,7 +2540,7 @@ export default function AdminCategoriesManager({
                 Shrani spremembe
               </Button>
 
-              <div className="relative" ref={historyMenuRef}>
+              <div className="relative" ref={tableHistoryMenuRef}>
                 <IconButton type="button" tone="neutral" aria-label="Zgodovina" onClick={() => setIsHistoryMenuOpen((prev) => !prev)}>
                   ⋮
                 </IconButton>
@@ -2864,7 +2869,7 @@ export default function AdminCategoriesManager({
             >
               Shrani spremembe
             </Button>
-            <div className="relative" ref={historyMenuRef}>
+            <div className="relative" ref={millerHistoryMenuRef}>
               <IconButton type="button" tone="neutral" aria-label="Zgodovina" onClick={() => setIsHistoryMenuOpen((prev) => !prev)}>⋮</IconButton>
               {isHistoryMenuOpen ? (
                 <MenuPanel className="absolute right-0 top-9 z-20 w-40">

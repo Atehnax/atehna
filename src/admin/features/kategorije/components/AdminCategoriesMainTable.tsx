@@ -1863,7 +1863,7 @@ export default function AdminCategoriesMainTable({
 
 
   const millerColumns = useMemo(() => {
-    const columns: Array<{ key: string; title: string; ids: string[]; rows: Array<{ id: string; label: string; tone: string; kind: 'category' | 'subcategory' | 'item'; onClick: (event: React.MouseEvent<HTMLButtonElement>) => void; onDragStart: () => void; onDropTarget: string; }>; kind: 'categories' | 'subcategories' | 'items' }> = [];
+    const columns: Array<{ key: string; title: string; ids: string[]; rows: Array<{ id: string; label: string; tone: string; isInactive?: boolean; kind: 'category' | 'subcategory' | 'item'; onClick: (event: React.MouseEvent<HTMLButtonElement>) => void; onDragStart: () => void; onDropTarget: string; }>; kind: 'categories' | 'subcategories' | 'items' }> = [];
 
     const categoryIds = millerCatalog.categories.map((category) => catId(category.slug));
     columns.push({
@@ -1875,6 +1875,7 @@ export default function AdminCategoriesMainTable({
         id: catId(category.slug),
         label: category.title,
         tone: selected.kind !== 'root' && selected.categorySlug === category.slug ? 'focused' : 'default',
+        isInactive: (statusByRow[catId(category.slug)] ?? 'active') === 'inactive',
         onClick: (event) => {
           setSelected({ kind: 'category', categorySlug: category.slug });
           toggleMillerSelection(catId(category.slug), event, categoryIds);
@@ -1905,6 +1906,7 @@ export default function AdminCategoriesMainTable({
           id: subId(activeCategory.slug, subcategory.slug),
           label: subcategory.title,
           tone: selected.kind === 'subcategory' && selected.subcategorySlug === subcategory.slug ? 'focused' : 'default',
+          isInactive: (statusByRow[subId(activeCategory.slug, subcategory.slug)] ?? 'active') === 'inactive',
           onClick: (event) => {
             setSelected({ kind: 'subcategory', categorySlug: activeCategory.slug, subcategorySlug: subcategory.slug });
             toggleMillerSelection(subId(activeCategory.slug, subcategory.slug), event, subIds);
@@ -1956,7 +1958,7 @@ export default function AdminCategoriesMainTable({
     }
 
     return columns;
-  }, [millerCatalog.categories, millerSelection, selected]);
+  }, [millerCatalog.categories, millerSelection, selected, statusByRow]);
 
   const updateSubcategory = (
     categorySlug: string,

@@ -351,6 +351,8 @@ const treeRowHeight = 48;
 const treeHalfRowHeight = treeRowHeight / 2;
 const leafConnectorWidth = 22;
 const treeButtonDiameter = 28;
+const treeExpandButtonSize = 16;
+const treeExpandButtonInset = (treeButtonDiameter - treeExpandButtonSize) / 2;
 const treeButtonRadius = treeButtonDiameter / 2;
 const treeConnectorBleed = 1;
 const expandTransitionMs = 140;
@@ -2681,7 +2683,7 @@ export default function AdminCategoriesMainTable({
                         style={{
                           left: `${parentColumnX}px`,
                           top: `${treeHalfRowHeight}px`,
-                          width: `${hasChildren ? buttonLeft - parentColumnX : leafConnectorWidth}px`
+                          width: `${hasChildren ? buttonLeft + treeExpandButtonInset - parentColumnX : leafConnectorWidth}px`
                         }}
                       />
                     </>

@@ -947,19 +947,29 @@ export default function AdminCategoriesMainTable({
     });
     setMillerCatalog(normalized);
     setStatusByRow(nextStatuses);
-    setMillerDirty(true);
+    setMillerDirty(
+      !areCatalogsEqual(normalized, persistedMillerRef.current) ||
+        !areStatusesEqual(nextStatuses, persistedStatusRef.current)
+    );
     setMillerError(null);
   };
 
   const stageTableCatalog = (next: CatalogData, nextStatuses: Record<string, CategoryStatus> = statusByRow) => {
     const normalized = normalizeCatalogData(next);
+    if (areCatalogsEqual(normalized, catalog) && areStatusesEqual(nextStatuses, statusByRow)) {
+      setTableError(null);
+      return;
+    }
     stagedTableHistoryRef.current.push({
       catalog: normalizeCatalogData(catalog),
       statuses: { ...statusByRow }
     });
     setCatalog(normalized);
     setStatusByRow(nextStatuses);
-    setTableDirty(true);
+    setTableDirty(
+      !areCatalogsEqual(normalized, persistedTableRef.current) ||
+        !areStatusesEqual(nextStatuses, persistedStatusRef.current)
+    );
     setTableError(null);
   };
 
@@ -971,11 +981,17 @@ export default function AdminCategoriesMainTable({
 
     if (activeView === 'miller') {
       stagedMillerHistoryRef.current.push(snapshot);
-      setMillerDirty(true);
+      setMillerDirty(
+        !areCatalogsEqual(millerCatalog, persistedMillerRef.current) ||
+          !areStatusesEqual(nextStatuses, persistedStatusRef.current)
+      );
       setMillerError(null);
     } else {
       stagedTableHistoryRef.current.push(snapshot);
-      setTableDirty(true);
+      setTableDirty(
+        !areCatalogsEqual(catalog, persistedTableRef.current) ||
+          !areStatusesEqual(nextStatuses, persistedStatusRef.current)
+      );
       setTableError(null);
     }
 
@@ -1052,7 +1068,10 @@ export default function AdminCategoriesMainTable({
       setMillerSelection([]);
       setMillerRename(null);
       setMillerDropTarget(null);
-      setMillerDirty(stagedMillerHistoryRef.current.length > 0);
+      setMillerDirty(
+        !areCatalogsEqual(normalizedCatalog, persistedMillerRef.current) ||
+          !areStatusesEqual(previous.statuses, persistedStatusRef.current)
+      );
       setMillerError(null);
       return;
     }
@@ -1067,7 +1086,10 @@ export default function AdminCategoriesMainTable({
     setEditingRow(null);
     setOpenStatusMenuRowId(null);
     setIsStatusHeaderMenuOpen(false);
-    setTableDirty(stagedTableHistoryRef.current.length > 0);
+    setTableDirty(
+      !areCatalogsEqual(normalizedCatalog, persistedTableRef.current) ||
+        !areStatusesEqual(previous.statuses, persistedStatusRef.current)
+    );
     setTableError(null);
   };
 

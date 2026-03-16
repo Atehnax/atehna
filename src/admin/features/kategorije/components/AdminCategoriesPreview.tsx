@@ -19,6 +19,7 @@ type ContentCard = {
   description: string;
   image?: string;
   kind: 'category' | 'subcategory';
+  isInactive?: boolean;
 };
 
 type SelectedContext =
@@ -96,7 +97,7 @@ export function AdminCategoriesPreview({
                 {visibleContent.map((item) => (
                   <div key={item.id}>
                     {renderSortableItem(item.id, (dragProps) => (
-                      <article {...dragProps} className="h-[300px] rounded-xl border border-slate-200 bg-white p-3 shadow-sm cursor-grab active:cursor-grabbing">
+                      <article {...dragProps} className={`h-[300px] rounded-xl border p-3 shadow-sm cursor-grab active:cursor-grabbing ${item.isInactive ? 'border-slate-300 bg-slate-50 text-slate-400' : 'border-slate-200 bg-white'}`}>
                         <button
                           type="button"
                           className="relative h-36 w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-50 text-left"
@@ -146,8 +147,8 @@ export function AdminCategoriesPreview({
                         </button>
 
                         <div className="mt-3 space-y-1">
-                          <p className="text-sm font-semibold text-slate-700">{item.title}</p>
-                          <p className="text-xs text-slate-600">{item.description || '—'}</p>
+                          <p className={`text-sm font-semibold ${item.isInactive ? 'text-slate-400' : 'text-slate-700'}`}>{item.title}</p>
+                          <p className={`text-xs ${item.isInactive ? 'text-slate-400' : 'text-slate-600'}`}>{item.description || '—'}</p>
                         </div>
 
                         <div className="mt-2 flex items-center gap-2" onPointerDown={(event) => event.stopPropagation()}>

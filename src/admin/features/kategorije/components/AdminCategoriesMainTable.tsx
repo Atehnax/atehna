@@ -97,6 +97,7 @@ type ContentCard = {
   description: string;
   image?: string;
   kind: 'category' | 'subcategory';
+  isInactive?: boolean;
 };
 
 type EditingRowDraft = {
@@ -2055,7 +2056,8 @@ export default function AdminCategoriesMainTable({
         title: entry.title,
         description: entry.summary,
         image: entry.image,
-        kind: 'category' as const
+        kind: 'category' as const,
+        isInactive: (statusByRow[catId(entry.slug)] ?? 'active') === 'inactive'
       }));
     }
 
@@ -2065,12 +2067,13 @@ export default function AdminCategoriesMainTable({
         title: entry.title,
         description: entry.description,
         image: entry.image,
-        kind: 'subcategory' as const
+        kind: 'subcategory' as const,
+        isInactive: (statusByRow[subId(selectedContext.category.slug, entry.slug)] ?? 'active') === 'inactive'
       }));
     }
 
     return [];
-  }, [catalog.categories, selectedContext]);
+  }, [catalog.categories, selectedContext, statusByRow]);
 
   const getDescendantIds = (id: string) => {
     if (id === rootId) {

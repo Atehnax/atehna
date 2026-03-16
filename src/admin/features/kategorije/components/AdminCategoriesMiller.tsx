@@ -13,6 +13,7 @@ type MillerColumn = {
     id: string;
     label: string;
     tone: string;
+    isInactive?: boolean;
     kind: 'category' | 'subcategory' | 'item';
     onClick: (event: import('react').MouseEvent<HTMLButtonElement>) => void;
     onDragStart: () => void;
@@ -156,7 +157,7 @@ export function AdminCategoriesMiller({
             </div>
 
             <div
-              className={`max-h-[520px] space-y-1 overflow-auto p-1.5 ${millerDropTarget === (column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget) ? 'ring-2 ring-[#3e67d6]/40' : ''}`}
+              className={`h-[520px] space-y-1 overflow-auto p-1.5 ${millerDropTarget === (column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget) ? 'ring-2 ring-[#3e67d6]/40' : ''}`}
               onDragOver={(event) => {
                 event.preventDefault();
                 setMillerDropTarget(column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget ?? null);
@@ -210,7 +211,7 @@ export function AdminCategoriesMiller({
                       applyMillerMove(row.id);
                     }}
                   >
-                    {row.label}
+                    <span className={row.isInactive ? 'text-slate-400' : undefined}>{row.label}</span>
                   </button>
                 )
               ))}

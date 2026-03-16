@@ -76,10 +76,10 @@ export function AdminCategoriesPreview({
               Elementov na vrstico
               <input
                 type="range"
-                min={1}
-                max={12}
+                min={3}
+                max={8}
                 value={lowerViewCount}
-                onChange={(event) => onLowerViewCountChange(Number(event.target.value || 4))}
+                onChange={(event) => onLowerViewCountChange(Number(event.target.value || 5))}
                 className="h-1.5 w-28 accent-[#3e67d6]"
               />
               <span className="w-4 text-right text-slate-600">{lowerViewCount}</span>
@@ -93,14 +93,14 @@ export function AdminCategoriesPreview({
         {selectedContext?.kind === 'root' || (selectedContext?.kind === 'category' && visibleContent.length > 0) ? (
           <DndContext sensors={previewSensors} collisionDetection={closestCenter} onDragEnd={onBottomReorder}>
             <SortableContext items={visibleContent.map((item) => item.id)} strategy={rectSortingStrategy}>
-              <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.max(1, lowerViewCount)}, minmax(0, 1fr))` }}>
+              <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.min(8, Math.max(3, lowerViewCount))}, minmax(0, 1fr))` }}>
                 {visibleContent.map((item) => (
                   <div key={item.id}>
                     {renderSortableItem(item.id, (dragProps) => (
                       <article {...dragProps} className={`h-[300px] rounded-xl border p-3 shadow-sm cursor-grab active:cursor-grabbing ${item.isInactive ? 'border-slate-300 bg-slate-50 text-slate-400' : 'border-slate-200 bg-white'}`}>
                         <button
                           type="button"
-                          className="relative h-36 w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-50 text-left"
+                          className={`relative h-36 w-full overflow-hidden rounded-lg border border-slate-200 text-left ${item.image ? 'bg-slate-50' : 'bg-black'}`}
                           onClick={() => uploadRefs.current[item.id]?.click()}
                           onPointerDown={(event) => event.stopPropagation()}
                         >
@@ -112,7 +112,7 @@ export function AdminCategoriesPreview({
                           <div className="absolute inset-0 flex items-center justify-center gap-2">
                             <button
                               type="button"
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-500 backdrop-blur-sm hover:bg-white"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-black/50 bg-black/45 text-white/90 backdrop-blur-sm hover:bg-black/60"
                               onPointerDown={(event) => event.stopPropagation()}
                               onClick={(event) => {
                                 event.stopPropagation();
@@ -120,15 +120,18 @@ export function AdminCategoriesPreview({
                               }}
                               aria-label="Dodaj sliko"
                             >
-                              <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                                <rect x="3.5" y="5" width="13" height="10" rx="2" />
-                                <path d="M10 8v4M8 10h4" />
+                              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <rect x="2.75" y="6.75" width="14.5" height="10.5" rx="2.5" />
+                                <path d="m4.75 15 3.6-3.5a1 1 0 0 1 1.42 0L13 14.75" />
+                                <circle cx="13.2" cy="10.4" r="1.35" />
+                                <circle cx="17.75" cy="6.75" r="3.5" />
+                                <path d="M17.75 5.2v3.1M16.2 6.75h3.1" />
                               </svg>
                             </button>
                             {item.image ? (
                               <button
                                 type="button"
-                                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-500 backdrop-blur-sm hover:bg-white"
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-black/50 bg-black/45 text-white/90 backdrop-blur-sm hover:bg-black/60"
                                 onPointerDown={(event) => event.stopPropagation()}
                                 onClick={(event) => {
                                   event.stopPropagation();

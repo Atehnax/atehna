@@ -188,7 +188,7 @@ export function AdminCategoriesMiller({
                     key={row.id}
                     type="button"
                     data-miller-id={row.id}
-                    className={`miller-select-item block w-full rounded-md border px-2 py-1 text-left text-xs font-medium transition ${millerSelection.includes(row.id) || row.tone === 'focused' ? 'border-[#3e67d6]/50 bg-[#f0f4ff] text-[#1f3f93]' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-100'}`}
+                    className={`miller-select-item block w-full rounded-md border px-2 py-1 text-left text-xs font-medium transition ${millerSelection.includes(row.id) || row.tone === 'focused' ? `border-[#3e67d6]/50 bg-[#f0f4ff] ${row.isInactive ? 'text-slate-400' : 'text-[#1f3f93]'}` : `border-transparent bg-white ${row.isInactive ? 'text-slate-400' : 'text-slate-700'} hover:border-slate-200 hover:bg-slate-100`}`}
                     onClick={row.onClick}
                     onDoubleClick={() => {
                       if (row.kind === 'item') return;

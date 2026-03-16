@@ -721,6 +721,8 @@ export default function AdminCategoriesMainTable({
   const statusHeaderMenuRef = useRef<HTMLDivElement>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
   const isInlineSavingRef = useRef(false);
+  const skipNextInlineBlurSaveRef = useRef(false);
+  const saveInlineEditRef = useRef<() => void>(() => {});
   const toastRef = useRef(toast);
   const persistedTableRef = useRef<CatalogData>({ categories: [] });
   const persistedMillerRef = useRef<CatalogData>({ categories: [] });
@@ -2191,7 +2193,14 @@ export default function AdminCategoriesMainTable({
     setEditingRow(null);
   };
 
+  saveInlineEditRef.current = saveInlineEdit;
+
   const handleInlineBlur = (event: FocusEvent<HTMLElement>) => {
+    if (skipNextInlineBlurSaveRef.current) {
+      skipNextInlineBlurSaveRef.current = false;
+      return;
+    }
+
     const nextTarget = event.relatedTarget as Node | null;
     if (nextTarget && event.currentTarget.closest('tr')?.contains(nextTarget)) {
       return;
@@ -2199,6 +2208,28 @@ export default function AdminCategoriesMainTable({
     saveInlineEdit();
   };
 
+  useEffect(() => {
+    if (!editingRow) return;
+
+    const closeInlineEditOnOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+
+      const targetElement = target instanceof Element ? target : null;
+      if (targetElement?.closest('[data-inline-edit-field="true"]')) return;
+
+      const statusContainer = statusMenuRefs.current[editingRow.id];
+      if (statusContainer?.contains(target)) return;
+
+      skipNextInlineBlurSaveRef.current = true;
+      saveInlineEditRef.current();
+    };
+
+    document.addEventListener('mousedown', closeInlineEditOnOutsideClick, true);
+    return () => {
+      document.removeEventListener('mousedown', closeInlineEditOnOutsideClick, true);
+    };
+  }, [editingRow]);
 
   const searchQuery = query.trim().toLowerCase();
   const isSearchActive = searchQuery.length > 0;

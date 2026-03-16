@@ -182,6 +182,24 @@ const areStatusesEqual = (left: Record<string, CategoryStatus>, right: Record<st
 const areCatalogsEqual = (left: CatalogData, right: CatalogData) =>
   JSON.stringify(normalizeCatalogData(left)) === JSON.stringify(normalizeCatalogData(right));
 
+const stripNodeIds = (catalog: CatalogData): CatalogData => ({
+  categories: catalog.categories.map((category) => ({
+    ...category,
+    id: '',
+    subcategories: category.subcategories.map(function stripSubcategoryIds(subcategory): RecursiveNode {
+      return {
+        ...subcategory,
+        id: '',
+        subcategories: subcategory.subcategories.map(stripSubcategoryIds)
+      };
+    })
+  }))
+});
+
+const areMillerCatalogsEqual = (left: CatalogData, right: CatalogData) =>
+  JSON.stringify(stripNodeIds(normalizeCatalogData(left))) ===
+  JSON.stringify(stripNodeIds(normalizeCatalogData(right)));
+
 const parseSubNodeId = (value: string): { categorySlug: string; subcategoryPath: string[] } | null => {
   if (!value.startsWith('sub:')) return null;
 
@@ -937,7 +955,7 @@ export default function AdminCategoriesMainTable({
 
   const stageMillerCatalog = (next: CatalogData, nextStatuses: Record<string, CategoryStatus> = statusByRow) => {
     const normalized = normalizeCatalogData(next);
-    if (areCatalogsEqual(normalized, millerCatalog) && areStatusesEqual(nextStatuses, statusByRow)) {
+    if (areMillerCatalogsEqual(normalized, millerCatalog) && areStatusesEqual(nextStatuses, statusByRow)) {
       setMillerError(null);
       return;
     }
@@ -948,7 +966,7 @@ export default function AdminCategoriesMainTable({
     setMillerCatalog(normalized);
     setStatusByRow(nextStatuses);
     setMillerDirty(
-      !areCatalogsEqual(normalized, persistedMillerRef.current) ||
+      !areMillerCatalogsEqual(normalized, persistedMillerRef.current) ||
         !areStatusesEqual(nextStatuses, persistedStatusRef.current)
     );
     setMillerError(null);
@@ -982,7 +1000,7 @@ export default function AdminCategoriesMainTable({
     if (activeView === 'miller') {
       stagedMillerHistoryRef.current.push(snapshot);
       setMillerDirty(
-        !areCatalogsEqual(millerCatalog, persistedMillerRef.current) ||
+        !areMillerCatalogsEqual(millerCatalog, persistedMillerRef.current) ||
           !areStatusesEqual(nextStatuses, persistedStatusRef.current)
       );
       setMillerError(null);
@@ -1069,7 +1087,7 @@ export default function AdminCategoriesMainTable({
       setMillerRename(null);
       setMillerDropTarget(null);
       setMillerDirty(
-        !areCatalogsEqual(normalizedCatalog, persistedMillerRef.current) ||
+        !areMillerCatalogsEqual(normalizedCatalog, persistedMillerRef.current) ||
           !areStatusesEqual(previous.statuses, persistedStatusRef.current)
       );
       setMillerError(null);

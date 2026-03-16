@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode, type CSSProperties, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   DndContext,
@@ -677,6 +678,7 @@ export default function AdminCategoriesMainTable({
   const [statusByRow, setStatusByRow] = useState<Record<string, CategoryStatus>>({});
   const [openStatusMenuRowId, setOpenStatusMenuRowId] = useState<string | null>(null);
   const [statusMenuPlacement, setStatusMenuPlacement] = useState<Record<string, 'top' | 'bottom'>>({});
+  const [statusMenuTriggerRect, setStatusMenuTriggerRect] = useState<Record<string, { left: number; top: number; bottom: number }>>({});
   const [isStatusHeaderMenuOpen, setIsStatusHeaderMenuOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [createTarget, setCreateTarget] = useState<CreateTarget>(null);
@@ -718,9 +720,12 @@ export default function AdminCategoriesMainTable({
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const uploadRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const statusMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const statusMenuPanelRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const statusHeaderMenuRef = useRef<HTMLDivElement>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
   const isInlineSavingRef = useRef(false);
+  const skipNextInlineBlurSaveRef = useRef(false);
+  const saveInlineEditRef = useRef<() => void>(() => {});
   const toastRef = useRef(toast);
   const persistedTableRef = useRef<CatalogData>({ categories: [] });
   const persistedMillerRef = useRef<CatalogData>({ categories: [] });
@@ -828,7 +833,8 @@ export default function AdminCategoriesMainTable({
 
       if (openStatusMenuRowId) {
         const container = statusMenuRefs.current[openStatusMenuRowId];
-        if (container && !container.contains(target)) {
+        const panel = statusMenuPanelRefs.current[openStatusMenuRowId];
+        if (container && !container.contains(target) && (!panel || !panel.contains(target))) {
           setOpenStatusMenuRowId(null);
         }
       }
@@ -2146,6 +2152,20 @@ export default function AdminCategoriesMainTable({
     if (editingRow.kind === 'category') {
       if (!editingRow.categorySlug) return;
 
+      const currentCategory = catalog.categories.find((entry) => entry.slug === editingRow.categorySlug);
+      if (!currentCategory) return;
+
+      const currentStatus = statusByRow[editingRow.id] ?? 'active';
+      const hasChange =
+        currentCategory.title !== nextTitle ||
+        currentCategory.summary !== editingRow.description ||
+        currentStatus !== editingRow.status;
+
+      if (!hasChange) {
+        setEditingRow(null);
+        return;
+      }
+
       const nextStatuses = { ...statusByRow, [editingRow.id]: editingRow.status };
 
       stageTableCatalog(
@@ -2167,6 +2187,23 @@ export default function AdminCategoriesMainTable({
 
     const subcategoryPath = toSubcategoryPath(editingRow.subcategoryPath ?? editingRow.subcategorySlug);
     if (subcategoryPath.length === 0) return;
+
+    const currentCategory = catalog.categories.find((entry) => entry.slug === editingRow.categorySlug);
+    const currentSubcategory = currentCategory
+      ? findSubcategoryByPath(currentCategory.subcategories, subcategoryPath)
+      : null;
+    if (!currentSubcategory) return;
+
+    const currentStatus = statusByRow[editingRow.id] ?? 'active';
+    const hasChange =
+      currentSubcategory.title !== nextTitle ||
+      currentSubcategory.description !== editingRow.description ||
+      currentStatus !== editingRow.status;
+
+    if (!hasChange) {
+      setEditingRow(null);
+      return;
+    }
 
     const nextStatuses = { ...statusByRow, [editingRow.id]: editingRow.status };
 
@@ -2191,7 +2228,14 @@ export default function AdminCategoriesMainTable({
     setEditingRow(null);
   };
 
+  saveInlineEditRef.current = saveInlineEdit;
+
   const handleInlineBlur = (event: FocusEvent<HTMLElement>) => {
+    if (skipNextInlineBlurSaveRef.current) {
+      skipNextInlineBlurSaveRef.current = false;
+      return;
+    }
+
     const nextTarget = event.relatedTarget as Node | null;
     if (nextTarget && event.currentTarget.closest('tr')?.contains(nextTarget)) {
       return;
@@ -2199,6 +2243,29 @@ export default function AdminCategoriesMainTable({
     saveInlineEdit();
   };
 
+  useEffect(() => {
+    if (!editingRow) return;
+
+    const closeInlineEditOnOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+
+      const targetElement = target instanceof Element ? target : null;
+      if (targetElement?.closest('[data-inline-edit-field="true"]')) return;
+
+      const statusContainer = statusMenuRefs.current[editingRow.id];
+      const statusPanel = statusMenuPanelRefs.current[editingRow.id];
+      if (statusContainer?.contains(target) || statusPanel?.contains(target)) return;
+
+      skipNextInlineBlurSaveRef.current = true;
+      saveInlineEditRef.current();
+    };
+
+    document.addEventListener('mousedown', closeInlineEditOnOutsideClick, true);
+    return () => {
+      document.removeEventListener('mousedown', closeInlineEditOnOutsideClick, true);
+    };
+  }, [editingRow]);
 
   const searchQuery = query.trim().toLowerCase();
   const isSearchActive = searchQuery.length > 0;
@@ -2460,7 +2527,7 @@ export default function AdminCategoriesMainTable({
           <tr
             ref={setNodeRef}
             style={style}
-            className={`${isSelected ? adminTableRowToneClasses.selected : rowDepthTone} transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''} ${isDragging ? 'opacity-70' : ''} ${kind !== 'root' ? 'cursor-grab active:cursor-grabbing select-none' : ''}`}
+            className={`${isSelected ? adminTableRowToneClasses.selected : rowDepthTone} transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''} ${isDragging ? 'opacity-70' : ''} ${kind !== 'root' ? 'cursor-grab active:cursor-grabbing select-none' : ''} ${openStatusMenuRowId === id ? 'relative z-30' : ''}`}
             {...dragHandleProps}
           >
             <td className="relative overflow-visible border-b border-slate-200 px-2 py-2 text-center align-middle">
@@ -2659,6 +2726,14 @@ export default function AdminCategoriesMainTable({
                           const viewportHeight = window.innerHeight;
                           const estimatedMenuHeight = 112;
                           const spaceBelow = viewportHeight - triggerRect.bottom;
+                          setStatusMenuTriggerRect((positions) => ({
+                            ...positions,
+                            [id]: {
+                              left: triggerRect.left + triggerRect.width / 2,
+                              top: triggerRect.top,
+                              bottom: triggerRect.bottom
+                            }
+                          }));
                           setStatusMenuPlacement((placements) => ({
                             ...placements,
                             [id]: spaceBelow >= estimatedMenuHeight ? 'bottom' : 'top'
@@ -2683,16 +2758,30 @@ export default function AdminCategoriesMainTable({
                     </Chip>
                   </button>
 
-                  {openStatusMenuRowId === id ? (
-                    <MenuPanel className={`absolute left-1/2 z-20 w-36 -translate-x-1/2 ${statusMenuPlacement[id] === 'top' ? 'bottom-8' : 'top-8'}`}>
-                      <MenuItem onClick={() => setStatus('active')} disabled={editingRow?.status === 'active'}>
-                        Aktivna
-                      </MenuItem>
-                      <MenuItem onClick={() => setStatus('inactive')} disabled={editingRow?.status === 'inactive'}>
-                        Neaktivna
-                      </MenuItem>
-                    </MenuPanel>
-                  ) : null}
+                  {openStatusMenuRowId === id && statusMenuTriggerRect[id] && typeof document !== 'undefined'
+                    ? createPortal(
+                        <div
+                          ref={(node) => {
+                            statusMenuPanelRefs.current[id] = node;
+                          }}
+                          className={`fixed z-40 w-36 ${statusMenuPlacement[id] === 'top' ? '-translate-x-1/2 -translate-y-full' : '-translate-x-1/2'}`}
+                          style={{
+                            left: `${statusMenuTriggerRect[id].left}px`,
+                            top: `${statusMenuPlacement[id] === 'top' ? statusMenuTriggerRect[id].top - 8 : statusMenuTriggerRect[id].bottom + 8}px`
+                          }}
+                        >
+                          <MenuPanel>
+                            <MenuItem onClick={() => setStatus('active')} disabled={editingRow?.status === 'active'}>
+                              Aktivna
+                            </MenuItem>
+                            <MenuItem onClick={() => setStatus('inactive')} disabled={editingRow?.status === 'inactive'}>
+                              Neaktivna
+                            </MenuItem>
+                          </MenuPanel>
+                        </div>,
+                        document.body
+                      )
+                    : null}
                 </div>
               ) : (
                 <Chip

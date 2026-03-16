@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode, type CSSProperties, type RefObject } from 'react';
-import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   DndContext,
@@ -139,6 +138,62 @@ const itemId = (catSlug: string, itemSlug: string, subSlug?: string) =>
   `item:${catSlug}:${subSlug ?? '_'}:${itemSlug}`;
 const slugify = (value: string) =>
   value.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-čšžćđ]/gi, '');
+
+const InlineStatusToggle = ({
+  checked,
+  onToggle,
+  disabled,
+  ariaLabel
+}: {
+  checked: boolean;
+  onToggle: () => void;
+  disabled?: boolean;
+  ariaLabel: string;
+}) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    aria-label={ariaLabel}
+    disabled={disabled}
+    onPointerDown={(event) => event.stopPropagation()}
+    onClick={(event) => {
+      event.stopPropagation();
+      onToggle();
+    }}
+    className={`relative inline-flex h-7 w-14 items-center rounded-full border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${
+      checked
+        ? 'border-emerald-300/80 bg-emerald-100/80 text-emerald-800'
+        : 'border-slate-300 bg-slate-200/80 text-slate-600'
+    }`}
+  >
+    <span
+      aria-hidden="true"
+      className={`pointer-events-none absolute top-1/2 -translate-y-1/2 transition-all duration-200 ${
+        checked ? 'left-1.5 opacity-100 text-emerald-700' : 'right-1.5 opacity-100 text-slate-500'
+      }`}
+    >
+      {checked ? (
+        <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M2 10s2.7-4 8-4 8 4 8 4-2.7 4-8 4-8-4-8-4z" />
+          <circle cx="10" cy="10" r="2.3" />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M2 10s2.7-4 8-4 8 4 8 4-2.7 4-8 4-8-4-8-4z" />
+          <circle cx="10" cy="10" r="2.3" />
+          <path d="M4 4l12 12" />
+        </svg>
+      )}
+    </span>
+    <span
+      aria-hidden="true"
+      className={`absolute top-0.5 z-10 h-6 w-6 rounded-full border border-white/90 bg-white shadow-sm transition-transform duration-200 ${
+        checked ? 'translate-x-7' : 'translate-x-0.5'
+      }`}
+    />
+  </button>
+);
 
 
 const createNodeId = () =>
@@ -708,9 +763,6 @@ export default function AdminCategoriesMainTable({
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [editingRow, setEditingRow] = useState<EditingRowDraft | null>(null);
   const [statusByRow, setStatusByRow] = useState<Record<string, CategoryStatus>>({});
-  const [openStatusMenuRowId, setOpenStatusMenuRowId] = useState<string | null>(null);
-  const [statusMenuPlacement, setStatusMenuPlacement] = useState<Record<string, 'top' | 'bottom'>>({});
-  const [statusMenuTriggerRect, setStatusMenuTriggerRect] = useState<Record<string, { left: number; top: number; bottom: number }>>({});
   const [isStatusHeaderMenuOpen, setIsStatusHeaderMenuOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [createTarget, setCreateTarget] = useState<CreateTarget>(null);
@@ -751,8 +803,6 @@ export default function AdminCategoriesMainTable({
   const [activeView, setActiveView] = useState<CategoriesView>(initialView);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const uploadRefs = useRef<Record<string, HTMLInputElement | null>>({});
-  const statusMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const statusMenuPanelRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const statusHeaderMenuRef = useRef<HTMLDivElement>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
   const isInlineSavingRef = useRef(false);
@@ -864,14 +914,6 @@ export default function AdminCategoriesMainTable({
     const closeOnOutsideClick = (event: MouseEvent) => {
       const target = event.target as Node;
 
-      if (openStatusMenuRowId) {
-        const container = statusMenuRefs.current[openStatusMenuRowId];
-        const panel = statusMenuPanelRefs.current[openStatusMenuRowId];
-        if (container && !container.contains(target) && (!panel || !panel.contains(target))) {
-          setOpenStatusMenuRowId(null);
-        }
-      }
-
       if (isStatusHeaderMenuOpen && statusHeaderMenuRef.current && !statusHeaderMenuRef.current.contains(target)) {
         setIsStatusHeaderMenuOpen(false);
       }
@@ -879,7 +921,6 @@ export default function AdminCategoriesMainTable({
 
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setOpenStatusMenuRowId(null);
         setIsStatusHeaderMenuOpen(false);
       }
     };
@@ -890,7 +931,7 @@ export default function AdminCategoriesMainTable({
       window.removeEventListener('mousedown', closeOnOutsideClick);
       window.removeEventListener('keydown', closeOnEscape);
     };
-  }, [isStatusHeaderMenuOpen, openStatusMenuRowId]);
+  }, [isStatusHeaderMenuOpen]);
 
   const persist = async (next: CatalogData, statuses: Record<string, CategoryStatus>, message = 'Shranjeno') => {
     const previousCatalog = catalog;
@@ -1103,7 +1144,6 @@ export default function AdminCategoriesMainTable({
     setCatalog(normalizedCatalog);
     setStatusByRow({ ...previous.statuses });
     setEditingRow(null);
-    setOpenStatusMenuRowId(null);
     setIsStatusHeaderMenuOpen(false);
     setTableDirty(
       !areCatalogsEqual(normalizedCatalog, persistedTableRef.current) ||
@@ -1134,7 +1174,6 @@ export default function AdminCategoriesMainTable({
     setStatusByRow({ ...snapshot.statuses });
 
     setEditingRow(null);
-    setOpenStatusMenuRowId(null);
     setIsStatusHeaderMenuOpen(false);
     setMillerSelection([]);
     setMillerRename(null);
@@ -2370,10 +2409,6 @@ export default function AdminCategoriesMainTable({
       const targetElement = target instanceof Element ? target : null;
       if (targetElement?.closest('[data-inline-edit-field="true"]')) return;
 
-      const statusContainer = statusMenuRefs.current[editingRow.id];
-      const statusPanel = statusMenuPanelRefs.current[editingRow.id];
-      if (statusContainer?.contains(target) || statusPanel?.contains(target)) return;
-
       skipNextInlineBlurSaveRef.current = true;
       saveInlineEditRef.current();
     };
@@ -2567,12 +2602,10 @@ export default function AdminCategoriesMainTable({
     const isChecked = selectedRows.includes(id);
     const rowDepthTone = getAdminCategoryRowToneClass(level);
     const rowStatus = statusByRow[id] ?? 'active';
-    const statusLabel = rowStatus === 'active' ? 'Aktivna' : 'Neaktivna';
 
     const toggleInlineEdit = () => {
       if (isRowEditing) {
         setEditingRow(null);
-        setOpenStatusMenuRowId(null);
         return;
       }
 
@@ -2586,18 +2619,12 @@ export default function AdminCategoriesMainTable({
         description,
         status: rowStatus
       });
-      setOpenStatusMenuRowId(null);
     };
 
     const setStatus = (nextStatus: CategoryStatus) => {
-      setEditingRow((prev) => {
-        if (!prev || prev.id !== id) return prev;
-        const next = { ...prev, status: nextStatus };
-        const nextStatuses = { ...statusByRow, [id]: nextStatus };
-        stageStatusChange(nextStatuses);
-        return next;
-      });
-      setOpenStatusMenuRowId(null);
+      const nextStatuses = { ...statusByRow, [id]: nextStatus };
+      stageStatusChange(nextStatuses);
+      setEditingRow((prev) => (prev && prev.id === id ? { ...prev, status: nextStatus } : prev));
     };
 
     const isOpening = parentIsAnimating && openingRowIds.length > 0;
@@ -2644,7 +2671,7 @@ export default function AdminCategoriesMainTable({
           <tr
             ref={setNodeRef}
             style={style}
-            className={`${isSelected ? adminTableRowToneClasses.selected : rowDepthTone} transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''} ${isDragging ? 'opacity-70' : ''} ${kind !== 'root' ? 'cursor-grab active:cursor-grabbing select-none' : ''} ${openStatusMenuRowId === id ? 'relative z-30' : ''}`}
+            className={`${isSelected ? adminTableRowToneClasses.selected : rowDepthTone} transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''} ${isDragging ? 'opacity-70' : ''} ${kind !== 'root' ? 'cursor-grab active:cursor-grabbing select-none' : ''}`}
             {...dragHandleProps}
           >
             <td className="relative overflow-visible border-b border-slate-200 px-2 py-2 text-center align-middle">
@@ -2833,91 +2860,14 @@ export default function AdminCategoriesMainTable({
             <td className="border-b border-slate-200 px-3 py-2 text-center text-sm text-slate-600">{productCount}</td>
 
             <td className="border-b border-slate-200 px-3 py-2 text-center text-sm">
-              {isRowEditing && kind !== 'root' ? (
-                <div
-                  className="relative inline-flex"
-                  ref={(node) => {
-                    statusMenuRefs.current[id] = node;
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      setOpenStatusMenuRowId((prev) => {
-                        const nextOpen = prev === id ? null : id;
-                        if (nextOpen) {
-                          const triggerRect = (event.currentTarget as HTMLButtonElement).getBoundingClientRect();
-                          const viewportHeight = window.innerHeight;
-                          const estimatedMenuHeight = 112;
-                          const spaceBelow = viewportHeight - triggerRect.bottom;
-                          setStatusMenuTriggerRect((positions) => ({
-                            ...positions,
-                            [id]: {
-                              left: triggerRect.left + triggerRect.width / 2,
-                              top: triggerRect.top,
-                              bottom: triggerRect.bottom
-                            }
-                          }));
-                          setStatusMenuPlacement((placements) => ({
-                            ...placements,
-                            [id]: spaceBelow >= estimatedMenuHeight ? 'bottom' : 'top'
-                          }));
-                        }
-                        return nextOpen;
-                      });
-                    }}
-                    className="rounded-full"
-                    aria-haspopup="menu"
-                    aria-expanded={openStatusMenuRowId === id}
-                  >
-                    <Chip
-                      variant={editingRow?.status === 'active' ? 'success' : 'neutral'}
-                      className={`min-w-0 px-2.5 text-xs ${
-                        editingRow?.status === 'active'
-                          ? buttonTokenClasses.activeSuccess
-                          : buttonTokenClasses.inactiveNeutral
-                      }`}
-                    >
-                      {editingRow?.status === 'active' ? 'Aktivna' : 'Neaktivna'}
-                    </Chip>
-                  </button>
-
-                  {openStatusMenuRowId === id && statusMenuTriggerRect[id] && typeof document !== 'undefined'
-                    ? createPortal(
-                        <div
-                          ref={(node) => {
-                            statusMenuPanelRefs.current[id] = node;
-                          }}
-                          className={`fixed z-40 w-36 ${statusMenuPlacement[id] === 'top' ? '-translate-x-1/2 -translate-y-full' : '-translate-x-1/2'}`}
-                          style={{
-                            left: `${statusMenuTriggerRect[id].left}px`,
-                            top: `${statusMenuPlacement[id] === 'top' ? statusMenuTriggerRect[id].top - 8 : statusMenuTriggerRect[id].bottom + 8}px`
-                          }}
-                        >
-                          <MenuPanel>
-                            <MenuItem onClick={() => setStatus('active')} disabled={editingRow?.status === 'active'}>
-                              Aktivna
-                            </MenuItem>
-                            <MenuItem onClick={() => setStatus('inactive')} disabled={editingRow?.status === 'inactive'}>
-                              Neaktivna
-                            </MenuItem>
-                          </MenuPanel>
-                        </div>,
-                        document.body
-                      )
-                    : null}
-                </div>
+              {kind === 'root' ? (
+                <span className="text-xs text-slate-400">—</span>
               ) : (
-                <Chip
-                  variant={rowStatus === 'active' ? 'success' : 'neutral'}
-                  className={`min-w-0 px-2.5 text-xs ${
-                    rowStatus === 'active'
-                      ? buttonTokenClasses.activeSuccess
-                      : buttonTokenClasses.inactiveNeutral
-                  }`}
-                >
-                  {statusLabel}
-                </Chip>
+                <InlineStatusToggle
+                  checked={rowStatus === 'active'}
+                  ariaLabel={rowStatus === 'active' ? `Skrij ${title}` : `Prikaži ${title}`}
+                  onToggle={() => setStatus(rowStatus === 'active' ? 'inactive' : 'active')}
+                />
               )}
             </td>
 
@@ -3614,7 +3564,7 @@ function AdminCategoriesTableSection({
                           aria-expanded={selectedRows.length > 0 ? isStatusHeaderMenuOpen : false}
                           disabled={selectedRows.length === 0}
                         >
-                          {selectedRows.length > 0 ? `Status ▾ (${selectedRows.length})` : 'Status'}
+                          {selectedRows.length > 0 ? `Vidnost ▾ (${selectedRows.length})` : 'Vidnost'}
                         </button>
 
                         {selectedRows.length > 0 && isStatusHeaderMenuOpen ? (

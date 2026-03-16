@@ -172,6 +172,16 @@ const pathEquals = (left?: string | string[], right?: string | string[]) => {
   );
 };
 
+const areStatusesEqual = (left: Record<string, CategoryStatus>, right: Record<string, CategoryStatus>) => {
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+  if (leftKeys.length !== rightKeys.length) return false;
+  return leftKeys.every((key) => left[key] === right[key]);
+};
+
+const areCatalogsEqual = (left: CatalogData, right: CatalogData) =>
+  JSON.stringify(normalizeCatalogData(left)) === JSON.stringify(normalizeCatalogData(right));
+
 const parseSubNodeId = (value: string): { categorySlug: string; subcategoryPath: string[] } | null => {
   if (!value.startsWith('sub:')) return null;
 
@@ -278,6 +288,21 @@ function collectSubcategoryIds(
       subId(categorySlug, currentPath),
       ...collectSubcategoryIds(categorySlug, node.subcategories, currentPath)
     ];
+  });
+}
+
+function collectExpandableSubcategoryIds(
+  categorySlug: string,
+  nodes: RecursiveNode[],
+  parentPath: string[] = []
+): string[] {
+  return nodes.flatMap((node) => {
+    const currentPath = [...parentPath, node.slug];
+    const currentId = subId(categorySlug, currentPath);
+    const nested = collectExpandableSubcategoryIds(categorySlug, node.subcategories, currentPath);
+
+    if (node.subcategories.length === 0) return nested;
+    return [currentId, ...nested];
   });
 }
 
@@ -408,21 +433,6 @@ function SortableTreeRow({
   });
 }
 
-function ChevronDownIcon() {
-  return (
-    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-      <path d="M5 8l5 5 5-5" />
-    </svg>
-  );
-}
-
-function ChevronUpIcon() {
-  return (
-    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-      <path d="M5 12l5-5 5 5" />
-    </svg>
-  );
-}
 
 function PlusIcon() {
   return (
@@ -698,7 +708,7 @@ export default function AdminCategoriesMainTable({
   const [tableDirty, setTableDirty] = useState(false);
   const [tableError, setTableError] = useState<string | null>(null);
   const [isTableSaveDialogOpen, setIsTableSaveDialogOpen] = useState(false);
-  const [lowerViewCount, setLowerViewCount] = useState(4);
+  const [lowerViewCount, setLowerViewCount] = useState(5);
   const [millerCatalog, setMillerCatalog] = useState<CatalogData>({ categories: [] });
   const [millerSelection, setMillerSelection] = useState<string[]>([]);
   const [millerDropTarget, setMillerDropTarget] = useState<string | null>(null);
@@ -924,6 +934,10 @@ export default function AdminCategoriesMainTable({
 
   const stageMillerCatalog = (next: CatalogData, nextStatuses: Record<string, CategoryStatus> = statusByRow) => {
     const normalized = normalizeCatalogData(next);
+    if (areCatalogsEqual(normalized, millerCatalog) && areStatusesEqual(nextStatuses, statusByRow)) {
+      setMillerError(null);
+      return;
+    }
     stagedMillerHistoryRef.current.push({
       catalog: normalizeCatalogData(millerCatalog),
       statuses: { ...statusByRow }
@@ -2108,6 +2122,25 @@ export default function AdminCategoriesMainTable({
     return [];
   };
 
+  const expandableRowIds = useMemo(() => {
+    return [
+      rootId,
+      ...catalog.categories.flatMap((category) => [
+        ...(category.subcategories.length > 0 ? [catId(category.slug)] : []),
+        ...collectExpandableSubcategoryIds(category.slug, category.subcategories)
+      ])
+    ];
+  }, [catalog.categories]);
+
+  const isRowExpanded = useCallback((id: string) => {
+    return id === rootId ? (expanded[rootId] ?? true) : Boolean(expanded[id]);
+  }, [expanded]);
+
+  const areAllRowsExpanded = useMemo(
+    () => expandableRowIds.every((id) => isRowExpanded(id)),
+    [expandableRowIds, isRowExpanded]
+  );
+
   const showDeleteSelectionWarning = () => {
     setWarningDialog({
       title: 'Brisanje ni dovoljeno',
@@ -2126,8 +2159,32 @@ export default function AdminCategoriesMainTable({
     });
   };
 
+  const toggleAllExpanded = () => {
+    if (areAllRowsExpanded) {
+      setClosingRowIds((prev) => [...new Set([...prev, ...expandableRowIds])]);
+      setExpanded((prev) => ({
+        ...prev,
+        ...Object.fromEntries(expandableRowIds.map((id) => [id, false]))
+      }));
+      window.setTimeout(() => {
+        setClosingRowIds((prev) => prev.filter((entry) => !expandableRowIds.includes(entry)));
+      }, expandTransitionMs);
+      return;
+    }
+
+    const rowsToOpen = expandableRowIds.filter((id) => !isRowExpanded(id));
+    setOpeningRowIds((prev) => [...new Set([...prev, ...rowsToOpen])]);
+    setExpanded((prev) => ({
+      ...prev,
+      ...Object.fromEntries(expandableRowIds.map((id) => [id, true]))
+    }));
+    window.setTimeout(() => {
+      setOpeningRowIds((prev) => prev.filter((entry) => !rowsToOpen.includes(entry)));
+    }, expandTransitionMs);
+  };
+
   const toggleExpanded = (id: string) => {
-    const currentlyExpanded = expanded[id] ?? false;
+    const currentlyExpanded = isRowExpanded(id);
 
     if (currentlyExpanded) {
       setClosingRowIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
@@ -2638,16 +2695,15 @@ export default function AdminCategoriesMainTable({
                         width: `${treeButtonDiameter}px`
                       }}
                     >
-                      <IconButton
+                      <button
                         type="button"
-                        tone="neutral"
-                        shape="rounded"
                         aria-label="Razširi/skrij"
                         onPointerDown={(event) => event.stopPropagation()}
                         onClick={() => toggleExpanded(id)}
+                        className="inline-flex h-4 w-4 items-center justify-center rounded-[2px] border border-slate-300 text-[11px] leading-none text-slate-600"
                       >
-                        {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
-                      </IconButton>
+                        {isExpanded ? '−' : '+'}
+                      </button>
                     </div>
                   ) : null}
                 </div>
@@ -3158,6 +3214,8 @@ export default function AdminCategoriesMainTable({
         selectAllRef={selectAllRef}
         allRowsSelected={allRowsSelected}
         onToggleSelectAll={toggleSelectAll}
+        allExpanded={areAllRowsExpanded}
+        onToggleAllExpanded={toggleAllExpanded}
         statusHeaderMenuRef={statusHeaderMenuRef}
         onToggleStatusHeaderMenu={() => {
           if (selectedRows.length === 0) return;
@@ -3320,6 +3378,8 @@ function AdminCategoriesTableSection({
   selectAllRef,
   allRowsSelected,
   onToggleSelectAll,
+  allExpanded,
+  onToggleAllExpanded,
   statusHeaderMenuRef,
   onToggleStatusHeaderMenu,
   isStatusHeaderMenuOpen,
@@ -3351,6 +3411,8 @@ function AdminCategoriesTableSection({
   selectAllRef: RefObject<HTMLInputElement>;
   allRowsSelected: boolean;
   onToggleSelectAll: () => void;
+  allExpanded: boolean;
+  onToggleAllExpanded: () => void;
   statusHeaderMenuRef: RefObject<HTMLDivElement>;
   onToggleStatusHeaderMenu: () => void;
   isStatusHeaderMenuOpen: boolean;
@@ -3397,7 +3459,7 @@ function AdminCategoriesTableSection({
               </Button>
 
               <div className="relative" ref={tableHistoryMenuRef}>
-                <IconButton type="button" tone="neutral" aria-label="Zgodovina" onClick={onToggleHistoryMenu}>
+                <IconButton type="button" size="md" tone="neutral" aria-label="Zgodovina" onClick={onToggleHistoryMenu}>
                   ⋮
                 </IconButton>
                 {isHistoryMenuOpen ? (
@@ -3451,7 +3513,19 @@ function AdminCategoriesTableSection({
                         aria-label="Izberi vse"
                       />
                     </th>
-                    <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">Kategorija</th>
+                    <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">
+                      <button
+                        type="button"
+                        onClick={onToggleAllExpanded}
+                        className="inline-flex items-center gap-1.5"
+                        aria-label="Razširi/skrij vse kategorije"
+                      >
+                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-[2px] border border-slate-300 text-[11px] leading-none text-slate-600">
+                          {allExpanded ? '−' : '+'}
+                        </span>
+                        <span>Kategorija</span>
+                      </button>
+                    </th>
                     <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">Opis</th>
                     <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">Podkategorije</th>
                     <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">Izdelki</th>

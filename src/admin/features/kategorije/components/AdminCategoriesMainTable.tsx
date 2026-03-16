@@ -167,24 +167,28 @@ const InlineStatusToggle = ({
         : 'border-slate-300 bg-slate-200/80 text-slate-600'
     }`}
   >
-    <span className="flex w-full items-center justify-between px-1.5 text-[10px]">
-      <span aria-hidden="true" className={`transition-opacity ${checked ? 'opacity-0' : 'opacity-100'}`}>
+    <span
+      aria-hidden="true"
+      className={`pointer-events-none absolute top-1/2 -translate-y-1/2 transition-all duration-200 ${
+        checked ? 'left-1.5 opacity-100 text-emerald-700' : 'right-1.5 opacity-100 text-slate-500'
+      }`}
+    >
+      {checked ? (
+        <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M2 10s2.7-4 8-4 8 4 8 4-2.7 4-8 4-8-4-8-4z" />
+          <circle cx="10" cy="10" r="2.3" />
+        </svg>
+      ) : (
         <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
           <path d="M2 10s2.7-4 8-4 8 4 8 4-2.7 4-8 4-8-4-8-4z" />
           <circle cx="10" cy="10" r="2.3" />
           <path d="M4 4l12 12" />
         </svg>
-      </span>
-      <span aria-hidden="true" className={`transition-opacity ${checked ? 'opacity-100' : 'opacity-0'}`}>
-        <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M2 10s2.7-4 8-4 8 4 8 4-2.7 4-8 4-8-4-8-4z" />
-          <circle cx="10" cy="10" r="2.3" />
-        </svg>
-      </span>
+      )}
     </span>
     <span
       aria-hidden="true"
-      className={`absolute top-0.5 h-6 w-6 rounded-full border border-white/90 bg-white shadow-sm transition-transform duration-200 ${
+      className={`absolute top-0.5 z-10 h-6 w-6 rounded-full border border-white/90 bg-white shadow-sm transition-transform duration-200 ${
         checked ? 'translate-x-7' : 'translate-x-0.5'
       }`}
     />
@@ -3560,7 +3564,7 @@ function AdminCategoriesTableSection({
                           aria-expanded={selectedRows.length > 0 ? isStatusHeaderMenuOpen : false}
                           disabled={selectedRows.length === 0}
                         >
-                          {selectedRows.length > 0 ? `Status ▾ (${selectedRows.length})` : 'Status'}
+                          {selectedRows.length > 0 ? `Vidnost ▾ (${selectedRows.length})` : 'Vidnost'}
                         </button>
 
                         {selectedRows.length > 0 && isStatusHeaderMenuOpen ? (

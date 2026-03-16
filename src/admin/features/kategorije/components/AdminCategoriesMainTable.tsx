@@ -48,7 +48,6 @@ import {
 import { Input } from '@/shared/ui/input';
 import { Spinner } from '@/shared/ui/loading';
 import { useToast } from '@/shared/ui/toast';
-import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 import { AdminCategoriesPreview } from './AdminCategoriesPreview';
 import { AdminCategoriesMiller } from './AdminCategoriesMiller';
 
@@ -3091,29 +3090,43 @@ export default function AdminCategoriesMainTable({
         </p>
       </header>
 
-      <Tabs
-        value={activeView}
-        onValueChange={(next) => {
-          const nextView = next as CategoriesView;
-          setActiveView(nextView);
-          guardedNavigate(nextView === 'table' ? '/admin/kategorije' : '/admin/kategorije/miller-view');
-        }}
+      <div
+        role="tablist"
+        aria-orientation="horizontal"
+        className="relative inline-grid h-9 grid-cols-2 rounded-xl border border-slate-200 bg-slate-50 p-1"
       >
-        <TabsList className="h-9 gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
-          <TabsTrigger
-            value="table"
-            className="h-7 rounded-lg px-3 text-xs font-semibold data-[active=true]:border data-[active=true]:border-[#3e67d6]/40 data-[active=true]:bg-white data-[active=true]:text-[#2749a5]"
-          >
-            Seznam
-          </TabsTrigger>
-          <TabsTrigger
-            value="miller"
-            className="h-7 rounded-lg px-3 text-xs font-semibold data-[active=true]:border data-[active=true]:border-[#3e67d6]/40 data-[active=true]:bg-white data-[active=true]:text-[#2749a5]"
-          >
-            Millerjev pogled
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+        <span
+          aria-hidden
+          className="pointer-events-none absolute bottom-1 top-1 w-[calc(50%-0.25rem)] rounded-lg border border-[#3e67d6]/40 bg-white shadow-sm transition-transform duration-200 ease-out"
+          style={{ transform: activeView === 'table' ? 'translateX(0)' : 'translateX(calc(100% + 0.5rem))' }}
+        />
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeView === 'table'}
+          tabIndex={activeView === 'table' ? 0 : -1}
+          onClick={() => {
+            setActiveView('table');
+            guardedNavigate('/admin/kategorije');
+          }}
+          className="relative z-10 h-7 rounded-lg px-3 text-xs font-semibold transition-colors duration-200 ease-out text-slate-600 aria-selected:text-[#2749a5]"
+        >
+          Seznam
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeView === 'miller'}
+          tabIndex={activeView === 'miller' ? 0 : -1}
+          onClick={() => {
+            setActiveView('miller');
+            guardedNavigate('/admin/kategorije/miller-view');
+          }}
+          className="relative z-10 h-7 rounded-lg px-3 text-xs font-semibold transition-colors duration-200 ease-out text-slate-600 aria-selected:text-[#2749a5]"
+        >
+          Millerjev pogled
+        </button>
+      </div>
 
       <ConfirmDialog
         open={isBulkDeleteDialogOpen}

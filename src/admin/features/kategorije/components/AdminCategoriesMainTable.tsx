@@ -764,6 +764,7 @@ export default function AdminCategoriesMainTable({
   const persistedStatusRef = useRef<Record<string, CategoryStatus>>({});
   const stagedTableHistoryRef = useRef<HistorySnapshot[]>([]);
   const stagedMillerHistoryRef = useRef<HistorySnapshot[]>([]);
+  const demotedMillerCategoriesRef = useRef<Map<string, RecursiveCatalogCategory>>(new Map());
   const committedHistoryRef = useRef<HistorySnapshot[]>([]);
   const committedHistoryIndexRef = useRef(0);
   const tableHistoryMenuRef = useRef<HTMLDivElement | null>(null);
@@ -1575,22 +1576,23 @@ export default function AdminCategoriesMainTable({
 
         if (destinationCategorySlug) {
           const movedCategories = nextCategories.filter((category) => selectedCategorySlugs.has(category.slug));
-          const withChildren = movedCategories.filter((category) => category.subcategories.length > 0);
+          movedCategories.forEach((category) => {
+            demotedMillerCategoriesRef.current.set(category.id, category);
+          });
 
           const asSubcategories: RecursiveCatalogSubcategory[] = movedCategories.map((category) => ({
             id: category.id,
             slug: category.slug,
             title: category.title,
-            description: category.description || category.summary,
+            description: category.description,
             adminNotes: category.adminNotes,
             image: category.image,
             items: [...(category.items ?? [])],
-            subcategories: []
+            subcategories: category.subcategories
           }));
 
-          const promotedFormerChildren = movedCategories.flatMap((category) => category.subcategories);
           const candidateSlugs = new Set<string>();
-          [...asSubcategories, ...promotedFormerChildren].forEach((subcategory) => {
+          asSubcategories.forEach((subcategory) => {
             if (candidateSlugs.has(subcategory.slug)) {
               toast.error('Premik ni možen zaradi podvojenih slugov podkategorij.');
             }
@@ -1608,7 +1610,7 @@ export default function AdminCategoriesMainTable({
                 return category;
               }
 
-              const insertion = [...asSubcategories, ...promotedFormerChildren];
+              const insertion = asSubcategories;
               if (targetSub) {
                 const targetIndex = category.subcategories.findIndex((sub) => sub.slug === targetSub.subcategorySlug);
                 if (targetIndex >= 0) {
@@ -1632,15 +1634,25 @@ export default function AdminCategoriesMainTable({
             const remainingSubs = category.subcategories.filter((subcategory) => {
               const key = subId(category.slug, subcategory.slug);
               if (!selectedSubKeys.has(key)) return true;
+              const demotedCategory = demotedMillerCategoriesRef.current.get(subcategory.id);
               promoted.push({
+                ...(demotedCategory ?? {
+                  id: subcategory.id,
+                  slug: subcategory.slug,
+                  title: subcategory.title,
+                  summary: subcategory.title,
+                  description: subcategory.description,
+                  image: subcategory.image ?? '',
+                  adminNotes: subcategory.adminNotes,
+                  bannerImage: undefined
+                }),
                 id: subcategory.id,
                 slug: subcategory.slug,
                 title: subcategory.title,
-                summary: subcategory.title,
                 description: subcategory.description,
                 image: subcategory.image ?? '',
                 adminNotes: subcategory.adminNotes,
-                subcategories: [],
+                subcategories: subcategory.subcategories,
                 items: [...subcategory.items]
               });
               return false;

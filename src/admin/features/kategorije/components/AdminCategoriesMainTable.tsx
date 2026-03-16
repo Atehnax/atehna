@@ -2834,79 +2834,38 @@ export default function AdminCategoriesMainTable({
 
             <td className="border-b border-slate-200 px-3 py-2 text-center text-sm">
               {isRowEditing && kind !== 'root' ? (
-                <div
-                  className="relative inline-flex"
-                  ref={(node) => {
-                    statusMenuRefs.current[id] = node;
-                  }}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={editingRow?.status === 'active'}
+                  aria-label={`Status kategorije: ${editingRow?.status === 'active' ? 'Vidna' : 'Nevidna'}`}
+                  onClick={() => setStatus(editingRow?.status === 'active' ? 'inactive' : 'active')}
+                  className={`relative inline-flex h-8 w-24 items-center rounded-full border p-0.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1 ${
+                    editingRow?.status === 'active'
+                      ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
+                      : 'border-slate-300 bg-slate-100 text-slate-600'
+                  }`}
                 >
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      setOpenStatusMenuRowId((prev) => {
-                        const nextOpen = prev === id ? null : id;
-                        if (nextOpen) {
-                          const triggerRect = (event.currentTarget as HTMLButtonElement).getBoundingClientRect();
-                          const viewportHeight = window.innerHeight;
-                          const estimatedMenuHeight = 112;
-                          const spaceBelow = viewportHeight - triggerRect.bottom;
-                          setStatusMenuTriggerRect((positions) => ({
-                            ...positions,
-                            [id]: {
-                              left: triggerRect.left + triggerRect.width / 2,
-                              top: triggerRect.top,
-                              bottom: triggerRect.bottom
-                            }
-                          }));
-                          setStatusMenuPlacement((placements) => ({
-                            ...placements,
-                            [id]: spaceBelow >= estimatedMenuHeight ? 'bottom' : 'top'
-                          }));
-                        }
-                        return nextOpen;
-                      });
-                    }}
-                    className="rounded-full"
-                    aria-haspopup="menu"
-                    aria-expanded={openStatusMenuRowId === id}
+                  <span
+                    className={`pointer-events-none absolute left-2.5 text-[11px] font-semibold leading-none tracking-tight transition-opacity duration-200 ${
+                      editingRow?.status === 'active' ? 'opacity-100' : 'opacity-0'
+                    }`}
                   >
-                    <Chip
-                      variant={editingRow?.status === 'active' ? 'success' : 'neutral'}
-                      className={`min-w-0 px-2.5 text-xs ${
-                        editingRow?.status === 'active'
-                          ? buttonTokenClasses.activeSuccess
-                          : buttonTokenClasses.inactiveNeutral
-                      }`}
-                    >
-                      {editingRow?.status === 'active' ? 'Aktivna' : 'Neaktivna'}
-                    </Chip>
-                  </button>
-
-                  {openStatusMenuRowId === id && statusMenuTriggerRect[id] && typeof document !== 'undefined'
-                    ? createPortal(
-                        <div
-                          ref={(node) => {
-                            statusMenuPanelRefs.current[id] = node;
-                          }}
-                          className={`fixed z-40 w-36 ${statusMenuPlacement[id] === 'top' ? '-translate-x-1/2 -translate-y-full' : '-translate-x-1/2'}`}
-                          style={{
-                            left: `${statusMenuTriggerRect[id].left}px`,
-                            top: `${statusMenuPlacement[id] === 'top' ? statusMenuTriggerRect[id].top - 8 : statusMenuTriggerRect[id].bottom + 8}px`
-                          }}
-                        >
-                          <MenuPanel>
-                            <MenuItem onClick={() => setStatus('active')} disabled={editingRow?.status === 'active'}>
-                              Aktivna
-                            </MenuItem>
-                            <MenuItem onClick={() => setStatus('inactive')} disabled={editingRow?.status === 'inactive'}>
-                              Neaktivna
-                            </MenuItem>
-                          </MenuPanel>
-                        </div>,
-                        document.body
-                      )
-                    : null}
-                </div>
+                    Vidna
+                  </span>
+                  <span
+                    className={`pointer-events-none absolute right-2.5 text-[11px] font-semibold leading-none tracking-tight transition-opacity duration-200 ${
+                      editingRow?.status === 'active' ? 'opacity-0' : 'opacity-100'
+                    }`}
+                  >
+                    Nevidna
+                  </span>
+                  <span
+                    className={`pointer-events-none absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-transform duration-200 ${
+                      editingRow?.status === 'active' ? 'translate-x-16' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
               ) : (
                 <Chip
                   variant={rowStatus === 'active' ? 'success' : 'neutral'}

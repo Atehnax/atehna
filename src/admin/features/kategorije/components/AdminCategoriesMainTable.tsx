@@ -3098,20 +3098,11 @@ export default function AdminCategoriesMainTable({
           setActiveView(nextView);
           guardedNavigate(nextView === 'table' ? '/admin/kategorije' : '/admin/kategorije/miller-view');
         }}
+        variant="motion"
       >
-        <TabsList className="h-9 gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
-          <TabsTrigger
-            value="table"
-            className="h-7 rounded-lg px-3 text-xs font-semibold data-[active=true]:border data-[active=true]:border-[#3e67d6]/40 data-[active=true]:bg-white data-[active=true]:text-[#2749a5]"
-          >
-            Seznam
-          </TabsTrigger>
-          <TabsTrigger
-            value="miller"
-            className="h-7 rounded-lg px-3 text-xs font-semibold data-[active=true]:border data-[active=true]:border-[#3e67d6]/40 data-[active=true]:bg-white data-[active=true]:text-[#2749a5]"
-          >
-            Millerjev pogled
-          </TabsTrigger>
+        <TabsList>
+          <TabsTrigger value="table">Seznam</TabsTrigger>
+          <TabsTrigger value="miller">Millerjev pogled</TabsTrigger>
         </TabsList>
       </Tabs>
 

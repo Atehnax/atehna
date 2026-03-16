@@ -172,6 +172,16 @@ const pathEquals = (left?: string | string[], right?: string | string[]) => {
   );
 };
 
+const areStatusesEqual = (left: Record<string, CategoryStatus>, right: Record<string, CategoryStatus>) => {
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+  if (leftKeys.length !== rightKeys.length) return false;
+  return leftKeys.every((key) => left[key] === right[key]);
+};
+
+const areCatalogsEqual = (left: CatalogData, right: CatalogData) =>
+  JSON.stringify(normalizeCatalogData(left)) === JSON.stringify(normalizeCatalogData(right));
+
 const parseSubNodeId = (value: string): { categorySlug: string; subcategoryPath: string[] } | null => {
   if (!value.startsWith('sub:')) return null;
 
@@ -698,7 +708,7 @@ export default function AdminCategoriesMainTable({
   const [tableDirty, setTableDirty] = useState(false);
   const [tableError, setTableError] = useState<string | null>(null);
   const [isTableSaveDialogOpen, setIsTableSaveDialogOpen] = useState(false);
-  const [lowerViewCount, setLowerViewCount] = useState(4);
+  const [lowerViewCount, setLowerViewCount] = useState(5);
   const [millerCatalog, setMillerCatalog] = useState<CatalogData>({ categories: [] });
   const [millerSelection, setMillerSelection] = useState<string[]>([]);
   const [millerDropTarget, setMillerDropTarget] = useState<string | null>(null);
@@ -924,6 +934,10 @@ export default function AdminCategoriesMainTable({
 
   const stageMillerCatalog = (next: CatalogData, nextStatuses: Record<string, CategoryStatus> = statusByRow) => {
     const normalized = normalizeCatalogData(next);
+    if (areCatalogsEqual(normalized, millerCatalog) && areStatusesEqual(nextStatuses, statusByRow)) {
+      setMillerError(null);
+      return;
+    }
     stagedMillerHistoryRef.current.push({
       catalog: normalizeCatalogData(millerCatalog),
       statuses: { ...statusByRow }
@@ -3158,6 +3172,8 @@ export default function AdminCategoriesMainTable({
         selectAllRef={selectAllRef}
         allRowsSelected={allRowsSelected}
         onToggleSelectAll={toggleSelectAll}
+        rootExpanded={expanded[rootId] ?? true}
+        onToggleRootExpanded={() => toggleExpanded(rootId)}
         statusHeaderMenuRef={statusHeaderMenuRef}
         onToggleStatusHeaderMenu={() => {
           if (selectedRows.length === 0) return;
@@ -3320,6 +3336,8 @@ function AdminCategoriesTableSection({
   selectAllRef,
   allRowsSelected,
   onToggleSelectAll,
+  rootExpanded,
+  onToggleRootExpanded,
   statusHeaderMenuRef,
   onToggleStatusHeaderMenu,
   isStatusHeaderMenuOpen,
@@ -3351,6 +3369,8 @@ function AdminCategoriesTableSection({
   selectAllRef: RefObject<HTMLInputElement>;
   allRowsSelected: boolean;
   onToggleSelectAll: () => void;
+  rootExpanded: boolean;
+  onToggleRootExpanded: () => void;
   statusHeaderMenuRef: RefObject<HTMLDivElement>;
   onToggleStatusHeaderMenu: () => void;
   isStatusHeaderMenuOpen: boolean;
@@ -3397,7 +3417,7 @@ function AdminCategoriesTableSection({
               </Button>
 
               <div className="relative" ref={tableHistoryMenuRef}>
-                <IconButton type="button" tone="neutral" aria-label="Zgodovina" onClick={onToggleHistoryMenu}>
+                <IconButton type="button" size="md" tone="neutral" aria-label="Zgodovina" onClick={onToggleHistoryMenu}>
                   ⋮
                 </IconButton>
                 {isHistoryMenuOpen ? (
@@ -3451,7 +3471,19 @@ function AdminCategoriesTableSection({
                         aria-label="Izberi vse"
                       />
                     </th>
-                    <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">Kategorija</th>
+                    <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">
+                      <button
+                        type="button"
+                        onClick={onToggleRootExpanded}
+                        className="inline-flex items-center gap-1.5"
+                        aria-label="Razširi/skrij vse kategorije"
+                      >
+                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-[2px] border border-slate-300 text-[11px] leading-none text-slate-600">
+                          {rootExpanded ? '−' : '+'}
+                        </span>
+                        <span>Kategorija</span>
+                      </button>
+                    </th>
                     <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">Opis</th>
                     <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">Podkategorije</th>
                     <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">Izdelki</th>

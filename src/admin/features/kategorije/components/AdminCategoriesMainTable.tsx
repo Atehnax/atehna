@@ -353,6 +353,7 @@ const leafConnectorWidth = 22;
 const treeButtonDiameter = 28;
 const treeExpandButtonSize = 16;
 const treeExpandButtonInset = (treeButtonDiameter - treeExpandButtonSize) / 2;
+const treeExpandButtonHalf = treeExpandButtonSize / 2;
 const treeButtonRadius = treeButtonDiameter / 2;
 const treeConnectorBleed = 1;
 const expandTransitionMs = 140;
@@ -2650,8 +2651,8 @@ export default function AdminCategoriesMainTable({
                       className="absolute z-0 w-px bg-slate-300/90"
                       style={{
                         left: `${buttonCenterX}px`,
-                        top: `${treeHalfRowHeight + treeButtonRadius + 1}px`,
-                        height: `${treeHalfRowHeight - treeButtonRadius + treeConnectorBleed}px`
+                        top: `${treeHalfRowHeight + treeExpandButtonHalf}px`,
+                        height: `${treeHalfRowHeight - treeExpandButtonHalf + treeConnectorBleed}px`
                       }}
                     />
                   ) : null}
@@ -2702,9 +2703,17 @@ export default function AdminCategoriesMainTable({
                         aria-label="Razširi/skrij"
                         onPointerDown={(event) => event.stopPropagation()}
                         onClick={() => toggleExpanded(id)}
-                        className="inline-flex h-4 w-4 items-center justify-center rounded-[2px] border border-slate-300 text-[11px] leading-none text-slate-600"
+                        className="inline-grid h-4 w-4 place-items-center rounded-[2px] border border-slate-300 text-slate-600"
                       >
-                        {isExpanded ? '−' : '+'}
+                        {isExpanded ? (
+                          <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                            <path d="M3 8h10" />
+                          </svg>
+                        ) : (
+                          <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                            <path d="M3 8h10M8 3v10" />
+                          </svg>
+                        )}
                       </button>
                     </div>
                   ) : null}
@@ -3522,8 +3531,16 @@ function AdminCategoriesTableSection({
                         className="inline-flex items-center gap-1.5"
                         aria-label="Razširi/skrij vse kategorije"
                       >
-                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-[2px] border border-slate-300 text-[11px] leading-none text-slate-600">
-                          {allExpanded ? '−' : '+'}
+                        <span className="inline-grid h-4 w-4 place-items-center rounded-[2px] border border-slate-300 text-slate-600">
+                          {allExpanded ? (
+                            <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                              <path d="M3 8h10" />
+                            </svg>
+                          ) : (
+                            <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                              <path d="M3 8h10M8 3v10" />
+                            </svg>
+                          )}
                         </span>
                         <span>Kategorija</span>
                       </button>

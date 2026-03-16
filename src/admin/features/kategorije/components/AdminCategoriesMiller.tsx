@@ -9,6 +9,7 @@ type MillerColumn = {
   title: string;
   ids: string[];
   kind: 'categories' | 'subcategories' | 'items';
+  dropTarget: string;
   rows: Array<{
     id: string;
     label: string;
@@ -156,20 +157,20 @@ export function AdminCategoriesMiller({
             </div>
 
             <div
-              className={`max-h-[520px] space-y-1 overflow-auto p-1.5 ${millerDropTarget === (column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget) ? 'ring-2 ring-[#3e67d6]/40' : ''}`}
+              className={`max-h-[520px] space-y-1 overflow-auto p-1.5 ${millerDropTarget === column.dropTarget ? 'ring-2 ring-[#3e67d6]/40' : ''}`}
               onDragOver={(event) => {
                 event.preventDefault();
-                setMillerDropTarget(column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget ?? null);
+                setMillerDropTarget(column.dropTarget);
               }}
               onDrop={(event) => {
                 event.preventDefault();
-                const dropTarget = column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget ?? rootId;
-                applyMillerMove(dropTarget);
+                applyMillerMove(column.dropTarget);
                 setMillerDropTarget(null);
               }}
             >
-              {column.rows.length === 0 ? <p className="px-2 py-3 text-xs text-slate-500">Ni zapisov.</p> : column.rows.map((row) => (
-                millerRename?.id === row.id && row.kind !== 'item' ? (
+              {column.rows.length === 0 ? <p className="px-2 py-3 text-xs text-slate-500">Ni zapisov.</p> : column.rows.map((row) => {
+                const rowDropTarget = row.kind === 'item' ? row.onDropTarget : row.id;
+                return millerRename?.id === row.id && row.kind !== 'item' ? (
                   <input
                     key={row.id}
                     value={millerRename.value}
@@ -187,7 +188,7 @@ export function AdminCategoriesMiller({
                     key={row.id}
                     type="button"
                     data-miller-id={row.id}
-                    className={`miller-select-item block w-full rounded-md border px-2 py-1 text-left text-xs font-medium transition ${millerSelection.includes(row.id) || row.tone === 'focused' ? 'border-[#3e67d6]/50 bg-[#f0f4ff] text-[#1f3f93]' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-100'}`}
+                    className={`miller-select-item block w-full rounded-md border px-2 py-1 text-left text-xs font-medium transition ${millerSelection.includes(row.id) || row.tone === 'focused' ? 'border-[#3e67d6]/50 bg-[#f0f4ff] text-[#1f3f93]' : row.tone === 'inactive' ? 'border-transparent bg-white text-slate-400 hover:border-slate-200 hover:bg-slate-100' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-100'}`}
                     onClick={row.onClick}
                     onDoubleClick={() => {
                       if (row.kind === 'item') return;
@@ -203,17 +204,17 @@ export function AdminCategoriesMiller({
                     onDragEnd={() => setMillerDropTarget(null)}
                     onDragOver={(event) => {
                       event.preventDefault();
-                      setMillerDropTarget(row.id);
+                      setMillerDropTarget(rowDropTarget);
                     }}
                     onDrop={(event) => {
                       event.preventDefault();
-                      applyMillerMove(row.id);
+                      applyMillerMove(rowDropTarget);
                     }}
                   >
                     {row.label}
                   </button>
                 )
-              ))}
+              })}
             </div>
           </div>
         ))}

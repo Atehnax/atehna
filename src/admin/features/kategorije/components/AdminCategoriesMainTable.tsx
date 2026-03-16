@@ -1497,6 +1497,8 @@ export default function AdminCategoriesMainTable({
       items: [...(category.items ?? [])]
     }));
 
+    const nextStatuses = { ...statusByRow };
+
     if (selectedCategorySlugs.size > 0) {
       if (targetId === rootId || targetCategorySlug) {
         const moved = nextCategories.filter((category) => selectedCategorySlugs.has(category.slug));
@@ -1520,6 +1522,12 @@ export default function AdminCategoriesMainTable({
           const movedCategories = nextCategories.filter((category) => selectedCategorySlugs.has(category.slug));
           const withChildren = movedCategories.filter((category) => category.subcategories.length > 0);
 
+          for (const category of movedCategories) {
+            const previousStatus = nextStatuses[catId(category.slug)] ?? 'active';
+            nextStatuses[subId(destinationCategorySlug, category.slug)] = previousStatus;
+            delete nextStatuses[catId(category.slug)];
+          }
+
           const asSubcategories: RecursiveCatalogSubcategory[] = movedCategories.map((category) => ({
             id: category.id,
             slug: category.slug,
@@ -1532,6 +1540,13 @@ export default function AdminCategoriesMainTable({
           }));
 
           const promotedFormerChildren = movedCategories.flatMap((category) => category.subcategories);
+          movedCategories.forEach((category) => {
+            category.subcategories.forEach((subcategory) => {
+              const previousStatus = nextStatuses[subId(category.slug, subcategory.slug)] ?? 'active';
+              nextStatuses[subId(destinationCategorySlug, subcategory.slug)] = previousStatus;
+              delete nextStatuses[subId(category.slug, subcategory.slug)];
+            });
+          });
           const candidateSlugs = new Set<string>();
           [...asSubcategories, ...promotedFormerChildren].forEach((subcategory) => {
             if (candidateSlugs.has(subcategory.slug)) {
@@ -1586,6 +1601,9 @@ export default function AdminCategoriesMainTable({
                 subcategories: [],
                 items: [...subcategory.items]
               });
+              const previousStatus = nextStatuses[subId(category.slug, subcategory.slug)] ?? 'active';
+              nextStatuses[catId(subcategory.slug)] = previousStatus;
+              delete nextStatuses[subId(category.slug, subcategory.slug)];
               return false;
             });
             return { ...category, subcategories: remainingSubs };
@@ -1595,13 +1613,17 @@ export default function AdminCategoriesMainTable({
         const destinationCategorySlug = targetSub?.categorySlug ?? targetCategorySlug;
         if (destinationCategorySlug) {
           const movedSubs: RecursiveCatalogSubcategory[] = [];
+          const movedSubSourceBySlug = new Map<string, string>();
 
           nextCategories = nextCategories.map((category) => ({
             ...category,
             subcategories: category.subcategories.filter((subcategory) => {
               const key = subId(category.slug, subcategory.slug);
               const moving = selectedSubKeys.has(key);
-              if (moving) movedSubs.push(subcategory);
+              if (moving) {
+                movedSubs.push(subcategory);
+                movedSubSourceBySlug.set(subcategory.slug, category.slug);
+              }
               return !moving;
             })
           }));
@@ -1614,6 +1636,16 @@ export default function AdminCategoriesMainTable({
             }
             duplicateWithinMoved.add(moved.slug);
           }
+
+          movedSubs.forEach((subcategory) => {
+            const sourceCategorySlug = movedSubSourceBySlug.get(subcategory.slug);
+            if (!sourceCategorySlug) return;
+            const previousStatus = nextStatuses[subId(sourceCategorySlug, subcategory.slug)] ?? 'active';
+            nextStatuses[subId(destinationCategorySlug, subcategory.slug)] = previousStatus;
+            if (sourceCategorySlug !== destinationCategorySlug) {
+              delete nextStatuses[subId(sourceCategorySlug, subcategory.slug)];
+            }
+          });
 
           nextCategories = nextCategories.map((category) => {
             if (category.slug !== destinationCategorySlug) return category;
@@ -1682,7 +1714,7 @@ export default function AdminCategoriesMainTable({
       }
     }
 
-    stageMillerCatalog({ categories: nextCategories });
+    stageMillerCatalog({ categories: nextCategories }, nextStatuses);
     setMillerDropTarget(null);
   };
 
@@ -1863,7 +1895,7 @@ export default function AdminCategoriesMainTable({
 
 
   const millerColumns = useMemo(() => {
-    const columns: Array<{ key: string; title: string; ids: string[]; rows: Array<{ id: string; label: string; tone: string; kind: 'category' | 'subcategory' | 'item'; onClick: (event: React.MouseEvent<HTMLButtonElement>) => void; onDragStart: () => void; onDropTarget: string; }>; kind: 'categories' | 'subcategories' | 'items' }> = [];
+    const columns: Array<{ key: string; title: string; ids: string[]; dropTarget: string; rows: Array<{ id: string; label: string; tone: string; kind: 'category' | 'subcategory' | 'item'; onClick: (event: React.MouseEvent<HTMLButtonElement>) => void; onDragStart: () => void; onDropTarget: string; }>; kind: 'categories' | 'subcategories' | 'items' }> = [];
 
     const categoryIds = millerCatalog.categories.map((category) => catId(category.slug));
     columns.push({
@@ -1871,10 +1903,11 @@ export default function AdminCategoriesMainTable({
       title: 'Kategorije',
       kind: 'categories',
       ids: categoryIds,
+      dropTarget: rootId,
       rows: millerCatalog.categories.map((category) => ({
         id: catId(category.slug),
         label: category.title,
-        tone: selected.kind !== 'root' && selected.categorySlug === category.slug ? 'focused' : 'default',
+        tone: selected.kind !== 'root' && selected.categorySlug === category.slug ? 'focused' : (statusByRow[catId(category.slug)] ?? 'active') === 'inactive' ? 'inactive' : 'default',
         onClick: (event) => {
           setSelected({ kind: 'category', categorySlug: category.slug });
           toggleMillerSelection(catId(category.slug), event, categoryIds);
@@ -1901,10 +1934,11 @@ export default function AdminCategoriesMainTable({
         title: 'Podkategorije',
         kind: 'subcategories',
         ids: subIds,
+        dropTarget: catId(activeCategory.slug),
         rows: activeCategory.subcategories.map((subcategory) => ({
           id: subId(activeCategory.slug, subcategory.slug),
           label: subcategory.title,
-          tone: selected.kind === 'subcategory' && selected.subcategorySlug === subcategory.slug ? 'focused' : 'default',
+          tone: selected.kind === 'subcategory' && selected.subcategorySlug === subcategory.slug ? 'focused' : (statusByRow[subId(activeCategory.slug, subcategory.slug)] ?? 'active') === 'inactive' ? 'inactive' : 'default',
           onClick: (event) => {
             setSelected({ kind: 'subcategory', categorySlug: activeCategory.slug, subcategorySlug: subcategory.slug });
             toggleMillerSelection(subId(activeCategory.slug, subcategory.slug), event, subIds);
@@ -1938,6 +1972,7 @@ export default function AdminCategoriesMainTable({
         title: 'Artikli',
         kind: 'items',
         ids: itemIds,
+        dropTarget: selected.kind === 'subcategory' ? subId(activeCategory.slug, selectedSubcategoryPath) : catId(activeCategory.slug),
         rows: itemSource.map((item) => {
           const id = itemId(activeCategory.slug, item.slug, selected.kind === 'subcategory' ? selected.subcategorySlug : undefined);
           return {
@@ -1956,7 +1991,7 @@ export default function AdminCategoriesMainTable({
     }
 
     return columns;
-  }, [millerCatalog.categories, millerSelection, selected]);
+  }, [millerCatalog.categories, millerSelection, selected, statusByRow]);
 
   const updateSubcategory = (
     categorySlug: string,

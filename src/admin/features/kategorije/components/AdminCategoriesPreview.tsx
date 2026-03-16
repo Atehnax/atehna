@@ -104,12 +104,9 @@ export function AdminCategoriesPreview({
                           onClick={() => uploadRefs.current[item.id]?.click()}
                           onPointerDown={(event) => event.stopPropagation()}
                         >
-                          {item.image ? (
-                            <Image src={item.image} alt={item.title} fill className="object-cover" />
-                          ) : (
-                            <div className="flex h-full items-center justify-center text-xs text-slate-400">Brez slike</div>
-                          )}
-                          <div className="absolute inset-0 flex items-center justify-center gap-2">
+                          {item.image ? <Image src={item.image} alt={item.title} fill className="object-cover" /> : null}
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                            <div className="flex items-center justify-center gap-2">
                             <button
                               type="button"
                               className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-black/50 bg-black/45 text-white/90 backdrop-blur-sm hover:bg-black/60"
@@ -120,12 +117,10 @@ export function AdminCategoriesPreview({
                               }}
                               aria-label="Dodaj sliko"
                             >
-                              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <rect x="2.75" y="6.75" width="14.5" height="10.5" rx="2.5" />
-                                <path d="m4.75 15 3.6-3.5a1 1 0 0 1 1.42 0L13 14.75" />
-                                <circle cx="13.2" cy="10.4" r="1.35" />
-                                <circle cx="17.75" cy="6.75" r="3.5" />
-                                <path d="M17.75 5.2v3.1M16.2 6.75h3.1" />
+                              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <rect x="3" y="4" width="18" height="16" rx="2.8" />
+                                <path d="m6.5 15.5 3.7-3.8a1 1 0 0 1 1.42 0L15 15l2-2a1 1 0 0 1 1.42 0l2.08 2.08" />
+                                <circle cx="15.5" cy="9.3" r="1.5" />
                               </svg>
                             </button>
                             {item.image ? (
@@ -146,6 +141,8 @@ export function AdminCategoriesPreview({
                                 ✕
                               </button>
                             ) : null}
+                            </div>
+                            {!item.image ? <p className="text-xs text-slate-300">Brez slike</p> : null}
                           </div>
                         </button>
 

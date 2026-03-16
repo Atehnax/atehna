@@ -174,15 +174,12 @@ const InlineStatusToggle = ({
       }`}
     >
       {checked ? (
-        <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M2 10s2.7-4 8-4 8 4 8 4-2.7 4-8 4-8-4-8-4z" />
-          <circle cx="10" cy="10" r="2.3" />
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
+          <path d="M1.5 12s3.75-7.5 10.5-7.5S22.5 12 22.5 12s-3.75 7.5-10.5 7.5S1.5 12 1.5 12Zm10.5 4.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Z" />
         </svg>
       ) : (
-        <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M2 10s2.7-4 8-4 8 4 8 4-2.7 4-8 4-8-4-8-4z" />
-          <circle cx="10" cy="10" r="2.3" />
-          <path d="M4 4l12 12" />
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
+          <path d="M3.53 2.47a.75.75 0 1 0-1.06 1.06l2.138 2.139A19.772 19.772 0 0 0 1.5 12s3.75 7.5 10.5 7.5a10.96 10.96 0 0 0 5.083-1.2l3.387 3.386a.75.75 0 1 0 1.06-1.06l-18-18Zm7.469 7.47a3 3 0 0 1 3.093 3.092l-3.092-3.093Zm4.997 4.998a4.5 4.5 0 0 0-6.934-5.646L6.145 6.377A10.756 10.756 0 0 1 12 4.5c6.75 0 10.5 7.5 10.5 7.5a19.81 19.81 0 0 1-2.36 3.473l-4.143-4.143Z" />
         </svg>
       )}
     </span>

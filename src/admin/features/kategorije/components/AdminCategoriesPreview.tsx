@@ -79,7 +79,7 @@ export function AdminCategoriesPreview({
                 min={1}
                 max={12}
                 value={lowerViewCount}
-                onChange={(event) => onLowerViewCountChange(Number(event.target.value || 4))}
+                onChange={(event) => onLowerViewCountChange(Number(event.target.value || 5))}
                 className="h-1.5 w-28 accent-[#3e67d6]"
               />
               <span className="w-4 text-right text-slate-600">{lowerViewCount}</span>

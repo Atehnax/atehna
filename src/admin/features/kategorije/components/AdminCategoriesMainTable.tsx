@@ -408,21 +408,6 @@ function SortableTreeRow({
   });
 }
 
-function ChevronDownIcon() {
-  return (
-    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-      <path d="M5 8l5 5 5-5" />
-    </svg>
-  );
-}
-
-function ChevronUpIcon() {
-  return (
-    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-      <path d="M5 12l5-5 5 5" />
-    </svg>
-  );
-}
 
 function PlusIcon() {
   return (
@@ -698,7 +683,7 @@ export default function AdminCategoriesMainTable({
   const [tableDirty, setTableDirty] = useState(false);
   const [tableError, setTableError] = useState<string | null>(null);
   const [isTableSaveDialogOpen, setIsTableSaveDialogOpen] = useState(false);
-  const [lowerViewCount, setLowerViewCount] = useState(4);
+  const [lowerViewCount, setLowerViewCount] = useState(5);
   const [millerCatalog, setMillerCatalog] = useState<CatalogData>({ categories: [] });
   const [millerSelection, setMillerSelection] = useState<string[]>([]);
   const [millerDropTarget, setMillerDropTarget] = useState<string | null>(null);
@@ -1696,9 +1681,15 @@ export default function AdminCategoriesMainTable({
 
     if (millerRename.id.startsWith('cat:')) {
       const slug = millerRename.id.slice(4);
+      const category = millerCatalog.categories.find((entry) => entry.slug === slug);
+      if (!category || category.title === value) {
+        setMillerRename(null);
+        return;
+      }
+
       stageMillerCatalog({
-        categories: millerCatalog.categories.map((category) =>
-          category.slug === slug ? { ...category, title: value, summary: value } : category
+        categories: millerCatalog.categories.map((entry) =>
+          entry.slug === slug ? { ...entry, title: value, summary: value } : entry
         )
       });
       setMillerRename(null);
@@ -1707,14 +1698,21 @@ export default function AdminCategoriesMainTable({
 
     if (millerRename.id.startsWith('sub:')) {
       const [, categorySlug, subcategorySlug] = millerRename.id.split(':');
+      const category = millerCatalog.categories.find((entry) => entry.slug === categorySlug);
+      const subcategory = category?.subcategories.find((entry) => entry.slug === subcategorySlug);
+      if (!subcategory || subcategory.title === value) {
+        setMillerRename(null);
+        return;
+      }
+
       stageMillerCatalog({
-        categories: millerCatalog.categories.map((category) =>
-          category.slug !== categorySlug
-            ? category
+        categories: millerCatalog.categories.map((entry) =>
+          entry.slug !== categorySlug
+            ? entry
             : {
-                ...category,
-                subcategories: category.subcategories.map((subcategory) =>
-                  subcategory.slug === subcategorySlug ? { ...subcategory, title: value } : subcategory
+                ...entry,
+                subcategories: entry.subcategories.map((node) =>
+                  node.slug === subcategorySlug ? { ...node, title: value } : node
                 )
               }
         )
@@ -2559,6 +2557,20 @@ export default function AdminCategoriesMainTable({
               </div>
             </td>
 
+            <td className="border-b border-slate-200 px-2 py-2 text-center align-middle">
+              {hasChildren ? (
+                <button
+                  type="button"
+                  className="inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded-md border border-slate-300 bg-white px-1.5 text-xs font-semibold text-slate-700 hover:bg-[color:var(--hover-neutral)]"
+                  aria-label="Razširi/skrij"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={() => toggleExpanded(id)}
+                >
+                  {isExpanded ? '-' : '+'}
+                </button>
+              ) : null}
+            </td>
+
             <td className="border-b border-slate-200 px-3 py-0 align-middle">
               <div className="relative flex h-12 items-center gap-2 overflow-visible px-1">
                 <div
@@ -2630,26 +2642,6 @@ export default function AdminCategoriesMainTable({
                     </>
                   ) : null}
 
-                  {hasChildren ? (
-                    <div
-                      className="absolute inset-y-0 z-10 flex items-center justify-center"
-                      style={{
-                        left: `${buttonLeft}px`,
-                        width: `${treeButtonDiameter}px`
-                      }}
-                    >
-                      <IconButton
-                        type="button"
-                        tone="neutral"
-                        shape="rounded"
-                        aria-label="Razširi/skrij"
-                        onPointerDown={(event) => event.stopPropagation()}
-                        onClick={() => toggleExpanded(id)}
-                      >
-                        {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
-                      </IconButton>
-                    </div>
-                  ) : null}
                 </div>
 
                 <div className="min-w-0 flex-1">
@@ -3397,7 +3389,7 @@ function AdminCategoriesTableSection({
               </Button>
 
               <div className="relative" ref={tableHistoryMenuRef}>
-                <IconButton type="button" tone="neutral" aria-label="Zgodovina" onClick={onToggleHistoryMenu}>
+                <IconButton type="button" tone="neutral" size="md" aria-label="Zgodovina" onClick={onToggleHistoryMenu}>
                   ⋮
                 </IconButton>
                 {isHistoryMenuOpen ? (
@@ -3432,6 +3424,7 @@ function AdminCategoriesTableSection({
               <table className="min-w-full table-fixed border-separate border-spacing-0 border-x border-b border-slate-200">
                 <colgroup>
                   <col className="w-14" />
+                  <col className="w-12" />
                   <col className="w-[420px]" />
                   <col className="w-[320px]" />
                   <col className="w-32" />
@@ -3451,6 +3444,7 @@ function AdminCategoriesTableSection({
                         aria-label="Izberi vse"
                       />
                     </th>
+                    <th className="border-b border-slate-200 px-2 py-2 text-center text-xs font-semibold text-slate-500" />
                     <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">Kategorija</th>
                     <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">Opis</th>
                     <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">Podkategorije</th>

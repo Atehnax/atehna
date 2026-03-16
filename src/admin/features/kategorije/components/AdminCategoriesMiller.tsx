@@ -211,7 +211,7 @@ export function AdminCategoriesMiller({
                       applyMillerMove(row.id);
                     }}
                   >
-                    {row.label}
+                    <span className={row.isInactive ? 'text-slate-400' : undefined}>{row.label}</span>
                   </button>
                 )
               ))}

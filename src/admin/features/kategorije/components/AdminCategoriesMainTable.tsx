@@ -189,7 +189,7 @@ const InlineStatusToggle = ({
     </span>
     <span
       aria-hidden="true"
-      className={`absolute top-0.5 z-10 h-6 w-6 rounded-full border border-white/90 bg-white shadow-sm transition-transform duration-200 ${
+      className={`absolute inset-y-0 z-10 w-6 rounded-full border border-slate-200 bg-slate-100 shadow-sm transition-transform duration-200 ${
         checked ? 'translate-x-7' : 'translate-x-0.5'
       }`}
     />
@@ -433,6 +433,15 @@ const treeConnectorBleed = 1;
 const expandTransitionMs = 140;
 const treeCheckboxSize = 16;
 const treeCheckboxHalf = treeCheckboxSize / 2;
+const categoryTableColumnWidths = {
+  select: 56,
+  category: 420,
+  description: 320,
+  subcategories: 128,
+  items: 112,
+  visibility: 128,
+  actions: 160
+} as const;
 
 const getCheckboxLeftFromTreeStart = (
   kind: 'root' | 'category' | 'subcategory',
@@ -2653,14 +2662,7 @@ export default function AdminCategoriesMainTable({
     const parentColumnX = level > 0 ? (level - 1) * treeIndent + treeButtonRadius : null;
     const checkboxLeftFromTreeStart = getCheckboxLeftFromTreeStart(kind, buttonLeft, parentColumnX);
 
-    const gutterWidth =
-      level === 0
-        ? hasChildren
-          ? treeButtonDiameter
-          : 0
-        : hasChildren
-          ? buttonLeft + treeButtonDiameter
-          : (parentColumnX ?? 0) + leafConnectorWidth;
+    const gutterWidth = level === 0 ? treeButtonDiameter : buttonLeft + treeButtonDiameter;
 
     return (
       <SortableTreeRow
@@ -3101,8 +3103,8 @@ export default function AdminCategoriesMainTable({
         variant="motion"
       >
         <TabsList>
-          <TabsTrigger value="table">Seznam</TabsTrigger>
-          <TabsTrigger value="miller">Millerjev pogled</TabsTrigger>
+          <TabsTrigger value="table">Osnovno</TabsTrigger>
+          <TabsTrigger value="miller">Po stolpcih</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -3498,13 +3500,13 @@ function AdminCategoriesTableSection({
             <SortableContext items={visibleRowIds} strategy={verticalListSortingStrategy}>
               <table className="min-w-full table-fixed border-separate border-spacing-0 border-x border-b border-slate-200">
                 <colgroup>
-                  <col className="w-14" />
-                  <col className="w-[420px]" />
-                  <col className="w-[320px]" />
-                  <col className="w-32" />
-                  <col className="w-28" />
-                  <col className="w-32" />
-                  <col className="w-40" />
+                  <col style={{ width: `${categoryTableColumnWidths.select}px` }} />
+                  <col style={{ width: `${categoryTableColumnWidths.category}px` }} />
+                  <col style={{ width: `${categoryTableColumnWidths.description}px` }} />
+                  <col style={{ width: `${categoryTableColumnWidths.subcategories}px` }} />
+                  <col style={{ width: `${categoryTableColumnWidths.items}px` }} />
+                  <col style={{ width: `${categoryTableColumnWidths.visibility}px` }} />
+                  <col style={{ width: `${categoryTableColumnWidths.actions}px` }} />
                 </colgroup>
 
                 <thead className="bg-slate-50/90">
@@ -3518,26 +3520,33 @@ function AdminCategoriesTableSection({
                         aria-label="Izberi vse"
                       />
                     </th>
-                    <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">
-                      <button
-                        type="button"
-                        onClick={onToggleAllExpanded}
-                        className="inline-flex items-center gap-1.5"
-                        aria-label="Razširi/skrij vse kategorije"
-                      >
-                        <span className="inline-grid h-4 w-4 place-items-center rounded-[2px] border border-slate-300 text-slate-600">
-                          {allExpanded ? (
-                            <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-                              <path d="M3 8h10" />
-                            </svg>
-                          ) : (
-                            <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-                              <path d="M3 8h10M8 3v10" />
-                            </svg>
-                          )}
-                        </span>
+                    <th className="border-b border-slate-200 px-3 py-0 text-left text-xs font-semibold text-slate-500 align-middle">
+                      <div className="relative flex h-12 items-center gap-2 overflow-visible px-1">
+                        <div
+                          className="relative shrink-0 overflow-visible"
+                          style={{ width: `${treeButtonDiameter}px`, height: `${treeRowHeight}px` }}
+                        >
+                          <div className="absolute inset-y-0 z-10 flex items-center justify-center" style={{ left: 0, width: `${treeButtonDiameter}px` }}>
+                            <button
+                              type="button"
+                              onClick={onToggleAllExpanded}
+                              className="inline-grid h-4 w-4 place-items-center rounded-[2px] border border-slate-300 text-slate-600"
+                              aria-label="Razširi/skrij vse kategorije"
+                            >
+                              {allExpanded ? (
+                                <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                                  <path d="M3 8h10" />
+                                </svg>
+                              ) : (
+                                <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                                  <path d="M3 8h10M8 3v10" />
+                                </svg>
+                              )}
+                            </button>
+                          </div>
+                        </div>
                         <span>Kategorija</span>
-                      </button>
+                      </div>
                     </th>
                     <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">Opis</th>
                     <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">Podkategorije</th>

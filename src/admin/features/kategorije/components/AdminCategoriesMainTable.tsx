@@ -190,7 +190,7 @@ const InlineStatusToggle = ({
     <span
       aria-hidden="true"
       className={`absolute inset-y-0 z-10 w-6 rounded-full border border-[#1f2a36] bg-[#2f3942] shadow-[inset_0_1px_2px_rgba(255,255,255,0.08),inset_0_-3px_6px_rgba(0,0,0,0.2),0_2px_5px_rgba(15,23,42,0.25)] transition-transform duration-200 ${
-        checked ? 'translate-x-7' : 'translate-x-0.5'
+        checked ? 'translate-x-8' : 'translate-x-0'
       }`}
     >
       <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#9aa0a7]" />

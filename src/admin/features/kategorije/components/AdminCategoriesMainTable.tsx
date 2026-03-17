@@ -163,14 +163,14 @@ const InlineStatusToggle = ({
     }}
     className={`relative inline-flex h-7 w-14 items-center rounded-full border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${
       checked
-        ? 'border-emerald-300/80 bg-emerald-100/80 text-emerald-800'
-        : 'border-slate-300 bg-slate-200/80 text-slate-600'
+        ? 'border-[#243f58] bg-[#3c5167] text-[#d4c08f]'
+        : 'border-[#3e556d] bg-[#e8eaee] text-[#5e636b]'
     }`}
   >
     <span
       aria-hidden="true"
       className={`pointer-events-none absolute top-1/2 -translate-y-1/2 transition-all duration-200 ${
-        checked ? 'left-1.5 opacity-100 text-emerald-700' : 'right-1.5 opacity-100 text-slate-500'
+        checked ? 'left-1.5 opacity-100 text-[#d4c08f]' : 'right-1.5 opacity-100 text-[#686d75]'
       }`}
     >
       {checked ? (
@@ -189,10 +189,12 @@ const InlineStatusToggle = ({
     </span>
     <span
       aria-hidden="true"
-      className={`absolute inset-y-0 z-10 w-6 rounded-full border border-slate-200 bg-slate-100 shadow-sm transition-transform duration-200 ${
-        checked ? 'translate-x-7' : 'translate-x-0.5'
+      className={`absolute inset-y-0 z-10 w-6 rounded-full border border-[#1f2a36] bg-[#2f3942] shadow-[inset_0_1px_2px_rgba(255,255,255,0.08),inset_0_-3px_6px_rgba(0,0,0,0.2),0_2px_5px_rgba(15,23,42,0.25)] transition-transform duration-200 ${
+        checked ? 'translate-x-8' : 'translate-x-0'
       }`}
-    />
+    >
+      <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#9aa0a7]" />
+    </span>
   </button>
 );
 

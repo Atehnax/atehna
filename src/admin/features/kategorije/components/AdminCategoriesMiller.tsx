@@ -5,6 +5,8 @@ import { IconButton } from '@/shared/ui/icon-button';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { Input } from '@/shared/ui/input';
 
+const padTwoDigits = (value: number) => String(value).padStart(2, '0');
+
 const formatMillerDate = (value?: string) => {
   if (!value) return '—';
 
@@ -20,26 +22,13 @@ const formatMillerDate = (value?: string) => {
   return `${day}-${month}-${year} ${hours}:${minutes}`;
 };
 
+const millerRowGridClass = 'grid grid-cols-3 items-center gap-x-3';
+
 const getMillerNameColumnLabel = (column: MillerColumn) => {
   if (column.kind === 'items') return 'Artikel';
   if (column.key === 'categories') return 'Kategorija';
   return 'Podkategorija';
 };
-
-const padTwoDigits = (value: number) => String(value).padStart(2, '0');
-
-const formatMillerDate = (value?: string) => {
-  const parsedDate = value ? new Date(value) : new Date();
-  const safeDate = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
-
-  const day = padTwoDigits(safeDate.getDate());
-  const month = padTwoDigits(safeDate.getMonth() + 1);
-  const year = safeDate.getFullYear();
-
-  return `${day}-${month}-${year}`;
-};
-
-const millerRowGridClass = 'grid grid-cols-3 items-center gap-x-3';
 
 type MillerColumn = {
   key: string;

@@ -6,18 +6,15 @@ import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 
 const padTwoDigits = (value: number) => String(value).padStart(2, '0');
 
-const formatMillerDateTime = (value?: string) => {
-  if (!value) return '—';
-  const parsedDate = new Date(value);
-  if (Number.isNaN(parsedDate.getTime())) return '—';
+const formatMillerDate = (value?: string) => {
+  const parsedDate = value ? new Date(value) : new Date();
+  const safeDate = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
 
-  const day = padTwoDigits(parsedDate.getDate());
-  const month = padTwoDigits(parsedDate.getMonth() + 1);
-  const year = parsedDate.getFullYear();
-  const hour = padTwoDigits(parsedDate.getHours());
-  const minute = padTwoDigits(parsedDate.getMinutes());
+  const day = padTwoDigits(safeDate.getDate());
+  const month = padTwoDigits(safeDate.getMonth() + 1);
+  const year = safeDate.getFullYear();
 
-  return `${day}-${month}-${year} ${hour}:${minute}`;
+  return `${day}-${month}-${year}`;
 };
 
 type MillerColumn = {
@@ -189,10 +186,10 @@ export function AdminCategoriesMiller({
             >
               {column.rows.length === 0 ? <p className="px-2 py-3 text-xs text-slate-500">Ni zapisov.</p> : (
                 <>
-                  <div className="grid grid-cols-[minmax(0,1fr)_140px_140px] items-center px-2 py-1 text-[11px] font-semibold text-slate-500">
+                  <div className="grid grid-cols-[minmax(0,1fr)_132px_132px] items-center gap-x-4 px-2 py-1 text-[11px] font-semibold text-slate-500">
                     <span>Kategorije</span>
-                    <span>Ustvarjeno</span>
-                    <span>Spremenjeno</span>
+                    <span className="text-center">Ustvarjeno</span>
+                    <span className="text-center">Spremenjeno</span>
                   </div>
                   {column.rows.map((row) => (
                     millerRename?.id === row.id && row.kind !== 'item' ? (
@@ -213,7 +210,7 @@ export function AdminCategoriesMiller({
                         key={row.id}
                         type="button"
                         data-miller-id={row.id}
-                        className={`miller-select-item grid w-full grid-cols-[minmax(0,1fr)_140px_140px] items-center rounded-md border px-2 py-1 text-left text-xs font-medium transition ${millerSelection.includes(row.id) || row.tone === 'focused' ? `border-[#3e67d6]/50 bg-[#f0f4ff] ${row.isInactive ? 'text-slate-400' : 'text-[#1f3f93]'}` : `border-transparent bg-white ${row.isInactive ? 'text-slate-400' : 'text-slate-700'} hover:border-slate-200 hover:bg-slate-100`}`}
+                        className={`miller-select-item grid w-full grid-cols-[minmax(0,1fr)_132px_132px] items-center gap-x-4 rounded-md border px-2 py-1 text-left text-xs font-medium transition ${millerSelection.includes(row.id) || row.tone === 'focused' ? `border-[#3e67d6]/50 bg-[#f0f4ff] ${row.isInactive ? 'text-slate-400' : 'text-[#1f3f93]'}` : `border-transparent bg-white ${row.isInactive ? 'text-slate-400' : 'text-slate-700'} hover:border-slate-200 hover:bg-slate-100`}`}
                         onClick={row.onClick}
                         onDoubleClick={() => {
                           if (row.kind === 'item') return;
@@ -237,8 +234,8 @@ export function AdminCategoriesMiller({
                         }}
                       >
                         <span style={row.isInactive ? { color: '#94a3b8' } : undefined}>{row.label}</span>
-                        <span className="text-[11px] font-normal">{formatMillerDateTime(row.createdAt)}</span>
-                        <span className="text-[11px] font-normal">{formatMillerDateTime(row.updatedAt)}</span>
+                        <span className="text-center text-[11px] font-normal">{formatMillerDate(row.createdAt)}</span>
+                        <span className="text-center text-[11px] font-normal">{formatMillerDate(row.updatedAt)}</span>
                       </button>
                     )
                   ))}

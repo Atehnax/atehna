@@ -1,29 +1,11 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { formatCatalogPrice, getDiscountedPrice, getCatalogItemPrice, getCatalogItemSku } from '@/commercial/catalog/catalog';
-import { getCatalogCategoryServer, getCatalogCategorySlugsServer, getCatalogItemServer, getCatalogItemSlugsServer, getCatalogSubcategoryServer, getCatalogSubcategorySlugsServer } from '@/commercial/catalog/catalogServer';
+import { getCatalogCategoryServer, getCatalogItemServer, getCatalogSubcategoryServer } from '@/commercial/catalog/catalogServer';
 import AddToCartButton from '@/commercial/features/products/AddToCartButton';
 
+export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
-
-export async function generateStaticParams() {
-  try {
-    const categories = await getCatalogCategorySlugsServer();
-    const params: { category: string; subcategory: string; item: string }[] = [];
-
-    for (const category of categories) {
-      for (const subcategory of await getCatalogSubcategorySlugsServer(category)) {
-        for (const item of await getCatalogItemSlugsServer(category, subcategory)) {
-          params.push({ category, subcategory, item });
-        }
-      }
-    }
-
-    return params;
-  } catch {
-    return [];
-  }
-}
 
 export async function generateMetadata({ params }: { params: { category: string; subcategory: string; item: string } }) {
   const item = await getCatalogItemServer(params.category, params.subcategory, params.item);

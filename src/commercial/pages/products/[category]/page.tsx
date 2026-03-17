@@ -9,14 +9,12 @@ import {
 } from '@/commercial/catalog/catalog';
 import {
   getCatalogCategoriesServer,
-  getCatalogCategoryServer,
-  getCatalogCategorySlugsServer
+  getCatalogCategoryServer
 } from '@/commercial/catalog/catalogServer';
 import AddToCartButton from '@/commercial/features/products/AddToCartButton';
 
-export async function generateStaticParams() {
-  return (await getCatalogCategorySlugsServer()).map((category) => ({ category }));
-}
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
 
 export async function generateMetadata({ params }: { params: { category: string } }) {
   const category = await getCatalogCategoryServer(params.category);

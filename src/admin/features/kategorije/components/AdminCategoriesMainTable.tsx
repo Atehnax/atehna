@@ -3437,7 +3437,7 @@ function AdminCategoriesTableSection({
       <section>
         <AdminTableLayout
           className="border"
-          contentClassName="overflow-x-auto [scrollbar-gutter:stable]"
+          contentClassName="overflow-x-auto"
           headerLeft={
             <>
               <input

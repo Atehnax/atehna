@@ -99,16 +99,17 @@ export function TabsList({ children, className }: TabsListProps) {
       aria-orientation="horizontal"
       className={classNames(
         variant === 'motion'
-          ? 'relative inline-flex h-9 items-stretch overflow-hidden rounded-xl border border-slate-300 bg-slate-100'
+          ? 'relative flex h-11 w-full items-end gap-1 pb-1'
           : classNames(pillTokenClasses.list, 'h-8 gap-1 rounded-full px-1'),
         className
       )}
     >
       {variant === 'motion' ? (
         <>
+          <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-[color:var(--semantic-info-border)]" />
           <span
             aria-hidden
-            className="pointer-events-none absolute inset-y-0 left-0 rounded-[10px] bg-slate-300 transition-all duration-200 ease-out"
+            className="pointer-events-none absolute bottom-0 h-0.5 rounded bg-[color:var(--blue-500)] transition-all duration-200 ease-out"
             style={{
               width: indicator?.width ?? 0,
               transform: `translateX(${indicator?.left ?? 0}px)`
@@ -171,7 +172,7 @@ export function TabsTrigger({ value, disabled, children, className }: TabsTrigge
       onKeyDown={handleKeyDown}
       className={classNames(
         variant === 'motion'
-          ? 'relative z-10 inline-flex h-full items-center rounded-[10px] px-5 text-sm font-semibold transition-colors duration-200 ease-out text-slate-600 hover:text-slate-700 data-[active=true]:text-slate-800'
+          ? 'relative rounded-none px-5 py-2 text-sm font-semibold transition-colors duration-200 ease-out text-[color:var(--semantic-info)] hover:text-[color:var(--blue-500)] data-[active=true]:text-[color:var(--blue-500)]'
           : classNames(
               'rounded-full px-3 py-1 text-xs',
               pillTokenClasses.itemBase,

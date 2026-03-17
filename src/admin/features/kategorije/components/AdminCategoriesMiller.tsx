@@ -133,11 +133,11 @@ export function AdminCategoriesMiller({
 
       <div
         ref={millerViewportRef}
-        className="grid grid-flow-col auto-cols-[19rem] gap-3 overflow-x-auto"
-        style={{ gridTemplateColumns: `repeat(${Math.max(1, millerColumns.length)}, 19rem)` }}
+        className="overflow-x-auto"
       >
-        {millerColumns.map((column) => (
-          <div key={column.key} className="w-[19rem] min-w-[19rem] max-w-[19rem] shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/40">
+        <div className="flex w-max items-start gap-3">
+          {millerColumns.map((column) => (
+            <div key={column.key} className="w-[19rem] min-w-[19rem] max-w-[19rem] shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/40">
             <div className="flex items-center justify-between border-b border-slate-200 bg-white px-2.5 py-2">
               <h3 className="text-xs font-semibold text-slate-700">{column.title}</h3>
               <div className="flex items-center gap-1">
@@ -220,8 +220,9 @@ export function AdminCategoriesMiller({
                 )
               ))}
             </div>
-          </div>
-        ))}
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );

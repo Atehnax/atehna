@@ -167,7 +167,7 @@ export function AdminCategoriesMiller({
           <AdminSearchInput
             value={searchQuery}
             onChange={(event) => onSearchQueryChange(event.target.value)}
-            placeholder="Išči po kategoriji ali opisu ..."
+            placeholder="Išči po kategorijah"
             className="w-[280px]"
             aria-label="Išči v Miller stolpcih"
           />

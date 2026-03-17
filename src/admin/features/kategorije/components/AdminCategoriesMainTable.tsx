@@ -1143,15 +1143,20 @@ export default function AdminCategoriesMainTable({
 
   const millerBreadcrumbs = useMemo(() => {
     if (selected.kind === 'root') {
-      return [] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
+      return [{ label: 'Kategorije', isCurrent: true }] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
     }
 
     const category = millerCatalog.categories.find((entry) => entry.slug === selected.categorySlug);
     if (!category) {
-      return [] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
+      return [{ label: 'Kategorije', isCurrent: true }] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
     }
 
     const crumbs: Array<{ label: string; onClick?: () => void; isCurrent: boolean }> = [
+      {
+        label: 'Kategorije',
+        isCurrent: false,
+        onClick: () => setSelected({ kind: 'root' })
+      },
       {
         label: category.title,
         isCurrent: selected.kind === 'category',
@@ -2233,7 +2238,7 @@ export default function AdminCategoriesMainTable({
     const categoryIds = categoriesSource.map((category) => catId(category.slug));
     columns.push({
       key: 'categories',
-      title: '/',
+      title: 'Kategorije',
       kind: 'categories',
       ids: categoryIds,
       rows: categoriesSource.map((category) => ({
@@ -2328,8 +2333,12 @@ export default function AdminCategoriesMainTable({
       depth += 1;
     }
 
+    const selectedSubcategoryNode = selected.kind === 'subcategory'
+      ? findSubcategoryByPath(activeCategory.subcategories, selectedSubcategoryPath)
+      : null;
+
     const itemSource = selected.kind === 'subcategory'
-      ? findSubcategoryByPath(activeCategory.subcategories, selectedSubcategoryPath)?.items ?? []
+      ? selectedSubcategoryNode?.items ?? []
       : activeCategory.subcategories.length === 0
         ? (activeCategory.items ?? [])
         : [];
@@ -2339,7 +2348,9 @@ export default function AdminCategoriesMainTable({
       ? itemSource.filter((item) => millerSearchIndex.matchedItemIds.has(itemId(activeCategory.slug, item.slug, selectedLeafSlug)))
       : itemSource;
 
-    const showItems = selected.kind === 'subcategory' || activeCategory.subcategories.length === 0;
+    const showItems = selected.kind === 'subcategory'
+      ? (selectedSubcategoryNode?.subcategories.length ?? 0) === 0
+      : activeCategory.subcategories.length === 0;
 
     if (showItems) {
       const itemIds = filteredItemSource.map((item) => itemId(activeCategory.slug, item.slug, selectedLeafSlug));

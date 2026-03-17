@@ -3101,8 +3101,8 @@ export default function AdminCategoriesMainTable({
         variant="motion"
       >
         <TabsList>
-          <TabsTrigger value="table">Seznam</TabsTrigger>
-          <TabsTrigger value="miller">Millerjev pogled</TabsTrigger>
+          <TabsTrigger value="table">Osnovno</TabsTrigger>
+          <TabsTrigger value="miller">Po stolpcih</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -3518,26 +3518,42 @@ function AdminCategoriesTableSection({
                         aria-label="Izberi vse"
                       />
                     </th>
-                    <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">
-                      <button
-                        type="button"
-                        onClick={onToggleAllExpanded}
-                        className="inline-flex items-center gap-1.5"
-                        aria-label="Razširi/skrij vse kategorije"
-                      >
-                        <span className="inline-grid h-4 w-4 place-items-center rounded-[2px] border border-slate-300 text-slate-600">
-                          {allExpanded ? (
-                            <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-                              <path d="M3 8h10" />
-                            </svg>
-                          ) : (
-                            <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-                              <path d="M3 8h10M8 3v10" />
-                            </svg>
-                          )}
-                        </span>
+                    <th className="h-12 border-b border-slate-200 px-3 py-0 text-left text-xs font-semibold text-slate-500 align-middle">
+                      <div className="relative flex h-12 items-center gap-2 overflow-visible px-1">
+                        <div
+                          className="relative shrink-0 overflow-visible"
+                          style={{
+                            width: `${treeButtonDiameter}px`,
+                            height: `${treeRowHeight}px`
+                          }}
+                        >
+                          <div
+                            className="absolute inset-y-0 z-10 flex items-center justify-center"
+                            style={{
+                              left: '0px',
+                              width: `${treeButtonDiameter}px`
+                            }}
+                          >
+                            <button
+                              type="button"
+                              onClick={onToggleAllExpanded}
+                              className="inline-grid h-4 w-4 place-items-center rounded-[2px] border border-slate-300 text-slate-600"
+                              aria-label="Razširi/skrij vse kategorije"
+                            >
+                              {allExpanded ? (
+                                <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                                  <path d="M3 8h10" />
+                                </svg>
+                              ) : (
+                                <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                                  <path d="M3 8h10M8 3v10" />
+                                </svg>
+                              )}
+                            </button>
+                          </div>
+                        </div>
                         <span>Kategorija</span>
-                      </button>
+                      </div>
                     </th>
                     <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">Opis</th>
                     <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">Podkategorije</th>

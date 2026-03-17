@@ -24,6 +24,8 @@ type CategoryRow = {
   items: unknown;
   position: number;
   status: string;
+  created_at: string;
+  updated_at: string;
 };
 
 let ensured = false;
@@ -93,7 +95,9 @@ function rowToCategory(row: CategoryRow): RecursiveCatalogCategory {
     adminNotes: row.admin_notes ?? undefined,
     bannerImage: row.banner_image ?? undefined,
     subcategories: [],
-    items: getRowItems(row)
+    items: getRowItems(row),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
   };
 }
 
@@ -106,7 +110,9 @@ function rowToSubcategory(row: CategoryRow): RecursiveCatalogSubcategory {
     adminNotes: row.admin_notes ?? undefined,
     image: row.image,
     items: getRowItems(row),
-    subcategories: []
+    subcategories: [],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
   };
 }
 
@@ -170,7 +176,7 @@ export async function getCatalogDataFromDatabase(
 
   const pool = await getPool();
   const result = await pool.query(`
-    select id, parent_id, slug, title, summary, description, image, admin_notes, banner_image, items, position, status
+    select id, parent_id, slug, title, summary, description, image, admin_notes, banner_image, items, position, status, created_at, updated_at
     from catalog_categories
     ${includeInactive ? '' : "where status = 'active'"}
     order by coalesce(parent_id, ''), position asc, title asc

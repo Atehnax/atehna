@@ -289,6 +289,8 @@ function normalizeRecursiveSubcategory(
     description: typeof subcategory.description === 'string' ? subcategory.description : '',
     adminNotes: typeof subcategory.adminNotes === 'string' ? subcategory.adminNotes : undefined,
     image: typeof subcategory.image === 'string' ? subcategory.image : '',
+    createdAt: typeof subcategory.createdAt === 'string' ? subcategory.createdAt : undefined,
+    updatedAt: typeof subcategory.updatedAt === 'string' ? subcategory.updatedAt : undefined,
     items: Array.isArray(subcategory.items) ? subcategory.items : [],
     subcategories: Array.isArray(subcategory.subcategories)
       ? subcategory.subcategories
@@ -569,6 +571,8 @@ function normalizeCatalogData(input: unknown): CatalogData {
         image: typeof category.image === 'string' ? category.image : '',
         adminNotes: typeof category.adminNotes === 'string' ? category.adminNotes : undefined,
         bannerImage: typeof category.bannerImage === 'string' ? category.bannerImage : undefined,
+        createdAt: typeof category.createdAt === 'string' ? category.createdAt : undefined,
+        updatedAt: typeof category.updatedAt === 'string' ? category.updatedAt : undefined,
         subcategories: subcategoriesSource
           .map((rawSubcategory) => normalizeRecursiveSubcategory(rawSubcategory, categoryId, []))
           .filter((entry): entry is RecursiveNode => entry !== null),
@@ -1986,7 +1990,7 @@ export default function AdminCategoriesMainTable({
 
 
   const millerColumns = useMemo(() => {
-    const columns: Array<{ key: string; title: string; ids: string[]; rows: Array<{ id: string; label: string; tone: string; isInactive?: boolean; kind: 'category' | 'subcategory' | 'item'; onClick: (event: React.MouseEvent<HTMLButtonElement>) => void; onDragStart: () => void; onDropTarget: string; }>; kind: 'categories' | 'subcategories' | 'items' }> = [];
+    const columns: Array<{ key: string; title: string; ids: string[]; rows: Array<{ id: string; label: string; tone: string; isInactive?: boolean; createdAt?: string; updatedAt?: string; kind: 'category' | 'subcategory' | 'item'; onClick: (event: React.MouseEvent<HTMLButtonElement>) => void; onDragStart: () => void; onDropTarget: string; }>; kind: 'categories' | 'subcategories' | 'items' }> = [];
 
     const categoryIds = millerCatalog.categories.map((category) => catId(category.slug));
     columns.push({
@@ -1999,6 +2003,8 @@ export default function AdminCategoriesMainTable({
         label: category.title,
         tone: selected.kind !== 'root' && selected.categorySlug === category.slug ? 'focused' : 'default',
         isInactive: (statusByRow[catId(category.slug)] ?? 'active') === 'inactive',
+        createdAt: category.createdAt,
+        updatedAt: category.updatedAt,
         onClick: (event) => {
           setSelected({ kind: 'category', categorySlug: category.slug });
           toggleMillerSelection(catId(category.slug), event, categoryIds);
@@ -2030,6 +2036,8 @@ export default function AdminCategoriesMainTable({
           label: subcategory.title,
           tone: selected.kind === 'subcategory' && selected.subcategorySlug === subcategory.slug ? 'focused' : 'default',
           isInactive: (statusByRow[subId(activeCategory.slug, subcategory.slug)] ?? 'active') === 'inactive',
+          createdAt: subcategory.createdAt,
+          updatedAt: subcategory.updatedAt,
           onClick: (event) => {
             setSelected({ kind: 'subcategory', categorySlug: activeCategory.slug, subcategorySlug: subcategory.slug });
             toggleMillerSelection(subId(activeCategory.slug, subcategory.slug), event, subIds);
@@ -2069,6 +2077,8 @@ export default function AdminCategoriesMainTable({
             id,
             label: item.name,
             tone: 'default',
+            createdAt: typeof item.createdAt === 'string' ? item.createdAt : typeof item.created_at === 'string' ? item.created_at : undefined,
+            updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt : typeof item.updated_at === 'string' ? item.updated_at : undefined,
             onClick: (event: React.MouseEvent<HTMLButtonElement>) => toggleMillerSelection(id, event, itemIds),
             onDragStart: () => {
               if (!millerSelection.includes(id)) setMillerSelection([id]);

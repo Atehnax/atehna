@@ -17,6 +17,8 @@ const formatMillerDate = (value?: string) => {
   return `${day}-${month}-${year}`;
 };
 
+const millerRowGridClass = 'grid grid-cols-3 items-center gap-x-3';
+
 type MillerColumn = {
   key: string;
   title: string;
@@ -39,6 +41,7 @@ type MillerColumn = {
 export function AdminCategoriesMiller({
   activeView,
   millerDirty,
+  breadcrumbs,
   onRequestSave,
   saving,
   millerHistoryMenuRef,
@@ -67,6 +70,7 @@ export function AdminCategoriesMiller({
 }: {
   activeView: 'table' | 'miller';
   millerDirty: boolean;
+  breadcrumbs: string;
   onRequestSave: () => void;
   saving: boolean;
   millerHistoryMenuRef: RefObject<HTMLDivElement>;
@@ -96,7 +100,9 @@ export function AdminCategoriesMiller({
   return (
     <section className={activeView === 'miller' ? 'rounded-2xl border border-slate-200 bg-white p-3 shadow-sm' : 'hidden'}>
       <div className="mb-3 flex items-center justify-between">
-        <div className="text-xs text-slate-600">{millerDirty ? 'Neshranjene spremembe' : ''}</div>
+        <div className="min-w-0 text-xs text-slate-600">
+          <p className="truncate whitespace-nowrap" title={breadcrumbs}>{breadcrumbs}</p>
+        </div>
         <div className="flex items-center gap-2">
           <Button type="button" variant="primary" size="toolbar" onClick={onRequestSave} disabled={!millerDirty || saving}>
             Shrani spremembe
@@ -186,7 +192,7 @@ export function AdminCategoriesMiller({
             >
               {column.rows.length === 0 ? <p className="px-2 py-3 text-xs text-slate-500">Ni zapisov.</p> : (
                 <>
-                  <div className="grid grid-cols-[minmax(0,1fr)_132px_132px] items-center gap-x-4 px-2 py-1 text-[11px] font-semibold text-slate-500">
+                  <div className={`${millerRowGridClass} px-2 py-1 text-[11px] font-semibold text-slate-500`}>
                     <span>Kategorije</span>
                     <span className="text-center">Ustvarjeno</span>
                     <span className="text-center">Spremenjeno</span>
@@ -210,7 +216,7 @@ export function AdminCategoriesMiller({
                         key={row.id}
                         type="button"
                         data-miller-id={row.id}
-                        className={`miller-select-item grid w-full grid-cols-[minmax(0,1fr)_132px_132px] items-center gap-x-4 rounded-md border px-2 py-1 text-left text-xs font-medium transition ${millerSelection.includes(row.id) || row.tone === 'focused' ? `border-[#3e67d6]/50 bg-[#f0f4ff] ${row.isInactive ? 'text-slate-400' : 'text-[#1f3f93]'}` : `border-transparent bg-white ${row.isInactive ? 'text-slate-400' : 'text-slate-700'} hover:border-slate-200 hover:bg-slate-100`}`}
+                        className={`miller-select-item ${millerRowGridClass} w-full rounded-md px-2 py-1 text-left text-xs font-medium transition ${millerSelection.includes(row.id) || row.tone === 'focused' ? `${row.isInactive ? 'text-slate-400' : 'text-[#1f3f93]'} bg-[#f0f4ff]` : `${row.isInactive ? 'text-slate-400' : 'text-slate-700'} bg-white hover:bg-slate-100`}`}
                         onClick={row.onClick}
                         onDoubleClick={() => {
                           if (row.kind === 'item') return;
@@ -233,9 +239,9 @@ export function AdminCategoriesMiller({
                           applyMillerMove(row.id);
                         }}
                       >
-                        <span style={row.isInactive ? { color: '#94a3b8' } : undefined}>{row.label}</span>
-                        <span className="text-center text-[11px] font-normal">{formatMillerDate(row.createdAt)}</span>
-                        <span className="text-center text-[11px] font-normal">{formatMillerDate(row.updatedAt)}</span>
+                        <span className="min-w-0 truncate whitespace-nowrap" style={row.isInactive ? { color: '#94a3b8' } : undefined}>{row.label}</span>
+                        <span className="truncate whitespace-nowrap text-center text-[11px] font-normal">{formatMillerDate(row.createdAt)}</span>
+                        <span className="truncate whitespace-nowrap text-center text-[11px] font-normal">{formatMillerDate(row.updatedAt)}</span>
                       </button>
                     )
                   ))}

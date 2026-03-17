@@ -1014,6 +1014,28 @@ export default function AdminCategoriesMainTable({
     return { kind: 'subcategory' as const, category, subcategory };
   }, [millerCatalog.categories, selected]);
 
+
+  const millerBreadcrumbs = useMemo(() => {
+    if (selected.kind === 'root') return 'Kategorije';
+
+    const category = millerCatalog.categories.find((entry) => entry.slug === selected.categorySlug);
+    if (!category) return 'Kategorije';
+
+    const parts = [category.title];
+    if (selected.kind === 'category') return parts.join(' / ');
+
+    const subcategoryPath = toSubcategoryPath(selected.subcategoryPath ?? selected.subcategorySlug);
+    let nodes = category.subcategories;
+    for (const slug of subcategoryPath) {
+      const node = nodes.find((entry) => entry.slug === slug);
+      if (!node) break;
+      parts.push(node.title);
+      nodes = node.subcategories;
+    }
+
+    return parts.join(' / ');
+  }, [millerCatalog.categories, selected]);
+
   const stageMillerCatalog = (next: CatalogData, nextStatuses: Record<string, CategoryStatus> = statusByRow) => {
     const normalized = normalizeCatalogData(next);
     if (areMillerCatalogsEqual(normalized, millerCatalog) && areStatusesEqual(nextStatuses, statusByRow)) {
@@ -3358,6 +3380,7 @@ export default function AdminCategoriesMainTable({
       <AdminCategoriesMiller
         activeView={activeView}
         millerDirty={millerDirty}
+        breadcrumbs={millerBreadcrumbs}
         onRequestSave={() => {
           const summary = summarizeCatalogChanges(persistedMillerRef.current, millerCatalog, persistedStatusRef.current, statusByRow);
           setMillerSaveSummary(summary);

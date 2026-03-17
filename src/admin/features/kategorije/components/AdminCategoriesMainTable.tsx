@@ -269,6 +269,20 @@ const parseSubNodeId = (value: string): { categorySlug: string; subcategoryPath:
   };
 };
 
+
+const parseItemNodeId = (value: string): { categorySlug: string; subcategorySlug?: string; itemSlug: string } | null => {
+  if (!value.startsWith('item:')) return null;
+
+  const [, categorySlug, subcategorySlug, itemSlug] = value.split(':');
+  if (!categorySlug || !itemSlug) return null;
+
+  return {
+    categorySlug,
+    subcategorySlug: subcategorySlug && subcategorySlug !== '_' ? subcategorySlug : undefined,
+    itemSlug
+  };
+};
+
 function normalizeRecursiveSubcategory(
   input: unknown,
   categoryIdSeed: string,
@@ -289,6 +303,8 @@ function normalizeRecursiveSubcategory(
     description: typeof subcategory.description === 'string' ? subcategory.description : '',
     adminNotes: typeof subcategory.adminNotes === 'string' ? subcategory.adminNotes : undefined,
     image: typeof subcategory.image === 'string' ? subcategory.image : '',
+    createdAt: typeof subcategory.createdAt === 'string' ? subcategory.createdAt : undefined,
+    updatedAt: typeof subcategory.updatedAt === 'string' ? subcategory.updatedAt : undefined,
     items: Array.isArray(subcategory.items) ? subcategory.items : [],
     subcategories: Array.isArray(subcategory.subcategories)
       ? subcategory.subcategories
@@ -569,6 +585,8 @@ function normalizeCatalogData(input: unknown): CatalogData {
         image: typeof category.image === 'string' ? category.image : '',
         adminNotes: typeof category.adminNotes === 'string' ? category.adminNotes : undefined,
         bannerImage: typeof category.bannerImage === 'string' ? category.bannerImage : undefined,
+        createdAt: typeof category.createdAt === 'string' ? category.createdAt : undefined,
+        updatedAt: typeof category.updatedAt === 'string' ? category.updatedAt : undefined,
         subcategories: subcategoriesSource
           .map((rawSubcategory) => normalizeRecursiveSubcategory(rawSubcategory, categoryId, []))
           .filter((entry): entry is RecursiveNode => entry !== null),
@@ -785,6 +803,7 @@ export default function AdminCategoriesMainTable({
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [millerSearchQuery, setMillerSearchQuery] = useState('');
   const [deletingRowId, setDeletingRowId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
   const [warningDialog, setWarningDialog] = useState<{ title: string; description: string } | null>(null);
@@ -920,6 +939,25 @@ export default function AdminCategoriesMainTable({
     setActiveView(pathname?.endsWith('/miller-view') ? 'miller' : 'table');
   }, [pathname]);
 
+
+  useEffect(() => {
+    if (activeView !== 'miller' || millerSelection.length === 0) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+
+      const viewport = millerViewportRef.current;
+      if (!viewport) return;
+
+      if (viewport.contains(target)) return;
+      setMillerSelection([]);
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [activeView, millerSelection.length]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(CATEGORY_STATUS_STORAGE_KEY, JSON.stringify(statusByRow));
@@ -1009,6 +1047,66 @@ export default function AdminCategoriesMainTable({
 
     return { kind: 'subcategory' as const, category, subcategory };
   }, [millerCatalog.categories, selected]);
+
+
+  const millerBreadcrumbs = useMemo(() => {
+    if (selected.kind === 'root') {
+      return [] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
+    }
+
+    const category = millerCatalog.categories.find((entry) => entry.slug === selected.categorySlug);
+    if (!category) {
+      return [] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
+    }
+
+    const crumbs: Array<{ label: string; onClick?: () => void; isCurrent: boolean }> = [
+      {
+        label: category.title,
+        isCurrent: selected.kind === 'category',
+        onClick: selected.kind === 'category' ? undefined : () => setSelected({ kind: 'category', categorySlug: category.slug })
+      }
+    ];
+
+    if (selected.kind === 'subcategory') {
+      const subcategoryPath = toSubcategoryPath(selected.subcategoryPath ?? selected.subcategorySlug);
+      let nodes = category.subcategories;
+      const traversedPath: string[] = [];
+
+      subcategoryPath.forEach((slug, index) => {
+        const node = nodes.find((entry) => entry.slug === slug);
+        if (!node) return;
+        traversedPath.push(node.slug);
+        const pathSnapshot = [...traversedPath];
+        const isCurrent = index === subcategoryPath.length - 1;
+        crumbs.push({
+          label: node.title,
+          isCurrent,
+          onClick: isCurrent
+            ? undefined
+            : () => setSelected({
+                kind: 'subcategory',
+                categorySlug: category.slug,
+                subcategoryPath: pathSnapshot,
+                subcategorySlug: node.slug
+              })
+        });
+        nodes = node.subcategories;
+      });
+    }
+
+    const selectedItemId = [...millerSelection].reverse().find((entry) => entry.startsWith('item:'));
+    if (selectedItemId) {
+      const parsedItem = parseItemNodeId(selectedItemId);
+      if (parsedItem && parsedItem.categorySlug === category.slug) {
+        const itemName = parsedItem.subcategorySlug
+          ? category.subcategories.find((sub) => sub.slug === parsedItem.subcategorySlug)?.items.find((item) => item.slug === parsedItem.itemSlug)?.name
+          : (category.items ?? []).find((item) => item.slug === parsedItem.itemSlug)?.name;
+        if (itemName) crumbs.push({ label: itemName, isCurrent: true });
+      }
+    }
+
+    return crumbs;
+  }, [millerCatalog.categories, millerSelection, selected]);
 
   const stageMillerCatalog = (next: CatalogData, nextStatuses: Record<string, CategoryStatus> = statusByRow) => {
     const normalized = normalizeCatalogData(next);
@@ -1829,16 +1927,19 @@ export default function AdminCategoriesMainTable({
     }
 
     if (millerRename.id.startsWith('sub:')) {
-      const [, categorySlug, subcategorySlug] = millerRename.id.split(':');
+      const parsed = parseSubNodeId(millerRename.id);
+      if (!parsed) return;
+
       stageMillerCatalog({
         categories: millerCatalog.categories.map((category) =>
-          category.slug !== categorySlug
+          category.slug !== parsed.categorySlug
             ? category
             : {
                 ...category,
-                subcategories: category.subcategories.map((subcategory) =>
-                  subcategory.slug === subcategorySlug ? { ...subcategory, title: value } : subcategory
-                )
+                subcategories: updateSubcategoryTree(category.subcategories, parsed.subcategoryPath, (subcategory) => ({
+                  ...subcategory,
+                  title: value
+                }))
               }
         )
       });
@@ -1887,7 +1988,7 @@ export default function AdminCategoriesMainTable({
       const selectedSubcategories = new Set(millerDeleteTarget.ids);
       nextCategories = nextCategories.map((category) => ({
         ...category,
-        subcategories: category.subcategories.filter((subcategory) => !selectedSubcategories.has(subId(category.slug, subcategory.slug)))
+        subcategories: pruneSelectedSubcategoryTree(category.slug, category.subcategories, selectedSubcategories)
       }));
     }
 
@@ -1986,7 +2087,7 @@ export default function AdminCategoriesMainTable({
 
 
   const millerColumns = useMemo(() => {
-    const columns: Array<{ key: string; title: string; ids: string[]; rows: Array<{ id: string; label: string; tone: string; isInactive?: boolean; kind: 'category' | 'subcategory' | 'item'; onClick: (event: React.MouseEvent<HTMLButtonElement>) => void; onDragStart: () => void; onDropTarget: string; }>; kind: 'categories' | 'subcategories' | 'items' }> = [];
+    const columns: Array<{ key: string; title: string; ids: string[]; rows: Array<{ id: string; label: string; tone: string; isInactive?: boolean; createdAt?: string; updatedAt?: string; kind: 'category' | 'subcategory' | 'item'; onClick: (event: React.MouseEvent<HTMLButtonElement>) => void; onDragStart: () => void; onDropTarget: string; }>; kind: 'categories' | 'subcategories' | 'items' }> = [];
 
     const categoryIds = millerCatalog.categories.map((category) => catId(category.slug));
     columns.push({
@@ -1999,6 +2100,8 @@ export default function AdminCategoriesMainTable({
         label: category.title,
         tone: selected.kind !== 'root' && selected.categorySlug === category.slug ? 'focused' : 'default',
         isInactive: (statusByRow[catId(category.slug)] ?? 'active') === 'inactive',
+        createdAt: category.createdAt,
+        updatedAt: category.updatedAt,
         onClick: (event) => {
           setSelected({ kind: 'category', categorySlug: category.slug });
           toggleMillerSelection(catId(category.slug), event, categoryIds);
@@ -2016,59 +2119,89 @@ export default function AdminCategoriesMainTable({
     const activeCategory = millerCatalog.categories.find((entry) => entry.slug === selected.categorySlug);
     if (!activeCategory) return columns;
 
-    const hasSubcategories = activeCategory.subcategories.length > 0;
-
-    if (hasSubcategories) {
-      const subIds = activeCategory.subcategories.map((sub) => subId(activeCategory.slug, sub.slug));
-      columns.push({
-        key: `sub-${activeCategory.slug}`,
-        title: 'Podkategorije',
-        kind: 'subcategories',
-        ids: subIds,
-        rows: activeCategory.subcategories.map((subcategory) => ({
-          id: subId(activeCategory.slug, subcategory.slug),
-          label: subcategory.title,
-          tone: selected.kind === 'subcategory' && selected.subcategorySlug === subcategory.slug ? 'focused' : 'default',
-          isInactive: (statusByRow[subId(activeCategory.slug, subcategory.slug)] ?? 'active') === 'inactive',
-          onClick: (event) => {
-            setSelected({ kind: 'subcategory', categorySlug: activeCategory.slug, subcategorySlug: subcategory.slug });
-            toggleMillerSelection(subId(activeCategory.slug, subcategory.slug), event, subIds);
-          },
-          onDragStart: () => {
-            const id = subId(activeCategory.slug, subcategory.slug);
-            if (!millerSelection.includes(id)) setMillerSelection([id]);
-          },
-          onDropTarget: catId(activeCategory.slug),
-          kind: 'subcategory'
-        }))
-      });
-    }
-
     const selectedSubcategoryPath = toSubcategoryPath(
       selected.kind === 'subcategory' ? (selected.subcategoryPath ?? selected.subcategorySlug) : undefined
     );
 
+    let parentPath: string[] = [];
+    let nodes = activeCategory.subcategories;
+    let parentTitle = activeCategory.title;
+    let depth = 0;
+
+    while (nodes.length > 0) {
+      const columnIds = nodes.map((node) => subId(activeCategory.slug, [...parentPath, node.slug]));
+
+      columns.push({
+        key: `sub-${activeCategory.slug}-${depth}-${parentPath.join('__') || 'root'}`,
+        title: parentTitle,
+        kind: 'subcategories',
+        ids: columnIds,
+        rows: nodes.map((subcategory) => {
+          const currentPath = [...parentPath, subcategory.slug];
+          const id = subId(activeCategory.slug, currentPath);
+          return {
+            id,
+            label: subcategory.title,
+            tone: selected.kind === 'subcategory' && pathEquals(selectedSubcategoryPath, currentPath) ? 'focused' : 'default',
+            isInactive: (statusByRow[id] ?? 'active') === 'inactive',
+            createdAt: subcategory.createdAt,
+            updatedAt: subcategory.updatedAt,
+            onClick: (event) => {
+              setSelected({
+                kind: 'subcategory',
+                categorySlug: activeCategory.slug,
+                subcategoryPath: currentPath,
+                subcategorySlug: subcategory.slug
+              });
+              toggleMillerSelection(id, event, columnIds);
+            },
+            onDragStart: () => {
+              if (!millerSelection.includes(id)) setMillerSelection([id]);
+            },
+            onDropTarget: parentPath.length === 0 ? catId(activeCategory.slug) : subId(activeCategory.slug, parentPath),
+            kind: 'subcategory'
+          };
+        })
+      });
+
+      if (selected.kind !== 'subcategory') break;
+
+      const selectedSlugAtDepth = selectedSubcategoryPath[depth];
+      if (!selectedSlugAtDepth) break;
+
+      const selectedNodeAtDepth = nodes.find((node) => node.slug === selectedSlugAtDepth);
+      if (!selectedNodeAtDepth) break;
+
+      parentPath = [...parentPath, selectedNodeAtDepth.slug];
+      parentTitle = selectedNodeAtDepth.title;
+      nodes = selectedNodeAtDepth.subcategories;
+      depth += 1;
+    }
+
     const itemSource = selected.kind === 'subcategory'
       ? findSubcategoryByPath(activeCategory.subcategories, selectedSubcategoryPath)?.items ?? []
-      : !hasSubcategories
+      : activeCategory.subcategories.length === 0
         ? (activeCategory.items ?? [])
         : [];
 
-    const showItems = selected.kind === 'subcategory' || !hasSubcategories;
+    const showItems = selected.kind === 'subcategory' || activeCategory.subcategories.length === 0;
 
     if (showItems) {
-      const itemIds = itemSource.map((item) => itemId(activeCategory.slug, item.slug, selected.kind === 'subcategory' ? selected.subcategorySlug : undefined));
+      const selectedLeafSlug = selected.kind === 'subcategory' ? selectedSubcategoryPath.at(-1) : undefined;
+      const itemIds = itemSource.map((item) => itemId(activeCategory.slug, item.slug, selectedLeafSlug));
       columns.push({
-        key: `item-${activeCategory.slug}-${selected.kind === 'subcategory' ? selected.subcategorySlug : 'cat'}`,
-        title: 'Artikli',
+        key: `item-${activeCategory.slug}-${selectedLeafSlug ?? 'cat'}`,
+        title: selected.kind === 'subcategory' ? parentTitle : activeCategory.title,
         kind: 'items',
         ids: itemIds,
         rows: itemSource.map((item) => {
-          const id = itemId(activeCategory.slug, item.slug, selected.kind === 'subcategory' ? selected.subcategorySlug : undefined);
+          const id = itemId(activeCategory.slug, item.slug, selectedLeafSlug);
           return {
             id,
             label: item.name,
             tone: 'default',
+            createdAt: typeof item.createdAt === 'string' ? item.createdAt : typeof item.created_at === 'string' ? item.created_at : undefined,
+            updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt : typeof item.updated_at === 'string' ? item.updated_at : undefined,
             onClick: (event: React.MouseEvent<HTMLButtonElement>) => toggleMillerSelection(id, event, itemIds),
             onDragStart: () => {
               if (!millerSelection.includes(id)) setMillerSelection([id]);
@@ -2082,6 +2215,17 @@ export default function AdminCategoriesMainTable({
 
     return columns;
   }, [millerCatalog.categories, millerSelection, selected, statusByRow]);
+
+  const activeMillerColumnKind = useMemo<'categories' | 'subcategories' | 'items'>(() => {
+    const selectedId = millerSelection.at(-1);
+    if (selectedId) {
+      const selectedColumn = millerColumns.find((column) => column.ids.includes(selectedId));
+      if (selectedColumn) return selectedColumn.kind;
+    }
+
+    const lastColumn = millerColumns.at(-1);
+    return lastColumn?.kind ?? 'categories';
+  }, [millerColumns, millerSelection]);
 
   const updateSubcategory = (
     categorySlug: string,
@@ -3321,6 +3465,10 @@ export default function AdminCategoriesMainTable({
       <AdminCategoriesMiller
         activeView={activeView}
         millerDirty={millerDirty}
+        breadcrumbs={millerBreadcrumbs}
+        searchQuery={millerSearchQuery}
+        onSearchQueryChange={setMillerSearchQuery}
+        activeColumnKind={activeMillerColumnKind}
         onRequestSave={() => {
           const summary = summarizeCatalogChanges(persistedMillerRef.current, millerCatalog, persistedStatusRef.current, statusByRow);
           setMillerSaveSummary(summary);

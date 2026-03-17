@@ -2048,7 +2048,7 @@ export default function AdminCategoriesMainTable({
     const categoryIds = millerCatalog.categories.map((category) => catId(category.slug));
     columns.push({
       key: 'categories',
-      title: 'Kategorije',
+      title: '/',
       kind: 'categories',
       ids: categoryIds,
       rows: millerCatalog.categories.map((category) => ({

@@ -5,20 +5,20 @@ import { IconButton } from '@/shared/ui/icon-button';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { Input } from '@/shared/ui/input';
 
-const padTwoDigits = (value: number) => String(value).padStart(2, '0');
-
 const formatMillerDate = (value?: string) => {
-  const parsedDate = value ? new Date(value) : new Date();
-  const safeDate = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
+  if (!value) return '—';
 
-  const day = padTwoDigits(safeDate.getDate());
-  const month = padTwoDigits(safeDate.getMonth() + 1);
-  const year = safeDate.getFullYear();
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) return '—';
 
-  return `${day}-${month}-${year}`;
+  const day = padTwoDigits(parsedDate.getDate());
+  const month = padTwoDigits(parsedDate.getMonth() + 1);
+  const year = parsedDate.getFullYear();
+  const hours = padTwoDigits(parsedDate.getHours());
+  const minutes = padTwoDigits(parsedDate.getMinutes());
+
+  return `${day}-${month}-${year} ${hours}:${minutes}`;
 };
-
-const millerRowGridClass = 'grid grid-cols-3 items-center gap-x-3';
 
 const getMillerNameColumnLabel = (column: MillerColumn) => {
   if (column.kind === 'items') return 'Artikel';

@@ -4,17 +4,25 @@ import { formatCatalogPrice, getDiscountedPrice, getCatalogItemPrice, getCatalog
 import { getCatalogCategoryServer, getCatalogCategorySlugsServer, getCatalogItemServer, getCatalogItemSlugsServer, getCatalogSubcategoryServer, getCatalogSubcategorySlugsServer } from '@/commercial/catalog/catalogServer';
 import AddToCartButton from '@/commercial/features/products/AddToCartButton';
 
+export const dynamicParams = true;
+
 export async function generateStaticParams() {
-  const categories = await getCatalogCategorySlugsServer();
-  const params: { category: string; subcategory: string; item: string }[] = [];
-  for (const category of categories) {
-    for (const subcategory of await getCatalogSubcategorySlugsServer(category)) {
-      for (const item of await getCatalogItemSlugsServer(category, subcategory)) {
-        params.push({ category, subcategory, item });
+  try {
+    const categories = await getCatalogCategorySlugsServer();
+    const params: { category: string; subcategory: string; item: string }[] = [];
+
+    for (const category of categories) {
+      for (const subcategory of await getCatalogSubcategorySlugsServer(category)) {
+        for (const item of await getCatalogItemSlugsServer(category, subcategory)) {
+          params.push({ category, subcategory, item });
+        }
       }
     }
+
+    return params;
+  } catch {
+    return [];
   }
-  return params;
 }
 
 export async function generateMetadata({ params }: { params: { category: string; subcategory: string; item: string } }) {

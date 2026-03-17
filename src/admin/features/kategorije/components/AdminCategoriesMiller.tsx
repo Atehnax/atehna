@@ -3,23 +3,19 @@ import Selecto from 'react-selecto';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
-import { Input } from '@/shared/ui/input';
+import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 
 const padTwoDigits = (value: number) => String(value).padStart(2, '0');
 
 const formatMillerDate = (value?: string) => {
-  if (!value) return '—';
+  const parsedDate = value ? new Date(value) : new Date();
+  const safeDate = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
 
-  const parsedDate = new Date(value);
-  if (Number.isNaN(parsedDate.getTime())) return '—';
+  const day = padTwoDigits(safeDate.getDate());
+  const month = padTwoDigits(safeDate.getMonth() + 1);
+  const year = safeDate.getFullYear();
 
-  const day = padTwoDigits(parsedDate.getDate());
-  const month = padTwoDigits(parsedDate.getMonth() + 1);
-  const year = parsedDate.getFullYear();
-  const hours = padTwoDigits(parsedDate.getHours());
-  const minutes = padTwoDigits(parsedDate.getMinutes());
-
-  return `${day}-${month}-${year} ${hours}:${minutes}`;
+  return `${day}-${month}-${year}`;
 };
 
 const millerRowGridClass = 'grid grid-cols-3 items-center gap-x-3';
@@ -120,18 +116,19 @@ export function AdminCategoriesMiller({
       return [{ width: '100%', marginLeft: '0%', zIndex: 1 }];
     }
 
-    if (count === 2) {
-      return [
-        { width: '45%', marginLeft: '0%', zIndex: 1 },
-        { width: '55%', marginLeft: '0%', zIndex: 2 }
-      ];
+    if (count < 5) {
+      return Array.from({ length: count }, (_, index) => ({
+        width: `${100 / count}%`,
+        marginLeft: '0%',
+        zIndex: index + 1
+      }));
     }
 
-    const currentWidth = 33;
-    const historyWidth = 67;
+    const currentWidth = 100 / count;
+    const historyWidth = 100 - currentWidth;
     const previousCount = count - 1;
-    const overlap = Math.max(2.2, Math.min(5, historyWidth / (previousCount * 5)));
-    const previousWidth = Math.max(12, (historyWidth + overlap * (previousCount - 1)) / previousCount);
+    const overlap = Math.max(2.4, Math.min(5, historyWidth / (previousCount * 5)));
+    const previousWidth = Math.max(10, (historyWidth + overlap * (previousCount - 1)) / previousCount);
 
     const styles = Array.from({ length: previousCount }, (_, index) => ({
       width: `${previousWidth}%`,
@@ -157,21 +154,21 @@ export function AdminCategoriesMiller({
                     onClick={crumb.onClick}
                     className="text-slate-600 hover:text-slate-900 focus-visible:outline-none focus-visible:underline"
                   >
-                    {crumb.label}
+                    <span title={crumb.label}>{crumb.label}</span>
                   </button>
                 ) : (
-                  <span className={crumb.isCurrent ? 'font-semibold text-slate-900' : ''}>{crumb.label}</span>
+                  <span className={crumb.isCurrent ? 'font-semibold text-slate-900' : ''} title={crumb.label}>{crumb.label}</span>
                 )}
               </span>
             ))}
           </nav>
         </div>
         <div className="flex items-center gap-2">
-          <Input
+          <AdminSearchInput
             value={searchQuery}
             onChange={(event) => onSearchQueryChange(event.target.value)}
-            placeholder="Išči"
-            className="h-8 w-40"
+            placeholder="Išči po kategoriji ali opisu ..."
+            className="w-[280px]"
             aria-label="Išči v Miller stolpcih"
           />
           <Button type="button" variant="primary" size="toolbar" onClick={onRequestSave} disabled={!millerDirty || saving}>
@@ -234,7 +231,14 @@ export function AdminCategoriesMiller({
         }}
       />
 
-      <div ref={millerViewportRef} className="flex items-stretch overflow-x-auto pb-1">
+      <div
+        ref={millerViewportRef}
+        className="flex items-stretch overflow-x-auto pb-1"
+        onMouseDown={(event) => {
+          const target = event.target as HTMLElement;
+          if (!target.closest('[data-miller-id]')) onSelectIds([]);
+        }}
+      >
         {millerColumns.map((column, index) => (
           <div
             key={column.key}
@@ -242,7 +246,7 @@ export function AdminCategoriesMiller({
             style={millerWindowStyles[index]}
           >
             <div className="flex items-center justify-between border-b border-slate-200 bg-white px-2.5 py-2">
-              <h3 className="text-xs font-semibold text-slate-700">{column.title}</h3>
+              <h3 className="truncate text-xs font-semibold text-slate-700" title={column.title}>{column.title}</h3>
             </div>
 
             <div
@@ -307,9 +311,9 @@ export function AdminCategoriesMiller({
                           applyMillerMove(row.id);
                         }}
                       >
-                        <span className="min-w-0 truncate whitespace-nowrap" style={row.isInactive ? { color: '#94a3b8' } : undefined}>{row.label}</span>
-                        <span className="truncate whitespace-nowrap text-center text-[11px] font-normal">{formatMillerDate(row.createdAt)}</span>
-                        <span className="truncate whitespace-nowrap text-center text-[11px] font-normal">{formatMillerDate(row.updatedAt)}</span>
+                        <span className="min-w-0 truncate whitespace-nowrap" title={row.label} style={row.isInactive ? { color: '#94a3b8' } : undefined}>{row.label}</span>
+                        <span className="whitespace-nowrap text-center text-[11px] font-normal">{formatMillerDate(row.createdAt)}</span>
+                        <span className="whitespace-nowrap text-center text-[11px] font-normal">{formatMillerDate(row.updatedAt)}</span>
                       </button>
                     )
                   ))}

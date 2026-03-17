@@ -269,6 +269,20 @@ const parseSubNodeId = (value: string): { categorySlug: string; subcategoryPath:
   };
 };
 
+
+const parseItemNodeId = (value: string): { categorySlug: string; subcategorySlug?: string; itemSlug: string } | null => {
+  if (!value.startsWith('item:')) return null;
+
+  const [, categorySlug, subcategorySlug, itemSlug] = value.split(':');
+  if (!categorySlug || !itemSlug) return null;
+
+  return {
+    categorySlug,
+    subcategorySlug: subcategorySlug && subcategorySlug !== '_' ? subcategorySlug : undefined,
+    itemSlug
+  };
+};
+
 function normalizeRecursiveSubcategory(
   input: unknown,
   categoryIdSeed: string,
@@ -925,6 +939,25 @@ export default function AdminCategoriesMainTable({
     setActiveView(pathname?.endsWith('/miller-view') ? 'miller' : 'table');
   }, [pathname]);
 
+
+  useEffect(() => {
+    if (activeView !== 'miller' || millerSelection.length === 0) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+
+      const viewport = millerViewportRef.current;
+      if (!viewport) return;
+
+      if (viewport.contains(target)) return;
+      setMillerSelection([]);
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [activeView, millerSelection.length]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(CATEGORY_STATUS_STORAGE_KEY, JSON.stringify(statusByRow));
@@ -1018,12 +1051,12 @@ export default function AdminCategoriesMainTable({
 
   const millerBreadcrumbs = useMemo(() => {
     if (selected.kind === 'root') {
-      return [{ label: '/', isCurrent: true }] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
+      return [] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
     }
 
     const category = millerCatalog.categories.find((entry) => entry.slug === selected.categorySlug);
     if (!category) {
-      return [{ label: '/', isCurrent: true }] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
+      return [] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
     }
 
     const crumbs: Array<{ label: string; onClick?: () => void; isCurrent: boolean }> = [
@@ -1034,35 +1067,46 @@ export default function AdminCategoriesMainTable({
       }
     ];
 
-    if (selected.kind === 'category') return crumbs;
+    if (selected.kind === 'subcategory') {
+      const subcategoryPath = toSubcategoryPath(selected.subcategoryPath ?? selected.subcategorySlug);
+      let nodes = category.subcategories;
+      const traversedPath: string[] = [];
 
-    const subcategoryPath = toSubcategoryPath(selected.subcategoryPath ?? selected.subcategorySlug);
-    let nodes = category.subcategories;
-    const traversedPath: string[] = [];
-
-    subcategoryPath.forEach((slug, index) => {
-      const node = nodes.find((entry) => entry.slug === slug);
-      if (!node) return;
-      traversedPath.push(node.slug);
-      const pathSnapshot = [...traversedPath];
-      const isCurrent = index === subcategoryPath.length - 1;
-      crumbs.push({
-        label: node.title,
-        isCurrent,
-        onClick: isCurrent
-          ? undefined
-          : () => setSelected({
-              kind: 'subcategory',
-              categorySlug: category.slug,
-              subcategoryPath: pathSnapshot,
-              subcategorySlug: node.slug
-            })
+      subcategoryPath.forEach((slug, index) => {
+        const node = nodes.find((entry) => entry.slug === slug);
+        if (!node) return;
+        traversedPath.push(node.slug);
+        const pathSnapshot = [...traversedPath];
+        const isCurrent = index === subcategoryPath.length - 1;
+        crumbs.push({
+          label: node.title,
+          isCurrent,
+          onClick: isCurrent
+            ? undefined
+            : () => setSelected({
+                kind: 'subcategory',
+                categorySlug: category.slug,
+                subcategoryPath: pathSnapshot,
+                subcategorySlug: node.slug
+              })
+        });
+        nodes = node.subcategories;
       });
-      nodes = node.subcategories;
-    });
+    }
+
+    const selectedItemId = [...millerSelection].reverse().find((entry) => entry.startsWith('item:'));
+    if (selectedItemId) {
+      const parsedItem = parseItemNodeId(selectedItemId);
+      if (parsedItem && parsedItem.categorySlug === category.slug) {
+        const itemName = parsedItem.subcategorySlug
+          ? category.subcategories.find((sub) => sub.slug === parsedItem.subcategorySlug)?.items.find((item) => item.slug === parsedItem.itemSlug)?.name
+          : (category.items ?? []).find((item) => item.slug === parsedItem.itemSlug)?.name;
+        if (itemName) crumbs.push({ label: itemName, isCurrent: true });
+      }
+    }
 
     return crumbs;
-  }, [millerCatalog.categories, selected]);
+  }, [millerCatalog.categories, millerSelection, selected]);
 
   const stageMillerCatalog = (next: CatalogData, nextStatuses: Record<string, CategoryStatus> = statusByRow) => {
     const normalized = normalizeCatalogData(next);

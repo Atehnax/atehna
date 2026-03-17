@@ -180,10 +180,9 @@ const InlineStatusToggle = ({
         </svg>
       ) : (
         <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M3 3 21 21" />
-          <path d="M10.55 5.44A11.84 11.84 0 0 1 12 5.25C18.75 5.25 22.5 12 22.5 12a19.4 19.4 0 0 1-4.6 5.57" />
-          <path d="M6.1 6.1A19.37 19.37 0 0 0 1.5 12s3.75 6.75 10.5 6.75c1.98 0 3.68-.58 5.13-1.46" />
+          <path d="M1.5 12s3.75-6.75 10.5-6.75S22.5 12 22.5 12s-3.75 6.75-10.5 6.75S1.5 12 1.5 12Z" />
           <circle cx="12" cy="12" r="3" />
+          <path d="M3 3 21 21" />
         </svg>
       )}
     </span>

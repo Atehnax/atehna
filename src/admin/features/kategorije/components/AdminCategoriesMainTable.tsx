@@ -789,6 +789,7 @@ export default function AdminCategoriesMainTable({
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [millerSearchQuery, setMillerSearchQuery] = useState('');
   const [deletingRowId, setDeletingRowId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
   const [warningDialog, setWarningDialog] = useState<{ title: string; description: string } | null>(null);
@@ -1017,12 +1018,12 @@ export default function AdminCategoriesMainTable({
 
   const millerBreadcrumbs = useMemo(() => {
     if (selected.kind === 'root') {
-      return [{ label: 'Kategorije', isCurrent: true }] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
+      return [{ label: '/', isCurrent: true }] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
     }
 
     const category = millerCatalog.categories.find((entry) => entry.slug === selected.categorySlug);
     if (!category) {
-      return [{ label: 'Kategorije', isCurrent: true }] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
+      return [{ label: '/', isCurrent: true }] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
     }
 
     const crumbs: Array<{ label: string; onClick?: () => void; isCurrent: boolean }> = [
@@ -2047,7 +2048,7 @@ export default function AdminCategoriesMainTable({
     const categoryIds = millerCatalog.categories.map((category) => catId(category.slug));
     columns.push({
       key: 'categories',
-      title: 'Kategorije',
+      title: '/',
       kind: 'categories',
       ids: categoryIds,
       rows: millerCatalog.categories.map((category) => ({
@@ -2080,6 +2081,7 @@ export default function AdminCategoriesMainTable({
 
     let parentPath: string[] = [];
     let nodes = activeCategory.subcategories;
+    let parentTitle = activeCategory.title;
     let depth = 0;
 
     while (nodes.length > 0) {
@@ -2087,7 +2089,7 @@ export default function AdminCategoriesMainTable({
 
       columns.push({
         key: `sub-${activeCategory.slug}-${depth}-${parentPath.join('__') || 'root'}`,
-        title: 'Podkategorije',
+        title: parentTitle,
         kind: 'subcategories',
         ids: columnIds,
         rows: nodes.map((subcategory) => {
@@ -2127,6 +2129,7 @@ export default function AdminCategoriesMainTable({
       if (!selectedNodeAtDepth) break;
 
       parentPath = [...parentPath, selectedNodeAtDepth.slug];
+      parentTitle = selectedNodeAtDepth.title;
       nodes = selectedNodeAtDepth.subcategories;
       depth += 1;
     }
@@ -2144,7 +2147,7 @@ export default function AdminCategoriesMainTable({
       const itemIds = itemSource.map((item) => itemId(activeCategory.slug, item.slug, selectedLeafSlug));
       columns.push({
         key: `item-${activeCategory.slug}-${selectedLeafSlug ?? 'cat'}`,
-        title: 'Artikli',
+        title: selected.kind === 'subcategory' ? parentTitle : activeCategory.title,
         kind: 'items',
         ids: itemIds,
         rows: itemSource.map((item) => {
@@ -2168,6 +2171,17 @@ export default function AdminCategoriesMainTable({
 
     return columns;
   }, [millerCatalog.categories, millerSelection, selected, statusByRow]);
+
+  const activeMillerColumnKind = useMemo<'categories' | 'subcategories' | 'items'>(() => {
+    const selectedId = millerSelection.at(-1);
+    if (selectedId) {
+      const selectedColumn = millerColumns.find((column) => column.ids.includes(selectedId));
+      if (selectedColumn) return selectedColumn.kind;
+    }
+
+    const lastColumn = millerColumns.at(-1);
+    return lastColumn?.kind ?? 'categories';
+  }, [millerColumns, millerSelection]);
 
   const updateSubcategory = (
     categorySlug: string,
@@ -3408,6 +3422,9 @@ export default function AdminCategoriesMainTable({
         activeView={activeView}
         millerDirty={millerDirty}
         breadcrumbs={millerBreadcrumbs}
+        searchQuery={millerSearchQuery}
+        onSearchQueryChange={setMillerSearchQuery}
+        activeColumnKind={activeMillerColumnKind}
         onRequestSave={() => {
           const summary = summarizeCatalogChanges(persistedMillerRef.current, millerCatalog, persistedStatusRef.current, statusByRow);
           setMillerSaveSummary(summary);

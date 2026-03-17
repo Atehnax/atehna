@@ -3,21 +3,32 @@ import Selecto from 'react-selecto';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import { Input } from '@/shared/ui/input';
 
 const padTwoDigits = (value: number) => String(value).padStart(2, '0');
 
 const formatMillerDate = (value?: string) => {
-  const parsedDate = value ? new Date(value) : new Date();
-  const safeDate = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
+  if (!value) return '—';
 
-  const day = padTwoDigits(safeDate.getDate());
-  const month = padTwoDigits(safeDate.getMonth() + 1);
-  const year = safeDate.getFullYear();
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) return '—';
 
-  return `${day}-${month}-${year}`;
+  const day = padTwoDigits(parsedDate.getDate());
+  const month = padTwoDigits(parsedDate.getMonth() + 1);
+  const year = parsedDate.getFullYear();
+  const hours = padTwoDigits(parsedDate.getHours());
+  const minutes = padTwoDigits(parsedDate.getMinutes());
+
+  return `${day}-${month}-${year} ${hours}:${minutes}`;
 };
 
 const millerRowGridClass = 'grid grid-cols-3 items-center gap-x-3';
+
+const getMillerNameColumnLabel = (column: MillerColumn) => {
+  if (column.kind === 'items') return 'Artikel';
+  if (column.key === 'categories') return 'Kategorija';
+  return 'Podkategorija';
+};
 
 type MillerColumn = {
   key: string;
@@ -42,6 +53,9 @@ export function AdminCategoriesMiller({
   activeView,
   millerDirty,
   breadcrumbs,
+  searchQuery,
+  onSearchQueryChange,
+  activeColumnKind,
   onRequestSave,
   saving,
   millerHistoryMenuRef,
@@ -71,6 +85,9 @@ export function AdminCategoriesMiller({
   activeView: 'table' | 'miller';
   millerDirty: boolean;
   breadcrumbs: Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
+  activeColumnKind: 'categories' | 'subcategories' | 'items';
   onRequestSave: () => void;
   saving: boolean;
   millerHistoryMenuRef: RefObject<HTMLDivElement>;
@@ -128,8 +145,8 @@ export function AdminCategoriesMiller({
 
   return (
     <section className={activeView === 'miller' ? 'rounded-2xl border border-slate-200 bg-white p-3 shadow-sm' : 'hidden'}>
-      <div className="mb-3 flex items-center justify-between">
-        <div className="min-w-0 text-xs text-slate-600">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="ml-[30px] min-w-0 text-xs text-slate-600">
           <nav className="truncate whitespace-nowrap text-sm text-slate-700" aria-label="Breadcrumb">
             {breadcrumbs.map((crumb, index) => (
               <span key={`${crumb.label}-${index}`}>
@@ -150,9 +167,28 @@ export function AdminCategoriesMiller({
           </nav>
         </div>
         <div className="flex items-center gap-2">
+          <Input
+            value={searchQuery}
+            onChange={(event) => onSearchQueryChange(event.target.value)}
+            placeholder="Išči"
+            className="h-8 w-40"
+            aria-label="Išči v Miller stolpcih"
+          />
           <Button type="button" variant="primary" size="toolbar" onClick={onRequestSave} disabled={!millerDirty || saving}>
             Shrani spremembe
           </Button>
+          <IconButton type="button" tone="neutral" aria-label="Dodaj" onClick={() => onAddNode(activeColumnKind)}>
+            {plusIcon}
+          </IconButton>
+          <IconButton
+            type="button"
+            tone="danger"
+            aria-label="Izbriši"
+            onClick={() => onRequestDelete(activeColumnKind)}
+            disabled={!millerSelection.some((id) => millerColumns.find((column) => column.kind === activeColumnKind)?.ids.includes(id))}
+          >
+            ✕
+          </IconButton>
           <div className="relative" ref={millerHistoryMenuRef}>
             <IconButton type="button" tone="neutral" aria-label="Zgodovina" onClick={onToggleHistoryMenu}>⋮</IconButton>
             {isHistoryMenuOpen ? (
@@ -202,25 +238,11 @@ export function AdminCategoriesMiller({
         {millerColumns.map((column, index) => (
           <div
             key={column.key}
-            className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/40"
+            className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white"
             style={millerWindowStyles[index]}
           >
             <div className="flex items-center justify-between border-b border-slate-200 bg-white px-2.5 py-2">
               <h3 className="text-xs font-semibold text-slate-700">{column.title}</h3>
-              <div className="flex items-center gap-1">
-                <IconButton type="button" tone="neutral" aria-label="Dodaj" onClick={() => onAddNode(column.kind)}>
-                  {plusIcon}
-                </IconButton>
-                <IconButton
-                  type="button"
-                  tone="danger"
-                  aria-label="Izbriši"
-                  onClick={() => onRequestDelete(column.kind)}
-                  disabled={!millerSelection.some((id) => column.ids.includes(id))}
-                >
-                  ✕
-                </IconButton>
-              </div>
             </div>
 
             <div
@@ -239,11 +261,11 @@ export function AdminCategoriesMiller({
               {column.rows.length === 0 ? <p className="px-2 py-3 text-xs text-slate-500">Ni zapisov.</p> : (
                 <>
                   <div className={`${millerRowGridClass} px-2 py-1 text-[11px] font-semibold text-slate-500`}>
-                    <span>Kategorije</span>
+                    <span>{getMillerNameColumnLabel(column)}</span>
                     <span className="text-center">Ustvarjeno</span>
                     <span className="text-center">Spremenjeno</span>
                   </div>
-                  {column.rows.map((row) => (
+                  {column.rows.filter((row) => row.label.toLowerCase().includes(searchQuery.trim().toLowerCase())).map((row) => (
                     millerRename?.id === row.id && row.kind !== 'item' ? (
                       <input
                         key={row.id}

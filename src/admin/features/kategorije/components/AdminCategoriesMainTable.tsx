@@ -189,7 +189,7 @@ const InlineStatusToggle = ({
     </span>
     <span
       aria-hidden="true"
-      className={`absolute top-0.5 z-10 h-6 w-6 rounded-full border border-white/90 bg-white shadow-sm transition-transform duration-200 ${
+      className={`absolute inset-y-0 z-10 w-6 rounded-full bg-black shadow-sm transition-transform duration-200 ${
         checked ? 'translate-x-7' : 'translate-x-0.5'
       }`}
     />
@@ -3101,8 +3101,8 @@ export default function AdminCategoriesMainTable({
         variant="motion"
       >
         <TabsList>
-          <TabsTrigger value="table">Seznam</TabsTrigger>
-          <TabsTrigger value="miller">Millerjev pogled</TabsTrigger>
+          <TabsTrigger value="table">Osnovno</TabsTrigger>
+          <TabsTrigger value="miller">Po stolpcih</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -3522,7 +3522,7 @@ function AdminCategoriesTableSection({
                       <button
                         type="button"
                         onClick={onToggleAllExpanded}
-                        className="inline-flex items-center gap-1.5"
+                        className="inline-flex items-center gap-1.5 pl-1"
                         aria-label="Razširi/skrij vse kategorije"
                       >
                         <span className="inline-grid h-4 w-4 place-items-center rounded-[2px] border border-slate-300 text-slate-600">

@@ -189,7 +189,7 @@ const InlineStatusToggle = ({
     </span>
     <span
       aria-hidden="true"
-      className={`absolute top-0.5 z-10 h-6 w-6 rounded-full border border-white/90 bg-white shadow-sm transition-transform duration-200 ${
+      className={`absolute inset-y-px z-10 w-6 rounded-full border border-slate-300 bg-slate-300 shadow-sm transition-transform duration-200 ${
         checked ? 'translate-x-7' : 'translate-x-0.5'
       }`}
     />
@@ -3101,8 +3101,8 @@ export default function AdminCategoriesMainTable({
         variant="motion"
       >
         <TabsList>
-          <TabsTrigger value="table">Seznam</TabsTrigger>
-          <TabsTrigger value="miller">Millerjev pogled</TabsTrigger>
+          <TabsTrigger value="table">Osnovno</TabsTrigger>
+          <TabsTrigger value="miller">Po stolpcih</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -3496,7 +3496,7 @@ function AdminCategoriesTableSection({
         >
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onTreeDragEnd}>
             <SortableContext items={visibleRowIds} strategy={verticalListSortingStrategy}>
-              <table className="min-w-full table-fixed border-separate border-spacing-0 border-x border-b border-slate-200">
+              <table className="w-[1324px] min-w-[1324px] table-fixed border-separate border-spacing-0 border-x border-b border-slate-200">
                 <colgroup>
                   <col className="w-14" />
                   <col className="w-[420px]" />
@@ -3518,26 +3518,28 @@ function AdminCategoriesTableSection({
                         aria-label="Izberi vse"
                       />
                     </th>
-                    <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">
-                      <button
-                        type="button"
-                        onClick={onToggleAllExpanded}
-                        className="inline-flex items-center gap-1.5"
-                        aria-label="Razširi/skrij vse kategorije"
-                      >
-                        <span className="inline-grid h-4 w-4 place-items-center rounded-[2px] border border-slate-300 text-slate-600">
-                          {allExpanded ? (
-                            <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-                              <path d="M3 8h10" />
-                            </svg>
-                          ) : (
-                            <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-                              <path d="M3 8h10M8 3v10" />
-                            </svg>
-                          )}
-                        </span>
-                        <span>Kategorija</span>
-                      </button>
+                    <th className="border-b border-slate-200 px-3 py-0 text-left text-xs font-semibold text-slate-500">
+                      <div className="flex h-12 items-center">
+                        <button
+                          type="button"
+                          onClick={onToggleAllExpanded}
+                          className="inline-flex items-center gap-1.5"
+                          aria-label="Razširi/skrij vse kategorije"
+                        >
+                          <span className="inline-grid h-4 w-4 place-items-center rounded-[2px] border border-slate-300 text-slate-600">
+                            {allExpanded ? (
+                              <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                                <path d="M3 8h10" />
+                              </svg>
+                            ) : (
+                              <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                                <path d="M3 8h10M8 3v10" />
+                              </svg>
+                            )}
+                          </span>
+                          <span>Kategorija</span>
+                        </button>
+                      </div>
                     </th>
                     <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">Opis</th>
                     <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">Podkategorije</th>

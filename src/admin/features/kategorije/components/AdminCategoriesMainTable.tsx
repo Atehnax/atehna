@@ -416,6 +416,98 @@ function filterSubcategoryTree(
   });
 }
 
+type MillerSearchMatch =
+  | { kind: 'category'; id: string; categorySlug: string }
+  | { kind: 'subcategory'; id: string; categorySlug: string; subcategoryPath: string[] }
+  | { kind: 'item'; id: string; categorySlug: string; subcategoryPath: string[]; itemSlug: string };
+
+type MillerSearchIndex = {
+  matches: MillerSearchMatch[];
+  categorySlugsWithMatches: Set<string>;
+  matchedCategorySlugs: Set<string>;
+  matchedSubcategoryPaths: Map<string, Set<string>>;
+  ancestorSubcategoryPaths: Map<string, Set<string>>;
+  matchedItemIds: Set<string>;
+};
+
+const getMillerSearchIndex = (categories: RecursiveCatalogCategory[], query: string): MillerSearchIndex => {
+  const normalizedQuery = query.trim().toLowerCase();
+  const emptyIndex: MillerSearchIndex = {
+    matches: [],
+    categorySlugsWithMatches: new Set<string>(),
+    matchedCategorySlugs: new Set<string>(),
+    matchedSubcategoryPaths: new Map<string, Set<string>>(),
+    ancestorSubcategoryPaths: new Map<string, Set<string>>(),
+    matchedItemIds: new Set<string>()
+  };
+
+  if (!normalizedQuery) return emptyIndex;
+
+  const upsertPathSet = (target: Map<string, Set<string>>, categorySlug: string, path: string[]) => {
+    if (path.length === 0) return;
+    const current = target.get(categorySlug) ?? new Set<string>();
+    current.add(subPathKey(path));
+    target.set(categorySlug, current);
+  };
+
+  const matches: MillerSearchMatch[] = [];
+
+  const visitSubcategory = (category: RecursiveCatalogCategory, nodes: RecursiveNode[], parentPath: string[] = []) => {
+    nodes.forEach((subcategory) => {
+      const path = [...parentPath, subcategory.slug];
+      const subcategoryNodeId = subId(category.slug, path);
+      const subcategoryText = [subcategory.title, subcategory.description, subcategory.slug].join(' ').toLowerCase();
+      const subcategoryMatches = subcategoryText.includes(normalizedQuery);
+
+      if (subcategoryMatches) {
+        matches.push({ kind: 'subcategory', id: subcategoryNodeId, categorySlug: category.slug, subcategoryPath: path });
+        emptyIndex.categorySlugsWithMatches.add(category.slug);
+        upsertPathSet(emptyIndex.matchedSubcategoryPaths, category.slug, path);
+      }
+
+      subcategory.items.forEach((item) => {
+        const itemText = [item.name, item.description, item.slug].join(' ').toLowerCase();
+        if (!itemText.includes(normalizedQuery)) return;
+
+        const id = itemId(category.slug, item.slug, path.at(-1));
+        matches.push({ kind: 'item', id, categorySlug: category.slug, subcategoryPath: path, itemSlug: item.slug });
+        emptyIndex.categorySlugsWithMatches.add(category.slug);
+        emptyIndex.matchedItemIds.add(id);
+      });
+
+      if (subcategoryMatches || subcategory.items.some((item) => [item.name, item.description, item.slug].join(' ').toLowerCase().includes(normalizedQuery))) {
+        path.forEach((_, index) => upsertPathSet(emptyIndex.ancestorSubcategoryPaths, category.slug, path.slice(0, index + 1)));
+      }
+
+      visitSubcategory(category, subcategory.subcategories, path);
+    });
+  };
+
+  categories.forEach((category) => {
+    const categoryNodeId = catId(category.slug);
+    const categoryText = [category.title, category.summary, category.description, category.slug].join(' ').toLowerCase();
+    if (categoryText.includes(normalizedQuery)) {
+      matches.push({ kind: 'category', id: categoryNodeId, categorySlug: category.slug });
+      emptyIndex.categorySlugsWithMatches.add(category.slug);
+      emptyIndex.matchedCategorySlugs.add(category.slug);
+    }
+
+    category.items.forEach((item) => {
+      const itemText = [item.name, item.description, item.slug].join(' ').toLowerCase();
+      if (!itemText.includes(normalizedQuery)) return;
+      const id = itemId(category.slug, item.slug);
+      matches.push({ kind: 'item', id, categorySlug: category.slug, subcategoryPath: [], itemSlug: item.slug });
+      emptyIndex.categorySlugsWithMatches.add(category.slug);
+      emptyIndex.matchedItemIds.add(id);
+    });
+
+    visitSubcategory(category, category.subcategories);
+  });
+
+  emptyIndex.matches = matches;
+  return emptyIndex;
+};
+
 function pruneSelectedSubcategoryTree(
   categorySlug: string,
   nodes: RecursiveNode[],
@@ -2085,17 +2177,66 @@ export default function AdminCategoriesMainTable({
     setMillerError(null);
   };
 
+  const millerSearchIndex = useMemo(
+    () => getMillerSearchIndex(millerCatalog.categories, millerSearchQuery),
+    [millerCatalog.categories, millerSearchQuery]
+  );
+
+  const navigateToMillerSearchMatch = useCallback((match: MillerSearchMatch) => {
+    if (match.kind === 'category') {
+      setSelected({ kind: 'category', categorySlug: match.categorySlug });
+      setMillerSelection([match.id]);
+      return;
+    }
+
+    if (match.kind === 'subcategory') {
+      setSelected({
+        kind: 'subcategory',
+        categorySlug: match.categorySlug,
+        subcategoryPath: match.subcategoryPath,
+        subcategorySlug: match.subcategoryPath.at(-1)
+      });
+      setMillerSelection([match.id]);
+      return;
+    }
+
+    if (match.subcategoryPath.length > 0) {
+      setSelected({
+        kind: 'subcategory',
+        categorySlug: match.categorySlug,
+        subcategoryPath: match.subcategoryPath,
+        subcategorySlug: match.subcategoryPath.at(-1)
+      });
+    } else {
+      setSelected({ kind: 'category', categorySlug: match.categorySlug });
+    }
+    setMillerSelection([match.id]);
+  }, []);
+
+  useEffect(() => {
+    if (!millerSearchQuery.trim() || millerSearchIndex.matches.length === 0) return;
+
+    const selectedMatchId = millerSelection.at(-1);
+    if (selectedMatchId && millerSearchIndex.matches.some((entry) => entry.id === selectedMatchId)) return;
+
+    navigateToMillerSearchMatch(millerSearchIndex.matches[0]);
+  }, [millerSearchIndex.matches, millerSearchQuery, millerSelection, navigateToMillerSearchMatch]);
+
 
   const millerColumns = useMemo(() => {
     const columns: Array<{ key: string; title: string; ids: string[]; rows: Array<{ id: string; label: string; tone: string; isInactive?: boolean; createdAt?: string; updatedAt?: string; kind: 'category' | 'subcategory' | 'item'; onClick: (event: React.MouseEvent<HTMLButtonElement>) => void; onDragStart: () => void; onDropTarget: string; }>; kind: 'categories' | 'subcategories' | 'items' }> = [];
+    const isMillerSearchActive = millerSearchQuery.trim().length > 0;
+    const categoriesSource = isMillerSearchActive
+      ? millerCatalog.categories.filter((category) => millerSearchIndex.categorySlugsWithMatches.has(category.slug))
+      : millerCatalog.categories;
 
-    const categoryIds = millerCatalog.categories.map((category) => catId(category.slug));
+    const categoryIds = categoriesSource.map((category) => catId(category.slug));
     columns.push({
       key: 'categories',
       title: '/',
       kind: 'categories',
       ids: categoryIds,
-      rows: millerCatalog.categories.map((category) => ({
+      rows: categoriesSource.map((category) => ({
         id: catId(category.slug),
         label: category.title,
         tone: selected.kind !== 'root' && selected.categorySlug === category.slug ? 'focused' : 'default',
@@ -2129,14 +2270,23 @@ export default function AdminCategoriesMainTable({
     let depth = 0;
 
     while (nodes.length > 0) {
-      const columnIds = nodes.map((node) => subId(activeCategory.slug, [...parentPath, node.slug]));
+      const nodesAtDepth = isMillerSearchActive
+        ? nodes.filter((node) => {
+            const nodePath = [...parentPath, node.slug];
+            const pathKey = subPathKey(nodePath);
+            return (millerSearchIndex.ancestorSubcategoryPaths.get(activeCategory.slug)?.has(pathKey) ?? false)
+              || (millerSearchIndex.matchedSubcategoryPaths.get(activeCategory.slug)?.has(pathKey) ?? false);
+          })
+        : nodes;
+
+      const columnIds = nodesAtDepth.map((node) => subId(activeCategory.slug, [...parentPath, node.slug]));
 
       columns.push({
         key: `sub-${activeCategory.slug}-${depth}-${parentPath.join('__') || 'root'}`,
         title: parentTitle,
         kind: 'subcategories',
         ids: columnIds,
-        rows: nodes.map((subcategory) => {
+        rows: nodesAtDepth.map((subcategory) => {
           const currentPath = [...parentPath, subcategory.slug];
           const id = subId(activeCategory.slug, currentPath);
           return {
@@ -2184,17 +2334,21 @@ export default function AdminCategoriesMainTable({
         ? (activeCategory.items ?? [])
         : [];
 
+    const selectedLeafSlug = selected.kind === 'subcategory' ? selectedSubcategoryPath.at(-1) : undefined;
+    const filteredItemSource = isMillerSearchActive
+      ? itemSource.filter((item) => millerSearchIndex.matchedItemIds.has(itemId(activeCategory.slug, item.slug, selectedLeafSlug)))
+      : itemSource;
+
     const showItems = selected.kind === 'subcategory' || activeCategory.subcategories.length === 0;
 
     if (showItems) {
-      const selectedLeafSlug = selected.kind === 'subcategory' ? selectedSubcategoryPath.at(-1) : undefined;
-      const itemIds = itemSource.map((item) => itemId(activeCategory.slug, item.slug, selectedLeafSlug));
+      const itemIds = filteredItemSource.map((item) => itemId(activeCategory.slug, item.slug, selectedLeafSlug));
       columns.push({
         key: `item-${activeCategory.slug}-${selectedLeafSlug ?? 'cat'}`,
         title: selected.kind === 'subcategory' ? parentTitle : activeCategory.title,
         kind: 'items',
         ids: itemIds,
-        rows: itemSource.map((item) => {
+        rows: filteredItemSource.map((item) => {
           const id = itemId(activeCategory.slug, item.slug, selectedLeafSlug);
           return {
             id,
@@ -2214,7 +2368,7 @@ export default function AdminCategoriesMainTable({
     }
 
     return columns;
-  }, [millerCatalog.categories, millerSelection, selected, statusByRow]);
+  }, [millerCatalog.categories, millerSearchIndex, millerSearchQuery, millerSelection, selected, statusByRow]);
 
   const activeMillerColumnKind = useMemo<'categories' | 'subcategories' | 'items'>(() => {
     const selectedId = millerSelection.at(-1);

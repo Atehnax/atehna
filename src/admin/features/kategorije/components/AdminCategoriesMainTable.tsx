@@ -444,6 +444,8 @@ const categoryTableColumnWidths = {
 } as const;
 
 const categoryTableTotalWidth = Object.values(categoryTableColumnWidths).reduce((sum, width) => sum + width, 0);
+const categoryTableFixedWidthWithoutDescription =
+  categoryTableTotalWidth - categoryTableColumnWidths.description;
 
 const getCheckboxLeftFromTreeStart = (
   kind: 'root' | 'category' | 'subcategory',
@@ -3502,12 +3504,12 @@ function AdminCategoriesTableSection({
             <SortableContext items={visibleRowIds} strategy={verticalListSortingStrategy}>
               <table
                 className="table-fixed border-separate border-spacing-0 border-x border-b border-slate-200"
-                style={{ width: `${categoryTableTotalWidth}px`, minWidth: `${categoryTableTotalWidth}px`, maxWidth: `${categoryTableTotalWidth}px` }}
+                style={{ width: '100%', minWidth: `${categoryTableTotalWidth}px` }}
               >
                 <colgroup>
                   <col style={{ width: `${categoryTableColumnWidths.select}px` }} />
                   <col style={{ width: `${categoryTableColumnWidths.category}px` }} />
-                  <col style={{ width: `${categoryTableColumnWidths.description}px` }} />
+                  <col style={{ width: `calc(100% - ${categoryTableFixedWidthWithoutDescription}px)` }} />
                   <col style={{ width: `${categoryTableColumnWidths.subcategories}px` }} />
                   <col style={{ width: `${categoryTableColumnWidths.items}px` }} />
                   <col style={{ width: `${categoryTableColumnWidths.visibility}px` }} />

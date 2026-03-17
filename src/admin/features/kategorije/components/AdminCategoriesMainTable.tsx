@@ -3496,7 +3496,7 @@ function AdminCategoriesTableSection({
         >
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onTreeDragEnd}>
             <SortableContext items={visibleRowIds} strategy={verticalListSortingStrategy}>
-              <table className="min-w-full table-fixed border-separate border-spacing-0 border-x border-b border-slate-200">
+              <table className="w-[1324px] min-w-[1324px] table-fixed border-separate border-spacing-0 border-x border-b border-slate-200">
                 <colgroup>
                   <col className="w-14" />
                   <col className="w-[420px]" />

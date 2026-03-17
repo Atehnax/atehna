@@ -2,7 +2,6 @@ import type { RefObject, ReactNode } from 'react';
 import Selecto from 'react-selecto';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
-import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 
 const padTwoDigits = (value: number) => String(value).padStart(2, '0');
@@ -54,14 +53,10 @@ export function AdminCategoriesMiller({
   activeColumnKind,
   onRequestSave,
   saving,
-  millerHistoryMenuRef,
-  isHistoryMenuOpen,
-  onToggleHistoryMenu,
   canUndoStagedChanges,
-  onUndo,
   canRestoreCommittedHistory,
   hasPendingStagedChanges,
-  onRestore,
+  onApplyHistoryAction,
   millerError,
   millerViewportRef,
   onSelectIds,
@@ -86,14 +81,10 @@ export function AdminCategoriesMiller({
   activeColumnKind: 'categories' | 'subcategories' | 'items';
   onRequestSave: () => void;
   saving: boolean;
-  millerHistoryMenuRef: RefObject<HTMLDivElement>;
-  isHistoryMenuOpen: boolean;
-  onToggleHistoryMenu: () => void;
   canUndoStagedChanges: boolean;
-  onUndo: () => void;
   canRestoreCommittedHistory: boolean;
   hasPendingStagedChanges: boolean;
-  onRestore: () => void;
+  onApplyHistoryAction: () => void;
   millerError: string | null;
   millerViewportRef: RefObject<HTMLDivElement>;
   onSelectIds: (ids: string[]) => void;
@@ -102,14 +93,16 @@ export function AdminCategoriesMiller({
   onAddNode: (column: 'categories' | 'subcategories' | 'items') => void;
   onRequestDelete: (column: 'categories' | 'subcategories' | 'items') => void;
   millerSelection: string[];
-  millerDropTarget: string | null;
+  millerDropTarget: { id: string; position: 'before' | 'after' } | null;
   rootId: string;
-  setMillerDropTarget: (id: string | null) => void;
-  applyMillerMove: (targetId: string) => void;
+  setMillerDropTarget: (target: { id: string; position: 'before' | 'after' } | null) => void;
+  applyMillerMove: (targetId: string, position: 'before' | 'after') => void;
   millerRename: { id: string; value: string } | null;
   setMillerRename: (rename: { id: string; value: string } | null) => void;
   applyMillerRename: () => void;
 }) {
+  const canApplyHistoryAction = canUndoStagedChanges || (canRestoreCommittedHistory && !hasPendingStagedChanges);
+
   const millerWindowStyles = (() => {
     const count = millerColumns.length;
     if (count <= 1) {
@@ -179,6 +172,15 @@ export function AdminCategoriesMiller({
           </IconButton>
           <IconButton
             type="button"
+            tone="neutral"
+            aria-label="Razveljavi ali obnovi"
+            onClick={onApplyHistoryAction}
+            disabled={!canApplyHistoryAction}
+          >
+            ↩
+          </IconButton>
+          <IconButton
+            type="button"
             tone="danger"
             aria-label="Izbriši"
             onClick={() => onRequestDelete(activeColumnKind)}
@@ -186,32 +188,6 @@ export function AdminCategoriesMiller({
           >
             ✕
           </IconButton>
-          <div className="relative" ref={millerHistoryMenuRef}>
-            <IconButton type="button" tone="neutral" aria-label="Zgodovina" onClick={onToggleHistoryMenu}>⋮</IconButton>
-            {isHistoryMenuOpen ? (
-              <MenuPanel className="absolute right-0 top-9 z-20 w-40">
-                <MenuItem
-                  disabled={!canUndoStagedChanges}
-                  onClick={() => {
-                    if (!canUndoStagedChanges) return;
-                    onUndo();
-                  }}
-                >
-                  Razveljavi
-                </MenuItem>
-
-                <MenuItem
-                  disabled={!canRestoreCommittedHistory || hasPendingStagedChanges}
-                  onClick={() => {
-                    if (!canRestoreCommittedHistory || hasPendingStagedChanges) return;
-                    onRestore();
-                  }}
-                >
-                  Obnovi
-                </MenuItem>
-              </MenuPanel>
-            ) : null}
-          </div>
         </div>
       </div>
 
@@ -250,15 +226,21 @@ export function AdminCategoriesMiller({
             </div>
 
             <div
-              className={`h-[520px] space-y-0 overflow-auto p-1.5 ${millerDropTarget === (column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget) ? 'ring-2 ring-[#3e67d6]/40' : ''}`}
+              className={`h-[520px] space-y-0 overflow-auto p-1.5 ${millerDropTarget?.id === (column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget) ? 'ring-2 ring-[#3e67d6]/40' : ''}`}
               onDragOver={(event) => {
                 event.preventDefault();
-                setMillerDropTarget(column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget ?? null);
+                const targetId = column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget;
+                if (!targetId) {
+                  setMillerDropTarget(null);
+                  return;
+                }
+
+                setMillerDropTarget({ id: targetId, position: 'before' });
               }}
               onDrop={(event) => {
                 event.preventDefault();
                 const dropTarget = column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget ?? rootId;
-                applyMillerMove(dropTarget);
+                applyMillerMove(dropTarget, 'before');
                 setMillerDropTarget(null);
               }}
             >
@@ -284,37 +266,44 @@ export function AdminCategoriesMiller({
                         autoFocus
                       />
                     ) : (
-                      <button
-                        key={row.id}
-                        type="button"
-                        data-miller-id={row.id}
-                        className={`miller-select-item ${millerRowGridClass} w-full rounded-md px-2 py-1 text-left text-[11px] font-medium transition ${millerSelection.includes(row.id) || row.tone === 'focused' ? `${row.isInactive ? 'text-slate-400' : 'text-[#1f3f93]'} bg-[#f0f4ff]` : `${row.isInactive ? 'text-slate-400' : 'text-slate-700'} bg-white hover:bg-slate-100`}`}
-                        onClick={row.onClick}
-                        onDoubleClick={() => {
-                          if (row.kind === 'item') return;
-                          setMillerRename({ id: row.id, value: row.label });
-                        }}
-                        onContextMenu={(event) => {
-                          if (row.kind === 'item') return;
-                          event.preventDefault();
-                          setMillerRename({ id: row.id, value: row.label });
-                        }}
-                        draggable
-                        onDragStart={(event) => { event.dataTransfer.setData('text/plain', row.id); row.onDragStart(); }}
-                        onDragEnd={() => setMillerDropTarget(null)}
-                        onDragOver={(event) => {
-                          event.preventDefault();
-                          setMillerDropTarget(row.id);
-                        }}
-                        onDrop={(event) => {
-                          event.preventDefault();
-                          applyMillerMove(row.id);
-                        }}
-                      >
-                        <span className="min-w-0 truncate whitespace-nowrap" title={row.label} style={row.isInactive ? { color: '#94a3b8' } : undefined}>{row.label}</span>
-                        <span className="whitespace-nowrap text-center text-[11px] font-normal">{formatMillerDate(row.createdAt)}</span>
-                        <span className="whitespace-nowrap text-center text-[11px] font-normal">{formatMillerDate(row.updatedAt)}</span>
-                      </button>
+                      <div key={row.id} className="relative">
+                        {millerDropTarget?.id === row.id && millerDropTarget.position === 'before' ? <div className="pointer-events-none absolute inset-x-1 top-0 z-10 h-0.5 rounded bg-[#3e67d6]" /> : null}
+                        <button
+                          type="button"
+                          data-miller-id={row.id}
+                          className={`miller-select-item ${millerRowGridClass} w-full rounded-md px-2 py-1 text-left text-[11px] font-medium transition ${millerSelection.includes(row.id) || row.tone === 'focused' ? `${row.isInactive ? 'text-slate-400' : 'text-[#1f3f93]'} bg-[#f0f4ff]` : `${row.isInactive ? 'text-slate-400' : 'text-slate-700'} bg-white hover:bg-slate-100`}`}
+                          onClick={row.onClick}
+                          onDoubleClick={() => {
+                            if (row.kind === 'item') return;
+                            setMillerRename({ id: row.id, value: row.label });
+                          }}
+                          onContextMenu={(event) => {
+                            if (row.kind === 'item') return;
+                            event.preventDefault();
+                            setMillerRename({ id: row.id, value: row.label });
+                          }}
+                          draggable
+                          onDragStart={(event) => { event.dataTransfer.setData('text/plain', row.id); row.onDragStart(); }}
+                          onDragEnd={() => setMillerDropTarget(null)}
+                          onDragOver={(event) => {
+                            event.preventDefault();
+                            const bounds = event.currentTarget.getBoundingClientRect();
+                            const position = event.clientY < bounds.top + bounds.height / 2 ? 'before' : 'after';
+                            setMillerDropTarget({ id: row.id, position });
+                          }}
+                          onDrop={(event) => {
+                            event.preventDefault();
+                            const bounds = event.currentTarget.getBoundingClientRect();
+                            const position = event.clientY < bounds.top + bounds.height / 2 ? 'before' : 'after';
+                            applyMillerMove(row.id, position);
+                          }}
+                        >
+                          <span className="min-w-0 truncate whitespace-nowrap" title={row.label} style={row.isInactive ? { color: '#94a3b8' } : undefined}>{row.label}</span>
+                          <span className="whitespace-nowrap text-center text-[11px] font-normal">{formatMillerDate(row.createdAt)}</span>
+                          <span className="whitespace-nowrap text-center text-[11px] font-normal">{formatMillerDate(row.updatedAt)}</span>
+                        </button>
+                        {millerDropTarget?.id === row.id && millerDropTarget.position === 'after' ? <div className="pointer-events-none absolute inset-x-1 bottom-0 z-10 h-0.5 rounded bg-[#3e67d6]" /> : null}
+                      </div>
                     )
                   ))}
                 </>

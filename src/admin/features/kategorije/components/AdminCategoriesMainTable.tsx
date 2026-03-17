@@ -443,6 +443,15 @@ const categoryTableColumnWidths = {
   actions: 160
 } as const;
 
+const categoryTableTotalWidth =
+  categoryTableColumnWidths.select +
+  categoryTableColumnWidths.category +
+  categoryTableColumnWidths.description +
+  categoryTableColumnWidths.subcategories +
+  categoryTableColumnWidths.items +
+  categoryTableColumnWidths.visibility +
+  categoryTableColumnWidths.actions;
+
 const getCheckboxLeftFromTreeStart = (
   kind: 'root' | 'category' | 'subcategory',
   buttonLeft: number,
@@ -3498,7 +3507,10 @@ function AdminCategoriesTableSection({
         >
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onTreeDragEnd}>
             <SortableContext items={visibleRowIds} strategy={verticalListSortingStrategy}>
-              <table className="min-w-full table-fixed border-separate border-spacing-0 border-x border-b border-slate-200">
+              <table
+                className="table-fixed border-separate border-spacing-0 border-x border-b border-slate-200"
+                style={{ width: `${categoryTableTotalWidth}px`, minWidth: `${categoryTableTotalWidth}px` }}
+              >
                 <colgroup>
                   <col style={{ width: `${categoryTableColumnWidths.select}px` }} />
                   <col style={{ width: `${categoryTableColumnWidths.category}px` }} />

@@ -443,6 +443,8 @@ const categoryTableColumnWidths = {
   actions: 160
 } as const;
 
+const categoryTableTotalWidth = Object.values(categoryTableColumnWidths).reduce((sum, width) => sum + width, 0);
+
 const getCheckboxLeftFromTreeStart = (
   kind: 'root' | 'category' | 'subcategory',
   buttonLeft: number,
@@ -3432,7 +3434,7 @@ function AdminCategoriesTableSection({
       <section>
         <AdminTableLayout
           className="border"
-          contentClassName="overflow-x-auto"
+          contentClassName="overflow-x-auto [scrollbar-gutter:stable]"
           headerLeft={
             <>
               <input
@@ -3498,7 +3500,10 @@ function AdminCategoriesTableSection({
         >
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onTreeDragEnd}>
             <SortableContext items={visibleRowIds} strategy={verticalListSortingStrategy}>
-              <table className="min-w-full table-fixed border-separate border-spacing-0 border-x border-b border-slate-200">
+              <table
+                className="table-fixed border-separate border-spacing-0 border-x border-b border-slate-200"
+                style={{ width: `${categoryTableTotalWidth}px`, minWidth: `${categoryTableTotalWidth}px`, maxWidth: `${categoryTableTotalWidth}px` }}
+              >
                 <colgroup>
                   <col style={{ width: `${categoryTableColumnWidths.select}px` }} />
                   <col style={{ width: `${categoryTableColumnWidths.category}px` }} />

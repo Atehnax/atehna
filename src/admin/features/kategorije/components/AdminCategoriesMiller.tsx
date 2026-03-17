@@ -26,6 +26,21 @@ const getMillerNameColumnLabel = (column: MillerColumn) => {
   return 'Podkategorija';
 };
 
+const padTwoDigits = (value: number) => String(value).padStart(2, '0');
+
+const formatMillerDate = (value?: string) => {
+  const parsedDate = value ? new Date(value) : new Date();
+  const safeDate = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
+
+  const day = padTwoDigits(safeDate.getDate());
+  const month = padTwoDigits(safeDate.getMonth() + 1);
+  const year = safeDate.getFullYear();
+
+  return `${day}-${month}-${year}`;
+};
+
+const millerRowGridClass = 'grid grid-cols-3 items-center gap-x-3';
+
 type MillerColumn = {
   key: string;
   title: string;

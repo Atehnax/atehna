@@ -5,6 +5,9 @@ import { getCatalogCategoriesServer, getCatalogSearchItemsServer } from '@/comme
 import MdxContent from '@/commercial/components/MdxContent';
 import ItemSearch from '@/commercial/features/products/ItemSearch';
 
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
+
 export default async function HomePage() {
   const page = getPageContent('home');
   const categories = await getCatalogCategoriesServer();

@@ -8,18 +8,14 @@ import { Input } from '@/shared/ui/input';
 const padTwoDigits = (value: number) => String(value).padStart(2, '0');
 
 const formatMillerDate = (value?: string) => {
-  if (!value) return '—';
+  const parsedDate = value ? new Date(value) : new Date();
+  const safeDate = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
 
-  const parsedDate = new Date(value);
-  if (Number.isNaN(parsedDate.getTime())) return '—';
+  const day = padTwoDigits(safeDate.getDate());
+  const month = padTwoDigits(safeDate.getMonth() + 1);
+  const year = safeDate.getFullYear();
 
-  const day = padTwoDigits(parsedDate.getDate());
-  const month = padTwoDigits(parsedDate.getMonth() + 1);
-  const year = parsedDate.getFullYear();
-  const hours = padTwoDigits(parsedDate.getHours());
-  const minutes = padTwoDigits(parsedDate.getMinutes());
-
-  return `${day}-${month}-${year} ${hours}:${minutes}`;
+  return `${day}-${month}-${year}`;
 };
 
 const millerRowGridClass = 'grid grid-cols-3 items-center gap-x-3';
@@ -120,18 +116,19 @@ export function AdminCategoriesMiller({
       return [{ width: '100%', marginLeft: '0%', zIndex: 1 }];
     }
 
-    if (count === 2) {
-      return [
-        { width: '45%', marginLeft: '0%', zIndex: 1 },
-        { width: '55%', marginLeft: '0%', zIndex: 2 }
-      ];
+    if (count < 5) {
+      return Array.from({ length: count }, (_, index) => ({
+        width: `${100 / count}%`,
+        marginLeft: '0%',
+        zIndex: index + 1
+      }));
     }
 
-    const currentWidth = 33;
-    const historyWidth = 67;
+    const currentWidth = 100 / count;
+    const historyWidth = 100 - currentWidth;
     const previousCount = count - 1;
-    const overlap = Math.max(2.2, Math.min(5, historyWidth / (previousCount * 5)));
-    const previousWidth = Math.max(12, (historyWidth + overlap * (previousCount - 1)) / previousCount);
+    const overlap = Math.max(2.4, Math.min(5, historyWidth / (previousCount * 5)));
+    const previousWidth = Math.max(10, (historyWidth + overlap * (previousCount - 1)) / previousCount);
 
     const styles = Array.from({ length: previousCount }, (_, index) => ({
       width: `${previousWidth}%`,
@@ -308,8 +305,8 @@ export function AdminCategoriesMiller({
                         }}
                       >
                         <span className="min-w-0 truncate whitespace-nowrap" style={row.isInactive ? { color: '#94a3b8' } : undefined}>{row.label}</span>
-                        <span className="truncate whitespace-nowrap text-center text-[11px] font-normal">{formatMillerDate(row.createdAt)}</span>
-                        <span className="truncate whitespace-nowrap text-center text-[11px] font-normal">{formatMillerDate(row.updatedAt)}</span>
+                        <span className="whitespace-nowrap text-center text-[11px] font-normal">{formatMillerDate(row.createdAt)}</span>
+                        <span className="whitespace-nowrap text-center text-[11px] font-normal">{formatMillerDate(row.updatedAt)}</span>
                       </button>
                     )
                   ))}

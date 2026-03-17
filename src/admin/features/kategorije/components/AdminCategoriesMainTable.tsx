@@ -1018,12 +1018,12 @@ export default function AdminCategoriesMainTable({
 
   const millerBreadcrumbs = useMemo(() => {
     if (selected.kind === 'root') {
-      return [{ label: '/', isCurrent: true }] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
+      return [] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
     }
 
     const category = millerCatalog.categories.find((entry) => entry.slug === selected.categorySlug);
     if (!category) {
-      return [{ label: '/', isCurrent: true }] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
+      return [] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
     }
 
     const crumbs: Array<{ label: string; onClick?: () => void; isCurrent: boolean }> = [

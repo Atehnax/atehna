@@ -167,7 +167,7 @@ export function AdminCategoriesMiller({
           <AdminSearchInput
             value={searchQuery}
             onChange={(event) => onSearchQueryChange(event.target.value)}
-            placeholder="Išči po kategoriji ali opisu ..."
+            placeholder="Išči po kategorijah"
             className="w-[280px]"
             aria-label="Išči v Miller stolpcih"
           />
@@ -246,7 +246,7 @@ export function AdminCategoriesMiller({
             style={millerWindowStyles[index]}
           >
             <div className="flex items-center justify-between border-b border-slate-200 bg-white px-2.5 py-2">
-              <h3 className="truncate text-xs font-semibold text-slate-700" title={column.title}>{column.title}</h3>
+              <h3 className="truncate text-[11px] font-semibold text-slate-700" title={column.title}>{column.title}</h3>
             </div>
 
             <div
@@ -264,12 +264,12 @@ export function AdminCategoriesMiller({
             >
               {column.rows.length === 0 ? <p className="px-2 py-3 text-xs text-slate-500">Ni zapisov.</p> : (
                 <>
-                  <div className={`${millerRowGridClass} px-2 py-1 text-[11px] font-semibold text-slate-500`}>
+                  <div className={`${millerRowGridClass} border-b border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600`}>
                     <span>{getMillerNameColumnLabel(column)}</span>
                     <span className="text-center">Ustvarjeno</span>
                     <span className="text-center">Spremenjeno</span>
                   </div>
-                  {column.rows.filter((row) => row.label.toLowerCase().includes(searchQuery.trim().toLowerCase())).map((row) => (
+                  {column.rows.map((row) => (
                     millerRename?.id === row.id && row.kind !== 'item' ? (
                       <input
                         key={row.id}
@@ -280,7 +280,7 @@ export function AdminCategoriesMiller({
                           if (event.key === 'Enter') applyMillerRename();
                           if (event.key === 'Escape') setMillerRename(null);
                         }}
-                        className="block w-full rounded-md border border-[#3e67d6]/40 bg-white px-2 py-1 text-xs font-medium text-slate-700 outline-none"
+                        className="block w-full rounded-md border border-[#3e67d6]/40 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 outline-none"
                         autoFocus
                       />
                     ) : (
@@ -288,7 +288,7 @@ export function AdminCategoriesMiller({
                         key={row.id}
                         type="button"
                         data-miller-id={row.id}
-                        className={`miller-select-item ${millerRowGridClass} w-full rounded-md px-2 py-1 text-left text-xs font-medium transition ${millerSelection.includes(row.id) || row.tone === 'focused' ? `${row.isInactive ? 'text-slate-400' : 'text-[#1f3f93]'} bg-[#f0f4ff]` : `${row.isInactive ? 'text-slate-400' : 'text-slate-700'} bg-white hover:bg-slate-100`}`}
+                        className={`miller-select-item ${millerRowGridClass} w-full rounded-md px-2 py-1 text-left text-[11px] font-medium transition ${millerSelection.includes(row.id) || row.tone === 'focused' ? `${row.isInactive ? 'text-slate-400' : 'text-[#1f3f93]'} bg-[#f0f4ff]` : `${row.isInactive ? 'text-slate-400' : 'text-slate-700'} bg-white hover:bg-slate-100`}`}
                         onClick={row.onClick}
                         onDoubleClick={() => {
                           if (row.kind === 'item') return;

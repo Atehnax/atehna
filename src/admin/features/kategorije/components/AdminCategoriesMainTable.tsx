@@ -1016,24 +1016,51 @@ export default function AdminCategoriesMainTable({
 
 
   const millerBreadcrumbs = useMemo(() => {
-    if (selected.kind === 'root') return 'Kategorije';
+    if (selected.kind === 'root') {
+      return [{ label: 'Kategorije', isCurrent: true }] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
+    }
 
     const category = millerCatalog.categories.find((entry) => entry.slug === selected.categorySlug);
-    if (!category) return 'Kategorije';
+    if (!category) {
+      return [{ label: 'Kategorije', isCurrent: true }] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
+    }
 
-    const parts = [category.title];
-    if (selected.kind === 'category') return parts.join(' / ');
+    const crumbs: Array<{ label: string; onClick?: () => void; isCurrent: boolean }> = [
+      {
+        label: category.title,
+        isCurrent: selected.kind === 'category',
+        onClick: selected.kind === 'category' ? undefined : () => setSelected({ kind: 'category', categorySlug: category.slug })
+      }
+    ];
+
+    if (selected.kind === 'category') return crumbs;
 
     const subcategoryPath = toSubcategoryPath(selected.subcategoryPath ?? selected.subcategorySlug);
     let nodes = category.subcategories;
-    for (const slug of subcategoryPath) {
-      const node = nodes.find((entry) => entry.slug === slug);
-      if (!node) break;
-      parts.push(node.title);
-      nodes = node.subcategories;
-    }
+    const traversedPath: string[] = [];
 
-    return parts.join(' / ');
+    subcategoryPath.forEach((slug, index) => {
+      const node = nodes.find((entry) => entry.slug === slug);
+      if (!node) return;
+      traversedPath.push(node.slug);
+      const pathSnapshot = [...traversedPath];
+      const isCurrent = index === subcategoryPath.length - 1;
+      crumbs.push({
+        label: node.title,
+        isCurrent,
+        onClick: isCurrent
+          ? undefined
+          : () => setSelected({
+              kind: 'subcategory',
+              categorySlug: category.slug,
+              subcategoryPath: pathSnapshot,
+              subcategorySlug: node.slug
+            })
+      });
+      nodes = node.subcategories;
+    });
+
+    return crumbs;
   }, [millerCatalog.categories, selected]);
 
   const stageMillerCatalog = (next: CatalogData, nextStatuses: Record<string, CategoryStatus> = statusByRow) => {

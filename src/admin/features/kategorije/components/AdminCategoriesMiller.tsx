@@ -70,7 +70,7 @@ export function AdminCategoriesMiller({
 }: {
   activeView: 'table' | 'miller';
   millerDirty: boolean;
-  breadcrumbs: string;
+  breadcrumbs: Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
   onRequestSave: () => void;
   saving: boolean;
   millerHistoryMenuRef: RefObject<HTMLDivElement>;
@@ -97,11 +97,57 @@ export function AdminCategoriesMiller({
   setMillerRename: (rename: { id: string; value: string } | null) => void;
   applyMillerRename: () => void;
 }) {
+  const millerWindowStyles = (() => {
+    const count = millerColumns.length;
+    if (count <= 1) {
+      return [{ width: '100%', marginLeft: '0%', zIndex: 1 }];
+    }
+
+    if (count === 2) {
+      return [
+        { width: '45%', marginLeft: '0%', zIndex: 1 },
+        { width: '55%', marginLeft: '0%', zIndex: 2 }
+      ];
+    }
+
+    const currentWidth = 33;
+    const historyWidth = 67;
+    const previousCount = count - 1;
+    const overlap = Math.max(2.2, Math.min(5, historyWidth / (previousCount * 5)));
+    const previousWidth = Math.max(12, (historyWidth + overlap * (previousCount - 1)) / previousCount);
+
+    const styles = Array.from({ length: previousCount }, (_, index) => ({
+      width: `${previousWidth}%`,
+      marginLeft: index === 0 ? '0%' : `-${overlap}%`,
+      zIndex: index + 1
+    }));
+
+    styles.push({ width: `${currentWidth}%`, marginLeft: '0%', zIndex: count + 1 });
+    return styles;
+  })();
+
   return (
     <section className={activeView === 'miller' ? 'rounded-2xl border border-slate-200 bg-white p-3 shadow-sm' : 'hidden'}>
       <div className="mb-3 flex items-center justify-between">
         <div className="min-w-0 text-xs text-slate-600">
-          <p className="truncate whitespace-nowrap" title={breadcrumbs}>{breadcrumbs}</p>
+          <nav className="truncate whitespace-nowrap text-sm text-slate-700" aria-label="Breadcrumb">
+            {breadcrumbs.map((crumb, index) => (
+              <span key={`${crumb.label}-${index}`}>
+                {index > 0 ? <span className="mx-1 text-slate-400">/</span> : null}
+                {crumb.onClick && !crumb.isCurrent ? (
+                  <button
+                    type="button"
+                    onClick={crumb.onClick}
+                    className="text-slate-600 hover:text-slate-900 focus-visible:outline-none focus-visible:underline"
+                  >
+                    {crumb.label}
+                  </button>
+                ) : (
+                  <span className={crumb.isCurrent ? 'font-semibold text-slate-900' : ''}>{crumb.label}</span>
+                )}
+              </span>
+            ))}
+          </nav>
         </div>
         <div className="flex items-center gap-2">
           <Button type="button" variant="primary" size="toolbar" onClick={onRequestSave} disabled={!millerDirty || saving}>
@@ -152,13 +198,13 @@ export function AdminCategoriesMiller({
         }}
       />
 
-      <div
-        ref={millerViewportRef}
-        className="grid gap-3"
-        style={{ gridTemplateColumns: `repeat(${Math.max(1, millerColumns.length)}, minmax(0, 1fr))` }}
-      >
-        {millerColumns.map((column) => (
-          <div key={column.key} className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/40">
+      <div ref={millerViewportRef} className="flex items-stretch overflow-x-auto pb-1">
+        {millerColumns.map((column, index) => (
+          <div
+            key={column.key}
+            className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/40"
+            style={millerWindowStyles[index]}
+          >
             <div className="flex items-center justify-between border-b border-slate-200 bg-white px-2.5 py-2">
               <h3 className="text-xs font-semibold text-slate-700">{column.title}</h3>
               <div className="flex items-center gap-1">
@@ -178,7 +224,7 @@ export function AdminCategoriesMiller({
             </div>
 
             <div
-              className={`h-[520px] space-y-1 overflow-auto p-1.5 ${millerDropTarget === (column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget) ? 'ring-2 ring-[#3e67d6]/40' : ''}`}
+              className={`h-[520px] space-y-0 overflow-auto p-1.5 ${millerDropTarget === (column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget) ? 'ring-2 ring-[#3e67d6]/40' : ''}`}
               onDragOver={(event) => {
                 event.preventDefault();
                 setMillerDropTarget(column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget ?? null);

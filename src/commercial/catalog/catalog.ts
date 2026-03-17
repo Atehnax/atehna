@@ -9,6 +9,10 @@ export type CatalogItem = {
   price?: number;
   discountPct?: number;
   displayOrder?: number | null;
+  createdAt?: string;
+  updatedAt?: string;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type CatalogSubcategory = {
@@ -19,6 +23,8 @@ export type CatalogSubcategory = {
   adminNotes?: string;
   image?: string;
   items: CatalogItem[];
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type CatalogCategory = {
@@ -32,6 +38,8 @@ export type CatalogCategory = {
   bannerImage?: string;
   subcategories: CatalogSubcategory[];
   items?: CatalogItem[];
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type CatalogSearchItem = {

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { getPageContent } from '@/commercial/content/content';
-import { getCatalogCategoriesServer } from '@/commercial/catalog/catalogServer';
+import { getCatalogCategoryCardsServer } from '@/commercial/catalog/catalogServer';
 import MdxContent from '@/commercial/components/MdxContent';
 
 export const metadata = {
@@ -10,7 +10,7 @@ export const metadata = {
 
 export default async function ProductsPage() {
   const page = getPageContent('products');
-  const categories = await getCatalogCategoriesServer();
+  const categories = await getCatalogCategoryCardsServer();
 
   return (
     <div className="container-base py-12">

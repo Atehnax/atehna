@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { formatCatalogPrice, getDiscountedPrice, getCatalogItemPrice, getCatalogItemSku } from '@/commercial/catalog/catalog';
-import { getCatalogCategoryServer, getCatalogCategorySlugsServer, getCatalogItemServer, getCatalogItemSlugsServer, getCatalogSubcategoryServer, getCatalogSubcategorySlugsServer } from '@/commercial/catalog/catalogServer';
+import { getCatalogCategorySlugsServer, getCatalogItemPageDataServer, getCatalogItemServer, getCatalogItemSlugsServer, getCatalogSubcategorySlugsServer } from '@/commercial/catalog/catalogServer';
 import AddToCartButton from '@/commercial/features/products/AddToCartButton';
 
 export const dynamicParams = true;
@@ -31,9 +31,7 @@ export async function generateMetadata({ params }: { params: { category: string;
 }
 
 export default async function ItemPage({ params }: { params: { category: string; subcategory: string; item: string } }) {
-  const category = await getCatalogCategoryServer(params.category);
-  const subcategory = await getCatalogSubcategoryServer(params.category, params.subcategory);
-  const item = await getCatalogItemServer(params.category, params.subcategory, params.item);
+  const { category, subcategory, item } = await getCatalogItemPageDataServer(params.category, params.subcategory, params.item);
   const itemSku = getCatalogItemSku(category.slug, subcategory.slug, item.slug);
   const basePrice = item.price ?? getCatalogItemPrice(category.slug, subcategory.slug, item.slug);
   const effectivePrice = getDiscountedPrice(basePrice, item.discountPct);

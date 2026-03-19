@@ -8,7 +8,7 @@ import {
   sortCatalogItems
 } from '@/commercial/catalog/catalog';
 import {
-  getCatalogCategoriesServer,
+  getCatalogCategoryPageDataServer,
   getCatalogCategoryServer,
   getCatalogCategorySlugsServer
 } from '@/commercial/catalog/catalogServer';
@@ -34,8 +34,7 @@ const getArticleLabel = (count: number) => {
 };
 
 export default async function CategoryPage({ params }: { params: { category: string } }) {
-  const category = await getCatalogCategoryServer(params.category);
-  const categories = await getCatalogCategoriesServer();
+  const { category, categories } = await getCatalogCategoryPageDataServer(params.category);
 
   return <div>{/* unchanged JSX below */}
     <div className="container-base py-12">

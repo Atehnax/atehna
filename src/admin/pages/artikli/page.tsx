@@ -6,7 +6,7 @@ import {
   getCatalogItemSku,
   sortCatalogItems
 } from '@/commercial/catalog/catalog';
-import { getCatalogCategoriesServer } from '@/commercial/catalog/catalogServer';
+import { getCatalogItemsIndexServer } from '@/commercial/catalog/catalogServer';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +36,7 @@ async function buildSeedItems(): Promise<SeedItem[]> {
   const items: SeedItem[] = [];
   const now = new Date().toISOString();
 
-  for (const category of await getCatalogCategoriesServer()) {
+  for (const category of await getCatalogItemsIndexServer('/admin/artikli')) {
     for (const item of sortCatalogItems(category.items ?? [])) {
       items.push({
         id: getCatalogCategoryItemSku(category.slug, item.slug),

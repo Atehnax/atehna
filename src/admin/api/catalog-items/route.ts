@@ -5,7 +5,7 @@ import {
   getCatalogItemPrice,
   getCatalogItemSku
 } from '@/commercial/catalog/catalog';
-import { getCatalogCategoriesServer } from '@/commercial/catalog/catalogServer';
+import { getCatalogItemsIndexServer } from '@/commercial/catalog/catalogServer';
 import { instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
 
 type CatalogChoice = {
@@ -22,7 +22,7 @@ async function collectCatalogChoices(): Promise<CatalogChoice[]> {
   return instrumentCatalogLoader('adminCatalogItemsRoute', '/api/admin/catalog-items', async () => {
     const items: CatalogChoice[] = [];
 
-    for (const category of await getCatalogCategoriesServer()) {
+    for (const category of await getCatalogItemsIndexServer('/api/admin/catalog-items')) {
       for (const item of category.items ?? []) {
         items.push({
           sku: getCatalogCategoryItemSku(category.slug, item.slug),

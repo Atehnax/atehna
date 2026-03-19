@@ -7,15 +7,37 @@ import {
   getCatalogCategorySummariesFromDatabase,
   getCatalogCategoryWithSubcategoriesFromDatabase,
   getCatalogDataFromDatabase,
+  getCatalogItemsIndexFromDatabase,
   getCatalogSearchIndexFromDatabase,
   getCatalogSubcategoryWithCategoryFromDatabase
 } from '@/shared/server/catalogCategories';
 
+/**
+ * Catalog server loader guidance:
+ * - `/` and `/products`: use `getCatalogPageDataServer` / `getCatalogCategoryCardsServer`.
+ * - category page: use `getCatalogCategoryPageDataServer`.
+ * - subcategory page: use `getCatalogSubcategoryPageDataServer`.
+ * - item pages: use `getCatalogItemPageDataServer` or `getCatalogCategoryItemPageDataServer`.
+ * - `/admin/kategorije`: use `getCatalogDataFromDatabase({ includeInactive: true, includeStatuses: true })`.
+ * - Admin side-data (catalog item pickers, article seed lists): prefer `getCatalogItemsIndexServer`.
+ * - Avoid calling internal API routes from server components for catalog reads; import this loader layer directly.
+ */
+
+/**
+ * Broad full-catalog loader.
+ * Expensive compared with the narrow loaders below, so prefer it only for admin/full-tree workflows and slug helpers.
+ */
 const loadFullCatalogServer = cache(async (): Promise<CatalogCategory[]> =>
   instrumentCatalogCacheMiss('loadFullCatalogServer', 'catalog:full', async () => {
     const catalog = await getCatalogDataFromDatabase({ diagnosticsContext: 'catalog:full' });
     return catalog.categories;
   })
+);
+
+const loadCatalogItemsIndexServer = cache(async (diagnosticsContext: string) =>
+  instrumentCatalogCacheMiss('loadCatalogItemsIndexServer', diagnosticsContext, () =>
+    getCatalogItemsIndexFromDatabase(diagnosticsContext)
+  )
 );
 
 const loadCatalogCategoryCardsServer = cache(async (): Promise<Array<Pick<CatalogCategory, 'slug' | 'title' | 'summary' | 'image'>>> =>
@@ -169,6 +191,10 @@ function getCatalogCategoryItemFromCategory(category: CatalogCategory, categoryS
 
 export async function getCatalogCategoriesServer(): Promise<CatalogCategory[]> {
   return instrumentCatalogLoader('getCatalogCategoriesServer', 'catalog:categories', () => loadFullCatalogServer());
+}
+
+export async function getCatalogItemsIndexServer(diagnosticsContext = 'catalog:items-index') {
+  return instrumentCatalogLoader('getCatalogItemsIndexServer', diagnosticsContext, () => loadCatalogItemsIndexServer(diagnosticsContext));
 }
 
 export async function getCatalogCategoryCardsServer(): Promise<Array<Pick<CatalogCategory, 'slug' | 'title' | 'summary' | 'image'>>> {

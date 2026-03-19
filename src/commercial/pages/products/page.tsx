@@ -4,6 +4,9 @@ import { getPageContent } from '@/commercial/content/content';
 import { getCatalogCategoriesServer } from '@/commercial/catalog/catalogServer';
 import MdxContent from '@/commercial/components/MdxContent';
 
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
+
 export const metadata = {
   title: 'Izdelki'
 };

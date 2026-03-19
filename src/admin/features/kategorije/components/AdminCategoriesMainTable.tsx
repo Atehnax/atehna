@@ -910,7 +910,7 @@ export default function AdminCategoriesMainTable({
   const [lowerViewCount, setLowerViewCount] = useState(5);
   const [millerCatalog, setMillerCatalog] = useState<CatalogData>({ categories: [] });
   const [millerSelection, setMillerSelection] = useState<string[]>([]);
-  const [millerDropTarget, setMillerDropTarget] = useState<string | null>(null);
+  const [millerDropTarget, setMillerDropTarget] = useState<{ id: string; position: 'before' | 'after' } | null>(null);
   const [millerDirty, setMillerDirty] = useState(false);
   const [millerDeleteTarget, setMillerDeleteTarget] = useState<MillerDeleteTarget>(null);
   const [isMillerSaveDialogOpen, setIsMillerSaveDialogOpen] = useState(false);
@@ -1768,7 +1768,7 @@ export default function AdminCategoriesMainTable({
     });
   };
 
-  const applyMillerMove = (targetId: string) => {
+  const applyMillerMove = (targetId: string, position: 'before' | 'after' = 'before') => {
     if (millerSelection.length === 0) return;
     if (millerSelection.includes(targetId)) return;
 
@@ -1814,7 +1814,8 @@ export default function AdminCategoriesMainTable({
         } else if (targetCategorySlug) {
           const targetIndex = remaining.findIndex((category) => category.slug === targetCategorySlug);
           if (targetIndex >= 0) {
-            remaining.splice(targetIndex, 0, ...moved);
+            const insertionIndex = position === 'after' ? targetIndex + 1 : targetIndex;
+            remaining.splice(insertionIndex, 0, ...moved);
             nextCategories = remaining;
           }
         }
@@ -1864,7 +1865,8 @@ export default function AdminCategoriesMainTable({
                 const targetIndex = category.subcategories.findIndex((sub) => sub.slug === targetSub.subcategorySlug);
                 if (targetIndex >= 0) {
                   const nextSubs = [...category.subcategories];
-                  nextSubs.splice(targetIndex, 0, ...insertion);
+                  const insertionIndex = position === 'after' ? targetIndex + 1 : targetIndex;
+                  nextSubs.splice(insertionIndex, 0, ...insertion);
                   return { ...category, subcategories: nextSubs };
                 }
               }
@@ -1946,7 +1948,8 @@ export default function AdminCategoriesMainTable({
               const targetIndex = category.subcategories.findIndex((sub) => sub.slug === targetSub.subcategorySlug);
               if (targetIndex >= 0) {
                 const nextSubs = [...category.subcategories];
-                nextSubs.splice(targetIndex, 0, ...movedSubs);
+                const insertionIndex = position === 'after' ? targetIndex + 1 : targetIndex;
+                nextSubs.splice(insertionIndex, 0, ...movedSubs);
                 return { ...category, subcategories: nextSubs };
               }
             }
@@ -3640,19 +3643,18 @@ export default function AdminCategoriesMainTable({
           setIsMillerSaveDialogOpen(true);
         }}
         saving={saving}
-        millerHistoryMenuRef={millerHistoryMenuRef}
-        isHistoryMenuOpen={isHistoryMenuOpen}
-        onToggleHistoryMenu={() => setIsHistoryMenuOpen((prev) => !prev)}
         canUndoStagedChanges={canUndoStagedChanges}
-        onUndo={() => {
-          undoStagedChanges();
-          setIsHistoryMenuOpen(false);
-        }}
         canRestoreCommittedHistory={canRestoreCommittedHistory}
         hasPendingStagedChanges={hasPendingStagedChanges}
-        onRestore={() => {
-          restoreCommittedHistory();
-          setIsHistoryMenuOpen(false);
+        onApplyHistoryAction={() => {
+          if (canUndoStagedChanges) {
+            undoStagedChanges();
+            return;
+          }
+
+          if (canRestoreCommittedHistory && !hasPendingStagedChanges) {
+            restoreCommittedHistory();
+          }
         }}
         millerError={millerError}
         millerViewportRef={millerViewportRef}

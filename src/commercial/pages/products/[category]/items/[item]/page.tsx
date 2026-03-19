@@ -6,18 +6,11 @@ import {
   getCatalogCategoryItemSku,
   getDiscountedPrice
 } from '@/commercial/catalog/catalog';
-import { getCatalogCategoryItemServer, getCatalogCategoryItemSlugsServer, getCatalogCategoryServer, getCatalogCategorySlugsServer } from '@/commercial/catalog/catalogServer';
+import { getCatalogCategoryItemServer, getCatalogCategoryServer } from '@/commercial/catalog/catalogServer';
 import AddToCartButton from '@/commercial/features/products/AddToCartButton';
 
-export async function generateStaticParams() {
-  const categories = await getCatalogCategorySlugsServer();
-  const params = [];
-  for (const category of categories) {
-    const items = await getCatalogCategoryItemSlugsServer(category);
-    for (const item of items) params.push({ category, item });
-  }
-  return params;
-}
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
 
 export async function generateMetadata({
   params

@@ -11,6 +11,19 @@ import {
 type CategoryStatus = 'active' | 'inactive';
 type CatalogDataWithStatuses = CatalogData & { statuses: Record<string, CategoryStatus> };
 
+
+type CatalogCategoryCard = Pick<RecursiveCatalogCategory, 'slug' | 'title' | 'summary' | 'image'>;
+type CatalogCategorySummary = Pick<RecursiveCatalogCategory, 'slug' | 'title'>;
+type CatalogCategoryWithSubcategories = Pick<RecursiveCatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'items'> & {
+  subcategories: Array<Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'items'>>;
+};
+
+type CategoryCardRow = Pick<CategoryRow, 'slug' | 'title' | 'summary' | 'image'>;
+type CategorySummaryRow = Pick<CategoryRow, 'slug' | 'title'>;
+type CategoryDetailRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'items'>;
+type SubcategoryDetailRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'description' | 'items'>;
+type SearchCategoryRow = Pick<CategoryRow, 'id' | 'slug' | 'items'>;
+type SearchSubcategoryRow = Pick<CategoryRow, 'parent_id' | 'slug' | 'items'>;
 type CategoryRow = {
   id: string;
   parent_id: string | null;
@@ -80,7 +93,7 @@ function normalizeStatus(value: string): CategoryStatus {
   return value === 'inactive' ? 'inactive' : 'active';
 }
 
-function getRowItems(row: CategoryRow): CatalogItem[] {
+function getRowItems(row: { items: unknown }): CatalogItem[] {
   return Array.isArray(row.items) ? (row.items as CatalogItem[]) : [];
 }
 
@@ -207,6 +220,252 @@ export async function getCatalogDataFromDatabase(
   };
 
   return includeStatuses ? payload : { categories: payload.categories };
+}
+
+
+export async function getCatalogCategoryCardsFromDatabase(): Promise<CatalogCategoryCard[]> {
+  if (!getDatabaseUrl()) {
+    const normalized = await readCatalogFile();
+    return normalized.categories.map(({ slug, title, summary, image }) => ({ slug, title, summary, image }));
+  }
+
+  await ensureTable();
+  await seedIfEmpty();
+
+  const pool = await getPool();
+  const result = await pool.query(`
+    select slug, title, summary, image
+    from catalog_categories
+    where parent_id is null and status = 'active'
+    order by position asc, title asc
+  `);
+
+  return (result.rows as CategoryCardRow[]).map(({ slug, title, summary, image }) => ({ slug, title, summary, image }));
+}
+
+export async function getCatalogCategorySummariesFromDatabase(): Promise<CatalogCategorySummary[]> {
+  if (!getDatabaseUrl()) {
+    const normalized = await readCatalogFile();
+    return normalized.categories.map(({ slug, title }) => ({ slug, title }));
+  }
+
+  await ensureTable();
+  await seedIfEmpty();
+
+  const pool = await getPool();
+  const result = await pool.query(`
+    select slug, title
+    from catalog_categories
+    where parent_id is null and status = 'active'
+    order by position asc, title asc
+  `);
+
+  return (result.rows as CategorySummaryRow[]).map(({ slug, title }) => ({ slug, title }));
+}
+
+export async function getCatalogCategoryWithSubcategoriesFromDatabase(
+  slug: string
+): Promise<CatalogCategoryWithSubcategories | null> {
+  if (!getDatabaseUrl()) {
+    const normalized = await readCatalogFile();
+    const category = normalized.categories.find((entry) => entry.slug === slug);
+    if (!category) return null;
+
+    return {
+      id: category.id,
+      slug: category.slug,
+      title: category.title,
+      summary: category.summary,
+      description: category.description,
+      image: category.image,
+      items: category.items,
+      subcategories: category.subcategories.map(({ id, slug, title, description, items }) => ({
+        id,
+        slug,
+        title,
+        description,
+        items
+      }))
+    };
+  }
+
+  await ensureTable();
+  await seedIfEmpty();
+
+  const pool = await getPool();
+  const categoryResult = await pool.query(
+    `
+      select id, slug, title, summary, description, image, items
+      from catalog_categories
+      where parent_id is null and status = 'active' and slug = $1
+      limit 1
+    `,
+    [slug]
+  );
+
+  const categoryRow = (categoryResult.rows as CategoryDetailRow[])[0];
+  if (!categoryRow) return null;
+
+  const subcategoryResult = await pool.query(
+    `
+      select id, slug, title, description, items
+      from catalog_categories
+      where parent_id = $1 and status = 'active'
+      order by position asc, title asc
+    `,
+    [categoryRow.id]
+  );
+
+  return {
+    id: categoryRow.id,
+    slug: categoryRow.slug,
+    title: categoryRow.title,
+    summary: categoryRow.summary,
+    description: categoryRow.description,
+    image: categoryRow.image,
+    items: getRowItems(categoryRow),
+    subcategories: (subcategoryResult.rows as SubcategoryDetailRow[]).map((row) => ({
+      id: row.id,
+      slug: row.slug,
+      title: row.title,
+      description: row.description,
+      items: getRowItems(row)
+    }))
+  };
+}
+
+export async function getCatalogSubcategoryWithCategoryFromDatabase(
+  categorySlug: string,
+  subSlug: string
+): Promise<{
+  category: CatalogCategorySummary;
+  subcategory: Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'items'>;
+} | null> {
+  if (!getDatabaseUrl()) {
+    const normalized = await readCatalogFile();
+    const category = normalized.categories.find((entry) => entry.slug === categorySlug);
+    const subcategory = category?.subcategories.find((entry) => entry.slug === subSlug);
+    if (!category || !subcategory) return null;
+
+    return {
+      category: { slug: category.slug, title: category.title },
+      subcategory: {
+        id: subcategory.id,
+        slug: subcategory.slug,
+        title: subcategory.title,
+        description: subcategory.description,
+        items: subcategory.items
+      }
+    };
+  }
+
+  await ensureTable();
+  await seedIfEmpty();
+
+  const pool = await getPool();
+  const categoryResult = await pool.query(
+    `
+      select id, slug, title
+      from catalog_categories
+      where parent_id is null and status = 'active' and slug = $1
+      limit 1
+    `,
+    [categorySlug]
+  );
+
+  const categoryRow = (categoryResult.rows as Array<Pick<CategoryRow, 'id' | 'slug' | 'title'>>)[0];
+  if (!categoryRow) return null;
+
+  const subcategoryResult = await pool.query(
+    `
+      select id, slug, title, description, items
+      from catalog_categories
+      where parent_id = $1 and status = 'active' and slug = $2
+      limit 1
+    `,
+    [categoryRow.id, subSlug]
+  );
+
+  const subcategoryRow = (subcategoryResult.rows as SubcategoryDetailRow[])[0];
+  if (!subcategoryRow) return null;
+
+  return {
+    category: { slug: categoryRow.slug, title: categoryRow.title },
+    subcategory: {
+      id: subcategoryRow.id,
+      slug: subcategoryRow.slug,
+      title: subcategoryRow.title,
+      description: subcategoryRow.description,
+      items: getRowItems(subcategoryRow)
+    }
+  };
+}
+
+export async function getCatalogSearchIndexFromDatabase(): Promise<{
+  categories: CatalogCategoryCard[];
+  searchItems: Array<{ categorySlug: string; subcategorySlug?: string; items: CatalogItem[] }>;
+}> {
+  if (!getDatabaseUrl()) {
+    const normalized = await readCatalogFile();
+    return {
+      categories: normalized.categories.map(({ slug, title, summary, image }) => ({ slug, title, summary, image })),
+      searchItems: normalized.categories.flatMap((category) => {
+        const directItems = category.items.length
+          ? [{ categorySlug: category.slug, items: category.items }]
+          : [];
+        const subcategoryItems = category.subcategories.map((subcategory) => ({
+          categorySlug: category.slug,
+          subcategorySlug: subcategory.slug,
+          items: subcategory.items
+        }));
+        return [...directItems, ...subcategoryItems];
+      })
+    };
+  }
+
+  await ensureTable();
+  await seedIfEmpty();
+
+  const pool = await getPool();
+  const categoryResult = await pool.query(`
+    select id, slug, title, summary, image, items
+    from catalog_categories
+    where parent_id is null and status = 'active'
+    order by position asc, title asc
+  `);
+
+  const categoryRows = categoryResult.rows as Array<SearchCategoryRow & CategoryCardRow>;
+  const categoryIds = categoryRows.map((row) => row.id);
+
+  const subcategoryRows = categoryIds.length
+    ? (await pool.query(
+        `
+          select parent_id, slug, items
+          from catalog_categories
+          where parent_id = any($1::text[]) and status = 'active'
+          order by position asc, title asc
+        `,
+        [categoryIds]
+      )).rows as SearchSubcategoryRow[]
+    : [];
+
+  const categorySlugById = new Map(categoryRows.map((row) => [row.id, row.slug]));
+
+  return {
+    categories: categoryRows.map(({ slug, title, summary, image }) => ({ slug, title, summary, image })),
+    searchItems: [
+      ...categoryRows
+        .filter((row) => getRowItems(row).length > 0)
+        .map((row) => ({ categorySlug: row.slug, items: getRowItems(row) })),
+      ...subcategoryRows
+        .map((row) => {
+          const categorySlug = row.parent_id ? categorySlugById.get(row.parent_id) : null;
+          if (!categorySlug) return null;
+          return { categorySlug, subcategorySlug: row.slug, items: getRowItems(row) };
+        })
+        .filter((row): row is { categorySlug: string; subcategorySlug: string; items: CatalogItem[] } => row !== null)
+    ]
+  };
 }
 
 export async function replaceCategoryTree(

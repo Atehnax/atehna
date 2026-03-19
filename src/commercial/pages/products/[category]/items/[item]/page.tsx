@@ -6,7 +6,7 @@ import {
   getCatalogCategoryItemSku,
   getDiscountedPrice
 } from '@/commercial/catalog/catalog';
-import { getCatalogCategoryItemServer, getCatalogCategoryItemSlugsServer, getCatalogCategoryServer, getCatalogCategorySlugsServer } from '@/commercial/catalog/catalogServer';
+import { getCatalogCategoryItemPageDataServer, getCatalogCategoryItemServer, getCatalogCategoryItemSlugsServer, getCatalogCategorySlugsServer } from '@/commercial/catalog/catalogServer';
 import AddToCartButton from '@/commercial/features/products/AddToCartButton';
 
 export async function generateStaticParams() {
@@ -36,8 +36,7 @@ export default async function CategoryItemPage({
 }: {
   params: { category: string; item: string };
 }) {
-  const category = await getCatalogCategoryServer(params.category);
-  const item = await getCatalogCategoryItemServer(params.category, params.item);
+  const { category, item } = await getCatalogCategoryItemPageDataServer(params.category, params.item);
   const itemSku = getCatalogCategoryItemSku(category.slug, item.slug);
   const basePrice = item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug);
   const effectivePrice = getDiscountedPrice(basePrice, item.discountPct);

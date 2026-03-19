@@ -1,5 +1,6 @@
 import { unstable_cache, revalidateTag } from 'next/cache';
 import { getPool, getDatabaseUrl } from '@/shared/server/db';
+import { instrumentCatalogCacheMiss, instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
 import type { CatalogItem } from '@/commercial/catalog/catalog';
 import {
   normalizeCatalogData,
@@ -474,82 +475,101 @@ async function readCatalogSearchIndexFromDatabase(): Promise<{
 
 
 const getCachedCatalogDataFromDatabase = unstable_cache(
-  async () => readCatalogDataFromDatabase(),
+  async () => instrumentCatalogCacheMiss('getCachedCatalogDataFromDatabase', 'catalog:data', () => readCatalogDataFromDatabase()),
   ['catalog-data-active'],
   { tags: [CATALOG_PUBLIC_TAG] }
 );
 
 const getCachedCatalogAdminDataFromDatabase = unstable_cache(
-  async () => readCatalogDataFromDatabase({ includeInactive: true, includeStatuses: true }) as Promise<CatalogDataWithStatuses>,
+  async () => instrumentCatalogCacheMiss(
+    'getCachedCatalogAdminDataFromDatabase',
+    '/admin/kategorije',
+    async () => readCatalogDataFromDatabase({ includeInactive: true, includeStatuses: true }) as Promise<CatalogDataWithStatuses>
+  ),
   ['catalog-data-admin'],
   { tags: [CATALOG_PUBLIC_TAG, CATALOG_ADMIN_TAG] }
 );
 
 const getCachedCatalogCategoryCardsFromDatabase = unstable_cache(
-  async () => readCatalogCategoryCardsFromDatabase(),
+  async () => instrumentCatalogCacheMiss('getCachedCatalogCategoryCardsFromDatabase', 'catalog:category-cards', () => readCatalogCategoryCardsFromDatabase()),
   ['catalog-category-cards'],
   { tags: [CATALOG_PUBLIC_TAG] }
 );
 
 const getCachedCatalogCategorySummariesFromDatabase = unstable_cache(
-  async () => readCatalogCategorySummariesFromDatabase(),
+  async () => instrumentCatalogCacheMiss('getCachedCatalogCategorySummariesFromDatabase', 'catalog:category-summaries', () => readCatalogCategorySummariesFromDatabase()),
   ['catalog-category-summaries'],
   { tags: [CATALOG_PUBLIC_TAG] }
 );
 
 export async function getCatalogDataFromDatabase(
-  options: { includeInactive?: boolean; includeStatuses?: boolean } = {}
+  options: { includeInactive?: boolean; includeStatuses?: boolean; diagnosticsContext?: string } = {}
 ): Promise<CatalogData | CatalogDataWithStatuses> {
-  const { includeInactive = false, includeStatuses = false } = options;
+  const { includeInactive = false, includeStatuses = false, diagnosticsContext } = options;
+  const context = diagnosticsContext ?? (includeInactive || includeStatuses ? '/admin/kategorije' : 'catalog:data');
 
-  if (includeInactive || includeStatuses) {
-    return getCachedCatalogAdminDataFromDatabase();
-  }
+  return instrumentCatalogLoader('getCatalogDataFromDatabase', context, async () => {
+    if (includeInactive || includeStatuses) {
+      return getCachedCatalogAdminDataFromDatabase();
+    }
 
-  return getCachedCatalogDataFromDatabase();
+    return getCachedCatalogDataFromDatabase();
+  });
 }
 
-export async function getCatalogCategoryCardsFromDatabase(): Promise<CatalogCategoryCard[]> {
-  return getCachedCatalogCategoryCardsFromDatabase();
+export async function getCatalogCategoryCardsFromDatabase(diagnosticsContext = 'catalog:category-cards'): Promise<CatalogCategoryCard[]> {
+  return instrumentCatalogLoader('getCatalogCategoryCardsFromDatabase', diagnosticsContext, async () => getCachedCatalogCategoryCardsFromDatabase());
 }
 
-export async function getCatalogCategorySummariesFromDatabase(): Promise<CatalogCategorySummary[]> {
-  return getCachedCatalogCategorySummariesFromDatabase();
+export async function getCatalogCategorySummariesFromDatabase(diagnosticsContext = 'catalog:category-summaries'): Promise<CatalogCategorySummary[]> {
+  return instrumentCatalogLoader('getCatalogCategorySummariesFromDatabase', diagnosticsContext, async () => getCachedCatalogCategorySummariesFromDatabase());
 }
 
 export async function getCatalogCategoryWithSubcategoriesFromDatabase(
-  slug: string
+  slug: string,
+  diagnosticsContext = 'catalog:category-details'
 ): Promise<CatalogCategoryWithSubcategories | null> {
-  return unstable_cache(
-    async () => readCatalogCategoryWithSubcategoriesFromDatabase(slug),
+  const getCachedCategory = unstable_cache(
+    async () => instrumentCatalogCacheMiss('getCachedCatalogCategoryWithSubcategoriesFromDatabase', diagnosticsContext, () =>
+      readCatalogCategoryWithSubcategoriesFromDatabase(slug)
+    ),
     ['catalog-category-with-subcategories', slug],
     { tags: [CATALOG_PUBLIC_TAG] }
-  )();
+  );
+
+  return instrumentCatalogLoader('getCatalogCategoryWithSubcategoriesFromDatabase', diagnosticsContext, async () => getCachedCategory());
 }
 
 export async function getCatalogSubcategoryWithCategoryFromDatabase(
   categorySlug: string,
-  subSlug: string
+  subSlug: string,
+  diagnosticsContext = 'catalog:subcategory-details'
 ): Promise<{
   category: CatalogCategorySummary;
   subcategory: Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'items'>;
 } | null> {
-  return unstable_cache(
-    async () => readCatalogSubcategoryWithCategoryFromDatabase(categorySlug, subSlug),
+  const getCachedSubcategory = unstable_cache(
+    async () => instrumentCatalogCacheMiss('getCachedCatalogSubcategoryWithCategoryFromDatabase', diagnosticsContext, () =>
+      readCatalogSubcategoryWithCategoryFromDatabase(categorySlug, subSlug)
+    ),
     ['catalog-subcategory-with-category', categorySlug, subSlug],
     { tags: [CATALOG_PUBLIC_TAG] }
-  )();
+  );
+
+  return instrumentCatalogLoader('getCatalogSubcategoryWithCategoryFromDatabase', diagnosticsContext, async () => getCachedSubcategory());
 }
 
-export async function getCatalogSearchIndexFromDatabase(): Promise<{
+export async function getCatalogSearchIndexFromDatabase(diagnosticsContext = 'catalog:search-index'): Promise<{
   categories: CatalogCategoryCard[];
   searchItems: Array<{ categorySlug: string; subcategorySlug?: string; items: CatalogItem[] }>;
 }> {
-  return unstable_cache(
-    async () => readCatalogSearchIndexFromDatabase(),
+  const getCachedSearchIndex = unstable_cache(
+    async () => instrumentCatalogCacheMiss('getCachedCatalogSearchIndexFromDatabase', diagnosticsContext, () => readCatalogSearchIndexFromDatabase()),
     ['catalog-search-index'],
     { tags: [CATALOG_PUBLIC_TAG] }
-  )();
+  );
+
+  return instrumentCatalogLoader('getCatalogSearchIndexFromDatabase', diagnosticsContext, async () => getCachedSearchIndex());
 }
 
 export async function replaceCategoryTree(

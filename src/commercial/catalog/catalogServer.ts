@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import type { CatalogCategory, CatalogItem, CatalogSearchItem, CatalogSubcategory } from '@/commercial/catalog/catalog';
 import { sortCatalogItems } from '@/commercial/catalog/catalog';
+import { instrumentCatalogCacheMiss, instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
 import {
   getCatalogCategoryCardsFromDatabase,
   getCatalogCategorySummariesFromDatabase,
@@ -10,21 +11,27 @@ import {
   getCatalogSubcategoryWithCategoryFromDatabase
 } from '@/shared/server/catalogCategories';
 
-const loadFullCatalogServer = cache(async (): Promise<CatalogCategory[]> => {
-  const catalog = await getCatalogDataFromDatabase();
-  return catalog.categories;
-});
+const loadFullCatalogServer = cache(async (): Promise<CatalogCategory[]> =>
+  instrumentCatalogCacheMiss('loadFullCatalogServer', 'catalog:full', async () => {
+    const catalog = await getCatalogDataFromDatabase({ diagnosticsContext: 'catalog:full' });
+    return catalog.categories;
+  })
+);
 
 const loadCatalogCategoryCardsServer = cache(async (): Promise<Array<Pick<CatalogCategory, 'slug' | 'title' | 'summary' | 'image'>>> =>
-  getCatalogCategoryCardsFromDatabase()
+  instrumentCatalogCacheMiss('loadCatalogCategoryCardsServer', '/products', () => getCatalogCategoryCardsFromDatabase('/products'))
 );
 
 const loadCatalogCategorySummariesServer = cache(async (): Promise<Array<Pick<CatalogCategory, 'slug' | 'title'>>> =>
-  getCatalogCategorySummariesFromDatabase()
+  instrumentCatalogCacheMiss('loadCatalogCategorySummariesServer', '/products/[category]', () =>
+    getCatalogCategorySummariesFromDatabase('/products/[category]')
+  )
 );
 
 const loadCatalogCategoryDetailsServer = cache(async (slug: string): Promise<CatalogCategory | null> => {
-  const category = await getCatalogCategoryWithSubcategoriesFromDatabase(slug);
+  const category = await instrumentCatalogCacheMiss('loadCatalogCategoryDetailsServer', '/products/[category]', () =>
+    getCatalogCategoryWithSubcategoriesFromDatabase(slug, '/products/[category]')
+  );
   if (!category) return null;
 
   return {
@@ -44,7 +51,9 @@ const loadCatalogSubcategoryDetailsServer = cache(
       }
     | null
   > => {
-    const payload = await getCatalogSubcategoryWithCategoryFromDatabase(categorySlug, subSlug);
+    const payload = await instrumentCatalogCacheMiss('loadCatalogSubcategoryDetailsServer', '/products/[category]/[subcategory]', () =>
+      getCatalogSubcategoryWithCategoryFromDatabase(categorySlug, subSlug, '/products/[category]/[subcategory]')
+    );
     if (!payload) return null;
 
     return {
@@ -58,7 +67,9 @@ const loadCatalogHomeDataServer = cache(async (): Promise<{
   categories: Array<Pick<CatalogCategory, 'slug' | 'title' | 'summary' | 'image'>>;
   searchItems: CatalogSearchItem[];
 }> => {
-  const payload = await getCatalogSearchIndexFromDatabase();
+  const payload = await instrumentCatalogCacheMiss('loadCatalogHomeDataServer', '/products', () =>
+    getCatalogSearchIndexFromDatabase('/products')
+  );
 
   return {
     categories: payload.categories,
@@ -157,20 +168,24 @@ function getCatalogCategoryItemFromCategory(category: CatalogCategory, categoryS
 }
 
 export async function getCatalogCategoriesServer(): Promise<CatalogCategory[]> {
-  return loadFullCatalogServer();
+  return instrumentCatalogLoader('getCatalogCategoriesServer', 'catalog:categories', () => loadFullCatalogServer());
 }
 
 export async function getCatalogCategoryCardsServer(): Promise<Array<Pick<CatalogCategory, 'slug' | 'title' | 'summary' | 'image'>>> {
-  return loadCatalogCategoryCardsServer();
+  return instrumentCatalogLoader('getCatalogCategoryCardsServer', '/products', () => loadCatalogCategoryCardsServer());
 }
 
 export async function getCatalogCategoryServer(slug: string): Promise<CatalogCategory> {
-  return getCatalogCategoryFromCategories(await loadFullCatalogServer(), slug);
+  return instrumentCatalogLoader('getCatalogCategoryServer', '/products/[category]', async () =>
+    getCatalogCategoryFromCategories(await loadFullCatalogServer(), slug)
+  );
 }
 
 export async function getCatalogSubcategoryServer(categorySlug: string, subSlug: string): Promise<CatalogSubcategory> {
-  const category = getCatalogCategoryFromCategories(await loadFullCatalogServer(), categorySlug);
-  return getCatalogSubcategoryFromCategory(category, categorySlug, subSlug);
+  return instrumentCatalogLoader('getCatalogSubcategoryServer', '/products/[category]/[subcategory]', async () => {
+    const category = getCatalogCategoryFromCategories(await loadFullCatalogServer(), categorySlug);
+    return getCatalogSubcategoryFromCategory(category, categorySlug, subSlug);
+  });
 }
 
 export async function getCatalogItemServer(
@@ -178,59 +193,73 @@ export async function getCatalogItemServer(
   subSlug: string,
   itemSlug: string
 ): Promise<CatalogItem> {
-  const category = getCatalogCategoryFromCategories(await loadFullCatalogServer(), categorySlug);
-  const subcategory = getCatalogSubcategoryFromCategory(category, categorySlug, subSlug);
-  return getCatalogItemFromSubcategory(subcategory, categorySlug, subSlug, itemSlug);
+  return instrumentCatalogLoader('getCatalogItemServer', '/products/[category]/[subcategory]/[item]', async () => {
+    const category = getCatalogCategoryFromCategories(await loadFullCatalogServer(), categorySlug);
+    const subcategory = getCatalogSubcategoryFromCategory(category, categorySlug, subSlug);
+    return getCatalogItemFromSubcategory(subcategory, categorySlug, subSlug, itemSlug);
+  });
 }
 
 export async function getCatalogCategoryItemServer(categorySlug: string, itemSlug: string): Promise<CatalogItem> {
-  const category = getCatalogCategoryFromCategories(await loadFullCatalogServer(), categorySlug);
-  return getCatalogCategoryItemFromCategory(category, categorySlug, itemSlug);
+  return instrumentCatalogLoader('getCatalogCategoryItemServer', '/products/[category]/items/[item]', async () => {
+    const category = getCatalogCategoryFromCategories(await loadFullCatalogServer(), categorySlug);
+    return getCatalogCategoryItemFromCategory(category, categorySlug, itemSlug);
+  });
 }
 
 export async function getCatalogCategorySlugsServer(): Promise<string[]> {
-  return (await loadCatalogCategoryCardsServer()).map((item) => item.slug);
+  return instrumentCatalogLoader('getCatalogCategorySlugsServer', '/products/[category]', async () =>
+    (await loadCatalogCategoryCardsServer()).map((item) => item.slug)
+  );
 }
 
 export async function getCatalogSubcategorySlugsServer(categorySlug: string): Promise<string[]> {
-  const category = getCatalogCategoryFromCategories(await loadFullCatalogServer(), categorySlug);
-  return category.subcategories.map((item) => item.slug);
+  return instrumentCatalogLoader('getCatalogSubcategorySlugsServer', '/products/[category]/[subcategory]', async () => {
+    const category = getCatalogCategoryFromCategories(await loadFullCatalogServer(), categorySlug);
+    return category.subcategories.map((item) => item.slug);
+  });
 }
 
 export async function getCatalogCategoryItemSlugsServer(categorySlug: string): Promise<string[]> {
-  const category = getCatalogCategoryFromCategories(await loadFullCatalogServer(), categorySlug);
-  return category.items?.map((item) => item.slug) ?? [];
+  return instrumentCatalogLoader('getCatalogCategoryItemSlugsServer', '/products/[category]/items/[item]', async () => {
+    const category = getCatalogCategoryFromCategories(await loadFullCatalogServer(), categorySlug);
+    return category.items?.map((item) => item.slug) ?? [];
+  });
 }
 
 export async function getCatalogItemSlugsServer(categorySlug: string, subSlug: string): Promise<string[]> {
-  const category = getCatalogCategoryFromCategories(await loadFullCatalogServer(), categorySlug);
-  const subcategory = getCatalogSubcategoryFromCategory(category, categorySlug, subSlug);
-  return subcategory.items.map((item) => item.slug);
+  return instrumentCatalogLoader('getCatalogItemSlugsServer', '/products/[category]/[subcategory]/[item]', async () => {
+    const category = getCatalogCategoryFromCategories(await loadFullCatalogServer(), categorySlug);
+    const subcategory = getCatalogSubcategoryFromCategory(category, categorySlug, subSlug);
+    return subcategory.items.map((item) => item.slug);
+  });
 }
 
 export async function getCatalogSearchItemsServer(): Promise<CatalogSearchItem[]> {
-  return (await loadCatalogHomeDataServer()).searchItems;
+  return instrumentCatalogLoader('getCatalogSearchItemsServer', '/products', async () => (await loadCatalogHomeDataServer()).searchItems);
 }
 
 export async function getCatalogPageDataServer(): Promise<{
   categories: Array<Pick<CatalogCategory, 'slug' | 'title' | 'summary' | 'image'>>;
   searchItems: CatalogSearchItem[];
 }> {
-  return loadCatalogHomeDataServer();
+  return instrumentCatalogLoader('getCatalogPageDataServer', '/products', () => loadCatalogHomeDataServer());
 }
 
 export async function getCatalogCategoryPageDataServer(slug: string): Promise<{
   category: CatalogCategory;
   categories: Array<Pick<CatalogCategory, 'slug' | 'title'>>;
 }> {
-  return loadCatalogCategoryPageDataServer(slug);
+  return instrumentCatalogLoader('getCatalogCategoryPageDataServer', '/products/[category]', () => loadCatalogCategoryPageDataServer(slug));
 }
 
 export async function getCatalogSubcategoryPageDataServer(categorySlug: string, subSlug: string): Promise<{
   category: Pick<CatalogCategory, 'slug' | 'title'>;
   subcategory: CatalogSubcategory;
 }> {
-  return loadCatalogSubcategoryPageDataServer(categorySlug, subSlug);
+  return instrumentCatalogLoader('getCatalogSubcategoryPageDataServer', '/products/[category]/[subcategory]', () =>
+    loadCatalogSubcategoryPageDataServer(categorySlug, subSlug)
+  );
 }
 
 export async function getCatalogItemPageDataServer(categorySlug: string, subSlug: string, itemSlug: string): Promise<{
@@ -238,12 +267,16 @@ export async function getCatalogItemPageDataServer(categorySlug: string, subSlug
   subcategory: CatalogSubcategory;
   item: CatalogItem;
 }> {
-  return loadCatalogItemPageDataServer(categorySlug, subSlug, itemSlug);
+  return instrumentCatalogLoader('getCatalogItemPageDataServer', '/products/[category]/[subcategory]/[item]', () =>
+    loadCatalogItemPageDataServer(categorySlug, subSlug, itemSlug)
+  );
 }
 
 export async function getCatalogCategoryItemPageDataServer(categorySlug: string, itemSlug: string): Promise<{
   category: CatalogCategory;
   item: CatalogItem;
 }> {
-  return loadCatalogCategoryItemPageDataServer(categorySlug, itemSlug);
+  return instrumentCatalogLoader('getCatalogCategoryItemPageDataServer', '/products/[category]/items/[item]', () =>
+    loadCatalogCategoryItemPageDataServer(categorySlug, itemSlug)
+  );
 }

@@ -1,5 +1,6 @@
 import { unstable_cache, revalidateTag } from 'next/cache';
 import { getPool, getDatabaseUrl } from '@/shared/server/db';
+import { instrumentCatalogCacheMiss, instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
 import type { CatalogItem } from '@/commercial/catalog/catalog';
 import {
   normalizeCatalogData,
@@ -12,14 +13,31 @@ import {
 type CategoryStatus = 'active' | 'inactive';
 type CatalogDataWithStatuses = CatalogData & { statuses: Record<string, CategoryStatus> };
 
-const CATALOG_PUBLIC_TAG = 'catalog-public';
-const CATALOG_ADMIN_TAG = 'catalog-admin';
+export const CATALOG_PUBLIC_TAG = 'catalog-public';
+export const CATALOG_ADMIN_TAG = 'catalog-admin';
+
+export const CATALOG_REVALIDATE_PATHS = [
+  { path: '/', type: 'page' },
+  { path: '/products', type: 'page' },
+  { path: '/products/[category]', type: 'page' },
+  { path: '/products/[category]/[subcategory]', type: 'page' },
+  { path: '/products/[category]/items/[item]', type: 'page' },
+  { path: '/products/[category]/[subcategory]/[item]', type: 'page' },
+  { path: '/admin/kategorije', type: 'page' },
+  { path: '/admin/kategorije/miller-view', type: 'page' },
+  { path: '/admin/artikli', type: 'page' }
+] as const;
 
 type CatalogCategoryCard = Pick<RecursiveCatalogCategory, 'slug' | 'title' | 'summary' | 'image'>;
 type CatalogCategorySummary = Pick<RecursiveCatalogCategory, 'slug' | 'title'>;
 type CatalogCategoryWithSubcategories = Pick<RecursiveCatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'items'> & {
   subcategories: Array<Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'items'>>;
 };
+type CatalogItemsIndex = Array<
+  Pick<RecursiveCatalogCategory, 'id' | 'slug' | 'title' | 'items'> & {
+    subcategories: Array<Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'items'>>;
+  }
+>;
 
 type CategoryCardRow = Pick<CategoryRow, 'slug' | 'title' | 'summary' | 'image'>;
 type CategorySummaryRow = Pick<CategoryRow, 'slug' | 'title'>;
@@ -27,6 +45,8 @@ type CategoryDetailRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'summary' |
 type SubcategoryDetailRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'description' | 'items'>;
 type SearchCategoryRow = Pick<CategoryRow, 'id' | 'slug' | 'items'>;
 type SearchSubcategoryRow = Pick<CategoryRow, 'parent_id' | 'slug' | 'items'>;
+type ItemsIndexCategoryRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'items'>;
+type ItemsIndexSubcategoryRow = Pick<CategoryRow, 'parent_id' | 'id' | 'slug' | 'title' | 'items'>;
 type CategoryRow = {
   id: string;
   parent_id: string | null;
@@ -472,86 +492,185 @@ async function readCatalogSearchIndexFromDatabase(): Promise<{
 }
 
 
+async function readCatalogItemsIndexFromDatabase(): Promise<CatalogItemsIndex> {
+  if (!getDatabaseUrl()) {
+    const normalized = await readCatalogFile();
+    return normalized.categories.map(({ id, slug, title, items, subcategories }) => ({
+      id,
+      slug,
+      title,
+      items,
+      subcategories: subcategories.map(({ id: subcategoryId, slug: subcategorySlug, title: subcategoryTitle, items: subcategoryItems }) => ({
+        id: subcategoryId,
+        slug: subcategorySlug,
+        title: subcategoryTitle,
+        items: subcategoryItems
+      }))
+    }));
+  }
+
+  await ensureTable();
+  await seedIfEmpty();
+
+  const pool = await getPool();
+  const categoryResult = await pool.query(`
+    select id, slug, title, items
+    from catalog_categories
+    where parent_id is null and status = 'active'
+    order by position asc, title asc
+  `);
+
+  const categoryRows = categoryResult.rows as ItemsIndexCategoryRow[];
+  const categoryIds = categoryRows.map((row) => row.id);
+
+  const subcategoryRows = categoryIds.length
+    ? ((await pool.query(
+        `
+          select parent_id, id, slug, title, items
+          from catalog_categories
+          where parent_id = any($1::text[]) and status = 'active'
+          order by position asc, title asc
+        `,
+        [categoryIds]
+      )).rows as ItemsIndexSubcategoryRow[])
+    : [];
+
+  const subcategoriesByParent = new Map<string, Array<Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'items'>>>();
+
+  for (const row of subcategoryRows) {
+    if (!row.parent_id) continue;
+    const list = subcategoriesByParent.get(row.parent_id) ?? [];
+    list.push({
+      id: row.id,
+      slug: row.slug,
+      title: row.title,
+      items: getRowItems(row)
+    });
+    subcategoriesByParent.set(row.parent_id, list);
+  }
+
+  return categoryRows.map((row) => ({
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    items: getRowItems(row),
+    subcategories: subcategoriesByParent.get(row.id) ?? []
+  }));
+}
 
 const getCachedCatalogDataFromDatabase = unstable_cache(
-  async () => readCatalogDataFromDatabase(),
+  async () => instrumentCatalogCacheMiss('getCachedCatalogDataFromDatabase', 'catalog:data', () => readCatalogDataFromDatabase()),
   ['catalog-data-active'],
   { tags: [CATALOG_PUBLIC_TAG] }
 );
 
 const getCachedCatalogAdminDataFromDatabase = unstable_cache(
-  async () => readCatalogDataFromDatabase({ includeInactive: true, includeStatuses: true }) as Promise<CatalogDataWithStatuses>,
+  async () => instrumentCatalogCacheMiss(
+    'getCachedCatalogAdminDataFromDatabase',
+    '/admin/kategorije',
+    async () => readCatalogDataFromDatabase({ includeInactive: true, includeStatuses: true }) as Promise<CatalogDataWithStatuses>
+  ),
   ['catalog-data-admin'],
   { tags: [CATALOG_PUBLIC_TAG, CATALOG_ADMIN_TAG] }
 );
 
 const getCachedCatalogCategoryCardsFromDatabase = unstable_cache(
-  async () => readCatalogCategoryCardsFromDatabase(),
+  async () => instrumentCatalogCacheMiss('getCachedCatalogCategoryCardsFromDatabase', 'catalog:category-cards', () => readCatalogCategoryCardsFromDatabase()),
   ['catalog-category-cards'],
   { tags: [CATALOG_PUBLIC_TAG] }
 );
 
 const getCachedCatalogCategorySummariesFromDatabase = unstable_cache(
-  async () => readCatalogCategorySummariesFromDatabase(),
+  async () => instrumentCatalogCacheMiss('getCachedCatalogCategorySummariesFromDatabase', 'catalog:category-summaries', () => readCatalogCategorySummariesFromDatabase()),
   ['catalog-category-summaries'],
   { tags: [CATALOG_PUBLIC_TAG] }
 );
 
+const getCachedCatalogItemsIndexFromDatabase = unstable_cache(
+  async () => instrumentCatalogCacheMiss('getCachedCatalogItemsIndexFromDatabase', 'catalog:items-index', () => readCatalogItemsIndexFromDatabase()),
+  ['catalog-items-index'],
+  { tags: [CATALOG_PUBLIC_TAG] }
+);
+
 export async function getCatalogDataFromDatabase(
-  options: { includeInactive?: boolean; includeStatuses?: boolean } = {}
+  options: { includeInactive?: boolean; includeStatuses?: boolean; diagnosticsContext?: string } = {}
 ): Promise<CatalogData | CatalogDataWithStatuses> {
-  const { includeInactive = false, includeStatuses = false } = options;
+  const { includeInactive = false, includeStatuses = false, diagnosticsContext } = options;
+  const context = diagnosticsContext ?? (includeInactive || includeStatuses ? '/admin/kategorije' : 'catalog:data');
 
-  if (includeInactive || includeStatuses) {
-    return getCachedCatalogAdminDataFromDatabase();
-  }
+  return instrumentCatalogLoader('getCatalogDataFromDatabase', context, async () => {
+    if (includeInactive || includeStatuses) {
+      return getCachedCatalogAdminDataFromDatabase();
+    }
 
-  return getCachedCatalogDataFromDatabase();
+    return getCachedCatalogDataFromDatabase();
+  });
 }
 
-export async function getCatalogCategoryCardsFromDatabase(): Promise<CatalogCategoryCard[]> {
-  return getCachedCatalogCategoryCardsFromDatabase();
+export async function getCatalogCategoryCardsFromDatabase(diagnosticsContext = 'catalog:category-cards'): Promise<CatalogCategoryCard[]> {
+  return instrumentCatalogLoader('getCatalogCategoryCardsFromDatabase', diagnosticsContext, async () => getCachedCatalogCategoryCardsFromDatabase());
 }
 
-export async function getCatalogCategorySummariesFromDatabase(): Promise<CatalogCategorySummary[]> {
-  return getCachedCatalogCategorySummariesFromDatabase();
+export async function getCatalogCategorySummariesFromDatabase(diagnosticsContext = 'catalog:category-summaries'): Promise<CatalogCategorySummary[]> {
+  return instrumentCatalogLoader('getCatalogCategorySummariesFromDatabase', diagnosticsContext, async () => getCachedCatalogCategorySummariesFromDatabase());
 }
 
 export async function getCatalogCategoryWithSubcategoriesFromDatabase(
-  slug: string
+  slug: string,
+  diagnosticsContext = 'catalog:category-details'
 ): Promise<CatalogCategoryWithSubcategories | null> {
-  return unstable_cache(
-    async () => readCatalogCategoryWithSubcategoriesFromDatabase(slug),
+  const getCachedCategory = unstable_cache(
+    async () => instrumentCatalogCacheMiss('getCachedCatalogCategoryWithSubcategoriesFromDatabase', diagnosticsContext, () =>
+      readCatalogCategoryWithSubcategoriesFromDatabase(slug)
+    ),
     ['catalog-category-with-subcategories', slug],
     { tags: [CATALOG_PUBLIC_TAG] }
-  )();
+  );
+
+  return instrumentCatalogLoader('getCatalogCategoryWithSubcategoriesFromDatabase', diagnosticsContext, async () => getCachedCategory());
 }
 
 export async function getCatalogSubcategoryWithCategoryFromDatabase(
   categorySlug: string,
-  subSlug: string
+  subSlug: string,
+  diagnosticsContext = 'catalog:subcategory-details'
 ): Promise<{
   category: CatalogCategorySummary;
   subcategory: Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'items'>;
 } | null> {
-  return unstable_cache(
-    async () => readCatalogSubcategoryWithCategoryFromDatabase(categorySlug, subSlug),
+  const getCachedSubcategory = unstable_cache(
+    async () => instrumentCatalogCacheMiss('getCachedCatalogSubcategoryWithCategoryFromDatabase', diagnosticsContext, () =>
+      readCatalogSubcategoryWithCategoryFromDatabase(categorySlug, subSlug)
+    ),
     ['catalog-subcategory-with-category', categorySlug, subSlug],
     { tags: [CATALOG_PUBLIC_TAG] }
-  )();
+  );
+
+  return instrumentCatalogLoader('getCatalogSubcategoryWithCategoryFromDatabase', diagnosticsContext, async () => getCachedSubcategory());
 }
 
-export async function getCatalogSearchIndexFromDatabase(): Promise<{
+export async function getCatalogSearchIndexFromDatabase(diagnosticsContext = 'catalog:search-index'): Promise<{
   categories: CatalogCategoryCard[];
   searchItems: Array<{ categorySlug: string; subcategorySlug?: string; items: CatalogItem[] }>;
 }> {
-  return unstable_cache(
-    async () => readCatalogSearchIndexFromDatabase(),
+  const getCachedSearchIndex = unstable_cache(
+    async () => instrumentCatalogCacheMiss('getCachedCatalogSearchIndexFromDatabase', diagnosticsContext, () => readCatalogSearchIndexFromDatabase()),
     ['catalog-search-index'],
     { tags: [CATALOG_PUBLIC_TAG] }
-  )();
+  );
+
+  return instrumentCatalogLoader('getCatalogSearchIndexFromDatabase', diagnosticsContext, async () => getCachedSearchIndex());
 }
 
+export async function getCatalogItemsIndexFromDatabase(diagnosticsContext = 'catalog:items-index'): Promise<CatalogItemsIndex> {
+  return instrumentCatalogLoader('getCatalogItemsIndexFromDatabase', diagnosticsContext, async () => getCachedCatalogItemsIndexFromDatabase());
+}
+
+/**
+ * Single database-backed catalog mutation path.
+ *
+ * Any future catalog write must either call this function or invalidate the exact same public/admin cache surface.
+ */
 export async function replaceCategoryTree(
   input: unknown,
   statuses: Record<string, CategoryStatus> = {}

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import type { CatalogCategory } from '@/commercial/catalog/catalog';
 import { normalizeCatalogData } from '@/shared/server/catalogAdmin';
-import { getCatalogDataFromDatabase, replaceCategoryTree } from '@/shared/server/catalogCategories';
+import { CATALOG_REVALIDATE_PATHS, getCatalogDataFromDatabase, replaceCategoryTree } from '@/shared/server/catalogCategories';
 
 export async function GET() {
   try {
@@ -27,21 +27,16 @@ export async function PUT(request: Request) {
     }
 
     await replaceCategoryTree(normalized, payload.statuses ?? {});
-    revalidatePath('/');
-    revalidatePath('/products');
-    revalidatePath('/products/[category]', 'page');
-    revalidatePath('/products/[category]/[subcategory]', 'page');
-    revalidatePath('/products/[category]/items/[item]', 'page');
-    revalidatePath('/products/[category]/[subcategory]/[item]', 'page');
-    revalidatePath('/admin/kategorije');
-    revalidatePath('/admin/kategorije/miller-view');
-    revalidatePath('/admin/artikli');
+
+    for (const target of CATALOG_REVALIDATE_PATHS) {
+      revalidatePath(target.path, target.type);
+    }
+
     return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json({ message: error instanceof Error ? error.message : 'Napaka pri shranjevanju.' }, { status: 500 });
   }
 }
-
 
 function isValidCategoryTree(categories: CatalogCategory[]): boolean {
   const categorySlugs = new Set<string>();

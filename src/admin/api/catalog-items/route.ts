@@ -5,7 +5,8 @@ import {
   getCatalogItemPrice,
   getCatalogItemSku
 } from '@/commercial/catalog/catalog';
-import { getCatalogCategoriesServer } from '@/commercial/catalog/catalogServer';
+import { getCatalogItemsIndexServer } from '@/commercial/catalog/catalogServer';
+import { instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
 
 type CatalogChoice = {
   sku: string;
@@ -18,35 +19,37 @@ type CatalogChoice = {
 const DEFAULT_UNIT = 'kos';
 
 async function collectCatalogChoices(): Promise<CatalogChoice[]> {
-  const items: CatalogChoice[] = [];
+  return instrumentCatalogLoader('adminCatalogItemsRoute', '/api/admin/catalog-items', async () => {
+    const items: CatalogChoice[] = [];
 
-  for (const category of await getCatalogCategoriesServer()) {
-    for (const item of category.items ?? []) {
-      items.push({
-        sku: getCatalogCategoryItemSku(category.slug, item.slug),
-        name: item.name,
-        unit: DEFAULT_UNIT,
-        unitPrice: item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug),
-        display_order: item.displayOrder ?? null
-      });
-    }
-
-    for (const subcategory of category.subcategories) {
-      for (const item of subcategory.items) {
+    for (const category of await getCatalogItemsIndexServer('/api/admin/catalog-items')) {
+      for (const item of category.items ?? []) {
         items.push({
-          sku: getCatalogItemSku(category.slug, subcategory.slug, item.slug),
+          sku: getCatalogCategoryItemSku(category.slug, item.slug),
           name: item.name,
           unit: DEFAULT_UNIT,
-          unitPrice: item.price ?? getCatalogItemPrice(category.slug, subcategory.slug, item.slug),
+          unitPrice: item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug),
           display_order: item.displayOrder ?? null
         });
       }
-    }
-  }
 
-  return items.sort((leftItem, rightItem) =>
-    leftItem.name.localeCompare(rightItem.name, 'sl', { sensitivity: 'base' })
-  );
+      for (const subcategory of category.subcategories) {
+        for (const item of subcategory.items) {
+          items.push({
+            sku: getCatalogItemSku(category.slug, subcategory.slug, item.slug),
+            name: item.name,
+            unit: DEFAULT_UNIT,
+            unitPrice: item.price ?? getCatalogItemPrice(category.slug, subcategory.slug, item.slug),
+            display_order: item.displayOrder ?? null
+          });
+        }
+      }
+    }
+
+    return items.sort((leftItem, rightItem) =>
+      leftItem.name.localeCompare(rightItem.name, 'sl', { sensitivity: 'base' })
+    );
+  });
 }
 
 export async function GET() {

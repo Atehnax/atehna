@@ -144,7 +144,8 @@ export async function getCatalogSubcategoryServer(categorySlug: string, subSlug:
   return (await loadCatalogSubcategoryPageDataCachedServer(categorySlug, subSlug)).subcategory;
 }
 
-export async function getCatalogItemServer(
+function getCatalogItemFromSubcategory(
+  subcategory: CatalogSubcategory,
   categorySlug: string,
   subSlug: string,
   itemSlug: string
@@ -154,6 +155,34 @@ export async function getCatalogItemServer(
 
 export async function getCatalogCategoryItemServer(categorySlug: string, itemSlug: string): Promise<CatalogItem> {
   return (await loadCatalogCategoryItemPageDataCachedServer(categorySlug, itemSlug)).item;
+}
+
+export async function getCatalogCategoriesServer(): Promise<CatalogCategory[]> {
+  return loadFullCatalogServer();
+}
+
+export async function getCatalogCategoryServer(slug: string): Promise<CatalogCategory> {
+  return getCatalogCategoryFromCategories(await loadFullCatalogServer(), slug);
+}
+
+export async function getCatalogSubcategoryServer(categorySlug: string, subSlug: string): Promise<CatalogSubcategory> {
+  const category = getCatalogCategoryFromCategories(await loadFullCatalogServer(), categorySlug);
+  return getCatalogSubcategoryFromCategory(category, categorySlug, subSlug);
+}
+
+export async function getCatalogItemServer(
+  categorySlug: string,
+  subSlug: string,
+  itemSlug: string
+): Promise<CatalogItem> {
+  const category = getCatalogCategoryFromCategories(await loadFullCatalogServer(), categorySlug);
+  const subcategory = getCatalogSubcategoryFromCategory(category, categorySlug, subSlug);
+  return getCatalogItemFromSubcategory(subcategory, categorySlug, subSlug, itemSlug);
+}
+
+export async function getCatalogCategoryItemServer(categorySlug: string, itemSlug: string): Promise<CatalogItem> {
+  const category = getCatalogCategoryFromCategories(await loadFullCatalogServer(), categorySlug);
+  return getCatalogCategoryItemFromCategory(category, categorySlug, itemSlug);
 }
 
 export async function getCatalogCategorySlugsServer(): Promise<string[]> {

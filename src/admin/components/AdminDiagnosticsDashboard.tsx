@@ -25,6 +25,14 @@ const formatDateTime = (value: string) =>
     timeZone: 'UTC'
   }).format(new Date(value));
 
+const classifyLoaderLayer = (loader: string) => {
+  if (loader.startsWith('getCached') || loader.startsWith('load')) {
+    return { label: 'Cache izvedba', tone: 'bg-amber-100 text-amber-800' };
+  }
+
+  return { label: 'Vhodni loader', tone: 'bg-sky-100 text-sky-800' };
+};
+
 function SummaryCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <article className="rounded-xl border border-slate-200 bg-white p-4">
@@ -102,19 +110,23 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         <SummaryCard label="Klici loaderjev" value={formatNumber(snapshot.summary.totalLoaderCalls)} hint={`${snapshot.summary.uniqueLoaders} loaderjev`} />
         <SummaryCard label="Povpr. trajanje" value={formatDuration(snapshot.summary.avgLoaderDurationMs)} hint="Agregirano čez vse klice" />
-        <SummaryCard label="Cache hit rate" value={formatPercent(snapshot.summary.cacheHitRate)} hint="Iz razlike med klici in izvršitvami miss" />
+        <SummaryCard label="Ocenjen cache hit" value={formatPercent(snapshot.summary.cacheHitRate)} hint="Razlika med vhodnimi klici in cache miss izvršitvami" />
         <SummaryCard label="Približen payload" value={formatBytes(snapshot.summary.totalPayloadBytes)} hint={`${snapshot.summary.activeContexts} kontekstov`} />
         <SummaryCard label="Napake" value={formatNumber(snapshot.summary.totalErrorCount)} hint="Samo instrumentirani loaderji" />
       </div>
 
       <DataTable
         title="Statistika loaderjev"
-        description="Najbolj uporabljeni katalogski/server loaderji v zadnjem oknu."
-        columns={['Loader', 'Kontekst', 'Klici', 'Povpr. ms', 'p95 ms', 'Cache hit %', 'Payload', 'Napake', 'Nazadnje']} 
-        rows={snapshot.loaders.slice(0, 12).map((row) => [
+        description="Vrstice lahko vključujejo tako vhodne loaderje kot tudi notranje cache-miss izvedbe. Pri vrsticah `getCached...` ali `load...` je 0 % hit pričakovan, ker te vrstice tečejo samo ob miss."
+        columns={['Loader', 'Sloj', 'Kontekst', 'Klici', 'Povpr. ms', 'p95 ms', 'Ocenjen hit %', 'Payload', 'Napake', 'Nazadnje']} 
+        rows={snapshot.loaders.slice(0, 12).map((row) => {
+          const layer = classifyLoaderLayer(row.loader);
+
+          return [
           <div key="loader">
             <p className="font-medium text-slate-900">{row.loader}</p>
           </div>,
+          <span key="layer" className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${layer.tone}`}>{layer.label}</span>,
           <code key="context" className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-700">{row.context}</code>,
           formatNumber(row.calls),
           formatDuration(row.avgDurationMs),
@@ -123,7 +135,8 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
           formatBytes(row.totalPayloadBytes),
           formatNumber(row.errorCount),
           formatDateTime(row.lastSeenAt)
-        ])}
+        ];
+        })}
       />
 
       <DataTable

@@ -1,14 +1,13 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { getPageContent } from '@/commercial/content/content';
-import { getCatalogCategoriesServer, getCatalogSearchItemsServer } from '@/commercial/catalog/catalogServer';
+import { getCatalogPageDataServer } from '@/commercial/catalog/catalogServer';
 import MdxContent from '@/commercial/components/MdxContent';
 import ItemSearch from '@/commercial/features/products/ItemSearch';
 
 export default async function HomePage() {
   const page = getPageContent('home');
-  const categories = await getCatalogCategoriesServer();
-  const searchItems = await getCatalogSearchItemsServer();
+  const { categories, searchItems } = await getCatalogPageDataServer();
 
   return (
     <div>

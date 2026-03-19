@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { formatCatalogPrice, getDiscountedPrice, getCatalogItemPrice, getCatalogItemSku, sortCatalogItems } from '@/commercial/catalog/catalog';
-import { getCatalogCategoryServer, getCatalogCategorySlugsServer, getCatalogSubcategoryServer, getCatalogSubcategorySlugsServer } from '@/commercial/catalog/catalogServer';
+import { getCatalogCategorySlugsServer, getCatalogSubcategoryPageDataServer, getCatalogSubcategoryServer, getCatalogSubcategorySlugsServer } from '@/commercial/catalog/catalogServer';
 import AddToCartButton from '@/commercial/features/products/AddToCartButton';
 
 export async function generateStaticParams() {
@@ -21,8 +21,7 @@ export async function generateMetadata({ params }: { params: { category: string;
 }
 
 export default async function SubcategoryPage({ params }: { params: { category: string; subcategory: string } }) {
-  const category = await getCatalogCategoryServer(params.category);
-  const subcategory = await getCatalogSubcategoryServer(params.category, params.subcategory);
+  const { category, subcategory } = await getCatalogSubcategoryPageDataServer(params.category, params.subcategory);
 
   return (
     <div className="container-base py-12">

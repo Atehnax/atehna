@@ -193,15 +193,19 @@ export async function getCatalogCategorySlugsServer(): Promise<string[]> {
 }
 
 export async function getCatalogSubcategorySlugsServer(categorySlug: string): Promise<string[]> {
-  return (await getCatalogCategoryServer(categorySlug)).subcategories.map((item) => item.slug);
+  const category = getCatalogCategoryFromCategories(await loadFullCatalogServer(), categorySlug);
+  return category.subcategories.map((item) => item.slug);
 }
 
 export async function getCatalogCategoryItemSlugsServer(categorySlug: string): Promise<string[]> {
-  return (await getCatalogCategoryServer(categorySlug)).items?.map((item) => item.slug) ?? [];
+  const category = getCatalogCategoryFromCategories(await loadFullCatalogServer(), categorySlug);
+  return category.items?.map((item) => item.slug) ?? [];
 }
 
 export async function getCatalogItemSlugsServer(categorySlug: string, subSlug: string): Promise<string[]> {
-  return (await getCatalogSubcategoryServer(categorySlug, subSlug)).items.map((item) => item.slug);
+  const category = getCatalogCategoryFromCategories(await loadFullCatalogServer(), categorySlug);
+  const subcategory = getCatalogSubcategoryFromCategory(category, categorySlug, subSlug);
+  return subcategory.items.map((item) => item.slug);
 }
 
 export async function getCatalogSearchItemsServer(): Promise<CatalogSearchItem[]> {

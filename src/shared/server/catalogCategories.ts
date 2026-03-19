@@ -1,3 +1,4 @@
+import { unstable_cache, revalidateTag } from 'next/cache';
 import { getPool, getDatabaseUrl } from '@/shared/server/db';
 import type { CatalogItem } from '@/commercial/catalog/catalog';
 import {
@@ -11,6 +12,8 @@ import {
 type CategoryStatus = 'active' | 'inactive';
 type CatalogDataWithStatuses = CatalogData & { statuses: Record<string, CategoryStatus> };
 
+const CATALOG_PUBLIC_TAG = 'catalog-public';
+const CATALOG_ADMIN_TAG = 'catalog-admin';
 
 type CatalogCategoryCard = Pick<RecursiveCatalogCategory, 'slug' | 'title' | 'summary' | 'image'>;
 type CatalogCategorySummary = Pick<RecursiveCatalogCategory, 'slug' | 'title'>;
@@ -172,7 +175,7 @@ function buildSubcategoryTree(
   });
 }
 
-export async function getCatalogDataFromDatabase(
+async function readCatalogDataFromDatabase(
   options: { includeInactive?: boolean; includeStatuses?: boolean } = {}
 ): Promise<CatalogData | CatalogDataWithStatuses> {
   const { includeInactive = false, includeStatuses = false } = options;
@@ -223,7 +226,7 @@ export async function getCatalogDataFromDatabase(
 }
 
 
-export async function getCatalogCategoryCardsFromDatabase(): Promise<CatalogCategoryCard[]> {
+async function readCatalogCategoryCardsFromDatabase(): Promise<CatalogCategoryCard[]> {
   if (!getDatabaseUrl()) {
     const normalized = await readCatalogFile();
     return normalized.categories.map(({ slug, title, summary, image }) => ({ slug, title, summary, image }));
@@ -243,7 +246,7 @@ export async function getCatalogCategoryCardsFromDatabase(): Promise<CatalogCate
   return (result.rows as CategoryCardRow[]).map(({ slug, title, summary, image }) => ({ slug, title, summary, image }));
 }
 
-export async function getCatalogCategorySummariesFromDatabase(): Promise<CatalogCategorySummary[]> {
+async function readCatalogCategorySummariesFromDatabase(): Promise<CatalogCategorySummary[]> {
   if (!getDatabaseUrl()) {
     const normalized = await readCatalogFile();
     return normalized.categories.map(({ slug, title }) => ({ slug, title }));
@@ -263,7 +266,7 @@ export async function getCatalogCategorySummariesFromDatabase(): Promise<Catalog
   return (result.rows as CategorySummaryRow[]).map(({ slug, title }) => ({ slug, title }));
 }
 
-export async function getCatalogCategoryWithSubcategoriesFromDatabase(
+async function readCatalogCategoryWithSubcategoriesFromDatabase(
   slug: string
 ): Promise<CatalogCategoryWithSubcategories | null> {
   if (!getDatabaseUrl()) {
@@ -334,7 +337,7 @@ export async function getCatalogCategoryWithSubcategoriesFromDatabase(
   };
 }
 
-export async function getCatalogSubcategoryWithCategoryFromDatabase(
+async function readCatalogSubcategoryWithCategoryFromDatabase(
   categorySlug: string,
   subSlug: string
 ): Promise<{
@@ -401,7 +404,7 @@ export async function getCatalogSubcategoryWithCategoryFromDatabase(
   };
 }
 
-export async function getCatalogSearchIndexFromDatabase(): Promise<{
+async function readCatalogSearchIndexFromDatabase(): Promise<{
   categories: CatalogCategoryCard[];
   searchItems: Array<{ categorySlug: string; subcategorySlug?: string; items: CatalogItem[] }>;
 }> {
@@ -466,6 +469,87 @@ export async function getCatalogSearchIndexFromDatabase(): Promise<{
         .filter((row): row is { categorySlug: string; subcategorySlug: string; items: CatalogItem[] } => row !== null)
     ]
   };
+}
+
+
+
+const getCachedCatalogDataFromDatabase = unstable_cache(
+  async () => readCatalogDataFromDatabase(),
+  ['catalog-data-active'],
+  { tags: [CATALOG_PUBLIC_TAG] }
+);
+
+const getCachedCatalogAdminDataFromDatabase = unstable_cache(
+  async () => readCatalogDataFromDatabase({ includeInactive: true, includeStatuses: true }) as Promise<CatalogDataWithStatuses>,
+  ['catalog-data-admin'],
+  { tags: [CATALOG_PUBLIC_TAG, CATALOG_ADMIN_TAG] }
+);
+
+const getCachedCatalogCategoryCardsFromDatabase = unstable_cache(
+  async () => readCatalogCategoryCardsFromDatabase(),
+  ['catalog-category-cards'],
+  { tags: [CATALOG_PUBLIC_TAG] }
+);
+
+const getCachedCatalogCategorySummariesFromDatabase = unstable_cache(
+  async () => readCatalogCategorySummariesFromDatabase(),
+  ['catalog-category-summaries'],
+  { tags: [CATALOG_PUBLIC_TAG] }
+);
+
+export async function getCatalogDataFromDatabase(
+  options: { includeInactive?: boolean; includeStatuses?: boolean } = {}
+): Promise<CatalogData | CatalogDataWithStatuses> {
+  const { includeInactive = false, includeStatuses = false } = options;
+
+  if (includeInactive || includeStatuses) {
+    return getCachedCatalogAdminDataFromDatabase();
+  }
+
+  return getCachedCatalogDataFromDatabase();
+}
+
+export async function getCatalogCategoryCardsFromDatabase(): Promise<CatalogCategoryCard[]> {
+  return getCachedCatalogCategoryCardsFromDatabase();
+}
+
+export async function getCatalogCategorySummariesFromDatabase(): Promise<CatalogCategorySummary[]> {
+  return getCachedCatalogCategorySummariesFromDatabase();
+}
+
+export async function getCatalogCategoryWithSubcategoriesFromDatabase(
+  slug: string
+): Promise<CatalogCategoryWithSubcategories | null> {
+  return unstable_cache(
+    async () => readCatalogCategoryWithSubcategoriesFromDatabase(slug),
+    ['catalog-category-with-subcategories', slug],
+    { tags: [CATALOG_PUBLIC_TAG] }
+  )();
+}
+
+export async function getCatalogSubcategoryWithCategoryFromDatabase(
+  categorySlug: string,
+  subSlug: string
+): Promise<{
+  category: CatalogCategorySummary;
+  subcategory: Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'items'>;
+} | null> {
+  return unstable_cache(
+    async () => readCatalogSubcategoryWithCategoryFromDatabase(categorySlug, subSlug),
+    ['catalog-subcategory-with-category', categorySlug, subSlug],
+    { tags: [CATALOG_PUBLIC_TAG] }
+  )();
+}
+
+export async function getCatalogSearchIndexFromDatabase(): Promise<{
+  categories: CatalogCategoryCard[];
+  searchItems: Array<{ categorySlug: string; subcategorySlug?: string; items: CatalogItem[] }>;
+}> {
+  return unstable_cache(
+    async () => readCatalogSearchIndexFromDatabase(),
+    ['catalog-search-index'],
+    { tags: [CATALOG_PUBLIC_TAG] }
+  )();
 }
 
 export async function replaceCategoryTree(
@@ -583,6 +667,8 @@ export async function replaceCategoryTree(
     }
 
     await client.query('commit');
+    revalidateTag(CATALOG_PUBLIC_TAG);
+    revalidateTag(CATALOG_ADMIN_TAG);
   } catch (error) {
     await client.query('rollback');
     throw error;

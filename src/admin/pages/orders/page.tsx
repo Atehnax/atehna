@@ -1,5 +1,7 @@
+import { Suspense } from 'react';
 import AdminOrdersTable from '@/admin/components/AdminOrdersTable';
 import AdminCreateDraftOrderButton from '@/admin/components/AdminCreateDraftOrderButton';
+import { AdminOrdersSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 import {
   type OrderAttachmentRow,
   type OrderDocumentRow,
@@ -49,7 +51,7 @@ const getToDateIsoOrNull = (value: string) => {
   return date.toISOString();
 };
 
-export default async function AdminOrdersPage({
+async function AdminOrdersTableSection({
   searchParams
 }: {
   searchParams?: { from?: string | string[]; to?: string | string[]; q?: string | string[] };
@@ -121,7 +123,6 @@ export default async function AdminOrdersPage({
   };
   let analyticsAppearance = fallbackAppearance;
 
-
   if (!getDatabaseUrl()) {
     warningMessage = 'Povezava z bazo ni nastavljena — prikazan je demo pogled.';
   } else {
@@ -129,8 +130,12 @@ export default async function AdminOrdersPage({
       // Always load the full active dataset on the server and let the table apply
       // date/search/document filters client-side. This avoids accidental empty states
       // caused by stale URL params or server-side filter drift.
-      orders = await fetchOrders({ includeDrafts: true });
-      analyticsAppearance = await fetchGlobalAnalyticsAppearance('narocila').catch(() => fallbackAppearance);
+      const [ordersResult, analyticsAppearanceResult] = await Promise.all([
+        fetchOrders({ includeDrafts: true }),
+        fetchGlobalAnalyticsAppearance('narocila').catch(() => fallbackAppearance)
+      ]);
+      orders = ordersResult;
+      analyticsAppearance = analyticsAppearanceResult;
       console.info(`/admin/orders loaded rows=${orders.length}`);
 
       const orderIds = orders.map((order) => order.id);
@@ -162,6 +167,33 @@ export default async function AdminOrdersPage({
   }
 
   return (
+    <>
+      {warningMessage ? (
+        <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-6 text-sm text-amber-700">
+          {warningMessage}
+        </div>
+      ) : null}
+
+      <AdminOrdersTable
+        orders={orders}
+        documents={documents}
+        attachments={attachments}
+        initialFrom={from}
+        initialTo={to}
+        initialQuery={query}
+        topAction={<AdminCreateDraftOrderButton />}
+        analyticsAppearance={analyticsAppearance}
+      />
+    </>
+  );
+}
+
+export default function AdminOrdersPage({
+  searchParams
+}: {
+  searchParams?: { from?: string | string[]; to?: string | string[]; q?: string | string[] };
+}) {
+  return (
     <div className="w-full">
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -171,22 +203,9 @@ export default async function AdminOrdersPage({
           </div>
         </div>
 
-        {warningMessage ? (
-          <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-6 text-sm text-amber-700">
-            {warningMessage}
-          </div>
-        ) : null}
-
-        <AdminOrdersTable
-          orders={orders}
-          documents={documents}
-          attachments={attachments}
-          initialFrom={from}
-          initialTo={to}
-          initialQuery={query}
-          topAction={<AdminCreateDraftOrderButton />}
-          analyticsAppearance={analyticsAppearance}
-        />
+        <Suspense fallback={<AdminOrdersSectionSkeleton />}>
+          <AdminOrdersTableSection searchParams={searchParams} />
+        </Suspense>
       </div>
     </div>
   );

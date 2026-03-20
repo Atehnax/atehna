@@ -1,4 +1,6 @@
+import { Suspense } from 'react';
 import AdminItemsManager from '@/admin/features/artikli/components/AdminItemsManager';
+import { AdminItemsSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 import {
   getCatalogCategoryItemPrice,
   getCatalogCategoryItemSku,
@@ -83,7 +85,21 @@ async function buildSeedItems(): Promise<SeedItem[]> {
   return items;
 }
 
-export default async function AdminArtikliPage() {
+async function AdminItemsManagerSection() {
   const seedItems = await buildSeedItems();
   return <AdminItemsManager seedItems={seedItems} />;
+}
+
+export default function AdminArtikliPage() {
+  return (
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-2xl font-semibold text-slate-900">Artikli</h1>
+        <p className="mt-1 text-sm text-slate-600">Urejanje artiklov, statusov in prikaza v katalogu.</p>
+      </div>
+      <Suspense fallback={<AdminItemsSectionSkeleton />}>
+        <AdminItemsManagerSection />
+      </Suspense>
+    </div>
+  );
 }

@@ -29,6 +29,17 @@ const DIAGNOSTICS_WINDOW_OPTIONS: DiagnosticsWindowOption[] = [
   { label: '24 ur', param: '24h', minutes: 1440, windowHours: 24, description: 'Urni bucketi za širši dnevni pregled.' }
 ];
 
+const DIAGNOSTICS_COVERAGE_TARGETS = [
+  { context: '/admin/orders', label: 'Naročila seznam' },
+  { context: '/admin/orders/[orderId]', label: 'Naročila podrobnosti' },
+  { context: '/admin/arhiv', label: 'Arhiv' },
+  { context: '/admin/analitika', label: 'Analitika naročil' },
+  { context: '/admin/analitika/splet', label: 'Analitika splet' },
+  { context: '/admin/artikli', label: 'Artikli' },
+  { context: '/admin/kategorije', label: 'Kategorije' },
+  { context: '/admin/kategorije/miller-view', label: 'Kategorije Miller view' }
+] as const;
+
 const formatNumber = (value: number) => new Intl.NumberFormat('sl-SI').format(Math.round(value));
 const formatDuration = (value: number) => `${formatNumber(value)} ms`;
 const formatPercent = (value: number | null) => (value === null ? '—' : `${(value * 100).toFixed(1)} %`);
@@ -183,6 +194,8 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
     snapshot.slowestLoaders.length === 0 &&
     snapshot.heaviestLoaders.length === 0;
   const detailsSnapshot = shouldUseFallbackDetails ? fallbackSnapshot : snapshot;
+  const activeRouteMap = new Map(snapshot.routes.map((route) => [route.context, route]));
+  const detailsRouteMap = new Map(detailsSnapshot.routes.map((route) => [route.context, route]));
   const callSeries = snapshot.series.map((point) => ({ timestamp: point.bucketStart, label: formatBucketLabel(point.bucketStart, snapshot.bucketMinutes), value: point.calls }));
   const payloadSeries = snapshot.series.map((point) => ({ timestamp: point.bucketStart, label: formatBucketLabel(point.bucketStart, snapshot.bucketMinutes), value: point.totalPayloadBytes }));
   const topSlowLabel = detailsSnapshot.slowestLoaders.length >= 10 ? 'Top 10 po p95 za hitrejšo identifikacijo latency hotspotov.' : `Trenutno prikazanih ${detailsSnapshot.slowestLoaders.length} loaderjev z zabeleženim p95.`;
@@ -248,6 +261,39 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
               {triggerLabel(entry.trigger)} · {formatNumber(entry.calls)} klicev · {formatNumber(entry.cacheMisses)} missov
             </span>
           ))}
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Pokritost glavnih admin kontekstov</h2>
+            <p className="mt-1 text-sm text-slate-500">Prikazani so samo konteksti z aktivnostjo v izbranem oknu; demo pogledi ali fallback brez baze ne ustvarijo diagnostičnih zapisov.</p>
+          </div>
+        </div>
+        <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+          {DIAGNOSTICS_COVERAGE_TARGETS.map((target) => {
+            const activeRoute = activeRouteMap.get(target.context);
+            const fallbackRoute = detailsRouteMap.get(target.context);
+            const status = activeRoute
+              ? { label: 'Aktivno v oknu', tone: 'border-emerald-200 bg-emerald-50 text-emerald-900', route: activeRoute }
+              : fallbackRoute && shouldUseFallbackDetails
+                ? { label: 'Samo v 15 min fallback', tone: 'border-sky-200 bg-sky-50 text-sky-900', route: fallbackRoute }
+                : { label: 'Brez aktivnosti v oknu', tone: 'border-slate-200 bg-slate-50 text-slate-700', route: null };
+
+            return (
+              <div key={target.context} className={`rounded-lg border px-3 py-3 ${status.tone}`}>
+                <p className="font-medium">{target.label}</p>
+                <p className="mt-1 text-xs"><code>{target.context}</code></p>
+                <p className="mt-2 text-xs font-semibold uppercase tracking-wide">{status.label}</p>
+                {status.route ? (
+                  <p className="mt-1 text-xs">
+                    {formatNumber(status.route.calls)} klicev · zadnjič {formatDateTime(status.route.lastSeenAt)} UTC
+                  </p>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       </section>
 

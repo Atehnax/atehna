@@ -504,8 +504,8 @@ async function ensureDefaultChartsIfEmpty(dashboardKey = 'narocila') {
   }
 }
 
-export async function fetchAnalyticsCharts(dashboardKey = 'narocila') {
-  return instrumentCatalogLoader('fetchAnalyticsCharts', '/admin/analitika', async () => {
+export async function fetchAnalyticsCharts(dashboardKey = 'narocila', diagnosticsContext = '/admin/analitika') {
+  return instrumentCatalogLoader('fetchAnalyticsCharts', diagnosticsContext, async () => {
     await ensureAnalyticsTables();
     await ensureDefaultChartsIfEmpty(dashboardKey);
 
@@ -598,8 +598,8 @@ export async function reorderAnalyticsCharts(chartIdsInOrder: number[], dashboar
   }
 }
 
-export async function fetchGlobalAnalyticsAppearance(dashboardKey = 'narocila'): Promise<AnalyticsGlobalAppearance> {
-  return instrumentCatalogLoader('fetchGlobalAnalyticsAppearance', '/admin/analitika', async () => {
+export async function fetchGlobalAnalyticsAppearance(dashboardKey = 'narocila', diagnosticsContext = '/admin/analitika'): Promise<AnalyticsGlobalAppearance> {
+  return instrumentCatalogLoader('fetchGlobalAnalyticsAppearance', diagnosticsContext, async () => {
     await ensureAnalyticsTables();
     const pool = await getPool();
     const result = await pool.query('select settings_json, updated_at from analytics_chart_settings where dashboard_key = $1 limit 1', [dashboardKey]);
@@ -622,7 +622,7 @@ export async function fetchGlobalAnalyticsAppearance(dashboardKey = 'narocila'):
 
 export async function updateGlobalAnalyticsAppearance(input: Partial<AnalyticsGlobalAppearance>, dashboardKey = 'narocila') {
   await ensureAnalyticsTables();
-  const current = await fetchGlobalAnalyticsAppearance(dashboardKey);
+  const current = await fetchGlobalAnalyticsAppearance(dashboardKey, '/admin/analitika');
   const next: AnalyticsGlobalAppearance = {
     sectionBg: input.sectionBg ?? current.sectionBg,
     canvasBg: input.canvasBg ?? current.canvasBg,
@@ -643,5 +643,5 @@ export async function updateGlobalAnalyticsAppearance(input: Partial<AnalyticsGl
     [dashboardKey, JSON.stringify(next)]
   );
 
-  return fetchGlobalAnalyticsAppearance(dashboardKey);
+  return fetchGlobalAnalyticsAppearance(dashboardKey, '/admin/analitika');
 }

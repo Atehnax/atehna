@@ -474,7 +474,7 @@ export async function fetchOrdersAnalyticsRows(
   });
 }
 
-export async function fetchOrderById(orderId: number, diagnosticsContext = '/admin/orders/[id]'): Promise<OrderRow | null> {
+export async function fetchOrderById(orderId: number, diagnosticsContext = '/admin/orders/[orderId]'): Promise<OrderRow | null> {
   return instrumentCatalogLoader('fetchOrderById', diagnosticsContext, async () => {
     const pool = await getPool();
     const {
@@ -526,7 +526,7 @@ export async function fetchOrderById(orderId: number, diagnosticsContext = '/adm
   });
 }
 
-export async function fetchOrderItems(orderId: number, diagnosticsContext = '/admin/orders/[id]'): Promise<OrderItemRow[]> {
+export async function fetchOrderItems(orderId: number, diagnosticsContext = '/admin/orders/[orderId]'): Promise<OrderItemRow[]> {
   return instrumentCatalogLoader('fetchOrderItems', diagnosticsContext, async () => {
     const pool = await getPool();
     const result = await pool.query('select * from order_items where order_id = $1 order by id', [orderId]);
@@ -534,7 +534,7 @@ export async function fetchOrderItems(orderId: number, diagnosticsContext = '/ad
   });
 }
 
-export async function fetchOrderDocuments(orderId: number, diagnosticsContext = '/admin/orders/[id]'): Promise<OrderDocumentRow[]> {
+export async function fetchOrderDocuments(orderId: number, diagnosticsContext = '/admin/orders/[orderId]'): Promise<OrderDocumentRow[]> {
   return instrumentCatalogLoader('fetchOrderDocuments', diagnosticsContext, async () => {
     const pool = await getPool();
     const { supportsDeletedColumn } = await getDocumentsSchemaSupport();
@@ -562,7 +562,7 @@ export async function fetchOrderDocumentsForOrders(
   });
 }
 
-export async function fetchOrderAttachments(orderId: number, diagnosticsContext = '/admin/orders/[id]'): Promise<OrderAttachmentRow[]> {
+export async function fetchOrderAttachments(orderId: number, diagnosticsContext = '/admin/orders/[orderId]'): Promise<OrderAttachmentRow[]> {
   return instrumentCatalogLoader('fetchOrderAttachments', diagnosticsContext, async () => {
     const pool = await getPool();
     try {

@@ -1,11 +1,17 @@
+import { Suspense } from 'react';
 import AdminDiagnosticsDashboard from '@/admin/components/AdminDiagnosticsDashboard';
 import AdminAnalyticsTopTabs from '@/admin/components/AdminAnalyticsTopTabs';
+import { AdminDiagnosticsSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 
 export const metadata = {
   title: 'Administracija analitika diagnostika'
 };
 
 export const dynamic = 'force-dynamic';
+
+async function AdminDiagnosticsDashboardSection() {
+  return <AdminDiagnosticsDashboard />;
+}
 
 export default function AdminDiagnosticsPage() {
   return (
@@ -15,7 +21,9 @@ export default function AdminDiagnosticsPage() {
         <p className="mt-1 text-sm text-slate-500">Pregled analitike naročil, spletnega obiska in operativne diagnostike.</p>
       </div>
       <AdminAnalyticsTopTabs />
-      <AdminDiagnosticsDashboard />
+      <Suspense fallback={<AdminDiagnosticsSectionSkeleton />}>
+        <AdminDiagnosticsDashboardSection />
+      </Suspense>
     </div>
   );
 }

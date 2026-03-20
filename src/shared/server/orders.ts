@@ -5,6 +5,15 @@ let hasOrdersDeletedColumnCache: boolean | null = null;
 let hasOrdersPaymentStatusColumnCache: boolean | null = null;
 let hasOrdersPaymentNotesColumnCache: boolean | null = null;
 let hasDocumentsDeletedColumnCache: boolean | null = null;
+let ordersSchemaSupportPromise:
+  | Promise<{
+      supportsDraftColumn: boolean;
+      supportsDeletedColumn: boolean;
+      supportsPaymentStatusColumn: boolean;
+      supportsPaymentNotesColumn: boolean;
+    }>
+  | null = null;
+let documentsSchemaSupportPromise: Promise<{ supportsDeletedColumn: boolean }> | null = null;
 
 async function hasOrdersColumn(columnName: string) {
   const pool = await getPool();
@@ -68,6 +77,34 @@ async function hasDocumentsDeletedColumn() {
 
   hasDocumentsDeletedColumnCache = Number(result.rowCount ?? 0) > 0;
   return hasDocumentsDeletedColumnCache;
+}
+
+async function getOrdersSchemaSupport() {
+  if (!ordersSchemaSupportPromise) {
+    ordersSchemaSupportPromise = Promise.all([
+      hasOrdersDraftColumn(),
+      hasOrdersDeletedColumn(),
+      hasOrdersPaymentStatusColumn(),
+      hasOrdersPaymentNotesColumn()
+    ]).then(([supportsDraftColumn, supportsDeletedColumn, supportsPaymentStatusColumn, supportsPaymentNotesColumn]) => ({
+      supportsDraftColumn,
+      supportsDeletedColumn,
+      supportsPaymentStatusColumn,
+      supportsPaymentNotesColumn
+    }));
+  }
+
+  return ordersSchemaSupportPromise;
+}
+
+async function getDocumentsSchemaSupport() {
+  if (!documentsSchemaSupportPromise) {
+    documentsSchemaSupportPromise = hasDocumentsDeletedColumn().then((supportsDeletedColumn) => ({
+      supportsDeletedColumn
+    }));
+  }
+
+  return documentsSchemaSupportPromise;
 }
 
 export type OrderRow = {
@@ -239,10 +276,12 @@ export async function fetchOrders(options?: {
   includeDrafts?: boolean;
 }): Promise<OrderRow[]> {
   const pool = await getPool();
-  const supportsDraftColumn = await hasOrdersDraftColumn();
-  const supportsDeletedColumn = await hasOrdersDeletedColumn();
-  const supportsPaymentStatusColumn = await hasOrdersPaymentStatusColumn();
-  const supportsPaymentNotesColumn = await hasOrdersPaymentNotesColumn();
+  const {
+    supportsDraftColumn,
+    supportsDeletedColumn,
+    supportsPaymentStatusColumn,
+    supportsPaymentNotesColumn
+  } = await getOrdersSchemaSupport();
   const conditions: string[] = [];
   const queryParams: unknown[] = [];
 
@@ -359,10 +398,12 @@ export async function fetchOrders(options?: {
 
 export async function fetchOrderById(orderId: number): Promise<OrderRow | null> {
   const pool = await getPool();
-  const supportsDraftColumn = await hasOrdersDraftColumn();
-  const supportsDeletedColumn = await hasOrdersDeletedColumn();
-  const supportsPaymentStatusColumn = await hasOrdersPaymentStatusColumn();
-  const supportsPaymentNotesColumn = await hasOrdersPaymentNotesColumn();
+  const {
+    supportsDraftColumn,
+    supportsDeletedColumn,
+    supportsPaymentStatusColumn,
+    supportsPaymentNotesColumn
+  } = await getOrdersSchemaSupport();
 
   const result = await pool.query(
     `
@@ -417,7 +458,7 @@ export async function fetchOrderItems(orderId: number): Promise<OrderItemRow[]> 
 
 export async function fetchOrderDocuments(orderId: number): Promise<OrderDocumentRow[]> {
   const pool = await getPool();
-  const supportsDeletedColumn = await hasDocumentsDeletedColumn();
+  const { supportsDeletedColumn } = await getDocumentsSchemaSupport();
   const result = await pool.query(
     `select * from order_documents where order_id = $1 ${supportsDeletedColumn ? 'and deleted_at is null' : ''} order by created_at desc`,
     [orderId]
@@ -430,7 +471,7 @@ export async function fetchOrderDocumentsForOrders(
 ): Promise<OrderDocumentRow[]> {
   if (orderIds.length === 0) return [];
   const pool = await getPool();
-  const supportsDeletedColumn = await hasDocumentsDeletedColumn();
+  const { supportsDeletedColumn } = await getDocumentsSchemaSupport();
   const result = await pool.query(
     `select * from order_documents where order_id = any($1::bigint[]) ${supportsDeletedColumn ? 'and deleted_at is null' : ''} order by created_at desc`,
     [orderIds]

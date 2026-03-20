@@ -103,6 +103,85 @@ export function AdminAnalyticsSectionSkeleton() {
   );
 }
 
+export function AdminDiagnosticsSectionSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="mt-2 h-3 w-full max-w-2xl" />
+        <div className="mt-3 flex flex-wrap gap-3">
+          <Skeleton className="h-3 w-36" />
+          <Skeleton className="h-3 w-36" />
+        </div>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div key={index} className="rounded-xl border border-slate-200 bg-white p-4">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="mt-3 h-8 w-16" />
+            <Skeleton className="mt-2 h-3 w-24" />
+          </div>
+        ))}
+      </div>
+      <div className="grid gap-4 xl:grid-cols-2">
+        {Array.from({ length: 2 }).map((_, index) => (
+          <div key={index} className="rounded-xl border border-slate-200 bg-white p-4">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="mt-2 h-3 w-full max-w-sm" />
+            <Skeleton className="mt-4 h-40 w-full rounded-xl" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function AdminOrderItemsSectionSkeleton() {
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <Skeleton className="h-6 w-36" />
+      <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
+        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+          <Skeleton className="h-4 w-24" />
+          <div className="flex gap-2">
+            <Skeleton className="h-8 w-8 rounded-xl" />
+            <Skeleton className="h-8 w-8 rounded-xl" />
+            <Skeleton className="h-8 w-8 rounded-xl" />
+          </div>
+        </div>
+        <TableSkeleton rows={6} cols={5} hasActions className="border-0" />
+      </div>
+    </section>
+  );
+}
+
+export function AdminOrderDocumentsSectionSkeleton() {
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <Skeleton className="h-6 w-40" />
+        <Skeleton className="h-8 w-20 rounded-xl" />
+      </div>
+      <div className="mt-5 space-y-3">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="rounded-2xl border border-slate-200 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="mt-2 h-3 w-full max-w-[220px]" />
+              </div>
+              <div className="flex gap-2">
+                <Skeleton className="h-8 w-8 rounded-xl" />
+                <Skeleton className="h-8 w-8 rounded-xl" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function AdminCategoriesRouteSkeleton({ initialView }: { initialView: 'table' | 'miller' }) {
   return (
     <AdminSectionShell

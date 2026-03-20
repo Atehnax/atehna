@@ -4,6 +4,7 @@ import AdminArchiveTabs from '@/admin/components/AdminArchiveTabs';
 import { AdminArchiveSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 import { fetchArchiveEntries } from '@/shared/server/deletedArchive';
 import { getDatabaseUrl } from '@/shared/server/db';
+import { instrumentCatalogRouteEntry } from '@/shared/server/catalogDiagnostics';
 
 export const metadata = {
   title: 'Arhiv naročil'
@@ -12,30 +13,32 @@ export const metadata = {
 export const dynamic = 'force-dynamic';
 
 async function AdminArchiveTableSection() {
-  const entries = getDatabaseUrl()
-    ? await fetchArchiveEntries('all')
-    : [
-        {
-          id: 1,
-          item_type: 'order' as const,
-          order_id: 1,
-          document_id: null,
-          label: '#1 · Demo naročilo',
-          deleted_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: 2,
-          item_type: 'pdf' as const,
-          order_id: 1,
-          document_id: 17,
-          label: '#1-order-summary-v2.pdf',
-          deleted_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
-        }
-      ];
+  return instrumentCatalogRouteEntry('/admin/arhiv', async () => {
+    const entries = getDatabaseUrl()
+      ? await fetchArchiveEntries('all')
+      : [
+          {
+            id: 1,
+            item_type: 'order' as const,
+            order_id: 1,
+            document_id: null,
+            label: '#1 · Demo naročilo',
+            deleted_at: new Date().toISOString(),
+            expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
+          },
+          {
+            id: 2,
+            item_type: 'pdf' as const,
+            order_id: 1,
+            document_id: 17,
+            label: '#1-order-summary-v2.pdf',
+            deleted_at: new Date().toISOString(),
+            expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
+          }
+        ];
 
-  return <AdminDeletedArchiveTable initialEntries={entries} />;
+    return <AdminDeletedArchiveTable initialEntries={entries} />;
+  });
 }
 
 export default function AdminArchivePage() {

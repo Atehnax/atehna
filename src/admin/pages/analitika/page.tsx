@@ -5,6 +5,7 @@ import { AdminAnalyticsSectionSkeleton } from '@/admin/components/AdminPageSkele
 import { emptyOrdersAnalyticsResponse, fetchOrdersAnalytics } from '@/shared/server/orderAnalytics';
 import { fetchAnalyticsCharts, fetchGlobalAnalyticsAppearance } from '@/shared/server/analyticsCharts';
 import { getDatabaseUrl } from '@/shared/server/db';
+import { instrumentCatalogRouteEntry } from '@/shared/server/catalogDiagnostics';
 
 export const metadata = {
   title: 'Administracija analitika'
@@ -17,29 +18,31 @@ async function AdminAnalyticsDashboardSection({
 }: {
   searchParams?: { range?: string; from?: string; to?: string; grouping?: string; view?: string; focus?: string };
 }) {
-  const fallbackAppearance = { sectionBg: '#f3f4f6', canvasBg: '#ffffff', cardBg: '#ffffff', plotBg: '#ffffff', axisTextColor: '#1f2937', seriesPalette: ['#2563eb', '#0ea5e9', '#14b8a6', '#f59e0b', '#ef4444'], gridColor: '#d1d5db', gridOpacity: 0.35 };
+  return instrumentCatalogRouteEntry('/admin/analitika', async () => {
+    const fallbackAppearance = { sectionBg: '#f3f4f6', canvasBg: '#ffffff', cardBg: '#ffffff', plotBg: '#ffffff', axisTextColor: '#1f2937', seriesPalette: ['#2563eb', '#0ea5e9', '#14b8a6', '#f59e0b', '#ef4444'], gridColor: '#d1d5db', gridOpacity: 0.35 };
 
-  const [data, charts, appearance] = getDatabaseUrl()
-    ? await Promise.all([
-        fetchOrdersAnalytics({
-          range: searchParams?.range,
-          from: searchParams?.from,
-          to: searchParams?.to,
-          grouping: searchParams?.grouping
-        }).catch(() => emptyOrdersAnalyticsResponse()),
-        fetchAnalyticsCharts('narocila').catch(() => []),
-        fetchGlobalAnalyticsAppearance('narocila').catch(() => fallbackAppearance)
-      ])
-    : [emptyOrdersAnalyticsResponse(), [], fallbackAppearance];
+    const [data, charts, appearance] = getDatabaseUrl()
+      ? await Promise.all([
+          fetchOrdersAnalytics({
+            range: searchParams?.range,
+            from: searchParams?.from,
+            to: searchParams?.to,
+            grouping: searchParams?.grouping
+          }).catch(() => emptyOrdersAnalyticsResponse()),
+          fetchAnalyticsCharts('narocila').catch(() => []),
+          fetchGlobalAnalyticsAppearance('narocila').catch(() => fallbackAppearance)
+        ])
+      : [emptyOrdersAnalyticsResponse(), [], fallbackAppearance];
 
-  return (
-    <AdminAnalyticsDashboard
-      initialData={data}
-      initialCharts={charts}
-      initialFocusKey={searchParams?.focus ?? ''}
-      initialAppearance={appearance}
-    />
-  );
+    return (
+      <AdminAnalyticsDashboard
+        initialData={data}
+        initialCharts={charts}
+        initialFocusKey={searchParams?.focus ?? ''}
+        initialAppearance={appearance}
+      />
+    );
+  });
 }
 
 export default function AdminAnalyticsIndexPage({

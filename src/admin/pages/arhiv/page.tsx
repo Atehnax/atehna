@@ -3,6 +3,7 @@ import AdminDeletedArchiveTable from '@/admin/components/AdminDeletedArchiveTabl
 import AdminArchiveTabs from '@/admin/components/AdminArchiveTabs';
 import { AdminArchiveSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 import { fetchArchiveEntries } from '@/shared/server/deletedArchive';
+import { instrumentAdminRouteRender } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';
 
 export const metadata = {
@@ -12,7 +13,8 @@ export const metadata = {
 export const dynamic = 'force-dynamic';
 
 async function AdminArchiveTableSection() {
-  const entries = getDatabaseUrl()
+  return instrumentAdminRouteRender('/admin/arhiv', async () => {
+    const entries = getDatabaseUrl()
     ? await fetchArchiveEntries('all')
     : [
         {
@@ -35,7 +37,8 @@ async function AdminArchiveTableSection() {
         }
       ];
 
-  return <AdminDeletedArchiveTable initialEntries={entries} />;
+    return <AdminDeletedArchiveTable initialEntries={entries} />;
+  });
 }
 
 export default function AdminArchivePage() {

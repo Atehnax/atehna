@@ -4,7 +4,7 @@ import AdminAnalyticsTopTabs from '@/admin/components/AdminAnalyticsTopTabs';
 import { AdminAnalyticsSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 import { emptyOrdersAnalyticsResponse, fetchOrdersAnalytics } from '@/shared/server/orderAnalytics';
 import { fetchAnalyticsCharts, fetchGlobalAnalyticsAppearance } from '@/shared/server/analyticsCharts';
-import { instrumentAdminRouteRender } from '@/shared/server/catalogDiagnostics';
+import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';
 
 export const metadata = {
@@ -33,6 +33,12 @@ async function AdminAnalyticsDashboardSection({
         fetchGlobalAnalyticsAppearance('narocila').catch(() => fallbackAppearance)
       ])
     : [emptyOrdersAnalyticsResponse(), [], fallbackAppearance];
+
+    await profileRoutePhase('payload', 'AdminAnalyticsDashboardSection:props', async () => {
+      profilePayloadEstimate('AdminAnalyticsDashboardSection:data', data);
+      profilePayloadEstimate('AdminAnalyticsDashboardSection:charts', charts);
+      profilePayloadEstimate('AdminAnalyticsDashboardSection:appearance', appearance);
+    });
 
     return (
       <AdminAnalyticsDashboard

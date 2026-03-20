@@ -1,7 +1,7 @@
 import AdminWebsiteAnalyticsDashboard from '@/admin/components/AdminWebsiteAnalyticsDashboard';
 import AdminAnalyticsTopTabs from '@/admin/components/AdminAnalyticsTopTabs';
 import { fetchWebsiteAnalytics } from '@/shared/server/websiteAnalytics';
-import { instrumentAdminRouteRender } from '@/shared/server/catalogDiagnostics';
+import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';
 
 export const metadata = {
@@ -28,8 +28,14 @@ export default async function AdminWebsiteAnalyticsPage({
 
   const fallbackAnalytics = { visitsByDay: [], topPages: [], topProducts: [], returningVisitors7d: 0, retentionByDay: [] };
   const analytics = getDatabaseUrl()
-    ? await fetchWebsiteAnalytics({ fromDate: toIsoOrNull(from), toDate: toIsoOrNull(to) }).catch(() => fallbackAnalytics)
+    ? await profileRoutePhase('db', 'AdminWebsiteAnalyticsPage:fetchWebsiteAnalytics', () =>
+        fetchWebsiteAnalytics({ fromDate: toIsoOrNull(from), toDate: toIsoOrNull(to) })
+      ).catch(() => fallbackAnalytics)
     : fallbackAnalytics;
+
+  await profileRoutePhase('payload', 'AdminWebsiteAnalyticsPage:analytics', async () => {
+    profilePayloadEstimate('AdminWebsiteAnalyticsPage:analytics', analytics);
+  });
 
     return (
       <div className="w-full">

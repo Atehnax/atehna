@@ -10,7 +10,7 @@ import {
   fetchOrderDocumentsForOrders,
   fetchOrders
 } from '@/shared/server/orders';
-import { instrumentAdminRouteRender } from '@/shared/server/catalogDiagnostics';
+import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';
 import { fetchGlobalAnalyticsAppearance, type AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
 
@@ -167,6 +167,12 @@ async function AdminOrdersTableSection({
         'Podatkov trenutno ni mogoče naložiti. Prikazan je demo pogled, dokler povezava z bazo ne deluje.';
     }
   }
+
+    await profileRoutePhase('payload', 'AdminOrdersTableSection:props', async () => {
+      profilePayloadEstimate('AdminOrdersTableSection:orders', orders);
+      profilePayloadEstimate('AdminOrdersTableSection:documents', documents);
+      profilePayloadEstimate('AdminOrdersTableSection:attachments', attachments);
+    });
 
     return (
       <>

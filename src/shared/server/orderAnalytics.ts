@@ -1,5 +1,5 @@
 import { getPool } from '@/shared/server/db';
-import { instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
+import { instrumentCatalogLoader, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import { fetchOrdersAnalyticsRows, type OrderAnalyticsRow } from '@/shared/server/orders';
 
 export const ANALYTICS_TIMEZONE = 'UTC';
@@ -194,11 +194,13 @@ export async function fetchOrdersAnalytics(params?: {
     const grouping: AnalyticsGrouping = 'day';
     const window = resolveWindow({ range, from: params?.from, to: params?.to });
 
-    const orders = await fetchOrdersAnalyticsRows(
+    const orders = await profileRoutePhase('db', 'fetchOrdersAnalytics:ordersRows', () => fetchOrdersAnalyticsRows(
       { includeDrafts: true, fromDate: window.fromIso, toDate: window.toIso },
       '/admin/analitika'
+    ));
+    const paidAtByOrder = await profileRoutePhase('db', 'fetchOrdersAnalytics:paidLogs', () =>
+      fetchPaidLogTimestamps(orders.map((order) => order.id))
     );
-    const paidAtByOrder = await fetchPaidLogTimestamps(orders.map((order) => order.id));
 
     const bucketByDay = new Map<
       string,
@@ -233,42 +235,44 @@ export async function fetchOrdersAnalytics(params?: {
       cursor += DAY_MS;
     }
 
-    orders.forEach((order: OrderAnalyticsRow) => {
-      const createdAt = new Date(order.created_at);
-      if (Number.isNaN(createdAt.getTime())) return;
+    await profileRoutePhase('transform', 'fetchOrdersAnalytics:aggregateDays', async () => {
+      orders.forEach((order: OrderAnalyticsRow) => {
+        const createdAt = new Date(order.created_at);
+        if (Number.isNaN(createdAt.getTime())) return;
 
-      const dayKey = createdAt.toISOString().slice(0, 10);
-      const dayBucket = bucketByDay.get(dayKey);
-      if (!dayBucket) return;
+        const dayKey = createdAt.toISOString().slice(0, 10);
+        const dayBucket = bucketByDay.get(dayKey);
+        if (!dayBucket) return;
 
-      const orderTotal = toFiniteNumber(order.total);
-      dayBucket.order_count += 1;
-      dayBucket.revenue_total += orderTotal;
-      dayBucket.orderValues.push(orderTotal);
+        const orderTotal = toFiniteNumber(order.total);
+        dayBucket.order_count += 1;
+        dayBucket.revenue_total += orderTotal;
+        dayBucket.orderValues.push(orderTotal);
 
-      const status = statusLabel(order.status);
-      dayBucket.status_buckets[status] = (dayBucket.status_buckets[status] ?? 0) + 1;
-      if (status === 'cancelled') dayBucket.cancelled_count += 1;
+        const status = statusLabel(order.status);
+        dayBucket.status_buckets[status] = (dayBucket.status_buckets[status] ?? 0) + 1;
+        if (status === 'cancelled') dayBucket.cancelled_count += 1;
 
-      const paymentStatus = statusLabel(order.payment_status);
-      dayBucket.payment_status_buckets[paymentStatus] =
-        (dayBucket.payment_status_buckets[paymentStatus] ?? 0) + 1;
-      if (paymentStatus === 'paid') dayBucket.paid_count += 1;
+        const paymentStatus = statusLabel(order.payment_status);
+        dayBucket.payment_status_buckets[paymentStatus] =
+          (dayBucket.payment_status_buckets[paymentStatus] ?? 0) + 1;
+        if (paymentStatus === 'paid') dayBucket.paid_count += 1;
 
-      const customer = customerBucket(order.customer_type);
-      dayBucket.customer_type_buckets[customer] += 1;
+        const customer = customerBucket(order.customer_type);
+        dayBucket.customer_type_buckets[customer] += 1;
 
-      const paidAt = paidAtByOrder.get(order.id);
-      if (paidAt) {
-        const paidTimestamp = new Date(paidAt).getTime();
-        if (!Number.isNaN(paidTimestamp)) {
-          const leadHours = (paidTimestamp - createdAt.getTime()) / (1000 * 60 * 60);
-          if (Number.isFinite(leadHours) && leadHours >= 0) dayBucket.leadHours.push(leadHours);
+        const paidAt = paidAtByOrder.get(order.id);
+        if (paidAt) {
+          const paidTimestamp = new Date(paidAt).getTime();
+          if (!Number.isNaN(paidTimestamp)) {
+            const leadHours = (paidTimestamp - createdAt.getTime()) / (1000 * 60 * 60);
+            if (Number.isFinite(leadHours) && leadHours >= 0) dayBucket.leadHours.push(leadHours);
+          }
         }
-      }
+      });
     });
 
-    const days = seedDays.map((dayKey) => {
+    const days = await profileRoutePhase('transform', 'fetchOrdersAnalytics:finalizeDays', async () => seedDays.map((dayKey) => {
       const bucket = bucketByDay.get(dayKey)!;
       const aov = bucket.order_count > 0 ? bucket.revenue_total / bucket.order_count : 0;
       const medianOrderValue = percentile(bucket.orderValues, 0.5) ?? 0;
@@ -293,7 +297,8 @@ export async function fetchOrdersAnalytics(params?: {
         lead_time_p50_hours: p50 === null ? null : Number(p50.toFixed(2)),
         lead_time_p90_hours: p90 === null ? null : Number(p90.toFixed(2))
       };
-    });
+    }));
+    profilePayloadEstimate('fetchOrdersAnalytics:days', days);
 
     return {
       timezone: ANALYTICS_TIMEZONE,

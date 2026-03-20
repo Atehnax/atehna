@@ -3,7 +3,7 @@ import AdminDeletedArchiveTable from '@/admin/components/AdminDeletedArchiveTabl
 import AdminArchiveTabs from '@/admin/components/AdminArchiveTabs';
 import { AdminArchiveSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 import { fetchArchiveEntries } from '@/shared/server/deletedArchive';
-import { instrumentAdminRouteRender } from '@/shared/server/catalogDiagnostics';
+import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';
 
 export const metadata = {
@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic';
 async function AdminArchiveTableSection() {
   return instrumentAdminRouteRender('/admin/arhiv', async () => {
     const entries = getDatabaseUrl()
-    ? await fetchArchiveEntries('all')
+    ? await profileRoutePhase('db', 'AdminArchiveTableSection:fetchArchiveEntries', () => fetchArchiveEntries('all'))
     : [
         {
           id: 1,
@@ -37,6 +37,9 @@ async function AdminArchiveTableSection() {
         }
       ];
 
+    await profileRoutePhase('payload', 'AdminArchiveTableSection:entries', async () => {
+      profilePayloadEstimate('AdminArchiveTableSection:entries', entries);
+    });
     return <AdminDeletedArchiveTable initialEntries={entries} />;
   });
 }

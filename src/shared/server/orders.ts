@@ -1,5 +1,5 @@
 import { getPool } from '@/shared/server/db';
-import { instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
+import { instrumentCatalogLoader, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 
 let hasOrdersDraftColumnCache: boolean | null = null;
 let hasOrdersDeletedColumnCache: boolean | null = null;
@@ -412,12 +412,16 @@ export async function fetchOrders(
   `;
 
     try {
-      const result = await pool.query(primaryQuery, queryParams);
-      return result.rows.map((rawRow) => mapOrderRow(rawRow as Record<string, unknown>));
+      const result = await profileRoutePhase('db', 'fetchOrders:primaryQuery', () => pool.query(primaryQuery, queryParams));
+      return profileRoutePhase('transform', 'fetchOrders:mapRows', async () =>
+        result.rows.map((rawRow) => mapOrderRow(rawRow as Record<string, unknown>))
+      );
     } catch (error) {
       console.error('fetchOrders primary query failed, retrying with safe fallback', error);
-      const fallbackResult = await pool.query(safeFallbackQuery, queryParams);
-      return fallbackResult.rows.map((rawRow) => mapOrderRow(rawRow as Record<string, unknown>));
+      const fallbackResult = await profileRoutePhase('db', 'fetchOrders:fallbackQuery', () => pool.query(safeFallbackQuery, queryParams));
+      return profileRoutePhase('transform', 'fetchOrders:mapFallbackRows', async () =>
+        fallbackResult.rows.map((rawRow) => mapOrderRow(rawRow as Record<string, unknown>))
+      );
     }
   });
 }
@@ -469,8 +473,10 @@ export async function fetchOrdersAnalyticsRows(
       order by orders.created_at desc, orders.id desc
     `;
 
-    const result = await pool.query(query, queryParams);
-    return result.rows.map((rawRow) => mapOrderAnalyticsRow(rawRow as Record<string, unknown>));
+    const result = await profileRoutePhase('db', 'fetchOrdersAnalyticsRows:query', () => pool.query(query, queryParams));
+    return profileRoutePhase('transform', 'fetchOrdersAnalyticsRows:mapRows', async () =>
+      result.rows.map((rawRow) => mapOrderAnalyticsRow(rawRow as Record<string, unknown>))
+    );
   });
 }
 
@@ -484,7 +490,7 @@ export async function fetchOrderById(orderId: number, diagnosticsContext = '/adm
       supportsPaymentNotesColumn
     } = await getOrdersSchemaSupport();
 
-    const result = await pool.query(
+    const result = await profileRoutePhase('db', 'fetchOrderById:query', () => pool.query(
       `
     select
       orders.id,
@@ -519,18 +525,22 @@ export async function fetchOrderById(orderId: number, diagnosticsContext = '/adm
     where orders.id = $1
     `,
       [orderId]
-    );
+    ));
 
     if (result.rows.length === 0) return null;
-    return mapOrderRow(result.rows[0] as Record<string, unknown>);
+    return profileRoutePhase('transform', 'fetchOrderById:mapRow', async () => mapOrderRow(result.rows[0] as Record<string, unknown>));
   });
 }
 
 export async function fetchOrderItems(orderId: number, diagnosticsContext = '/admin/orders/[orderId]'): Promise<OrderItemRow[]> {
   return instrumentCatalogLoader('fetchOrderItems', diagnosticsContext, async () => {
     const pool = await getPool();
-    const result = await pool.query('select * from order_items where order_id = $1 order by id', [orderId]);
-    return result.rows.map((rawRow) => mapOrderItemRow(rawRow as Record<string, unknown>));
+    const result = await profileRoutePhase('db', 'fetchOrderItems:query', () =>
+      pool.query('select * from order_items where order_id = $1 order by id', [orderId])
+    );
+    return profileRoutePhase('transform', 'fetchOrderItems:mapRows', async () =>
+      result.rows.map((rawRow) => mapOrderItemRow(rawRow as Record<string, unknown>))
+    );
   });
 }
 
@@ -538,11 +548,13 @@ export async function fetchOrderDocuments(orderId: number, diagnosticsContext = 
   return instrumentCatalogLoader('fetchOrderDocuments', diagnosticsContext, async () => {
     const pool = await getPool();
     const { supportsDeletedColumn } = await getDocumentsSchemaSupport();
-    const result = await pool.query(
+    const result = await profileRoutePhase('db', 'fetchOrderDocuments:query', () => pool.query(
       `select * from order_documents where order_id = $1 ${supportsDeletedColumn ? 'and deleted_at is null' : ''} order by created_at desc`,
       [orderId]
+    ));
+    return profileRoutePhase('transform', 'fetchOrderDocuments:mapRows', async () =>
+      result.rows.map((rawRow) => mapOrderDocumentRow(rawRow as Record<string, unknown>))
     );
-    return result.rows.map((rawRow) => mapOrderDocumentRow(rawRow as Record<string, unknown>));
   });
 }
 
@@ -554,11 +566,13 @@ export async function fetchOrderDocumentsForOrders(
     if (orderIds.length === 0) return [];
     const pool = await getPool();
     const { supportsDeletedColumn } = await getDocumentsSchemaSupport();
-    const result = await pool.query(
+    const result = await profileRoutePhase('db', 'fetchOrderDocumentsForOrders:query', () => pool.query(
       `select * from order_documents where order_id = any($1::bigint[]) ${supportsDeletedColumn ? 'and deleted_at is null' : ''} order by created_at desc`,
       [orderIds]
+    ));
+    return profileRoutePhase('transform', 'fetchOrderDocumentsForOrders:mapRows', async () =>
+      result.rows.map((rawRow) => mapOrderDocumentRow(rawRow as Record<string, unknown>))
     );
-    return result.rows.map((rawRow) => mapOrderDocumentRow(rawRow as Record<string, unknown>));
   });
 }
 
@@ -566,8 +580,12 @@ export async function fetchOrderAttachments(orderId: number, diagnosticsContext 
   return instrumentCatalogLoader('fetchOrderAttachments', diagnosticsContext, async () => {
     const pool = await getPool();
     try {
-      const result = await pool.query('select * from order_attachments where order_id = $1 order by created_at desc', [orderId]);
-      return result.rows.map((rawRow) => mapOrderAttachmentRow(rawRow as Record<string, unknown>));
+      const result = await profileRoutePhase('db', 'fetchOrderAttachments:query', () =>
+        pool.query('select * from order_attachments where order_id = $1 order by created_at desc', [orderId])
+      );
+      return profileRoutePhase('transform', 'fetchOrderAttachments:mapRows', async () =>
+        result.rows.map((rawRow) => mapOrderAttachmentRow(rawRow as Record<string, unknown>))
+      );
     } catch (error) {
       if (
         typeof error === 'object' &&
@@ -590,11 +608,13 @@ export async function fetchOrderAttachmentsForOrders(
     if (orderIds.length === 0) return [];
     const pool = await getPool();
     try {
-      const result = await pool.query(
+      const result = await profileRoutePhase('db', 'fetchOrderAttachmentsForOrders:query', () => pool.query(
         'select * from order_attachments where order_id = any($1::bigint[]) order by created_at desc',
         [orderIds]
+      ));
+      return profileRoutePhase('transform', 'fetchOrderAttachmentsForOrders:mapRows', async () =>
+        result.rows.map((rawRow) => mapOrderAttachmentRow(rawRow as Record<string, unknown>))
       );
-      return result.rows.map((rawRow) => mapOrderAttachmentRow(rawRow as Record<string, unknown>));
     } catch (error) {
       if (
         typeof error === 'object' &&

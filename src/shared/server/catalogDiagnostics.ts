@@ -1,4 +1,7 @@
 import 'server-only';
+import { appendFileSync, existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 type TriggerType = 'page_render' | 'api_call' | 'save_revalidation' | 'search' | 'other';
 
@@ -26,12 +29,6 @@ type InvalidationBucket = {
   invalidations: number;
   revalidatedPaths: number;
   lastSeenAt: string;
-};
-
-type DiagnosticsStore = {
-  startedAt: string;
-  buckets: Map<string, LoaderMetricBucket>;
-  invalidations: Map<string, InvalidationBucket>;
 };
 
 type RecordLoaderMetricInput = {
@@ -135,28 +132,51 @@ type DiagnosticsSnapshot = {
   warnings: RouteBudgetWarning[];
 };
 
-declare global {
-  // eslint-disable-next-line no-var
-  var __catalogDiagnosticsStore: DiagnosticsStore | undefined;
+type LoaderMetricEvent = {
+  kind: 'loader';
+  recordedAt: string;
+  loader: string;
+  context: string;
+  trigger: TriggerType;
+  durationMs: number;
+  payloadBytes: number;
+  cacheMiss: boolean;
+  error: boolean;
+};
+
+type InvalidationEvent = {
+  kind: 'invalidation';
+  recordedAt: string;
+  context: string;
+  trigger: TriggerType;
+  tagFamily: string;
+  revalidatedPaths: number;
+};
+
+type DiagnosticsEvent = LoaderMetricEvent | InvalidationEvent;
+
+
+function normalizeDiagnosticsContext(context: string): string {
+  const normalized = context.trim();
+
+  if (!normalized) return 'unknown';
+  if (!normalized.startsWith('/admin')) return normalized;
+
+  if (normalized.startsWith('/admin/orders/')) return '/admin/orders/[orderId]';
+  if (normalized.startsWith('/admin/kategorije/miller-view')) return '/admin/kategorije/miller-view';
+  if (normalized.startsWith('/admin/kategorije/')) return '/admin/kategorije';
+  if (normalized.startsWith('/admin/analitika/splet')) return '/admin/analitika/splet';
+  if (normalized.startsWith('/admin/analitika/diagnostika')) return '/admin/analitika/diagnostika';
+  if (normalized.startsWith('/admin/analitika/')) return '/admin/analitika';
+
+  return normalized;
 }
 
-const MAX_BUCKETS = 2400;
-const MAX_INVALIDATION_BUCKETS = 720;
+const MAX_EVENTS = 6000;
 const MAX_SAMPLES_PER_BUCKET = 256;
 const DEFAULT_WINDOW_HOURS = 24;
 const DEFAULT_WINDOW_MINUTES = DEFAULT_WINDOW_HOURS * 60;
-
-function getStore(): DiagnosticsStore {
-  if (!globalThis.__catalogDiagnosticsStore) {
-    globalThis.__catalogDiagnosticsStore = {
-      startedAt: new Date().toISOString(),
-      buckets: new Map(),
-      invalidations: new Map()
-    };
-  }
-
-  return globalThis.__catalogDiagnosticsStore;
-}
+const DIAGNOSTICS_LOG_PATH = join(tmpdir(), 'atehna-catalog-diagnostics.ndjson');
 
 function getBucketGranularityMinutes(windowMinutes: number): DiagnosticsBucketGranularityMinutes {
   if (windowMinutes <= 5) return 1;
@@ -208,100 +228,154 @@ function inferTrigger(context: string, loader = ''): TriggerType {
   return 'other';
 }
 
-function pruneStore(now: Date) {
+function appendDiagnosticsEvent(event: DiagnosticsEvent) {
+  appendFileSync(DIAGNOSTICS_LOG_PATH, `${JSON.stringify(event)}\n`, 'utf8');
+}
+
+function parseDiagnosticsEvent(rawLine: string): DiagnosticsEvent | null {
+  try {
+    const parsed = JSON.parse(rawLine) as Partial<DiagnosticsEvent>;
+    if (!parsed || typeof parsed !== 'object' || typeof parsed.kind !== 'string' || typeof parsed.recordedAt !== 'string') return null;
+    return parsed as DiagnosticsEvent;
+  } catch {
+    return null;
+  }
+}
+
+function compactDiagnosticsLog(events: DiagnosticsEvent[]) {
+  const nextBody = events.map((event) => JSON.stringify(event)).join('\n');
+  const tempPath = `${DIAGNOSTICS_LOG_PATH}.tmp`;
+  writeFileSync(tempPath, nextBody.length > 0 ? `${nextBody}\n` : '', 'utf8');
+  renameSync(tempPath, DIAGNOSTICS_LOG_PATH);
+}
+
+function readDiagnosticsEvents(now: Date): { events: DiagnosticsEvent[]; metricsStartedAt: string } {
+  if (!existsSync(DIAGNOSTICS_LOG_PATH)) {
+    return { events: [], metricsStartedAt: now.toISOString() };
+  }
+
+  const fileBody = readFileSync(DIAGNOSTICS_LOG_PATH, 'utf8');
+  const parsedEvents = fileBody
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => parseDiagnosticsEvent(line))
+    .filter((event): event is DiagnosticsEvent => Boolean(event))
+    .sort((left, right) => left.recordedAt.localeCompare(right.recordedAt));
+
+  if (parsedEvents.length === 0) {
+    return { events: [], metricsStartedAt: now.toISOString() };
+  }
+
   const cutoff = now.getTime() - DEFAULT_WINDOW_MINUTES * 60 * 1000;
-  const store = getStore();
+  const recentEvents = parsedEvents.filter((event) => new Date(event.recordedAt).getTime() >= cutoff).slice(-MAX_EVENTS);
 
-  for (const [key, bucket] of store.buckets.entries()) {
-    if (new Date(bucket.bucketStart).getTime() < cutoff) {
-      store.buckets.delete(key);
-    }
+  if (recentEvents.length !== parsedEvents.length) {
+    compactDiagnosticsLog(recentEvents);
   }
 
-  for (const [key, bucket] of store.invalidations.entries()) {
-    if (new Date(bucket.bucketStart).getTime() < cutoff) {
-      store.invalidations.delete(key);
+  return {
+    events: recentEvents,
+    metricsStartedAt: recentEvents[0]?.recordedAt ?? now.toISOString()
+  };
+}
+
+function buildDiagnosticsBuckets(now: Date): {
+  metricsStartedAt: string;
+  buckets: LoaderMetricBucket[];
+  invalidations: InvalidationBucket[];
+} {
+  const { events, metricsStartedAt } = readDiagnosticsEvents(now);
+  const loaderBuckets = new Map<string, LoaderMetricBucket>();
+  const invalidationBuckets = new Map<string, InvalidationBucket>();
+
+  for (const event of events) {
+    const recordedAt = new Date(event.recordedAt);
+    const bucketStart = floorToBucket(recordedAt, 1).toISOString();
+
+    if (event.kind === 'loader') {
+      const key = bucketKey(event.loader, event.context, bucketStart);
+      const existing = loaderBuckets.get(key) ?? {
+        bucketStart,
+        loader: event.loader,
+        context: event.context,
+        trigger: event.trigger,
+        calls: 0,
+        cacheMisses: 0,
+        errorCount: 0,
+        totalDurationMs: 0,
+        totalPayloadBytes: 0,
+        lastSeenAt: event.recordedAt,
+        durationsMs: []
+      } satisfies LoaderMetricBucket;
+
+      existing.calls += 1;
+      existing.cacheMisses += event.cacheMiss ? 1 : 0;
+      existing.errorCount += event.error ? 1 : 0;
+      existing.totalDurationMs += clampNonNegative(event.durationMs);
+      existing.totalPayloadBytes += clampNonNegative(event.payloadBytes);
+      existing.lastSeenAt = existing.lastSeenAt > event.recordedAt ? existing.lastSeenAt : event.recordedAt;
+      existing.trigger = event.trigger;
+      pushDurationSample(existing.durationsMs, clampNonNegative(event.durationMs));
+      loaderBuckets.set(key, existing);
+      continue;
     }
+
+    const key = invalidationKey(event.context, event.tagFamily, bucketStart);
+    const existing = invalidationBuckets.get(key) ?? {
+      bucketStart,
+      context: event.context,
+      trigger: event.trigger,
+      tagFamily: event.tagFamily,
+      invalidations: 0,
+      revalidatedPaths: 0,
+      lastSeenAt: event.recordedAt
+    } satisfies InvalidationBucket;
+
+    existing.invalidations += 1;
+    existing.revalidatedPaths += clampNonNegative(event.revalidatedPaths);
+    existing.lastSeenAt = existing.lastSeenAt > event.recordedAt ? existing.lastSeenAt : event.recordedAt;
+    existing.trigger = event.trigger;
+    invalidationBuckets.set(key, existing);
   }
 
-  if (store.buckets.size > MAX_BUCKETS) {
-    const ordered = [...store.buckets.entries()].sort((left, right) =>
-      new Date(left[1].bucketStart).getTime() - new Date(right[1].bucketStart).getTime()
-    );
-
-    for (const [key] of ordered.slice(0, Math.max(0, ordered.length - MAX_BUCKETS))) {
-      store.buckets.delete(key);
-    }
-  }
-
-  if (store.invalidations.size > MAX_INVALIDATION_BUCKETS) {
-    const ordered = [...store.invalidations.entries()].sort((left, right) =>
-      new Date(left[1].bucketStart).getTime() - new Date(right[1].bucketStart).getTime()
-    );
-
-    for (const [key] of ordered.slice(0, Math.max(0, ordered.length - MAX_INVALIDATION_BUCKETS))) {
-      store.invalidations.delete(key);
-    }
-  }
+  return {
+    metricsStartedAt,
+    buckets: [...loaderBuckets.values()],
+    invalidations: [...invalidationBuckets.values()]
+  };
 }
 
 export function recordCatalogLoaderMetric(input: RecordLoaderMetricInput) {
   const recordedAt = input.recordedAt ?? new Date();
-  const bucketStart = floorToBucket(recordedAt, 1).toISOString();
-  const key = bucketKey(input.loader, input.context, bucketStart);
-  const trigger = inferTrigger(input.context, input.loader);
-  const store = getStore();
-  const existing = store.buckets.get(key) ?? {
-    bucketStart,
+  const normalizedContext = normalizeDiagnosticsContext(input.context);
+  const trigger = inferTrigger(normalizedContext, input.loader);
+  appendDiagnosticsEvent({
+    kind: 'loader',
+    recordedAt: recordedAt.toISOString(),
     loader: input.loader,
-    context: input.context,
+    context: normalizedContext,
     trigger,
-    calls: 0,
-    cacheMisses: 0,
-    errorCount: 0,
-    totalDurationMs: 0,
-    totalPayloadBytes: 0,
-    lastSeenAt: recordedAt.toISOString(),
-    durationsMs: []
-  } satisfies LoaderMetricBucket;
-
-  existing.calls += 1;
-  existing.cacheMisses += input.cacheMiss ? 1 : 0;
-  existing.errorCount += input.error ? 1 : 0;
-  existing.totalDurationMs += clampNonNegative(input.durationMs);
-  existing.totalPayloadBytes += clampNonNegative(input.payloadBytes ?? 0);
-  existing.lastSeenAt = recordedAt.toISOString();
-  existing.trigger = trigger;
-  pushDurationSample(existing.durationsMs, clampNonNegative(input.durationMs));
-
-  store.buckets.set(key, existing);
-  pruneStore(recordedAt);
+    durationMs: clampNonNegative(input.durationMs),
+    payloadBytes: clampNonNegative(input.payloadBytes ?? 0),
+    cacheMiss: Boolean(input.cacheMiss),
+    error: Boolean(input.error)
+  });
 }
 
 export function recordCatalogInvalidation(input: RecordInvalidationInput) {
   const recordedAt = input.recordedAt ?? new Date();
-  const bucketStart = floorToBucket(recordedAt, 1).toISOString();
+  const normalizedContext = normalizeDiagnosticsContext(input.context);
   const tagFamily = [...new Set(input.tags)].sort().join(' + ');
-  const key = invalidationKey(input.context, tagFamily, bucketStart);
-  const trigger = inferTrigger(input.context, 'save revalidation');
-  const store = getStore();
-  const existing = store.invalidations.get(key) ?? {
-    bucketStart,
-    context: input.context,
+  const trigger = inferTrigger(normalizedContext, 'save revalidation');
+  appendDiagnosticsEvent({
+    kind: 'invalidation',
+    recordedAt: recordedAt.toISOString(),
+    context: normalizedContext,
     trigger,
     tagFamily,
-    invalidations: 0,
-    revalidatedPaths: 0,
-    lastSeenAt: recordedAt.toISOString()
-  } satisfies InvalidationBucket;
-
-  existing.invalidations += 1;
-  existing.revalidatedPaths += clampNonNegative(input.revalidatedPaths ?? 0);
-  existing.lastSeenAt = recordedAt.toISOString();
-  existing.trigger = trigger;
-
-  store.invalidations.set(key, existing);
-  pruneStore(recordedAt);
+    revalidatedPaths: clampNonNegative(input.revalidatedPaths ?? 0)
+  });
 }
 
 function estimatePayloadBytes(payload: unknown): number {
@@ -329,6 +403,28 @@ export async function instrumentCatalogLoader<T>(loader: string, context: string
   } catch (error) {
     recordCatalogLoaderMetric({
       loader,
+      context,
+      durationMs: performance.now() - startedAt,
+      error: true
+    });
+    throw error;
+  }
+}
+
+export async function instrumentAdminRouteRender<T>(context: string, run: () => Promise<T>): Promise<T> {
+  const startedAt = performance.now();
+
+  try {
+    const result = await run();
+    recordCatalogLoaderMetric({
+      loader: 'adminRouteRender',
+      context,
+      durationMs: performance.now() - startedAt
+    });
+    return result;
+  } catch (error) {
+    recordCatalogLoaderMetric({
+      loader: 'adminRouteRender',
       context,
       durationMs: performance.now() - startedAt,
       error: true
@@ -404,13 +500,12 @@ function buildWarnings(loaders: AggregatedLoaderStats[]): RouteBudgetWarning[] {
 
 export function getCatalogDiagnosticsSnapshot(windowHours = DEFAULT_WINDOW_HOURS): DiagnosticsSnapshot {
   const now = new Date();
-  const store = getStore();
-  pruneStore(now);
+  const persisted = buildDiagnosticsBuckets(now);
   const windowMinutes = Math.max(5, Math.round(windowHours * 60));
   const bucketMinutes = getBucketGranularityMinutes(windowMinutes);
   const cutoff = now.getTime() - windowMinutes * 60 * 1000;
-  const relevantBuckets = [...store.buckets.values()].filter((bucket) => new Date(bucket.bucketStart).getTime() >= cutoff);
-  const relevantInvalidations = [...store.invalidations.values()].filter((bucket) => new Date(bucket.bucketStart).getTime() >= cutoff);
+  const relevantBuckets = persisted.buckets.filter((bucket) => new Date(bucket.bucketStart).getTime() >= cutoff);
+  const relevantInvalidations = persisted.invalidations.filter((bucket) => new Date(bucket.bucketStart).getTime() >= cutoff);
 
   const byLoader = new Map<string, AggregatedLoaderStats & { durationsMs: number[]; durationTotalMs: number }>();
   const byRoute = new Map<string, AggregatedRouteStats & { durationTotalMs: number; loaderCalls: Map<string, number> }>();
@@ -579,7 +674,7 @@ export function getCatalogDiagnosticsSnapshot(windowHours = DEFAULT_WINDOW_HOURS
 
   return {
     generatedAt: now.toISOString(),
-    metricsStartedAt: store.startedAt,
+    metricsStartedAt: persisted.metricsStartedAt,
     windowHours,
     bucketMinutes,
     summary: {

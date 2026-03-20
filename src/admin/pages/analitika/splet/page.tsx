@@ -1,6 +1,7 @@
 import AdminWebsiteAnalyticsDashboard from '@/admin/components/AdminWebsiteAnalyticsDashboard';
 import AdminAnalyticsTopTabs from '@/admin/components/AdminAnalyticsTopTabs';
 import { fetchWebsiteAnalytics } from '@/shared/server/websiteAnalytics';
+import { instrumentAdminRouteRender } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';
 
 export const metadata = {
@@ -21,7 +22,8 @@ export default async function AdminWebsiteAnalyticsPage({
 }: {
   searchParams?: { from?: string; to?: string };
 }) {
-  const from = searchParams?.from ?? '';
+  return instrumentAdminRouteRender('/admin/analitika/splet', async () => {
+    const from = searchParams?.from ?? '';
   const to = searchParams?.to ?? '';
 
   const fallbackAnalytics = { visitsByDay: [], topPages: [], topProducts: [], returningVisitors7d: 0, retentionByDay: [] };
@@ -29,8 +31,8 @@ export default async function AdminWebsiteAnalyticsPage({
     ? await fetchWebsiteAnalytics({ fromDate: toIsoOrNull(from), toDate: toIsoOrNull(to) }).catch(() => fallbackAnalytics)
     : fallbackAnalytics;
 
-  return (
-    <div className="w-full">
+    return (
+      <div className="w-full">
       <div className="mb-4">
         <h1 className="text-2xl font-semibold text-slate-900">Analitika</h1>
         <p className="mt-1 text-sm text-slate-500">Pregled analitike naročil in spletnega obiska.</p>
@@ -45,6 +47,7 @@ export default async function AdminWebsiteAnalyticsPage({
       initialFrom={from}
       initialTo={to}
       />
-    </div>
-  );
+      </div>
+    );
+  });
 }

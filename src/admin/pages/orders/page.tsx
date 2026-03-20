@@ -10,6 +10,7 @@ import {
   fetchOrderDocumentsForOrders,
   fetchOrders
 } from '@/shared/server/orders';
+import { instrumentAdminRouteRender } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';
 import { fetchGlobalAnalyticsAppearance, type AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
 
@@ -56,9 +57,10 @@ async function AdminOrdersTableSection({
 }: {
   searchParams?: { from?: string | string[]; to?: string | string[]; q?: string | string[] };
 }) {
-  const from = normalizeDateInput(normalizeSearchParam(searchParams?.from));
-  const to = normalizeDateInput(normalizeSearchParam(searchParams?.to));
-  const query = normalizeSearchParam(searchParams?.q).trim();
+  return instrumentAdminRouteRender('/admin/orders', async () => {
+    const from = normalizeDateInput(normalizeSearchParam(searchParams?.from));
+    const to = normalizeDateInput(normalizeSearchParam(searchParams?.to));
+    const query = normalizeSearchParam(searchParams?.q).trim();
 
   const demoOrders: OrderRow[] = [
     {
@@ -166,26 +168,27 @@ async function AdminOrdersTableSection({
     }
   }
 
-  return (
-    <>
-      {warningMessage ? (
-        <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-6 text-sm text-amber-700">
-          {warningMessage}
-        </div>
-      ) : null}
+    return (
+      <>
+        {warningMessage ? (
+          <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-6 text-sm text-amber-700">
+            {warningMessage}
+          </div>
+        ) : null}
 
-      <AdminOrdersTable
-        orders={orders}
-        documents={documents}
-        attachments={attachments}
-        initialFrom={from}
-        initialTo={to}
-        initialQuery={query}
-        topAction={<AdminCreateDraftOrderButton />}
-        analyticsAppearance={analyticsAppearance}
-      />
-    </>
-  );
+        <AdminOrdersTable
+          orders={orders}
+          documents={documents}
+          attachments={attachments}
+          initialFrom={from}
+          initialTo={to}
+          initialQuery={query}
+          topAction={<AdminCreateDraftOrderButton />}
+          analyticsAppearance={analyticsAppearance}
+        />
+      </>
+    );
+  });
 }
 
 export default function AdminOrdersPage({

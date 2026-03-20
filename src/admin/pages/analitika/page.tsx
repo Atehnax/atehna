@@ -4,6 +4,7 @@ import AdminAnalyticsTopTabs from '@/admin/components/AdminAnalyticsTopTabs';
 import { AdminAnalyticsSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 import { emptyOrdersAnalyticsResponse, fetchOrdersAnalytics } from '@/shared/server/orderAnalytics';
 import { fetchAnalyticsCharts, fetchGlobalAnalyticsAppearance } from '@/shared/server/analyticsCharts';
+import { instrumentAdminRouteRender } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';
 
 export const metadata = {
@@ -17,7 +18,8 @@ async function AdminAnalyticsDashboardSection({
 }: {
   searchParams?: { range?: string; from?: string; to?: string; grouping?: string; view?: string; focus?: string };
 }) {
-  const fallbackAppearance = { sectionBg: '#f3f4f6', canvasBg: '#ffffff', cardBg: '#ffffff', plotBg: '#ffffff', axisTextColor: '#1f2937', seriesPalette: ['#2563eb', '#0ea5e9', '#14b8a6', '#f59e0b', '#ef4444'], gridColor: '#d1d5db', gridOpacity: 0.35 };
+  return instrumentAdminRouteRender('/admin/analitika', async () => {
+    const fallbackAppearance = { sectionBg: '#f3f4f6', canvasBg: '#ffffff', cardBg: '#ffffff', plotBg: '#ffffff', axisTextColor: '#1f2937', seriesPalette: ['#2563eb', '#0ea5e9', '#14b8a6', '#f59e0b', '#ef4444'], gridColor: '#d1d5db', gridOpacity: 0.35 };
 
   const [data, charts, appearance] = getDatabaseUrl()
     ? await Promise.all([
@@ -32,14 +34,15 @@ async function AdminAnalyticsDashboardSection({
       ])
     : [emptyOrdersAnalyticsResponse(), [], fallbackAppearance];
 
-  return (
-    <AdminAnalyticsDashboard
+    return (
+      <AdminAnalyticsDashboard
       initialData={data}
       initialCharts={charts}
       initialFocusKey={searchParams?.focus ?? ''}
       initialAppearance={appearance}
-    />
-  );
+      />
+    );
+  });
 }
 
 export default function AdminAnalyticsIndexPage({

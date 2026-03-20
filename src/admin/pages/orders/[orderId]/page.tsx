@@ -18,6 +18,7 @@ import {
   type OrderItemRow,
   type OrderRow
 } from '@/shared/server/orders';
+import { instrumentAdminRouteRender } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';
 
 export const metadata = {
@@ -170,139 +171,135 @@ async function AdminOrderDocumentsSection({
   return <AdminOrderPdfManager orderId={orderId} documents={documents} paymentStatus={paymentStatus} paymentNotes={paymentNotes} />;
 }
 
-export default async function AdminOrderDetailPage({
-  params
-}: {
-  params: { orderId: string };
-}) {
-  if (!getDatabaseUrl()) {
-    const demoOrder = normalizeOrder(
-      {
-        id: 1,
-        order_number: '#1',
-        status: 'received',
-        organization_name: 'Osnovna šola Triglav',
-        contact_name: 'Maja Kovač',
-        customer_type: 'school',
-        email: 'maja.kovac@example.com',
-        phone: '041 555 123',
-        delivery_address: 'Šolska ulica 1, Ljubljana',
-        reference: 'PO-2024-01',
-        notes: 'Prosimo za dobavo do konca meseca.',
-        payment_status: 'paid',
-        payment_notes: 'Plačano ob prevzemu.',
-        is_draft: false,
-        deleted_at: params.orderId === '1' ? new Date().toISOString() : null,
-        created_at: new Date().toISOString(),
-        subtotal: 19,
-        tax: 4.18,
-        total: 23.18
-      },
-      1
-    );
+export default async function AdminOrderDetailPage({ params }: { params: { orderId: string } }) {
+  return instrumentAdminRouteRender('/admin/orders/[orderId]', async () => {
+    if (!getDatabaseUrl()) {
+      const demoOrder = normalizeOrder(
+        {
+          id: 1,
+          order_number: '#1',
+          customer_type: 'school',
+          organization_name: 'Osnovna šola Triglav',
+          contact_name: 'Maja Kovač',
+          email: 'maja.kovac@example.com',
+          phone: '041 555 123',
+          delivery_address: 'Šolska ulica 1, Ljubljana',
+          reference: 'PO-2024-01',
+          notes: 'Demo zapis brez povezave na bazo.',
+          status: 'received',
+          payment_status: 'paid',
+          payment_notes: null,
+          subtotal: 1220,
+          tax: 268.4,
+          total: 1488.4,
+          created_at: new Date().toISOString()
+        } as OrderRow,
+        1
+      );
 
-    const demoItems: OrderItemRow[] = [
-      {
-        id: 1,
-        order_id: 1,
-        name: 'Tehnični svinčnik 0,5 mm',
-        sku: 'RT-TS-01',
-        quantity: 10,
-        unit: 'kos',
-        unit_price: 1.9,
-        total_price: 19,
-        discount_percentage: 0
-      }
-    ];
+      const demoItems: OrderItemRow[] = [
+        {
+          id: 1,
+          order_id: 1,
+          sku: 'DEMO-1',
+          name: 'Demo komplet ustvarjalnega materiala',
+          unit: 'kos',
+          quantity: 10,
+          unit_price: 122,
+          total_price: 1220,
+          discount_percentage: 0
+        }
+      ];
 
-    const demoDocuments: OrderDocumentRow[] = [
-      {
-        id: 1,
-        order_id: 1,
-        type: 'order_summary',
-        filename: '#1-order-summary-v2.pdf',
-        blob_url: '#',
-        blob_pathname: null,
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 2,
-        order_id: 1,
-        type: 'order_summary',
-        filename: '#1-order-summary-v1.pdf',
-        blob_url: '#',
-        blob_pathname: null,
-        created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-      }
-    ];
+      const demoDocuments: OrderDocumentRow[] = [
+        {
+          id: 1,
+          order_id: 1,
+          type: 'order_summary',
+          filename: '#1-order-summary-v2.pdf',
+          blob_url: '#',
+          blob_pathname: null,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 2,
+          order_id: 1,
+          type: 'order_summary',
+          filename: '#1-order-summary-v1.pdf',
+          blob_url: '#',
+          blob_pathname: null,
+          created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+        }
+      ];
+
+      return (
+        <AdminOrderDetailShell
+          orderId={1}
+          order={demoOrder}
+          showDemoBanner
+          itemsSection={
+            <AdminOrderItemsEditor
+              orderId={1}
+              items={demoItems}
+              initialSubtotal={demoOrder.subtotal}
+              initialTax={demoOrder.tax}
+              initialTotal={demoOrder.total}
+            />
+          }
+          documentsSection={
+            <AdminOrderPdfManager
+              orderId={1}
+              documents={demoDocuments}
+              paymentStatus={demoOrder.payment_status}
+              paymentNotes={demoOrder.payment_notes}
+            />
+          }
+        />
+      );
+    }
+
+    const orderId = Number(params.orderId);
+    if (!Number.isFinite(orderId)) {
+      notFound();
+    }
+
+    const orderPromise = fetchOrderById(orderId);
+    const itemsPromise = fetchOrderItems(orderId);
+    const documentsPromise = fetchOrderDocuments(orderId);
+
+    const order = await orderPromise;
+    if (!order) {
+      notFound();
+    }
+
+    const safeOrder = normalizeOrder(order, orderId);
 
     return (
       <AdminOrderDetailShell
-        orderId={1}
-        order={demoOrder}
-        showDemoBanner
+        orderId={orderId}
+        order={safeOrder}
         itemsSection={
-          <AdminOrderItemsEditor
-            orderId={1}
-            items={demoItems}
-            initialSubtotal={demoOrder.subtotal}
-            initialTax={demoOrder.tax}
-            initialTotal={demoOrder.total}
-          />
+          <Suspense fallback={<AdminOrderItemsSectionSkeleton />}>
+            <AdminOrderItemsSection
+              orderId={orderId}
+              itemsPromise={itemsPromise}
+              initialSubtotal={safeOrder.subtotal}
+              initialTax={safeOrder.tax}
+              initialTotal={safeOrder.total}
+            />
+          </Suspense>
         }
         documentsSection={
-          <AdminOrderPdfManager
-            orderId={1}
-            documents={demoDocuments}
-            paymentStatus={demoOrder.payment_status}
-            paymentNotes={demoOrder.payment_notes}
-          />
+          <Suspense fallback={<AdminOrderDocumentsSectionSkeleton />}>
+            <AdminOrderDocumentsSection
+              orderId={orderId}
+              documentsPromise={documentsPromise}
+              paymentStatus={safeOrder.payment_status}
+              paymentNotes={safeOrder.payment_notes}
+            />
+          </Suspense>
         }
       />
     );
-  }
-
-  const orderId = Number(params.orderId);
-  if (!Number.isFinite(orderId)) {
-    notFound();
-  }
-
-  const orderPromise = fetchOrderById(orderId);
-  const itemsPromise = fetchOrderItems(orderId);
-  const documentsPromise = fetchOrderDocuments(orderId);
-
-  const order = await orderPromise;
-  if (!order) {
-    notFound();
-  }
-
-  const safeOrder = normalizeOrder(order, orderId);
-
-  return (
-    <AdminOrderDetailShell
-      orderId={orderId}
-      order={safeOrder}
-      itemsSection={
-        <Suspense fallback={<AdminOrderItemsSectionSkeleton />}>
-          <AdminOrderItemsSection
-            orderId={orderId}
-            itemsPromise={itemsPromise}
-            initialSubtotal={safeOrder.subtotal}
-            initialTax={safeOrder.tax}
-            initialTotal={safeOrder.total}
-          />
-        </Suspense>
-      }
-      documentsSection={
-        <Suspense fallback={<AdminOrderDocumentsSectionSkeleton />}>
-          <AdminOrderDocumentsSection
-            orderId={orderId}
-            documentsPromise={documentsPromise}
-            paymentStatus={safeOrder.payment_status}
-            paymentNotes={safeOrder.payment_notes}
-          />
-        </Suspense>
-      }
-    />
-  );
+  });
 }

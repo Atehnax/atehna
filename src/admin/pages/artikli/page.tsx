@@ -9,6 +9,7 @@ import {
   sortCatalogItems
 } from '@/commercial/catalog/catalog';
 import { getCatalogItemsIndexServer } from '@/commercial/catalog/catalogServer';
+import { instrumentAdminRouteRender } from '@/shared/server/catalogDiagnostics';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,8 +87,10 @@ async function buildSeedItems(): Promise<SeedItem[]> {
 }
 
 async function AdminItemsManagerSection() {
-  const seedItems = await buildSeedItems();
-  return <AdminItemsManager seedItems={seedItems} />;
+  return instrumentAdminRouteRender('/admin/artikli', async () => {
+    const seedItems = await buildSeedItems();
+    return <AdminItemsManager seedItems={seedItems} />;
+  });
 }
 
 export default function AdminArtikliPage() {

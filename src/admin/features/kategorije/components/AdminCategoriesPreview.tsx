@@ -12,7 +12,6 @@ import {
   getDiscountedPrice
 } from '@/commercial/catalog/catalog';
 import { Button } from '@/shared/ui/button';
-import { IconButton } from '@/shared/ui/icon-button';
 import { Input } from '@/shared/ui/input';
 import type { CategoryStatus, ContentCard, EditingRowDraft, SelectedPreviewContext } from '../common/types';
 import { InlineStatusToggle } from './AdminCategoriesMainTable';
@@ -275,38 +274,38 @@ function CategoryPreviewCard({
                     }
                     if (event.key === 'Escape') onCancelEdit();
                   }}
-                  className="h-9 w-full border-0 bg-transparent px-0 text-base font-semibold leading-6 shadow-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30"
+                  className="h-9 w-full rounded-lg border border-slate-200 px-2.5 text-base font-semibold leading-6 shadow-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30"
                   autoFocus
                   aria-label="Naziv kategorije"
                 />
               ) : item.hasChildren ? (
                 <button
                   type="button"
-                  className={`w-full truncate text-left text-base font-semibold transition hover:text-[#3e67d6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30 ${isHidden ? 'text-slate-500' : 'text-slate-900'}`}
+                  className={`flex h-9 w-full items-center truncate text-left text-base font-semibold transition hover:text-[#3e67d6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30 ${isHidden ? 'text-slate-500' : 'text-slate-900'}`}
                   onPointerDown={(event) => event.stopPropagation()}
                   onClick={() => onOpenNode(item)}
                   aria-label={`Odpri ${item.title}`}
                   title={item.openLabel}
                 >
-                  {item.title}
+                  <span className="truncate">{item.title}</span>
                 </button>
               ) : (
-                <h3 className={`truncate text-base font-semibold ${isHidden ? 'text-slate-500' : 'text-slate-900'}`}>{item.title}</h3>
+                <h3 className={`flex h-9 items-center truncate text-base font-semibold ${isHidden ? 'text-slate-500' : 'text-slate-900'}`}><span className="truncate">{item.title}</span></h3>
               )}
             </div>
-            <IconButton
+            <button
               type="button"
-              tone="neutral"
+              className="inline-flex h-9 w-5 shrink-0 items-center justify-end text-slate-500 transition hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30"
               onPointerDown={(event) => event.stopPropagation()}
-              onClick={() => onStartEdit(item)}
-              aria-label={`Uredi ${item.kind === 'category' ? 'kategorijo' : 'podkategorijo'} ${item.title}`}
-              title="Uredi"
+              onClick={() => { if (isEditing) { onCancelEdit(); return; } onStartEdit(item); }}
+              aria-label={`${isEditing ? 'Zapri urejanje za' : 'Uredi'} ${item.kind === 'category' ? 'kategorijo' : 'podkategorijo'} ${item.title}`}
+              title={isEditing ? 'Zapri urejanje' : 'Uredi'}
             >
               <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                 <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
                 <path d="M11.5 4.5l3 3" />
               </svg>
-            </IconButton>
+            </button>
           </div>
 
           <div className="mt-3 min-h-[88px] flex-1">
@@ -333,15 +332,12 @@ function CategoryPreviewCard({
         </div>
       </div>
 
-      <div className="flex items-end justify-between gap-3 border-t border-slate-200 px-4 pb-4 pt-4" onPointerDown={(event) => event.stopPropagation()}>
-        <div className="flex min-w-0 flex-col gap-2">
-          <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500">Vidnost</span>
-          <InlineStatusToggle
-            checked={!isHidden}
-            onToggle={() => onStageStatusChange(item.id, isHidden ? 'active' : 'inactive')}
-            ariaLabel={`Spremeni vidnost za ${item.title}`}
-          />
-        </div>
+      <div className="flex items-center border-t border-slate-200 px-4 pb-4 pt-4" onPointerDown={(event) => event.stopPropagation()}>
+        <InlineStatusToggle
+          checked={!isHidden}
+          onToggle={() => onStageStatusChange(item.id, isHidden ? 'active' : 'inactive')}
+          ariaLabel={`Spremeni vidnost za ${item.title}`}
+        />
       </div>
 
       <input
@@ -377,7 +373,6 @@ function CreateCategoryCard({ onClick }: { onClick: () => void }) {
         </svg>
       </span>
       <span className="mt-6 text-xl font-semibold text-slate-900">Ustvari novo kategorijo</span>
-      <span className="mt-2 max-w-[18ch] text-sm leading-6 text-slate-500">Kliknite za začetek ustvarjanja nove kategorije.</span>
     </button>
   );
 }

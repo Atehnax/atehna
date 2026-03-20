@@ -12,6 +12,7 @@ import {
   getDiscountedPrice
 } from '@/commercial/catalog/catalog';
 import { Button } from '@/shared/ui/button';
+import { IconButton } from '@/shared/ui/icon-button';
 import { Input } from '@/shared/ui/input';
 import type { CategoryStatus, ContentCard, EditingRowDraft, SelectedPreviewContext } from '../common/types';
 import { InlineStatusToggle } from './AdminCategoriesMainTable';
@@ -200,146 +201,150 @@ function CategoryPreviewCard({
         isHidden ? 'border-slate-300 text-slate-500' : 'border-slate-200 text-slate-900'
       }`}
     >
-      <button
-        type="button"
-        className={`relative h-44 w-full overflow-hidden text-left ${item.image ? 'bg-slate-100' : 'bg-slate-900'}`}
-        onClick={() => uploadRefs.current[item.id]?.click()}
-        onPointerDown={(event) => event.stopPropagation()}
-      >
-        {item.image ? <Image src={item.image} alt={item.title} fill className="object-cover" /> : null}
-        {isHidden ? (
-          <div className="absolute inset-0 bg-slate-900/28" aria-hidden="true" />
-        ) : null}
-        {isHidden ? (
-          <div className="absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-md bg-white/90 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-700 shadow-sm">
-            <EyeOffIcon className="h-3.5 w-3.5" />
-            SKRITO
-          </div>
-        ) : null}
-        <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 p-3">
+      <div className="relative flex flex-1 flex-col">
+        {isHidden ? <div className="pointer-events-none absolute inset-0 z-[1] bg-black/22" aria-hidden="true" /> : null}
+        <div className="relative h-44 w-full overflow-hidden text-left">
           <button
             type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-black/50 bg-black/45 text-white/90 backdrop-blur-sm hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            className={`absolute inset-0 ${item.image ? 'bg-slate-100' : 'bg-slate-900'}`}
+            onClick={() => uploadRefs.current[item.id]?.click()}
             onPointerDown={(event) => event.stopPropagation()}
-            onClick={(event) => {
-              event.stopPropagation();
-              uploadRefs.current[item.id]?.click();
-            }}
-            aria-label="Dodaj ali zamenjaj sliko"
-            title="Dodaj ali zamenjaj sliko"
+            aria-label={`Uredi sliko za ${item.title}`}
           >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <rect x="3" y="4" width="18" height="16" rx="2.8" />
-              <path d="m6.5 15.5 3.7-3.8a1 1 0 0 1 1.42 0L15 15l2-2a1 1 0 0 1 1.42 0l2.08 2.08" />
-              <circle cx="15.5" cy="9.3" r="1.5" />
-            </svg>
+            {item.image ? <Image src={item.image} alt={item.title} fill className="object-cover" /> : null}
           </button>
-          {item.image ? (
+          {isHidden ? (
+            <div className="absolute left-3 top-3 z-20 inline-flex items-center gap-1.5 rounded-md bg-white/90 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-700 shadow-sm">
+              <EyeOffIcon className="h-3.5 w-3.5" />
+              SKRITO
+            </div>
+          ) : null}
+          <div className="absolute inset-0 z-20 flex items-center justify-center gap-2">
             <button
               type="button"
               className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-black/50 bg-black/45 text-white/90 backdrop-blur-sm hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => {
                 event.stopPropagation();
-                onSetImageDeleteTarget({
-                  kind: item.kind,
-                  categorySlug: item.categorySlug,
-                  subcategorySlug: item.kind === 'subcategory' ? item.subcategoryPath.at(-1) : undefined
-                });
+                uploadRefs.current[item.id]?.click();
               }}
-              aria-label="Odstrani sliko"
-              title="Odstrani sliko"
+              aria-label="Dodaj ali zamenjaj sliko"
+              title="Dodaj ali zamenjaj sliko"
             >
-              ✕
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="16" rx="2.8" />
+                <path d="m6.5 15.5 3.7-3.8a1 1 0 0 1 1.42 0L15 15l2-2a1 1 0 0 1 1.42 0l2.08 2.08" />
+                <circle cx="15.5" cy="9.3" r="1.5" />
+              </svg>
             </button>
-          ) : null}
-        </div>
-      </button>
-
-      <div className="flex flex-1 flex-col p-4">
-        <div className="flex items-start justify-between gap-3">
-          {isEditing ? (
-            <Input
-              value={editingRow.title}
-              onChange={(event) => onEditingRowTitleChange(event.target.value)}
-              onBlur={onCommitEdit}
-              data-inline-edit-field="true"
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && !(event.shiftKey)) {
-                  event.preventDefault();
-                  onCommitEdit();
-                }
-                if (event.key === 'Escape') onCancelEdit();
-              }}
-              className="h-9 flex-1 rounded-lg border-slate-300 px-3 text-sm font-semibold"
-              autoFocus
-              aria-label="Naziv kategorije"
-            />
-          ) : (
-            <h3 className={`min-w-0 flex-1 truncate text-base font-semibold ${isHidden ? 'text-slate-500' : 'text-slate-900'}`}>{item.title}</h3>
-          )}
-          <button
-            type="button"
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/40"
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={() => onStartEdit(item)}
-            aria-label={`Uredi ${item.kind === 'category' ? 'kategorijo' : 'podkategorijo'} ${item.title}`}
-            title="Uredi"
-          >
-            <PencilIcon className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="mt-3 flex-1">
-          {isEditing ? (
-            <textarea
-              value={editingRow.description}
-              onChange={(event) => onEditingRowDescriptionChange(event.target.value)}
-              onBlur={onCommitEdit}
-              data-inline-edit-field="true"
-              onKeyDown={(event) => {
-                if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-                  event.preventDefault();
-                  onCommitEdit();
-                }
-                if (event.key === 'Escape') onCancelEdit();
-              }}
-              className="min-h-[88px] w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-[#3e67d6] focus:ring-2 focus:ring-[#3e67d6]/20"
-              aria-label="Opis kategorije"
-            />
-          ) : (
-            <p className={`line-clamp-3 text-sm leading-6 ${isHidden ? 'text-slate-500' : 'text-slate-600'}`}>{item.description || '—'}</p>
-          )}
-        </div>
-
-        <div className="mt-4 flex items-end justify-between gap-3 border-t border-slate-200 pt-4" onPointerDown={(event) => event.stopPropagation()}>
-          <div className="flex min-w-0 flex-col gap-2">
-            <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500">Vidnost</span>
-            <div className="flex items-center gap-3">
-              <InlineStatusToggle
-                checked={!isHidden}
-                onToggle={() => onStageStatusChange(item.id, isHidden ? 'active' : 'inactive')}
-                ariaLabel={`Spremeni vidnost za ${item.title}`}
-              />
-              <span className={`text-xs font-semibold uppercase tracking-[0.06em] ${isHidden ? 'text-slate-500' : 'text-slate-700'}`}>
-                {isHidden ? 'Nevidno' : 'Vidno'}
-              </span>
-            </div>
+            {item.image ? (
+              <button
+                type="button"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-black/50 bg-black/45 text-white/90 backdrop-blur-sm hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onSetImageDeleteTarget({
+                    kind: item.kind,
+                    categorySlug: item.categorySlug,
+                    subcategorySlug: item.kind === 'subcategory' ? item.subcategoryPath.at(-1) : undefined
+                  });
+                }}
+                aria-label="Odstrani sliko"
+                title="Odstrani sliko"
+              >
+                ✕
+              </button>
+            ) : null}
           </div>
-          {item.hasChildren ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="toolbar"
-              onPointerDown={(event) => event.stopPropagation()}
-              onClick={() => onOpenNode(item)}
-            >
-              {item.openLabel}
-            </Button>
-          ) : null}
         </div>
 
-        <input
+        <div className="relative z-10 flex flex-1 flex-col px-4 pb-4 pt-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              {isEditing ? (
+                <Input
+                  value={editingRow.title}
+                  onChange={(event) => onEditingRowTitleChange(event.target.value)}
+                  onBlur={onCommitEdit}
+                  data-inline-edit-field="true"
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !(event.shiftKey)) {
+                      event.preventDefault();
+                      onCommitEdit();
+                    }
+                    if (event.key === 'Escape') onCancelEdit();
+                  }}
+                  className="h-9 w-full border-0 bg-transparent px-0 text-base font-semibold leading-6 shadow-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30"
+                  autoFocus
+                  aria-label="Naziv kategorije"
+                />
+              ) : item.hasChildren ? (
+                <button
+                  type="button"
+                  className={`w-full truncate text-left text-base font-semibold transition hover:text-[#3e67d6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30 ${isHidden ? 'text-slate-500' : 'text-slate-900'}`}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={() => onOpenNode(item)}
+                  aria-label={`Odpri ${item.title}`}
+                  title={item.openLabel}
+                >
+                  {item.title}
+                </button>
+              ) : (
+                <h3 className={`truncate text-base font-semibold ${isHidden ? 'text-slate-500' : 'text-slate-900'}`}>{item.title}</h3>
+              )}
+            </div>
+            <IconButton
+              type="button"
+              tone="neutral"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={() => onStartEdit(item)}
+              aria-label={`Uredi ${item.kind === 'category' ? 'kategorijo' : 'podkategorijo'} ${item.title}`}
+              title="Uredi"
+            >
+              <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
+                <path d="M11.5 4.5l3 3" />
+              </svg>
+            </IconButton>
+          </div>
+
+          <div className="mt-3 min-h-[88px] flex-1">
+            {isEditing ? (
+              <textarea
+                value={editingRow.description}
+                onChange={(event) => onEditingRowDescriptionChange(event.target.value)}
+                onBlur={onCommitEdit}
+                data-inline-edit-field="true"
+                onKeyDown={(event) => {
+                  if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+                    event.preventDefault();
+                    onCommitEdit();
+                  }
+                  if (event.key === 'Escape') onCancelEdit();
+                }}
+                className="h-full min-h-[88px] w-full resize-none border-0 bg-transparent px-0 py-0 text-sm leading-6 text-slate-700 outline-none transition focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30"
+                aria-label="Opis kategorije"
+              />
+            ) : (
+              <p className={`line-clamp-3 text-sm leading-6 ${isHidden ? 'text-slate-500' : 'text-slate-600'}`}>{item.description || '—'}</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-end justify-between gap-3 border-t border-slate-200 px-4 pb-4 pt-4" onPointerDown={(event) => event.stopPropagation()}>
+        <div className="flex min-w-0 flex-col gap-2">
+          <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500">Vidnost</span>
+          <InlineStatusToggle
+            checked={!isHidden}
+            onToggle={() => onStageStatusChange(item.id, isHidden ? 'active' : 'inactive')}
+            ariaLabel={`Spremeni vidnost za ${item.title}`}
+          />
+        </div>
+      </div>
+
+      <input
           ref={(element) => {
             uploadRefs.current[item.id] = element;
           }}
@@ -354,7 +359,6 @@ function CategoryPreviewCard({
             )
           }
         />
-      </div>
     </article>
   );
 }
@@ -375,15 +379,6 @@ function CreateCategoryCard({ onClick }: { onClick: () => void }) {
       <span className="mt-6 text-xl font-semibold text-slate-900">Ustvari novo kategorijo</span>
       <span className="mt-2 max-w-[18ch] text-sm leading-6 text-slate-500">Kliknite za začetek ustvarjanja nove kategorije.</span>
     </button>
-  );
-}
-
-function PencilIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 20h9" />
-      <path d="m16.5 3.5 4 4L7 21l-4 1 1-4Z" />
-    </svg>
   );
 }
 

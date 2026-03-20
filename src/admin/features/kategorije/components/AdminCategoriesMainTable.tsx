@@ -492,6 +492,11 @@ export default function AdminCategoriesMainTable({
     setActiveView(pathname?.endsWith('/miller-view') ? 'miller' : 'table');
   }, [pathname]);
 
+  useEffect(() => {
+    const siblingPath = activeView === 'table' ? '/admin/kategorije/miller-view' : '/admin/kategorije';
+    router.prefetch(siblingPath);
+  }, [activeView, router]);
+
 
   useEffect(() => {
     if (activeView !== 'miller' || millerSelection.length === 0) return;
@@ -666,7 +671,7 @@ export default function AdminCategoriesMainTable({
     return crumbs;
   }, [millerCatalog.categories, millerSelection, selected]);
 
-  const stageMillerCatalog = (next: CatalogData, nextStatuses: Record<string, CategoryStatus> = statusByRow) => {
+  const stageMillerCatalog = useCallback((next: CatalogData, nextStatuses: Record<string, CategoryStatus> = statusByRow) => {
     const normalized = normalizeCatalogData(next);
     if (areMillerCatalogsEqual(normalized, millerCatalog) && areStatusesEqual(nextStatuses, statusByRow)) {
       setMillerError(null);
@@ -683,9 +688,9 @@ export default function AdminCategoriesMainTable({
         !areStatusesEqual(nextStatuses, persistedStatusRef.current)
     );
     setMillerError(null);
-  };
+  }, [millerCatalog, statusByRow]);
 
-  const stageTableCatalog = (next: CatalogData, nextStatuses: Record<string, CategoryStatus> = statusByRow) => {
+  const stageTableCatalog = useCallback((next: CatalogData, nextStatuses: Record<string, CategoryStatus> = statusByRow) => {
     const normalized = normalizeCatalogData(next);
     if (areCatalogsEqual(normalized, catalog) && areStatusesEqual(nextStatuses, statusByRow)) {
       setTableError(null);
@@ -702,9 +707,9 @@ export default function AdminCategoriesMainTable({
         !areStatusesEqual(nextStatuses, persistedStatusRef.current)
     );
     setTableError(null);
-  };
+  }, [catalog, statusByRow]);
 
-  const stageStatusChange = (nextStatuses: Record<string, CategoryStatus>) => {
+  const stageStatusChange = useCallback((nextStatuses: Record<string, CategoryStatus>) => {
     const snapshot = {
       catalog: normalizeCatalogData(activeView === 'miller' ? millerCatalog : catalog),
       statuses: { ...statusByRow }
@@ -727,7 +732,7 @@ export default function AdminCategoriesMainTable({
     }
 
     setStatusByRow(nextStatuses);
-  };
+  }, [activeView, catalog, millerCatalog, statusByRow]);
 
   const hasUnsavedChanges = tableDirty || millerDirty;
 
@@ -1970,7 +1975,11 @@ export default function AdminCategoriesMainTable({
     return [];
   }, [catalog.categories, selectedContext, statusByRow]);
 
-  const getDescendantIds = (id: string) => {
+  const selectedRowSet = useMemo(() => new Set(selectedRows), [selectedRows]);
+  const openingRowIdSet = useMemo(() => new Set(openingRowIds), [openingRowIds]);
+  const closingRowIdSet = useMemo(() => new Set(closingRowIds), [closingRowIds]);
+
+  const getDescendantIds = useCallback((id: string) => {
     if (id === rootId) {
       return catalog.categories.flatMap((category) => [
         catId(category.slug),
@@ -1999,7 +2008,7 @@ export default function AdminCategoriesMainTable({
     }
 
     return [];
-  };
+  }, [catalog.categories]);
 
   const expandableRowIds = useMemo(() => {
     return [
@@ -2062,7 +2071,7 @@ export default function AdminCategoriesMainTable({
     }, expandTransitionMs);
   };
 
-  const toggleExpanded = (id: string) => {
+  const toggleExpanded = useCallback((id: string) => {
     const currentlyExpanded = isRowExpanded(id);
 
     if (currentlyExpanded) {
@@ -2079,9 +2088,9 @@ export default function AdminCategoriesMainTable({
     window.setTimeout(() => {
       setOpeningRowIds((prev) => prev.filter((entry) => entry !== id));
     }, expandTransitionMs);
-  };
+  }, [isRowExpanded]);
 
-  const saveInlineEdit = () => {
+  const saveInlineEdit = useCallback(() => {
     if (!editingRow) return;
     const nextTitle = editingRow.title.trim();
 
@@ -2167,11 +2176,11 @@ export default function AdminCategoriesMainTable({
     );
 
     setEditingRow(null);
-  };
+  }, [catalog.categories, editingRow, stageTableCatalog, statusByRow, toast]);
 
   saveInlineEditRef.current = saveInlineEdit;
 
-  const handleInlineBlur = (event: FocusEvent<HTMLElement>) => {
+  const handleInlineBlur = useCallback((event: FocusEvent<HTMLElement>) => {
     if (skipNextInlineBlurSaveRef.current) {
       skipNextInlineBlurSaveRef.current = false;
       return;
@@ -2182,7 +2191,7 @@ export default function AdminCategoriesMainTable({
       return;
     }
     saveInlineEdit();
-  };
+  }, [saveInlineEdit]);
 
   useEffect(() => {
     if (!editingRow) return;
@@ -2344,7 +2353,7 @@ export default function AdminCategoriesMainTable({
     setIsBulkDeleting(false);
   };
 
-  const renderTreeRow = ({
+  const renderTreeRow = useCallback(({
     id,
     title,
     level,
@@ -2384,7 +2393,7 @@ export default function AdminCategoriesMainTable({
     const hasChildren = childrenCount > 0;
     const isExpanded = expanded[id] ?? false;
     const isRowEditing = editingRow?.id === id;
-    const isChecked = selectedRows.includes(id);
+    const isChecked = selectedRowSet.has(id);
     const rowDepthTone = getAdminCategoryRowToneClass(level);
     const rowStatus = statusByRow[id] ?? 'active';
 
@@ -2412,8 +2421,8 @@ export default function AdminCategoriesMainTable({
       setEditingRow((prev) => (prev && prev.id === id ? { ...prev, status: nextStatus } : prev));
     };
 
-    const isOpening = parentIsAnimating && openingRowIds.length > 0;
-    const isClosing = parentIsAnimating && closingRowIds.length > 0;
+    const isOpening = parentIsAnimating && openingRowIdSet.size > 0;
+    const isClosing = parentIsAnimating && closingRowIdSet.size > 0;
 
     const toggleChecked = () => {
       setSelectedRows((prev) => {
@@ -2731,9 +2740,23 @@ export default function AdminCategoriesMainTable({
         )}
       </SortableTreeRow>
     );
-  };  
+  }, [
+    catalog.categories,
+    closingRowIdSet,
+    editingRow,
+    expanded,
+    getDescendantIds,
+    handleInlineBlur,
+    openingRowIdSet,
+    selected,
+    selectedRowSet,
+    stageTableCatalog,
+    stageStatusChange,
+    statusByRow,
+    toggleExpanded
+  ]);
 
-  const buildSubcategoryRows = (
+  const buildSubcategoryRows = useCallback((
     category: RecursiveCatalogCategory,
     nodes: RecursiveNode[],
     level: number,
@@ -2747,7 +2770,7 @@ export default function AdminCategoriesMainTable({
       const currentId = subId(category.slug, currentPath);
       const isLastSibling = index === nodes.length - 1;
       const isExpandedHere =
-        isSearchActive || expanded[currentId] || closingRowIds.includes(currentId);
+        isSearchActive || expanded[currentId] || closingRowIdSet.has(currentId);
       const hasVisibleChildren = isExpandedHere && subcategory.subcategories.length > 0;
 
       rows.push(
@@ -2763,7 +2786,7 @@ export default function AdminCategoriesMainTable({
           productCount: subcategory.items.length,
           ancestorContinuationColumns,
           continueCurrentColumnBelow: !isLastSibling,
-          parentIsAnimating: openingRowIds.includes(currentId) || closingRowIds.includes(currentId)
+          parentIsAnimating: openingRowIdSet.has(currentId) || closingRowIdSet.has(currentId)
         })
       );
 
@@ -2781,11 +2804,11 @@ export default function AdminCategoriesMainTable({
     });
 
     return rows;
-  };
+  }, [closingRowIdSet, expanded, isSearchActive, openingRowIdSet, renderTreeRow]);
 
-  const treeRows: ReactNode[] = (() => {
+  const treeRows = useMemo<ReactNode[]>(() => {
     const rows: ReactNode[] = [];
-    const isRootExpanded = isSearchActive || (expanded[rootId] ?? true) || closingRowIds.includes(rootId);
+    const isRootExpanded = isSearchActive || (expanded[rootId] ?? true) || closingRowIdSet.has(rootId);
 
     rows.push(
       renderTreeRow({
@@ -2809,7 +2832,7 @@ export default function AdminCategoriesMainTable({
     filteredCategories.forEach((category, categoryIndex) => {
       const categoryNodeId = catId(category.slug);
       const isCategoryExpanded =
-        isSearchActive || (expanded[categoryNodeId] ?? false) || closingRowIds.includes(categoryNodeId);
+        isSearchActive || (expanded[categoryNodeId] ?? false) || closingRowIdSet.has(categoryNodeId);
       const hasVisibleChildren = isCategoryExpanded && category.subcategories.length > 0;
       const hasNextCategory = categoryIndex < filteredCategories.length - 1;
 
@@ -2825,7 +2848,7 @@ export default function AdminCategoriesMainTable({
           productCount: (category.items ?? []).length,
           ancestorContinuationColumns: [],
           continueCurrentColumnBelow: hasVisibleChildren || hasNextCategory,
-          parentIsAnimating: openingRowIds.includes(rootId) || closingRowIds.includes(rootId)
+          parentIsAnimating: openingRowIdSet.has(rootId) || closingRowIdSet.has(rootId)
         })
       );
 
@@ -2843,7 +2866,16 @@ export default function AdminCategoriesMainTable({
     });
 
     return rows;
-  })();
+  }, [
+    buildSubcategoryRows,
+    catalog.categories.length,
+    closingRowIdSet,
+    expanded,
+    filteredCategories,
+    isSearchActive,
+    openingRowIdSet,
+    renderTreeRow
+  ]);
 
 
   if (loading) {

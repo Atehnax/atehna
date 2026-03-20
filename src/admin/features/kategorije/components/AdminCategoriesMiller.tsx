@@ -1,4 +1,4 @@
-import type { RefObject, ReactNode } from 'react';
+import { useMemo, type RefObject, type ReactNode } from 'react';
 import Selecto from 'react-selecto';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
@@ -110,7 +110,7 @@ export function AdminCategoriesMiller({
   setMillerRename: (rename: { id: string; value: string } | null) => void;
   applyMillerRename: () => void;
 }) {
-  const millerWindowStyles = (() => {
+  const millerWindowStyles = useMemo(() => {
     const count = millerColumns.length;
     if (count <= 1) {
       return [{ width: '100%', marginLeft: '0%', zIndex: 1 }];
@@ -138,7 +138,7 @@ export function AdminCategoriesMiller({
 
     styles.push({ width: `${currentWidth}%`, marginLeft: '0%', zIndex: count + 1 });
     return styles;
-  })();
+  }, [millerColumns.length]);
 
   return (
     <section className={activeView === 'miller' ? 'rounded-2xl border border-slate-200 bg-white p-3 shadow-sm' : 'hidden'}>

@@ -30,14 +30,14 @@ const DIAGNOSTICS_WINDOW_OPTIONS: DiagnosticsWindowOption[] = [
 ];
 
 const DIAGNOSTICS_COVERAGE_TARGETS = [
-  { context: '/admin/orders', label: 'Naročila seznam', hint: 'Zapis nastane ob server loadu seznama in spremljevalnih dokument/priponka loaderjih.' },
-  { context: '/admin/orders/[orderId]', label: 'Naročila podrobnosti', hint: 'Podrobnosti sprožijo več server loaderjev, zato se tukaj aktivnost pokaže najlažje.' },
-  { context: '/admin/arhiv', label: 'Arhiv', hint: 'Zapis nastane ob server loadu arhiva; demo pogled brez baze se ne zabeleži.' },
-  { context: '/admin/analitika', label: 'Analitika naročil', hint: 'Zapis nastane ob server loadu analitike in njenih nastavitev.' },
-  { context: '/admin/analitika/splet', label: 'Analitika splet', hint: 'Samo začetni load in gumb Uporabi obdobje sprožita server fetch; samo urejanje datumov je lokalno.' },
-  { context: '/admin/artikli', label: 'Artikli', hint: 'Prikazan je začetni server load seed podatkov; večina nadaljnjih interakcij v upravljalniku je lokalna.' },
-  { context: '/admin/kategorije', label: 'Kategorije', hint: 'Začetni load in shranjevanje sta server-backed; veliko urejanja tabele ostane lokalno do shranitve.' },
-  { context: '/admin/kategorije/miller-view', label: 'Kategorije Miller view', hint: 'Server load ob vstopu/preklopu pogleda; izbire po stolpcih so lokalne, dokler ne pride do shranitve ali nove navigacije.' }
+  { contexts: ['/admin/orders'], label: 'Naročila seznam', hint: 'Zapis nastane ob server loadu seznama in spremljevalnih dokument/priponka loaderjih.' },
+  { contexts: ['/admin/orders/[orderId]'], label: 'Naročila podrobnosti', hint: 'Podrobnosti sprožijo več server loaderjev, zato se tukaj aktivnost pokaže najlažje.' },
+  { contexts: ['/admin/arhiv'], label: 'Arhiv', hint: 'Zapis nastane ob server loadu arhiva; demo pogled brez baze se ne zabeleži.' },
+  { contexts: ['/admin/analitika'], label: 'Analitika naročil', hint: 'Zapis nastane ob server loadu analitike in njenih nastavitev.' },
+  { contexts: ['/admin/analitika/splet'], label: 'Analitika splet', hint: 'Samo začetni load in gumb Uporabi obdobje sprožita server fetch; samo urejanje datumov je lokalno.' },
+  { contexts: ['/admin/artikli'], label: 'Artikli', hint: 'Prikazan je začetni server load seed podatkov; večina nadaljnjih interakcij v upravljalniku je lokalna.' },
+  { contexts: ['/admin/kategorije'], label: 'Kategorije', hint: 'Začetni load in shranjevanje sta server-backed; veliko urejanja tabele ostane lokalno do shranitve.' },
+  { contexts: ['/admin/kategorije/miller-view'], label: 'Kategorije Miller view', hint: 'Server load ob vstopu/preklopu pogleda; izbire po stolpcih so lokalne, dokler ne pride do shranitve ali nove navigacije.' }
 ] as const;
 
 const formatNumber = (value: number) => new Intl.NumberFormat('sl-SI').format(Math.round(value));
@@ -180,6 +180,15 @@ function RankedList({ title, description, rows, valueFormatter }: { title: strin
   );
 }
 
+function findCoverageEntry<T extends { context: string; lastSeenAt: string }>(entries: Map<string, T>, contexts: readonly string[]) {
+  const matches = contexts
+    .map((context) => entries.get(context))
+    .filter((entry): entry is T => Boolean(entry));
+
+  if (matches.length === 0) return null;
+  return matches.sort((left, right) => right.lastSeenAt.localeCompare(left.lastSeenAt))[0] ?? null;
+}
+
 const resolveWindowOption = (windowHours: number) =>
   DIAGNOSTICS_WINDOW_OPTIONS.find((option) => Math.abs(option.windowHours - windowHours) < 0.001) ?? DIAGNOSTICS_WINDOW_OPTIONS.at(-1)!;
 
@@ -194,10 +203,11 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
     snapshot.slowestLoaders.length === 0 &&
     snapshot.heaviestLoaders.length === 0;
   const detailsSnapshot = shouldUseFallbackDetails ? fallbackSnapshot : snapshot;
+  const coverageSnapshot = activeWindow.minutes < 15 ? fallbackSnapshot : snapshot;
   const activeRouteMap = new Map(snapshot.routes.map((route) => [route.context, route]));
-  const detailsRouteMap = new Map(detailsSnapshot.routes.map((route) => [route.context, route]));
+  const coverageRouteMap = new Map(coverageSnapshot.routes.map((route) => [route.context, route]));
   const activeLoaderMap = new Map(snapshot.loaders.map((loader) => [loader.context, loader]));
-  const detailsLoaderMap = new Map(detailsSnapshot.loaders.map((loader) => [loader.context, loader]));
+  const coverageLoaderMap = new Map(coverageSnapshot.loaders.map((loader) => [loader.context, loader]));
   const callSeries = snapshot.series.map((point) => ({ timestamp: point.bucketStart, label: formatBucketLabel(point.bucketStart, snapshot.bucketMinutes), value: point.calls }));
   const payloadSeries = snapshot.series.map((point) => ({ timestamp: point.bucketStart, label: formatBucketLabel(point.bucketStart, snapshot.bucketMinutes), value: point.totalPayloadBytes }));
   const topSlowLabel = detailsSnapshot.slowestLoaders.length >= 10 ? 'Top 10 po p95 za hitrejšo identifikacijo latency hotspotov.' : `Trenutno prikazanih ${detailsSnapshot.slowestLoaders.length} loaderjev z zabeleženim p95.`;
@@ -275,18 +285,18 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
         </div>
         <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
           {DIAGNOSTICS_COVERAGE_TARGETS.map((target) => {
-            const activeRoute = activeRouteMap.get(target.context) ?? activeLoaderMap.get(target.context);
-            const fallbackRoute = detailsRouteMap.get(target.context) ?? detailsLoaderMap.get(target.context);
-            const status = activeRoute
-              ? { label: 'Aktivno v oknu', tone: 'border-emerald-200 bg-emerald-50 text-emerald-900', route: activeRoute }
-              : fallbackRoute && shouldUseFallbackDetails
-                ? { label: 'Samo v 15 min fallback', tone: 'border-sky-200 bg-sky-50 text-sky-900', route: fallbackRoute }
+            const activeEntry = findCoverageEntry(activeRouteMap, target.contexts) ?? findCoverageEntry(activeLoaderMap, target.contexts);
+            const recentEntry = findCoverageEntry(coverageRouteMap, target.contexts) ?? findCoverageEntry(coverageLoaderMap, target.contexts);
+            const status = activeEntry
+              ? { label: 'Aktivno v oknu', tone: 'border-emerald-200 bg-emerald-50 text-emerald-900', route: activeEntry }
+              : recentEntry && activeWindow.minutes < 15
+                ? { label: 'Aktivno v zadnjih 15 min', tone: 'border-sky-200 bg-sky-50 text-sky-900', route: recentEntry }
                 : { label: 'Brez aktivnosti v oknu', tone: 'border-slate-200 bg-slate-50 text-slate-700', route: null };
 
             return (
-              <div key={target.context} className={`rounded-lg border px-3 py-3 ${status.tone}`}>
+              <div key={target.label} className={`rounded-lg border px-3 py-3 ${status.tone}`}>
                 <p className="font-medium">{target.label}</p>
-                <p className="mt-1 text-xs"><code>{target.context}</code></p>
+                <p className="mt-1 text-xs"><code>{target.contexts.join(' · ')}</code></p>
                 <p className="mt-2 text-xs font-semibold uppercase tracking-wide">{status.label}</p>
                 {status.route ? (
                   <p className="mt-1 text-xs">

@@ -135,6 +135,23 @@ type DiagnosticsSnapshot = {
   warnings: RouteBudgetWarning[];
 };
 
+
+function normalizeDiagnosticsContext(context: string): string {
+  const normalized = context.trim();
+
+  if (!normalized) return 'unknown';
+  if (!normalized.startsWith('/admin')) return normalized;
+
+  if (normalized.startsWith('/admin/orders/')) return '/admin/orders/[orderId]';
+  if (normalized.startsWith('/admin/kategorije/miller-view')) return '/admin/kategorije/miller-view';
+  if (normalized.startsWith('/admin/kategorije/')) return '/admin/kategorije';
+  if (normalized.startsWith('/admin/analitika/splet')) return '/admin/analitika/splet';
+  if (normalized.startsWith('/admin/analitika/diagnostika')) return '/admin/analitika/diagnostika';
+  if (normalized.startsWith('/admin/analitika/')) return '/admin/analitika';
+
+  return normalized;
+}
+
 declare global {
   // eslint-disable-next-line no-var
   var __catalogDiagnosticsStore: DiagnosticsStore | undefined;
@@ -247,14 +264,15 @@ function pruneStore(now: Date) {
 
 export function recordCatalogLoaderMetric(input: RecordLoaderMetricInput) {
   const recordedAt = input.recordedAt ?? new Date();
+  const normalizedContext = normalizeDiagnosticsContext(input.context);
   const bucketStart = floorToBucket(recordedAt, 1).toISOString();
-  const key = bucketKey(input.loader, input.context, bucketStart);
-  const trigger = inferTrigger(input.context, input.loader);
+  const key = bucketKey(input.loader, normalizedContext, bucketStart);
+  const trigger = inferTrigger(normalizedContext, input.loader);
   const store = getStore();
   const existing = store.buckets.get(key) ?? {
     bucketStart,
     loader: input.loader,
-    context: input.context,
+    context: normalizedContext,
     trigger,
     calls: 0,
     cacheMisses: 0,
@@ -280,14 +298,15 @@ export function recordCatalogLoaderMetric(input: RecordLoaderMetricInput) {
 
 export function recordCatalogInvalidation(input: RecordInvalidationInput) {
   const recordedAt = input.recordedAt ?? new Date();
+  const normalizedContext = normalizeDiagnosticsContext(input.context);
   const bucketStart = floorToBucket(recordedAt, 1).toISOString();
   const tagFamily = [...new Set(input.tags)].sort().join(' + ');
-  const key = invalidationKey(input.context, tagFamily, bucketStart);
-  const trigger = inferTrigger(input.context, 'save revalidation');
+  const key = invalidationKey(normalizedContext, tagFamily, bucketStart);
+  const trigger = inferTrigger(normalizedContext, 'save revalidation');
   const store = getStore();
   const existing = store.invalidations.get(key) ?? {
     bucketStart,
-    context: input.context,
+    context: normalizedContext,
     trigger,
     tagFamily,
     invalidations: 0,

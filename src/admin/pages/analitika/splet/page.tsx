@@ -2,6 +2,7 @@ import AdminWebsiteAnalyticsDashboard from '@/admin/components/AdminWebsiteAnaly
 import AdminAnalyticsTopTabs from '@/admin/components/AdminAnalyticsTopTabs';
 import { fetchWebsiteAnalytics } from '@/shared/server/websiteAnalytics';
 import { getDatabaseUrl } from '@/shared/server/db';
+import { instrumentCatalogRouteEntry } from '@/shared/server/catalogDiagnostics';
 
 export const metadata = {
   title: 'Administracija analitika splet'
@@ -21,30 +22,32 @@ export default async function AdminWebsiteAnalyticsPage({
 }: {
   searchParams?: { from?: string; to?: string };
 }) {
-  const from = searchParams?.from ?? '';
-  const to = searchParams?.to ?? '';
+  return instrumentCatalogRouteEntry('/admin/analitika/splet', async () => {
+    const from = searchParams?.from ?? '';
+    const to = searchParams?.to ?? '';
 
-  const fallbackAnalytics = { visitsByDay: [], topPages: [], topProducts: [], returningVisitors7d: 0, retentionByDay: [] };
-  const analytics = getDatabaseUrl()
-    ? await fetchWebsiteAnalytics({ fromDate: toIsoOrNull(from), toDate: toIsoOrNull(to) }).catch(() => fallbackAnalytics)
-    : fallbackAnalytics;
+    const fallbackAnalytics = { visitsByDay: [], topPages: [], topProducts: [], returningVisitors7d: 0, retentionByDay: [] };
+    const analytics = getDatabaseUrl()
+      ? await fetchWebsiteAnalytics({ fromDate: toIsoOrNull(from), toDate: toIsoOrNull(to) }).catch(() => fallbackAnalytics)
+      : fallbackAnalytics;
 
-  return (
-    <div className="w-full">
-      <div className="mb-4">
-        <h1 className="text-2xl font-semibold text-slate-900">Analitika</h1>
-        <p className="mt-1 text-sm text-slate-500">Pregled analitike naročil in spletnega obiska.</p>
+    return (
+      <div className="w-full">
+        <div className="mb-4">
+          <h1 className="text-2xl font-semibold text-slate-900">Analitika</h1>
+          <p className="mt-1 text-sm text-slate-500">Pregled analitike naročil in spletnega obiska.</p>
+        </div>
+        <AdminAnalyticsTopTabs />
+        <AdminWebsiteAnalyticsDashboard
+          visitsByDay={analytics.visitsByDay}
+          topPages={analytics.topPages}
+          topProducts={analytics.topProducts}
+          returningVisitors7d={analytics.returningVisitors7d}
+          retentionByDay={analytics.retentionByDay}
+          initialFrom={from}
+          initialTo={to}
+        />
       </div>
-      <AdminAnalyticsTopTabs />
-      <AdminWebsiteAnalyticsDashboard
-      visitsByDay={analytics.visitsByDay}
-      topPages={analytics.topPages}
-      topProducts={analytics.topProducts}
-      returningVisitors7d={analytics.returningVisitors7d}
-      retentionByDay={analytics.retentionByDay}
-      initialFrom={from}
-      initialTo={to}
-      />
-    </div>
-  );
+    );
+  });
 }

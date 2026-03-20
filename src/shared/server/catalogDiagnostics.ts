@@ -4,7 +4,21 @@ type TriggerType = 'page_render' | 'api_call' | 'save_revalidation' | 'search' |
 
 type DiagnosticsBucketGranularityMinutes = 1 | 5 | 15 | 60;
 
-type LoaderMetricBucket = {
+export type CatalogDiagnosticsMetricEvent = {
+  bucketStart: string;
+  loader: string;
+  context: string;
+  trigger: TriggerType;
+  calls: number;
+  cacheMisses: number;
+  errorCount: number;
+  totalDurationMs: number;
+  totalPayloadBytes: number;
+  lastSeenAt: string;
+  durationsMs: number[];
+};
+
+type LoaderMetricBucket = CatalogDiagnosticsMetricEvent & {
   bucketStart: string;
   loader: string;
   context: string;
@@ -106,6 +120,14 @@ type RouteBudgetWarning = {
   severity: 'info' | 'warning';
   context: string;
   message: string;
+};
+
+
+
+export type CatalogDiagnosticsCoverageSnapshot = {
+  generatedAt: string;
+  metricsStartedAt: string;
+  metricEvents: CatalogDiagnosticsMetricEvent[];
 };
 
 type DiagnosticsSnapshot = {
@@ -335,6 +357,22 @@ export async function instrumentCatalogLoader<T>(loader: string, context: string
     });
     throw error;
   }
+}
+
+export async function instrumentCatalogRouteEntry<T>(context: string, run: () => Promise<T>): Promise<T> {
+  return instrumentCatalogLoader('adminRouteEntry', context, run);
+}
+
+export function getCatalogDiagnosticsCoverageSnapshot(): CatalogDiagnosticsCoverageSnapshot {
+  const now = new Date();
+  const store = getStore();
+  pruneStore(now);
+
+  return {
+    generatedAt: now.toISOString(),
+    metricsStartedAt: store.startedAt,
+    metricEvents: [...store.buckets.values()].sort((left, right) => right.lastSeenAt.localeCompare(left.lastSeenAt))
+  };
 }
 
 export async function instrumentCatalogCacheMiss<T>(loader: string, context: string, run: () => Promise<T>): Promise<T> {

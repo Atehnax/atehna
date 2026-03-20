@@ -9,6 +9,7 @@ import {
   sortCatalogItems
 } from '@/commercial/catalog/catalog';
 import { getCatalogItemsIndexServer } from '@/commercial/catalog/catalogServer';
+import { instrumentCatalogRouteEntry } from '@/shared/server/catalogDiagnostics';
 
 export const dynamic = 'force-dynamic';
 
@@ -90,8 +91,8 @@ async function AdminItemsManagerSection() {
   return <AdminItemsManager seedItems={seedItems} />;
 }
 
-export default function AdminArtikliPage() {
-  return (
+export default async function AdminArtikliPage() {
+  return instrumentCatalogRouteEntry('/admin/artikli', async () => (
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-semibold text-slate-900">Artikli</h1>
@@ -101,5 +102,5 @@ export default function AdminArtikliPage() {
         <AdminItemsManagerSection />
       </Suspense>
     </div>
-  );
+  ));
 }

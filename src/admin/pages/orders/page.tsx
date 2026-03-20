@@ -12,6 +12,7 @@ import {
 } from '@/shared/server/orders';
 import { getDatabaseUrl } from '@/shared/server/db';
 import { fetchGlobalAnalyticsAppearance, type AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
+import { instrumentCatalogRouteEntry } from '@/shared/server/catalogDiagnostics';
 
 export const metadata = {
   title: 'Pregled naročil'
@@ -36,20 +37,6 @@ function normalizeDateInput(value: string): string {
 
   return trimmedValue;
 }
-
-const toIsoOrNull = (value: string) => {
-  if (!value) return null;
-  const date = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toISOString();
-};
-
-const getToDateIsoOrNull = (value: string) => {
-  if (!value) return null;
-  const date = new Date(`${value}T23:59:59.999`);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toISOString();
-};
 
 async function AdminOrdersTableSection({
   searchParams
@@ -127,9 +114,6 @@ async function AdminOrdersTableSection({
     warningMessage = 'Povezava z bazo ni nastavljena — prikazan je demo pogled.';
   } else {
     try {
-      // Always load the full active dataset on the server and let the table apply
-      // date/search/document filters client-side. This avoids accidental empty states
-      // caused by stale URL params or server-side filter drift.
       const [ordersResult, analyticsAppearanceResult] = await Promise.all([
         fetchOrders({ includeDrafts: true }),
         fetchGlobalAnalyticsAppearance('narocila', '/admin/orders').catch(() => fallbackAppearance)
@@ -188,12 +172,12 @@ async function AdminOrdersTableSection({
   );
 }
 
-export default function AdminOrdersPage({
+export default async function AdminOrdersPage({
   searchParams
 }: {
   searchParams?: { from?: string | string[]; to?: string | string[]; q?: string | string[] };
 }) {
-  return (
+  return instrumentCatalogRouteEntry('/admin/orders', async () => (
     <div className="w-full">
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -208,5 +192,5 @@ export default function AdminOrdersPage({
         </Suspense>
       </div>
     </div>
-  );
+  ));
 }

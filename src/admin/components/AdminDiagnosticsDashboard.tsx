@@ -1,7 +1,11 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import AdminDiagnosticsChart from '@/admin/components/AdminDiagnosticsChart';
-import { getCatalogDiagnosticsSnapshot } from '@/shared/server/catalogDiagnostics';
+import {
+  getCatalogDiagnosticsCoverageSnapshot,
+  getCatalogDiagnosticsSnapshot,
+  type CatalogDiagnosticsMetricEvent
+} from '@/shared/server/catalogDiagnostics';
 
 type Props = {
   windowHours?: number;
@@ -21,6 +25,32 @@ type DiagnosticsWindowOption = {
   description: string;
 };
 
+type CoverageCardRegistryEntry = {
+  id: string;
+  label: string;
+  route: string;
+  acceptedContexts: string[];
+  acceptedEventKinds?: string[];
+  description: string;
+};
+
+type CoverageStatus = 'active' | 'recent' | 'historical' | 'missing';
+
+type CoverageDebugBucket = 'selected window' | 'recent' | 'historical' | 'none';
+
+type CoverageCardEvidence = {
+  card: CoverageCardRegistryEntry;
+  selectedWindowEntries: CatalogDiagnosticsMetricEvent[];
+  recentEntries: CatalogDiagnosticsMetricEvent[];
+  allTimeEntries: CatalogDiagnosticsMetricEvent[];
+  latestKnownEntry: CatalogDiagnosticsMetricEvent | null;
+  lastSeenAt: string | null;
+  matchedContext: string | null;
+  matchedEventType: string | null;
+  status: CoverageStatus;
+  sourceBucket: CoverageDebugBucket;
+};
+
 const DIAGNOSTICS_WINDOW_OPTIONS: DiagnosticsWindowOption[] = [
   { label: '5 min', param: '5m', minutes: 5, windowHours: 5 / 60, description: '1-min prikaz za live admin session in hiter debugging.' },
   { label: '15 min', param: '15m', minutes: 15, windowHours: 0.25, description: '5-min bucketi za kratek admin session.' },
@@ -29,17 +59,74 @@ const DIAGNOSTICS_WINDOW_OPTIONS: DiagnosticsWindowOption[] = [
   { label: '24 ur', param: '24h', minutes: 1440, windowHours: 24, description: 'Urni bucketi za širši dnevni pregled.' }
 ];
 
-const DIAGNOSTICS_COVERAGE_TARGETS = [
-  { contexts: ['/admin/orders'], label: 'Naročila seznam', hint: 'Zapis nastane ob server loadu seznama in spremljevalnih dokument/priponka loaderjih.' },
-  { contexts: ['/admin/orders/[orderId]'], label: 'Naročila podrobnosti', hint: 'Podrobnosti sprožijo več server loaderjev, zato se tukaj aktivnost pokaže najlažje.' },
-  { contexts: ['/admin/arhiv'], label: 'Arhiv', hint: 'Zapis nastane ob server loadu arhiva; demo pogled brez baze se ne zabeleži.' },
-  { contexts: ['/admin/analitika'], label: 'Analitika naročil', hint: 'Zapis nastane ob server loadu analitike in njenih nastavitev.' },
-  { contexts: ['/admin/analitika/splet'], label: 'Analitika splet', hint: 'Samo začetni load in gumb Uporabi obdobje sprožita server fetch; samo urejanje datumov je lokalno.' },
-  { contexts: ['/admin/artikli'], label: 'Artikli', hint: 'Prikazan je začetni server load seed podatkov; večina nadaljnjih interakcij v upravljalniku je lokalna.' },
-  { contexts: ['/admin/kategorije'], label: 'Kategorije', hint: 'Začetni load in shranjevanje sta server-backed; veliko urejanja tabele ostane lokalno do shranitve.' },
-  { contexts: ['/admin/kategorije/miller-view'], label: 'Kategorije Miller view', hint: 'Server load ob vstopu/preklopu pogleda; izbire po stolpcih so lokalne, dokler ne pride do shranitve ali nove navigacije.' }
+const ADMIN_DIAGNOSTICS_COVERAGE_REGISTRY: CoverageCardRegistryEntry[] = [
+  {
+    id: 'orders-list',
+    label: 'Naročila seznam',
+    route: '/admin/orders',
+    acceptedContexts: ['/admin/orders'],
+    acceptedEventKinds: ['adminRouteEntry', 'fetchOrders', 'fetchOrderDocumentsForOrders', 'fetchOrderAttachmentsForOrders', 'fetchGlobalAnalyticsAppearance'],
+    description: 'Route-level ali page-owned server signal za glavni seznam naročil.'
+  },
+  {
+    id: 'orders-detail',
+    label: 'Naročila podrobnosti',
+    route: '/admin/orders/[orderId]',
+    acceptedContexts: ['/admin/orders/[orderId]'],
+    acceptedEventKinds: ['adminRouteEntry', 'fetchOrderById', 'fetchOrderItems', 'fetchOrderDocuments', 'fetchOrderAttachments'],
+    description: 'Route-level ali page-owned server signal za podrobnosti naročila.'
+  },
+  {
+    id: 'archive',
+    label: 'Arhiv',
+    route: '/admin/arhiv',
+    acceptedContexts: ['/admin/arhiv'],
+    acceptedEventKinds: ['adminRouteEntry', 'fetchArchiveEntries'],
+    description: 'Route-level ali page-owned server signal za arhiv izbrisanih zapisov.'
+  },
+  {
+    id: 'analytics-orders',
+    label: 'Analitika naročil',
+    route: '/admin/analitika',
+    acceptedContexts: ['/admin/analitika'],
+    acceptedEventKinds: ['adminRouteEntry', 'fetchOrdersAnalytics', 'fetchOrdersAnalyticsRows', 'fetchAnalyticsCharts', 'fetchGlobalAnalyticsAppearance'],
+    description: 'Route-level ali page-owned server signal za dashboard analitike naročil.'
+  },
+  {
+    id: 'analytics-web',
+    label: 'Analitika splet',
+    route: '/admin/analitika/splet',
+    acceptedContexts: ['/admin/analitika/splet'],
+    acceptedEventKinds: ['adminRouteEntry', 'fetchWebsiteAnalytics'],
+    description: 'Route-level ali page-owned server signal za dashboard spletne analitike.'
+  },
+  {
+    id: 'items',
+    label: 'Artikli',
+    route: '/admin/artikli',
+    acceptedContexts: ['/admin/artikli'],
+    acceptedEventKinds: ['adminRouteEntry', 'getCatalogItemsIndexServer', 'loadCatalogItemsIndexServer', 'getCatalogItemsIndexFromDatabase'],
+    description: 'Route-level ali page-owned server signal za upravljanje artiklov.'
+  },
+  {
+    id: 'categories-table',
+    label: 'Kategorije',
+    route: '/admin/kategorije',
+    acceptedContexts: ['/admin/kategorije'],
+    acceptedEventKinds: ['adminRouteEntry', 'getCatalogDataFromDatabase'],
+    description: 'Route-level ali page-owned server signal za tabelarični pogled kategorij.'
+  },
+  {
+    id: 'categories-miller',
+    label: 'Kategorije Miller view',
+    route: '/admin/kategorije/miller-view',
+    acceptedContexts: ['/admin/kategorije/miller-view'],
+    acceptedEventKinds: ['adminRouteEntry', 'getCatalogDataFromDatabase'],
+    description: 'Route-level ali page-owned server signal za Miller view kategorij.'
+  }
 ] as const;
 
+const RECENT_WINDOW_MINUTES = 30;
 const formatNumber = (value: number) => new Intl.NumberFormat('sl-SI').format(Math.round(value));
 const formatDuration = (value: number) => `${formatNumber(value)} ms`;
 const formatPercent = (value: number | null) => (value === null ? '—' : `${(value * 100).toFixed(1)} %`);
@@ -66,6 +153,79 @@ const formatBucketLabel = (value: string, bucketMinutes: number) =>
     day: bucketMinutes >= 60 ? '2-digit' : undefined,
     timeZone: 'UTC'
   }).format(new Date(value));
+
+function normalizeDiagnosticContext(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return trimmed;
+  const withoutQuery = trimmed.split('?')[0] ?? trimmed;
+  const normalized = withoutQuery.replace(/\/+$/, '');
+  return normalized || '/';
+}
+
+function matchesCoverageCard(entry: CatalogDiagnosticsMetricEvent, card: CoverageCardRegistryEntry) {
+  const normalizedContext = normalizeDiagnosticContext(entry.context);
+  const acceptedContexts = card.acceptedContexts.map(normalizeDiagnosticContext);
+  if (!acceptedContexts.includes(normalizedContext)) return false;
+  if (card.acceptedEventKinds?.length && !card.acceptedEventKinds.includes(entry.loader)) return false;
+  return true;
+}
+
+function sortEntriesByLatest(entries: CatalogDiagnosticsMetricEvent[]) {
+  return [...entries].sort((left, right) => right.lastSeenAt.localeCompare(left.lastSeenAt));
+}
+
+export function buildCoverageCardEvidence(
+  registry: CoverageCardRegistryEntry[],
+  metricEvents: CatalogDiagnosticsMetricEvent[],
+  selectedWindowMinutes: number,
+  recentWindowMinutes = RECENT_WINDOW_MINUTES,
+  now = new Date()
+): CoverageCardEvidence[] {
+  const selectedCutoff = now.getTime() - selectedWindowMinutes * 60 * 1000;
+  const recentCutoff = now.getTime() - recentWindowMinutes * 60 * 1000;
+
+  return registry.map((card) => {
+    const matchedEntries = sortEntriesByLatest(metricEvents.filter((entry) => matchesCoverageCard(entry, card)));
+    const selectedWindowEntries = matchedEntries.filter((entry) => new Date(entry.lastSeenAt).getTime() >= selectedCutoff);
+    const recentEntries = matchedEntries.filter((entry) => new Date(entry.lastSeenAt).getTime() >= recentCutoff);
+    const latestKnownEntry = matchedEntries[0] ?? null;
+    const status: CoverageStatus = selectedWindowEntries.length > 0
+      ? 'active'
+      : recentEntries.length > 0
+        ? 'recent'
+        : matchedEntries.length > 0
+          ? 'historical'
+          : 'missing';
+    const sourceBucket: CoverageDebugBucket = selectedWindowEntries.length > 0
+      ? 'selected window'
+      : recentEntries.length > 0
+        ? 'recent'
+        : matchedEntries.length > 0
+          ? 'historical'
+          : 'none';
+
+    return {
+      card,
+      selectedWindowEntries,
+      recentEntries,
+      allTimeEntries: matchedEntries,
+      latestKnownEntry,
+      lastSeenAt: latestKnownEntry?.lastSeenAt ?? null,
+      matchedContext: latestKnownEntry ? normalizeDiagnosticContext(latestKnownEntry.context) : null,
+      matchedEventType: latestKnownEntry?.loader ?? null,
+      status,
+      sourceBucket
+    } satisfies CoverageCardEvidence;
+  });
+}
+
+export function assertAdminCoverageCards(evidence: CoverageCardEvidence[]) {
+  const offenders = evidence.filter((entry) => entry.status !== 'active' && entry.status !== 'recent');
+  if (offenders.length === 0) return;
+
+  const details = offenders.map((entry) => `${entry.card.route} -> ${entry.status} (${entry.matchedContext ?? 'no-context'})`).join(', ');
+  throw new Error(`Admin diagnostics coverage assertion failed: ${details}`);
+}
 
 const triggerLabel = (trigger: string) => {
   switch (trigger) {
@@ -180,38 +340,31 @@ function RankedList({ title, description, rows, valueFormatter }: { title: strin
   );
 }
 
-function findCoverageEntry<T extends { context: string; lastSeenAt: string }>(entries: Map<string, T>, contexts: readonly string[]) {
-  const matches = contexts
-    .map((context) => entries.get(context))
-    .filter((entry): entry is T => Boolean(entry));
-
-  if (matches.length === 0) return null;
-  return matches.sort((left, right) => right.lastSeenAt.localeCompare(left.lastSeenAt))[0] ?? null;
-}
-
 const resolveWindowOption = (windowHours: number) =>
   DIAGNOSTICS_WINDOW_OPTIONS.find((option) => Math.abs(option.windowHours - windowHours) < 0.001) ?? DIAGNOSTICS_WINDOW_OPTIONS.at(-1)!;
+
+function coverageStatusPresentation(status: CoverageStatus) {
+  switch (status) {
+    case 'active':
+      return { label: 'Aktivno v oknu', tone: 'border-emerald-200 bg-emerald-50 text-emerald-900' };
+    case 'recent':
+      return { label: 'Nedavno zaznano', tone: 'border-sky-200 bg-sky-50 text-sky-900' };
+    case 'historical':
+      return { label: 'Pokrito, brez aktivnosti v oknu', tone: 'border-amber-200 bg-amber-50 text-amber-900' };
+    default:
+      return { label: 'Ni dokazov o beleženju', tone: 'border-rose-200 bg-rose-50 text-rose-900' };
+  }
+}
 
 export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
   const activeWindow = resolveWindowOption(windowHours);
   const snapshot = getCatalogDiagnosticsSnapshot(activeWindow.windowHours);
-  const fallbackSnapshot = activeWindow.minutes < 15 ? getCatalogDiagnosticsSnapshot(0.25) : snapshot;
-  const shouldUseFallbackDetails =
-    activeWindow.minutes < 15 &&
-    snapshot.loaders.length === 0 &&
-    snapshot.routes.length === 0 &&
-    snapshot.slowestLoaders.length === 0 &&
-    snapshot.heaviestLoaders.length === 0;
-  const detailsSnapshot = shouldUseFallbackDetails ? fallbackSnapshot : snapshot;
-  const coverageSnapshot = activeWindow.minutes < 15 ? fallbackSnapshot : snapshot;
-  const activeRouteMap = new Map(snapshot.routes.map((route) => [route.context, route]));
-  const coverageRouteMap = new Map(coverageSnapshot.routes.map((route) => [route.context, route]));
-  const activeLoaderMap = new Map(snapshot.loaders.map((loader) => [loader.context, loader]));
-  const coverageLoaderMap = new Map(coverageSnapshot.loaders.map((loader) => [loader.context, loader]));
+  const coverageSnapshot = getCatalogDiagnosticsCoverageSnapshot();
   const callSeries = snapshot.series.map((point) => ({ timestamp: point.bucketStart, label: formatBucketLabel(point.bucketStart, snapshot.bucketMinutes), value: point.calls }));
   const payloadSeries = snapshot.series.map((point) => ({ timestamp: point.bucketStart, label: formatBucketLabel(point.bucketStart, snapshot.bucketMinutes), value: point.totalPayloadBytes }));
-  const topSlowLabel = detailsSnapshot.slowestLoaders.length >= 10 ? 'Top 10 po p95 za hitrejšo identifikacijo latency hotspotov.' : `Trenutno prikazanih ${detailsSnapshot.slowestLoaders.length} loaderjev z zabeleženim p95.`;
-  const topPayloadLabel = detailsSnapshot.heaviestLoaders.length >= 10 ? 'Top 10 po skupnem payloadu v izbranem oknu.' : `Trenutno prikazanih ${detailsSnapshot.heaviestLoaders.length} loaderjev z merjenim payloadom.`;
+  const topSlowLabel = snapshot.slowestLoaders.length >= 10 ? 'Top 10 po p95 za hitrejšo identifikacijo latency hotspotov.' : `Trenutno prikazanih ${snapshot.slowestLoaders.length} loaderjev z zabeleženim p95.`;
+  const topPayloadLabel = snapshot.heaviestLoaders.length >= 10 ? 'Top 10 po skupnem payloadu v izbranem oknu.' : `Trenutno prikazanih ${snapshot.heaviestLoaders.length} loaderjev z merjenim payloadom.`;
+  const coverageEvidence = buildCoverageCardEvidence(ADMIN_DIAGNOSTICS_COVERAGE_REGISTRY, coverageSnapshot.metricEvents, activeWindow.minutes);
 
   return (
     <div className="space-y-6">
@@ -246,14 +399,9 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
           <span>Granularnost: {snapshot.bucketMinutes} min</span>
           <span>Zagon meritev: {formatDateTime(snapshot.metricsStartedAt)} UTC</span>
           <span>Posodobljeno: {formatDateTime(snapshot.generatedAt)} UTC</span>
+          <span>Coverage recent: {RECENT_WINDOW_MINUTES} min</span>
         </div>
       </section>
-
-      {shouldUseFallbackDetails ? (
-        <section className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
-          V zadnjih 5 minutah še ni dovolj diagnostičnih klicev za tabele, zato spodnji seznami začasno prikazujejo zadnjih 15 minut. Kratki grafi zgoraj ostanejo v izbranem 5-min oknu.
-        </section>
-      ) : null}
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
         <SummaryCard label="Skupni klici" value={formatNumber(snapshot.summary.totalLoaderCalls)} hint={`${snapshot.summary.uniqueLoaders} loaderjev`} />
@@ -280,31 +428,34 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-sm font-semibold text-slate-900">Pokritost glavnih admin kontekstov</h2>
-            <p className="mt-1 text-sm text-slate-500">Prikazani so samo server-backed konteksti z aktivnostjo v izbranem oknu; veliko lokalnih admin interakcij po začetnem loadu ne ustvari novega diagnostičnega zapisa. Demo/fallback pogledi brez baze se ne beležijo.</p>
+            <p className="mt-1 text-sm text-slate-500">Kartice so vodene prek statičnega coverage registra in determinističnega route-scoped matcherja. “Brez aktivnosti v oknu” ne pomeni več “ni pokrito”.</p>
           </div>
         </div>
         <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-          {DIAGNOSTICS_COVERAGE_TARGETS.map((target) => {
-            const activeEntry = findCoverageEntry(activeRouteMap, target.contexts) ?? findCoverageEntry(activeLoaderMap, target.contexts);
-            const recentEntry = findCoverageEntry(coverageRouteMap, target.contexts) ?? findCoverageEntry(coverageLoaderMap, target.contexts);
-            const status = activeEntry
-              ? { label: 'Aktivno v oknu', tone: 'border-emerald-200 bg-emerald-50 text-emerald-900', route: activeEntry }
-              : recentEntry && activeWindow.minutes < 15
-                ? { label: 'Aktivno v zadnjih 15 min', tone: 'border-sky-200 bg-sky-50 text-sky-900', route: recentEntry }
-                : { label: 'Brez aktivnosti v oknu', tone: 'border-slate-200 bg-slate-50 text-slate-700', route: null };
-
+          {coverageEvidence.map((entry) => {
+            const status = coverageStatusPresentation(entry.status);
             return (
-              <div key={target.label} className={`rounded-lg border px-3 py-3 ${status.tone}`}>
-                <p className="font-medium">{target.label}</p>
-                <p className="mt-1 text-xs"><code>{target.contexts.join(' · ')}</code></p>
-                <p className="mt-2 text-xs font-semibold uppercase tracking-wide">{status.label}</p>
-                {status.route ? (
-                  <p className="mt-1 text-xs">
-                    {formatNumber(status.route.calls)} klicev · zadnjič {formatDateTime(status.route.lastSeenAt)} UTC
-                  </p>
-                ) : null}
-                <p className="mt-2 text-xs">{target.hint}</p>
-              </div>
+              <details key={entry.card.id} className={`rounded-lg border px-3 py-3 ${status.tone}`}>
+                <summary className="cursor-pointer list-none">
+                  <p className="font-medium">{entry.card.label}</p>
+                  <p className="mt-1 text-xs"><code>{entry.card.route}</code></p>
+                  <p className="mt-2 text-xs font-semibold uppercase tracking-wide">{status.label}</p>
+                  {entry.lastSeenAt ? (
+                    <p className="mt-1 text-xs">Zadnji zaznan dogodek: {formatDateTime(entry.lastSeenAt)} UTC</p>
+                  ) : (
+                    <p className="mt-1 text-xs">Zadnji zaznan dogodek: —</p>
+                  )}
+                  <p className="mt-2 text-xs">{entry.card.description}</p>
+                </summary>
+                <div className="mt-3 space-y-2 border-t border-current/15 pt-3 text-xs">
+                  <p><span className="font-semibold">V izbranem oknu:</span> {formatNumber(entry.selectedWindowEntries.length)}</p>
+                  <p><span className="font-semibold">Nedavno ({RECENT_WINDOW_MINUTES} min):</span> {formatNumber(entry.recentEntries.length)}</p>
+                  <p><span className="font-semibold">Zgodovinski dokazi:</span> {formatNumber(entry.allTimeEntries.length)}</p>
+                  <p><span className="font-semibold">Ujemajoči kontekst:</span> {entry.matchedContext ?? '—'}</p>
+                  <p><span className="font-semibold">Ujemajoči event:</span> {entry.matchedEventType ?? '—'}</p>
+                  <p><span className="font-semibold">Vir bucket:</span> {entry.sourceBucket}</p>
+                </div>
+              </details>
             );
           })}
         </div>
@@ -337,7 +488,7 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
         title="Statistika loaderjev"
         description="Tabela združuje vhodne loaderje in notranje cache izvedbe, zato so missi/hiti prikazani eksplicitno."
         columns={['Loader', 'Sloj', 'Vir', 'Kontekst', 'Klici', 'Missi', 'Hiti', 'Hit %', 'Povpr. ms', 'p95 ms', 'Payload', 'Nazadnje']}
-        rows={detailsSnapshot.loaders.slice(0, 12).map((row) => {
+        rows={snapshot.loaders.slice(0, 12).map((row) => {
           const layer = classifyLoaderLayer(row.loader);
           return [
             <div key="loader"><p className="font-medium text-slate-900">{row.loader}</p></div>,
@@ -360,7 +511,7 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
         title="Statistika poti / kontekstov"
         description="Kontekst pove, ali gre za prikaz strani, API klic ali save/revalidation tok."
         columns={['Pot / kontekst', 'Vir', 'Klici', 'Missi', 'Hiti', 'Povpr. ms', 'Najbolj vroč loader', 'Payload', 'Nazadnje']}
-        rows={detailsSnapshot.routes.slice(0, 12).map((row) => [
+        rows={snapshot.routes.slice(0, 12).map((row) => [
           <code key="context" className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-700">{row.context}</code>,
           <span key="trigger" className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${triggerTone(row.trigger)}`}>{triggerLabel(row.trigger)}</span>,
           formatNumber(row.calls),
@@ -377,13 +528,13 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
         <RankedList
           title="Najpočasnejši loaderji"
           description={topSlowLabel}
-          rows={detailsSnapshot.slowestLoaders.map((row) => ({ label: row.loader, context: row.context, value: row.p95DurationMs }))}
+          rows={snapshot.slowestLoaders.map((row) => ({ label: row.loader, context: row.context, value: row.p95DurationMs }))}
           valueFormatter={(value) => formatDuration(value)}
         />
         <RankedList
           title="Najtežji payloadi"
           description={topPayloadLabel}
-          rows={detailsSnapshot.heaviestLoaders.map((row) => ({ label: row.loader, context: row.context, value: row.totalPayloadBytes }))}
+          rows={snapshot.heaviestLoaders.map((row) => ({ label: row.loader, context: row.context, value: row.totalPayloadBytes }))}
           valueFormatter={(value) => formatBytes(value)}
         />
       </div>
@@ -392,7 +543,7 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
         title="Nedavne invalidacije"
         description="Rolling summary tag invalidacij in route revalidacij; brez surovega event streama."
         columns={['Vir', 'Tag družina', 'Dogodki', 'Revalidirane poti', 'Nazadnje']}
-        rows={detailsSnapshot.invalidations.map((row) => [
+        rows={snapshot.invalidations.map((row) => [
           <div key="trigger"><p className="font-medium text-slate-900">{row.context}</p><p className="text-xs text-slate-500">{triggerLabel(row.trigger)}</p></div>,
           <code key="family" className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-700">{row.tagFamily}</code>,
           formatNumber(row.invalidations),
@@ -404,13 +555,13 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
       <section className="rounded-xl border border-slate-200 bg-white p-4">
         <h2 className="text-sm font-semibold text-slate-900">Opozorila in pričakovanja</h2>
         <div className="mt-3 space-y-2 text-sm">
-          {detailsSnapshot.warnings.map((warning, index) => (
+          {snapshot.warnings.map((warning, index) => (
             <div key={`${warning.context}-${index}`} className={`rounded-lg border px-3 py-2 ${warning.severity === 'warning' ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-sky-200 bg-sky-50 text-sky-900'}`}>
               <p className="font-medium">{warning.context}</p>
               <p className="mt-1">{warning.message}</p>
             </div>
           ))}
-          {detailsSnapshot.warnings.length === 0 ? <p className="text-slate-500">Ni zaznanih očitnih odstopanj od trenutnih route budget pravil.</p> : null}
+          {snapshot.warnings.length === 0 ? <p className="text-slate-500">Ni zaznanih očitnih odstopanj od trenutnih route budget pravil.</p> : null}
         </div>
       </section>
     </div>

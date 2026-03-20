@@ -5,6 +5,7 @@ import { AdminAnalyticsSectionSkeleton } from '@/admin/components/AdminPageSkele
 import { emptyOrdersAnalyticsResponse, fetchOrdersAnalytics } from '@/shared/server/orderAnalytics';
 import { fetchAnalyticsCharts, fetchGlobalAnalyticsAppearance } from '@/shared/server/analyticsCharts';
 import { getDatabaseUrl } from '@/shared/server/db';
+import { instrumentCatalogRouteEntry } from '@/shared/server/catalogDiagnostics';
 
 export const metadata = {
   title: 'Administracija analitika'
@@ -42,12 +43,12 @@ async function AdminAnalyticsDashboardSection({
   );
 }
 
-export default function AdminAnalyticsIndexPage({
+export default async function AdminAnalyticsIndexPage({
   searchParams
 }: {
   searchParams?: { range?: string; from?: string; to?: string; grouping?: string; view?: string; focus?: string };
 }) {
-  return (
+  return instrumentCatalogRouteEntry('/admin/analitika', async () => (
     <div className="w-full">
       <div className="mb-4">
         <h1 className="text-2xl font-semibold text-slate-900">Analitika</h1>
@@ -58,5 +59,5 @@ export default function AdminAnalyticsIndexPage({
         <AdminAnalyticsDashboardSection searchParams={searchParams} />
       </Suspense>
     </div>
-  );
+  ));
 }

@@ -4,6 +4,7 @@ import AdminArchiveTabs from '@/admin/components/AdminArchiveTabs';
 import { AdminArchiveSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 import { fetchArchiveEntries } from '@/shared/server/deletedArchive';
 import { getDatabaseUrl } from '@/shared/server/db';
+import { instrumentCatalogRouteEntry } from '@/shared/server/catalogDiagnostics';
 
 export const metadata = {
   title: 'Arhiv naročil'
@@ -38,8 +39,8 @@ async function AdminArchiveTableSection() {
   return <AdminDeletedArchiveTable initialEntries={entries} />;
 }
 
-export default function AdminArchivePage() {
-  return (
+export default async function AdminArchivePage() {
+  return instrumentCatalogRouteEntry('/admin/arhiv', async () => (
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-semibold text-slate-900">Arhiv naročil</h1>
@@ -50,5 +51,5 @@ export default function AdminArchivePage() {
         <AdminArchiveTableSection />
       </Suspense>
     </div>
-  );
+  ));
 }

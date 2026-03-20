@@ -12,21 +12,7 @@ import {
   getDiscountedPrice
 } from '@/commercial/catalog/catalog';
 import { Button } from '@/shared/ui/button';
-
-type ContentCard = {
-  id: string;
-  title: string;
-  description: string;
-  image?: string;
-  kind: 'category' | 'subcategory';
-  isInactive?: boolean;
-};
-
-type SelectedContext =
-  | { kind: 'root' }
-  | { kind: 'category'; category: CatalogCategory }
-  | { kind: 'subcategory'; category: CatalogCategory; subcategory: CatalogSubcategory }
-  | null;
+import type { ContentCard, SelectedPreviewContext } from '../common/types';
 
 export function AdminCategoriesPreview({
   activeView,
@@ -53,7 +39,7 @@ export function AdminCategoriesPreview({
   onRequestSave: () => void;
   tableDirty: boolean;
   saving: boolean;
-  selectedContext: SelectedContext;
+  selectedContext: SelectedPreviewContext;
   visibleContent: ContentCard[];
   onBottomReorder: (event: DragEndEvent) => void;
   renderSortableItem: (id: string, children: (dragProps: Record<string, unknown>) => ReactNode) => ReactNode;

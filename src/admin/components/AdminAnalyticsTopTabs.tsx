@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 
@@ -11,6 +12,14 @@ export default function AdminAnalyticsTopTabs() {
     : pathname.startsWith('/admin/analitika/splet')
       ? 'web'
       : 'orders';
+
+  useEffect(() => {
+    ['/admin/analitika', '/admin/analitika/splet', '/admin/analitika/diagnostika'].forEach((href) => {
+      if (href !== pathname) {
+        router.prefetch(href);
+      }
+    });
+  }, [pathname, router]);
 
   return (
     <Tabs

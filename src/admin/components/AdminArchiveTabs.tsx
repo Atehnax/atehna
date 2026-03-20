@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 
@@ -12,6 +13,14 @@ export default function AdminArchiveTabs() {
   const pathname = usePathname();
   const router = useRouter();
   const value = pathname.startsWith('/admin/arhiv/artikli') ? '/admin/arhiv/artikli' : '/admin/arhiv';
+
+  useEffect(() => {
+    tabs.forEach((tab) => {
+      if (tab.value !== pathname) {
+        router.prefetch(tab.value);
+      }
+    });
+  }, [pathname, router]);
 
   return (
     <Tabs value={value} onValueChange={(next) => router.push(next)}>

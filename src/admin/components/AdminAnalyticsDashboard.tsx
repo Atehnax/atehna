@@ -106,7 +106,8 @@ const layoutBase = (theme: ChartTheme): Partial<Layout> => ({
 
 export default function AdminAnalyticsDashboard({ initialData, initialCharts, initialFocusKey = '', initialAppearance }: Props) {
   const chartTheme = useMemo(() => getChartThemeFromCssVars(), []);
-  const [range, setRange] = useState<RangeOption>('30d');
+  const initialRange = initialData.range as RangeOption;
+  const [range, setRange] = useState<RangeOption>(initialRange);
   const [data, setData] = useState(initialData);
   const [charts, setCharts] = useState(initialCharts);
   const [focusedKey, setFocusedKey] = useState(initialFocusKey);
@@ -173,13 +174,14 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
 
   useEffect(() => {
     const saved = window.localStorage.getItem('admin-analytics-range');
-    if (saved === '7d' || saved === '30d' || saved === '90d' || saved === '180d' || saved === '365d' || saved === 'ytd') {
+    if (
+      (saved === '7d' || saved === '30d' || saved === '90d' || saved === '180d' || saved === '365d' || saved === 'ytd') &&
+      saved !== initialRange
+    ) {
       void loadRange(saved);
-    } else {
-      void loadRange('30d');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialRange]);
 
   useEffect(() => {
     window.localStorage.setItem('admin-analytics-range', range);

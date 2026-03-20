@@ -1,5 +1,7 @@
+import { Suspense } from 'react';
 import AdminDeletedArchiveTable from '@/admin/components/AdminDeletedArchiveTable';
 import AdminArchiveTabs from '@/admin/components/AdminArchiveTabs';
+import { AdminArchiveSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 import { fetchArchiveEntries } from '@/shared/server/deletedArchive';
 import { getDatabaseUrl } from '@/shared/server/db';
 
@@ -9,7 +11,7 @@ export const metadata = {
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminArchivePage() {
+async function AdminArchiveTableSection() {
   const entries = getDatabaseUrl()
     ? await fetchArchiveEntries('all')
     : [
@@ -33,6 +35,10 @@ export default async function AdminArchivePage() {
         }
       ];
 
+  return <AdminDeletedArchiveTable initialEntries={entries} />;
+}
+
+export default function AdminArchivePage() {
   return (
     <div className="space-y-4">
       <div>
@@ -40,7 +46,9 @@ export default async function AdminArchivePage() {
         <p className="mt-1 text-sm text-slate-600">Izbrisani zapisi se hranijo 60 dni, nato se trajno odstranijo.</p>
       </div>
       <AdminArchiveTabs />
-      <AdminDeletedArchiveTable initialEntries={entries} />
+      <Suspense fallback={<AdminArchiveSectionSkeleton />}>
+        <AdminArchiveTableSection />
+      </Suspense>
     </div>
   );
 }

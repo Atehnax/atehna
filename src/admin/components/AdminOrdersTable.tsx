@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
 import { ButtonGroup } from '@/shared/ui/button-group';
@@ -1265,13 +1266,14 @@ export default function AdminOrdersTable({
                       </TD>
 
                       <TD className="text-center font-semibold text-slate-900" data-no-row-nav>
-                        <a
+                        <Link
                           href={`/admin/orders/${order.id}`}
+                          prefetch
                           className="inline-flex rounded-sm px-1 text-[13px] font-semibold text-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
                           aria-label={`Odpri naročilo ${toDisplayOrderNumber(order.order_number)}`}
                         >
                           {toDisplayOrderNumber(order.order_number)}
-                        </a>
+                        </Link>
                       </TD>
 
                       <TD className="text-center whitespace-nowrap text-slate-700">

@@ -1,4 +1,5 @@
 import { getPool } from '@/shared/server/db';
+import { instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
 
 let hasOrdersDraftColumnCache: boolean | null = null;
 let hasOrdersDeletedColumnCache: boolean | null = null;
@@ -269,62 +270,66 @@ function mapPaymentLogRow(rawRow: Record<string, unknown>): PaymentLogRow {
   };
 }
 
-export async function fetchOrders(options?: {
-  fromDate?: string | null;
-  toDate?: string | null;
-  query?: string | null;
-  includeDrafts?: boolean;
-}): Promise<OrderRow[]> {
-  const pool = await getPool();
-  const {
-    supportsDraftColumn,
-    supportsDeletedColumn,
-    supportsPaymentStatusColumn,
-    supportsPaymentNotesColumn
-  } = await getOrdersSchemaSupport();
-  const conditions: string[] = [];
-  const queryParams: unknown[] = [];
+export async function fetchOrders(
+  options?: {
+    fromDate?: string | null;
+    toDate?: string | null;
+    query?: string | null;
+    includeDrafts?: boolean;
+  },
+  diagnosticsContext = '/admin/orders'
+): Promise<OrderRow[]> {
+  return instrumentCatalogLoader('fetchOrders', diagnosticsContext, async () => {
+    const pool = await getPool();
+    const {
+      supportsDraftColumn,
+      supportsDeletedColumn,
+      supportsPaymentStatusColumn,
+      supportsPaymentNotesColumn
+    } = await getOrdersSchemaSupport();
+    const conditions: string[] = [];
+    const queryParams: unknown[] = [];
 
-  if (!options?.includeDrafts && supportsDraftColumn) {
-    conditions.push(`not (
-      coalesce(orders.is_draft, false) = true
-      and coalesce(orders.email, '') = 'draft@atehna.si'
-      and coalesce(orders.contact_name, '') = 'Osnutek'
-    )`);
-  }
-  if (supportsDeletedColumn) {
-    conditions.push('orders.deleted_at is null');
-  }
+    if (!options?.includeDrafts && supportsDraftColumn) {
+      conditions.push(`not (
+        coalesce(orders.is_draft, false) = true
+        and coalesce(orders.email, '') = 'draft@atehna.si'
+        and coalesce(orders.contact_name, '') = 'Osnutek'
+      )`);
+    }
+    if (supportsDeletedColumn) {
+      conditions.push('orders.deleted_at is null');
+    }
 
-  if (options?.fromDate) {
-    queryParams.push(options.fromDate);
-    conditions.push(`orders.created_at >= $${queryParams.length}`);
-  }
+    if (options?.fromDate) {
+      queryParams.push(options.fromDate);
+      conditions.push(`orders.created_at >= $${queryParams.length}`);
+    }
 
-  if (options?.toDate) {
-    queryParams.push(options.toDate);
-    conditions.push(`orders.created_at <= $${queryParams.length}`);
-  }
+    if (options?.toDate) {
+      queryParams.push(options.toDate);
+      conditions.push(`orders.created_at <= $${queryParams.length}`);
+    }
 
-  if (options?.query) {
-    queryParams.push(`%${options.query}%`);
-    const queryIndex = queryParams.length;
-    conditions.push(
-      `(
-        orders.order_number::text ilike $${queryIndex}
-        or orders.organization_name ilike $${queryIndex}
-        or orders.contact_name ilike $${queryIndex}
-        or orders.delivery_address ilike $${queryIndex}
-        or orders.customer_type ilike $${queryIndex}
-        or orders.status ilike $${queryIndex}
-        ${supportsPaymentStatusColumn ? `or orders.payment_status ilike $${queryIndex}` : ''}
-      )`
-    );
-  }
+    if (options?.query) {
+      queryParams.push(`%${options.query}%`);
+      const queryIndex = queryParams.length;
+      conditions.push(
+        `(
+          orders.order_number::text ilike $${queryIndex}
+          or orders.organization_name ilike $${queryIndex}
+          or orders.contact_name ilike $${queryIndex}
+          or orders.delivery_address ilike $${queryIndex}
+          or orders.customer_type ilike $${queryIndex}
+          or orders.status ilike $${queryIndex}
+          ${supportsPaymentStatusColumn ? `or orders.payment_status ilike $${queryIndex}` : ''}
+        )`
+      );
+    }
 
-  const whereClause = conditions.length > 0 ? `where ${conditions.join(' and ')}` : '';
+    const whereClause = conditions.length > 0 ? `where ${conditions.join(' and ')}` : '';
 
-  const primaryQuery = `
+    const primaryQuery = `
     select
       orders.id,
       orders.order_number,
@@ -360,7 +365,7 @@ export async function fetchOrders(options?: {
     order by orders.created_at desc, orders.id desc
   `;
 
-  const safeFallbackQuery = `
+    const safeFallbackQuery = `
     select
       orders.id,
       orders.order_number,
@@ -386,27 +391,29 @@ export async function fetchOrders(options?: {
     order by orders.created_at desc, orders.id desc
   `;
 
-  try {
-    const result = await pool.query(primaryQuery, queryParams);
-    return result.rows.map((rawRow) => mapOrderRow(rawRow as Record<string, unknown>));
-  } catch (error) {
-    console.error('fetchOrders primary query failed, retrying with safe fallback', error);
-    const fallbackResult = await pool.query(safeFallbackQuery, queryParams);
-    return fallbackResult.rows.map((rawRow) => mapOrderRow(rawRow as Record<string, unknown>));
-  }
+    try {
+      const result = await pool.query(primaryQuery, queryParams);
+      return result.rows.map((rawRow) => mapOrderRow(rawRow as Record<string, unknown>));
+    } catch (error) {
+      console.error('fetchOrders primary query failed, retrying with safe fallback', error);
+      const fallbackResult = await pool.query(safeFallbackQuery, queryParams);
+      return fallbackResult.rows.map((rawRow) => mapOrderRow(rawRow as Record<string, unknown>));
+    }
+  });
 }
 
-export async function fetchOrderById(orderId: number): Promise<OrderRow | null> {
-  const pool = await getPool();
-  const {
-    supportsDraftColumn,
-    supportsDeletedColumn,
-    supportsPaymentStatusColumn,
-    supportsPaymentNotesColumn
-  } = await getOrdersSchemaSupport();
+export async function fetchOrderById(orderId: number, diagnosticsContext = '/admin/orders/[id]'): Promise<OrderRow | null> {
+  return instrumentCatalogLoader('fetchOrderById', diagnosticsContext, async () => {
+    const pool = await getPool();
+    const {
+      supportsDraftColumn,
+      supportsDeletedColumn,
+      supportsPaymentStatusColumn,
+      supportsPaymentNotesColumn
+    } = await getOrdersSchemaSupport();
 
-  const result = await pool.query(
-    `
+    const result = await pool.query(
+      `
     select
       orders.id,
       orders.order_number,
@@ -428,100 +435,106 @@ export async function fetchOrderById(orderId: number): Promise<OrderRow | null> 
       ${supportsDraftColumn ? 'orders.is_draft' : 'false as is_draft'},
       ${supportsDeletedColumn ? 'orders.deleted_at' : 'null::timestamptz as deleted_at'}
     from orders
-    left join (
+    left join lateral (
       select
-        order_items.order_id,
         round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))), 2) as subtotal,
         round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 0.22, 2) as tax,
         round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 1.22, 2) as total
       from order_items
-      group by order_items.order_id
+      where order_items.order_id = orders.id
     ) as computed_totals
-      on computed_totals.order_id = orders.id
+      on true
     where orders.id = $1
     `,
-    [orderId]
-  );
+      [orderId]
+    );
 
-  if (result.rows.length === 0) return null;
-  return mapOrderRow(result.rows[0] as Record<string, unknown>);
+    if (result.rows.length === 0) return null;
+    return mapOrderRow(result.rows[0] as Record<string, unknown>);
+  });
 }
 
-export async function fetchOrderItems(orderId: number): Promise<OrderItemRow[]> {
-  const pool = await getPool();
-  const result = await pool.query(
-    'select * from order_items where order_id = $1 order by id',
-    [orderId]
-  );
-  return result.rows.map((rawRow) => mapOrderItemRow(rawRow as Record<string, unknown>));
+export async function fetchOrderItems(orderId: number, diagnosticsContext = '/admin/orders/[id]'): Promise<OrderItemRow[]> {
+  return instrumentCatalogLoader('fetchOrderItems', diagnosticsContext, async () => {
+    const pool = await getPool();
+    const result = await pool.query('select * from order_items where order_id = $1 order by id', [orderId]);
+    return result.rows.map((rawRow) => mapOrderItemRow(rawRow as Record<string, unknown>));
+  });
 }
 
-export async function fetchOrderDocuments(orderId: number): Promise<OrderDocumentRow[]> {
-  const pool = await getPool();
-  const { supportsDeletedColumn } = await getDocumentsSchemaSupport();
-  const result = await pool.query(
-    `select * from order_documents where order_id = $1 ${supportsDeletedColumn ? 'and deleted_at is null' : ''} order by created_at desc`,
-    [orderId]
-  );
-  return result.rows.map((rawRow) => mapOrderDocumentRow(rawRow as Record<string, unknown>));
+export async function fetchOrderDocuments(orderId: number, diagnosticsContext = '/admin/orders/[id]'): Promise<OrderDocumentRow[]> {
+  return instrumentCatalogLoader('fetchOrderDocuments', diagnosticsContext, async () => {
+    const pool = await getPool();
+    const { supportsDeletedColumn } = await getDocumentsSchemaSupport();
+    const result = await pool.query(
+      `select * from order_documents where order_id = $1 ${supportsDeletedColumn ? 'and deleted_at is null' : ''} order by created_at desc`,
+      [orderId]
+    );
+    return result.rows.map((rawRow) => mapOrderDocumentRow(rawRow as Record<string, unknown>));
+  });
 }
 
 export async function fetchOrderDocumentsForOrders(
-  orderIds: number[]
+  orderIds: number[],
+  diagnosticsContext = '/admin/orders'
 ): Promise<OrderDocumentRow[]> {
-  if (orderIds.length === 0) return [];
-  const pool = await getPool();
-  const { supportsDeletedColumn } = await getDocumentsSchemaSupport();
-  const result = await pool.query(
-    `select * from order_documents where order_id = any($1::bigint[]) ${supportsDeletedColumn ? 'and deleted_at is null' : ''} order by created_at desc`,
-    [orderIds]
-  );
-  return result.rows.map((rawRow) => mapOrderDocumentRow(rawRow as Record<string, unknown>));
+  return instrumentCatalogLoader('fetchOrderDocumentsForOrders', diagnosticsContext, async () => {
+    if (orderIds.length === 0) return [];
+    const pool = await getPool();
+    const { supportsDeletedColumn } = await getDocumentsSchemaSupport();
+    const result = await pool.query(
+      `select * from order_documents where order_id = any($1::bigint[]) ${supportsDeletedColumn ? 'and deleted_at is null' : ''} order by created_at desc`,
+      [orderIds]
+    );
+    return result.rows.map((rawRow) => mapOrderDocumentRow(rawRow as Record<string, unknown>));
+  });
 }
 
-export async function fetchOrderAttachments(orderId: number): Promise<OrderAttachmentRow[]> {
-  const pool = await getPool();
-  try {
-    const result = await pool.query(
-      'select * from order_attachments where order_id = $1 order by created_at desc',
-      [orderId]
-    );
-    return result.rows.map((rawRow) => mapOrderAttachmentRow(rawRow as Record<string, unknown>));
-  } catch (error) {
-    if (
-      typeof error === 'object' &&
-      error !== null &&
-      'code' in error &&
-      ['42P01', '42501'].includes((error as { code?: string }).code ?? '')
-    ) {
-      return [];
+export async function fetchOrderAttachments(orderId: number, diagnosticsContext = '/admin/orders/[id]'): Promise<OrderAttachmentRow[]> {
+  return instrumentCatalogLoader('fetchOrderAttachments', diagnosticsContext, async () => {
+    const pool = await getPool();
+    try {
+      const result = await pool.query('select * from order_attachments where order_id = $1 order by created_at desc', [orderId]);
+      return result.rows.map((rawRow) => mapOrderAttachmentRow(rawRow as Record<string, unknown>));
+    } catch (error) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        ['42P01', '42501'].includes((error as { code?: string }).code ?? '')
+      ) {
+        return [];
+      }
+      throw error;
     }
-    throw error;
-  }
+  });
 }
 
 export async function fetchOrderAttachmentsForOrders(
-  orderIds: number[]
+  orderIds: number[],
+  diagnosticsContext = '/admin/orders'
 ): Promise<OrderAttachmentRow[]> {
-  if (orderIds.length === 0) return [];
-  const pool = await getPool();
-  try {
-    const result = await pool.query(
-      'select * from order_attachments where order_id = any($1::bigint[]) order by created_at desc',
-      [orderIds]
-    );
-    return result.rows.map((rawRow) => mapOrderAttachmentRow(rawRow as Record<string, unknown>));
-  } catch (error) {
-    if (
-      typeof error === 'object' &&
-      error !== null &&
-      'code' in error &&
-      ['42P01', '42501'].includes((error as { code?: string }).code ?? '')
-    ) {
-      return [];
+  return instrumentCatalogLoader('fetchOrderAttachmentsForOrders', diagnosticsContext, async () => {
+    if (orderIds.length === 0) return [];
+    const pool = await getPool();
+    try {
+      const result = await pool.query(
+        'select * from order_attachments where order_id = any($1::bigint[]) order by created_at desc',
+        [orderIds]
+      );
+      return result.rows.map((rawRow) => mapOrderAttachmentRow(rawRow as Record<string, unknown>));
+    } catch (error) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        ['42P01', '42501'].includes((error as { code?: string }).code ?? '')
+      ) {
+        return [];
+      }
+      throw error;
     }
-    throw error;
-  }
+  });
 }
 
 export async function fetchPaymentLogs(orderId: number): Promise<PaymentLogRow[]> {

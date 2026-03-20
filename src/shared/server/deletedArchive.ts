@@ -1,5 +1,6 @@
 import { getPool } from '@/shared/server/db';
 import { deleteBlob } from '@/shared/server/blob';
+import { instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
 
 const isMissingRelationError = (error: unknown) =>
   Boolean(error && typeof error === 'object' && 'code' in error && error.code === '42P01');
@@ -148,59 +149,65 @@ async function fetchSoftDeletedFallbackEntries(
 }
 
 export async function fetchArchiveEntries(itemType?: 'all' | 'order' | 'pdf'): Promise<ArchiveEntry[]> {
-  const pool = await getPool();
-  const params: unknown[] = [];
-  let where = '';
+  return instrumentCatalogLoader('fetchArchiveEntries', '/admin/arhiv', async () => {
+    const pool = await getPool();
+    const params: unknown[] = [];
+    let where = '';
 
-  if (itemType && itemType !== 'all') {
-    params.push(itemType);
-    where = `where item_type = $${params.length}`;
-  }
+    if (itemType && itemType !== 'all') {
+      params.push(itemType);
+      where = `where item_type = $${params.length}`;
+    }
 
-  let explicitEntries: ArchiveEntry[] = [];
-  try {
-    const result = await pool.query(
-      `
-      select id, item_type, order_id, document_id, label, deleted_at, expires_at
-      from deleted_archive_entries
-      ${where}
-      order by deleted_at desc
-      `,
-      params
+    let explicitEntries: ArchiveEntry[] = [];
+    try {
+      const result = await pool.query(
+        `
+        select id, item_type, order_id, document_id, label, deleted_at, expires_at
+        from deleted_archive_entries
+        ${where}
+        order by deleted_at desc
+        `,
+        params
+      );
+
+      explicitEntries = result.rows.map((row) => ({
+        id: Number(row.id),
+        item_type: row.item_type as 'order' | 'pdf',
+        order_id: row.order_id === null ? null : Number(row.order_id),
+        document_id: row.document_id === null ? null : Number(row.document_id),
+        label: String(row.label),
+        deleted_at: new Date(row.deleted_at).toISOString(),
+        expires_at: new Date(row.expires_at).toISOString()
+      }));
+    } catch (error) {
+      if (!isMissingRelationError(error)) throw error;
+    }
+
+    const fallbackRows = await instrumentCatalogLoader(
+      'fetchSoftDeletedFallbackEntries',
+      '/admin/arhiv',
+      () => fetchSoftDeletedFallbackEntries(itemType)
     );
 
-    explicitEntries = result.rows.map((row) => ({
-      id: Number(row.id),
-      item_type: row.item_type as 'order' | 'pdf',
-      order_id: row.order_id === null ? null : Number(row.order_id),
-      document_id: row.document_id === null ? null : Number(row.document_id),
-      label: String(row.label),
-      deleted_at: new Date(row.deleted_at).toISOString(),
-      expires_at: new Date(row.expires_at).toISOString()
-    }));
-  } catch (error) {
-    if (!isMissingRelationError(error)) throw error;
-  }
+    const dedup = new Set(
+      explicitEntries.map((entry) => `${entry.item_type}:${entry.order_id ?? '-'}:${entry.document_id ?? '-'}`)
+    );
 
-  const fallbackRows = await fetchSoftDeletedFallbackEntries(itemType);
-
-  const dedup = new Set(
-    explicitEntries.map((entry) => `${entry.item_type}:${entry.order_id ?? '-'}:${entry.document_id ?? '-'}`)
-  );
-
-  const syntheticEntries: ArchiveEntry[] = [];
-  fallbackRows.forEach((row, index) => {
-    const key = `${row.item_type}:${row.order_id ?? '-'}:${row.document_id ?? '-'}`;
-    if (dedup.has(key)) return;
-    syntheticEntries.push({
-      id: -(index + 1),
-      ...row
+    const syntheticEntries: ArchiveEntry[] = [];
+    fallbackRows.forEach((row, index) => {
+      const key = `${row.item_type}:${row.order_id ?? '-'}:${row.document_id ?? '-'}`;
+      if (dedup.has(key)) return;
+      syntheticEntries.push({
+        id: -(index + 1),
+        ...row
+      });
     });
-  });
 
-  return [...explicitEntries, ...syntheticEntries].sort(
-    (left, right) => new Date(right.deleted_at).getTime() - new Date(left.deleted_at).getTime()
-  );
+    return [...explicitEntries, ...syntheticEntries].sort(
+      (left, right) => new Date(right.deleted_at).getTime() - new Date(left.deleted_at).getTime()
+    );
+  });
 }
 
 export async function restoreArchiveEntries(entryIds: number[]): Promise<number> {

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
+import AdminDiagnosticsChart from '@/admin/components/AdminDiagnosticsChart';
 import { getCatalogDiagnosticsSnapshot } from '@/shared/server/catalogDiagnostics';
 
 type Props = {
@@ -7,6 +8,7 @@ type Props = {
 };
 
 type MiniChartPoint = {
+  timestamp: string;
   label: string;
   value: number;
 };
@@ -19,15 +21,24 @@ type DiagnosticsWindowOption = {
   description: string;
 };
 
-const CHART_WIDTH = 640;
-const CHART_HEIGHT = 180;
-const CHART_INNER_HEIGHT = 132;
 const DIAGNOSTICS_WINDOW_OPTIONS: DiagnosticsWindowOption[] = [
+  { label: '5 min', param: '5m', minutes: 5, windowHours: 5 / 60, description: '1-min prikaz za live admin session in hiter debugging.' },
   { label: '15 min', param: '15m', minutes: 15, windowHours: 0.25, description: '5-min bucketi za kratek admin session.' },
   { label: '1 ura', param: '60m', minutes: 60, windowHours: 1, description: '5-min bucketi za krajše odpravljanje težav.' },
   { label: '6 ur', param: '6h', minutes: 360, windowHours: 6, description: '15-min bucketi za isti delovni blok.' },
   { label: '24 ur', param: '24h', minutes: 1440, windowHours: 24, description: 'Urni bucketi za širši dnevni pregled.' }
 ];
+
+const DIAGNOSTICS_COVERAGE_TARGETS = [
+  { contexts: ['/admin/orders'], label: 'Naročila seznam', hint: 'Zapis nastane ob server loadu seznama in spremljevalnih dokument/priponka loaderjih.' },
+  { contexts: ['/admin/orders/[orderId]'], label: 'Naročila podrobnosti', hint: 'Podrobnosti sprožijo več server loaderjev, zato se tukaj aktivnost pokaže najlažje.' },
+  { contexts: ['/admin/arhiv'], label: 'Arhiv', hint: 'Zapis nastane ob server loadu arhiva; demo pogled brez baze se ne zabeleži.' },
+  { contexts: ['/admin/analitika'], label: 'Analitika naročil', hint: 'Zapis nastane ob server loadu analitike in njenih nastavitev.' },
+  { contexts: ['/admin/analitika/splet'], label: 'Analitika splet', hint: 'Samo začetni load in gumb Uporabi obdobje sprožita server fetch; samo urejanje datumov je lokalno.' },
+  { contexts: ['/admin/artikli'], label: 'Artikli', hint: 'Prikazan je začetni server load seed podatkov; večina nadaljnjih interakcij v upravljalniku je lokalna.' },
+  { contexts: ['/admin/kategorije'], label: 'Kategorije', hint: 'Začetni load in shranjevanje sta server-backed; veliko urejanja tabele ostane lokalno do shranitve.' },
+  { contexts: ['/admin/kategorije/miller-view'], label: 'Kategorije Miller view', hint: 'Server load ob vstopu/preklopu pogleda; izbire po stolpcih so lokalne, dokler ne pride do shranitve ali nove navigacije.' }
+] as const;
 
 const formatNumber = (value: number) => new Intl.NumberFormat('sl-SI').format(Math.round(value));
 const formatDuration = (value: number) => `${formatNumber(value)} ms`;
@@ -147,45 +158,6 @@ function DataTable({ title, description, columns, rows }: { title: string; descr
   );
 }
 
-function buildPolyline(points: MiniChartPoint[]) {
-  if (points.length === 0) return '';
-  const max = Math.max(...points.map((point) => point.value), 1);
-  const step = points.length === 1 ? CHART_WIDTH : CHART_WIDTH / (points.length - 1);
-
-  return points
-    .map((point, index) => {
-      const x = index * step;
-      const y = CHART_INNER_HEIGHT - (point.value / max) * CHART_INNER_HEIGHT;
-      return `${x},${y}`;
-    })
-    .join(' ');
-}
-
-function MiniLineChart({ title, description, points, stroke, valueFormatter }: { title: string; description: string; points: MiniChartPoint[]; stroke: string; valueFormatter: (value: number) => string }) {
-  const lastPoint = points.at(-1);
-
-  return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
-          <p className="mt-1 text-sm text-slate-500">{description}</p>
-        </div>
-        {lastPoint ? <p className="text-sm font-medium text-slate-700">Zadnja točka: {valueFormatter(lastPoint.value)}</p> : null}
-      </div>
-      <svg viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} className="mt-4 w-full rounded bg-slate-50 p-2">
-        <line x1="0" y1={CHART_INNER_HEIGHT} x2={CHART_WIDTH} y2={CHART_INNER_HEIGHT} stroke="#cbd5e1" strokeWidth="1" />
-        <polyline fill="none" stroke={stroke} strokeWidth="2.5" points={buildPolyline(points)} />
-      </svg>
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-        {points.slice(-6).map((point) => (
-          <span key={point.label}>{point.label}: {valueFormatter(point.value)}</span>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 function RankedList({ title, description, rows, valueFormatter }: { title: string; description: string; rows: Array<{ label: string; context: string; value: number }>; valueFormatter: (value: number) => string }) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-4">
@@ -208,16 +180,38 @@ function RankedList({ title, description, rows, valueFormatter }: { title: strin
   );
 }
 
+function findCoverageEntry<T extends { context: string; lastSeenAt: string }>(entries: Map<string, T>, contexts: readonly string[]) {
+  const matches = contexts
+    .map((context) => entries.get(context))
+    .filter((entry): entry is T => Boolean(entry));
+
+  if (matches.length === 0) return null;
+  return matches.sort((left, right) => right.lastSeenAt.localeCompare(left.lastSeenAt))[0] ?? null;
+}
+
 const resolveWindowOption = (windowHours: number) =>
   DIAGNOSTICS_WINDOW_OPTIONS.find((option) => Math.abs(option.windowHours - windowHours) < 0.001) ?? DIAGNOSTICS_WINDOW_OPTIONS.at(-1)!;
 
 export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
   const activeWindow = resolveWindowOption(windowHours);
   const snapshot = getCatalogDiagnosticsSnapshot(activeWindow.windowHours);
-  const callSeries = snapshot.series.map((point) => ({ label: formatBucketLabel(point.bucketStart, snapshot.bucketMinutes), value: point.calls }));
-  const payloadSeries = snapshot.series.map((point) => ({ label: formatBucketLabel(point.bucketStart, snapshot.bucketMinutes), value: point.totalPayloadBytes }));
-  const topSlowLabel = snapshot.slowestLoaders.length >= 10 ? 'Top 10 po p95 za hitrejšo identifikacijo latency hotspotov.' : `Trenutno prikazanih ${snapshot.slowestLoaders.length} loaderjev z zabeleženim p95.`;
-  const topPayloadLabel = snapshot.heaviestLoaders.length >= 10 ? 'Top 10 po skupnem payloadu v izbranem oknu.' : `Trenutno prikazanih ${snapshot.heaviestLoaders.length} loaderjev z merjenim payloadom.`;
+  const fallbackSnapshot = activeWindow.minutes < 15 ? getCatalogDiagnosticsSnapshot(0.25) : snapshot;
+  const shouldUseFallbackDetails =
+    activeWindow.minutes < 15 &&
+    snapshot.loaders.length === 0 &&
+    snapshot.routes.length === 0 &&
+    snapshot.slowestLoaders.length === 0 &&
+    snapshot.heaviestLoaders.length === 0;
+  const detailsSnapshot = shouldUseFallbackDetails ? fallbackSnapshot : snapshot;
+  const coverageSnapshot = activeWindow.minutes < 15 ? fallbackSnapshot : snapshot;
+  const activeRouteMap = new Map(snapshot.routes.map((route) => [route.context, route]));
+  const coverageRouteMap = new Map(coverageSnapshot.routes.map((route) => [route.context, route]));
+  const activeLoaderMap = new Map(snapshot.loaders.map((loader) => [loader.context, loader]));
+  const coverageLoaderMap = new Map(coverageSnapshot.loaders.map((loader) => [loader.context, loader]));
+  const callSeries = snapshot.series.map((point) => ({ timestamp: point.bucketStart, label: formatBucketLabel(point.bucketStart, snapshot.bucketMinutes), value: point.calls }));
+  const payloadSeries = snapshot.series.map((point) => ({ timestamp: point.bucketStart, label: formatBucketLabel(point.bucketStart, snapshot.bucketMinutes), value: point.totalPayloadBytes }));
+  const topSlowLabel = detailsSnapshot.slowestLoaders.length >= 10 ? 'Top 10 po p95 za hitrejšo identifikacijo latency hotspotov.' : `Trenutno prikazanih ${detailsSnapshot.slowestLoaders.length} loaderjev z zabeleženim p95.`;
+  const topPayloadLabel = detailsSnapshot.heaviestLoaders.length >= 10 ? 'Top 10 po skupnem payloadu v izbranem oknu.' : `Trenutno prikazanih ${detailsSnapshot.heaviestLoaders.length} loaderjev z merjenim payloadom.`;
 
   return (
     <div className="space-y-6">
@@ -255,6 +249,12 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
         </div>
       </section>
 
+      {shouldUseFallbackDetails ? (
+        <section className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
+          V zadnjih 5 minutah še ni dovolj diagnostičnih klicev za tabele, zato spodnji seznami začasno prikazujejo zadnjih 15 minut. Kratki grafi zgoraj ostanejo v izbranem 5-min oknu.
+        </section>
+      ) : null}
+
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
         <SummaryCard label="Skupni klici" value={formatNumber(snapshot.summary.totalLoaderCalls)} hint={`${snapshot.summary.uniqueLoaders} loaderjev`} />
         <SummaryCard label="Cache missi" value={formatNumber(snapshot.summary.totalCacheMisses)} hint="Dejanske izvedbe ob miss" />
@@ -276,20 +276,60 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
         </div>
       </section>
 
+      <section className="rounded-xl border border-slate-200 bg-white p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Pokritost glavnih admin kontekstov</h2>
+            <p className="mt-1 text-sm text-slate-500">Prikazani so samo server-backed konteksti z aktivnostjo v izbranem oknu; veliko lokalnih admin interakcij po začetnem loadu ne ustvari novega diagnostičnega zapisa. Demo/fallback pogledi brez baze se ne beležijo.</p>
+          </div>
+        </div>
+        <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+          {DIAGNOSTICS_COVERAGE_TARGETS.map((target) => {
+            const activeEntry = findCoverageEntry(activeRouteMap, target.contexts) ?? findCoverageEntry(activeLoaderMap, target.contexts);
+            const recentEntry = findCoverageEntry(coverageRouteMap, target.contexts) ?? findCoverageEntry(coverageLoaderMap, target.contexts);
+            const status = activeEntry
+              ? { label: 'Aktivno v oknu', tone: 'border-emerald-200 bg-emerald-50 text-emerald-900', route: activeEntry }
+              : recentEntry && activeWindow.minutes < 15
+                ? { label: 'Aktivno v zadnjih 15 min', tone: 'border-sky-200 bg-sky-50 text-sky-900', route: recentEntry }
+                : { label: 'Brez aktivnosti v oknu', tone: 'border-slate-200 bg-slate-50 text-slate-700', route: null };
+
+            return (
+              <div key={target.label} className={`rounded-lg border px-3 py-3 ${status.tone}`}>
+                <p className="font-medium">{target.label}</p>
+                <p className="mt-1 text-xs"><code>{target.contexts.join(' · ')}</code></p>
+                <p className="mt-2 text-xs font-semibold uppercase tracking-wide">{status.label}</p>
+                {status.route ? (
+                  <p className="mt-1 text-xs">
+                    {formatNumber(status.route.calls)} klicev · zadnjič {formatDateTime(status.route.lastSeenAt)} UTC
+                  </p>
+                ) : null}
+                <p className="mt-2 text-xs">{target.hint}</p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
       <div className="grid gap-4 xl:grid-cols-2">
-        <MiniLineChart
+        <AdminDiagnosticsChart
           title="Klici skozi čas"
           description={`Skupni loader klici po ${snapshot.bucketMinutes}-min bucketih.`}
           points={callSeries}
-          stroke="#2563eb"
-          valueFormatter={(value) => formatNumber(value)}
+          color="#2563eb"
+          valueKind="count"
+          valueLabel="Klici"
+          windowMinutes={activeWindow.minutes}
+          footer={`Točke: ${callSeries.length} · granularnost: ${snapshot.bucketMinutes} min`}
         />
-        <MiniLineChart
+        <AdminDiagnosticsChart
           title="Payload skozi čas"
           description={`Približen promet payloadov po ${snapshot.bucketMinutes}-min bucketih.`}
           points={payloadSeries}
-          stroke="#0f766e"
-          valueFormatter={(value) => formatBytes(value)}
+          color="#0f766e"
+          valueKind="bytes"
+          valueLabel="Payload"
+          windowMinutes={activeWindow.minutes}
+          footer={`Točke: ${payloadSeries.length} · granularnost: ${snapshot.bucketMinutes} min`}
         />
       </div>
 
@@ -297,7 +337,7 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
         title="Statistika loaderjev"
         description="Tabela združuje vhodne loaderje in notranje cache izvedbe, zato so missi/hiti prikazani eksplicitno."
         columns={['Loader', 'Sloj', 'Vir', 'Kontekst', 'Klici', 'Missi', 'Hiti', 'Hit %', 'Povpr. ms', 'p95 ms', 'Payload', 'Nazadnje']}
-        rows={snapshot.loaders.slice(0, 12).map((row) => {
+        rows={detailsSnapshot.loaders.slice(0, 12).map((row) => {
           const layer = classifyLoaderLayer(row.loader);
           return [
             <div key="loader"><p className="font-medium text-slate-900">{row.loader}</p></div>,
@@ -320,7 +360,7 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
         title="Statistika poti / kontekstov"
         description="Kontekst pove, ali gre za prikaz strani, API klic ali save/revalidation tok."
         columns={['Pot / kontekst', 'Vir', 'Klici', 'Missi', 'Hiti', 'Povpr. ms', 'Najbolj vroč loader', 'Payload', 'Nazadnje']}
-        rows={snapshot.routes.slice(0, 12).map((row) => [
+        rows={detailsSnapshot.routes.slice(0, 12).map((row) => [
           <code key="context" className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-700">{row.context}</code>,
           <span key="trigger" className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${triggerTone(row.trigger)}`}>{triggerLabel(row.trigger)}</span>,
           formatNumber(row.calls),
@@ -337,13 +377,13 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
         <RankedList
           title="Najpočasnejši loaderji"
           description={topSlowLabel}
-          rows={snapshot.slowestLoaders.map((row) => ({ label: row.loader, context: row.context, value: row.p95DurationMs }))}
+          rows={detailsSnapshot.slowestLoaders.map((row) => ({ label: row.loader, context: row.context, value: row.p95DurationMs }))}
           valueFormatter={(value) => formatDuration(value)}
         />
         <RankedList
           title="Najtežji payloadi"
           description={topPayloadLabel}
-          rows={snapshot.heaviestLoaders.map((row) => ({ label: row.loader, context: row.context, value: row.totalPayloadBytes }))}
+          rows={detailsSnapshot.heaviestLoaders.map((row) => ({ label: row.loader, context: row.context, value: row.totalPayloadBytes }))}
           valueFormatter={(value) => formatBytes(value)}
         />
       </div>
@@ -352,7 +392,7 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
         title="Nedavne invalidacije"
         description="Rolling summary tag invalidacij in route revalidacij; brez surovega event streama."
         columns={['Vir', 'Tag družina', 'Dogodki', 'Revalidirane poti', 'Nazadnje']}
-        rows={snapshot.invalidations.map((row) => [
+        rows={detailsSnapshot.invalidations.map((row) => [
           <div key="trigger"><p className="font-medium text-slate-900">{row.context}</p><p className="text-xs text-slate-500">{triggerLabel(row.trigger)}</p></div>,
           <code key="family" className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-700">{row.tagFamily}</code>,
           formatNumber(row.invalidations),
@@ -364,13 +404,13 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
       <section className="rounded-xl border border-slate-200 bg-white p-4">
         <h2 className="text-sm font-semibold text-slate-900">Opozorila in pričakovanja</h2>
         <div className="mt-3 space-y-2 text-sm">
-          {snapshot.warnings.map((warning, index) => (
+          {detailsSnapshot.warnings.map((warning, index) => (
             <div key={`${warning.context}-${index}`} className={`rounded-lg border px-3 py-2 ${warning.severity === 'warning' ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-sky-200 bg-sky-50 text-sky-900'}`}>
               <p className="font-medium">{warning.context}</p>
               <p className="mt-1">{warning.message}</p>
             </div>
           ))}
-          {snapshot.warnings.length === 0 ? <p className="text-slate-500">Ni zaznanih očitnih odstopanj od trenutnih route budget pravil.</p> : null}
+          {detailsSnapshot.warnings.length === 0 ? <p className="text-slate-500">Ni zaznanih očitnih odstopanj od trenutnih route budget pravil.</p> : null}
         </div>
       </section>
     </div>

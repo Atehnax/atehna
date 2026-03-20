@@ -2,7 +2,7 @@ import 'server-only';
 
 type TriggerType = 'page_render' | 'api_call' | 'save_revalidation' | 'search' | 'other';
 
-type DiagnosticsBucketGranularityMinutes = 5 | 15 | 60;
+type DiagnosticsBucketGranularityMinutes = 1 | 5 | 15 | 60;
 
 type LoaderMetricBucket = {
   bucketStart: string;
@@ -140,8 +140,8 @@ declare global {
   var __catalogDiagnosticsStore: DiagnosticsStore | undefined;
 }
 
-const MAX_BUCKETS = 800;
-const MAX_INVALIDATION_BUCKETS = 240;
+const MAX_BUCKETS = 2400;
+const MAX_INVALIDATION_BUCKETS = 720;
 const MAX_SAMPLES_PER_BUCKET = 256;
 const DEFAULT_WINDOW_HOURS = 24;
 const DEFAULT_WINDOW_MINUTES = DEFAULT_WINDOW_HOURS * 60;
@@ -159,6 +159,7 @@ function getStore(): DiagnosticsStore {
 }
 
 function getBucketGranularityMinutes(windowMinutes: number): DiagnosticsBucketGranularityMinutes {
+  if (windowMinutes <= 5) return 1;
   if (windowMinutes <= 60) return 5;
   if (windowMinutes <= 6 * 60) return 15;
   return 60;
@@ -169,6 +170,10 @@ function floorToBucket(date: Date, bucketMinutes: DiagnosticsBucketGranularityMi
   const utcMinutes = bucket.getUTCMinutes();
   bucket.setUTCMinutes(Math.floor(utcMinutes / bucketMinutes) * bucketMinutes, 0, 0);
   return bucket;
+}
+
+function addBucketMinutes(date: Date, bucketMinutes: DiagnosticsBucketGranularityMinutes, count: number): Date {
+  return new Date(date.getTime() + count * bucketMinutes * 60 * 1000);
 }
 
 function bucketKey(loader: string, context: string, bucketStart: string): string {
@@ -242,7 +247,7 @@ function pruneStore(now: Date) {
 
 export function recordCatalogLoaderMetric(input: RecordLoaderMetricInput) {
   const recordedAt = input.recordedAt ?? new Date();
-  const bucketStart = floorToBucket(recordedAt, 5).toISOString();
+  const bucketStart = floorToBucket(recordedAt, 1).toISOString();
   const key = bucketKey(input.loader, input.context, bucketStart);
   const trigger = inferTrigger(input.context, input.loader);
   const store = getStore();
@@ -275,7 +280,7 @@ export function recordCatalogLoaderMetric(input: RecordLoaderMetricInput) {
 
 export function recordCatalogInvalidation(input: RecordInvalidationInput) {
   const recordedAt = input.recordedAt ?? new Date();
-  const bucketStart = floorToBucket(recordedAt, 5).toISOString();
+  const bucketStart = floorToBucket(recordedAt, 1).toISOString();
   const tagFamily = [...new Set(input.tags)].sort().join(' + ');
   const key = invalidationKey(input.context, tagFamily, bucketStart);
   const trigger = inferTrigger(input.context, 'save revalidation');
@@ -401,7 +406,7 @@ export function getCatalogDiagnosticsSnapshot(windowHours = DEFAULT_WINDOW_HOURS
   const now = new Date();
   const store = getStore();
   pruneStore(now);
-  const windowMinutes = Math.max(15, Math.round(windowHours * 60));
+  const windowMinutes = Math.max(5, Math.round(windowHours * 60));
   const bucketMinutes = getBucketGranularityMinutes(windowMinutes);
   const cutoff = now.getTime() - windowMinutes * 60 * 1000;
   const relevantBuckets = [...store.buckets.values()].filter((bucket) => new Date(bucket.bucketStart).getTime() >= cutoff);
@@ -542,16 +547,22 @@ export function getCatalogDiagnosticsSnapshot(windowHours = DEFAULT_WINDOW_HOURS
     })
     .sort((left, right) => right.calls - left.calls || right.avgDurationMs - left.avgDurationMs);
 
-  const series = [...bySeries.values()]
-    .map((entry) => ({
-      bucketStart: entry.bucketStart,
-      bucketMinutes: entry.bucketMinutes,
-      calls: entry.calls,
-      cacheMisses: entry.cacheMisses,
-      totalPayloadBytes: entry.totalPayloadBytes,
-      avgDurationMs: entry.calls > 0 ? entry.durationTotalMs / entry.calls : 0
-    }))
-    .sort((left, right) => left.bucketStart.localeCompare(right.bucketStart));
+  const lastSeriesBucket = floorToBucket(now, bucketMinutes);
+  const bucketCount = Math.max(1, Math.floor(windowMinutes / bucketMinutes) + 1);
+  const firstSeriesBucket = addBucketMinutes(lastSeriesBucket, bucketMinutes, -(bucketCount - 1));
+  const series = Array.from({ length: bucketCount }, (_, index) => {
+    const bucketStart = addBucketMinutes(firstSeriesBucket, bucketMinutes, index).toISOString();
+    const entry = bySeries.get(bucketStart);
+
+    return {
+      bucketStart,
+      bucketMinutes,
+      calls: entry?.calls ?? 0,
+      cacheMisses: entry?.cacheMisses ?? 0,
+      totalPayloadBytes: entry?.totalPayloadBytes ?? 0,
+      avgDurationMs: entry && entry.calls > 0 ? entry.durationTotalMs / entry.calls : 0
+    };
+  });
 
   const invalidations = relevantInvalidations
     .map((entry) => ({

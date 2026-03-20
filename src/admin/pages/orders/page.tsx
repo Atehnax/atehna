@@ -132,7 +132,7 @@ async function AdminOrdersTableSection({
       // caused by stale URL params or server-side filter drift.
       const [ordersResult, analyticsAppearanceResult] = await Promise.all([
         fetchOrders({ includeDrafts: true }),
-        fetchGlobalAnalyticsAppearance('narocila').catch(() => fallbackAppearance)
+        fetchGlobalAnalyticsAppearance('narocila', '/admin/orders').catch(() => fallbackAppearance)
       ]);
       orders = ordersResult;
       analyticsAppearance = analyticsAppearanceResult;

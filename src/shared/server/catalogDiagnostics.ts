@@ -1,9 +1,12 @@
 import 'server-only';
 
+type TriggerType = 'page_render' | 'api_call' | 'save_revalidation' | 'search' | 'other';
+
 type LoaderMetricBucket = {
   bucketStart: string;
   loader: string;
   context: string;
+  trigger: TriggerType;
   calls: number;
   cacheMisses: number;
   errorCount: number;
@@ -13,8 +16,20 @@ type LoaderMetricBucket = {
   durationsMs: number[];
 };
 
+type InvalidationBucket = {
+  bucketStart: string;
+  context: string;
+  trigger: TriggerType;
+  tagFamily: string;
+  invalidations: number;
+  revalidatedPaths: number;
+  lastSeenAt: string;
+};
+
 type DiagnosticsStore = {
+  startedAt: string;
   buckets: Map<string, LoaderMetricBucket>;
+  invalidations: Map<string, InvalidationBucket>;
 };
 
 type RecordLoaderMetricInput = {
@@ -27,9 +42,17 @@ type RecordLoaderMetricInput = {
   recordedAt?: Date;
 };
 
+type RecordInvalidationInput = {
+  context: string;
+  tags: string[];
+  revalidatedPaths?: number;
+  recordedAt?: Date;
+};
+
 type AggregatedLoaderStats = {
   loader: string;
   context: string;
+  trigger: TriggerType;
   calls: number;
   cacheHits: number;
   cacheMisses: number;
@@ -42,27 +65,70 @@ type AggregatedLoaderStats = {
 
 type AggregatedRouteStats = {
   context: string;
+  trigger: TriggerType;
   calls: number;
+  cacheHits: number;
+  cacheMisses: number;
   avgDurationMs: number;
   totalPayloadBytes: number;
   lastSeenAt: string;
   hottestLoader: string;
 };
 
+type TriggerSummary = {
+  trigger: TriggerType;
+  calls: number;
+  cacheMisses: number;
+  totalPayloadBytes: number;
+};
+
+type TimeSeriesPoint = {
+  bucketStart: string;
+  calls: number;
+  cacheMisses: number;
+  totalPayloadBytes: number;
+  avgDurationMs: number;
+};
+
+type InvalidationSummary = {
+  context: string;
+  trigger: TriggerType;
+  tagFamily: string;
+  invalidations: number;
+  revalidatedPaths: number;
+  lastSeenAt: string;
+};
+
+type RouteBudgetWarning = {
+  severity: 'info' | 'warning';
+  context: string;
+  message: string;
+};
+
 type DiagnosticsSnapshot = {
   generatedAt: string;
+  metricsStartedAt: string;
   windowHours: number;
   summary: {
     totalLoaderCalls: number;
+    totalCacheMisses: number;
+    inferredCacheHits: number;
     avgLoaderDurationMs: number;
     cacheHitRate: number | null;
     totalPayloadBytes: number;
     totalErrorCount: number;
     uniqueLoaders: number;
     activeContexts: number;
+    invalidationCount: number;
   };
+  triggers: TriggerSummary[];
   loaders: AggregatedLoaderStats[];
   routes: AggregatedRouteStats[];
+  series: TimeSeriesPoint[];
+  slowestLoaders: AggregatedLoaderStats[];
+  heaviestLoaders: AggregatedLoaderStats[];
+  invalidations: InvalidationSummary[];
+  warnings: RouteBudgetWarning[];
 };
 
 declare global {
@@ -70,13 +136,18 @@ declare global {
   var __catalogDiagnosticsStore: DiagnosticsStore | undefined;
 }
 
-const MAX_BUCKETS = 600;
+const MAX_BUCKETS = 800;
+const MAX_INVALIDATION_BUCKETS = 240;
 const MAX_SAMPLES_PER_BUCKET = 256;
 const DEFAULT_WINDOW_HOURS = 24;
 
 function getStore(): DiagnosticsStore {
   if (!globalThis.__catalogDiagnosticsStore) {
-    globalThis.__catalogDiagnosticsStore = { buckets: new Map() };
+    globalThis.__catalogDiagnosticsStore = {
+      startedAt: new Date().toISOString(),
+      buckets: new Map(),
+      invalidations: new Map()
+    };
   }
 
   return globalThis.__catalogDiagnosticsStore;
@@ -90,6 +161,10 @@ function floorToHour(date: Date): Date {
 
 function bucketKey(loader: string, context: string, bucketStart: string): string {
   return `${bucketStart}::${loader}::${context}`;
+}
+
+function invalidationKey(context: string, tagFamily: string, bucketStart: string): string {
+  return `${bucketStart}::${context}::${tagFamily}`;
 }
 
 function clampNonNegative(value: number): number {
@@ -106,6 +181,16 @@ function pushDurationSample(samples: number[], durationMs: number) {
   samples[replaceIndex] = durationMs;
 }
 
+function inferTrigger(context: string, loader = ''): TriggerType {
+  const normalized = `${context} ${loader}`.toLowerCase();
+
+  if (normalized.includes('search')) return 'search';
+  if (normalized.includes('save') || normalized.includes('revalid') || normalized.includes('invalidate')) return 'save_revalidation';
+  if (context.startsWith('/api/')) return 'api_call';
+  if (context.startsWith('/')) return 'page_render';
+  return 'other';
+}
+
 function pruneStore(now: Date) {
   const cutoff = now.getTime() - DEFAULT_WINDOW_HOURS * 60 * 60 * 1000;
   const store = getStore();
@@ -116,14 +201,30 @@ function pruneStore(now: Date) {
     }
   }
 
-  if (store.buckets.size <= MAX_BUCKETS) return;
+  for (const [key, bucket] of store.invalidations.entries()) {
+    if (new Date(bucket.bucketStart).getTime() < cutoff) {
+      store.invalidations.delete(key);
+    }
+  }
 
-  const ordered = [...store.buckets.entries()].sort((left, right) =>
-    new Date(left[1].bucketStart).getTime() - new Date(right[1].bucketStart).getTime()
-  );
+  if (store.buckets.size > MAX_BUCKETS) {
+    const ordered = [...store.buckets.entries()].sort((left, right) =>
+      new Date(left[1].bucketStart).getTime() - new Date(right[1].bucketStart).getTime()
+    );
 
-  for (const [key] of ordered.slice(0, Math.max(0, ordered.length - MAX_BUCKETS))) {
-    store.buckets.delete(key);
+    for (const [key] of ordered.slice(0, Math.max(0, ordered.length - MAX_BUCKETS))) {
+      store.buckets.delete(key);
+    }
+  }
+
+  if (store.invalidations.size > MAX_INVALIDATION_BUCKETS) {
+    const ordered = [...store.invalidations.entries()].sort((left, right) =>
+      new Date(left[1].bucketStart).getTime() - new Date(right[1].bucketStart).getTime()
+    );
+
+    for (const [key] of ordered.slice(0, Math.max(0, ordered.length - MAX_INVALIDATION_BUCKETS))) {
+      store.invalidations.delete(key);
+    }
   }
 }
 
@@ -131,11 +232,13 @@ export function recordCatalogLoaderMetric(input: RecordLoaderMetricInput) {
   const recordedAt = input.recordedAt ?? new Date();
   const bucketStart = floorToHour(recordedAt).toISOString();
   const key = bucketKey(input.loader, input.context, bucketStart);
+  const trigger = inferTrigger(input.context, input.loader);
   const store = getStore();
   const existing = store.buckets.get(key) ?? {
     bucketStart,
     loader: input.loader,
     context: input.context,
+    trigger,
     calls: 0,
     cacheMisses: 0,
     errorCount: 0,
@@ -151,9 +254,36 @@ export function recordCatalogLoaderMetric(input: RecordLoaderMetricInput) {
   existing.totalDurationMs += clampNonNegative(input.durationMs);
   existing.totalPayloadBytes += clampNonNegative(input.payloadBytes ?? 0);
   existing.lastSeenAt = recordedAt.toISOString();
+  existing.trigger = trigger;
   pushDurationSample(existing.durationsMs, clampNonNegative(input.durationMs));
 
   store.buckets.set(key, existing);
+  pruneStore(recordedAt);
+}
+
+export function recordCatalogInvalidation(input: RecordInvalidationInput) {
+  const recordedAt = input.recordedAt ?? new Date();
+  const bucketStart = floorToHour(recordedAt).toISOString();
+  const tagFamily = [...new Set(input.tags)].sort().join(' + ');
+  const key = invalidationKey(input.context, tagFamily, bucketStart);
+  const trigger = inferTrigger(input.context, 'save revalidation');
+  const store = getStore();
+  const existing = store.invalidations.get(key) ?? {
+    bucketStart,
+    context: input.context,
+    trigger,
+    tagFamily,
+    invalidations: 0,
+    revalidatedPaths: 0,
+    lastSeenAt: recordedAt.toISOString()
+  } satisfies InvalidationBucket;
+
+  existing.invalidations += 1;
+  existing.revalidatedPaths += clampNonNegative(input.revalidatedPaths ?? 0);
+  existing.lastSeenAt = recordedAt.toISOString();
+  existing.trigger = trigger;
+
+  store.invalidations.set(key, existing);
   pruneStore(recordedAt);
 }
 
@@ -167,11 +297,7 @@ function estimatePayloadBytes(payload: unknown): number {
   }
 }
 
-export async function instrumentCatalogLoader<T>(
-  loader: string,
-  context: string,
-  run: () => Promise<T>
-): Promise<T> {
+export async function instrumentCatalogLoader<T>(loader: string, context: string, run: () => Promise<T>): Promise<T> {
   const startedAt = performance.now();
 
   try {
@@ -226,14 +352,51 @@ function percentile95(samples: number[]): number {
   return ordered[index] ?? 0;
 }
 
+function buildWarnings(loaders: AggregatedLoaderStats[]): RouteBudgetWarning[] {
+  const warnings: RouteBudgetWarning[] = [];
+  const broadLoaders = new Set(['loadFullCatalogServer', 'getCatalogCategoriesServer', 'getCatalogDataFromDatabase']);
+
+  for (const loader of loaders) {
+    if ((loader.context === '/products' || loader.context === '/') && broadLoaders.has(loader.loader)) {
+      warnings.push({
+        severity: 'warning',
+        context: loader.context,
+        message: 'Javni katalog uporablja široki full-catalog loader, kjer bi moral ostati na ožjih loaderjih.'
+      });
+    }
+
+    if ((loader.context === '/admin/artikli' || loader.context === '/api/admin/catalog-items') && broadLoaders.has(loader.loader)) {
+      warnings.push({
+        severity: 'warning',
+        context: loader.context,
+        message: 'Admin side-data pot uporablja široki full-catalog loader namesto ožjega items-index loaderja.'
+      });
+    }
+  }
+
+  if (!warnings.some((warning) => warning.context === '/admin/kategorije')) {
+    warnings.push({
+      severity: 'info',
+      context: '/admin/kategorije',
+      message: 'Začetni admin tree load lahko upravičeno uporabi široki full-catalog payload.'
+    });
+  }
+
+  return warnings.slice(0, 6);
+}
+
 export function getCatalogDiagnosticsSnapshot(windowHours = DEFAULT_WINDOW_HOURS): DiagnosticsSnapshot {
   const now = new Date();
+  const store = getStore();
   pruneStore(now);
   const cutoff = now.getTime() - windowHours * 60 * 60 * 1000;
-  const relevantBuckets = [...getStore().buckets.values()].filter((bucket) => new Date(bucket.bucketStart).getTime() >= cutoff);
+  const relevantBuckets = [...store.buckets.values()].filter((bucket) => new Date(bucket.bucketStart).getTime() >= cutoff);
+  const relevantInvalidations = [...store.invalidations.values()].filter((bucket) => new Date(bucket.bucketStart).getTime() >= cutoff);
 
-  const byLoader = new Map<string, AggregatedLoaderStats & { durationsMs: number[] }>();
-  const byRoute = new Map<string, AggregatedRouteStats & { loaderCalls: Map<string, number> }>();
+  const byLoader = new Map<string, AggregatedLoaderStats & { durationsMs: number[]; durationTotalMs: number }>();
+  const byRoute = new Map<string, AggregatedRouteStats & { durationTotalMs: number; loaderCalls: Map<string, number> }>();
+  const byTrigger = new Map<TriggerType, TriggerSummary>();
+  const bySeries = new Map<string, TimeSeriesPoint & { durationTotalMs: number }>();
 
   let totalLoaderCalls = 0;
   let totalDurationMs = 0;
@@ -252,6 +415,7 @@ export function getCatalogDiagnosticsSnapshot(windowHours = DEFAULT_WINDOW_HOURS
     const loaderEntry = byLoader.get(loaderKey) ?? {
       loader: bucket.loader,
       context: bucket.context,
+      trigger: bucket.trigger,
       calls: 0,
       cacheHits: 0,
       cacheMisses: 0,
@@ -260,43 +424,77 @@ export function getCatalogDiagnosticsSnapshot(windowHours = DEFAULT_WINDOW_HOURS
       p95DurationMs: 0,
       totalPayloadBytes: 0,
       lastSeenAt: bucket.lastSeenAt,
-      durationsMs: []
+      durationsMs: [],
+      durationTotalMs: 0
     };
 
     loaderEntry.calls += bucket.calls;
     loaderEntry.cacheMisses += bucket.cacheMisses;
     loaderEntry.errorCount += bucket.errorCount;
     loaderEntry.totalPayloadBytes += bucket.totalPayloadBytes;
-    loaderEntry.avgDurationMs += bucket.totalDurationMs;
+    loaderEntry.durationTotalMs += bucket.totalDurationMs;
     loaderEntry.lastSeenAt = loaderEntry.lastSeenAt > bucket.lastSeenAt ? loaderEntry.lastSeenAt : bucket.lastSeenAt;
     loaderEntry.durationsMs.push(...bucket.durationsMs);
+    loaderEntry.trigger = bucket.trigger;
     byLoader.set(loaderKey, loaderEntry);
 
     const routeEntry = byRoute.get(bucket.context) ?? {
       context: bucket.context,
+      trigger: bucket.trigger,
       calls: 0,
+      cacheHits: 0,
+      cacheMisses: 0,
       avgDurationMs: 0,
       totalPayloadBytes: 0,
       lastSeenAt: bucket.lastSeenAt,
       hottestLoader: '-',
+      durationTotalMs: 0,
       loaderCalls: new Map<string, number>()
     };
 
     routeEntry.calls += bucket.calls;
-    routeEntry.avgDurationMs += bucket.totalDurationMs;
+    routeEntry.cacheMisses += bucket.cacheMisses;
     routeEntry.totalPayloadBytes += bucket.totalPayloadBytes;
+    routeEntry.durationTotalMs += bucket.totalDurationMs;
     routeEntry.lastSeenAt = routeEntry.lastSeenAt > bucket.lastSeenAt ? routeEntry.lastSeenAt : bucket.lastSeenAt;
+    routeEntry.trigger = bucket.trigger;
     routeEntry.loaderCalls.set(bucket.loader, (routeEntry.loaderCalls.get(bucket.loader) ?? 0) + bucket.calls);
     byRoute.set(bucket.context, routeEntry);
+
+    const triggerEntry = byTrigger.get(bucket.trigger) ?? {
+      trigger: bucket.trigger,
+      calls: 0,
+      cacheMisses: 0,
+      totalPayloadBytes: 0
+    };
+    triggerEntry.calls += bucket.calls;
+    triggerEntry.cacheMisses += bucket.cacheMisses;
+    triggerEntry.totalPayloadBytes += bucket.totalPayloadBytes;
+    byTrigger.set(bucket.trigger, triggerEntry);
+
+    const seriesEntry = bySeries.get(bucket.bucketStart) ?? {
+      bucketStart: bucket.bucketStart,
+      calls: 0,
+      cacheMisses: 0,
+      totalPayloadBytes: 0,
+      avgDurationMs: 0,
+      durationTotalMs: 0
+    };
+    seriesEntry.calls += bucket.calls;
+    seriesEntry.cacheMisses += bucket.cacheMisses;
+    seriesEntry.totalPayloadBytes += bucket.totalPayloadBytes;
+    seriesEntry.durationTotalMs += bucket.totalDurationMs;
+    bySeries.set(bucket.bucketStart, seriesEntry);
   }
 
   const loaders = [...byLoader.values()]
     .map((entry) => {
-      const avgDurationMs = entry.calls > 0 ? entry.avgDurationMs / entry.calls : 0;
+      const avgDurationMs = entry.calls > 0 ? entry.durationTotalMs / entry.calls : 0;
       const cacheHits = Math.max(0, entry.calls - entry.cacheMisses);
       return {
         loader: entry.loader,
         context: entry.context,
+        trigger: entry.trigger,
         calls: entry.calls,
         cacheHits,
         cacheMisses: entry.cacheMisses,
@@ -312,10 +510,14 @@ export function getCatalogDiagnosticsSnapshot(windowHours = DEFAULT_WINDOW_HOURS
   const routes = [...byRoute.values()]
     .map((entry) => {
       const hottestLoader = [...entry.loaderCalls.entries()].sort((left, right) => right[1] - left[1])[0]?.[0] ?? '-';
+      const cacheHits = Math.max(0, entry.calls - entry.cacheMisses);
       return {
         context: entry.context,
+        trigger: entry.trigger,
         calls: entry.calls,
-        avgDurationMs: entry.calls > 0 ? entry.avgDurationMs / entry.calls : 0,
+        cacheHits,
+        cacheMisses: entry.cacheMisses,
+        avgDurationMs: entry.calls > 0 ? entry.durationTotalMs / entry.calls : 0,
         totalPayloadBytes: entry.totalPayloadBytes,
         lastSeenAt: entry.lastSeenAt,
         hottestLoader
@@ -323,19 +525,52 @@ export function getCatalogDiagnosticsSnapshot(windowHours = DEFAULT_WINDOW_HOURS
     })
     .sort((left, right) => right.calls - left.calls || right.avgDurationMs - left.avgDurationMs);
 
+  const series = [...bySeries.values()]
+    .map((entry) => ({
+      bucketStart: entry.bucketStart,
+      calls: entry.calls,
+      cacheMisses: entry.cacheMisses,
+      totalPayloadBytes: entry.totalPayloadBytes,
+      avgDurationMs: entry.calls > 0 ? entry.durationTotalMs / entry.calls : 0
+    }))
+    .sort((left, right) => left.bucketStart.localeCompare(right.bucketStart));
+
+  const invalidations = relevantInvalidations
+    .map((entry) => ({
+      context: entry.context,
+      trigger: entry.trigger,
+      tagFamily: entry.tagFamily,
+      invalidations: entry.invalidations,
+      revalidatedPaths: entry.revalidatedPaths,
+      lastSeenAt: entry.lastSeenAt
+    } satisfies InvalidationSummary))
+    .sort((left, right) => right.lastSeenAt.localeCompare(left.lastSeenAt));
+
+  const inferredCacheHits = Math.max(0, totalLoaderCalls - totalCacheMisses);
+
   return {
     generatedAt: now.toISOString(),
+    metricsStartedAt: store.startedAt,
     windowHours,
     summary: {
       totalLoaderCalls,
+      totalCacheMisses,
+      inferredCacheHits,
       avgLoaderDurationMs: totalLoaderCalls > 0 ? totalDurationMs / totalLoaderCalls : 0,
-      cacheHitRate: totalLoaderCalls > 0 ? Math.max(0, (totalLoaderCalls - totalCacheMisses) / totalLoaderCalls) : null,
+      cacheHitRate: totalLoaderCalls > 0 ? inferredCacheHits / totalLoaderCalls : null,
       totalPayloadBytes,
       totalErrorCount,
       uniqueLoaders: new Set(loaders.map((entry) => entry.loader)).size,
-      activeContexts: routes.length
+      activeContexts: routes.length,
+      invalidationCount: invalidations.reduce((sum, entry) => sum + entry.invalidations, 0)
     },
+    triggers: [...byTrigger.values()].sort((left, right) => right.calls - left.calls),
     loaders,
-    routes
+    routes,
+    series,
+    slowestLoaders: [...loaders].sort((left, right) => right.p95DurationMs - left.p95DurationMs).slice(0, 10),
+    heaviestLoaders: [...loaders].sort((left, right) => right.totalPayloadBytes - left.totalPayloadBytes).slice(0, 10),
+    invalidations: invalidations.slice(0, 10),
+    warnings: buildWarnings(loaders)
   };
 }

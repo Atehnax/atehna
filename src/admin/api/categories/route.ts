@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import type { CatalogCategory } from '@/commercial/catalog/catalog';
 import { normalizeCatalogData } from '@/shared/server/catalogAdmin';
-import { CATALOG_REVALIDATE_PATHS, getCatalogDataFromDatabase, replaceCategoryTree } from '@/shared/server/catalogCategories';
+import { CATALOG_ADMIN_TAG, CATALOG_PUBLIC_TAG, CATALOG_REVALIDATE_PATHS, getCatalogDataFromDatabase, replaceCategoryTree } from '@/shared/server/catalogCategories';
+import { recordCatalogInvalidation } from '@/shared/server/catalogDiagnostics';
 
 export async function GET() {
   try {
@@ -31,6 +32,12 @@ export async function PUT(request: Request) {
     for (const target of CATALOG_REVALIDATE_PATHS) {
       revalidatePath(target.path, target.type);
     }
+
+    recordCatalogInvalidation({
+      context: '/api/admin/categories:save',
+      tags: [CATALOG_PUBLIC_TAG, CATALOG_ADMIN_TAG],
+      revalidatedPaths: CATALOG_REVALIDATE_PATHS.length
+    });
 
     return NextResponse.json({ ok: true });
   } catch (error) {

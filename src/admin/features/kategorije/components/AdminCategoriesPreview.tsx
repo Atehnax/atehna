@@ -12,7 +12,8 @@ import {
   getDiscountedPrice
 } from '@/commercial/catalog/catalog';
 import { Button } from '@/shared/ui/button';
-import type { ContentCard, SelectedPreviewContext } from '../common/types';
+import { Input } from '@/shared/ui/input';
+import type { ContentCard, EditingRowDraft, SelectedPreviewContext } from '../common/types';
 
 export function AdminCategoriesPreview({
   activeView,
@@ -30,9 +31,15 @@ export function AdminCategoriesPreview({
   onSetImageDeleteTarget,
   onImageUpload,
   onLeafProductsDragEnd,
-  sortCatalogItems
+  sortCatalogItems,
+  editingRow,
+  onStartTitleEdit,
+  onEditingRowChange,
+  onCommitTitleEdit,
+  onCancelTitleEdit,
+  onOpenNode
 }: {
-  activeView: 'table' | 'miller';
+  activeView: 'table' | 'preview' | 'miller';
   tableError: string | null;
   lowerViewCount: number;
   onLowerViewCountChange: (value: number) => void;
@@ -48,11 +55,21 @@ export function AdminCategoriesPreview({
   onImageUpload: (file: File | null, item: ContentCard, categorySlug?: string) => Promise<void>;
   onLeafProductsDragEnd: (event: DragEndEvent) => void;
   sortCatalogItems: (items: CatalogItem[]) => CatalogItem[];
+  editingRow: EditingRowDraft | null;
+  onStartTitleEdit: (item: ContentCard) => void;
+  onEditingRowChange: (value: string) => void;
+  onCommitTitleEdit: () => void;
+  onCancelTitleEdit: () => void;
+  onOpenNode: (item: ContentCard) => void;
 }) {
   const previewSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const selectedSubcategoryChildren =
+    selectedContext?.kind === 'subcategory'
+      ? ((selectedContext.subcategory as CatalogSubcategory & { subcategories?: CatalogSubcategory[] }).subcategories ?? [])
+      : [];
 
   return (
-    <div className={activeView === 'table' ? 'space-y-5' : 'hidden'}>
+    <div className={activeView === 'preview' ? 'space-y-5' : 'hidden'}>
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         {tableError ? <p className="mb-3 rounded-lg border border-[var(--danger-300)] bg-[var(--danger-100)] px-3 py-2 text-xs text-[var(--danger-700)]">{tableError}</p> : null}
         <div className="mb-3 flex items-center justify-between gap-3">
@@ -76,7 +93,7 @@ export function AdminCategoriesPreview({
           </div>
         </div>
 
-        {selectedContext?.kind === 'root' || (selectedContext?.kind === 'category' && visibleContent.length > 0) ? (
+        {selectedContext && visibleContent.length > 0 ? (
           <DndContext sensors={previewSensors} collisionDetection={closestCenter} onDragEnd={onBottomReorder}>
             <SortableContext items={visibleContent.map((item) => item.id)} strategy={rectSortingStrategy}>
               <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.min(8, Math.max(3, lowerViewCount))}, minmax(0, 1fr))` }}>
@@ -118,8 +135,8 @@ export function AdminCategoriesPreview({
                                   event.stopPropagation();
                                   onSetImageDeleteTarget({
                                     kind: item.kind,
-                                    categorySlug: item.kind === 'category' ? item.id : selectedContext?.kind === 'category' ? selectedContext.category.slug : '',
-                                    subcategorySlug: item.kind === 'subcategory' ? item.id : undefined
+                                    categorySlug: item.categorySlug,
+                                    subcategorySlug: item.kind === 'subcategory' ? item.subcategoryPath.at(-1) : undefined
                                   });
                                 }}
                                 aria-label="Odstrani sliko"
@@ -133,7 +150,40 @@ export function AdminCategoriesPreview({
                         </button>
 
                         <div className="mt-3 space-y-1">
-                          <p className={`text-sm font-semibold ${item.isInactive ? 'text-slate-400' : 'text-slate-700'}`}>{item.title}</p>
+                          <div className="flex items-start justify-between gap-2">
+                            {editingRow?.id === item.id ? (
+                              <Input
+                                value={editingRow.title}
+                                onChange={(event) => onEditingRowChange(event.target.value)}
+                                onBlur={onCommitTitleEdit}
+                                data-inline-edit-field="true"
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter') onCommitTitleEdit();
+                                  if (event.key === 'Escape') onCancelTitleEdit();
+                                }}
+                                className="h-8 px-2 text-sm font-semibold"
+                                autoFocus
+                              />
+                            ) : (
+                              <button
+                                type="button"
+                                className={`truncate text-left text-sm font-semibold ${item.isInactive ? 'text-slate-400' : 'text-slate-700'}`}
+                                onPointerDown={(event) => event.stopPropagation()}
+                                onClick={() => onStartTitleEdit(item)}
+                              >
+                                {item.title}
+                              </button>
+                            )}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="toolbar"
+                              onPointerDown={(event) => event.stopPropagation()}
+                              onClick={() => onOpenNode(item)}
+                            >
+                              {item.openLabel}
+                            </Button>
+                          </div>
                           <p className={`text-xs ${item.isInactive ? 'text-slate-400' : 'text-slate-600'}`}>{item.description || '—'}</p>
                         </div>
 
@@ -172,7 +222,7 @@ export function AdminCategoriesPreview({
           />
         ) : null}
 
-        {selectedContext?.kind === 'subcategory' ? (
+        {selectedContext?.kind === 'subcategory' && selectedSubcategoryChildren.length === 0 ? (
           <LeafProductsView
             title={`${selectedContext.category.title} / ${selectedContext.subcategory.title}`}
             category={selectedContext.category}

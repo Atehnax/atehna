@@ -36,6 +36,10 @@ export type ContentCard = {
   description: string;
   image?: string;
   kind: 'category' | 'subcategory';
+  categorySlug: string;
+  subcategoryPath: string[];
+  openLabel: string;
+  hasChildren: boolean;
   isInactive?: boolean;
 };
 
@@ -70,4 +74,4 @@ export type SelectedPreviewContext =
   | { kind: 'subcategory'; category: CatalogCategory; subcategory: CatalogSubcategory }
   | null;
 
-export type CategoriesView = 'table' | 'miller';
+export type CategoriesView = 'table' | 'preview' | 'miller';

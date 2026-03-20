@@ -39,7 +39,7 @@ export async function PUT(request: Request) {
       revalidatedPaths: CATALOG_REVALIDATE_PATHS.length
     });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, categories: normalized.categories, statuses: payload.statuses ?? {} });
   } catch (error) {
     return NextResponse.json({ message: error instanceof Error ? error.message : 'Napaka pri shranjevanju.' }, { status: 500 });
   }

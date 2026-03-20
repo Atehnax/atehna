@@ -182,7 +182,7 @@ export function AdminOrderDocumentsSectionSkeleton() {
   );
 }
 
-export function AdminCategoriesRouteSkeleton({ initialView }: { initialView: 'table' | 'miller' }) {
+export function AdminCategoriesRouteSkeleton({ initialView }: { initialView: 'table' | 'preview' | 'miller' }) {
   return (
     <AdminSectionShell
       title="Kategorije"
@@ -190,6 +190,7 @@ export function AdminCategoriesRouteSkeleton({ initialView }: { initialView: 'ta
     >
       <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1">
         <Skeleton className={`h-9 rounded-lg ${initialView === 'table' ? 'w-28' : 'w-24'}`} />
+        <Skeleton className={`ml-1 h-9 rounded-lg ${initialView === 'preview' ? 'w-28' : 'w-24'}`} />
         <Skeleton className={`ml-1 h-9 rounded-lg ${initialView === 'miller' ? 'w-32' : 'w-28'}`} />
       </div>
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">
@@ -199,7 +200,7 @@ export function AdminCategoriesRouteSkeleton({ initialView }: { initialView: 'ta
             <Skeleton className="h-10 w-32 rounded-xl" />
             <Skeleton className="h-10 w-28 rounded-xl" />
           </div>
-          <TableSkeleton rows={8} cols={initialView === 'table' ? 5 : 3} className="border-0" />
+          <TableSkeleton rows={8} cols={initialView === 'miller' ? 3 : 5} className="border-0" />
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <Skeleton className="h-5 w-40" />

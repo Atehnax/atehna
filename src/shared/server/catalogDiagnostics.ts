@@ -172,6 +172,10 @@ function floorToBucket(date: Date, bucketMinutes: DiagnosticsBucketGranularityMi
   return bucket;
 }
 
+function addBucketMinutes(date: Date, bucketMinutes: DiagnosticsBucketGranularityMinutes, count: number): Date {
+  return new Date(date.getTime() + count * bucketMinutes * 60 * 1000);
+}
+
 function bucketKey(loader: string, context: string, bucketStart: string): string {
   return `${bucketStart}::${loader}::${context}`;
 }
@@ -543,16 +547,22 @@ export function getCatalogDiagnosticsSnapshot(windowHours = DEFAULT_WINDOW_HOURS
     })
     .sort((left, right) => right.calls - left.calls || right.avgDurationMs - left.avgDurationMs);
 
-  const series = [...bySeries.values()]
-    .map((entry) => ({
-      bucketStart: entry.bucketStart,
-      bucketMinutes: entry.bucketMinutes,
-      calls: entry.calls,
-      cacheMisses: entry.cacheMisses,
-      totalPayloadBytes: entry.totalPayloadBytes,
-      avgDurationMs: entry.calls > 0 ? entry.durationTotalMs / entry.calls : 0
-    }))
-    .sort((left, right) => left.bucketStart.localeCompare(right.bucketStart));
+  const lastSeriesBucket = floorToBucket(now, bucketMinutes);
+  const bucketCount = Math.max(1, Math.floor(windowMinutes / bucketMinutes) + 1);
+  const firstSeriesBucket = addBucketMinutes(lastSeriesBucket, bucketMinutes, -(bucketCount - 1));
+  const series = Array.from({ length: bucketCount }, (_, index) => {
+    const bucketStart = addBucketMinutes(firstSeriesBucket, bucketMinutes, index).toISOString();
+    const entry = bySeries.get(bucketStart);
+
+    return {
+      bucketStart,
+      bucketMinutes,
+      calls: entry?.calls ?? 0,
+      cacheMisses: entry?.cacheMisses ?? 0,
+      totalPayloadBytes: entry?.totalPayloadBytes ?? 0,
+      avgDurationMs: entry && entry.calls > 0 ? entry.durationTotalMs / entry.calls : 0
+    };
+  });
 
   const invalidations = relevantInvalidations
     .map((entry) => ({

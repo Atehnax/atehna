@@ -30,14 +30,14 @@ const DIAGNOSTICS_WINDOW_OPTIONS: DiagnosticsWindowOption[] = [
 ];
 
 const DIAGNOSTICS_COVERAGE_TARGETS = [
-  { context: '/admin/orders', label: 'Naročila seznam' },
-  { context: '/admin/orders/[orderId]', label: 'Naročila podrobnosti' },
-  { context: '/admin/arhiv', label: 'Arhiv' },
-  { context: '/admin/analitika', label: 'Analitika naročil' },
-  { context: '/admin/analitika/splet', label: 'Analitika splet' },
-  { context: '/admin/artikli', label: 'Artikli' },
-  { context: '/admin/kategorije', label: 'Kategorije' },
-  { context: '/admin/kategorije/miller-view', label: 'Kategorije Miller view' }
+  { context: '/admin/orders', label: 'Naročila seznam', hint: 'Zapis nastane ob server loadu seznama in spremljevalnih dokument/priponka loaderjih.' },
+  { context: '/admin/orders/[orderId]', label: 'Naročila podrobnosti', hint: 'Podrobnosti sprožijo več server loaderjev, zato se tukaj aktivnost pokaže najlažje.' },
+  { context: '/admin/arhiv', label: 'Arhiv', hint: 'Zapis nastane ob server loadu arhiva; demo pogled brez baze se ne zabeleži.' },
+  { context: '/admin/analitika', label: 'Analitika naročil', hint: 'Zapis nastane ob server loadu analitike in njenih nastavitev.' },
+  { context: '/admin/analitika/splet', label: 'Analitika splet', hint: 'Samo začetni load in gumb Uporabi obdobje sprožita server fetch; samo urejanje datumov je lokalno.' },
+  { context: '/admin/artikli', label: 'Artikli', hint: 'Prikazan je začetni server load seed podatkov; večina nadaljnjih interakcij v upravljalniku je lokalna.' },
+  { context: '/admin/kategorije', label: 'Kategorije', hint: 'Začetni load in shranjevanje sta server-backed; veliko urejanja tabele ostane lokalno do shranitve.' },
+  { context: '/admin/kategorije/miller-view', label: 'Kategorije Miller view', hint: 'Server load ob vstopu/preklopu pogleda; izbire po stolpcih so lokalne, dokler ne pride do shranitve ali nove navigacije.' }
 ] as const;
 
 const formatNumber = (value: number) => new Intl.NumberFormat('sl-SI').format(Math.round(value));
@@ -196,6 +196,8 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
   const detailsSnapshot = shouldUseFallbackDetails ? fallbackSnapshot : snapshot;
   const activeRouteMap = new Map(snapshot.routes.map((route) => [route.context, route]));
   const detailsRouteMap = new Map(detailsSnapshot.routes.map((route) => [route.context, route]));
+  const activeLoaderMap = new Map(snapshot.loaders.map((loader) => [loader.context, loader]));
+  const detailsLoaderMap = new Map(detailsSnapshot.loaders.map((loader) => [loader.context, loader]));
   const callSeries = snapshot.series.map((point) => ({ timestamp: point.bucketStart, label: formatBucketLabel(point.bucketStart, snapshot.bucketMinutes), value: point.calls }));
   const payloadSeries = snapshot.series.map((point) => ({ timestamp: point.bucketStart, label: formatBucketLabel(point.bucketStart, snapshot.bucketMinutes), value: point.totalPayloadBytes }));
   const topSlowLabel = detailsSnapshot.slowestLoaders.length >= 10 ? 'Top 10 po p95 za hitrejšo identifikacijo latency hotspotov.' : `Trenutno prikazanih ${detailsSnapshot.slowestLoaders.length} loaderjev z zabeleženim p95.`;
@@ -268,13 +270,13 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-sm font-semibold text-slate-900">Pokritost glavnih admin kontekstov</h2>
-            <p className="mt-1 text-sm text-slate-500">Prikazani so samo konteksti z aktivnostjo v izbranem oknu; demo pogledi ali fallback brez baze ne ustvarijo diagnostičnih zapisov.</p>
+            <p className="mt-1 text-sm text-slate-500">Prikazani so samo server-backed konteksti z aktivnostjo v izbranem oknu; veliko lokalnih admin interakcij po začetnem loadu ne ustvari novega diagnostičnega zapisa. Demo/fallback pogledi brez baze se ne beležijo.</p>
           </div>
         </div>
         <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
           {DIAGNOSTICS_COVERAGE_TARGETS.map((target) => {
-            const activeRoute = activeRouteMap.get(target.context);
-            const fallbackRoute = detailsRouteMap.get(target.context);
+            const activeRoute = activeRouteMap.get(target.context) ?? activeLoaderMap.get(target.context);
+            const fallbackRoute = detailsRouteMap.get(target.context) ?? detailsLoaderMap.get(target.context);
             const status = activeRoute
               ? { label: 'Aktivno v oknu', tone: 'border-emerald-200 bg-emerald-50 text-emerald-900', route: activeRoute }
               : fallbackRoute && shouldUseFallbackDetails
@@ -291,6 +293,7 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
                     {formatNumber(status.route.calls)} klicev · zadnjič {formatDateTime(status.route.lastSeenAt)} UTC
                   </p>
                 ) : null}
+                <p className="mt-2 text-xs">{target.hint}</p>
               </div>
             );
           })}

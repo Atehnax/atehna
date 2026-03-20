@@ -1,4 +1,5 @@
 import { getPool } from '@/shared/server/db';
+import { instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
 
 export type WebsiteAnalyticsSummary = {
   visitsByDay: Array<{ day: string; visits: number }>;
@@ -32,10 +33,11 @@ export async function fetchWebsiteAnalytics(options?: {
   fromDate?: string | null;
   toDate?: string | null;
 }): Promise<WebsiteAnalyticsSummary> {
-  const pool = await getPool();
-  const { where, params } = buildWhere(options?.fromDate, options?.toDate);
+  return instrumentCatalogLoader('fetchWebsiteAnalytics', '/admin/analitika/splet', async () => {
+    const pool = await getPool();
+    const { where, params } = buildWhere(options?.fromDate, options?.toDate);
 
-  const [visitsByDayResult, topPagesResult, topProductsResult, retentionResult, retentionByDayResult] = await Promise.all([
+    const [visitsByDayResult, topPagesResult, topProductsResult, retentionResult, retentionByDayResult] = await Promise.all([
     pool.query(
       `
       select to_char(date_trunc('day', created_at), 'YYYY-MM-DD') as day,
@@ -105,11 +107,12 @@ export async function fetchWebsiteAnalytics(options?: {
     )
   ]);
 
-  return {
-    visitsByDay: visitsByDayResult.rows as Array<{ day: string; visits: number }>,
-    topPages: topPagesResult.rows as Array<{ path: string; views: number }>,
-    topProducts: topProductsResult.rows as Array<{ product_id: string; views: number }>,
-    returningVisitors7d: Number(retentionResult.rows[0]?.returning_visitors ?? 0),
-    retentionByDay: retentionByDayResult.rows as Array<{ day: string; returning: number }>
-  };
+    return {
+      visitsByDay: visitsByDayResult.rows as Array<{ day: string; visits: number }>,
+      topPages: topPagesResult.rows as Array<{ path: string; views: number }>,
+      topProducts: topProductsResult.rows as Array<{ product_id: string; views: number }>,
+      returningVisitors7d: Number(retentionResult.rows[0]?.returning_visitors ?? 0),
+      retentionByDay: retentionByDayResult.rows as Array<{ day: string; returning: number }>
+    };
+  });
 }

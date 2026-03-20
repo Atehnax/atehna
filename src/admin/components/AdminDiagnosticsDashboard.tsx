@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 import { getCatalogDiagnosticsSnapshot } from '@/shared/server/catalogDiagnostics';
 
 type Props = {
@@ -10,9 +11,23 @@ type MiniChartPoint = {
   value: number;
 };
 
+type DiagnosticsWindowOption = {
+  label: string;
+  param: string;
+  minutes: number;
+  windowHours: number;
+  description: string;
+};
+
 const CHART_WIDTH = 640;
 const CHART_HEIGHT = 180;
 const CHART_INNER_HEIGHT = 132;
+const DIAGNOSTICS_WINDOW_OPTIONS: DiagnosticsWindowOption[] = [
+  { label: '15 min', param: '15m', minutes: 15, windowHours: 0.25, description: '5-min bucketi za kratek admin session.' },
+  { label: '1 ura', param: '60m', minutes: 60, windowHours: 1, description: '5-min bucketi za krajše odpravljanje težav.' },
+  { label: '6 ur', param: '6h', minutes: 360, windowHours: 6, description: '15-min bucketi za isti delovni blok.' },
+  { label: '24 ur', param: '24h', minutes: 1440, windowHours: 24, description: 'Urni bucketi za širši dnevni pregled.' }
+];
 
 const formatNumber = (value: number) => new Intl.NumberFormat('sl-SI').format(Math.round(value));
 const formatDuration = (value: number) => `${formatNumber(value)} ms`;
@@ -32,11 +47,12 @@ const formatDateTime = (value: string) =>
     timeZone: 'UTC'
   }).format(new Date(value));
 
-const formatBucketLabel = (value: string) =>
+const formatBucketLabel = (value: string, bucketMinutes: number) =>
   new Intl.DateTimeFormat('sl-SI', {
-    month: '2-digit',
-    day: '2-digit',
     hour: '2-digit',
+    minute: bucketMinutes < 60 ? '2-digit' : undefined,
+    month: bucketMinutes >= 60 ? '2-digit' : undefined,
+    day: bucketMinutes >= 60 ? '2-digit' : undefined,
     timeZone: 'UTC'
   }).format(new Date(value));
 
@@ -192,26 +208,48 @@ function RankedList({ title, description, rows, valueFormatter }: { title: strin
   );
 }
 
+const resolveWindowOption = (windowHours: number) =>
+  DIAGNOSTICS_WINDOW_OPTIONS.find((option) => Math.abs(option.windowHours - windowHours) < 0.001) ?? DIAGNOSTICS_WINDOW_OPTIONS.at(-1)!;
+
 export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
-  const snapshot = getCatalogDiagnosticsSnapshot(windowHours);
-  const callSeries = snapshot.series.map((point) => ({ label: formatBucketLabel(point.bucketStart), value: point.calls }));
-  const payloadSeries = snapshot.series.map((point) => ({ label: formatBucketLabel(point.bucketStart), value: point.totalPayloadBytes }));
+  const activeWindow = resolveWindowOption(windowHours);
+  const snapshot = getCatalogDiagnosticsSnapshot(activeWindow.windowHours);
+  const callSeries = snapshot.series.map((point) => ({ label: formatBucketLabel(point.bucketStart, snapshot.bucketMinutes), value: point.calls }));
+  const payloadSeries = snapshot.series.map((point) => ({ label: formatBucketLabel(point.bucketStart, snapshot.bucketMinutes), value: point.totalPayloadBytes }));
+  const topSlowLabel = snapshot.slowestLoaders.length >= 10 ? 'Top 10 po p95 za hitrejšo identifikacijo latency hotspotov.' : `Trenutno prikazanih ${snapshot.slowestLoaders.length} loaderjev z zabeleženim p95.`;
+  const topPayloadLabel = snapshot.heaviestLoaders.length >= 10 ? 'Top 10 po skupnem payloadu v izbranem oknu.' : `Trenutno prikazanih ${snapshot.heaviestLoaders.length} loaderjev z merjenim payloadom.`;
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-slate-900">Diagnostika</h1>
         <p className="mt-1 text-sm text-slate-600">
-          Operativni pregled katalogskih loaderjev, cache obnašanja, payloadov, invalidacij in route budget opozoril.
+          Operativni pregled admin loaderjev, cache obnašanja, payloadov, invalidacij in route budget opozoril.
         </p>
       </div>
 
       <section className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        <p className="font-medium">Okno: zadnjih {windowHours} ur</p>
+        <p className="font-medium">Okno: zadnjih {activeWindow.minutes < 60 ? `${activeWindow.minutes} min` : `${windowHours} ur`}</p>
         <p className="mt-1 text-amber-800">
           Podatki so agregirani v pomnilniku trenutne aplikacijske instance. To ni globalna infrastruktura in se ob restartu oziroma deployu ponastavi.
         </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {DIAGNOSTICS_WINDOW_OPTIONS.map((option) => {
+            const active = option.minutes === activeWindow.minutes;
+            return (
+              <Link
+                key={option.minutes}
+                href={`/admin/analitika/diagnostika?window=${option.param}`}
+                className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium transition ${active ? 'border-amber-400 bg-amber-100 text-amber-900' : 'border-amber-300 bg-white/70 text-amber-900 hover:bg-white'}`}
+                title={option.description}
+              >
+                {option.label}
+              </Link>
+            );
+          })}
+        </div>
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-amber-800">
+          <span>Granularnost: {snapshot.bucketMinutes} min</span>
           <span>Zagon meritev: {formatDateTime(snapshot.metricsStartedAt)} UTC</span>
           <span>Posodobljeno: {formatDateTime(snapshot.generatedAt)} UTC</span>
         </div>
@@ -241,14 +279,14 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
       <div className="grid gap-4 xl:grid-cols-2">
         <MiniLineChart
           title="Klici skozi čas"
-          description="Skupni loader klici po urnih bucketih."
+          description={`Skupni loader klici po ${snapshot.bucketMinutes}-min bucketih.`}
           points={callSeries}
           stroke="#2563eb"
           valueFormatter={(value) => formatNumber(value)}
         />
         <MiniLineChart
           title="Payload skozi čas"
-          description="Približen promet payloadov po urnih bucketih."
+          description={`Približen promet payloadov po ${snapshot.bucketMinutes}-min bucketih.`}
           points={payloadSeries}
           stroke="#0f766e"
           valueFormatter={(value) => formatBytes(value)}
@@ -298,13 +336,13 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
       <div className="grid gap-4 xl:grid-cols-2">
         <RankedList
           title="Najpočasnejši loaderji"
-          description="Top 10 po p95 za hitrejšo identifikacijo latency hotspotov."
+          description={topSlowLabel}
           rows={snapshot.slowestLoaders.map((row) => ({ label: row.loader, context: row.context, value: row.p95DurationMs }))}
           valueFormatter={(value) => formatDuration(value)}
         />
         <RankedList
           title="Najtežji payloadi"
-          description="Top 10 po skupnem payloadu v izbranem oknu."
+          description={topPayloadLabel}
           rows={snapshot.heaviestLoaders.map((row) => ({ label: row.loader, context: row.context, value: row.totalPayloadBytes }))}
           valueFormatter={(value) => formatBytes(value)}
         />

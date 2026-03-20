@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
+import AdminDiagnosticsChart from '@/admin/components/AdminDiagnosticsChart';
 import { getCatalogDiagnosticsSnapshot } from '@/shared/server/catalogDiagnostics';
 
 type Props = {
@@ -7,6 +8,7 @@ type Props = {
 };
 
 type MiniChartPoint = {
+  timestamp: string;
   label: string;
   value: number;
 };
@@ -19,10 +21,8 @@ type DiagnosticsWindowOption = {
   description: string;
 };
 
-const CHART_WIDTH = 640;
-const CHART_HEIGHT = 180;
-const CHART_INNER_HEIGHT = 132;
 const DIAGNOSTICS_WINDOW_OPTIONS: DiagnosticsWindowOption[] = [
+  { label: '5 min', param: '5m', minutes: 5, windowHours: 5 / 60, description: '1-min prikaz za live admin session in hiter debugging.' },
   { label: '15 min', param: '15m', minutes: 15, windowHours: 0.25, description: '5-min bucketi za kratek admin session.' },
   { label: '1 ura', param: '60m', minutes: 60, windowHours: 1, description: '5-min bucketi za krajše odpravljanje težav.' },
   { label: '6 ur', param: '6h', minutes: 360, windowHours: 6, description: '15-min bucketi za isti delovni blok.' },
@@ -147,45 +147,6 @@ function DataTable({ title, description, columns, rows }: { title: string; descr
   );
 }
 
-function buildPolyline(points: MiniChartPoint[]) {
-  if (points.length === 0) return '';
-  const max = Math.max(...points.map((point) => point.value), 1);
-  const step = points.length === 1 ? CHART_WIDTH : CHART_WIDTH / (points.length - 1);
-
-  return points
-    .map((point, index) => {
-      const x = index * step;
-      const y = CHART_INNER_HEIGHT - (point.value / max) * CHART_INNER_HEIGHT;
-      return `${x},${y}`;
-    })
-    .join(' ');
-}
-
-function MiniLineChart({ title, description, points, stroke, valueFormatter }: { title: string; description: string; points: MiniChartPoint[]; stroke: string; valueFormatter: (value: number) => string }) {
-  const lastPoint = points.at(-1);
-
-  return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
-          <p className="mt-1 text-sm text-slate-500">{description}</p>
-        </div>
-        {lastPoint ? <p className="text-sm font-medium text-slate-700">Zadnja točka: {valueFormatter(lastPoint.value)}</p> : null}
-      </div>
-      <svg viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} className="mt-4 w-full rounded bg-slate-50 p-2">
-        <line x1="0" y1={CHART_INNER_HEIGHT} x2={CHART_WIDTH} y2={CHART_INNER_HEIGHT} stroke="#cbd5e1" strokeWidth="1" />
-        <polyline fill="none" stroke={stroke} strokeWidth="2.5" points={buildPolyline(points)} />
-      </svg>
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-        {points.slice(-6).map((point) => (
-          <span key={point.label}>{point.label}: {valueFormatter(point.value)}</span>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 function RankedList({ title, description, rows, valueFormatter }: { title: string; description: string; rows: Array<{ label: string; context: string; value: number }>; valueFormatter: (value: number) => string }) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-4">
@@ -214,8 +175,8 @@ const resolveWindowOption = (windowHours: number) =>
 export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
   const activeWindow = resolveWindowOption(windowHours);
   const snapshot = getCatalogDiagnosticsSnapshot(activeWindow.windowHours);
-  const callSeries = snapshot.series.map((point) => ({ label: formatBucketLabel(point.bucketStart, snapshot.bucketMinutes), value: point.calls }));
-  const payloadSeries = snapshot.series.map((point) => ({ label: formatBucketLabel(point.bucketStart, snapshot.bucketMinutes), value: point.totalPayloadBytes }));
+  const callSeries = snapshot.series.map((point) => ({ timestamp: point.bucketStart, label: formatBucketLabel(point.bucketStart, snapshot.bucketMinutes), value: point.calls }));
+  const payloadSeries = snapshot.series.map((point) => ({ timestamp: point.bucketStart, label: formatBucketLabel(point.bucketStart, snapshot.bucketMinutes), value: point.totalPayloadBytes }));
   const topSlowLabel = snapshot.slowestLoaders.length >= 10 ? 'Top 10 po p95 za hitrejšo identifikacijo latency hotspotov.' : `Trenutno prikazanih ${snapshot.slowestLoaders.length} loaderjev z zabeleženim p95.`;
   const topPayloadLabel = snapshot.heaviestLoaders.length >= 10 ? 'Top 10 po skupnem payloadu v izbranem oknu.' : `Trenutno prikazanih ${snapshot.heaviestLoaders.length} loaderjev z merjenim payloadom.`;
 
@@ -277,19 +238,23 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
       </section>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <MiniLineChart
+        <AdminDiagnosticsChart
           title="Klici skozi čas"
           description={`Skupni loader klici po ${snapshot.bucketMinutes}-min bucketih.`}
           points={callSeries}
-          stroke="#2563eb"
-          valueFormatter={(value) => formatNumber(value)}
+          color="#2563eb"
+          valueKind="count"
+          valueLabel="Klici"
+          windowMinutes={activeWindow.minutes}
         />
-        <MiniLineChart
+        <AdminDiagnosticsChart
           title="Payload skozi čas"
           description={`Približen promet payloadov po ${snapshot.bucketMinutes}-min bucketih.`}
           points={payloadSeries}
-          stroke="#0f766e"
-          valueFormatter={(value) => formatBytes(value)}
+          color="#0f766e"
+          valueKind="bytes"
+          valueLabel="Payload"
+          windowMinutes={activeWindow.minutes}
         />
       </div>
 

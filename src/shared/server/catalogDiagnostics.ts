@@ -2,7 +2,7 @@ import 'server-only';
 
 type TriggerType = 'page_render' | 'api_call' | 'save_revalidation' | 'search' | 'other';
 
-type DiagnosticsBucketGranularityMinutes = 5 | 15 | 60;
+type DiagnosticsBucketGranularityMinutes = 1 | 5 | 15 | 60;
 
 type LoaderMetricBucket = {
   bucketStart: string;
@@ -159,6 +159,7 @@ function getStore(): DiagnosticsStore {
 }
 
 function getBucketGranularityMinutes(windowMinutes: number): DiagnosticsBucketGranularityMinutes {
+  if (windowMinutes <= 5) return 1;
   if (windowMinutes <= 60) return 5;
   if (windowMinutes <= 6 * 60) return 15;
   return 60;
@@ -401,7 +402,7 @@ export function getCatalogDiagnosticsSnapshot(windowHours = DEFAULT_WINDOW_HOURS
   const now = new Date();
   const store = getStore();
   pruneStore(now);
-  const windowMinutes = Math.max(15, Math.round(windowHours * 60));
+  const windowMinutes = Math.max(5, Math.round(windowHours * 60));
   const bucketMinutes = getBucketGranularityMinutes(windowMinutes);
   const cutoff = now.getTime() - windowMinutes * 60 * 1000;
   const relevantBuckets = [...store.buckets.values()].filter((bucket) => new Date(bucket.bucketStart).getTime() >= cutoff);

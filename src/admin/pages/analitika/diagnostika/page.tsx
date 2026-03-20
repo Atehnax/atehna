@@ -10,6 +10,7 @@ export const metadata = {
 export const dynamic = 'force-dynamic';
 
 const WINDOW_MINUTE_TO_HOURS: Record<string, number> = {
+  '5m': 5 / 60,
   '15m': 0.25,
   '60m': 1,
   '6h': 6,
@@ -17,7 +18,7 @@ const WINDOW_MINUTE_TO_HOURS: Record<string, number> = {
 };
 
 function resolveWindowHours(windowParam?: string) {
-  return WINDOW_MINUTE_TO_HOURS[windowParam ?? ''] ?? 0.25;
+  return WINDOW_MINUTE_TO_HOURS[windowParam ?? ''] ?? 5 / 60;
 }
 
 async function AdminDiagnosticsDashboardSection({

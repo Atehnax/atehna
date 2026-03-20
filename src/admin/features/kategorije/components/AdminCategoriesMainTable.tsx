@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode, type CSSProperties, type RefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode, type CSSProperties } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   DndContext,
@@ -23,6 +23,49 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { CatalogCategory, CatalogItem, CatalogSubcategory } from '@/commercial/catalog/catalog';
+import type {
+  AdminCategoriesPayload,
+  CatalogData,
+  CategoriesView,
+  CategoryStatus,
+  ContentCard,
+  CreateTarget,
+  DeleteTarget,
+  EditingRowDraft,
+  HistorySnapshot,
+  ImageDeleteTarget,
+  MillerDeleteTarget,
+  MillerRenameDraft,
+  RecursiveCatalogCategory,
+  RecursiveCatalogSubcategory,
+  SelectedNode
+} from '../common/types';
+import {
+  CATEGORY_STATUS_STORAGE_KEY,
+  areCatalogsEqual,
+  areMillerCatalogsEqual,
+  areStatusesEqual,
+  catId,
+  collectExpandableSubcategoryIds,
+  collectSubcategoryIds,
+  createCatalogNodeId,
+  filterSubcategoryTree,
+  findSubcategoryByPath,
+  itemId,
+  normalizeCatalogData,
+  parseItemNodeId,
+  parseSubNodeId,
+  pathEquals,
+  pruneSelectedSubcategoryTree,
+  rootId,
+  slugify,
+  subId,
+  subPathKey,
+  summarizeCatalogChanges,
+  toSubcategoryPath,
+  updateSubcategoryTree,
+  removeSubcategoryTree
+} from '../common/catalog-helpers';
 import {
   formatCatalogPrice,
   getCatalogCategoryItemPrice,
@@ -38,8 +81,6 @@ import { IconButton } from '@/shared/ui/icon-button';
 import { Chip } from '@/shared/ui/badge';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActions } from '@/shared/ui/table';
-import { AdminTableLayout } from '@/shared/ui/admin-table';
-import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
 import {
   adminTableRowToneClasses,
   buttonTokenClasses,
@@ -51,93 +92,53 @@ import { useToast } from '@/shared/ui/toast';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 import { AdminCategoriesPreview } from './AdminCategoriesPreview';
 import { AdminCategoriesMiller } from './AdminCategoriesMiller';
+import { AdminCategoriesTableView } from '../views/AdminCategoriesTableView';
 
-type RecursiveCatalogSubcategory = Omit<CatalogSubcategory, 'items'> & {
-  items: CatalogItem[];
-  subcategories: RecursiveCatalogSubcategory[];
+type RecursiveNode = RecursiveCatalogSubcategory;
+type MillerSearchMatch =
+  | { kind: 'category'; id: string; categorySlug: string }
+  | { kind: 'subcategory'; id: string; categorySlug: string; subcategoryPath: string[] }
+  | { kind: 'item'; id: string; categorySlug: string; subcategoryPath: string[]; itemSlug: string };
+
+type MillerSearchIndex = {
+  matches: MillerSearchMatch[];
+  categorySlugsWithMatches: Set<string>;
+  matchedCategorySlugs: Set<string>;
+  matchedSubcategoryPaths: Map<string, Set<string>>;
+  ancestorSubcategoryPaths: Map<string, Set<string>>;
+  matchedItemIds: Set<string>;
 };
-
-type RecursiveCatalogCategory = Omit<CatalogCategory, 'subcategories' | 'items'> & {
-  subcategories: RecursiveCatalogSubcategory[];
-  items: CatalogItem[];
-};
-
-type CatalogData = { categories: RecursiveCatalogCategory[] };
-type AdminCategoriesPayload = { categories: CatalogCategory[]; statuses?: Record<string, CategoryStatus> };
-
-type SelectedNode =
-  | { kind: 'root' }
-  | { kind: 'category'; categorySlug: string }
-  | {
-      kind: 'subcategory';
-      categorySlug: string;
-      subcategoryPath?: string[];
-      subcategorySlug?: string;
-    };
-
-type DeleteTarget =
-  | { kind: 'root' }
-  | { kind: 'category'; categorySlug: string }
-  | {
-      kind: 'subcategory';
-      categorySlug: string;
-      subcategoryPath?: string[];
-      subcategorySlug?: string;
-    }
-  | null;
-
-type ImageDeleteTarget =
-  | { kind: 'category' | 'subcategory'; categorySlug: string; subcategorySlug?: string }
-  | null;
-
-type ContentCard = {
-  id: string;
-  title: string;
-  description: string;
-  image?: string;
-  kind: 'category' | 'subcategory';
-  isInactive?: boolean;
-};
-
-type EditingRowDraft = {
-  id: string;
-  kind: 'root' | 'category' | 'subcategory';
-  categorySlug?: string;
-  subcategoryPath?: string[];
-  subcategorySlug?: string;
-  title: string;
-  description: string;
-  status: CategoryStatus;
-};
-
-type CreateTarget =
-  | { kind: 'category'; afterSlug?: string }
-  | { kind: 'subcategory'; categorySlug: string; parentPath?: string[]; afterSlug?: string }
-  | null;
-
-type MillerDeleteTarget =
-  | { column: 'categories'; ids: string[] }
-  | { column: 'subcategories'; ids: string[]; categorySlug: string }
-  | { column: 'items'; ids: string[]; categorySlug: string; subcategorySlug?: string }
-  | null;
-
-type CategoryStatus = 'active' | 'inactive';
-
-type MillerRenameDraft = { id: string; value: string };
-type HistorySnapshot = { catalog: CatalogData; statuses: Record<string, CategoryStatus> };
 
 const bulkDeleteButtonClass = buttonTokenClasses.danger;
-const CATEGORY_STATUS_STORAGE_KEY = 'admin-categories-status-v1';
-const rootId = 'root';
-const catId = (slug: string) => `cat:${slug}`;
-const subPathKey = (subPath: string[]) => subPath.join('__');
-const subId = (categorySlug: string, subPath: string | string[]) =>
-  `sub:${categorySlug}:${subPathKey(Array.isArray(subPath) ? subPath : [subPath])}`;
+const treeIndent = 32;
+const treeRowHeight = 48;
+const treeHalfRowHeight = treeRowHeight / 2;
+const leafConnectorWidth = 22;
+const treeButtonDiameter = 28;
+const treeExpandButtonSize = 16;
+const treeExpandButtonInset = (treeButtonDiameter - treeExpandButtonSize) / 2;
+const treeExpandButtonHalf = treeExpandButtonSize / 2;
+const treeButtonRadius = treeButtonDiameter / 2;
+const treeConnectorBleed = 1;
+const expandTransitionMs = 140;
+const treeCheckboxSize = 16;
+const treeCheckboxHalf = treeCheckboxSize / 2;
 
-const itemId = (catSlug: string, itemSlug: string, subSlug?: string) =>
-  `item:${catSlug}:${subSlug ?? '_'}:${itemSlug}`;
-const slugify = (value: string) =>
-  value.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-čšžćđ]/gi, '');
+const getCheckboxLeftFromTreeStart = (
+  kind: 'root' | 'category' | 'subcategory',
+  _buttonLeft: number,
+  parentColumnX: number | null
+) => {
+  if (kind === 'root' || kind === 'category') return 0;
+  if (parentColumnX !== null) {
+    const leftConnectorX = parentColumnX - treeIndent;
+    const rightConnectorX = parentColumnX;
+    const targetCenterX = (leftConnectorX + rightConnectorX) / 2 + 18;
+    return targetCenterX - treeCheckboxHalf;
+  }
+
+  return 0;
+};
 
 const InlineStatusToggle = ({
   checked,
@@ -197,238 +198,56 @@ const InlineStatusToggle = ({
   </button>
 );
 
-
-const createNodeId = () =>
-  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-    ? crypto.randomUUID()
-    : `id-${Math.random().toString(36).slice(2, 11)}`;
-
-const normalizeNodeId = (value: unknown, fallbackSeed: string) => {
-  if (typeof value === 'string' && value.trim().length > 0) return value.trim();
-
-  let hash = 0;
-  for (const char of fallbackSeed) {
-    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-  }
-
-  return `id-${hash.toString(36)}`;
-};
-
-type RecursiveNode = RecursiveCatalogSubcategory;
-
-const toSubcategoryPath = (value?: string | string[]) =>
-  Array.isArray(value) ? value : value ? [value] : [];
-
-const pathEquals = (left?: string | string[], right?: string | string[]) => {
-  const normalizedLeft = toSubcategoryPath(left);
-  const normalizedRight = toSubcategoryPath(right);
+function SortableItem({
+  id,
+  children
+}: {
+  id: string;
+  children: (dragHandleProps: Record<string, unknown>) => ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
 
   return (
-    normalizedLeft.length === normalizedRight.length &&
-    normalizedLeft.every((part, index) => part === normalizedRight[index])
+    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }}>
+      {children({ ...attributes, ...listeners })}
+    </div>
   );
-};
-
-const areStatusesEqual = (left: Record<string, CategoryStatus>, right: Record<string, CategoryStatus>) => {
-  const leftKeys = Object.keys(left);
-  const rightKeys = Object.keys(right);
-  if (leftKeys.length !== rightKeys.length) return false;
-  return leftKeys.every((key) => left[key] === right[key]);
-};
-
-const areCatalogsEqual = (left: CatalogData, right: CatalogData) =>
-  JSON.stringify(normalizeCatalogData(left)) === JSON.stringify(normalizeCatalogData(right));
-
-const stripNodeIds = (catalog: CatalogData): CatalogData => ({
-  categories: catalog.categories.map((category) => ({
-    ...category,
-    id: '',
-    subcategories: category.subcategories.map(function stripSubcategoryIds(subcategory): RecursiveNode {
-      return {
-        ...subcategory,
-        id: '',
-        subcategories: subcategory.subcategories.map(stripSubcategoryIds)
-      };
-    })
-  }))
-});
-
-const areMillerCatalogsEqual = (left: CatalogData, right: CatalogData) =>
-  JSON.stringify(stripNodeIds(normalizeCatalogData(left))) ===
-  JSON.stringify(stripNodeIds(normalizeCatalogData(right)));
-
-const parseSubNodeId = (value: string): { categorySlug: string; subcategoryPath: string[] } | null => {
-  if (!value.startsWith('sub:')) return null;
-
-  const [, categorySlug, pathKey = ''] = value.split(':');
-  if (!categorySlug) return null;
-
-  return {
-    categorySlug,
-    subcategoryPath: pathKey ? pathKey.split('__').filter(Boolean) : []
-  };
-};
-
-
-const parseItemNodeId = (value: string): { categorySlug: string; subcategorySlug?: string; itemSlug: string } | null => {
-  if (!value.startsWith('item:')) return null;
-
-  const [, categorySlug, subcategorySlug, itemSlug] = value.split(':');
-  if (!categorySlug || !itemSlug) return null;
-
-  return {
-    categorySlug,
-    subcategorySlug: subcategorySlug && subcategorySlug !== '_' ? subcategorySlug : undefined,
-    itemSlug
-  };
-};
-
-function normalizeRecursiveSubcategory(
-  input: unknown,
-  categoryIdSeed: string,
-  parentPath: string[]
-): RecursiveNode | null {
-  if (typeof input !== 'object' || input === null) return null;
-
-  const subcategory = input as Partial<CatalogSubcategory> & { subcategories?: unknown[] };
-  const slug = typeof subcategory.slug === 'string' ? subcategory.slug.trim() : '';
-  if (!slug) return null;
-
-  const currentPath = [...parentPath, slug];
-
-  return {
-    id: normalizeNodeId(subcategory.id, `sub-${categoryIdSeed}-${currentPath.join('-')}`),
-    slug,
-    title: typeof subcategory.title === 'string' ? subcategory.title : slug,
-    description: typeof subcategory.description === 'string' ? subcategory.description : '',
-    adminNotes: typeof subcategory.adminNotes === 'string' ? subcategory.adminNotes : undefined,
-    image: typeof subcategory.image === 'string' ? subcategory.image : '',
-    createdAt: typeof subcategory.createdAt === 'string' ? subcategory.createdAt : undefined,
-    updatedAt: typeof subcategory.updatedAt === 'string' ? subcategory.updatedAt : undefined,
-    items: Array.isArray(subcategory.items) ? subcategory.items : [],
-    subcategories: Array.isArray(subcategory.subcategories)
-      ? subcategory.subcategories
-          .map((child) => normalizeRecursiveSubcategory(child, categoryIdSeed, currentPath))
-          .filter((entry): entry is RecursiveNode => entry !== null)
-      : []
-  };
 }
 
-function findSubcategoryByPath(
-  nodes: RecursiveNode[],
-  path: string[]
-): RecursiveNode | null {
-  if (path.length === 0) return null;
+function SortableTreeRow({
+  id,
+  disabled = false,
+  children
+}: {
+  id: string;
+  disabled?: boolean;
+  children: (args: {
+    dragHandleProps: Record<string, unknown>;
+    setNodeRef: (node: HTMLElement | null) => void;
+    style: CSSProperties;
+    isDragging: boolean;
+  }) => ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    disabled
+  });
 
-  const current = nodes.find((node) => node.slug === path[0]);
-  if (!current) return null;
-  if (path.length === 1) return current;
-
-  return findSubcategoryByPath(current.subcategories, path.slice(1));
-}
-
-function updateSubcategoryTree(
-  nodes: RecursiveNode[],
-  path: string[],
-  updater: (node: RecursiveNode) => RecursiveNode
-): RecursiveNode[] {
-  if (path.length === 0) return nodes;
-
-  return nodes.map((node) => {
-    if (node.slug !== path[0]) return node;
-
-    if (path.length === 1) {
-      return updater(node);
-    }
-
-    return {
-      ...node,
-      subcategories: updateSubcategoryTree(node.subcategories, path.slice(1), updater)
-    };
+  return children({
+    dragHandleProps: disabled ? {} : { ...attributes, ...listeners },
+    setNodeRef,
+    style: { transform: CSS.Transform.toString(transform), transition },
+    isDragging
   });
 }
 
-function removeSubcategoryTree(
-  nodes: RecursiveNode[],
-  path: string[]
-): RecursiveNode[] {
-  if (path.length === 0) return nodes;
-
-  if (path.length === 1) {
-    return nodes.filter((node) => node.slug !== path[0]);
-  }
-
-  return nodes.map((node) => {
-    if (node.slug !== path[0]) return node;
-
-    return {
-      ...node,
-      subcategories: removeSubcategoryTree(node.subcategories, path.slice(1))
-    };
-  });
+function PlusIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M10 4v12M4 10h12" />
+    </svg>
+  );
 }
-
-function collectSubcategoryIds(
-  categorySlug: string,
-  nodes: RecursiveNode[],
-  parentPath: string[] = []
-): string[] {
-  return nodes.flatMap((node) => {
-    const currentPath = [...parentPath, node.slug];
-    return [
-      subId(categorySlug, currentPath),
-      ...collectSubcategoryIds(categorySlug, node.subcategories, currentPath)
-    ];
-  });
-}
-
-function collectExpandableSubcategoryIds(
-  categorySlug: string,
-  nodes: RecursiveNode[],
-  parentPath: string[] = []
-): string[] {
-  return nodes.flatMap((node) => {
-    const currentPath = [...parentPath, node.slug];
-    const currentId = subId(categorySlug, currentPath);
-    const nested = collectExpandableSubcategoryIds(categorySlug, node.subcategories, currentPath);
-
-    if (node.subcategories.length === 0) return nested;
-    return [currentId, ...nested];
-  });
-}
-
-function filterSubcategoryTree(
-  nodes: RecursiveNode[],
-  searchQuery: string
-): RecursiveNode[] {
-  return nodes.flatMap((node) => {
-    const selfMatches = [node.title, node.description].join(' ').toLowerCase().includes(searchQuery);
-    const matchingChildren = filterSubcategoryTree(node.subcategories, searchQuery);
-
-    if (!selfMatches && matchingChildren.length === 0) return [];
-
-    return [
-      {
-        ...node,
-        subcategories: selfMatches ? node.subcategories : matchingChildren
-      }
-    ];
-  });
-}
-
-type MillerSearchMatch =
-  | { kind: 'category'; id: string; categorySlug: string }
-  | { kind: 'subcategory'; id: string; categorySlug: string; subcategoryPath: string[] }
-  | { kind: 'item'; id: string; categorySlug: string; subcategoryPath: string[]; itemSlug: string };
-
-type MillerSearchIndex = {
-  matches: MillerSearchMatch[];
-  categorySlugsWithMatches: Set<string>;
-  matchedCategorySlugs: Set<string>;
-  matchedSubcategoryPaths: Map<string, Set<string>>;
-  ancestorSubcategoryPaths: Map<string, Set<string>>;
-  matchedItemIds: Set<string>;
-};
 
 const getMillerSearchIndex = (categories: RecursiveCatalogCategory[], query: string): MillerSearchIndex => {
   const normalizedQuery = query.trim().toLowerCase();
@@ -508,77 +327,6 @@ const getMillerSearchIndex = (categories: RecursiveCatalogCategory[], query: str
   return emptyIndex;
 };
 
-function pruneSelectedSubcategoryTree(
-  categorySlug: string,
-  nodes: RecursiveNode[],
-  selectedIds: Set<string>,
-  parentPath: string[] = []
-): RecursiveNode[] {
-  return nodes.flatMap((node) => {
-    const currentPath = [...parentPath, node.slug];
-    const currentId = subId(categorySlug, currentPath);
-
-    if (selectedIds.has(currentId)) return [];
-
-    return [
-      {
-        ...node,
-        subcategories: pruneSelectedSubcategoryTree(categorySlug, node.subcategories, selectedIds, currentPath)
-      }
-    ];
-  });
-}
-
-const treeIndent = 32;
-const treeRowHeight = 48;
-const treeHalfRowHeight = treeRowHeight / 2;
-const leafConnectorWidth = 22;
-const treeButtonDiameter = 28;
-const treeExpandButtonSize = 16;
-const treeExpandButtonInset = (treeButtonDiameter - treeExpandButtonSize) / 2;
-const treeExpandButtonHalf = treeExpandButtonSize / 2;
-const treeButtonRadius = treeButtonDiameter / 2;
-const treeConnectorBleed = 1;
-const expandTransitionMs = 140;
-const treeCheckboxSize = 16;
-const treeCheckboxHalf = treeCheckboxSize / 2;
-const categoryTableColumnWidths = {
-  select: 56,
-  category: 420,
-  description: 320,
-  subcategories: 128,
-  items: 112,
-  visibility: 128,
-  actions: 160
-} as const;
-
-const categoryTableTotalWidth = Object.values(categoryTableColumnWidths).reduce((sum, width) => sum + width, 0);
-const categoryTableFixedWidthWithoutDescription =
-  categoryTableTotalWidth - categoryTableColumnWidths.description;
-
-const getCheckboxLeftFromTreeStart = (
-  kind: 'root' | 'category' | 'subcategory',
-  buttonLeft: number,
-  parentColumnX: number | null
-) => {
-  if (kind === 'root') return 0;
-
-  // category row: place checkbox in the space before the expand connector/button area
-  if (kind === 'category') {
-    return 0;
-  }
-
-  // subcategory row: place checkbox exactly between the two vertical lines
-  if (parentColumnX !== null) {
-    const leftConnectorX = parentColumnX - treeIndent;
-    const rightConnectorX = parentColumnX;
-    const targetCenterX = (leftConnectorX + rightConnectorX) / 2 + 18;
-    return targetCenterX - treeCheckboxHalf;
-  }
-
-  return 0;
-};
-
 async function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -588,293 +336,6 @@ async function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
-function SortableItem({
-  id,
-  children
-}: {
-  id: string;
-  children: (dragHandleProps: Record<string, unknown>) => ReactNode;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
-
-  return (
-    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }}>
-      {children({ ...attributes, ...listeners })}
-    </div>
-  );
-}
-
-
-function SortableTreeRow({
-  id,
-  disabled = false,
-  children
-}: {
-  id: string;
-  disabled?: boolean;
-  children: (args: {
-    dragHandleProps: Record<string, unknown>;
-    setNodeRef: (node: HTMLElement | null) => void;
-    style: CSSProperties;
-    isDragging: boolean;
-  }) => ReactNode;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id,
-    disabled
-  });
-
-  return children({
-    dragHandleProps: disabled ? {} : { ...attributes, ...listeners },
-    setNodeRef,
-    style: { transform: CSS.Transform.toString(transform), transition },
-    isDragging
-  });
-}
-
-
-function PlusIcon() {
-  return (
-    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-      <path d="M10 4v12M4 10h12" />
-    </svg>
-  );
-}
-
-function SaveIcon() {
-  return (
-    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-      <path d="M4 3h9l3 3v11H4z" />
-      <path d="M7 3v5h6V3" />
-      <path d="M7 13h6" />
-    </svg>
-  );
-}
-
-function normalizeCatalogData(input: unknown): CatalogData {
-  const source =
-    typeof input === 'object' && input !== null && Array.isArray((input as { categories?: unknown }).categories)
-      ? (input as { categories: unknown[] }).categories
-      : [];
-
-  const categories = source
-    .map((rawCategory) => {
-      if (typeof rawCategory !== 'object' || rawCategory === null) return null;
-
-      const category = rawCategory as Partial<CatalogCategory> & { subcategories?: unknown[] };
-      const slug = typeof category.slug === 'string' ? category.slug.trim() : '';
-      if (!slug) return null;
-
-      const subcategoriesSource = Array.isArray(category.subcategories) ? category.subcategories : [];
-      const categoryId = normalizeNodeId(category.id, `cat-${slug}`);
-
-      return {
-        id: categoryId,
-        slug,
-        title: typeof category.title === 'string' ? category.title : slug,
-        summary: typeof category.summary === 'string' ? category.summary : '',
-        description: typeof category.description === 'string' ? category.description : '',
-        image: typeof category.image === 'string' ? category.image : '',
-        adminNotes: typeof category.adminNotes === 'string' ? category.adminNotes : undefined,
-        bannerImage: typeof category.bannerImage === 'string' ? category.bannerImage : undefined,
-        createdAt: typeof category.createdAt === 'string' ? category.createdAt : undefined,
-        updatedAt: typeof category.updatedAt === 'string' ? category.updatedAt : undefined,
-        subcategories: subcategoriesSource
-          .map((rawSubcategory) => normalizeRecursiveSubcategory(rawSubcategory, categoryId, []))
-          .filter((entry): entry is RecursiveNode => entry !== null),
-        items: Array.isArray(category.items) ? category.items : []
-      } as RecursiveCatalogCategory;
-    })
-    .filter((entry): entry is RecursiveCatalogCategory => entry !== null);
-
-  return { categories };
-}
-
-function flattenSubcategories(
-  categorySlug: string,
-  nodes: RecursiveNode[],
-  parentPath: string[] = [],
-  parentLabel: string
-): Array<{
-  id: string;
-  title: string;
-  image: string;
-  index: number;
-  parentId: string;
-  parentLabel: string;
-}> {
-  return nodes.flatMap((node, index) => {
-    const currentPath = [...parentPath, node.slug];
-    const currentId = subId(categorySlug, currentPath);
-    const current = {
-      id: currentId,
-      title: node.title,
-      image: node.image ?? '',
-      index,
-      parentId:
-        parentPath.length === 0
-          ? catId(categorySlug)
-          : subId(categorySlug, parentPath),
-      parentLabel
-    };
-
-    return [
-      current,
-      ...flattenSubcategories(categorySlug, node.subcategories, currentPath, node.title)
-    ];
-  });
-}
-
-function buildLabelMap(categories: RecursiveCatalogCategory[]) {
-  const labelById = new Map<string, string>();
-
-  categories.forEach((category) => {
-    labelById.set(catId(category.slug), category.title);
-
-    const visit = (nodes: RecursiveNode[], parentPath: string[] = []) => {
-      nodes.forEach((node) => {
-        const currentPath = [...parentPath, node.slug];
-        labelById.set(subId(category.slug, currentPath), node.title);
-        visit(node.subcategories, currentPath);
-      });
-    };
-
-    visit(category.subcategories);
-  });
-
-  return labelById;
-}
-
-function summarizeCatalogChanges(
-  previous: CatalogData,
-  next: CatalogData,
-  previousStatuses: Record<string, CategoryStatus> = {},
-  nextStatuses: Record<string, CategoryStatus> = {}
-): string[] {
-  const lines: string[] = [];
-  const prevCats = previous.categories;
-  const nextCats = next.categories;
-  const prevById = new Map(prevCats.map((category, index) => [category.id, { category, index }]));
-  const nextById = new Map(nextCats.map((category, index) => [category.id, { category, index }]));
-
-  for (const { category } of prevById.values()) {
-    if (!nextById.has(category.id)) {
-      lines.push(`izbrisana kategorija "${category.title}"`);
-    }
-  }
-
-  for (const { category } of nextById.values()) {
-    if (!prevById.has(category.id)) {
-      lines.push(`dodana kategorija "${category.title}"`);
-    }
-  }
-
-  const prevSubsById = new Map<
-    string,
-    {
-      title: string;
-      image: string;
-      index: number;
-      parentId: string;
-      parentLabel: string;
-    }
-  >();
-
-  const nextSubsById = new Map<
-    string,
-    {
-      title: string;
-      image: string;
-      index: number;
-      parentId: string;
-      parentLabel: string;
-    }
-  >();
-
-  prevCats.forEach((category) => {
-    flattenSubcategories(category.slug, category.subcategories, [], category.title).forEach((entry) => {
-      prevSubsById.set(entry.id, entry);
-    });
-  });
-
-  nextCats.forEach((category) => {
-    flattenSubcategories(category.slug, category.subcategories, [], category.title).forEach((entry) => {
-      nextSubsById.set(entry.id, entry);
-    });
-  });
-
-  for (const [id, prevSub] of prevSubsById.entries()) {
-    if (!nextSubsById.has(id)) {
-      lines.push(`izbrisana podkategorija "${prevSub.title}"`);
-    }
-  }
-
-  for (const [id, nextSub] of nextSubsById.entries()) {
-    if (!prevSubsById.has(id)) {
-      lines.push(`dodana podkategorija pod "${nextSub.parentLabel}": "${nextSub.title}"`);
-    }
-  }
-
-  for (const [id, prevSub] of prevSubsById.entries()) {
-    const nextSub = nextSubsById.get(id);
-    if (!nextSub) continue;
-
-    if (prevSub.title !== nextSub.title) {
-      lines.push(`preimenovana podkategorija "${prevSub.title}" → "${nextSub.title}"`);
-    }
-
-    if (prevSub.image !== nextSub.image) {
-      lines.push(`spremenjena slika za podkategorijo "${nextSub.title}"`);
-    }
-
-    if (prevSub.parentId !== nextSub.parentId || prevSub.index !== nextSub.index) {
-      lines.push(`premaknjena podkategorija "${nextSub.title}"`);
-    }
-  }
-
-  for (const [id, { category: oldCat, index: oldIndex }] of prevById.entries()) {
-    const match = nextById.get(id);
-    if (!match) continue;
-
-    const newCat = match.category;
-
-    if (oldCat.title !== newCat.title) {
-      lines.push(`preimenovana kategorija "${oldCat.title}" → "${newCat.title}"`);
-    }
-
-    if ((oldCat.image ?? '') !== (newCat.image ?? '')) {
-      lines.push(`spremenjena slika za kategorijo "${newCat.title}"`);
-    }
-
-    if (oldIndex !== match.index) {
-      lines.push(`premaknjena kategorija "${newCat.title}"`);
-    }
-  }
-
-  const labelById = buildLabelMap(nextCats);
-  const allStatusIds = new Set([...Object.keys(previousStatuses), ...Object.keys(nextStatuses)]);
-
-  for (const id of allStatusIds) {
-    const before = previousStatuses[id] ?? 'active';
-    const after = nextStatuses[id] ?? 'active';
-    if (before === after) continue;
-
-    if (id.startsWith('cat:')) {
-      const label = labelById.get(id) ?? id.slice(4);
-      lines.push(`spremenjen status kategorije "${label}" na ${after === 'active' ? 'Aktivna' : 'Neaktivna'}`);
-      continue;
-    }
-
-    if (id.startsWith('sub:')) {
-      const label = labelById.get(id) ?? id;
-      lines.push(`spremenjen status podkategorije "${label}" na ${after === 'active' ? 'Aktivna' : 'Neaktivna'}`);
-    }
-  }
-
-  return lines;
-}
-
-type CategoriesView = 'table' | 'miller';
 
 export default function AdminCategoriesMainTable({
   initialView = 'table',
@@ -1412,7 +873,7 @@ export default function AdminCategoriesMainTable({
     }
 
     const item: RecursiveCatalogCategory = {
-      id: createNodeId(),
+      id: createCatalogNodeId(),
       slug,
       title,
       summary: title,
@@ -1457,7 +918,7 @@ export default function AdminCategoriesMainTable({
     if (!parentCategory) return;
 
     const newNode: RecursiveCatalogSubcategory = {
-      id: createNodeId(),
+      id: createCatalogNodeId(),
       slug,
       title,
       description: '',
@@ -3500,7 +2961,7 @@ export default function AdminCategoriesMainTable({
       </ConfirmDialog>
 
 
-      <AdminCategoriesTableSection
+      <AdminCategoriesTableView
         activeView={activeView}
         query={query}
         onQueryChange={setQuery}
@@ -3672,261 +3133,6 @@ export default function AdminCategoriesMainTable({
       />
 
 
-    </div>
-  );
-}
-
-
-
-function AdminCategoriesTableSection({
-  activeView,
-  query,
-  onQueryChange,
-  onBulkDelete,
-  selectedRows,
-  isBulkDeleting,
-  bulkDeleteButtonClass,
-  onRequestSave,
-  tableDirty,
-  saving,
-  tableHistoryMenuRef,
-  isHistoryMenuOpen,
-  onToggleHistoryMenu,
-  canUndoStagedChanges,
-  onUndo,
-  canRestoreCommittedHistory,
-  hasPendingStagedChanges,
-  onRestore,
-  sensors,
-  onTreeDragEnd,
-  visibleRowIds,
-  selectAllRef,
-  allRowsSelected,
-  onToggleSelectAll,
-  allExpanded,
-  onToggleAllExpanded,
-  statusHeaderMenuRef,
-  onToggleStatusHeaderMenu,
-  isStatusHeaderMenuOpen,
-  statusByRow,
-  onStageStatusChange,
-  treeRows
-}: {
-  activeView: 'table' | 'miller';
-  query: string;
-  onQueryChange: (value: string) => void;
-  onBulkDelete: () => void;
-  selectedRows: string[];
-  isBulkDeleting: boolean;
-  bulkDeleteButtonClass: string;
-  onRequestSave: () => void;
-  tableDirty: boolean;
-  saving: boolean;
-  tableHistoryMenuRef: RefObject<HTMLDivElement>;
-  isHistoryMenuOpen: boolean;
-  onToggleHistoryMenu: () => void;
-  canUndoStagedChanges: boolean;
-  onUndo: () => void;
-  canRestoreCommittedHistory: boolean;
-  hasPendingStagedChanges: boolean;
-  onRestore: () => void;
-  sensors: ReturnType<typeof import('@dnd-kit/core').useSensors>;
-  onTreeDragEnd: (event: DragEndEvent) => void;
-  visibleRowIds: string[];
-  selectAllRef: RefObject<HTMLInputElement>;
-  allRowsSelected: boolean;
-  onToggleSelectAll: () => void;
-  allExpanded: boolean;
-  onToggleAllExpanded: () => void;
-  statusHeaderMenuRef: RefObject<HTMLDivElement>;
-  onToggleStatusHeaderMenu: () => void;
-  isStatusHeaderMenuOpen: boolean;
-  statusByRow: Record<string, CategoryStatus>;
-  onStageStatusChange: (nextStatuses: Record<string, CategoryStatus>) => void;
-  treeRows: ReactNode;
-}) {
-  return (
-    <div className={activeView === 'table' ? 'space-y-5' : 'hidden'}>
-      <section>
-        <AdminTableLayout
-          className="border"
-          contentClassName="overflow-x-auto"
-          headerLeft={
-            <>
-              <input
-                value={query}
-                onChange={(event) => onQueryChange(event.target.value)}
-                placeholder="Išči po kategoriji ali opisu ..."
-                className={`${ADMIN_CONTROL_HEIGHT} min-w-[260px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} text-xs text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
-              />
-            </>
-          }
-          headerRight={
-            <>
-              <button
-                type="button"
-                onClick={onBulkDelete}
-                disabled={selectedRows.length === 0 || isBulkDeleting}
-                className={bulkDeleteButtonClass}
-              >
-                {isBulkDeleting ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Spinner size="sm" className="text-[var(--danger-600)]" />
-                    Brisanje...
-                  </span>
-                ) : (
-                  'Izbriši'
-                )}
-              </button>
-
-              <Button variant="primary" size="toolbar" onClick={onRequestSave} disabled={!tableDirty || saving}>
-                Shrani spremembe
-              </Button>
-
-              <div className="relative" ref={tableHistoryMenuRef}>
-                <IconButton type="button" size="md" tone="neutral" aria-label="Zgodovina" onClick={onToggleHistoryMenu}>
-                  ⋮
-                </IconButton>
-                {isHistoryMenuOpen ? (
-                  <MenuPanel className="absolute right-0 top-9 z-20 w-40">
-                    <MenuItem
-                      disabled={!canUndoStagedChanges}
-                      onClick={() => {
-                        if (!canUndoStagedChanges) return;
-                        onUndo();
-                      }}
-                    >
-                      Razveljavi
-                    </MenuItem>
-
-                    <MenuItem
-                      disabled={!canRestoreCommittedHistory || hasPendingStagedChanges}
-                      onClick={() => {
-                        if (!canRestoreCommittedHistory || hasPendingStagedChanges) return;
-                        onRestore();
-                      }}
-                    >
-                      Obnovi
-                    </MenuItem>
-                  </MenuPanel>
-                ) : null}
-              </div>
-            </>
-          }
-        >
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onTreeDragEnd}>
-            <SortableContext items={visibleRowIds} strategy={verticalListSortingStrategy}>
-              <table
-                className="table-fixed border-separate border-spacing-0 border-x border-b border-slate-200"
-                style={{ width: '100%', minWidth: `${categoryTableTotalWidth}px` }}
-              >
-                <colgroup>
-                  <col style={{ width: `${categoryTableColumnWidths.select}px` }} />
-                  <col style={{ width: `${categoryTableColumnWidths.category}px` }} />
-                  <col style={{ width: `calc(100% - ${categoryTableFixedWidthWithoutDescription}px)` }} />
-                  <col style={{ width: `${categoryTableColumnWidths.subcategories}px` }} />
-                  <col style={{ width: `${categoryTableColumnWidths.items}px` }} />
-                  <col style={{ width: `${categoryTableColumnWidths.visibility}px` }} />
-                  <col style={{ width: `${categoryTableColumnWidths.actions}px` }} />
-                </colgroup>
-
-                <thead className="bg-slate-50/90">
-                  <tr>
-                    <th className="border-b border-slate-200 px-2 py-2 text-center text-xs font-semibold text-slate-500">
-                      <input
-                        ref={selectAllRef}
-                        type="checkbox"
-                        checked={allRowsSelected}
-                        onChange={onToggleSelectAll}
-                        aria-label="Izberi vse"
-                      />
-                    </th>
-                    <th className="border-b border-slate-200 px-3 py-0 text-left text-xs font-semibold text-slate-500 align-middle">
-                      <div className="relative flex h-12 items-center gap-2 overflow-visible px-1">
-                        <div
-                          className="relative shrink-0 overflow-visible"
-                          style={{ width: `${treeButtonDiameter}px`, height: `${treeRowHeight}px` }}
-                        >
-                          <div className="absolute inset-y-0 z-10 flex items-center justify-center" style={{ left: 0, width: `${treeButtonDiameter}px` }}>
-                            <button
-                              type="button"
-                              onClick={onToggleAllExpanded}
-                              className="inline-grid h-4 w-4 place-items-center rounded-[2px] border border-slate-300 text-slate-600"
-                              aria-label="Razširi/skrij vse kategorije"
-                            >
-                              {allExpanded ? (
-                                <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-                                  <path d="M3 8h10" />
-                                </svg>
-                              ) : (
-                                <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-                                  <path d="M3 8h10M8 3v10" />
-                                </svg>
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                        <span>Kategorija</span>
-                      </div>
-                    </th>
-                    <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">Opis</th>
-                    <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">Podkategorije</th>
-                    <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">Izdelki</th>
-                    <th className="h-11 border-b border-slate-200 px-3 py-0 text-center text-xs font-semibold text-slate-500 align-middle">
-                      <div className="relative flex h-8 items-center justify-center" ref={statusHeaderMenuRef}>
-                        <button
-                          type="button"
-                          onClick={onToggleStatusHeaderMenu}
-                          className={`inline-flex h-7 items-center rounded-full border px-2 text-xs font-semibold ${
-                            selectedRows.length > 0
-                              ? 'border-slate-300 bg-white text-slate-700 hover:bg-[color:var(--hover-neutral)]'
-                              : 'border-transparent bg-transparent text-slate-500 cursor-default'
-                          }`}
-                          aria-haspopup="menu"
-                          aria-expanded={selectedRows.length > 0 ? isStatusHeaderMenuOpen : false}
-                          disabled={selectedRows.length === 0}
-                        >
-                          {selectedRows.length > 0 ? `Vidnost ▾ (${selectedRows.length})` : 'Vidnost'}
-                        </button>
-
-                        {selectedRows.length > 0 && isStatusHeaderMenuOpen ? (
-                          <MenuPanel className="absolute left-1/2 top-8 z-20 w-36 -translate-x-1/2">
-                            <MenuItem
-                              onClick={() => {
-                                const nextStatuses = {
-                                  ...statusByRow,
-                                  ...Object.fromEntries(selectedRows.map((rowId) => [rowId, 'active' as CategoryStatus]))
-                                };
-                                onStageStatusChange(nextStatuses);
-                              }}
-                            >
-                              Aktivna
-                            </MenuItem>
-                            <MenuItem
-                              onClick={() => {
-                                const nextStatuses = {
-                                  ...statusByRow,
-                                  ...Object.fromEntries(selectedRows.map((rowId) => [rowId, 'inactive' as CategoryStatus]))
-                                };
-                                onStageStatusChange(nextStatuses);
-                              }}
-                            >
-                              Neaktivna
-                            </MenuItem>
-                          </MenuPanel>
-                        ) : null}
-                      </div>
-                    </th>
-                    <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">Uredi</th>
-                  </tr>
-                </thead>
-
-                <tbody>{treeRows}</tbody>
-              </table>
-            </SortableContext>
-          </DndContext>
-        </AdminTableLayout>
-      </section>
     </div>
   );
 }

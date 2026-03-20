@@ -36,22 +36,42 @@ type SeedItem = {
 };
 
 async function buildSeedItems(): Promise<SeedItem[]> {
-  return instrumentCatalogRouteEntry('/admin/artikli', async () => {
-    const items: SeedItem[] = [];
-    const now = new Date().toISOString();
+  const items: SeedItem[] = [];
+  const now = new Date().toISOString();
 
-    for (const category of await getCatalogItemsIndexServer('/admin/artikli')) {
-      for (const item of sortCatalogItems(category.items ?? [])) {
+  for (const category of await getCatalogItemsIndexServer('/admin/artikli')) {
+    for (const item of sortCatalogItems(category.items ?? [])) {
+      items.push({
+        id: getCatalogCategoryItemSku(category.slug, item.slug),
+        name: item.name,
+        description: item.description,
+        category: category.title,
+        categoryId: category.id,
+        subcategoryId: null,
+        price: item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug),
+        unit: 'kos',
+        sku: getCatalogCategoryItemSku(category.slug, item.slug),
+        active: true,
+        images: item.images?.length ? item.images : item.image ? [item.image] : [],
+        discountPct: item.discountPct ?? 0,
+        displayOrder: item.displayOrder ?? null,
+        updatedAt: now,
+        archivedAt: null
+      });
+    }
+
+    for (const sub of category.subcategories) {
+      for (const item of sortCatalogItems(sub.items)) {
         items.push({
-          id: getCatalogCategoryItemSku(category.slug, item.slug),
+          id: getCatalogItemSku(category.slug, sub.slug, item.slug),
           name: item.name,
           description: item.description,
-          category: category.title,
+          category: `${category.title} / ${sub.title}`,
           categoryId: category.id,
-          subcategoryId: null,
-          price: item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug),
+          subcategoryId: sub.id,
+          price: item.price ?? getCatalogItemPrice(category.slug, sub.slug, item.slug),
           unit: 'kos',
-          sku: getCatalogCategoryItemSku(category.slug, item.slug),
+          sku: getCatalogItemSku(category.slug, sub.slug, item.slug),
           active: true,
           images: item.images?.length ? item.images : item.image ? [item.image] : [],
           discountPct: item.discountPct ?? 0,
@@ -60,32 +80,10 @@ async function buildSeedItems(): Promise<SeedItem[]> {
           archivedAt: null
         });
       }
-
-      for (const sub of category.subcategories) {
-        for (const item of sortCatalogItems(sub.items)) {
-          items.push({
-            id: getCatalogItemSku(category.slug, sub.slug, item.slug),
-            name: item.name,
-            description: item.description,
-            category: `${category.title} / ${sub.title}`,
-            categoryId: category.id,
-            subcategoryId: sub.id,
-            price: item.price ?? getCatalogItemPrice(category.slug, sub.slug, item.slug),
-            unit: 'kos',
-            sku: getCatalogItemSku(category.slug, sub.slug, item.slug),
-            active: true,
-            images: item.images?.length ? item.images : item.image ? [item.image] : [],
-            discountPct: item.discountPct ?? 0,
-            displayOrder: item.displayOrder ?? null,
-            updatedAt: now,
-            archivedAt: null
-          });
-        }
-      }
     }
+  }
 
-    return items;
-  });
+  return items;
 }
 
 async function AdminItemsManagerSection() {
@@ -93,8 +91,8 @@ async function AdminItemsManagerSection() {
   return <AdminItemsManager seedItems={seedItems} />;
 }
 
-export default function AdminArtikliPage() {
-  return (
+export default async function AdminArtikliPage() {
+  return instrumentCatalogRouteEntry('/admin/artikli', async () => (
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-semibold text-slate-900">Artikli</h1>
@@ -104,5 +102,5 @@ export default function AdminArtikliPage() {
         <AdminItemsManagerSection />
       </Suspense>
     </div>
-  );
+  ));
 }

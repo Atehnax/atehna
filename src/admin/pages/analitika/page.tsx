@@ -18,39 +18,37 @@ async function AdminAnalyticsDashboardSection({
 }: {
   searchParams?: { range?: string; from?: string; to?: string; grouping?: string; view?: string; focus?: string };
 }) {
-  return instrumentCatalogRouteEntry('/admin/analitika', async () => {
-    const fallbackAppearance = { sectionBg: '#f3f4f6', canvasBg: '#ffffff', cardBg: '#ffffff', plotBg: '#ffffff', axisTextColor: '#1f2937', seriesPalette: ['#2563eb', '#0ea5e9', '#14b8a6', '#f59e0b', '#ef4444'], gridColor: '#d1d5db', gridOpacity: 0.35 };
+  const fallbackAppearance = { sectionBg: '#f3f4f6', canvasBg: '#ffffff', cardBg: '#ffffff', plotBg: '#ffffff', axisTextColor: '#1f2937', seriesPalette: ['#2563eb', '#0ea5e9', '#14b8a6', '#f59e0b', '#ef4444'], gridColor: '#d1d5db', gridOpacity: 0.35 };
 
-    const [data, charts, appearance] = getDatabaseUrl()
-      ? await Promise.all([
-          fetchOrdersAnalytics({
-            range: searchParams?.range,
-            from: searchParams?.from,
-            to: searchParams?.to,
-            grouping: searchParams?.grouping
-          }).catch(() => emptyOrdersAnalyticsResponse()),
-          fetchAnalyticsCharts('narocila').catch(() => []),
-          fetchGlobalAnalyticsAppearance('narocila').catch(() => fallbackAppearance)
-        ])
-      : [emptyOrdersAnalyticsResponse(), [], fallbackAppearance];
+  const [data, charts, appearance] = getDatabaseUrl()
+    ? await Promise.all([
+        fetchOrdersAnalytics({
+          range: searchParams?.range,
+          from: searchParams?.from,
+          to: searchParams?.to,
+          grouping: searchParams?.grouping
+        }).catch(() => emptyOrdersAnalyticsResponse()),
+        fetchAnalyticsCharts('narocila').catch(() => []),
+        fetchGlobalAnalyticsAppearance('narocila').catch(() => fallbackAppearance)
+      ])
+    : [emptyOrdersAnalyticsResponse(), [], fallbackAppearance];
 
-    return (
-      <AdminAnalyticsDashboard
-        initialData={data}
-        initialCharts={charts}
-        initialFocusKey={searchParams?.focus ?? ''}
-        initialAppearance={appearance}
-      />
-    );
-  });
+  return (
+    <AdminAnalyticsDashboard
+      initialData={data}
+      initialCharts={charts}
+      initialFocusKey={searchParams?.focus ?? ''}
+      initialAppearance={appearance}
+    />
+  );
 }
 
-export default function AdminAnalyticsIndexPage({
+export default async function AdminAnalyticsIndexPage({
   searchParams
 }: {
   searchParams?: { range?: string; from?: string; to?: string; grouping?: string; view?: string; focus?: string };
 }) {
-  return (
+  return instrumentCatalogRouteEntry('/admin/analitika', async () => (
     <div className="w-full">
       <div className="mb-4">
         <h1 className="text-2xl font-semibold text-slate-900">Analitika</h1>
@@ -61,5 +59,5 @@ export default function AdminAnalyticsIndexPage({
         <AdminAnalyticsDashboardSection searchParams={searchParams} />
       </Suspense>
     </div>
-  );
+  ));
 }

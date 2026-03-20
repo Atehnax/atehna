@@ -65,64 +65,64 @@ const ADMIN_DIAGNOSTICS_COVERAGE_REGISTRY: CoverageCardRegistryEntry[] = [
     label: 'Naročila seznam',
     route: '/admin/orders',
     acceptedContexts: ['/admin/orders'],
-    acceptedEventKinds: ['adminRouteEntry'],
-    description: 'Route-level vstopni signal za glavni seznam naročil.'
+    acceptedEventKinds: ['adminRouteEntry', 'fetchOrders', 'fetchOrderDocumentsForOrders', 'fetchOrderAttachmentsForOrders', 'fetchGlobalAnalyticsAppearance'],
+    description: 'Route-level ali page-owned server signal za glavni seznam naročil.'
   },
   {
     id: 'orders-detail',
     label: 'Naročila podrobnosti',
     route: '/admin/orders/[orderId]',
     acceptedContexts: ['/admin/orders/[orderId]'],
-    acceptedEventKinds: ['adminRouteEntry'],
-    description: 'Deterministični route-level vstopni signal za podrobnosti naročila.'
+    acceptedEventKinds: ['adminRouteEntry', 'fetchOrderById', 'fetchOrderItems', 'fetchOrderDocuments', 'fetchOrderAttachments'],
+    description: 'Route-level ali page-owned server signal za podrobnosti naročila.'
   },
   {
     id: 'archive',
     label: 'Arhiv',
     route: '/admin/arhiv',
     acceptedContexts: ['/admin/arhiv'],
-    acceptedEventKinds: ['adminRouteEntry'],
-    description: 'Route-level vstopni signal za arhiv izbrisanih zapisov.'
+    acceptedEventKinds: ['adminRouteEntry', 'fetchArchiveEntries'],
+    description: 'Route-level ali page-owned server signal za arhiv izbrisanih zapisov.'
   },
   {
     id: 'analytics-orders',
     label: 'Analitika naročil',
     route: '/admin/analitika',
     acceptedContexts: ['/admin/analitika'],
-    acceptedEventKinds: ['adminRouteEntry'],
-    description: 'Route-level vstopni signal za dashboard analitike naročil.'
+    acceptedEventKinds: ['adminRouteEntry', 'fetchOrdersAnalytics', 'fetchOrdersAnalyticsRows', 'fetchAnalyticsCharts', 'fetchGlobalAnalyticsAppearance'],
+    description: 'Route-level ali page-owned server signal za dashboard analitike naročil.'
   },
   {
     id: 'analytics-web',
     label: 'Analitika splet',
     route: '/admin/analitika/splet',
     acceptedContexts: ['/admin/analitika/splet'],
-    acceptedEventKinds: ['adminRouteEntry'],
-    description: 'Route-level vstopni signal za dashboard spletne analitike.'
+    acceptedEventKinds: ['adminRouteEntry', 'fetchWebsiteAnalytics'],
+    description: 'Route-level ali page-owned server signal za dashboard spletne analitike.'
   },
   {
     id: 'items',
     label: 'Artikli',
     route: '/admin/artikli',
     acceptedContexts: ['/admin/artikli'],
-    acceptedEventKinds: ['adminRouteEntry'],
-    description: 'Route-level vstopni signal za upravljanje artiklov.'
+    acceptedEventKinds: ['adminRouteEntry', 'getCatalogItemsIndexServer', 'loadCatalogItemsIndexServer', 'getCatalogItemsIndexFromDatabase'],
+    description: 'Route-level ali page-owned server signal za upravljanje artiklov.'
   },
   {
     id: 'categories-table',
     label: 'Kategorije',
     route: '/admin/kategorije',
     acceptedContexts: ['/admin/kategorije'],
-    acceptedEventKinds: ['adminRouteEntry'],
-    description: 'Route-level vstopni signal za tabelarični pogled kategorij.'
+    acceptedEventKinds: ['adminRouteEntry', 'getCatalogDataFromDatabase'],
+    description: 'Route-level ali page-owned server signal za tabelarični pogled kategorij.'
   },
   {
     id: 'categories-miller',
     label: 'Kategorije Miller view',
     route: '/admin/kategorije/miller-view',
     acceptedContexts: ['/admin/kategorije/miller-view'],
-    acceptedEventKinds: ['adminRouteEntry'],
-    description: 'Route-level vstopni signal za Miller view kategorij.'
+    acceptedEventKinds: ['adminRouteEntry', 'getCatalogDataFromDatabase'],
+    description: 'Route-level ali page-owned server signal za Miller view kategorij.'
   }
 ] as const;
 

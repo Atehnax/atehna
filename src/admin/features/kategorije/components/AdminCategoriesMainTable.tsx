@@ -51,7 +51,10 @@ import {
   createCatalogNodeId,
   filterSubcategoryTree,
   findSubcategoryByPath,
+  findSubcategoryById,
+  insertAtIndex,
   itemId,
+  mapSubcategoryTree,
   normalizeCatalogData,
   parseItemNodeId,
   parseSubNodeId,
@@ -108,6 +111,16 @@ type MillerSearchIndex = {
   ancestorSubcategoryPaths: Map<string, Set<string>>;
   matchedItemIds: Set<string>;
 };
+
+type MillerDropLocation = {
+  parentId: string;
+  index: number;
+  columnKey: string;
+};
+
+type TreeNodeRef =
+  | { kind: 'category'; category: RecursiveCatalogCategory; categoryIndex: number }
+  | { kind: 'subcategory'; category: RecursiveCatalogCategory; node: RecursiveCatalogSubcategory; path: string[] };
 
 const bulkDeleteButtonClass = buttonTokenClasses.danger;
 const treeIndent = 32;
@@ -288,7 +301,7 @@ const getMillerSearchIndex = (categories: RecursiveCatalogCategory[], query: str
         const itemText = [item.name, item.description, item.slug].join(' ').toLowerCase();
         if (!itemText.includes(normalizedQuery)) return;
 
-        const id = itemId(category.slug, item.slug, path.at(-1));
+        const id = itemId(category.slug, item.slug, path);
         matches.push({ kind: 'item', id, categorySlug: category.slug, subcategoryPath: path, itemSlug: item.slug });
         emptyIndex.categorySlugsWithMatches.add(category.slug);
         emptyIndex.matchedItemIds.add(id);
@@ -371,7 +384,7 @@ export default function AdminCategoriesMainTable({
   const [lowerViewCount, setLowerViewCount] = useState(5);
   const [millerCatalog, setMillerCatalog] = useState<CatalogData>({ categories: [] });
   const [millerSelection, setMillerSelection] = useState<string[]>([]);
-  const [millerDropTarget, setMillerDropTarget] = useState<string | null>(null);
+  const [millerDropTarget, setMillerDropTarget] = useState<MillerDropLocation | null>(null);
   const [millerDirty, setMillerDirty] = useState(false);
   const [millerDeleteTarget, setMillerDeleteTarget] = useState<MillerDeleteTarget>(null);
   const [isMillerSaveDialogOpen, setIsMillerSaveDialogOpen] = useState(false);
@@ -489,12 +502,21 @@ export default function AdminCategoriesMainTable({
   }, [applyPayloadState, initialPayload, load]);
 
   useEffect(() => {
-    setActiveView(pathname?.endsWith('/miller-view') ? 'miller' : 'table');
+    if (pathname?.endsWith('/miller-view')) {
+      setActiveView('miller');
+      return;
+    }
+    if (pathname?.endsWith('/predogled')) {
+      setActiveView('preview');
+      return;
+    }
+    setActiveView('table');
   }, [pathname]);
 
   useEffect(() => {
-    const siblingPath = activeView === 'table' ? '/admin/kategorije/miller-view' : '/admin/kategorije';
-    router.prefetch(siblingPath);
+    router.prefetch('/admin/kategorije');
+    router.prefetch('/admin/kategorije/predogled');
+    router.prefetch('/admin/kategorije/miller-view');
   }, [activeView, router]);
 
 
@@ -661,8 +683,8 @@ export default function AdminCategoriesMainTable({
     if (selectedItemId) {
       const parsedItem = parseItemNodeId(selectedItemId);
       if (parsedItem && parsedItem.categorySlug === category.slug) {
-        const itemName = parsedItem.subcategorySlug
-          ? category.subcategories.find((sub) => sub.slug === parsedItem.subcategorySlug)?.items.find((item) => item.slug === parsedItem.itemSlug)?.name
+        const itemName = parsedItem.subcategoryPath.length > 0
+          ? findSubcategoryByPath(category.subcategories, parsedItem.subcategoryPath)?.items.find((item) => item.slug === parsedItem.itemSlug)?.name
           : (category.items ?? []).find((item) => item.slug === parsedItem.itemSlug)?.name;
         if (itemName) crumbs.push({ label: itemName, isCurrent: true });
       }
@@ -1234,21 +1256,48 @@ export default function AdminCategoriesMainTable({
     });
   };
 
-  const applyMillerMove = (targetId: string) => {
-    if (millerSelection.length === 0) return;
-    if (millerSelection.includes(targetId)) return;
+  const cloneCategory = useCallback(
+    (category: RecursiveCatalogCategory): RecursiveCatalogCategory => ({
+      ...category,
+      items: [...(category.items ?? [])],
+      subcategories: mapSubcategoryTree(category.subcategories, (node) => ({
+        ...node,
+        items: [...node.items]
+      }))
+    }),
+    []
+  );
 
-    const parseCategoryId = (id: string) => (id.startsWith('cat:') ? id.slice(4) : null);
-    const parseSubcategoryId = (id: string) => {
-      if (!id.startsWith('sub:')) return null;
-      const [, categorySlug, subcategorySlug] = id.split(':');
-      if (!categorySlug || !subcategorySlug) return null;
-      return { categorySlug, subcategorySlug };
-    };
+  const getTreeNodeRef = useCallback((categories: RecursiveCatalogCategory[], id: string): TreeNodeRef | null => {
+    if (id.startsWith('cat:')) {
+      const slug = id.slice(4);
+      const categoryIndex = categories.findIndex((entry) => entry.slug === slug);
+      if (categoryIndex < 0) return null;
+      return { kind: 'category', category: categories[categoryIndex], categoryIndex };
+    }
+
+    if (!id.startsWith('sub:')) return null;
+    const parsed = parseSubNodeId(id);
+    if (!parsed) return null;
+    const category = categories.find((entry) => entry.slug === parsed.categorySlug);
+    if (!category) return null;
+    const node = findSubcategoryByPath(category.subcategories, parsed.subcategoryPath);
+    if (!node) return null;
+    return { kind: 'subcategory', category, node, path: parsed.subcategoryPath };
+  }, []);
+
+  const isDescendantPath = useCallback((ancestor: string[], candidate: string[]) => (
+    ancestor.length < candidate.length && ancestor.every((part, index) => candidate[index] === part)
+  ), []);
+
+  const applyMillerMove = (dropLocation: MillerDropLocation | null) => {
+    if (millerSelection.length === 0) return;
+    if (!dropLocation) return;
+    if (millerSelection.includes(dropLocation.parentId)) return;
 
     const selectedCategorySlugs = new Set(
       millerSelection
-        .map(parseCategoryId)
+        .map((id) => (id.startsWith('cat:') ? id.slice(4) : null))
         .filter((entry): entry is string => entry !== null)
     );
     const selectedSubKeys = new Set(
@@ -1258,216 +1307,223 @@ export default function AdminCategoriesMainTable({
       millerSelection.filter((entry) => entry.startsWith('item:'))
     );
 
-    const targetCategorySlug = parseCategoryId(targetId);
-    const targetSub = parseSubcategoryId(targetId);
-
-    let nextCategories: RecursiveCatalogCategory[] = millerCatalog.categories.map((category) => ({
-      ...category,
-      subcategories: category.subcategories.map((subcategory) => ({
-        ...subcategory,
-        items: [...subcategory.items]
-      })),
-      items: [...(category.items ?? [])]
-    }));
+    let nextCategories = millerCatalog.categories.map(cloneCategory);
 
     if (selectedCategorySlugs.size > 0) {
-      if (targetId === rootId || targetCategorySlug) {
-        const moved = nextCategories.filter((category) => selectedCategorySlugs.has(category.slug));
-        const remaining = nextCategories.filter((category) => !selectedCategorySlugs.has(category.slug));
+      const moved = nextCategories.filter((category) => selectedCategorySlugs.has(category.slug));
+      const remaining = nextCategories.filter((category) => !selectedCategorySlugs.has(category.slug));
 
-        if (targetId === rootId) {
-          nextCategories = [...remaining, ...moved];
-        } else if (targetCategorySlug) {
-          const targetIndex = remaining.findIndex((category) => category.slug === targetCategorySlug);
-          if (targetIndex >= 0) {
-            remaining.splice(targetIndex, 0, ...moved);
-            nextCategories = remaining;
+      if (dropLocation.parentId === rootId) {
+        nextCategories = insertAtIndex(remaining, dropLocation.index, moved);
+      } else {
+        const parentRef = getTreeNodeRef(remaining, dropLocation.parentId);
+        if (!parentRef) return;
+
+        const candidateSlugs = new Set<string>();
+        for (const category of moved) {
+          if (candidateSlugs.has(category.slug)) {
+            toast.error('Premik ni možen zaradi podvojenih slugov podkategorij.');
+            return;
           }
+          candidateSlugs.add(category.slug);
+          demotedMillerCategoriesRef.current.set(category.id, category);
         }
-      }
 
-      if (targetSub || targetCategorySlug) {
-        const destinationCategorySlug = targetSub?.categorySlug ?? targetCategorySlug;
+        const movedNodes = moved.map<RecursiveCatalogSubcategory>((category) => ({
+          id: category.id,
+          slug: category.slug,
+          title: category.title,
+          description: category.description,
+          adminNotes: category.adminNotes,
+          image: category.image,
+          createdAt: category.createdAt,
+          updatedAt: category.updatedAt,
+          items: [...(category.items ?? [])],
+          subcategories: category.subcategories
+        }));
 
-        if (destinationCategorySlug) {
-          const movedCategories = nextCategories.filter((category) => selectedCategorySlugs.has(category.slug));
-          movedCategories.forEach((category) => {
-            demotedMillerCategoriesRef.current.set(category.id, category);
-          });
-
-          const asSubcategories: RecursiveCatalogSubcategory[] = movedCategories.map((category) => ({
-            id: category.id,
-            slug: category.slug,
-            title: category.title,
-            description: category.description,
-            adminNotes: category.adminNotes,
-            image: category.image,
-            items: [...(category.items ?? [])],
-            subcategories: category.subcategories
-          }));
-
-          const candidateSlugs = new Set<string>();
-          asSubcategories.forEach((subcategory) => {
-            if (candidateSlugs.has(subcategory.slug)) {
-              toast.error('Premik ni možen zaradi podvojenih slugov podkategorij.');
-            }
-            candidateSlugs.add(subcategory.slug);
-          });
-
-          nextCategories = nextCategories
-            .filter((category) => !selectedCategorySlugs.has(category.slug))
-            .map((category) => {
-              if (category.slug !== destinationCategorySlug) return category;
-              const destinationExisting = new Set(category.subcategories.map((sub) => sub.slug));
-              const duplicates = [...candidateSlugs].filter((slug) => destinationExisting.has(slug));
-              if (duplicates.length > 0) {
-                toast.error('Premik ni možen zaradi podvojenih slugov podkategorij.');
-                return category;
-              }
-
-              const insertion = asSubcategories;
-              if (targetSub) {
-                const targetIndex = category.subcategories.findIndex((sub) => sub.slug === targetSub.subcategorySlug);
-                if (targetIndex >= 0) {
-                  const nextSubs = [...category.subcategories];
-                  nextSubs.splice(targetIndex, 0, ...insertion);
-                  return { ...category, subcategories: nextSubs };
+        if (parentRef.kind === 'category') {
+          const existing = new Set(parentRef.category.subcategories.map((entry) => entry.slug));
+          if (movedNodes.some((entry) => existing.has(entry.slug))) {
+            toast.error('Premik ni možen zaradi podvojenih slugov podkategorij.');
+            return;
+          }
+          nextCategories = remaining.map((category) =>
+            category.slug !== parentRef.category.slug
+              ? category
+              : { ...category, subcategories: insertAtIndex(category.subcategories, dropLocation.index, movedNodes) }
+          );
+        } else {
+          if (moved.some((category) => category.slug === parentRef.category.slug) || moved.some((category) => isDescendantPath([category.slug], parentRef.path))) {
+            toast.error('Premik v lastno vejo ni dovoljen.');
+            return;
+          }
+          nextCategories = remaining.map((category) =>
+            category.slug !== parentRef.category.slug
+              ? category
+              : {
+                  ...category,
+                  subcategories: updateSubcategoryTree(category.subcategories, parentRef.path, (node) => {
+                    const existing = new Set(node.subcategories.map((entry) => entry.slug));
+                    if (movedNodes.some((entry) => existing.has(entry.slug))) {
+                      throw new Error('duplicate-subcategory-slug');
+                    }
+                    return { ...node, subcategories: insertAtIndex(node.subcategories, dropLocation.index, movedNodes) };
+                  })
                 }
-              }
-
-              return { ...category, subcategories: [...category.subcategories, ...insertion] };
-            });
+          );
         }
       }
     }
 
     if (selectedSubKeys.size > 0) {
-      if (targetId === rootId) {
-        const promoted: RecursiveCatalogCategory[] = [];
-        nextCategories = nextCategories
-          .map((category) => {
-            const remainingSubs = category.subcategories.filter((subcategory) => {
-              const key = subId(category.slug, subcategory.slug);
-              if (!selectedSubKeys.has(key)) return true;
-              const demotedCategory = demotedMillerCategoriesRef.current.get(subcategory.id);
-              promoted.push({
-                ...(demotedCategory ?? {
-                  id: subcategory.id,
-                  slug: subcategory.slug,
-                  title: subcategory.title,
-                  summary: subcategory.title,
-                  description: subcategory.description,
-                  image: subcategory.image ?? '',
-                  adminNotes: subcategory.adminNotes,
-                  bannerImage: undefined
-                }),
-                id: subcategory.id,
-                slug: subcategory.slug,
-                title: subcategory.title,
-                description: subcategory.description,
-                image: subcategory.image ?? '',
-                adminNotes: subcategory.adminNotes,
-                subcategories: subcategory.subcategories,
-                items: [...subcategory.items]
-              });
-              return false;
-            });
-            return { ...category, subcategories: remainingSubs };
-          });
-        nextCategories = [...nextCategories, ...promoted];
-      } else if (targetCategorySlug || targetSub) {
-        const destinationCategorySlug = targetSub?.categorySlug ?? targetCategorySlug;
-        if (destinationCategorySlug) {
-          const movedSubs: RecursiveCatalogSubcategory[] = [];
+      const selectedRefs = millerSelection
+        .filter((entry) => entry.startsWith('sub:'))
+        .map((id) => getTreeNodeRef(nextCategories, id))
+        .filter((entry): entry is Extract<TreeNodeRef, { kind: 'subcategory' }> => entry?.kind === 'subcategory')
+        .sort((left, right) => right.path.length - left.path.length);
 
-          nextCategories = nextCategories.map((category) => ({
-            ...category,
-            subcategories: category.subcategories.filter((subcategory) => {
-              const key = subId(category.slug, subcategory.slug);
-              const moving = selectedSubKeys.has(key);
-              if (moving) movedSubs.push(subcategory);
-              return !moving;
-            })
-          }));
+      const parentRef = dropLocation.parentId === rootId ? null : getTreeNodeRef(nextCategories, dropLocation.parentId);
+      if (dropLocation.parentId !== rootId && !parentRef) return;
 
-          const duplicateWithinMoved = new Set<string>();
-          for (const moved of movedSubs) {
-            if (duplicateWithinMoved.has(moved.slug)) {
-              toast.error('Premik ni možen zaradi podvojenih slugov podkategorij.');
-              return;
-            }
-            duplicateWithinMoved.add(moved.slug);
+      for (const selectedRef of selectedRefs) {
+        if (parentRef?.kind === 'subcategory') {
+          if (selectedRef.node.id === parentRef.node.id || isDescendantPath(selectedRef.path, parentRef.path)) {
+            toast.error('Premik v isto ali podrejeno podkategorijo ni dovoljen.');
+            return;
           }
-
-          nextCategories = nextCategories.map((category) => {
-            if (category.slug !== destinationCategorySlug) return category;
-            const existing = new Set(category.subcategories.map((sub) => sub.slug));
-            const hasCollision = movedSubs.some((sub) => existing.has(sub.slug));
-            if (hasCollision) {
-              toast.error('Premik ni možen zaradi podvojenih slugov podkategorij.');
-              return category;
-            }
-
-            if (targetSub) {
-              const targetIndex = category.subcategories.findIndex((sub) => sub.slug === targetSub.subcategorySlug);
-              if (targetIndex >= 0) {
-                const nextSubs = [...category.subcategories];
-                nextSubs.splice(targetIndex, 0, ...movedSubs);
-                return { ...category, subcategories: nextSubs };
-              }
-            }
-
-            return { ...category, subcategories: [...category.subcategories, ...movedSubs] };
-          });
         }
+      }
+
+      const movedSubs: RecursiveCatalogSubcategory[] = [];
+      nextCategories = nextCategories.flatMap((category) => {
+        const removals = new Set(selectedRefs.filter((entry) => entry.category.slug === category.slug).map((entry) => subPathKey(entry.path)));
+        const visit = (nodes: RecursiveCatalogSubcategory[], parentPath: string[] = []): RecursiveCatalogSubcategory[] =>
+          nodes.flatMap((node) => {
+            const currentPath = [...parentPath, node.slug];
+            if (removals.has(subPathKey(currentPath))) {
+              movedSubs.push(node);
+              return [];
+            }
+            return [{ ...node, subcategories: visit(node.subcategories, currentPath) }];
+          });
+
+        return [{ ...category, subcategories: visit(category.subcategories) }];
+      });
+
+      if (dropLocation.parentId === rootId) {
+        const promoted = movedSubs.map<RecursiveCatalogCategory>((subcategory) => {
+          const demotedCategory = demotedMillerCategoriesRef.current.get(subcategory.id);
+          return {
+            ...(demotedCategory ?? {
+              id: subcategory.id,
+              slug: subcategory.slug,
+              title: subcategory.title,
+              summary: subcategory.title,
+              description: subcategory.description,
+              image: subcategory.image ?? '',
+              adminNotes: subcategory.adminNotes,
+              bannerImage: undefined,
+              createdAt: subcategory.createdAt,
+              updatedAt: subcategory.updatedAt
+            }),
+            id: subcategory.id,
+            slug: subcategory.slug,
+            title: subcategory.title,
+            description: subcategory.description,
+            image: subcategory.image ?? '',
+            adminNotes: subcategory.adminNotes,
+            subcategories: subcategory.subcategories,
+            items: [...subcategory.items]
+          };
+        });
+        nextCategories = insertAtIndex(nextCategories, dropLocation.index, promoted);
+      } else if (parentRef?.kind === 'category') {
+        const existing = new Set(parentRef.category.subcategories.map((entry) => entry.slug));
+        if (movedSubs.some((entry) => existing.has(entry.slug))) {
+          toast.error('Premik ni možen zaradi podvojenih slugov podkategorij.');
+          return;
+        }
+        nextCategories = nextCategories.map((category) =>
+          category.slug !== parentRef.category.slug
+            ? category
+            : { ...category, subcategories: insertAtIndex(category.subcategories, dropLocation.index, movedSubs) }
+        );
+      } else if (parentRef?.kind === 'subcategory') {
+        nextCategories = nextCategories.map((category) =>
+          category.slug !== parentRef.category.slug
+            ? category
+            : {
+                ...category,
+                subcategories: updateSubcategoryTree(category.subcategories, parentRef.path, (node) => {
+                  const existing = new Set(node.subcategories.map((entry) => entry.slug));
+                  if (movedSubs.some((entry) => existing.has(entry.slug))) {
+                    throw new Error('duplicate-subcategory-slug');
+                  }
+                  return { ...node, subcategories: insertAtIndex(node.subcategories, dropLocation.index, movedSubs) };
+                })
+              }
+        );
       }
     }
 
-    if (selectedItemKeys.size > 0 && (targetCategorySlug || targetSub)) {
+    if (selectedItemKeys.size > 0 && dropLocation.parentId !== rootId) {
+      const parsedItems = millerSelection
+        .map((id) => parseItemNodeId(id))
+        .filter((entry): entry is NonNullable<ReturnType<typeof parseItemNodeId>> => Boolean(entry));
       const movedItems: CatalogItem[] = [];
+
       nextCategories = nextCategories.map((category) => ({
         ...category,
         items: (category.items ?? []).filter((item) => {
-          const key = itemId(category.slug, item.slug);
-          const moving = selectedItemKeys.has(key);
+          const moving = parsedItems.some((entry) => entry.categorySlug === category.slug && entry.itemSlug === item.slug && entry.subcategoryPath.length === 0);
           if (moving) movedItems.push(item);
           return !moving;
         }),
-        subcategories: category.subcategories.map((subcategory) => ({
-          ...subcategory,
-          items: subcategory.items.filter((item) => {
-            const key = itemId(category.slug, item.slug, subcategory.slug);
-            const moving = selectedItemKeys.has(key);
+        subcategories: mapSubcategoryTree(category.subcategories, (node, path) => ({
+          ...node,
+          items: node.items.filter((item) => {
+            const moving = parsedItems.some((entry) => entry.categorySlug === category.slug && entry.itemSlug === item.slug && pathEquals(entry.subcategoryPath, path));
             if (moving) movedItems.push(item);
             return !moving;
           })
         }))
       }));
 
-      if (targetSub) {
+      const parentRef = getTreeNodeRef(nextCategories, dropLocation.parentId);
+      if (!parentRef) return;
+
+      if (parentRef.kind === 'category') {
         nextCategories = nextCategories.map((category) =>
-          category.slug !== targetSub.categorySlug
+          category.slug !== parentRef.category.slug
+            ? category
+            : { ...category, items: insertAtIndex(category.items ?? [], dropLocation.index, movedItems) }
+        );
+      } else {
+        nextCategories = nextCategories.map((category) =>
+          category.slug !== parentRef.category.slug
             ? category
             : {
                 ...category,
-                subcategories: category.subcategories.map((subcategory) =>
-                  subcategory.slug === targetSub.subcategorySlug
-                    ? { ...subcategory, items: [...subcategory.items, ...movedItems] }
-                    : subcategory
-                )
+                subcategories: updateSubcategoryTree(category.subcategories, parentRef.path, (node) => ({
+                  ...node,
+                  items: insertAtIndex(node.items, dropLocation.index, movedItems)
+                }))
               }
-        );
-      } else if (targetCategorySlug) {
-        nextCategories = nextCategories.map((category) =>
-          category.slug === targetCategorySlug
-            ? { ...category, items: [...(category.items ?? []), ...movedItems] }
-            : category
         );
       }
     }
 
-    stageMillerCatalog({ categories: nextCategories });
-    setMillerDropTarget(null);
+    try {
+      stageMillerCatalog({ categories: nextCategories });
+      setMillerDropTarget(null);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'duplicate-subcategory-slug') {
+        toast.error('Premik ni možen zaradi podvojenih slugov podkategorij.');
+        return;
+      }
+      throw error;
+    }
   };
 
   const applyMillerRename = () => {
@@ -1560,9 +1616,9 @@ export default function AdminCategoriesMainTable({
       nextCategories = nextCategories.map((category) => ({
         ...category,
         items: (category.items ?? []).filter((item) => !selectedItems.has(itemId(category.slug, item.slug))),
-        subcategories: category.subcategories.map((sub) => ({
+        subcategories: mapSubcategoryTree(category.subcategories, (sub, path) => ({
           ...sub,
-          items: sub.items.filter((item) => !selectedItems.has(itemId(category.slug, item.slug, sub.slug)))
+          items: sub.items.filter((item) => !selectedItems.has(itemId(category.slug, item.slug, path)))
         }))
       }));
     }
@@ -1809,9 +1865,8 @@ export default function AdminCategoriesMainTable({
         ? (activeCategory.items ?? [])
         : [];
 
-    const selectedLeafSlug = selected.kind === 'subcategory' ? selectedSubcategoryPath.at(-1) : undefined;
-    const filteredItemSource = isMillerSearchActive
-      ? itemSource.filter((item) => millerSearchIndex.matchedItemIds.has(itemId(activeCategory.slug, item.slug, selectedLeafSlug)))
+        const filteredItemSource = isMillerSearchActive
+      ? itemSource.filter((item) => millerSearchIndex.matchedItemIds.has(itemId(activeCategory.slug, item.slug, selectedSubcategoryPath)))
       : itemSource;
 
     const showItems = selected.kind === 'subcategory'
@@ -1819,14 +1874,14 @@ export default function AdminCategoriesMainTable({
       : activeCategory.subcategories.length === 0;
 
     if (showItems) {
-      const itemIds = filteredItemSource.map((item) => itemId(activeCategory.slug, item.slug, selectedLeafSlug));
+      const itemIds = filteredItemSource.map((item) => itemId(activeCategory.slug, item.slug, selectedSubcategoryPath));
       columns.push({
-        key: `item-${activeCategory.slug}-${selectedLeafSlug ?? 'cat'}`,
+        key: `item-${activeCategory.slug}-${subPathKey(selectedSubcategoryPath) || 'cat'}`,
         title: selected.kind === 'subcategory' ? parentTitle : activeCategory.title,
         kind: 'items',
         ids: itemIds,
         rows: filteredItemSource.map((item) => {
-          const id = itemId(activeCategory.slug, item.slug, selectedLeafSlug);
+          const id = itemId(activeCategory.slug, item.slug, selectedSubcategoryPath);
           return {
             id,
             label: item.name,
@@ -2905,12 +2960,19 @@ export default function AdminCategoriesMainTable({
         onValueChange={(next) => {
           const nextView = next as CategoriesView;
           setActiveView(nextView);
-          guardedNavigate(nextView === 'table' ? '/admin/kategorije' : '/admin/kategorije/miller-view');
+          guardedNavigate(
+            nextView === 'table'
+              ? '/admin/kategorije'
+              : nextView === 'preview'
+                ? '/admin/kategorije/predogled'
+                : '/admin/kategorije/miller-view'
+          );
         }}
         variant="motion"
       >
         <TabsList>
           <TabsTrigger value="table">Osnovno</TabsTrigger>
+          <TabsTrigger value="preview">Predogled</TabsTrigger>
           <TabsTrigger value="miller">Po stolpcih</TabsTrigger>
         </TabsList>
       </Tabs>

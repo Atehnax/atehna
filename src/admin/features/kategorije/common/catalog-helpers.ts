@@ -12,8 +12,8 @@ export const catId = (slug: string) => `cat:${slug}`;
 export const subPathKey = (subPath: string[]) => subPath.join('__');
 export const subId = (categorySlug: string, subPath: string | string[]) =>
   `sub:${categorySlug}:${subPathKey(Array.isArray(subPath) ? subPath : [subPath])}`;
-export const itemId = (catSlug: string, itemSlug: string, subSlug?: string) =>
-  `item:${catSlug}:${subSlug ?? '_'}:${itemSlug}`;
+export const itemId = (catSlug: string, itemSlug: string, subPath?: string | string[]) =>
+  `item:${catSlug}:${subPathKey(toSubcategoryPath(subPath)) || '_'}:${itemSlug}`;
 export const slugify = (value: string) =>
   value.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-čšžćđ]/gi, '');
 
@@ -158,15 +158,18 @@ export const parseSubNodeId = (value: string): { categorySlug: string; subcatego
   };
 };
 
-export const parseItemNodeId = (value: string): { categorySlug: string; subcategorySlug?: string; itemSlug: string } | null => {
+export const parseItemNodeId = (value: string): { categorySlug: string; subcategoryPath: string[]; subcategorySlug?: string; itemSlug: string } | null => {
   if (!value.startsWith('item:')) return null;
 
   const [, categorySlug, subcategorySlug, itemSlug] = value.split(':');
   if (!categorySlug || !itemSlug) return null;
 
+  const subcategoryPath = subcategorySlug && subcategorySlug !== '_' ? subcategorySlug.split('__').filter(Boolean) : [];
+
   return {
     categorySlug,
-    subcategorySlug: subcategorySlug && subcategorySlug !== '_' ? subcategorySlug : undefined,
+    subcategoryPath,
+    subcategorySlug: subcategoryPath.at(-1),
     itemSlug
   };
 };
@@ -217,6 +220,45 @@ export function removeSubcategoryTree(nodes: RecursiveNode[], path: string[]): R
       subcategories: removeSubcategoryTree(node.subcategories, path.slice(1))
     };
   });
+}
+
+
+export function mapSubcategoryTree(
+  nodes: RecursiveNode[],
+  mapper: (node: RecursiveNode, path: string[]) => RecursiveNode,
+  parentPath: string[] = []
+): RecursiveNode[] {
+  return nodes.map((node) => {
+    const currentPath = [...parentPath, node.slug];
+    return mapper(
+      {
+        ...node,
+        subcategories: mapSubcategoryTree(node.subcategories, mapper, currentPath)
+      },
+      currentPath
+    );
+  });
+}
+
+export function findSubcategoryById(nodes: RecursiveNode[], id: string): { node: RecursiveNode; path: string[] } | null {
+  const visit = (entries: RecursiveNode[], parentPath: string[] = []): { node: RecursiveNode; path: string[] } | null => {
+    for (const node of entries) {
+      const currentPath = [...parentPath, node.slug];
+      if (node.id === id) return { node, path: currentPath };
+      const nested = visit(node.subcategories, currentPath);
+      if (nested) return nested;
+    }
+
+    return null;
+  };
+
+  return visit(nodes);
+}
+
+export function insertAtIndex<T>(items: T[], index: number, values: T[]): T[] {
+  const next = [...items];
+  next.splice(Math.max(0, Math.min(index, next.length)), 0, ...values);
+  return next;
 }
 
 export function collectSubcategoryIds(

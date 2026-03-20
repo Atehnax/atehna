@@ -32,7 +32,7 @@ export function AdminCategoriesPreview({
   onLeafProductsDragEnd,
   sortCatalogItems
 }: {
-  activeView: 'table' | 'miller';
+  activeView: 'table' | 'preview' | 'miller';
   tableError: string | null;
   lowerViewCount: number;
   onLowerViewCountChange: (value: number) => void;
@@ -52,7 +52,7 @@ export function AdminCategoriesPreview({
   const previewSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
   return (
-    <div className={activeView === 'table' ? 'space-y-5' : 'hidden'}>
+    <div className={activeView === 'preview' ? 'space-y-5' : 'hidden'}>
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         {tableError ? <p className="mb-3 rounded-lg border border-[var(--danger-300)] bg-[var(--danger-100)] px-3 py-2 text-xs text-[var(--danger-700)]">{tableError}</p> : null}
         <div className="mb-3 flex items-center justify-between gap-3">

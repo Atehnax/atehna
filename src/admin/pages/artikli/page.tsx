@@ -9,7 +9,7 @@ import {
   sortCatalogItems
 } from '@/commercial/catalog/catalog';
 import { getCatalogItemsIndexServer } from '@/commercial/catalog/catalogServer';
-import { instrumentAdminRouteRender } from '@/shared/server/catalogDiagnostics';
+import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,40 +38,23 @@ type SeedItem = {
 async function buildSeedItems(): Promise<SeedItem[]> {
   const items: SeedItem[] = [];
   const now = new Date().toISOString();
+  const catalogIndex = await profileRoutePhase('cache', 'buildSeedItems:getCatalogItemsIndexServer', () =>
+    getCatalogItemsIndexServer('/admin/artikli')
+  );
 
-  for (const category of await getCatalogItemsIndexServer('/admin/artikli')) {
-    for (const item of sortCatalogItems(category.items ?? [])) {
-      items.push({
-        id: getCatalogCategoryItemSku(category.slug, item.slug),
-        name: item.name,
-        description: item.description,
-        category: category.title,
-        categoryId: category.id,
-        subcategoryId: null,
-        price: item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug),
-        unit: 'kos',
-        sku: getCatalogCategoryItemSku(category.slug, item.slug),
-        active: true,
-        images: item.images?.length ? item.images : item.image ? [item.image] : [],
-        discountPct: item.discountPct ?? 0,
-        displayOrder: item.displayOrder ?? null,
-        updatedAt: now,
-        archivedAt: null
-      });
-    }
-
-    for (const sub of category.subcategories) {
-      for (const item of sortCatalogItems(sub.items)) {
+  await profileRoutePhase('transform', 'buildSeedItems:flattenIndex', async () => {
+    for (const category of catalogIndex) {
+      for (const item of sortCatalogItems(category.items ?? [])) {
         items.push({
-          id: getCatalogItemSku(category.slug, sub.slug, item.slug),
+          id: getCatalogCategoryItemSku(category.slug, item.slug),
           name: item.name,
           description: item.description,
-          category: `${category.title} / ${sub.title}`,
+          category: category.title,
           categoryId: category.id,
-          subcategoryId: sub.id,
-          price: item.price ?? getCatalogItemPrice(category.slug, sub.slug, item.slug),
+          subcategoryId: null,
+          price: item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug),
           unit: 'kos',
-          sku: getCatalogItemSku(category.slug, sub.slug, item.slug),
+          sku: getCatalogCategoryItemSku(category.slug, item.slug),
           active: true,
           images: item.images?.length ? item.images : item.image ? [item.image] : [],
           discountPct: item.discountPct ?? 0,
@@ -80,9 +63,32 @@ async function buildSeedItems(): Promise<SeedItem[]> {
           archivedAt: null
         });
       }
-    }
-  }
 
+      for (const sub of category.subcategories) {
+        for (const item of sortCatalogItems(sub.items)) {
+          items.push({
+            id: getCatalogItemSku(category.slug, sub.slug, item.slug),
+            name: item.name,
+            description: item.description,
+            category: `${category.title} / ${sub.title}`,
+            categoryId: category.id,
+            subcategoryId: sub.id,
+            price: item.price ?? getCatalogItemPrice(category.slug, sub.slug, item.slug),
+            unit: 'kos',
+            sku: getCatalogItemSku(category.slug, sub.slug, item.slug),
+            active: true,
+            images: item.images?.length ? item.images : item.image ? [item.image] : [],
+            discountPct: item.discountPct ?? 0,
+            displayOrder: item.displayOrder ?? null,
+            updatedAt: now,
+            archivedAt: null
+          });
+        }
+      }
+    }
+  });
+
+  profilePayloadEstimate('buildSeedItems:seedItems', items);
   return items;
 }
 

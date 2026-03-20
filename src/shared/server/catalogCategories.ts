@@ -1,6 +1,6 @@
 import { unstable_cache, revalidateTag } from 'next/cache';
 import { getPool, getDatabaseUrl } from '@/shared/server/db';
-import { instrumentCatalogCacheMiss, instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
+import { instrumentCatalogCacheMiss, instrumentCatalogLoader, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import type { CatalogItem } from '@/commercial/catalog/catalog';
 import {
   normalizeCatalogData,
@@ -211,12 +211,12 @@ async function readCatalogDataFromDatabase(
   await seedIfEmpty();
 
   const pool = await getPool();
-  const result = await pool.query(`
+  const result = await profileRoutePhase('db', 'readCatalogDataFromDatabase:allRows', () => pool.query(`
     select id, parent_id, slug, title, summary, description, image, admin_notes, banner_image, items, position, status, created_at, updated_at
     from catalog_categories
     ${includeInactive ? '' : "where status = 'active'"}
     order by coalesce(parent_id, ''), position asc, title asc
-  `);
+  `));
 
   const rows = result.rows as CategoryRow[];
   const topLevel = rows.filter((row) => row.parent_id === null);
@@ -242,7 +242,9 @@ async function readCatalogDataFromDatabase(
     statuses
   };
 
-  return includeStatuses ? payload : { categories: payload.categories };
+  const normalizedPayload = includeStatuses ? payload : { categories: payload.categories };
+  profilePayloadEstimate('readCatalogDataFromDatabase:payload', normalizedPayload);
+  return normalizedPayload;
 }
 
 
@@ -513,18 +515,18 @@ async function readCatalogItemsIndexFromDatabase(): Promise<CatalogItemsIndex> {
   await seedIfEmpty();
 
   const pool = await getPool();
-  const categoryResult = await pool.query(`
+  const categoryResult = await profileRoutePhase('db', 'readCatalogItemsIndexFromDatabase:categories', () => pool.query(`
     select id, slug, title, items
     from catalog_categories
     where parent_id is null and status = 'active'
     order by position asc, title asc
-  `);
+  `));
 
   const categoryRows = categoryResult.rows as ItemsIndexCategoryRow[];
   const categoryIds = categoryRows.map((row) => row.id);
 
   const subcategoryRows = categoryIds.length
-    ? ((await pool.query(
+    ? ((await profileRoutePhase('db', 'readCatalogItemsIndexFromDatabase:subcategories', () => pool.query(
         `
           select parent_id, id, slug, title, items
           from catalog_categories
@@ -532,7 +534,7 @@ async function readCatalogItemsIndexFromDatabase(): Promise<CatalogItemsIndex> {
           order by position asc, title asc
         `,
         [categoryIds]
-      )).rows as ItemsIndexSubcategoryRow[])
+      ))).rows as ItemsIndexSubcategoryRow[])
     : [];
 
   const subcategoriesByParent = new Map<string, Array<Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'items'>>>();
@@ -549,13 +551,15 @@ async function readCatalogItemsIndexFromDatabase(): Promise<CatalogItemsIndex> {
     subcategoriesByParent.set(row.parent_id, list);
   }
 
-  return categoryRows.map((row) => ({
+  const payload = categoryRows.map((row) => ({
     id: row.id,
     slug: row.slug,
     title: row.title,
     items: getRowItems(row),
     subcategories: subcategoriesByParent.get(row.id) ?? []
   }));
+  profilePayloadEstimate('readCatalogItemsIndexFromDatabase:payload', payload);
+  return payload;
 }
 
 const getCachedCatalogDataFromDatabase = unstable_cache(

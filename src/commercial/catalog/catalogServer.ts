@@ -34,11 +34,7 @@ const loadFullCatalogServer = cache(async (): Promise<CatalogCategory[]> =>
   })
 );
 
-const loadCatalogItemsIndexServer = cache(async (diagnosticsContext: string) =>
-  instrumentCatalogCacheMiss('loadCatalogItemsIndexServer', diagnosticsContext, () =>
-    getCatalogItemsIndexFromDatabase(diagnosticsContext)
-  )
-);
+const loadCatalogItemsIndexServer = cache(async (diagnosticsContext: string) => getCatalogItemsIndexFromDatabase(diagnosticsContext));
 
 const loadCatalogCategoryCardsServer = cache(async (): Promise<Array<Pick<CatalogCategory, 'slug' | 'title' | 'summary' | 'image'>>> =>
   instrumentCatalogCacheMiss('loadCatalogCategoryCardsServer', '/products', () => getCatalogCategoryCardsFromDatabase('/products'))

@@ -18,7 +18,7 @@ import {
   type OrderItemRow,
   type OrderRow
 } from '@/shared/server/orders';
-import { instrumentAdminRouteRender } from '@/shared/server/catalogDiagnostics';
+import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';
 
 export const metadata = {
@@ -263,9 +263,9 @@ export default async function AdminOrderDetailPage({ params }: { params: { order
       notFound();
     }
 
-    const orderPromise = fetchOrderById(orderId);
-    const itemsPromise = fetchOrderItems(orderId);
-    const documentsPromise = fetchOrderDocuments(orderId);
+    const orderPromise = profileRoutePhase('db', 'AdminOrderDetailPage:fetchOrderById', () => fetchOrderById(orderId));
+    const itemsPromise = profileRoutePhase('db', 'AdminOrderDetailPage:fetchOrderItems', () => fetchOrderItems(orderId));
+    const documentsPromise = profileRoutePhase('db', 'AdminOrderDetailPage:fetchOrderDocuments', () => fetchOrderDocuments(orderId));
 
     const order = await orderPromise;
     if (!order) {
@@ -273,6 +273,10 @@ export default async function AdminOrderDetailPage({ params }: { params: { order
     }
 
     const safeOrder = normalizeOrder(order, orderId);
+
+    await profileRoutePhase('payload', 'AdminOrderDetailPage:order', async () => {
+      profilePayloadEstimate('AdminOrderDetailPage:order', safeOrder);
+    });
 
     return (
       <AdminOrderDetailShell

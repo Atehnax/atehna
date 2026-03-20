@@ -160,6 +160,7 @@ export async function fetchArchiveEntries(itemType?: 'all' | 'order' | 'pdf'): P
     }
 
     let explicitEntries: ArchiveEntry[] = [];
+    let shouldUseFallbackEntries = false;
     try {
       const result = await pool.query(
         `
@@ -182,6 +183,11 @@ export async function fetchArchiveEntries(itemType?: 'all' | 'order' | 'pdf'): P
       }));
     } catch (error) {
       if (!isMissingRelationError(error)) throw error;
+      shouldUseFallbackEntries = true;
+    }
+
+    if (!shouldUseFallbackEntries) {
+      return explicitEntries;
     }
 
     const fallbackRows = await instrumentCatalogLoader(

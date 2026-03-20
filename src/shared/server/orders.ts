@@ -170,6 +170,15 @@ export type PaymentLogRow = {
   created_at: string;
 };
 
+export type OrderAnalyticsRow = {
+  id: number;
+  created_at: string;
+  status: string | null;
+  payment_status: string | null;
+  customer_type: string | null;
+  total: number;
+};
+
 function parseNullableNumber(rawValue: unknown): number | null {
   if (rawValue === null || rawValue === undefined) return null;
   if (typeof rawValue === 'number') return Number.isFinite(rawValue) ? rawValue : null;
@@ -256,6 +265,17 @@ function mapOrderAttachmentRow(rawRow: Record<string, unknown>): OrderAttachment
     filename: String(rawRow.filename),
     blob_url: String(rawRow.blob_url),
     created_at: toIsoTimestamp(rawRow.created_at)
+  };
+}
+
+function mapOrderAnalyticsRow(rawRow: Record<string, unknown>): OrderAnalyticsRow {
+  return {
+    id: Number(rawRow.id),
+    created_at: toIsoTimestamp(rawRow.created_at),
+    status: asNullableString(rawRow.status),
+    payment_status: asNullableString(rawRow.payment_status),
+    customer_type: asNullableString(rawRow.customer_type),
+    total: Number(rawRow.total ?? 0)
   };
 }
 
@@ -399,6 +419,58 @@ export async function fetchOrders(
       const fallbackResult = await pool.query(safeFallbackQuery, queryParams);
       return fallbackResult.rows.map((rawRow) => mapOrderRow(rawRow as Record<string, unknown>));
     }
+  });
+}
+
+export async function fetchOrdersAnalyticsRows(
+  options?: {
+    fromDate?: string | null;
+    toDate?: string | null;
+    includeDrafts?: boolean;
+  },
+  diagnosticsContext = '/admin/analitika'
+): Promise<OrderAnalyticsRow[]> {
+  return instrumentCatalogLoader('fetchOrdersAnalyticsRows', diagnosticsContext, async () => {
+    const pool = await getPool();
+    const { supportsDraftColumn, supportsDeletedColumn, supportsPaymentStatusColumn } = await getOrdersSchemaSupport();
+    const conditions: string[] = [];
+    const queryParams: unknown[] = [];
+
+    if (!options?.includeDrafts && supportsDraftColumn) {
+      conditions.push(`not (
+        coalesce(orders.is_draft, false) = true
+        and coalesce(orders.email, '') = 'draft@atehna.si'
+        and coalesce(orders.contact_name, '') = 'Osnutek'
+      )`);
+    }
+    if (supportsDeletedColumn) {
+      conditions.push('orders.deleted_at is null');
+    }
+    if (options?.fromDate) {
+      queryParams.push(options.fromDate);
+      conditions.push(`orders.created_at >= $${queryParams.length}`);
+    }
+    if (options?.toDate) {
+      queryParams.push(options.toDate);
+      conditions.push(`orders.created_at <= $${queryParams.length}`);
+    }
+
+    const whereClause = conditions.length > 0 ? `where ${conditions.join(' and ')}` : '';
+    const query = `
+      select
+        orders.id,
+        orders.created_at,
+        orders.status,
+        ${supportsPaymentStatusColumn ? 'orders.payment_status' : 'null::text as payment_status'},
+        orders.customer_type,
+        coalesce(orders.total::numeric, orders.subtotal::numeric + orders.tax::numeric, 0::numeric)::text as total
+      from orders
+      ${whereClause}
+      order by orders.created_at desc, orders.id desc
+    `;
+
+    const result = await pool.query(query, queryParams);
+    return result.rows.map((rawRow) => mapOrderAnalyticsRow(rawRow as Record<string, unknown>));
   });
 }
 

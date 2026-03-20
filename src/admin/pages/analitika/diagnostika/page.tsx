@@ -9,11 +9,30 @@ export const metadata = {
 
 export const dynamic = 'force-dynamic';
 
-async function AdminDiagnosticsDashboardSection() {
-  return <AdminDiagnosticsDashboard />;
+const WINDOW_MINUTE_TO_HOURS: Record<string, number> = {
+  '15m': 0.25,
+  '60m': 1,
+  '6h': 6,
+  '24h': 24
+};
+
+function resolveWindowHours(windowParam?: string) {
+  return WINDOW_MINUTE_TO_HOURS[windowParam ?? ''] ?? 0.25;
 }
 
-export default function AdminDiagnosticsPage() {
+async function AdminDiagnosticsDashboardSection({
+  searchParams
+}: {
+  searchParams?: { window?: string };
+}) {
+  return <AdminDiagnosticsDashboard windowHours={resolveWindowHours(searchParams?.window)} />;
+}
+
+export default function AdminDiagnosticsPage({
+  searchParams
+}: {
+  searchParams?: { window?: string };
+}) {
   return (
     <div className="w-full">
       <div className="mb-4">
@@ -22,7 +41,7 @@ export default function AdminDiagnosticsPage() {
       </div>
       <AdminAnalyticsTopTabs />
       <Suspense fallback={<AdminDiagnosticsSectionSkeleton />}>
-        <AdminDiagnosticsDashboardSection />
+        <AdminDiagnosticsDashboardSection searchParams={searchParams} />
       </Suspense>
     </div>
   );

@@ -337,20 +337,6 @@ export default function AdminDeletedArchiveTable({
         confirmDisabled={isDeleting}
       />
 
-      <ConfirmDialog
-        open={isDeleteConfirmOpen}
-        title="Trajni izbris"
-        description="Ali ste prepričani, da želite trajno izbrisati izbrane zapise?"
-        confirmLabel="Izbriši"
-        cancelLabel="Prekliči"
-        isDanger
-        onCancel={() => setIsDeleteConfirmOpen(false)}
-        onConfirm={() => {
-          void confirmBulkDelete();
-        }}
-        confirmDisabled={isDeleting}
-      />
-
       <Table className="w-full table-fixed border-collapse text-sm">
           <THead>
             <TR>

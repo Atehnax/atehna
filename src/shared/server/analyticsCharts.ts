@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { getPool } from '@/shared/server/db';
+import { instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
 
 export type AnalyticsChartType =
   | 'line'
@@ -504,12 +505,14 @@ async function ensureDefaultChartsIfEmpty(dashboardKey = 'narocila') {
 }
 
 export async function fetchAnalyticsCharts(dashboardKey = 'narocila') {
-  await ensureAnalyticsTables();
-  await ensureDefaultChartsIfEmpty(dashboardKey);
+  return instrumentCatalogLoader('fetchAnalyticsCharts', '/admin/analitika', async () => {
+    await ensureAnalyticsTables();
+    await ensureDefaultChartsIfEmpty(dashboardKey);
 
-  const pool = await getPool();
-  const result = await pool.query(`select * from analytics_charts where dashboard_key = $1 order by position asc, id asc`, [dashboardKey]);
-  return result.rows.map((row) => mapRow(row as Record<string, unknown>));
+    const pool = await getPool();
+    const result = await pool.query(`select * from analytics_charts where dashboard_key = $1 order by position asc, id asc`, [dashboardKey]);
+    return result.rows.map((row) => mapRow(row as Record<string, unknown>));
+  });
 }
 
 export async function createAnalyticsChart(input: {
@@ -596,23 +599,25 @@ export async function reorderAnalyticsCharts(chartIdsInOrder: number[], dashboar
 }
 
 export async function fetchGlobalAnalyticsAppearance(dashboardKey = 'narocila'): Promise<AnalyticsGlobalAppearance> {
-  await ensureAnalyticsTables();
-  const pool = await getPool();
-  const result = await pool.query('select settings_json, updated_at from analytics_chart_settings where dashboard_key = $1 limit 1', [dashboardKey]);
-  if (!result.rows[0]) return defaultAppearance();
-  const row = result.rows[0] as Record<string, unknown>;
-  const raw = (row.settings_json && typeof row.settings_json === 'object' ? row.settings_json : {}) as Record<string, unknown>;
-  return {
-    sectionBg: typeof raw.sectionBg === 'string' ? raw.sectionBg : defaultAppearance().sectionBg,
-    canvasBg: typeof raw.canvasBg === 'string' ? raw.canvasBg : defaultAppearance().canvasBg,
-    cardBg: typeof raw.cardBg === 'string' ? raw.cardBg : defaultAppearance().cardBg,
-    plotBg: typeof raw.plotBg === 'string' ? raw.plotBg : defaultAppearance().plotBg,
-    axisTextColor: typeof raw.axisTextColor === 'string' ? raw.axisTextColor : defaultAppearance().axisTextColor,
-    seriesPalette: Array.isArray(raw.seriesPalette) ? raw.seriesPalette.filter((value): value is string => typeof value === 'string') : defaultAppearance().seriesPalette,
-    gridColor: typeof raw.gridColor === 'string' ? raw.gridColor : defaultAppearance().gridColor,
-    gridOpacity: Number.isFinite(Number(raw.gridOpacity)) ? clamp(Number(raw.gridOpacity), 0, 1) : defaultAppearance().gridOpacity,
-    updatedAt: toIso(row.updated_at)
-  };
+  return instrumentCatalogLoader('fetchGlobalAnalyticsAppearance', '/admin/analitika', async () => {
+    await ensureAnalyticsTables();
+    const pool = await getPool();
+    const result = await pool.query('select settings_json, updated_at from analytics_chart_settings where dashboard_key = $1 limit 1', [dashboardKey]);
+    if (!result.rows[0]) return defaultAppearance();
+    const row = result.rows[0] as Record<string, unknown>;
+    const raw = (row.settings_json && typeof row.settings_json === 'object' ? row.settings_json : {}) as Record<string, unknown>;
+    return {
+      sectionBg: typeof raw.sectionBg === 'string' ? raw.sectionBg : defaultAppearance().sectionBg,
+      canvasBg: typeof raw.canvasBg === 'string' ? raw.canvasBg : defaultAppearance().canvasBg,
+      cardBg: typeof raw.cardBg === 'string' ? raw.cardBg : defaultAppearance().cardBg,
+      plotBg: typeof raw.plotBg === 'string' ? raw.plotBg : defaultAppearance().plotBg,
+      axisTextColor: typeof raw.axisTextColor === 'string' ? raw.axisTextColor : defaultAppearance().axisTextColor,
+      seriesPalette: Array.isArray(raw.seriesPalette) ? raw.seriesPalette.filter((value): value is string => typeof value === 'string') : defaultAppearance().seriesPalette,
+      gridColor: typeof raw.gridColor === 'string' ? raw.gridColor : defaultAppearance().gridColor,
+      gridOpacity: Number.isFinite(Number(raw.gridOpacity)) ? clamp(Number(raw.gridOpacity), 0, 1) : defaultAppearance().gridOpacity,
+      updatedAt: toIso(row.updated_at)
+    };
+  });
 }
 
 export async function updateGlobalAnalyticsAppearance(input: Partial<AnalyticsGlobalAppearance>, dashboardKey = 'narocila') {

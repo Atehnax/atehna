@@ -17,30 +17,20 @@ async function AdminAnalyticsDashboardSection({
 }: {
   searchParams?: { range?: string; from?: string; to?: string; grouping?: string; view?: string; focus?: string };
 }) {
-  const data = getDatabaseUrl()
-    ? await fetchOrdersAnalytics({
-        range: searchParams?.range,
-        from: searchParams?.from,
-        to: searchParams?.to,
-        grouping: searchParams?.grouping
-      }).catch(() => emptyOrdersAnalyticsResponse())
-    : emptyOrdersAnalyticsResponse();
+  const fallbackAppearance = { sectionBg: '#f3f4f6', canvasBg: '#ffffff', cardBg: '#ffffff', plotBg: '#ffffff', axisTextColor: '#1f2937', seriesPalette: ['#2563eb', '#0ea5e9', '#14b8a6', '#f59e0b', '#ef4444'], gridColor: '#d1d5db', gridOpacity: 0.35 };
 
-  const [charts, appearance] = getDatabaseUrl()
+  const [data, charts, appearance] = getDatabaseUrl()
     ? await Promise.all([
+        fetchOrdersAnalytics({
+          range: searchParams?.range,
+          from: searchParams?.from,
+          to: searchParams?.to,
+          grouping: searchParams?.grouping
+        }).catch(() => emptyOrdersAnalyticsResponse()),
         fetchAnalyticsCharts('narocila').catch(() => []),
-        fetchGlobalAnalyticsAppearance('narocila').catch(() => ({
-          sectionBg: '#f3f4f6',
-          canvasBg: '#ffffff',
-          cardBg: '#ffffff',
-          plotBg: '#ffffff',
-          axisTextColor: '#1f2937',
-          seriesPalette: ['#2563eb', '#0ea5e9', '#14b8a6', '#f59e0b', '#ef4444'],
-          gridColor: '#d1d5db',
-          gridOpacity: 0.35
-        }))
+        fetchGlobalAnalyticsAppearance('narocila').catch(() => fallbackAppearance)
       ])
-    : [[], { sectionBg: '#f3f4f6', canvasBg: '#ffffff', cardBg: '#ffffff', plotBg: '#ffffff', axisTextColor: '#1f2937', seriesPalette: ['#2563eb', '#0ea5e9', '#14b8a6', '#f59e0b', '#ef4444'], gridColor: '#d1d5db', gridOpacity: 0.35 }];
+    : [emptyOrdersAnalyticsResponse(), [], fallbackAppearance];
 
   return (
     <AdminAnalyticsDashboard

@@ -2,6 +2,8 @@ import 'server-only';
 
 type TriggerType = 'page_render' | 'api_call' | 'save_revalidation' | 'search' | 'other';
 
+type DiagnosticsBucketGranularityMinutes = 5 | 15 | 60;
+
 type LoaderMetricBucket = {
   bucketStart: string;
   loader: string;
@@ -84,6 +86,7 @@ type TriggerSummary = {
 
 type TimeSeriesPoint = {
   bucketStart: string;
+  bucketMinutes: DiagnosticsBucketGranularityMinutes;
   calls: number;
   cacheMisses: number;
   totalPayloadBytes: number;
@@ -109,6 +112,7 @@ type DiagnosticsSnapshot = {
   generatedAt: string;
   metricsStartedAt: string;
   windowHours: number;
+  bucketMinutes: DiagnosticsBucketGranularityMinutes;
   summary: {
     totalLoaderCalls: number;
     totalCacheMisses: number;
@@ -140,6 +144,7 @@ const MAX_BUCKETS = 800;
 const MAX_INVALIDATION_BUCKETS = 240;
 const MAX_SAMPLES_PER_BUCKET = 256;
 const DEFAULT_WINDOW_HOURS = 24;
+const DEFAULT_WINDOW_MINUTES = DEFAULT_WINDOW_HOURS * 60;
 
 function getStore(): DiagnosticsStore {
   if (!globalThis.__catalogDiagnosticsStore) {
@@ -153,9 +158,16 @@ function getStore(): DiagnosticsStore {
   return globalThis.__catalogDiagnosticsStore;
 }
 
-function floorToHour(date: Date): Date {
+function getBucketGranularityMinutes(windowMinutes: number): DiagnosticsBucketGranularityMinutes {
+  if (windowMinutes <= 60) return 5;
+  if (windowMinutes <= 6 * 60) return 15;
+  return 60;
+}
+
+function floorToBucket(date: Date, bucketMinutes: DiagnosticsBucketGranularityMinutes): Date {
   const bucket = new Date(date);
-  bucket.setUTCMinutes(0, 0, 0);
+  const utcMinutes = bucket.getUTCMinutes();
+  bucket.setUTCMinutes(Math.floor(utcMinutes / bucketMinutes) * bucketMinutes, 0, 0);
   return bucket;
 }
 
@@ -192,7 +204,7 @@ function inferTrigger(context: string, loader = ''): TriggerType {
 }
 
 function pruneStore(now: Date) {
-  const cutoff = now.getTime() - DEFAULT_WINDOW_HOURS * 60 * 60 * 1000;
+  const cutoff = now.getTime() - DEFAULT_WINDOW_MINUTES * 60 * 1000;
   const store = getStore();
 
   for (const [key, bucket] of store.buckets.entries()) {
@@ -230,7 +242,7 @@ function pruneStore(now: Date) {
 
 export function recordCatalogLoaderMetric(input: RecordLoaderMetricInput) {
   const recordedAt = input.recordedAt ?? new Date();
-  const bucketStart = floorToHour(recordedAt).toISOString();
+  const bucketStart = floorToBucket(recordedAt, 5).toISOString();
   const key = bucketKey(input.loader, input.context, bucketStart);
   const trigger = inferTrigger(input.context, input.loader);
   const store = getStore();
@@ -263,7 +275,7 @@ export function recordCatalogLoaderMetric(input: RecordLoaderMetricInput) {
 
 export function recordCatalogInvalidation(input: RecordInvalidationInput) {
   const recordedAt = input.recordedAt ?? new Date();
-  const bucketStart = floorToHour(recordedAt).toISOString();
+  const bucketStart = floorToBucket(recordedAt, 5).toISOString();
   const tagFamily = [...new Set(input.tags)].sort().join(' + ');
   const key = invalidationKey(input.context, tagFamily, bucketStart);
   const trigger = inferTrigger(input.context, 'save revalidation');
@@ -389,7 +401,9 @@ export function getCatalogDiagnosticsSnapshot(windowHours = DEFAULT_WINDOW_HOURS
   const now = new Date();
   const store = getStore();
   pruneStore(now);
-  const cutoff = now.getTime() - windowHours * 60 * 60 * 1000;
+  const windowMinutes = Math.max(15, Math.round(windowHours * 60));
+  const bucketMinutes = getBucketGranularityMinutes(windowMinutes);
+  const cutoff = now.getTime() - windowMinutes * 60 * 1000;
   const relevantBuckets = [...store.buckets.values()].filter((bucket) => new Date(bucket.bucketStart).getTime() >= cutoff);
   const relevantInvalidations = [...store.invalidations.values()].filter((bucket) => new Date(bucket.bucketStart).getTime() >= cutoff);
 
@@ -472,8 +486,11 @@ export function getCatalogDiagnosticsSnapshot(windowHours = DEFAULT_WINDOW_HOURS
     triggerEntry.totalPayloadBytes += bucket.totalPayloadBytes;
     byTrigger.set(bucket.trigger, triggerEntry);
 
-    const seriesEntry = bySeries.get(bucket.bucketStart) ?? {
-      bucketStart: bucket.bucketStart,
+    const bucketDate = new Date(bucket.bucketStart);
+    const seriesBucketStart = floorToBucket(bucketDate, bucketMinutes).toISOString();
+    const seriesEntry = bySeries.get(seriesBucketStart) ?? {
+      bucketStart: seriesBucketStart,
+      bucketMinutes,
       calls: 0,
       cacheMisses: 0,
       totalPayloadBytes: 0,
@@ -484,7 +501,7 @@ export function getCatalogDiagnosticsSnapshot(windowHours = DEFAULT_WINDOW_HOURS
     seriesEntry.cacheMisses += bucket.cacheMisses;
     seriesEntry.totalPayloadBytes += bucket.totalPayloadBytes;
     seriesEntry.durationTotalMs += bucket.totalDurationMs;
-    bySeries.set(bucket.bucketStart, seriesEntry);
+    bySeries.set(seriesBucketStart, seriesEntry);
   }
 
   const loaders = [...byLoader.values()]
@@ -528,6 +545,7 @@ export function getCatalogDiagnosticsSnapshot(windowHours = DEFAULT_WINDOW_HOURS
   const series = [...bySeries.values()]
     .map((entry) => ({
       bucketStart: entry.bucketStart,
+      bucketMinutes: entry.bucketMinutes,
       calls: entry.calls,
       cacheMisses: entry.cacheMisses,
       totalPayloadBytes: entry.totalPayloadBytes,
@@ -552,6 +570,7 @@ export function getCatalogDiagnosticsSnapshot(windowHours = DEFAULT_WINDOW_HOURS
     generatedAt: now.toISOString(),
     metricsStartedAt: store.startedAt,
     windowHours,
+    bucketMinutes,
     summary: {
       totalLoaderCalls,
       totalCacheMisses,

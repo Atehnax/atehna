@@ -153,7 +153,7 @@ const getCheckboxLeftFromTreeStart = (
   return 0;
 };
 
-const InlineStatusToggle = ({
+export const InlineStatusToggle = ({
   checked,
   onToggle,
   disabled,
@@ -3231,11 +3231,14 @@ export default function AdminCategoriesMainTable({
         onLeafProductsDragEnd={onLeafProductsDragEnd}
         sortCatalogItems={sortCatalogItems}
         editingRow={editingRow}
-        onStartTitleEdit={startPreviewTitleEdit}
-        onEditingRowChange={(value) => setEditingRow((prev) => (prev ? { ...prev, title: value } : prev))}
-        onCommitTitleEdit={() => saveInlineEditRef.current()}
-        onCancelTitleEdit={() => setEditingRow(null)}
+        onStartEdit={startPreviewTitleEdit}
+        onEditingRowTitleChange={(value) => setEditingRow((prev) => (prev ? { ...prev, title: value } : prev))}
+        onEditingRowDescriptionChange={(value) => setEditingRow((prev) => (prev ? { ...prev, description: value } : prev))}
+        onCommitEdit={() => saveInlineEditRef.current()}
+        onCancelEdit={() => setEditingRow(null)}
         onOpenNode={openPreviewNode}
+        onStageStatusChange={(rowId, status) => stageStatusChange({ ...statusByRow, [rowId]: status })}
+        onRequestCreateCategory={() => openCreateDialog({ kind: 'category' })}
       />
 
       <ConfirmDialog

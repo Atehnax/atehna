@@ -1,6 +1,6 @@
 import 'server-only';
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { appendFileSync, closeSync, existsSync, openSync, readSync, renameSync, statSync, writeFileSync } from 'node:fs';
+import { appendFileSync, closeSync, existsSync, openSync, readSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -309,9 +309,39 @@ function measureDiagnosticsOverhead<T>(run: () => T): T {
   }
 }
 
+function shouldPersistDiagnosticsContext(context: string) {
+  const normalized = normalizeDiagnosticsContext(context);
+  return normalized.startsWith('/admin') || normalized.startsWith('/api/admin');
+}
+
+function isRecoverableFilesystemError(error: unknown) {
+  return Boolean(
+    error &&
+      typeof error === 'object' &&
+      'code' in error &&
+      ['ENOENT', 'EEXIST', 'EPERM', 'EBUSY'].includes(String((error as { code?: string }).code ?? ''))
+  );
+}
+
+function reportDiagnosticsFailure(operation: string, error: unknown) {
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn(`[catalogDiagnostics] ${operation} failed`, error);
+  }
+}
+
+function runDiagnosticsFsBestEffort(operation: string, run: () => void) {
+  try {
+    run();
+  } catch (error) {
+    reportDiagnosticsFailure(operation, error);
+  }
+}
+
 function appendDiagnosticsEvent(event: DiagnosticsEvent) {
-  measureDiagnosticsOverhead(() => appendFileSync(DIAGNOSTICS_LOG_PATH, `${JSON.stringify(event)}\n`, 'utf8'));
-  compactDiagnosticsLogIfNeeded();
+  runDiagnosticsFsBestEffort('appendDiagnosticsEvent', () => {
+    measureDiagnosticsOverhead(() => appendFileSync(DIAGNOSTICS_LOG_PATH, `${JSON.stringify(event)}\n`, 'utf8'));
+    compactDiagnosticsLogIfNeeded();
+  });
 }
 
 function parseDiagnosticsEvent(rawLine: string): DiagnosticsEvent | null {
@@ -341,34 +371,55 @@ function readRecentLogTail() {
 
 function compactDiagnosticsLog(events: DiagnosticsEvent[]) {
   const nextBody = events.map((event) => JSON.stringify(event)).join('\n');
-  const tempPath = `${DIAGNOSTICS_LOG_PATH}.tmp`;
-  measureDiagnosticsOverhead(() => {
-    writeFileSync(tempPath, nextBody.length > 0 ? `${nextBody}\n` : '', 'utf8');
-    renameSync(tempPath, DIAGNOSTICS_LOG_PATH);
-  });
+  const tempPath = `${DIAGNOSTICS_LOG_PATH}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`;
+
+  try {
+    measureDiagnosticsOverhead(() => {
+      writeFileSync(tempPath, nextBody.length > 0 ? `${nextBody}\n` : '', 'utf8');
+      if (!existsSync(tempPath)) return;
+      renameSync(tempPath, DIAGNOSTICS_LOG_PATH);
+    });
+  } catch (error) {
+    if (!isRecoverableFilesystemError(error)) {
+      reportDiagnosticsFailure('compactDiagnosticsLog', error);
+      return;
+    }
+  } finally {
+    runDiagnosticsFsBestEffort('compactDiagnosticsLog:cleanup', () => {
+      if (existsSync(tempPath)) unlinkSync(tempPath);
+    });
+  }
 }
 
 function compactDiagnosticsLogIfNeeded() {
-  if (!existsSync(DIAGNOSTICS_LOG_PATH)) return;
-  const fileSize = statSync(DIAGNOSTICS_LOG_PATH).size;
-  if (fileSize <= MAX_LOG_BYTES) return;
-  const now = new Date();
-  const { events } = readDiagnosticsEvents(now);
-  compactDiagnosticsLog(events.slice(-MAX_EVENTS));
+  runDiagnosticsFsBestEffort('compactDiagnosticsLogIfNeeded', () => {
+    if (!existsSync(DIAGNOSTICS_LOG_PATH)) return;
+    const fileSize = statSync(DIAGNOSTICS_LOG_PATH).size;
+    if (fileSize <= MAX_LOG_BYTES) return;
+    const now = new Date();
+    const { events } = readDiagnosticsEvents(now);
+    compactDiagnosticsLog(events.slice(-MAX_EVENTS));
+  });
 }
 
 function readDiagnosticsEvents(now: Date): { events: DiagnosticsEvent[]; metricsStartedAt: string } {
   if (!existsSync(DIAGNOSTICS_LOG_PATH)) return { events: [], metricsStartedAt: now.toISOString() };
 
-  const parsedEvents = measureDiagnosticsOverhead(() =>
-    readRecentLogTail()
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .map((line) => parseDiagnosticsEvent(line))
-      .filter((event): event is DiagnosticsEvent => Boolean(event))
-      .sort((left, right) => left.recordedAt.localeCompare(right.recordedAt))
-  );
+  let parsedEvents: DiagnosticsEvent[] = [];
+  try {
+    parsedEvents = measureDiagnosticsOverhead(() =>
+      readRecentLogTail()
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => parseDiagnosticsEvent(line))
+        .filter((event): event is DiagnosticsEvent => Boolean(event))
+        .sort((left, right) => left.recordedAt.localeCompare(right.recordedAt))
+    );
+  } catch (error) {
+    reportDiagnosticsFailure('readDiagnosticsEvents', error);
+    return { events: [], metricsStartedAt: now.toISOString() };
+  }
 
   if (parsedEvents.length === 0) return { events: [], metricsStartedAt: now.toISOString() };
 
@@ -561,6 +612,7 @@ function recordRouteProfile(context: string, totalServerMs: number) {
 export function recordCatalogLoaderMetric(input: RecordLoaderMetricInput) {
   const recordedAt = input.recordedAt ?? new Date();
   const normalizedContext = normalizeDiagnosticsContext(input.context);
+  if (!shouldPersistDiagnosticsContext(normalizedContext)) return;
   const trigger = inferTrigger(normalizedContext, input.loader);
   appendDiagnosticsEvent({
     kind: 'loader',
@@ -578,6 +630,7 @@ export function recordCatalogLoaderMetric(input: RecordLoaderMetricInput) {
 export function recordCatalogInvalidation(input: RecordInvalidationInput) {
   const recordedAt = input.recordedAt ?? new Date();
   const normalizedContext = normalizeDiagnosticsContext(input.context);
+  if (!shouldPersistDiagnosticsContext(normalizedContext)) return;
   appendDiagnosticsEvent({
     kind: 'invalidation',
     recordedAt: recordedAt.toISOString(),

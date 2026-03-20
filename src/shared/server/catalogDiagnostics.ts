@@ -140,8 +140,8 @@ declare global {
   var __catalogDiagnosticsStore: DiagnosticsStore | undefined;
 }
 
-const MAX_BUCKETS = 800;
-const MAX_INVALIDATION_BUCKETS = 240;
+const MAX_BUCKETS = 2400;
+const MAX_INVALIDATION_BUCKETS = 720;
 const MAX_SAMPLES_PER_BUCKET = 256;
 const DEFAULT_WINDOW_HOURS = 24;
 const DEFAULT_WINDOW_MINUTES = DEFAULT_WINDOW_HOURS * 60;
@@ -243,7 +243,7 @@ function pruneStore(now: Date) {
 
 export function recordCatalogLoaderMetric(input: RecordLoaderMetricInput) {
   const recordedAt = input.recordedAt ?? new Date();
-  const bucketStart = floorToBucket(recordedAt, 5).toISOString();
+  const bucketStart = floorToBucket(recordedAt, 1).toISOString();
   const key = bucketKey(input.loader, input.context, bucketStart);
   const trigger = inferTrigger(input.context, input.loader);
   const store = getStore();
@@ -276,7 +276,7 @@ export function recordCatalogLoaderMetric(input: RecordLoaderMetricInput) {
 
 export function recordCatalogInvalidation(input: RecordInvalidationInput) {
   const recordedAt = input.recordedAt ?? new Date();
-  const bucketStart = floorToBucket(recordedAt, 5).toISOString();
+  const bucketStart = floorToBucket(recordedAt, 1).toISOString();
   const tagFamily = [...new Set(input.tags)].sort().join(' + ');
   const key = invalidationKey(input.context, tagFamily, bucketStart);
   const trigger = inferTrigger(input.context, 'save revalidation');

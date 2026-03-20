@@ -18,7 +18,7 @@ const WINDOW_MINUTE_TO_HOURS: Record<string, number> = {
 };
 
 function resolveWindowHours(windowParam?: string) {
-  return WINDOW_MINUTE_TO_HOURS[windowParam ?? ''] ?? 5 / 60;
+  return WINDOW_MINUTE_TO_HOURS[windowParam ?? ''] ?? 0.25;
 }
 
 async function AdminDiagnosticsDashboardSection({

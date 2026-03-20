@@ -175,10 +175,18 @@ const resolveWindowOption = (windowHours: number) =>
 export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
   const activeWindow = resolveWindowOption(windowHours);
   const snapshot = getCatalogDiagnosticsSnapshot(activeWindow.windowHours);
+  const fallbackSnapshot = activeWindow.minutes < 15 ? getCatalogDiagnosticsSnapshot(0.25) : snapshot;
+  const shouldUseFallbackDetails =
+    activeWindow.minutes < 15 &&
+    snapshot.loaders.length === 0 &&
+    snapshot.routes.length === 0 &&
+    snapshot.slowestLoaders.length === 0 &&
+    snapshot.heaviestLoaders.length === 0;
+  const detailsSnapshot = shouldUseFallbackDetails ? fallbackSnapshot : snapshot;
   const callSeries = snapshot.series.map((point) => ({ timestamp: point.bucketStart, label: formatBucketLabel(point.bucketStart, snapshot.bucketMinutes), value: point.calls }));
   const payloadSeries = snapshot.series.map((point) => ({ timestamp: point.bucketStart, label: formatBucketLabel(point.bucketStart, snapshot.bucketMinutes), value: point.totalPayloadBytes }));
-  const topSlowLabel = snapshot.slowestLoaders.length >= 10 ? 'Top 10 po p95 za hitrejšo identifikacijo latency hotspotov.' : `Trenutno prikazanih ${snapshot.slowestLoaders.length} loaderjev z zabeleženim p95.`;
-  const topPayloadLabel = snapshot.heaviestLoaders.length >= 10 ? 'Top 10 po skupnem payloadu v izbranem oknu.' : `Trenutno prikazanih ${snapshot.heaviestLoaders.length} loaderjev z merjenim payloadom.`;
+  const topSlowLabel = detailsSnapshot.slowestLoaders.length >= 10 ? 'Top 10 po p95 za hitrejšo identifikacijo latency hotspotov.' : `Trenutno prikazanih ${detailsSnapshot.slowestLoaders.length} loaderjev z zabeleženim p95.`;
+  const topPayloadLabel = detailsSnapshot.heaviestLoaders.length >= 10 ? 'Top 10 po skupnem payloadu v izbranem oknu.' : `Trenutno prikazanih ${detailsSnapshot.heaviestLoaders.length} loaderjev z merjenim payloadom.`;
 
   return (
     <div className="space-y-6">
@@ -216,6 +224,12 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
         </div>
       </section>
 
+      {shouldUseFallbackDetails ? (
+        <section className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
+          V zadnjih 5 minutah še ni dovolj diagnostičnih klicev za tabele, zato spodnji seznami začasno prikazujejo zadnjih 15 minut. Kratki grafi zgoraj ostanejo v izbranem 5-min oknu.
+        </section>
+      ) : null}
+
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
         <SummaryCard label="Skupni klici" value={formatNumber(snapshot.summary.totalLoaderCalls)} hint={`${snapshot.summary.uniqueLoaders} loaderjev`} />
         <SummaryCard label="Cache missi" value={formatNumber(snapshot.summary.totalCacheMisses)} hint="Dejanske izvedbe ob miss" />
@@ -246,6 +260,7 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
           valueKind="count"
           valueLabel="Klici"
           windowMinutes={activeWindow.minutes}
+          footer={`Točke: ${callSeries.length} · granularnost: ${snapshot.bucketMinutes} min`}
         />
         <AdminDiagnosticsChart
           title="Payload skozi čas"
@@ -255,6 +270,7 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
           valueKind="bytes"
           valueLabel="Payload"
           windowMinutes={activeWindow.minutes}
+          footer={`Točke: ${payloadSeries.length} · granularnost: ${snapshot.bucketMinutes} min`}
         />
       </div>
 
@@ -262,7 +278,7 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
         title="Statistika loaderjev"
         description="Tabela združuje vhodne loaderje in notranje cache izvedbe, zato so missi/hiti prikazani eksplicitno."
         columns={['Loader', 'Sloj', 'Vir', 'Kontekst', 'Klici', 'Missi', 'Hiti', 'Hit %', 'Povpr. ms', 'p95 ms', 'Payload', 'Nazadnje']}
-        rows={snapshot.loaders.slice(0, 12).map((row) => {
+        rows={detailsSnapshot.loaders.slice(0, 12).map((row) => {
           const layer = classifyLoaderLayer(row.loader);
           return [
             <div key="loader"><p className="font-medium text-slate-900">{row.loader}</p></div>,
@@ -285,7 +301,7 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
         title="Statistika poti / kontekstov"
         description="Kontekst pove, ali gre za prikaz strani, API klic ali save/revalidation tok."
         columns={['Pot / kontekst', 'Vir', 'Klici', 'Missi', 'Hiti', 'Povpr. ms', 'Najbolj vroč loader', 'Payload', 'Nazadnje']}
-        rows={snapshot.routes.slice(0, 12).map((row) => [
+        rows={detailsSnapshot.routes.slice(0, 12).map((row) => [
           <code key="context" className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-700">{row.context}</code>,
           <span key="trigger" className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${triggerTone(row.trigger)}`}>{triggerLabel(row.trigger)}</span>,
           formatNumber(row.calls),
@@ -302,13 +318,13 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
         <RankedList
           title="Najpočasnejši loaderji"
           description={topSlowLabel}
-          rows={snapshot.slowestLoaders.map((row) => ({ label: row.loader, context: row.context, value: row.p95DurationMs }))}
+          rows={detailsSnapshot.slowestLoaders.map((row) => ({ label: row.loader, context: row.context, value: row.p95DurationMs }))}
           valueFormatter={(value) => formatDuration(value)}
         />
         <RankedList
           title="Najtežji payloadi"
           description={topPayloadLabel}
-          rows={snapshot.heaviestLoaders.map((row) => ({ label: row.loader, context: row.context, value: row.totalPayloadBytes }))}
+          rows={detailsSnapshot.heaviestLoaders.map((row) => ({ label: row.loader, context: row.context, value: row.totalPayloadBytes }))}
           valueFormatter={(value) => formatBytes(value)}
         />
       </div>
@@ -317,7 +333,7 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
         title="Nedavne invalidacije"
         description="Rolling summary tag invalidacij in route revalidacij; brez surovega event streama."
         columns={['Vir', 'Tag družina', 'Dogodki', 'Revalidirane poti', 'Nazadnje']}
-        rows={snapshot.invalidations.map((row) => [
+        rows={detailsSnapshot.invalidations.map((row) => [
           <div key="trigger"><p className="font-medium text-slate-900">{row.context}</p><p className="text-xs text-slate-500">{triggerLabel(row.trigger)}</p></div>,
           <code key="family" className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-700">{row.tagFamily}</code>,
           formatNumber(row.invalidations),
@@ -329,13 +345,13 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
       <section className="rounded-xl border border-slate-200 bg-white p-4">
         <h2 className="text-sm font-semibold text-slate-900">Opozorila in pričakovanja</h2>
         <div className="mt-3 space-y-2 text-sm">
-          {snapshot.warnings.map((warning, index) => (
+          {detailsSnapshot.warnings.map((warning, index) => (
             <div key={`${warning.context}-${index}`} className={`rounded-lg border px-3 py-2 ${warning.severity === 'warning' ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-sky-200 bg-sky-50 text-sky-900'}`}>
               <p className="font-medium">{warning.context}</p>
               <p className="mt-1">{warning.message}</p>
             </div>
           ))}
-          {snapshot.warnings.length === 0 ? <p className="text-slate-500">Ni zaznanih očitnih odstopanj od trenutnih route budget pravil.</p> : null}
+          {detailsSnapshot.warnings.length === 0 ? <p className="text-slate-500">Ni zaznanih očitnih odstopanj od trenutnih route budget pravil.</p> : null}
         </div>
       </section>
     </div>

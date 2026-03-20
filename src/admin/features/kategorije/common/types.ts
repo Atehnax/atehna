@@ -36,6 +36,10 @@ export type ContentCard = {
   description: string;
   image?: string;
   kind: 'category' | 'subcategory';
+  categorySlug: string;
+  subcategoryPath: string[];
+  openLabel: string;
+  hasChildren: boolean;
   isInactive?: boolean;
 };
 

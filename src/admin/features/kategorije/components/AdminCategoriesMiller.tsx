@@ -149,7 +149,7 @@ export function AdminCategoriesMiller({
   const renderDropMarker = (columnKey: string, index: number) =>
     millerDropTarget?.columnKey === columnKey && millerDropTarget.index === index ? (
       <div className="px-2 py-0.5" aria-hidden="true">
-        <div className="h-[3px] rounded-full bg-[#3e67d6] shadow-[0_0_0_1px_rgba(62,103,214,0.12)]" />
+        <div className="h-[1.5px] rounded-full bg-[#3e67d6] shadow-[0_0_0_1px_rgba(62,103,214,0.12)]" />
       </div>
     ) : null;
 
@@ -267,7 +267,22 @@ export function AdminCategoriesMiller({
               onDragOver={(event) => {
                 event.preventDefault();
                 const parentId = column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget ?? rootId;
-                setMillerDropTarget({ parentId, index: column.rows.length, columnKey: column.key });
+                const rowElements = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('[data-miller-row="true"]'));
+                if (rowElements.length === 0) {
+                  setMillerDropTarget({ parentId, index: 0, columnKey: column.key });
+                  return;
+                }
+
+                const firstRowBounds = rowElements[0].getBoundingClientRect();
+                if (event.clientY <= firstRowBounds.top) {
+                  setMillerDropTarget({ parentId, index: 0, columnKey: column.key });
+                  return;
+                }
+
+                const lastRowBounds = rowElements.at(-1)?.getBoundingClientRect();
+                if (lastRowBounds && event.clientY >= lastRowBounds.bottom) {
+                  setMillerDropTarget({ parentId, index: column.rows.length, columnKey: column.key });
+                }
               }}
               onDrop={(event) => {
                 event.preventDefault();
@@ -298,7 +313,7 @@ export function AdminCategoriesMiller({
                         autoFocus
                       />
                     ) : (
-                      <div key={row.id}>
+                      <div key={row.id} data-miller-row="true">
                         <button
                           type="button"
                           data-miller-id={row.id}
@@ -318,6 +333,7 @@ export function AdminCategoriesMiller({
                           onDragEnd={() => setMillerDropTarget(null)}
                           onDragOver={(event) => {
                             event.preventDefault();
+                            event.stopPropagation();
                             const bounds = event.currentTarget.getBoundingClientRect();
                             const insertAfter = event.clientY >= bounds.top + bounds.height / 2;
                             const index = insertAfter ? rowIndex + 1 : rowIndex;
@@ -325,6 +341,7 @@ export function AdminCategoriesMiller({
                           }}
                           onDrop={(event) => {
                             event.preventDefault();
+                            event.stopPropagation();
                             applyMillerMove(millerDropTarget?.columnKey === column.key ? millerDropTarget : { parentId: row.onDropTarget, index: rowIndex, columnKey: column.key });
                           }}
                         >

@@ -51,7 +51,6 @@ import {
   createCatalogNodeId,
   filterSubcategoryTree,
   findSubcategoryByPath,
-  findSubcategoryById,
   insertAtIndex,
   itemId,
   mapSubcategoryTree,
@@ -69,6 +68,7 @@ import {
   updateSubcategoryTree,
   removeSubcategoryTree
 } from '../common/catalog-helpers';
+import { getAdminCategoriesSessionPayload, setAdminCategoriesSessionPayload } from '../common/client-session';
 import {
   formatCatalogPrice,
   getCatalogCategoryItemPrice,
@@ -466,6 +466,7 @@ export default function AdminCategoriesMainTable({
     stagedMillerHistoryRef.current = [];
     committedHistoryRef.current = [initialSnapshot];
     committedHistoryIndexRef.current = 0;
+    setAdminCategoriesSessionPayload({ categories: payload.categories, statuses: nextStatuses });
   }, []);
 
   const load = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
@@ -493,6 +494,13 @@ export default function AdminCategoriesMainTable({
   }, [toast]);
 
   useEffect(() => {
+    const sessionPayload = getAdminCategoriesSessionPayload();
+    if (sessionPayload) {
+      applyPayloadState(sessionPayload);
+      setLoading(false);
+      return;
+    }
+
     if (initialPayload) {
       applyPayloadState(initialPayload);
       setLoading(false);
@@ -567,10 +575,12 @@ export default function AdminCategoriesMainTable({
   }, [isStatusHeaderMenuOpen]);
 
   const persist = async (next: CatalogData, statuses: Record<string, CategoryStatus>, message = 'Shranjeno') => {
-    const previousCatalog = catalog;
+    const previousTableCatalog = catalog;
+    const previousMillerCatalog = millerCatalog;
     const normalizedNext = normalizeCatalogData(next);
 
     setCatalog(normalizedNext);
+    setMillerCatalog(normalizedNext);
     setSaving(true);
 
     try {
@@ -581,18 +591,24 @@ export default function AdminCategoriesMainTable({
       });
 
       if (!response.ok) {
-        setCatalog(previousCatalog);
+        setCatalog(previousTableCatalog);
+        setMillerCatalog(previousMillerCatalog);
         const payload = (await response.json().catch(() => null)) as { message?: string } | null;
         toast.error(payload?.message || 'Shranjevanje ni uspelo');
-        return false;
+        return null;
       }
 
+      const savedPayload = (await response.json()) as AdminCategoriesPayload & { ok?: boolean };
       toast.success(message);
-      return true;
+      return {
+        categories: normalizeCatalogData(savedPayload).categories,
+        statuses: savedPayload.statuses ?? { ...statuses }
+      } satisfies AdminCategoriesPayload;
     } catch {
-      setCatalog(previousCatalog);
+      setCatalog(previousTableCatalog);
+      setMillerCatalog(previousMillerCatalog);
       toast.error('Shranjevanje ni uspelo');
-      return false;
+      return null;
     } finally {
       setSaving(false);
     }
@@ -1153,28 +1169,46 @@ export default function AdminCategoriesMainTable({
     if (!over || active.id === over.id) return;
 
     if (selected.kind === 'root') {
-      const oldIndex = catalog.categories.findIndex((entry) => entry.slug === active.id);
-      const newIndex = catalog.categories.findIndex((entry) => entry.slug === over.id);
+      const oldIndex = catalog.categories.findIndex((entry) => catId(entry.slug) === active.id);
+      const newIndex = catalog.categories.findIndex((entry) => catId(entry.slug) === over.id);
       if (oldIndex < 0 || newIndex < 0) return;
 
       stageTableCatalog({ categories: arrayMove(catalog.categories, oldIndex, newIndex) });
       return;
     }
 
-    if (selected.kind !== 'category') return;
+    const parsedActive = parseSubNodeId(String(active.id));
+    const parsedOver = parseSubNodeId(String(over.id));
+    if (!parsedActive || !parsedOver || parsedActive.categorySlug !== parsedOver.categorySlug) return;
+    if (parsedActive.subcategoryPath.length !== parsedOver.subcategoryPath.length) return;
 
-    const category = catalog.categories.find((entry) => entry.slug === selected.categorySlug);
-    if (!category) return;
+    const parentPath = parsedActive.subcategoryPath.slice(0, -1);
+    if (!pathEquals(parentPath, parsedOver.subcategoryPath.slice(0, -1))) return;
 
-    const oldIndex = category.subcategories.findIndex((entry) => entry.slug === active.id);
-    const newIndex = category.subcategories.findIndex((entry) => entry.slug === over.id);
+    const category = catalog.categories.find((entry) => entry.slug === parsedActive.categorySlug);
+    const siblings = !category
+      ? []
+      : parentPath.length === 0
+        ? category.subcategories
+        : findSubcategoryByPath(category.subcategories, parentPath)?.subcategories ?? [];
+
+    const oldIndex = siblings.findIndex((entry) => entry.slug === parsedActive.subcategoryPath.at(-1));
+    const newIndex = siblings.findIndex((entry) => entry.slug === parsedOver.subcategoryPath.at(-1));
     if (oldIndex < 0 || newIndex < 0) return;
 
     const next = {
       categories: catalog.categories.map((entry) =>
-        entry.slug === selected.categorySlug
-          ? { ...entry, subcategories: arrayMove(entry.subcategories, oldIndex, newIndex) }
-          : entry
+        entry.slug !== parsedActive.categorySlug
+          ? entry
+          : parentPath.length === 0
+            ? { ...entry, subcategories: arrayMove(entry.subcategories, oldIndex, newIndex) }
+            : {
+                ...entry,
+                subcategories: updateSubcategoryTree(entry.subcategories, parentPath, (node) => ({
+                  ...node,
+                  subcategories: arrayMove(node.subcategories, oldIndex, newIndex)
+                }))
+              }
       )
     };
 
@@ -1644,29 +1678,34 @@ export default function AdminCategoriesMainTable({
 
   const saveMillerChanges = async () => {
     const savedCatalog = normalizeCatalogData(millerCatalog);
-    const ok = await persist(savedCatalog, statusByRow, 'Miller spremembe shranjene');
+    const savedPayload = await persist(savedCatalog, statusByRow, 'Miller spremembe shranjene');
 
-    if (!ok) {
+    if (!savedPayload) {
       setMillerError('Shranjevanje Miller sprememb ni uspelo. Lokalno stanje je ohranjeno.');
       return;
     }
 
-    persistedTableRef.current = savedCatalog;
-    persistedMillerRef.current = savedCatalog;
-    persistedStatusRef.current = { ...statusByRow };
+    const canonicalCatalog = normalizeCatalogData(savedPayload);
+    const canonicalStatuses = savedPayload.statuses ?? {};
+
+    persistedTableRef.current = canonicalCatalog;
+    persistedMillerRef.current = canonicalCatalog;
+    persistedStatusRef.current = { ...canonicalStatuses };
+    setAdminCategoriesSessionPayload({ categories: canonicalCatalog.categories, statuses: canonicalStatuses });
 
     committedHistoryRef.current = committedHistoryRef.current.slice(0, committedHistoryIndexRef.current + 1);
     committedHistoryRef.current.push({
-      catalog: savedCatalog,
-      statuses: { ...statusByRow }
+      catalog: canonicalCatalog,
+      statuses: { ...canonicalStatuses }
     });
     committedHistoryIndexRef.current = committedHistoryRef.current.length - 1;
 
     stagedMillerHistoryRef.current = [];
     stagedTableHistoryRef.current = [];
 
-    setCatalog(savedCatalog);
-    setMillerCatalog(savedCatalog);
+    setCatalog(canonicalCatalog);
+    setMillerCatalog(canonicalCatalog);
+    setStatusByRow(canonicalStatuses);
     setMillerDirty(false);
     setTableDirty(false);
     setMillerError(null);
@@ -1675,29 +1714,34 @@ export default function AdminCategoriesMainTable({
 
   const saveTableChanges = async () => {
     const savedCatalog = normalizeCatalogData(catalog);
-    const ok = await persist(savedCatalog, statusByRow, 'Spremembe shranjene');
+    const savedPayload = await persist(savedCatalog, statusByRow, 'Spremembe shranjene');
 
-    if (!ok) {
+    if (!savedPayload) {
       setTableError('Shranjevanje sprememb ni uspelo. Lokalno stanje je ohranjeno.');
       return;
     }
 
-    persistedTableRef.current = savedCatalog;
-    persistedMillerRef.current = savedCatalog;
-    persistedStatusRef.current = { ...statusByRow };
+    const canonicalCatalog = normalizeCatalogData(savedPayload);
+    const canonicalStatuses = savedPayload.statuses ?? {};
+
+    persistedTableRef.current = canonicalCatalog;
+    persistedMillerRef.current = canonicalCatalog;
+    persistedStatusRef.current = { ...canonicalStatuses };
+    setAdminCategoriesSessionPayload({ categories: canonicalCatalog.categories, statuses: canonicalStatuses });
 
     committedHistoryRef.current = committedHistoryRef.current.slice(0, committedHistoryIndexRef.current + 1);
     committedHistoryRef.current.push({
-      catalog: savedCatalog,
-      statuses: { ...statusByRow }
+      catalog: canonicalCatalog,
+      statuses: { ...canonicalStatuses }
     });
     committedHistoryIndexRef.current = committedHistoryRef.current.length - 1;
 
     stagedTableHistoryRef.current = [];
     stagedMillerHistoryRef.current = [];
 
-    setCatalog(savedCatalog);
-    setMillerCatalog(savedCatalog);
+    setCatalog(canonicalCatalog);
+    setMillerCatalog(canonicalCatalog);
+    setStatusByRow(canonicalStatuses);
     setTableDirty(false);
     setMillerDirty(false);
     setTableError(null);
@@ -2004,31 +2048,86 @@ export default function AdminCategoriesMainTable({
     setImageDeleteTarget(null);
   };
 
+  const openPreviewNode = useCallback((card: ContentCard) => {
+    if (card.kind === 'category') {
+      setSelected({ kind: 'category', categorySlug: card.categorySlug });
+      return;
+    }
+
+    setSelected({
+      kind: 'subcategory',
+      categorySlug: card.categorySlug,
+      subcategoryPath: card.subcategoryPath,
+      subcategorySlug: card.subcategoryPath.at(-1)
+    });
+  }, []);
+
+  const startPreviewTitleEdit = useCallback((card: ContentCard) => {
+    const rowId = card.kind === 'category' ? catId(card.categorySlug) : subId(card.categorySlug, card.subcategoryPath);
+    setEditingRow({
+      id: rowId,
+      kind: card.kind,
+      categorySlug: card.categorySlug,
+      subcategoryPath: card.subcategoryPath,
+      subcategorySlug: card.subcategoryPath.at(-1),
+      title: card.title,
+      description: card.description,
+      status: statusByRow[rowId] ?? 'active'
+    });
+  }, [statusByRow]);
+
   const visibleContent = useMemo(() => {
     if (selectedContext?.kind === 'root') {
       return catalog.categories.map((entry) => ({
-        id: entry.slug,
+        id: catId(entry.slug),
         title: entry.title,
         description: entry.summary,
         image: entry.image,
         kind: 'category' as const,
+        categorySlug: entry.slug,
+        subcategoryPath: [],
+        openLabel: 'Odpri kategorijo',
+        hasChildren: entry.subcategories.length > 0,
         isInactive: (statusByRow[catId(entry.slug)] ?? 'active') === 'inactive'
       }));
     }
 
     if (selectedContext?.kind === 'category') {
       return selectedContext.category.subcategories.map((entry) => ({
-        id: entry.slug,
+        id: subId(selectedContext.category.slug, entry.slug),
         title: entry.title,
         description: entry.description,
         image: entry.image,
         kind: 'subcategory' as const,
+        categorySlug: selectedContext.category.slug,
+        subcategoryPath: [entry.slug],
+        openLabel: 'Odpri podkategorijo',
+        hasChildren: entry.subcategories.length > 0,
         isInactive: (statusByRow[subId(selectedContext.category.slug, entry.slug)] ?? 'active') === 'inactive'
       }));
     }
 
+    if (selectedContext?.kind === 'subcategory') {
+      const parentPath = toSubcategoryPath(selectedContext.subcategory.slug ? (selected.kind === 'subcategory' ? (selected.subcategoryPath ?? selected.subcategorySlug) : undefined) : undefined);
+      return selectedContext.subcategory.subcategories.map((entry) => {
+        const path = [...parentPath, entry.slug];
+        return {
+          id: subId(selectedContext.category.slug, path),
+          title: entry.title,
+          description: entry.description,
+          image: entry.image,
+          kind: 'subcategory' as const,
+          categorySlug: selectedContext.category.slug,
+          subcategoryPath: path,
+          openLabel: 'Odpri podkategorijo',
+          hasChildren: entry.subcategories.length > 0,
+          isInactive: (statusByRow[subId(selectedContext.category.slug, path)] ?? 'active') === 'inactive'
+        };
+      });
+    }
+
     return [];
-  }, [catalog.categories, selectedContext, statusByRow]);
+  }, [catalog.categories, selected, selectedContext, statusByRow]);
 
   const selectedRowSet = useMemo(() => new Set(selectedRows), [selectedRows]);
   const openingRowIdSet = useMemo(() => new Set(openingRowIds), [openingRowIds]);
@@ -3131,6 +3230,12 @@ export default function AdminCategoriesMainTable({
         onImageUpload={onImageUpload}
         onLeafProductsDragEnd={onLeafProductsDragEnd}
         sortCatalogItems={sortCatalogItems}
+        editingRow={editingRow}
+        onStartTitleEdit={startPreviewTitleEdit}
+        onEditingRowChange={(value) => setEditingRow((prev) => (prev ? { ...prev, title: value } : prev))}
+        onCommitTitleEdit={() => saveInlineEditRef.current()}
+        onCancelTitleEdit={() => setEditingRow(null)}
+        onOpenNode={openPreviewNode}
       />
 
       <ConfirmDialog

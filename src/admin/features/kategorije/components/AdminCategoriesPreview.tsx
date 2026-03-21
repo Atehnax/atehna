@@ -27,7 +27,7 @@ import {
   getCatalogItemPrice,
   getCatalogItemSku,
   getDiscountedPrice,
-} from "@/commercial/catalog/catalog";
+} from "@/commercial/catalog/catalogUtils";
 import { Button } from "@/shared/ui/button";
 import type {
   CategoryStatus,

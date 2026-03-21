@@ -70,15 +70,7 @@ import {
   removeSubcategoryTree
 } from '../common/catalog-helpers';
 import { getAdminCategoriesSessionPayload, setAdminCategoriesSessionPayload } from '../common/client-session';
-import {
-  formatCatalogPrice,
-  getCatalogCategoryItemPrice,
-  getCatalogCategoryItemSku,
-  getCatalogItemPrice,
-  getCatalogItemSku,
-  getDiscountedPrice,
-  sortCatalogItems
-} from '@/commercial/catalog/catalog';
+import { sortCatalogItems } from '@/commercial/catalog/catalogUtils';
 import { Button } from '@/shared/ui/button';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { IconButton } from '@/shared/ui/icon-button';

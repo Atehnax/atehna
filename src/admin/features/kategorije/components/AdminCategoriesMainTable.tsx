@@ -216,15 +216,15 @@ function SortableItem({
   children
 }: {
   id: string;
-  children: (dragHandleProps: Record<string, unknown>) => ReactNode;
+  children: (args: { dragHandleProps: Record<string, unknown>; setNodeRef: (node: HTMLElement | null) => void; style: CSSProperties }) => ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
 
-  return (
-    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }}>
-      {children({ ...attributes, ...listeners })}
-    </div>
-  );
+  return children({
+    dragHandleProps: { ...attributes, ...listeners },
+    setNodeRef,
+    style: { transform: CSS.Transform.toString(transform), transition }
+  });
 }
 
 function SortableTreeRow({
@@ -3246,7 +3246,7 @@ export default function AdminCategoriesMainTable({
         onBottomReorder={onBottomReorder}
         renderSortableItem={(id, children) => (
           <SortableItem key={id} id={id}>
-            {(dragProps) => children(dragProps)}
+            {({ dragHandleProps, setNodeRef, style }) => children({ dragHandleProps, setNodeRef, style })}
           </SortableItem>
         )}
         uploadRefs={uploadRefs}

@@ -1,4 +1,9 @@
-import type { FocusEvent, MutableRefObject, ReactNode } from "react";
+import type {
+  CSSProperties,
+  FocusEvent,
+  MutableRefObject,
+  ReactNode,
+} from "react";
 import Image from "next/image";
 import {
   DndContext,
@@ -73,7 +78,11 @@ export function AdminCategoriesPreview({
   onBottomReorder: (event: DragEndEvent) => void;
   renderSortableItem: (
     id: string,
-    children: (dragProps: Record<string, unknown>) => ReactNode,
+    children: (args: {
+      dragHandleProps: Record<string, unknown>;
+      setNodeRef: (node: HTMLElement | null) => void;
+      style: CSSProperties;
+    }) => ReactNode,
   ) => ReactNode;
   uploadRefs: MutableRefObject<Record<string, HTMLInputElement | null>>;
   onSetImageDeleteTarget: (target: {
@@ -199,26 +208,31 @@ export function AdminCategoriesPreview({
               >
                 {visibleContent.map((item) => (
                   <div key={item.id} className="h-full">
-                    {renderSortableItem(item.id, (dragProps) => (
-                      <CategoryPreviewCard
-                        dragProps={dragProps}
-                        item={item}
-                        uploadRefs={uploadRefs}
-                        onSetImageDeleteTarget={onSetImageDeleteTarget}
-                        onImageUpload={onImageUpload}
-                        selectedContext={selectedContext}
-                        editingRow={editingRow}
-                        onStartEdit={onStartEdit}
-                        onEditingRowTitleChange={onEditingRowTitleChange}
-                        onEditingRowDescriptionChange={
-                          onEditingRowDescriptionChange
-                        }
-                        onCommitEdit={onCommitEdit}
-                        onCancelEdit={onCancelEdit}
-                        onOpenNode={onOpenNode}
-                        onStageStatusChange={onStageStatusChange}
-                      />
-                    ))}
+                    {renderSortableItem(
+                      item.id,
+                      ({ dragHandleProps, setNodeRef, style }) => (
+                        <CategoryPreviewCard
+                          dragHandleProps={dragHandleProps}
+                          setNodeRef={setNodeRef}
+                          style={style}
+                          item={item}
+                          uploadRefs={uploadRefs}
+                          onSetImageDeleteTarget={onSetImageDeleteTarget}
+                          onImageUpload={onImageUpload}
+                          selectedContext={selectedContext}
+                          editingRow={editingRow}
+                          onStartEdit={onStartEdit}
+                          onEditingRowTitleChange={onEditingRowTitleChange}
+                          onEditingRowDescriptionChange={
+                            onEditingRowDescriptionChange
+                          }
+                          onCommitEdit={onCommitEdit}
+                          onCancelEdit={onCancelEdit}
+                          onOpenNode={onOpenNode}
+                          onStageStatusChange={onStageStatusChange}
+                        />
+                      ),
+                    )}
                   </div>
                 ))}
                 {selectedContext.kind === "root" ? (
@@ -264,7 +278,9 @@ export function AdminCategoriesPreview({
 }
 
 function CategoryPreviewCard({
-  dragProps,
+  dragHandleProps,
+  setNodeRef,
+  style,
   item,
   uploadRefs,
   onSetImageDeleteTarget,
@@ -279,7 +295,9 @@ function CategoryPreviewCard({
   onOpenNode,
   onStageStatusChange,
 }: {
-  dragProps: Record<string, unknown>;
+  dragHandleProps: Record<string, unknown>;
+  setNodeRef: (node: HTMLElement | null) => void;
+  style: CSSProperties;
   item: ContentCard;
   uploadRefs: MutableRefObject<Record<string, HTMLInputElement | null>>;
   onSetImageDeleteTarget: (target: {
@@ -305,6 +323,10 @@ function CategoryPreviewCard({
   const editingDraft = editingRow?.id === item.id ? editingRow : null;
   const isEditing = Boolean(editingDraft);
   const isHidden = item.isInactive;
+  const titlePreview = item.title || "—";
+  const descriptionPreview = item.description || "—";
+  const shouldShowHoverDetails =
+    titlePreview.length > 50 || descriptionPreview.length > 75;
 
   const triggerImagePicker = () => {
     const input = uploadRefs.current[item.id];
@@ -415,18 +437,27 @@ function CategoryPreviewCard({
       ),
       tone: isHidden ? ("danger" as const) : ("light" as const),
     },
+    {
+      key: "drag",
+      label: "Premakni kategorijo",
+      icon: <DragHandleIcon className="h-4 w-4" />,
+      tone: "light" as const,
+      dragHandle: true,
+    },
   ].filter(Boolean) as Array<{
     key: string;
     label: string;
-    onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
+    onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
     icon: React.ReactNode;
     tone: "light" | "danger";
+    dragHandle?: boolean;
   }>;
 
   return (
     <article
-      {...dragProps}
-      className="group flex h-full min-h-[300px] cursor-grab flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04)] active:cursor-grabbing"
+      ref={setNodeRef}
+      style={style}
+      className="group flex h-full min-h-[300px] flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04)]"
     >
       <div className="group/image relative h-[226px] overflow-hidden">
         <div
@@ -436,7 +467,7 @@ function CategoryPreviewCard({
           {item.image ? (
             <Image
               src={item.image}
-              alt={item.title}
+              alt={titlePreview}
               fill
               className={`object-cover transition duration-200 ${isHidden ? "scale-[1.02] blur-[2px]" : ""}`}
             />
@@ -453,14 +484,17 @@ function CategoryPreviewCard({
             <button
               key={action.key}
               type="button"
-              className={`inline-flex h-8 min-w-[2rem] items-center justify-center rounded-xl border px-0 shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${action.tone === "danger" ? "border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]" : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50"}`}
+              className={`inline-flex h-8 min-w-[2rem] items-center justify-center rounded-xl border px-0 shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${action.tone === "danger" ? "border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]" : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50"} ${action.dragHandle ? "cursor-grab active:cursor-grabbing" : ""}`}
               onPointerDown={(event) => {
-                event.stopPropagation();
-                event.preventDefault();
+                if (!action.dragHandle) {
+                  event.stopPropagation();
+                  event.preventDefault();
+                }
               }}
-              onClick={action.onClick}
+              onClick={action.dragHandle ? undefined : action.onClick}
               aria-label={action.label}
               title={action.label}
+              {...(action.dragHandle ? dragHandleProps : {})}
             >
               {action.icon}
             </button>
@@ -474,12 +508,12 @@ function CategoryPreviewCard({
         ) : null}
       </div>
 
-      <div className="relative flex flex-1 flex-col px-4 pb-4 pt-3">
+      <div className="relative flex h-[132px] flex-none flex-col px-4 pb-4 pt-3">
         <div
           className="absolute inset-x-0 top-0 h-5 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.9),rgba(255,255,255,0)_72%)]"
           aria-hidden="true"
         />
-        <div className="relative min-h-[88px]">
+        <div className="relative flex h-full flex-col">
           <div className="relative min-h-[40px]">
             <div
               className={`min-h-[40px] min-w-0 ${isEditing ? "invisible" : ""}`}
@@ -493,23 +527,23 @@ function CategoryPreviewCard({
                     event.preventDefault();
                   }}
                   onClick={() => onOpenNode(item)}
-                  aria-label={`Odpri ${item.title}`}
+                  aria-label={`Odpri ${titlePreview}`}
                   title={item.openLabel}
                 >
                   <p className="line-clamp-2 min-h-[40px] text-[1.05rem] font-semibold leading-5 text-slate-950">
-                    {item.title}
+                    {titlePreview}
                   </p>
                 </button>
               ) : (
                 <p className="line-clamp-2 min-h-[40px] text-[1.05rem] font-semibold leading-5 text-slate-950">
-                  {item.title}
+                  {titlePreview}
                 </p>
               )}
             </div>
             {isEditing ? (
               <input
                 type="text"
-                value={editingDraft?.title ?? item.title}
+                value={editingDraft?.title ?? titlePreview}
                 onChange={(event) =>
                   onEditingRowTitleChange(event.target.value)
                 }
@@ -529,15 +563,15 @@ function CategoryPreviewCard({
             ) : null}
           </div>
 
-          <div className="relative mt-2 min-h-[60px]">
+          <div className="relative mt-2 min-h-[60px] flex-1">
             <p
               className={`line-clamp-3 min-h-[60px] whitespace-pre-wrap text-sm leading-5 text-slate-950 ${isEditing ? "invisible" : ""}`}
             >
-              {item.description || "—"}
+              {descriptionPreview}
             </p>
             {isEditing ? (
               <textarea
-                value={editingDraft?.description ?? item.description}
+                value={editingDraft?.description ?? descriptionPreview}
                 onChange={(event) =>
                   onEditingRowDescriptionChange(event.target.value)
                 }
@@ -558,6 +592,17 @@ function CategoryPreviewCard({
               />
             ) : null}
           </div>
+
+          {shouldShowHoverDetails && !isEditing ? (
+            <div className="pointer-events-none absolute inset-x-4 bottom-4 z-10 rounded-xl border border-slate-200 bg-white/95 p-3 opacity-0 shadow-lg transition duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+              <p className="whitespace-pre-wrap text-sm font-semibold leading-5 text-slate-950">
+                {titlePreview}
+              </p>
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-5 text-slate-700">
+                {descriptionPreview}
+              </p>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -738,5 +783,22 @@ function LeafProductsView({
         </SortableContext>
       </DndContext>
     </div>
+  );
+}
+
+function DragHandleIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01" />
+    </svg>
   );
 }

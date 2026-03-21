@@ -1,4 +1,4 @@
-import type { MutableRefObject, ReactNode } from 'react';
+import type { FocusEvent, MutableRefObject, ReactNode } from 'react';
 import Image from 'next/image';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
@@ -39,6 +39,7 @@ export function AdminCategoriesPreview({
   onEditingRowTitleChange,
   onEditingRowDescriptionChange,
   onCommitEdit,
+  onEditFieldBlur,
   onCancelEdit,
   onOpenNode,
   onStageStatusChange,
@@ -67,6 +68,7 @@ export function AdminCategoriesPreview({
   onEditingRowTitleChange: (value: string) => void;
   onEditingRowDescriptionChange: (value: string) => void;
   onCommitEdit: () => void;
+  onEditFieldBlur: (event: FocusEvent<HTMLElement>) => void;
   onCancelEdit: () => void;
   onOpenNode: (item: ContentCard) => void;
   onStageStatusChange: (rowId: string, status: CategoryStatus) => void;
@@ -136,6 +138,7 @@ export function AdminCategoriesPreview({
                         onEditingRowTitleChange={onEditingRowTitleChange}
                         onEditingRowDescriptionChange={onEditingRowDescriptionChange}
                         onCommitEdit={onCommitEdit}
+                        onEditFieldBlur={onEditFieldBlur}
                         onCancelEdit={onCancelEdit}
                         onOpenNode={onOpenNode}
                         onStageStatusChange={onStageStatusChange}
@@ -188,6 +191,7 @@ function CategoryPreviewCard({
   onEditingRowTitleChange,
   onEditingRowDescriptionChange,
   onCommitEdit,
+  onEditFieldBlur,
   onCancelEdit,
   onOpenNode,
   onStageStatusChange
@@ -203,12 +207,28 @@ function CategoryPreviewCard({
   onEditingRowTitleChange: (value: string) => void;
   onEditingRowDescriptionChange: (value: string) => void;
   onCommitEdit: () => void;
+  onEditFieldBlur: (event: FocusEvent<HTMLElement>) => void;
   onCancelEdit: () => void;
   onOpenNode: (item: ContentCard) => void;
   onStageStatusChange: (rowId: string, status: CategoryStatus) => void;
 }) {
   const isEditing = editingRow?.id === item.id;
   const isHidden = item.isInactive;
+
+  const triggerImagePicker = () => {
+    const input = uploadRefs.current[item.id];
+    if (!input) return;
+    input.value = '';
+    if (typeof input.showPicker === 'function') {
+      try {
+        input.showPicker();
+        return;
+      } catch {
+        // fall back to click when showPicker is unavailable/restricted
+      }
+    }
+    input.click();
+  };
   const hoverStackButtons = [
     item.image
       ? {
@@ -231,7 +251,7 @@ function CategoryPreviewCard({
       label: 'Dodaj ali zamenjaj sliko',
       onClick: (event: React.MouseEvent<HTMLButtonElement>) => {
         event.stopPropagation();
-        uploadRefs.current[item.id]?.click();
+        triggerImagePicker();
       },
       icon: (
         <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -276,14 +296,14 @@ function CategoryPreviewCard({
   return (
     <article
       {...dragProps}
-      className="group flex min-h-[334px] cursor-grab flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04)] active:cursor-grabbing"
+      className="group flex min-h-[300px] cursor-grab flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04)] active:cursor-grabbing"
     >
       <div className="group/image relative h-[226px] overflow-hidden">
         <button
           type="button"
           className={`absolute inset-0 ${item.image ? 'bg-slate-100' : 'bg-[#323538]'}`}
           onClick={() => uploadRefs.current[item.id]?.click()}
-          onPointerDown={(event) => event.stopPropagation()}
+          onPointerDown={(event) => { event.stopPropagation(); event.preventDefault(); }}
           aria-label={`Uredi sliko za ${item.title}`}
         >
           {item.image ? <Image src={item.image} alt={item.title} fill className={`object-cover transition duration-200 ${isHidden ? 'scale-[1.02] blur-[2px]' : ''}`} /> : null}
@@ -297,7 +317,7 @@ function CategoryPreviewCard({
               key={action.key}
               type="button"
               className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${action.tone === 'brand' ? 'bg-[#2f6bff] text-white shadow-[0_8px_18px_rgba(47,107,255,0.35)] hover:bg-[#2459d6]' : 'border border-black/10 bg-white/96 text-slate-900 shadow-sm hover:bg-white'}`}
-              onPointerDown={(event) => event.stopPropagation()}
+              onPointerDown={(event) => { event.stopPropagation(); event.preventDefault(); }}
               onClick={action.onClick}
               aria-label={action.label}
               title={action.label}
@@ -316,13 +336,13 @@ function CategoryPreviewCard({
 
       <div className="relative flex flex-1 flex-col px-4 pb-4 pt-3">
         <div className="absolute inset-x-0 top-0 h-5 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.9),rgba(255,255,255,0)_72%)]" aria-hidden="true" />
-        <div className="relative min-h-[124px]">
+        <div className="relative min-h-[88px]">
           <div className={isEditing ? 'invisible' : ''}>
             {item.hasChildren ? (
               <button
                 type="button"
                 className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30"
-                onPointerDown={(event) => event.stopPropagation()}
+                onPointerDown={(event) => { event.stopPropagation(); event.preventDefault(); }}
                 onClick={() => onOpenNode(item)}
                 aria-label={`Odpri ${item.title}`}
                 title={item.openLabel}
@@ -339,7 +359,7 @@ function CategoryPreviewCard({
               <Input
                 value={editingRow.title}
                 onChange={(event) => onEditingRowTitleChange(event.target.value)}
-                onBlur={onCommitEdit}
+                onBlur={onEditFieldBlur}
                 data-inline-edit-field="true"
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' && !(event.shiftKey)) {
@@ -355,7 +375,7 @@ function CategoryPreviewCard({
               <textarea
                 value={editingRow.description}
                 onChange={(event) => onEditingRowDescriptionChange(event.target.value)}
-                onBlur={onCommitEdit}
+                onBlur={onEditFieldBlur}
                 data-inline-edit-field="true"
                 onKeyDown={(event) => {
                   if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
@@ -364,7 +384,7 @@ function CategoryPreviewCard({
                   }
                   if (event.key === 'Escape') onCancelEdit();
                 }}
-                className="min-h-[96px] w-full resize-none border-transparent bg-transparent px-0 py-0 text-sm leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                className="min-h-[74px] w-full resize-none border-transparent bg-transparent px-0 py-0 text-sm leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                 aria-label="Opis kategorije"
               />
             </div>
@@ -396,7 +416,7 @@ function CreateCategoryCard({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-[334px] flex-col items-center justify-center rounded-[18px] border border-dashed border-slate-300 bg-slate-50/40 px-6 text-center transition hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/40"
+      className="flex min-h-[300px] flex-col items-center justify-center rounded-[18px] border border-dashed border-slate-300 bg-slate-50/40 px-6 text-center transition hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/40"
       aria-label="Ustvari novo kategorijo"
     >
       <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-slate-600 shadow-sm">

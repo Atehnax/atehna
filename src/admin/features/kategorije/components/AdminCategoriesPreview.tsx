@@ -213,9 +213,9 @@ function CategoryPreviewCard({
   return (
     <article
       {...dragProps}
-      className="group flex min-h-[286px] cursor-grab flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white active:cursor-grabbing"
+      className="group flex min-h-[324px] cursor-grab flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white active:cursor-grabbing"
     >
-      <div className="group/image relative h-[178px] overflow-hidden">
+      <div className="group/image relative h-[218px] overflow-hidden">
         <button
           type="button"
           className={`absolute inset-0 ${item.image ? 'bg-slate-100' : 'bg-[#323538]'}`}
@@ -226,64 +226,62 @@ function CategoryPreviewCard({
           {item.image ? <Image src={item.image} alt={item.title} fill className="object-cover" /> : null}
         </button>
 
-        <div className={`pointer-events-none absolute inset-0 ${isHidden ? 'bg-[linear-gradient(180deg,rgba(15,23,42,0.12)_0%,rgba(15,23,42,0.28)_42%,rgba(15,23,42,0.48)_72%,rgba(15,23,42,0.64)_100%)]' : 'bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(15,23,42,0.04)_42%,rgba(15,23,42,0.14)_72%,rgba(15,23,42,0.32)_100%)]'}`} aria-hidden="true" />
+        <div className={`pointer-events-none absolute inset-0 ${isHidden ? 'bg-[linear-gradient(180deg,rgba(15,23,42,0.12)_0%,rgba(15,23,42,0.3)_38%,rgba(15,23,42,0.52)_68%,rgba(15,23,42,0.64)_100%)]' : 'bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(15,23,42,0.05)_40%,rgba(15,23,42,0.12)_70%,rgba(15,23,42,0.24)_100%)]'}`} aria-hidden="true" />
 
-        <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover/image:opacity-100 group-focus-within/image:opacity-100">
-          <div className="flex items-center gap-2">
+        <div className="absolute right-3 top-3 z-20 flex items-center gap-2 opacity-0 transition-opacity duration-150 group-hover/image:opacity-100 group-focus-within/image:opacity-100">
+          <button
+            type="button"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-black/35 bg-black/35 text-white/90 hover:bg-black/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              uploadRefs.current[item.id]?.click();
+            }}
+            aria-label="Dodaj ali zamenjaj sliko"
+            title="Dodaj ali zamenjaj sliko"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="16" rx="2.8" />
+              <path d="m6.5 15.5 3.7-3.8a1 1 0 0 1 1.42 0L15 15l2-2a1 1 0 0 1 1.42 0l2.08 2.08" />
+              <circle cx="15.5" cy="9.3" r="1.5" />
+            </svg>
+          </button>
+          {item.image ? (
             <button
               type="button"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-black/35 bg-black/35 text-white/90 backdrop-blur-sm hover:bg-black/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-black/35 bg-black/35 text-white/90 hover:bg-black/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => {
                 event.stopPropagation();
-                uploadRefs.current[item.id]?.click();
+                onSetImageDeleteTarget({
+                  kind: item.kind,
+                  categorySlug: item.categorySlug,
+                  subcategorySlug: item.kind === 'subcategory' ? item.subcategoryPath.at(-1) : undefined
+                });
               }}
-              aria-label="Dodaj ali zamenjaj sliko"
-              title="Dodaj ali zamenjaj sliko"
+              aria-label="Odstrani sliko"
+              title="Odstrani sliko"
             >
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="3" y="4" width="18" height="16" rx="2.8" />
-                <path d="m6.5 15.5 3.7-3.8a1 1 0 0 1 1.42 0L15 15l2-2a1 1 0 0 1 1.42 0l2.08 2.08" />
-                <circle cx="15.5" cy="9.3" r="1.5" />
-              </svg>
+              ✕
             </button>
-            {item.image ? (
-              <button
-                type="button"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-black/35 bg-black/35 text-white/90 backdrop-blur-sm hover:bg-black/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onSetImageDeleteTarget({
-                    kind: item.kind,
-                    categorySlug: item.categorySlug,
-                    subcategorySlug: item.kind === 'subcategory' ? item.subcategoryPath.at(-1) : undefined
-                  });
-                }}
-                aria-label="Odstrani sliko"
-                title="Odstrani sliko"
-              >
-                ✕
-              </button>
-            ) : null}
-          </div>
+          ) : null}
         </div>
 
         {isHidden ? (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 text-center text-white">
-            <span className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/20 backdrop-blur-sm">
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 px-5 text-center text-white">
+            <span className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/20">
               <EyeOffIcon className="h-5 w-5" />
             </span>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/90">Skrito</p>
-              <p className="mt-1 text-xs text-white/70">Kategorija ni vidna uporabnikom.</p>
+              <p className="mt-1 text-xs leading-5 text-white/70">Kategorija ni vidna uporabnikom.</p>
             </div>
           </div>
         ) : null}
 
         <div className="absolute inset-x-0 bottom-0 z-20 p-4">
-          <div className="max-w-[92%] rounded-lg bg-white/82 px-3 py-2 backdrop-blur-sm">
-            <div className="relative min-h-[44px]">
+          <div className="max-w-[92%] rounded-lg bg-white/88 px-3 py-3 shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
+            <div className="relative min-h-[96px]">
               <div className={isEditing ? 'invisible' : ''}>
                 {item.hasChildren ? (
                   <button
@@ -299,50 +297,45 @@ function CategoryPreviewCard({
                 ) : (
                   <p className="text-base font-semibold leading-5 text-slate-950">{item.title}</p>
                 )}
+                <p className="mt-1 whitespace-pre-wrap text-sm leading-5 text-slate-950">{item.description || '—'}</p>
               </div>
               {isEditing ? (
-                <Input
-                  value={editingRow.title}
-                  onChange={(event) => onEditingRowTitleChange(event.target.value)}
-                  onBlur={onCommitEdit}
-                  data-inline-edit-field="true"
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !(event.shiftKey)) {
-                      event.preventDefault();
-                      onCommitEdit();
-                    }
-                    if (event.key === 'Escape') onCancelEdit();
-                  }}
-                  className="absolute inset-0 h-full w-full border-transparent bg-transparent px-0 text-base font-semibold leading-5 text-slate-950 shadow-none focus:border-[#3e67d6] focus:ring-0"
-                  autoFocus
-                  aria-label="Naziv kategorije"
-                />
+                <div className="absolute inset-0 space-y-1.5">
+                  <Input
+                    value={editingRow.title}
+                    onChange={(event) => onEditingRowTitleChange(event.target.value)}
+                    onBlur={onCommitEdit}
+                    data-inline-edit-field="true"
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' && !(event.shiftKey)) {
+                        event.preventDefault();
+                        onCommitEdit();
+                      }
+                      if (event.key === 'Escape') onCancelEdit();
+                    }}
+                    className="h-5 w-full border-transparent bg-transparent px-0 text-base font-semibold leading-5 text-slate-950 shadow-none focus:border-[#3e67d6] focus:ring-0"
+                    autoFocus
+                    aria-label="Naziv kategorije"
+                  />
+                  <textarea
+                    value={editingRow.description}
+                    onChange={(event) => onEditingRowDescriptionChange(event.target.value)}
+                    onBlur={onCommitEdit}
+                    data-inline-edit-field="true"
+                    onKeyDown={(event) => {
+                      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+                        event.preventDefault();
+                        onCommitEdit();
+                      }
+                      if (event.key === 'Escape') onCancelEdit();
+                    }}
+                    className="min-h-[70px] w-full resize-none border-transparent bg-transparent px-0 py-0 text-sm leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                    aria-label="Opis kategorije"
+                  />
+                </div>
               ) : null}
             </div>
           </div>
-        </div>
-      </div>
-
-      <div className="px-4 pb-2 pt-3">
-        <div className="relative min-h-[72px]">
-          <p className={`whitespace-pre-wrap text-sm leading-6 text-slate-950 ${isEditing ? 'invisible' : ''}`}>{item.description || '—'}</p>
-          {isEditing ? (
-            <textarea
-              value={editingRow.description}
-              onChange={(event) => onEditingRowDescriptionChange(event.target.value)}
-              onBlur={onCommitEdit}
-              data-inline-edit-field="true"
-              onKeyDown={(event) => {
-                if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-                  event.preventDefault();
-                  onCommitEdit();
-                }
-                if (event.key === 'Escape') onCancelEdit();
-              }}
-              className="absolute inset-0 h-full w-full resize-none border-transparent bg-transparent px-0 py-0 text-sm leading-6 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
-              aria-label="Opis kategorije"
-            />
-          ) : null}
         </div>
       </div>
 

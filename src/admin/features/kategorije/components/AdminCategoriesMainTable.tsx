@@ -73,6 +73,7 @@ import { getAdminCategoriesSessionPayload, setAdminCategoriesSessionPayload } fr
 import { sortCatalogItems } from '@/commercial/catalog/catalogUtils';
 import { Button } from '@/shared/ui/button';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { AdminCategoriesRouteSkeleton } from '@/admin/components/AdminPageSkeletons';
 import { IconButton } from '@/shared/ui/icon-button';
 import { Chip } from '@/shared/ui/badge';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
@@ -83,7 +84,6 @@ import {
   getAdminCategoryRowToneClass
 } from '@/shared/ui/theme/tokens';
 import { Input } from '@/shared/ui/input';
-import { Spinner } from '@/shared/ui/loading';
 import { useToast } from '@/shared/ui/toast';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 const AdminCategoriesPreview = dynamic(() => import('./AdminCategoriesPreview').then((mod) => mod.AdminCategoriesPreview));
@@ -3225,16 +3225,7 @@ export default function AdminCategoriesMainTable({
 
 
   if (loading) {
-    return (
-      <div className="space-y-4">
-        <header>
-          <h1 className="text-2xl font-semibold text-slate-900">Kategorije</h1>
-        </header>
-        <div className="rounded-2xl border border-slate-200 bg-white p-6">
-          <div className="inline-flex items-center gap-2 text-sm text-slate-600"><Spinner size="sm" /> Nalaganje kategorij ...</div>
-        </div>
-      </div>
-    );
+    return <AdminCategoriesRouteSkeleton initialView={activeView} />;
   }
 
   return (

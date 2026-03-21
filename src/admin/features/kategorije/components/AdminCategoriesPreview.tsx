@@ -76,6 +76,10 @@ export function AdminCategoriesPreview({
     selectedContext?.kind === 'subcategory'
       ? ((selectedContext.subcategory as CatalogSubcategory & { subcategories?: CatalogSubcategory[] }).subcategories ?? [])
       : [];
+  const activeEditCard = editingRow ? visibleContent.find((item) => item.id === editingRow.id) : null;
+  const hasActiveEditChanges = editingRow
+    ? editingRow.title.trim() !== (activeEditCard?.title ?? '').trim() || editingRow.description !== (activeEditCard?.description ?? '')
+    : false;
 
   return (
     <div className={activeView === 'preview' ? 'space-y-5' : 'hidden'}>
@@ -114,10 +118,10 @@ export function AdminCategoriesPreview({
               variant="primary"
               size="toolbar"
               onClick={() => {
-                if (editingRow) onCommitEdit();
+                if (hasActiveEditChanges) onCommitEdit();
                 onRequestSave();
               }}
-              disabled={(!tableDirty && !editingRow) || saving}
+              disabled={(!tableDirty && !hasActiveEditChanges) || saving}
             >
               Shrani spremembe
             </Button>
@@ -145,6 +149,8 @@ export function AdminCategoriesPreview({
                         onCommitEdit={onCommitEdit}
                         onCancelEdit={onCancelEdit}
                         onOpenNode={onOpenNode}
+                        canNavigateUp={canNavigateUp}
+                        onNavigateUp={onNavigateUp}
                         onStageStatusChange={onStageStatusChange}
                       />
                     ))}
@@ -197,6 +203,8 @@ function CategoryPreviewCard({
   onCommitEdit,
   onCancelEdit,
   onOpenNode,
+  canNavigateUp,
+  onNavigateUp,
   onStageStatusChange
 }: {
   dragProps: Record<string, unknown>;
@@ -212,6 +220,8 @@ function CategoryPreviewCard({
   onCommitEdit: () => void;
   onCancelEdit: () => void;
   onOpenNode: (item: ContentCard) => void;
+  canNavigateUp: boolean;
+  onNavigateUp: () => void;
   onStageStatusChange: (rowId: string, status: CategoryStatus) => void;
 }) {
   const editingDraft = editingRow?.id === item.id ? editingRow : null;
@@ -308,15 +318,9 @@ function CategoryPreviewCard({
       className="group flex min-h-[300px] cursor-grab flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04)] active:cursor-grabbing"
     >
       <div className="group/image relative h-[226px] overflow-hidden">
-        <button
-          type="button"
-          className={`absolute inset-0 ${item.image ? 'bg-slate-100' : 'bg-[#323538]'}`}
-          onClick={() => uploadRefs.current[item.id]?.click()}
-          onPointerDown={(event) => { event.stopPropagation(); event.preventDefault(); }}
-          aria-label={`Uredi sliko za ${item.title}`}
-        >
+        <div className={`absolute inset-0 ${item.image ? 'bg-slate-100' : 'bg-[#323538]'}`} aria-hidden="true">
           {item.image ? <Image src={item.image} alt={item.title} fill className={`object-cover transition duration-200 ${isHidden ? 'scale-[1.02] blur-[2px]' : ''}`} /> : null}
-        </button>
+        </div>
 
         <div className={`pointer-events-none absolute inset-0 ${isHidden ? 'bg-[linear-gradient(180deg,rgba(15,23,42,0.18)_0%,rgba(15,23,42,0.42)_42%,rgba(15,23,42,0.6)_76%,rgba(15,23,42,0.72)_100%)]' : 'bg-[linear-gradient(180deg,rgba(15,23,42,0.02)_0%,rgba(15,23,42,0.08)_48%,rgba(15,23,42,0.18)_100%)]'}`} aria-hidden="true" />
 
@@ -347,11 +351,12 @@ function CategoryPreviewCard({
         <div className="absolute inset-x-0 top-0 h-5 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.9),rgba(255,255,255,0)_72%)]" aria-hidden="true" />
         <div className="relative min-h-[88px]">
           <div className="relative min-h-[20px]">
-            <div className={isEditing ? 'invisible' : ''}>
-              {item.hasChildren ? (
-                <button
-                  type="button"
-                  className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30"
+            <div className="flex items-start justify-between gap-3">
+              <div className={`min-w-0 flex-1 ${isEditing ? 'invisible' : ''}`}>
+                {item.hasChildren ? (
+                  <button
+                    type="button"
+                    className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30"
                   onPointerDown={(event) => { event.stopPropagation(); event.preventDefault(); }}
                   onClick={() => onOpenNode(item)}
                   aria-label={`Odpri ${item.title}`}
@@ -362,6 +367,22 @@ function CategoryPreviewCard({
               ) : (
                 <p className="text-[1.05rem] font-semibold leading-5 text-slate-950">{item.title}</p>
               )}
+              </div>
+              {canNavigateUp ? (
+                <button
+                  type="button"
+                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30"
+                  onPointerDown={(event) => { event.stopPropagation(); event.preventDefault(); }}
+                  onClick={onNavigateUp}
+                  aria-label="Nazaj na nadrejeno kategorijo"
+                  title="Nazaj"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M9 7 4 12l5 5" />
+                    <path d="M5 12h8c4.418 0 8 3.582 8 8" />
+                  </svg>
+                </button>
+              ) : null}
             </div>
             {isEditing ? (
               <textarea

@@ -14,7 +14,6 @@ import {
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import type { CategoryStatus, ContentCard, EditingRowDraft, SelectedPreviewContext } from '../common/types';
-import { InlineStatusToggle } from './AdminCategoriesMainTable';
 
 export function AdminCategoriesPreview({
   activeView,
@@ -210,141 +209,99 @@ function CategoryPreviewCard({
 }) {
   const isEditing = editingRow?.id === item.id;
   const isHidden = item.isInactive;
+  const statusLabel = isHidden ? 'Skrito' : 'Vidno';
+  const metaLine = item.description?.trim() || (item.kind === 'category' ? 'Kategorija' : 'Podkategorija');
 
   return (
     <article
       {...dragProps}
-      className={`group flex h-[350px] cursor-grab flex-col overflow-hidden rounded-[22px] border bg-white active:cursor-grabbing ${
-        isHidden ? 'border-slate-300 text-slate-500' : 'border-slate-200 text-slate-900'
+      className={`group flex h-[252px] cursor-grab flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white active:cursor-grabbing ${
+        isHidden ? 'text-white' : 'text-slate-900'
       }`}
     >
-      <div className="relative flex min-h-0 flex-1 flex-col">
-        {isHidden ? (
-          <div
-            className="pointer-events-none absolute inset-0 z-[1] bg-[linear-gradient(180deg,rgba(15,23,42,0.18)_0%,rgba(15,23,42,0.28)_34%,rgba(15,23,42,0.42)_72%,rgba(15,23,42,0.5)_100%)]"
-            aria-hidden="true"
-          />
-        ) : null}
-        <div className="relative h-44 w-full overflow-hidden text-left">
+      <div className="relative flex-1 overflow-hidden">
+        <button
+          type="button"
+          className={`absolute inset-0 ${item.image ? 'bg-slate-100' : 'bg-[#323538]'}`}
+          onClick={() => uploadRefs.current[item.id]?.click()}
+          onPointerDown={(event) => event.stopPropagation()}
+          aria-label={`Uredi sliko za ${item.title}`}
+        >
+          {item.image ? <Image src={item.image} alt={item.title} fill className="object-cover" /> : null}
+        </button>
+
+        <div className={`pointer-events-none absolute inset-0 bg-gradient-to-t ${isHidden ? 'from-slate-950/80 via-slate-950/45 to-slate-950/18' : 'from-slate-950/72 via-slate-950/16 to-transparent'}`} aria-hidden="true" />
+
+        <div className="absolute right-3 top-3 z-20 flex items-center justify-center gap-2">
           <button
             type="button"
-            className={`absolute inset-0 ${item.image ? 'bg-slate-100' : 'bg-[#323538]'}`}
-            onClick={() => uploadRefs.current[item.id]?.click()}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-black/35 bg-black/35 text-white/90 backdrop-blur-sm hover:bg-black/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             onPointerDown={(event) => event.stopPropagation()}
-            aria-label={`Uredi sliko za ${item.title}`}
+            onClick={(event) => {
+              event.stopPropagation();
+              uploadRefs.current[item.id]?.click();
+            }}
+            aria-label="Dodaj ali zamenjaj sliko"
+            title="Dodaj ali zamenjaj sliko"
           >
-            {item.image ? <Image src={item.image} alt={item.title} fill className="object-cover" /> : null}
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="16" rx="2.8" />
+              <path d="m6.5 15.5 3.7-3.8a1 1 0 0 1 1.42 0L15 15l2-2a1 1 0 0 1 1.42 0l2.08 2.08" />
+              <circle cx="15.5" cy="9.3" r="1.5" />
+            </svg>
           </button>
-          {isHidden ? (
-            <div className="absolute left-3 top-3 z-20 inline-flex items-center gap-1.5 rounded-md bg-white/90 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-700 shadow-sm">
-              <EyeOffIcon className="h-3.5 w-3.5" />
-              SKRITO
-            </div>
-          ) : null}
-          <div className="absolute right-3 top-3 z-20" onPointerDown={(event) => event.stopPropagation()}>
-            <InlineStatusToggle
-              checked={!isHidden}
-              onToggle={() => onStageStatusChange(item.id, isHidden ? 'active' : 'inactive')}
-              ariaLabel={`Spremeni vidnost za ${item.title}`}
-            />
-          </div>
-          <div className="absolute inset-0 z-20 flex items-center justify-center gap-2">
+          {item.image ? (
             <button
               type="button"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-black/50 bg-black/45 text-white/90 backdrop-blur-sm hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-black/35 bg-black/35 text-white/90 backdrop-blur-sm hover:bg-black/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => {
                 event.stopPropagation();
-                uploadRefs.current[item.id]?.click();
+                onSetImageDeleteTarget({
+                  kind: item.kind,
+                  categorySlug: item.categorySlug,
+                  subcategorySlug: item.kind === 'subcategory' ? item.subcategoryPath.at(-1) : undefined
+                });
               }}
-              aria-label="Dodaj ali zamenjaj sliko"
-              title="Dodaj ali zamenjaj sliko"
+              aria-label="Odstrani sliko"
+              title="Odstrani sliko"
             >
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="3" y="4" width="18" height="16" rx="2.8" />
-                <path d="m6.5 15.5 3.7-3.8a1 1 0 0 1 1.42 0L15 15l2-2a1 1 0 0 1 1.42 0l2.08 2.08" />
-                <circle cx="15.5" cy="9.3" r="1.5" />
-              </svg>
+              ✕
             </button>
-            {item.image ? (
-              <button
-                type="button"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-black/50 bg-black/45 text-white/90 backdrop-blur-sm hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onSetImageDeleteTarget({
-                    kind: item.kind,
-                    categorySlug: item.categorySlug,
-                    subcategorySlug: item.kind === 'subcategory' ? item.subcategoryPath.at(-1) : undefined
-                  });
-                }}
-                aria-label="Odstrani sliko"
-                title="Odstrani sliko"
-              >
-                ✕
-              </button>
-            ) : null}
-          </div>
+          ) : null}
         </div>
 
-        <div className="relative z-10 flex min-h-0 flex-1 flex-col px-4 pb-4 pt-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="relative min-w-0 flex-1">
-              {item.hasChildren ? (
-                <button
-                  type="button"
-                  className={`flex h-9 w-full items-center truncate text-left text-base font-semibold transition hover:text-[#3e67d6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30 ${isHidden ? 'text-slate-500' : 'text-slate-900'} ${isEditing ? 'invisible' : ''}`}
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onClick={() => onOpenNode(item)}
-                  aria-label={`Odpri ${item.title}`}
-                  title={item.openLabel}
-                >
-                  <span className="truncate">{item.title}</span>
-                </button>
-              ) : (
-                <h3 className={`flex h-9 items-center truncate text-base font-semibold ${isHidden ? 'text-slate-500' : 'text-slate-900'} ${isEditing ? 'invisible' : ''}`}><span className="truncate">{item.title}</span></h3>
-              )}
-              {isEditing ? (
-                <Input
-                  value={editingRow.title}
-                  onChange={(event) => onEditingRowTitleChange(event.target.value)}
-                  onBlur={onCommitEdit}
-                  data-inline-edit-field="true"
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !(event.shiftKey)) {
-                      event.preventDefault();
-                      onCommitEdit();
-                    }
-                    if (event.key === 'Escape') onCancelEdit();
-                  }}
-                  className="absolute inset-0 h-9 w-full border-transparent bg-transparent px-0 text-base font-semibold leading-6 shadow-none focus:border-[#3e67d6] focus:ring-0"
-                  autoFocus
-                  aria-label="Naziv kategorije"
-                />
-              ) : null}
+        {isHidden ? (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 text-center text-white">
+            <span className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/20 backdrop-blur-sm">
+              <EyeOffIcon className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/85">Skrita kategorija</p>
+              <p className="mt-1 text-xs text-white/65">Ni prikazana na storefrontu.</p>
             </div>
-            <button
-              type="button"
-              className="inline-flex h-9 w-5 shrink-0 items-center justify-end text-slate-500 transition hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30"
-              onPointerDown={(event) => {
-                event.stopPropagation();
-                if (isEditing) event.preventDefault();
-              }}
-              onClick={() => { if (isEditing) { onCancelEdit(); return; } onStartEdit(item); }}
-              aria-label={`${isEditing ? 'Zapri urejanje za' : 'Uredi'} ${item.kind === 'category' ? 'kategorijo' : 'podkategorijo'} ${item.title}`}
-              title={isEditing ? 'Zapri urejanje' : 'Uredi'}
-            >
-              <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
-                <path d="M11.5 4.5l3 3" />
-              </svg>
-            </button>
           </div>
+        ) : null}
 
-          <div className="relative mt-3 min-h-[88px] flex-1">
-            <p className={`line-clamp-3 text-sm leading-6 ${isHidden ? 'text-slate-500' : 'text-slate-600'} ${isEditing ? 'invisible' : ''}`}>{item.description || '—'}</p>
-            {isEditing ? (
+        <div className="absolute inset-x-0 bottom-0 z-20 p-4">
+          {isEditing ? (
+            <div className="space-y-2 rounded-xl bg-black/38 p-3 backdrop-blur-sm">
+              <Input
+                value={editingRow.title}
+                onChange={(event) => onEditingRowTitleChange(event.target.value)}
+                onBlur={onCommitEdit}
+                data-inline-edit-field="true"
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !(event.shiftKey)) {
+                    event.preventDefault();
+                    onCommitEdit();
+                  }
+                  if (event.key === 'Escape') onCancelEdit();
+                }}
+                className="h-9 w-full border-white/10 bg-white/95 px-3 text-base font-semibold text-slate-900 shadow-none focus:border-[#3e67d6] focus:ring-0"
+                autoFocus
+                aria-label="Naziv kategorije"
+              />
               <textarea
                 value={editingRow.description}
                 onChange={(event) => onEditingRowDescriptionChange(event.target.value)}
@@ -357,30 +314,87 @@ function CategoryPreviewCard({
                   }
                   if (event.key === 'Escape') onCancelEdit();
                 }}
-                className="absolute inset-0 h-full min-h-[88px] w-full resize-none rounded-md border border-transparent bg-transparent px-0 py-0 text-sm leading-6 text-slate-700 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                className="min-h-[64px] w-full resize-none rounded-md border border-white/10 bg-white/92 px-3 py-2 text-sm leading-5 text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                 aria-label="Opis kategorije"
               />
-            ) : null}
-          </div>
+            </div>
+          ) : (
+            <div className="max-w-[85%]">
+              {item.hasChildren ? (
+                <button
+                  type="button"
+                  className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={() => onOpenNode(item)}
+                  aria-label={`Odpri ${item.title}`}
+                  title={item.openLabel}
+                >
+                  <p className="truncate text-[1.05rem] font-semibold leading-5 text-white">{item.title}</p>
+                  <p className="mt-1 truncate text-xs font-medium text-white/78">{metaLine}</p>
+                </button>
+              ) : (
+                <>
+                  <p className="truncate text-[1.05rem] font-semibold leading-5 text-white">{item.title}</p>
+                  <p className="mt-1 truncate text-xs font-medium text-white/78">{metaLine}</p>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
+      <div className="flex h-11 items-center justify-between px-4 text-sm">
+        <button
+          type="button"
+          className={`inline-flex items-center gap-2 text-left ${isHidden ? 'text-slate-500' : 'text-slate-700'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30`}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={() => onStageStatusChange(item.id, isHidden ? 'active' : 'inactive')}
+          aria-label={`Spremeni vidnost za ${item.title}`}
+        >
+          {isHidden ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+          <span>{statusLabel}</span>
+        </button>
+
+        <button
+          type="button"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[#3659d6] transition hover:text-[#2348c7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30"
+          onPointerDown={(event) => {
+            event.stopPropagation();
+            if (isEditing) event.preventDefault();
+          }}
+          onClick={() => {
+            if (isEditing) {
+              onCancelEdit();
+              return;
+            }
+            onStartEdit(item);
+          }}
+          aria-label={`${isEditing ? 'Zapri urejanje za' : 'Uredi'} ${item.kind === 'category' ? 'kategorijo' : 'podkategorijo'} ${item.title}`}
+          title={isEditing ? 'Zapri urejanje' : 'Uredi'}
+        >
+          <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+            <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
+            <path d="M11.5 4.5l3 3" />
+          </svg>
+          <span>Uredi</span>
+        </button>
+      </div>
 
       <input
-          ref={(element) => {
-            uploadRefs.current[item.id] = element;
-          }}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(event) =>
-            void onImageUpload(
-              event.target.files?.[0] ?? null,
-              item,
-              selectedContext?.kind === 'category' ? selectedContext.category.slug : undefined
-            )
-          }
-        />
+        ref={(element) => {
+          uploadRefs.current[item.id] = element;
+        }}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) =>
+          void onImageUpload(
+            event.target.files?.[0] ?? null,
+            item,
+            selectedContext?.kind === 'category' ? selectedContext.category.slug : undefined
+          )
+        }
+      />
     </article>
   );
 }
@@ -400,6 +414,15 @@ function CreateCategoryCard({ onClick }: { onClick: () => void }) {
       </span>
       <span className="mt-6 text-xl font-semibold text-slate-900">Ustvari novo kategorijo</span>
     </button>
+  );
+}
+
+function EyeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M1.5 12s3.75-6.75 10.5-6.75S22.5 12 22.5 12s-3.75 6.75-10.5 6.75S1.5 12 1.5 12Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
   );
 }
 

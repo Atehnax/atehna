@@ -110,7 +110,15 @@ export function AdminCategoriesPreview({
                 <path d="M5 12h8c4.418 0 8 3.582 8 8" />
               </svg>
             </Button>
-            <Button variant="primary" size="toolbar" onClick={onRequestSave} disabled={!tableDirty || saving}>
+            <Button
+              variant="primary"
+              size="toolbar"
+              onClick={() => {
+                if (editingRow) onCommitEdit();
+                onRequestSave();
+              }}
+              disabled={(!tableDirty && !editingRow) || saving}
+            >
               Shrani spremembe
             </Button>
           </div>
@@ -338,25 +346,24 @@ function CategoryPreviewCard({
       <div className="relative flex flex-1 flex-col px-4 pb-4 pt-3">
         <div className="absolute inset-x-0 top-0 h-5 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.9),rgba(255,255,255,0)_72%)]" aria-hidden="true" />
         <div className="relative min-h-[88px]">
-          <div className={isEditing ? 'invisible' : ''}>
-            {item.hasChildren ? (
-              <button
-                type="button"
-                className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30"
-                onPointerDown={(event) => { event.stopPropagation(); event.preventDefault(); }}
-                onClick={() => onOpenNode(item)}
-                aria-label={`Odpri ${item.title}`}
-                title={item.openLabel}
-              >
+          <div className="relative min-h-[20px]">
+            <div className={isEditing ? 'invisible' : ''}>
+              {item.hasChildren ? (
+                <button
+                  type="button"
+                  className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30"
+                  onPointerDown={(event) => { event.stopPropagation(); event.preventDefault(); }}
+                  onClick={() => onOpenNode(item)}
+                  aria-label={`Odpri ${item.title}`}
+                  title={item.openLabel}
+                >
+                  <p className="text-[1.05rem] font-semibold leading-5 text-slate-950">{item.title}</p>
+                </button>
+              ) : (
                 <p className="text-[1.05rem] font-semibold leading-5 text-slate-950">{item.title}</p>
-              </button>
-            ) : (
-              <p className="text-[1.05rem] font-semibold leading-5 text-slate-950">{item.title}</p>
-            )}
-            <p className="mt-2 whitespace-pre-wrap text-sm leading-5 text-slate-950">{item.description || '—'}</p>
-          </div>
-          {isEditing ? (
-            <div className="absolute inset-0 flex flex-col gap-2">
+              )}
+            </div>
+            {isEditing ? (
               <textarea
                 value={editingDraft?.title ?? item.title}
                 onChange={(event) => onEditingRowTitleChange(event.target.value)}
@@ -369,10 +376,16 @@ function CategoryPreviewCard({
                   }
                   if (event.key === 'Escape') onCancelEdit();
                 }}
-                className="h-5 w-full resize-none border-transparent bg-transparent px-0 py-0 text-[1.05rem] font-semibold leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                className="absolute inset-0 h-5 w-full resize-none border-transparent bg-transparent px-0 py-0 text-[1.05rem] font-semibold leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                 autoFocus
                 aria-label="Naziv kategorije"
               />
+            ) : null}
+          </div>
+
+          <div className="relative mt-2 min-h-[54px]">
+            <p className={`whitespace-pre-wrap text-sm leading-5 text-slate-950 ${isEditing ? 'invisible' : ''}`}>{item.description || '—'}</p>
+            {isEditing ? (
               <textarea
                 value={editingDraft?.description ?? item.description}
                 onChange={(event) => onEditingRowDescriptionChange(event.target.value)}
@@ -385,11 +398,11 @@ function CategoryPreviewCard({
                   }
                   if (event.key === 'Escape') onCancelEdit();
                 }}
-                className="min-h-[74px] w-full resize-none border-transparent bg-transparent px-0 py-0 text-sm leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                className="absolute inset-0 min-h-[54px] w-full resize-none border-transparent bg-transparent px-0 py-0 text-sm leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                 aria-label="Opis kategorije"
               />
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </div>
       </div>
 

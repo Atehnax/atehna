@@ -12,6 +12,14 @@ import {
 
 type CategoryStatus = 'active' | 'inactive';
 type CatalogDataWithStatuses = CatalogData & { statuses: Record<string, CategoryStatus> };
+type CatalogPreviewSubcategory = Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'image' | 'items'> & {
+  subcategories: CatalogPreviewSubcategory[];
+};
+type CatalogPreviewCategory = Pick<RecursiveCatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'items'> & {
+  subcategories: CatalogPreviewSubcategory[];
+};
+type CatalogPreviewData = { categories: CatalogPreviewCategory[] };
+type CatalogPreviewDataWithStatuses = CatalogPreviewData & { statuses: Record<string, CategoryStatus> };
 
 export const CATALOG_PUBLIC_TAG = 'catalog-public';
 export const CATALOG_ADMIN_TAG = 'catalog-admin';
@@ -152,6 +160,31 @@ function rowToSubcategory(row: CategoryRow): RecursiveCatalogSubcategory {
   };
 }
 
+function rowToPreviewCategory(row: CategoryRow): CatalogPreviewCategory {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    summary: row.summary,
+    description: row.description,
+    image: row.image,
+    items: getRowItems(row),
+    subcategories: []
+  };
+}
+
+function rowToPreviewSubcategory(row: CategoryRow): CatalogPreviewSubcategory {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    description: row.description,
+    image: row.image,
+    items: getRowItems(row),
+    subcategories: []
+  };
+}
+
 function buildDefaultStatuses(categories: RecursiveCatalogCategory[]): Record<string, CategoryStatus> {
   const statuses: Record<string, CategoryStatus> = {};
 
@@ -244,6 +277,97 @@ async function readCatalogDataFromDatabase(
 
   const normalizedPayload = includeStatuses ? payload : { categories: payload.categories };
   profilePayloadEstimate('readCatalogDataFromDatabase:payload', normalizedPayload);
+  return normalizedPayload;
+}
+
+function buildPreviewSubcategoryTree(
+  parentId: string,
+  topCategorySlug: string,
+  childrenByParent: Map<string, CategoryRow[]>,
+  statuses: Record<string, CategoryStatus>,
+  parentPath: string[] = []
+): CatalogPreviewSubcategory[] {
+  const children = childrenByParent.get(parentId) ?? [];
+
+  return children.map((row) => {
+    const currentPath = [...parentPath, row.slug];
+    const node = rowToPreviewSubcategory(row);
+
+    statuses[`sub:${topCategorySlug}:${currentPath.join('__')}`] = normalizeStatus(row.status);
+    node.subcategories = buildPreviewSubcategoryTree(row.id, topCategorySlug, childrenByParent, statuses, currentPath);
+
+    return node;
+  });
+}
+
+async function readCatalogPreviewDataFromDatabase(
+  options: { includeInactive?: boolean; includeStatuses?: boolean } = {}
+): Promise<CatalogPreviewData | CatalogPreviewDataWithStatuses> {
+  const { includeInactive = false, includeStatuses = false } = options;
+
+  if (!getDatabaseUrl()) {
+    const normalized = await readCatalogFile();
+    const previewPayload: CatalogPreviewData = {
+      categories: normalized.categories.map((category) => ({
+        id: category.id,
+        slug: category.slug,
+        title: category.title,
+        summary: category.summary,
+        description: category.description,
+        image: category.image,
+        items: category.items,
+        subcategories: category.subcategories.map(function mapSubcategories(node): CatalogPreviewSubcategory {
+          return {
+            id: node.id,
+            slug: node.slug,
+            title: node.title,
+            description: node.description,
+            image: node.image ?? '',
+            items: node.items,
+            subcategories: node.subcategories.map(mapSubcategories)
+          };
+        })
+      }))
+    };
+
+    return includeStatuses
+      ? { ...previewPayload, statuses: buildDefaultStatuses(normalized.categories) }
+      : previewPayload;
+  }
+
+  await ensureTable();
+  await seedIfEmpty();
+
+  const pool = await getPool();
+  const result = await profileRoutePhase('db', 'readCatalogPreviewDataFromDatabase:allRows', () => pool.query(`
+    select id, parent_id, slug, title, summary, description, image, items, position, status
+    from catalog_categories
+    ${includeInactive ? '' : "where status = 'active'"}
+    order by coalesce(parent_id, ''), position asc, title asc
+  `));
+
+  const rows = result.rows as Array<Pick<CategoryRow, 'id' | 'parent_id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'items' | 'position' | 'status'>>;
+  const topLevel = rows.filter((row) => row.parent_id === null);
+  const childrenByParent = new Map<string, CategoryRow[]>();
+
+  for (const row of rows) {
+    if (!row.parent_id) continue;
+    const list = childrenByParent.get(row.parent_id) ?? [];
+    list.push(row as CategoryRow);
+    childrenByParent.set(row.parent_id, list);
+  }
+
+  const statuses: Record<string, CategoryStatus> = {};
+  const categories = topLevel.map((row) => {
+    const category = rowToPreviewCategory(row as CategoryRow);
+    statuses[`cat:${row.slug}`] = normalizeStatus(row.status);
+    category.subcategories = buildPreviewSubcategoryTree(row.id, row.slug, childrenByParent, statuses);
+    return category;
+  });
+
+  const payload: CatalogPreviewDataWithStatuses = { categories, statuses };
+  const normalizedPayload = includeStatuses ? payload : { categories: payload.categories };
+  profilePayloadEstimate('readCatalogPreviewDataFromDatabase:payload', normalizedPayload);
   return normalizedPayload;
 }
 
@@ -578,6 +702,16 @@ const getCachedCatalogAdminDataFromDatabase = unstable_cache(
   { tags: [CATALOG_PUBLIC_TAG, CATALOG_ADMIN_TAG] }
 );
 
+const getCachedCatalogAdminPreviewDataFromDatabase = unstable_cache(
+  async () => instrumentCatalogCacheMiss(
+    'getCachedCatalogAdminPreviewDataFromDatabase',
+    '/admin/kategorije/predogled',
+    async () => readCatalogPreviewDataFromDatabase({ includeInactive: true, includeStatuses: true }) as Promise<CatalogPreviewDataWithStatuses>
+  ),
+  ['catalog-data-admin-preview'],
+  { tags: [CATALOG_PUBLIC_TAG, CATALOG_ADMIN_TAG] }
+);
+
 const getCachedCatalogCategoryCardsFromDatabase = unstable_cache(
   async () => instrumentCatalogCacheMiss('getCachedCatalogCategoryCardsFromDatabase', 'catalog:category-cards', () => readCatalogCategoryCardsFromDatabase()),
   ['catalog-category-cards'],
@@ -609,6 +743,104 @@ export async function getCatalogDataFromDatabase(
 
     return getCachedCatalogDataFromDatabase();
   });
+}
+
+export async function getCatalogPreviewDataFromDatabase(
+  options: { includeInactive?: boolean; includeStatuses?: boolean; diagnosticsContext?: string } = {}
+): Promise<CatalogPreviewData | CatalogPreviewDataWithStatuses> {
+  const { includeInactive = false, includeStatuses = false, diagnosticsContext } = options;
+  const context = diagnosticsContext ?? '/admin/kategorije/predogled';
+
+  return instrumentCatalogLoader('getCatalogPreviewDataFromDatabase', context, async () => {
+    if (includeInactive || includeStatuses) {
+      return getCachedCatalogAdminPreviewDataFromDatabase();
+    }
+
+    return readCatalogPreviewDataFromDatabase();
+  });
+}
+
+type CatalogRowPatch = {
+  id: string;
+  parentId: string | null;
+  slug: string;
+  title: string;
+  summary: string;
+  description: string;
+  image: string;
+  adminNotes?: string | null;
+  bannerImage?: string | null;
+  items: CatalogItem[];
+  position: number;
+  status: CategoryStatus;
+};
+
+export async function patchCategoryTree(
+  patches: { upserts: CatalogRowPatch[]; deleteIds: string[] }
+): Promise<void> {
+  const { upserts, deleteIds } = patches;
+
+  if (!getDatabaseUrl()) return;
+  if (upserts.length === 0 && deleteIds.length === 0) return;
+
+  await ensureTable();
+  const pool = await getPool();
+  const client = await pool.connect();
+
+  try {
+    await client.query('begin');
+
+    for (const patch of upserts) {
+      await client.query(
+        `
+          insert into catalog_categories
+            (id, parent_id, slug, title, summary, description, image, admin_notes, banner_image, items, position, status, updated_at)
+          values
+            ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11, $12, now())
+          on conflict (id) do update set
+            parent_id = excluded.parent_id,
+            slug = excluded.slug,
+            title = excluded.title,
+            summary = excluded.summary,
+            description = excluded.description,
+            image = excluded.image,
+            admin_notes = excluded.admin_notes,
+            banner_image = excluded.banner_image,
+            items = excluded.items,
+            position = excluded.position,
+            status = excluded.status,
+            updated_at = now()
+        `,
+        [
+          patch.id,
+          patch.parentId,
+          patch.slug,
+          patch.title,
+          patch.summary,
+          patch.description,
+          patch.image,
+          patch.adminNotes ?? null,
+          patch.bannerImage ?? null,
+          JSON.stringify(Array.isArray(patch.items) ? patch.items : []),
+          patch.position,
+          patch.status
+        ]
+      );
+    }
+
+    if (deleteIds.length > 0) {
+      await client.query('delete from catalog_categories where id = any($1::text[])', [deleteIds]);
+    }
+
+    await client.query('commit');
+    revalidateTag(CATALOG_PUBLIC_TAG);
+    revalidateTag(CATALOG_ADMIN_TAG);
+  } catch (error) {
+    await client.query('rollback');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function getCatalogCategoryCardsFromDatabase(diagnosticsContext = 'catalog:category-cards'): Promise<CatalogCategoryCard[]> {

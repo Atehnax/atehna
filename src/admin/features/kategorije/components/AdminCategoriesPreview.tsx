@@ -4,6 +4,7 @@ import type {
   MutableRefObject,
   ReactNode,
 } from "react";
+import { memo } from "react";
 import Image from "next/image";
 import {
   DndContext,
@@ -219,7 +220,6 @@ export function AdminCategoriesPreview({
                           uploadRefs={uploadRefs}
                           onSetImageDeleteTarget={onSetImageDeleteTarget}
                           onImageUpload={onImageUpload}
-                          selectedContext={selectedContext}
                           editingRow={editingRow}
                           onStartEdit={onStartEdit}
                           onEditingRowTitleChange={onEditingRowTitleChange}
@@ -277,7 +277,7 @@ export function AdminCategoriesPreview({
   );
 }
 
-function CategoryPreviewCard({
+const CategoryPreviewCard = memo(function CategoryPreviewCard({
   dragHandleProps,
   setNodeRef,
   style,
@@ -285,7 +285,6 @@ function CategoryPreviewCard({
   uploadRefs,
   onSetImageDeleteTarget,
   onImageUpload,
-  selectedContext,
   editingRow,
   onStartEdit,
   onEditingRowTitleChange,
@@ -310,7 +309,6 @@ function CategoryPreviewCard({
     item: ContentCard,
     categorySlug?: string,
   ) => Promise<void>;
-  selectedContext: SelectedPreviewContext;
   editingRow: EditingRowDraft | null;
   onStartEdit: (item: ContentCard) => void;
   onEditingRowTitleChange: (value: string) => void;
@@ -469,6 +467,7 @@ function CategoryPreviewCard({
               src={item.image}
               alt={titlePreview}
               fill
+              sizes="(min-width: 1536px) 18vw, (min-width: 1280px) 22vw, (min-width: 1024px) 28vw, (min-width: 768px) 33vw, 50vw"
               className={`object-cover transition duration-200 ${isHidden ? "scale-[1.02] blur-[2px]" : ""}`}
             />
           ) : null}
@@ -613,18 +612,32 @@ function CategoryPreviewCard({
         accept="image/*"
         className="hidden"
         onChange={(event) =>
-          void onImageUpload(
-            event.target.files?.[0] ?? null,
-            item,
-            selectedContext?.kind === "category"
-              ? selectedContext.category.slug
-              : undefined,
-          )
+          void onImageUpload(event.target.files?.[0] ?? null, item)
         }
       />
     </article>
   );
-}
+}, (prev, next) => {
+  const prevEditingDraft = prev.editingRow?.id === prev.item.id ? prev.editingRow : null;
+  const nextEditingDraft = next.editingRow?.id === next.item.id ? next.editingRow : null;
+
+  return prev.item === next.item
+    && prev.onSetImageDeleteTarget === next.onSetImageDeleteTarget
+    && prev.onImageUpload === next.onImageUpload
+    && prev.onStartEdit === next.onStartEdit
+    && prev.onEditingRowTitleChange === next.onEditingRowTitleChange
+    && prev.onEditingRowDescriptionChange === next.onEditingRowDescriptionChange
+    && prev.onCommitEdit === next.onCommitEdit
+    && prev.onCancelEdit === next.onCancelEdit
+    && prev.onOpenNode === next.onOpenNode
+    && prev.onStageStatusChange === next.onStageStatusChange
+    && prev.uploadRefs === next.uploadRefs
+    && prev.style.transform === next.style.transform
+    && prev.style.transition === next.style.transition
+    && prevEditingDraft?.title === nextEditingDraft?.title
+    && prevEditingDraft?.description === nextEditingDraft?.description
+    && prevEditingDraft?.status === nextEditingDraft?.status;
+});
 
 function CreateCategoryCard({ onClick }: { onClick: () => void }) {
   return (

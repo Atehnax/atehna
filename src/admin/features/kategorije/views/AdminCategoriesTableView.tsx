@@ -98,6 +98,8 @@ export function AdminCategoriesTableView({
           contentClassName="overflow-x-auto"
           headerLeft={
             <input
+              id="categories-table-search"
+              name="categoriesTableSearch"
               value={query}
               onChange={(event) => onQueryChange(event.target.value)}
               placeholder="Išči po kategoriji ali opisu ..."
@@ -143,7 +145,7 @@ export function AdminCategoriesTableView({
                 </colgroup>
                 <thead className="bg-slate-50/90">
                   <tr>
-                    <th className="border-b border-slate-200 px-2 py-2 text-center text-xs font-semibold text-slate-500"><input ref={selectAllRef} type="checkbox" checked={allRowsSelected} onChange={onToggleSelectAll} aria-label="Izberi vse" /></th>
+                    <th className="border-b border-slate-200 px-2 py-2 text-center text-xs font-semibold text-slate-500"><input id="categories-select-all" name="categoriesSelectAll" ref={selectAllRef} type="checkbox" checked={allRowsSelected} onChange={onToggleSelectAll} aria-label="Izberi vse" /></th>
                     <th className="border-b border-slate-200 px-3 py-0 text-left text-xs font-semibold text-slate-500 align-middle">
                       <div className="relative flex h-12 items-center gap-2 overflow-visible px-1">
                         <div className="relative shrink-0 overflow-visible" style={{ width: `${treeButtonDiameter}px`, height: `${treeRowHeight}px` }}>

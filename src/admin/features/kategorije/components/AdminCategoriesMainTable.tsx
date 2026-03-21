@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode, type CSSProperties } from 'react';
+import dynamic from 'next/dynamic';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   DndContext,
@@ -93,9 +94,9 @@ import { Input } from '@/shared/ui/input';
 import { Spinner } from '@/shared/ui/loading';
 import { useToast } from '@/shared/ui/toast';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
-import { AdminCategoriesPreview } from './AdminCategoriesPreview';
-import { AdminCategoriesMiller } from './AdminCategoriesMiller';
-import { AdminCategoriesTableView } from '../views/AdminCategoriesTableView';
+const AdminCategoriesPreview = dynamic(() => import('./AdminCategoriesPreview').then((mod) => mod.AdminCategoriesPreview));
+const AdminCategoriesMiller = dynamic(() => import('./AdminCategoriesMiller').then((mod) => mod.AdminCategoriesMiller));
+const AdminCategoriesTableView = dynamic(() => import('../views/AdminCategoriesTableView').then((mod) => mod.AdminCategoriesTableView));
 
 type RecursiveNode = RecursiveCatalogSubcategory;
 type MillerSearchMatch =
@@ -121,6 +122,26 @@ type MillerDropLocation = {
 type TreeNodeRef =
   | { kind: 'category'; category: RecursiveCatalogCategory; categoryIndex: number }
   | { kind: 'subcategory'; category: RecursiveCatalogCategory; node: RecursiveCatalogSubcategory; path: string[] };
+
+type CatalogRowSnapshot = {
+  id: string;
+  parentId: string | null;
+  slug: string;
+  title: string;
+  summary: string;
+  description: string;
+  image: string;
+  adminNotes?: string | null;
+  bannerImage?: string | null;
+  items: CatalogItem[];
+  position: number;
+  status: CategoryStatus;
+};
+
+type PendingImageUpload = {
+  file: File;
+  objectUrl: string;
+};
 
 const bulkDeleteButtonClass = buttonTokenClasses.danger;
 const treeIndent = 32;
@@ -349,6 +370,81 @@ async function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+function flattenCatalogRows(
+  catalog: CatalogData,
+  statuses: Record<string, CategoryStatus>
+): Map<string, CatalogRowSnapshot> {
+  const rows = new Map<string, CatalogRowSnapshot>();
+
+  const visitSubcategories = (
+    categorySlug: string,
+    parentId: string,
+    nodes: RecursiveCatalogSubcategory[],
+    parentPath: string[] = []
+  ) => {
+    nodes.forEach((node, index) => {
+      const path = [...parentPath, node.slug];
+      const rowId = subId(categorySlug, path);
+      rows.set(node.id, {
+        id: node.id,
+        parentId,
+        slug: node.slug,
+        title: node.title,
+        summary: '',
+        description: node.description,
+        image: node.image ?? '',
+        adminNotes: node.adminNotes ?? null,
+        bannerImage: null,
+        items: Array.isArray(node.items) ? node.items : [],
+        position: index,
+        status: statuses[rowId] ?? 'active'
+      });
+      visitSubcategories(categorySlug, node.id, node.subcategories, path);
+    });
+  };
+
+  catalog.categories.forEach((category, index) => {
+    rows.set(category.id, {
+      id: category.id,
+      parentId: null,
+      slug: category.slug,
+      title: category.title,
+      summary: category.summary,
+      description: category.description,
+      image: category.image,
+      adminNotes: category.adminNotes ?? null,
+      bannerImage: category.bannerImage ?? null,
+      items: Array.isArray(category.items) ? category.items : [],
+      position: index,
+      status: statuses[catId(category.slug)] ?? 'active'
+    });
+    visitSubcategories(category.slug, category.id, category.subcategories);
+  });
+
+  return rows;
+}
+
+function buildCatalogPatchPayload(
+  previous: CatalogData,
+  next: CatalogData,
+  previousStatuses: Record<string, CategoryStatus>,
+  statuses: Record<string, CategoryStatus>
+) {
+  const previousRows = flattenCatalogRows(previous, previousStatuses);
+  const nextRows = flattenCatalogRows(next, statuses);
+  const upserts: CatalogRowSnapshot[] = [];
+
+  nextRows.forEach((row, id) => {
+    const previousRow = previousRows.get(id);
+    if (!previousRow || JSON.stringify(previousRow) !== JSON.stringify(row)) {
+      upserts.push(row);
+    }
+  });
+
+  const deleteIds = [...previousRows.keys()].filter((id) => !nextRows.has(id));
+  return { upserts, deleteIds };
+}
+
 
 export default function AdminCategoriesMainTable({
   initialView = 'table',
@@ -403,6 +499,7 @@ export default function AdminCategoriesMainTable({
   const [activeView, setActiveView] = useState<CategoriesView>(initialView);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const uploadRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const pendingImageUploadsRef = useRef<Record<string, PendingImageUpload>>({});
   const statusHeaderMenuRef = useRef<HTMLDivElement>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
   const isInlineSavingRef = useRef(false);
@@ -431,6 +528,11 @@ export default function AdminCategoriesMainTable({
   const canRestoreCommittedHistory = committedHistoryIndexRef.current > 0;
 
   const applyPayloadState = useCallback((payloadRaw: AdminCategoriesPayload) => {
+    Object.keys(pendingImageUploadsRef.current).forEach((rowId) => {
+      const pending = pendingImageUploadsRef.current[rowId];
+      if (pending) URL.revokeObjectURL(pending.objectUrl);
+      delete pendingImageUploadsRef.current[rowId];
+    });
     const payload = normalizeCatalogData(payloadRaw);
     const nextStatuses = payloadRaw.statuses ?? {};
 
@@ -473,7 +575,10 @@ export default function AdminCategoriesMainTable({
     if (!silent) setLoading(true);
 
     try {
-      const response = await fetch('/api/admin/categories', { cache: 'no-store' });
+      const response = await fetch(
+        activeView === 'preview' ? '/api/admin/categories?view=preview' : '/api/admin/categories',
+        { cache: 'no-store' }
+      );
 
       if (!response.ok) {
         toastRef.current.error('Napaka pri nalaganju kategorij');
@@ -487,7 +592,7 @@ export default function AdminCategoriesMainTable({
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [applyPayloadState]);
+  }, [activeView, applyPayloadState]);
 
   useEffect(() => {
     toastRef.current = toast;
@@ -522,10 +627,11 @@ export default function AdminCategoriesMainTable({
   }, [pathname]);
 
   useEffect(() => {
-    router.prefetch('/admin/kategorije');
-    router.prefetch('/admin/kategorije/predogled');
-    router.prefetch('/admin/kategorije/miller-view');
-  }, [activeView, router]);
+    return () => {
+      Object.values(pendingImageUploadsRef.current).forEach(({ objectUrl }) => URL.revokeObjectURL(objectUrl));
+      pendingImageUploadsRef.current = {};
+    };
+  }, []);
 
 
   useEffect(() => {
@@ -574,20 +680,67 @@ export default function AdminCategoriesMainTable({
     };
   }, [isStatusHeaderMenuOpen]);
 
+  const resolvePendingImageCatalog = useCallback(async (source: CatalogData): Promise<CatalogData> => {
+    const pendingEntries = Object.entries(pendingImageUploadsRef.current);
+    if (pendingEntries.length === 0) return source;
+
+    const dataUrlByRowId = new Map<string, string>();
+    await Promise.all(
+      pendingEntries.map(async ([rowId, pending]) => {
+        dataUrlByRowId.set(rowId, await fileToDataUrl(pending.file));
+      })
+    );
+
+    return {
+      categories: source.categories.map((category) => {
+        const categoryRowId = catId(category.slug);
+        const categoryPending = pendingImageUploadsRef.current[categoryRowId];
+        const nextCategoryImage = categoryPending && category.image === categoryPending.objectUrl
+          ? (dataUrlByRowId.get(categoryRowId) ?? category.image)
+          : category.image;
+
+        return {
+          ...category,
+          image: nextCategoryImage,
+          subcategories: mapSubcategoryTree(category.subcategories, (subcategory, path) => {
+            const rowId = subId(category.slug, path);
+            const pending = pendingImageUploadsRef.current[rowId];
+            if (!pending || subcategory.image !== pending.objectUrl) return subcategory;
+            return {
+              ...subcategory,
+              image: dataUrlByRowId.get(rowId) ?? subcategory.image
+            };
+          })
+        };
+      })
+    };
+  }, []);
+
+  const clearPendingImageUpload = useCallback((rowId: string) => {
+    const pending = pendingImageUploadsRef.current[rowId];
+    if (!pending) return;
+    URL.revokeObjectURL(pending.objectUrl);
+    delete pendingImageUploadsRef.current[rowId];
+  }, []);
+
   const persist = async (next: CatalogData, statuses: Record<string, CategoryStatus>, message = 'Shranjeno') => {
     const previousTableCatalog = catalog;
     const previousMillerCatalog = millerCatalog;
+    const previousPersistedCatalog = persistedTableRef.current;
+    const previousStatuses = persistedStatusRef.current;
     const normalizedNext = normalizeCatalogData(next);
+    const requestCatalog = normalizeCatalogData(await resolvePendingImageCatalog(normalizedNext));
 
     setCatalog(normalizedNext);
     setMillerCatalog(normalizedNext);
     setSaving(true);
 
     try {
+      const patchPayload = buildCatalogPatchPayload(previousPersistedCatalog, requestCatalog, previousStatuses, statuses);
       const response = await fetch('/api/admin/categories', {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...normalizedNext, statuses })
+        body: JSON.stringify(patchPayload)
       });
 
       if (!response.ok) {
@@ -598,12 +751,13 @@ export default function AdminCategoriesMainTable({
         return null;
       }
 
-      const savedPayload = (await response.json()) as AdminCategoriesPayload & { ok?: boolean };
+      Object.keys(pendingImageUploadsRef.current).forEach(clearPendingImageUpload);
+      const savedPayload = (await response.json().catch(() => ({ ok: true }))) as AdminCategoriesPayload & { ok?: boolean };
       toast.success(message);
       return {
-        categories: normalizeCatalogData(savedPayload).categories,
+        categories: savedPayload.categories ? normalizeCatalogData(savedPayload).categories : requestCatalog.categories,
         statuses: savedPayload.statuses ?? { ...statuses }
-      } satisfies AdminCategoriesPayload;
+      } as AdminCategoriesPayload;
     } catch {
       setCatalog(previousTableCatalog);
       setMillerCatalog(previousMillerCatalog);
@@ -615,6 +769,7 @@ export default function AdminCategoriesMainTable({
   };
 
   const selectedContext = useMemo(() => {
+    if (activeView !== 'preview') return null;
     if (selected.kind === 'root') return { kind: 'root' as const };
 
     const category = catalog.categories.find((entry) => entry.slug === selected.categorySlug);
@@ -627,9 +782,10 @@ export default function AdminCategoriesMainTable({
     if (!subcategory) return null;
 
     return { kind: 'subcategory' as const, category, subcategory };
-  }, [catalog.categories, selected]);
+  }, [activeView, catalog.categories, selected]);
 
   const millerSelectedContext = useMemo(() => {
+    if (activeView !== 'miller') return null;
     if (selected.kind === 'root') return { kind: 'root' as const };
 
     const category = millerCatalog.categories.find((entry) => entry.slug === selected.categorySlug);
@@ -642,7 +798,7 @@ export default function AdminCategoriesMainTable({
     if (!subcategory) return null;
 
     return { kind: 'subcategory' as const, category, subcategory };
-  }, [millerCatalog.categories, selected]);
+  }, [activeView, millerCatalog.categories, selected]);
 
 
   const millerBreadcrumbs = useMemo(() => {
@@ -1749,8 +1905,15 @@ export default function AdminCategoriesMainTable({
   };
 
   const millerSearchIndex = useMemo(
-    () => getMillerSearchIndex(millerCatalog.categories, millerSearchQuery),
-    [millerCatalog.categories, millerSearchQuery]
+    () => activeView === 'miller' ? getMillerSearchIndex(millerCatalog.categories, millerSearchQuery) : {
+      matches: [],
+      categorySlugsWithMatches: new Set<string>(),
+      matchedCategorySlugs: new Set<string>(),
+      matchedSubcategoryPaths: new Map<string, Set<string>>(),
+      ancestorSubcategoryPaths: new Map<string, Set<string>>(),
+      matchedItemIds: new Set<string>()
+    },
+    [activeView, millerCatalog.categories, millerSearchQuery]
   );
 
   const navigateToMillerSearchMatch = useCallback((match: MillerSearchMatch) => {
@@ -1795,6 +1958,7 @@ export default function AdminCategoriesMainTable({
 
 
   const millerColumns = useMemo(() => {
+    if (activeView !== 'miller') return [];
     const columns: Array<{ key: string; title: string; ids: string[]; rows: Array<{ id: string; label: string; tone: string; isInactive?: boolean; createdAt?: string; updatedAt?: string; kind: 'category' | 'subcategory' | 'item'; onClick: (event: React.MouseEvent<HTMLButtonElement>) => void; onDragStart: () => void; onDropTarget: string; }>; kind: 'categories' | 'subcategories' | 'items' }> = [];
     const isMillerSearchActive = millerSearchQuery.trim().length > 0;
     const categoriesSource = isMillerSearchActive
@@ -1944,7 +2108,7 @@ export default function AdminCategoriesMainTable({
     }
 
     return columns;
-  }, [millerCatalog.categories, millerSearchIndex, millerSearchQuery, millerSelection, selected, statusByRow]);
+  }, [activeView, millerCatalog.categories, millerSearchIndex, millerSearchQuery, millerSelection, selected, statusByRow]);
 
   const activeMillerColumnKind = useMemo<'categories' | 'subcategories' | 'items'>(() => {
     const selectedId = millerSelection.at(-1);
@@ -1982,18 +2146,20 @@ export default function AdminCategoriesMainTable({
 
   const onImageUpload = async (file: File | null, item: ContentCard, _categorySlug?: string) => {
     if (!file) return;
-    const dataUrl = await fileToDataUrl(file);
+    const nextObjectUrl = URL.createObjectURL(file);
+    clearPendingImageUpload(item.id);
+    pendingImageUploadsRef.current[item.id] = { file, objectUrl: nextObjectUrl };
 
     if (item.kind === 'category') {
       stageTableCatalog({
         categories: catalog.categories.map((entry) =>
-          entry.slug === item.categorySlug ? { ...entry, image: dataUrl } : entry
+          entry.slug === item.categorySlug ? { ...entry, image: nextObjectUrl } : entry
         )
       });
       return;
     }
 
-    updateSubcategory(item.categorySlug, item.subcategoryPath, { image: dataUrl });
+    updateSubcategory(item.categorySlug, item.subcategoryPath, { image: nextObjectUrl });
   };
 
  const confirmDeleteNode = () => {
@@ -2036,6 +2202,7 @@ export default function AdminCategoriesMainTable({
     if (!imageDeleteTarget) return;
 
     if (imageDeleteTarget.kind === 'category') {
+      clearPendingImageUpload(catId(imageDeleteTarget.categorySlug));
       stageTableCatalog({
         categories: catalog.categories.map((entry) =>
           entry.slug === imageDeleteTarget.categorySlug ? { ...entry, image: '' } : entry
@@ -2045,6 +2212,7 @@ export default function AdminCategoriesMainTable({
       return;
     }
 
+    clearPendingImageUpload(subId(imageDeleteTarget.categorySlug, imageDeleteTarget.subcategorySlug ?? ''));
     updateSubcategory(imageDeleteTarget.categorySlug, imageDeleteTarget.subcategorySlug ?? '', {
       image: ''
     });
@@ -2099,6 +2267,7 @@ export default function AdminCategoriesMainTable({
   }, [statusByRow]);
 
   const visibleContent = useMemo(() => {
+    if (activeView !== 'preview') return [];
     if (selectedContext?.kind === 'root') {
       return catalog.categories.map((entry) => ({
         id: catId(entry.slug),
@@ -2149,7 +2318,7 @@ export default function AdminCategoriesMainTable({
     }
 
     return [];
-  }, [catalog.categories, selected, selectedContext, statusByRow]);
+  }, [activeView, catalog.categories, selected, selectedContext, statusByRow]);
 
   const selectedRowSet = useMemo(() => new Set(selectedRows), [selectedRows]);
   const openingRowIdSet = useMemo(() => new Set(openingRowIds), [openingRowIds]);
@@ -2393,6 +2562,7 @@ export default function AdminCategoriesMainTable({
   const isSearchActive = searchQuery.length > 0;
 
   const filteredCategories = useMemo(() => {
+    if (activeView !== 'table') return catalog.categories;
     if (!isSearchActive) return catalog.categories;
 
     return catalog.categories
@@ -2414,7 +2584,7 @@ export default function AdminCategoriesMainTable({
         };
       })
       .filter((category): category is RecursiveCatalogCategory => category !== null);
-  }, [catalog.categories, isSearchActive, searchQuery]);
+  }, [activeView, catalog.categories, isSearchActive, searchQuery]);
 
   const visibleRowIds = useMemo(() => {
     const ids: string[] = [rootId];
@@ -2653,6 +2823,8 @@ export default function AdminCategoriesMainTable({
                 }
               >
                 <input
+                  id={`category-select-${id}`}
+                  name={`categorySelect-${id}`}
                   type="checkbox"
                   checked={isChecked}
                   onChange={toggleChecked}
@@ -2764,6 +2936,8 @@ export default function AdminCategoriesMainTable({
                 <div className="min-w-0 flex-1">
                   {isRowEditing ? (
                     <Input
+                      id={`category-title-${id}`}
+                      name={`categoryTitle-${id}`}
                       value={editingRow.title}
                       onChange={(event: ChangeEvent<HTMLInputElement>) =>
                         setEditingRow((prev) => (prev ? { ...prev, title: event.target.value } : prev))
@@ -2803,6 +2977,8 @@ export default function AdminCategoriesMainTable({
             <td className="border-b border-slate-200 px-3 py-2 text-xs font-normal text-slate-500">
               {isRowEditing ? (
                 <Input
+                  id={`category-description-${id}`}
+                  name={`categoryDescription-${id}`}
                   value={editingRow.description}
                   onChange={(event: ChangeEvent<HTMLInputElement>) =>
                     setEditingRow((prev) => (prev ? { ...prev, description: event.target.value } : prev))
@@ -2983,6 +3159,7 @@ export default function AdminCategoriesMainTable({
   }, [closingRowIdSet, expanded, isSearchActive, openingRowIdSet, renderTreeRow]);
 
   const treeRows = useMemo<ReactNode[]>(() => {
+    if (activeView !== 'table') return [];
     const rows: ReactNode[] = [];
     const isRootExpanded = isSearchActive || (expanded[rootId] ?? true) || closingRowIdSet.has(rootId);
 
@@ -3043,6 +3220,7 @@ export default function AdminCategoriesMainTable({
 
     return rows;
   }, [
+    activeView,
     buildSubcategoryRows,
     catalog.categories.length,
     closingRowIdSet,
@@ -3166,6 +3344,8 @@ export default function AdminCategoriesMainTable({
       >
         <div className="mt-3">
           <Input
+            id="create-category-name"
+            name="createCategoryName"
             value={createName}
             onChange={(event: ChangeEvent<HTMLInputElement>) => setCreateName(event.target.value)}
             placeholder="Ime kategorije"
@@ -3175,59 +3355,61 @@ export default function AdminCategoriesMainTable({
         </div>
       </ConfirmDialog>
 
+      {activeView === 'table' ? (
+        <AdminCategoriesTableView
+          activeView={activeView}
+          query={query}
+          onQueryChange={setQuery}
+          onBulkDelete={handleBulkDelete}
+          selectedRows={selectedRows}
+          isBulkDeleting={isBulkDeleting}
+          bulkDeleteButtonClass={bulkDeleteButtonClass}
+          onRequestSave={() => {
+            const summary = summarizeCatalogChanges(persistedTableRef.current, catalog, persistedStatusRef.current, statusByRow);
+            setTableSaveSummary(summary);
+            setIsTableSaveDialogOpen(true);
+          }}
+          tableDirty={tableDirty}
+          saving={saving}
+          tableHistoryMenuRef={tableHistoryMenuRef}
+          isHistoryMenuOpen={isHistoryMenuOpen}
+          onToggleHistoryMenu={() => setIsHistoryMenuOpen((prev) => !prev)}
+          canUndoStagedChanges={canUndoStagedChanges}
+          onUndo={() => {
+            undoStagedChanges();
+            setIsHistoryMenuOpen(false);
+          }}
+          canRestoreCommittedHistory={canRestoreCommittedHistory}
+          hasPendingStagedChanges={hasPendingStagedChanges}
+          onRestore={() => {
+            restoreCommittedHistory();
+            setIsHistoryMenuOpen(false);
+          }}
+          sensors={sensors}
+          onTreeDragEnd={onTreeDragEnd}
+          visibleRowIds={visibleRowIds}
+          selectAllRef={selectAllRef}
+          allRowsSelected={allRowsSelected}
+          onToggleSelectAll={toggleSelectAll}
+          allExpanded={areAllRowsExpanded}
+          onToggleAllExpanded={toggleAllExpanded}
+          statusHeaderMenuRef={statusHeaderMenuRef}
+          onToggleStatusHeaderMenu={() => {
+            if (selectedRows.length === 0) return;
+            setIsStatusHeaderMenuOpen((previousOpen) => !previousOpen);
+          }}
+          isStatusHeaderMenuOpen={isStatusHeaderMenuOpen}
+          statusByRow={statusByRow}
+          onStageStatusChange={(nextStatuses) => {
+            stageStatusChange(nextStatuses);
+            setIsStatusHeaderMenuOpen(false);
+          }}
+          treeRows={treeRows}
+        />
+      ) : null}
 
-      <AdminCategoriesTableView
-        activeView={activeView}
-        query={query}
-        onQueryChange={setQuery}
-        onBulkDelete={handleBulkDelete}
-        selectedRows={selectedRows}
-        isBulkDeleting={isBulkDeleting}
-        bulkDeleteButtonClass={bulkDeleteButtonClass}
-        onRequestSave={() => {
-          const summary = summarizeCatalogChanges(persistedTableRef.current, catalog, persistedStatusRef.current, statusByRow);
-          setTableSaveSummary(summary);
-          setIsTableSaveDialogOpen(true);
-        }}
-        tableDirty={tableDirty}
-        saving={saving}
-        tableHistoryMenuRef={tableHistoryMenuRef}
-        isHistoryMenuOpen={isHistoryMenuOpen}
-        onToggleHistoryMenu={() => setIsHistoryMenuOpen((prev) => !prev)}
-        canUndoStagedChanges={canUndoStagedChanges}
-        onUndo={() => {
-          undoStagedChanges();
-          setIsHistoryMenuOpen(false);
-        }}
-        canRestoreCommittedHistory={canRestoreCommittedHistory}
-        hasPendingStagedChanges={hasPendingStagedChanges}
-        onRestore={() => {
-          restoreCommittedHistory();
-          setIsHistoryMenuOpen(false);
-        }}
-        sensors={sensors}
-        onTreeDragEnd={onTreeDragEnd}
-        visibleRowIds={visibleRowIds}
-        selectAllRef={selectAllRef}
-        allRowsSelected={allRowsSelected}
-        onToggleSelectAll={toggleSelectAll}
-        allExpanded={areAllRowsExpanded}
-        onToggleAllExpanded={toggleAllExpanded}
-        statusHeaderMenuRef={statusHeaderMenuRef}
-        onToggleStatusHeaderMenu={() => {
-          if (selectedRows.length === 0) return;
-          setIsStatusHeaderMenuOpen((previousOpen) => !previousOpen);
-        }}
-        isStatusHeaderMenuOpen={isStatusHeaderMenuOpen}
-        statusByRow={statusByRow}
-        onStageStatusChange={(nextStatuses) => {
-          stageStatusChange(nextStatuses);
-          setIsStatusHeaderMenuOpen(false);
-        }}
-        treeRows={treeRows}
-      />
-
-      <AdminCategoriesPreview
+      {activeView === 'preview' ? (
+        <AdminCategoriesPreview
         activeView={activeView}
         tableError={tableError}
         lowerViewCount={lowerViewCount}
@@ -3263,7 +3445,8 @@ export default function AdminCategoriesMainTable({
         onOpenNode={openPreviewNode}
         onStageStatusChange={(rowId, status) => stageStatusChange({ ...statusByRow, [rowId]: status })}
         onRequestCreateCategory={() => openCreateDialog({ kind: 'category' })}
-      />
+        />
+      ) : null}
 
       <ConfirmDialog
         open={isTableSaveDialogOpen}
@@ -3314,7 +3497,8 @@ export default function AdminCategoriesMainTable({
         </ul>
       </ConfirmDialog>
 
-      <AdminCategoriesMiller
+      {activeView === 'miller' ? (
+        <AdminCategoriesMiller
         activeView={activeView}
         millerDirty={millerDirty}
         breadcrumbs={millerBreadcrumbs}
@@ -3356,7 +3540,8 @@ export default function AdminCategoriesMainTable({
         millerRename={millerRename}
         setMillerRename={setMillerRename}
         applyMillerRename={applyMillerRename}
-      />
+        />
+      ) : null}
 
 
     </div>

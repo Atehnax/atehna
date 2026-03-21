@@ -4,6 +4,7 @@ import type {
   MutableRefObject,
   ReactNode,
 } from "react";
+import { memo } from "react";
 import Image from "next/image";
 import {
   DndContext,
@@ -140,6 +141,8 @@ export function AdminCategoriesPreview({
             <label className="mr-2 flex items-center gap-2 text-[11px] text-slate-500">
               Elementov na vrstico
               <input
+                id="categories-preview-columns"
+                name="categoriesPreviewColumns"
                 type="range"
                 min={3}
                 max={8}
@@ -219,7 +222,6 @@ export function AdminCategoriesPreview({
                           uploadRefs={uploadRefs}
                           onSetImageDeleteTarget={onSetImageDeleteTarget}
                           onImageUpload={onImageUpload}
-                          selectedContext={selectedContext}
                           editingRow={editingRow}
                           onStartEdit={onStartEdit}
                           onEditingRowTitleChange={onEditingRowTitleChange}
@@ -277,7 +279,7 @@ export function AdminCategoriesPreview({
   );
 }
 
-function CategoryPreviewCard({
+const CategoryPreviewCard = memo(function CategoryPreviewCard({
   dragHandleProps,
   setNodeRef,
   style,
@@ -285,7 +287,6 @@ function CategoryPreviewCard({
   uploadRefs,
   onSetImageDeleteTarget,
   onImageUpload,
-  selectedContext,
   editingRow,
   onStartEdit,
   onEditingRowTitleChange,
@@ -310,7 +311,6 @@ function CategoryPreviewCard({
     item: ContentCard,
     categorySlug?: string,
   ) => Promise<void>;
-  selectedContext: SelectedPreviewContext;
   editingRow: EditingRowDraft | null;
   onStartEdit: (item: ContentCard) => void;
   onEditingRowTitleChange: (value: string) => void;
@@ -469,6 +469,7 @@ function CategoryPreviewCard({
               src={item.image}
               alt={titlePreview}
               fill
+              sizes="(min-width: 1536px) 18vw, (min-width: 1280px) 22vw, (min-width: 1024px) 28vw, (min-width: 768px) 33vw, 50vw"
               className={`object-cover transition duration-200 ${isHidden ? "scale-[1.02] blur-[2px]" : ""}`}
             />
           ) : null}
@@ -542,6 +543,8 @@ function CategoryPreviewCard({
             </div>
             {isEditing ? (
               <textarea
+                id={`preview-title-${item.id}`}
+                name={`previewTitle-${item.id}`}
                 value={editingDraft?.title ?? titlePreview}
                 onChange={(event) =>
                   onEditingRowTitleChange(event.target.value)
@@ -570,6 +573,8 @@ function CategoryPreviewCard({
             </p>
             {isEditing ? (
               <textarea
+                id={`preview-description-${item.id}`}
+                name={`previewDescription-${item.id}`}
                 value={editingDraft?.description ?? descriptionPreview}
                 onChange={(event) =>
                   onEditingRowDescriptionChange(event.target.value)
@@ -606,6 +611,8 @@ function CategoryPreviewCard({
       </div>
 
       <input
+        id={`preview-image-upload-${item.id}`}
+        name={`previewImageUpload-${item.id}`}
         ref={(element) => {
           uploadRefs.current[item.id] = element;
         }}
@@ -613,18 +620,32 @@ function CategoryPreviewCard({
         accept="image/*"
         className="hidden"
         onChange={(event) =>
-          void onImageUpload(
-            event.target.files?.[0] ?? null,
-            item,
-            selectedContext?.kind === "category"
-              ? selectedContext.category.slug
-              : undefined,
-          )
+          void onImageUpload(event.target.files?.[0] ?? null, item)
         }
       />
     </article>
   );
-}
+}, (prev, next) => {
+  const prevEditingDraft = prev.editingRow?.id === prev.item.id ? prev.editingRow : null;
+  const nextEditingDraft = next.editingRow?.id === next.item.id ? next.editingRow : null;
+
+  return prev.item === next.item
+    && prev.onSetImageDeleteTarget === next.onSetImageDeleteTarget
+    && prev.onImageUpload === next.onImageUpload
+    && prev.onStartEdit === next.onStartEdit
+    && prev.onEditingRowTitleChange === next.onEditingRowTitleChange
+    && prev.onEditingRowDescriptionChange === next.onEditingRowDescriptionChange
+    && prev.onCommitEdit === next.onCommitEdit
+    && prev.onCancelEdit === next.onCancelEdit
+    && prev.onOpenNode === next.onOpenNode
+    && prev.onStageStatusChange === next.onStageStatusChange
+    && prev.uploadRefs === next.uploadRefs
+    && prev.style.transform === next.style.transform
+    && prev.style.transition === next.style.transition
+    && prevEditingDraft?.title === nextEditingDraft?.title
+    && prevEditingDraft?.description === nextEditingDraft?.description
+    && prevEditingDraft?.status === nextEditingDraft?.status;
+});
 
 function CreateCategoryCard({ onClick }: { onClick: () => void }) {
   return (

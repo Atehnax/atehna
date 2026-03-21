@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode, type CSSProperties } from 'react';
+import dynamic from 'next/dynamic';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   DndContext,
@@ -93,9 +94,9 @@ import { Input } from '@/shared/ui/input';
 import { Spinner } from '@/shared/ui/loading';
 import { useToast } from '@/shared/ui/toast';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
-import { AdminCategoriesPreview } from './AdminCategoriesPreview';
-import { AdminCategoriesMiller } from './AdminCategoriesMiller';
-import { AdminCategoriesTableView } from '../views/AdminCategoriesTableView';
+const AdminCategoriesPreview = dynamic(() => import('./AdminCategoriesPreview').then((mod) => mod.AdminCategoriesPreview));
+const AdminCategoriesMiller = dynamic(() => import('./AdminCategoriesMiller').then((mod) => mod.AdminCategoriesMiller));
+const AdminCategoriesTableView = dynamic(() => import('../views/AdminCategoriesTableView').then((mod) => mod.AdminCategoriesTableView));
 
 type RecursiveNode = RecursiveCatalogSubcategory;
 type MillerSearchMatch =

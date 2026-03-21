@@ -3256,7 +3256,6 @@ export default function AdminCategoriesMainTable({
         onEditingRowTitleChange={(value) => setEditingRow((prev) => (prev ? { ...prev, title: value } : prev))}
         onEditingRowDescriptionChange={(value) => setEditingRow((prev) => (prev ? { ...prev, description: value } : prev))}
         onCommitEdit={() => saveInlineEditRef.current()}
-        onEditFieldBlur={handleInlineBlur}
         onCancelEdit={() => setEditingRow(null)}
         onOpenNode={openPreviewNode}
         onStageStatusChange={(rowId, status) => stageStatusChange({ ...statusByRow, [rowId]: status })}

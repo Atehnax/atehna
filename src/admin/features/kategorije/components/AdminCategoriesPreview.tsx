@@ -39,7 +39,6 @@ export function AdminCategoriesPreview({
   onEditingRowTitleChange,
   onEditingRowDescriptionChange,
   onCommitEdit,
-  onEditFieldBlur,
   onCancelEdit,
   onOpenNode,
   onStageStatusChange,
@@ -68,7 +67,6 @@ export function AdminCategoriesPreview({
   onEditingRowTitleChange: (value: string) => void;
   onEditingRowDescriptionChange: (value: string) => void;
   onCommitEdit: () => void;
-  onEditFieldBlur: (event: FocusEvent<HTMLElement>) => void;
   onCancelEdit: () => void;
   onOpenNode: (item: ContentCard) => void;
   onStageStatusChange: (rowId: string, status: CategoryStatus) => void;
@@ -138,7 +136,6 @@ export function AdminCategoriesPreview({
                         onEditingRowTitleChange={onEditingRowTitleChange}
                         onEditingRowDescriptionChange={onEditingRowDescriptionChange}
                         onCommitEdit={onCommitEdit}
-                        onEditFieldBlur={onEditFieldBlur}
                         onCancelEdit={onCancelEdit}
                         onOpenNode={onOpenNode}
                         onStageStatusChange={onStageStatusChange}
@@ -191,7 +188,6 @@ function CategoryPreviewCard({
   onEditingRowTitleChange,
   onEditingRowDescriptionChange,
   onCommitEdit,
-  onEditFieldBlur,
   onCancelEdit,
   onOpenNode,
   onStageStatusChange
@@ -207,7 +203,6 @@ function CategoryPreviewCard({
   onEditingRowTitleChange: (value: string) => void;
   onEditingRowDescriptionChange: (value: string) => void;
   onCommitEdit: () => void;
-  onEditFieldBlur: (event: FocusEvent<HTMLElement>) => void;
   onCancelEdit: () => void;
   onOpenNode: (item: ContentCard) => void;
   onStageStatusChange: (rowId: string, status: CategoryStatus) => void;
@@ -229,6 +224,12 @@ function CategoryPreviewCard({
       }
     }
     input.click();
+  };
+
+  const handleCardEditBlur = (event: FocusEvent<HTMLElement>) => {
+    const nextTarget = event.relatedTarget as Element | null;
+    if (nextTarget?.closest('[data-inline-edit-field="true"]')) return;
+    onCommitEdit();
   };
   const hoverStackButtons = [
     item.image
@@ -312,13 +313,12 @@ function CategoryPreviewCard({
 
         <div className={`pointer-events-none absolute inset-0 ${isHidden ? 'bg-[linear-gradient(180deg,rgba(15,23,42,0.18)_0%,rgba(15,23,42,0.42)_42%,rgba(15,23,42,0.6)_76%,rgba(15,23,42,0.72)_100%)]' : 'bg-[linear-gradient(180deg,rgba(15,23,42,0.02)_0%,rgba(15,23,42,0.08)_48%,rgba(15,23,42,0.18)_100%)]'}`} aria-hidden="true" />
 
-        <div className="absolute right-2.5 top-2.5 z-20 rounded-[18px] bg-[linear-gradient(180deg,rgba(15,23,42,0.38)_0%,rgba(15,23,42,0.22)_100%)] p-1.5 shadow-[0_10px_30px_rgba(15,23,42,0.18)] opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
-          <div className="flex flex-col items-center gap-2">
+        <div className="absolute right-3 top-3 z-20 flex flex-col items-end gap-2 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
             {hoverStackButtons.map((action) => (
               <button
                 key={action.key}
                 type="button"
-                className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${action.tone === 'danger' ? 'bg-white text-[#d2554a] shadow-sm hover:bg-white' : 'border border-black/10 bg-white/96 text-slate-900 shadow-sm hover:bg-white'}`}
+                className={`inline-flex h-8 min-w-[2rem] items-center justify-center rounded-xl border px-0 shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${action.tone === 'danger' ? 'border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'}`}
                 onPointerDown={(event) => { event.stopPropagation(); event.preventDefault(); }}
                 onClick={action.onClick}
                 aria-label={action.label}
@@ -328,7 +328,6 @@ function CategoryPreviewCard({
               </button>
             ))}
           </div>
-        </div>
 
         {isHidden ? (
           <div className="absolute left-1/2 top-[44%] z-20 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#d2554a] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white shadow-sm">
@@ -358,11 +357,11 @@ function CategoryPreviewCard({
             <p className="mt-2 whitespace-pre-wrap text-sm leading-5 text-slate-950">{item.description || '—'}</p>
           </div>
           {isEditing ? (
-            <div className="absolute inset-0 space-y-2">
+            <div className="absolute inset-0 flex flex-col gap-2">
               <Input
                 value={editingDraft?.title ?? item.title}
                 onChange={(event) => onEditingRowTitleChange(event.target.value)}
-                onBlur={onEditFieldBlur}
+                onBlur={handleCardEditBlur}
                 data-inline-edit-field="true"
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' && !(event.shiftKey)) {
@@ -378,7 +377,7 @@ function CategoryPreviewCard({
               <textarea
                 value={editingDraft?.description ?? item.description}
                 onChange={(event) => onEditingRowDescriptionChange(event.target.value)}
-                onBlur={onEditFieldBlur}
+                onBlur={handleCardEditBlur}
                 data-inline-edit-field="true"
                 onKeyDown={(event) => {
                   if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {

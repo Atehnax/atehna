@@ -2062,6 +2062,25 @@ export default function AdminCategoriesMainTable({
     });
   }, []);
 
+  const navigatePreviewUp = useCallback(() => {
+    setSelected((current) => {
+      if (current.kind === 'root') return current;
+      if (current.kind === 'category') return { kind: 'root' } as const;
+
+      const parentPath = toSubcategoryPath(current.subcategoryPath ?? current.subcategorySlug).slice(0, -1);
+      if (parentPath.length === 0) {
+        return { kind: 'category', categorySlug: current.categorySlug } as const;
+      }
+
+      return {
+        kind: 'subcategory',
+        categorySlug: current.categorySlug,
+        subcategoryPath: parentPath,
+        subcategorySlug: parentPath.at(-1)
+      } as const;
+    });
+  }, []);
+
   const startPreviewTitleEdit = useCallback((card: ContentCard) => {
     const rowId = card.kind === 'category' ? catId(card.categorySlug) : subId(card.categorySlug, card.subcategoryPath);
     setEditingRow({
@@ -3215,6 +3234,8 @@ export default function AdminCategoriesMainTable({
           setTableSaveSummary(summary);
           setIsTableSaveDialogOpen(true);
         }}
+        canNavigateUp={selected.kind !== 'root'}
+        onNavigateUp={navigatePreviewUp}
         tableDirty={tableDirty}
         saving={saving}
         selectedContext={selectedContext}

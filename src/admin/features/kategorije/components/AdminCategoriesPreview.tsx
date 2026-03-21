@@ -22,6 +22,8 @@ export function AdminCategoriesPreview({
   lowerViewCount,
   onLowerViewCountChange,
   onRequestSave,
+  canNavigateUp,
+  onNavigateUp,
   tableDirty,
   saving,
   selectedContext,
@@ -48,6 +50,8 @@ export function AdminCategoriesPreview({
   lowerViewCount: number;
   onLowerViewCountChange: (value: number) => void;
   onRequestSave: () => void;
+  canNavigateUp: boolean;
+  onNavigateUp: () => void;
   tableDirty: boolean;
   saving: boolean;
   selectedContext: SelectedPreviewContext;
@@ -94,6 +98,20 @@ export function AdminCategoriesPreview({
               />
               <span className="w-4 text-right text-slate-600">{lowerViewCount}</span>
             </label>
+            <Button
+              variant="outline"
+              size="toolbar"
+              onClick={onNavigateUp}
+              disabled={!canNavigateUp}
+              aria-label="Nazaj na nadrejeno kategorijo"
+              title="Nazaj"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl px-0"
+            >
+              <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12.5 4.5 7 10l5.5 5.5" />
+                <path d="M7.5 10h8" />
+              </svg>
+            </Button>
             <Button variant="primary" size="toolbar" onClick={onRequestSave} disabled={!tableDirty || saving}>
               Shrani spremembe
             </Button>
@@ -201,11 +219,11 @@ function CategoryPreviewCard({
       }`}
     >
       <div className="relative flex min-h-0 flex-1 flex-col">
-        {isHidden ? <div className="pointer-events-none absolute inset-0 z-[1] bg-black/22" aria-hidden="true" /> : null}
+        {isHidden ? <div className="pointer-events-none absolute inset-0 z-[1] bg-black/42" aria-hidden="true" /> : null}
         <div className="relative h-44 w-full overflow-hidden text-left">
           <button
             type="button"
-            className={`absolute inset-0 ${item.image ? 'bg-slate-100' : 'bg-slate-900'}`}
+            className={`absolute inset-0 ${item.image ? 'bg-slate-100' : 'bg-[#323538]'}`}
             onClick={() => uploadRefs.current[item.id]?.click()}
             onPointerDown={(event) => event.stopPropagation()}
             aria-label={`Uredi sliko za ${item.title}`}

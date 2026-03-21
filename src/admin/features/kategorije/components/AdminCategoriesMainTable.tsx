@@ -1980,17 +1980,20 @@ export default function AdminCategoriesMainTable({
     });
   };
 
-  const onImageUpload = async (file: File | null, item: ContentCard, categorySlug?: string) => {
+  const onImageUpload = async (file: File | null, item: ContentCard, _categorySlug?: string) => {
     if (!file) return;
     const dataUrl = await fileToDataUrl(file);
 
     if (item.kind === 'category') {
-      stageTableCatalog({ categories: catalog.categories.map((entry) => (entry.slug === item.id ? { ...entry, image: dataUrl } : entry)) });
+      stageTableCatalog({
+        categories: catalog.categories.map((entry) =>
+          entry.slug === item.categorySlug ? { ...entry, image: dataUrl } : entry
+        )
+      });
       return;
     }
 
-    if (!categorySlug) return;
-    updateSubcategory(categorySlug, item.id, { image: dataUrl });
+    updateSubcategory(item.categorySlug, item.subcategoryPath, { image: dataUrl });
   };
 
  const confirmDeleteNode = () => {

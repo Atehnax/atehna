@@ -12,7 +12,6 @@ import {
   getDiscountedPrice
 } from '@/commercial/catalog/catalog';
 import { Button } from '@/shared/ui/button';
-import { Input } from '@/shared/ui/input';
 import type { CategoryStatus, ContentCard, EditingRowDraft, SelectedPreviewContext } from '../common/types';
 
 export function AdminCategoriesPreview({
@@ -358,7 +357,7 @@ function CategoryPreviewCard({
           </div>
           {isEditing ? (
             <div className="absolute inset-0 flex flex-col gap-2">
-              <Input
+              <textarea
                 value={editingDraft?.title ?? item.title}
                 onChange={(event) => onEditingRowTitleChange(event.target.value)}
                 onBlur={handleCardEditBlur}
@@ -370,7 +369,7 @@ function CategoryPreviewCard({
                   }
                   if (event.key === 'Escape') onCancelEdit();
                 }}
-                className="h-5 w-full border-transparent bg-transparent px-0 text-[1.05rem] font-semibold leading-5 text-slate-950 shadow-none focus:border-[#3e67d6] focus:ring-0"
+                className="h-5 w-full resize-none border-transparent bg-transparent px-0 py-0 text-[1.05rem] font-semibold leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                 autoFocus
                 aria-label="Naziv kategorije"
               />

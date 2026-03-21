@@ -178,6 +178,8 @@ export function AdminCategoriesMiller({
         </div>
         <div className="flex items-center gap-2">
           <AdminSearchInput
+            id="miller-search"
+            name="millerSearch"
             value={searchQuery}
             onChange={(event) => onSearchQueryChange(event.target.value)}
             placeholder="Išči po kategorijah"
@@ -301,6 +303,8 @@ export function AdminCategoriesMiller({
                   {column.rows.map((row, rowIndex) => (
                     millerRename?.id === row.id && row.kind !== 'item' ? (
                       <input
+                        id={`miller-rename-${row.id}`}
+                        name={`millerRename-${row.id}`}
                         key={row.id}
                         value={millerRename.value}
                         onChange={(event) => setMillerRename({ id: row.id, value: event.target.value })}

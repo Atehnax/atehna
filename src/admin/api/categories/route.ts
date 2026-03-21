@@ -2,12 +2,16 @@ import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import type { CatalogCategory } from '@/commercial/catalog/catalog';
 import { normalizeCatalogData } from '@/shared/server/catalogAdmin';
-import { CATALOG_ADMIN_TAG, CATALOG_PUBLIC_TAG, CATALOG_REVALIDATE_PATHS, getCatalogDataFromDatabase, replaceCategoryTree } from '@/shared/server/catalogCategories';
+import { CATALOG_ADMIN_TAG, CATALOG_PUBLIC_TAG, CATALOG_REVALIDATE_PATHS, getCatalogDataFromDatabase, getCatalogPreviewDataFromDatabase, patchCategoryTree, replaceCategoryTree } from '@/shared/server/catalogCategories';
 import { recordCatalogInvalidation } from '@/shared/server/catalogDiagnostics';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const catalog = await getCatalogDataFromDatabase({ includeInactive: true, includeStatuses: true });
+    const url = new URL(request.url);
+    const view = url.searchParams.get('view');
+    const catalog = view === 'preview'
+      ? await getCatalogPreviewDataFromDatabase({ includeInactive: true, includeStatuses: true, diagnosticsContext: '/api/admin/categories?view=preview' })
+      : await getCatalogDataFromDatabase({ includeInactive: true, includeStatuses: true });
     return NextResponse.json(catalog);
   } catch (error) {
     return NextResponse.json({ message: error instanceof Error ? error.message : 'Napaka pri nalaganju.' }, { status: 500 });
@@ -40,6 +44,48 @@ export async function PUT(request: Request) {
     });
 
     return NextResponse.json({ ok: true, categories: normalized.categories, statuses: payload.statuses ?? {} });
+  } catch (error) {
+    return NextResponse.json({ message: error instanceof Error ? error.message : 'Napaka pri shranjevanju.' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const payload = (await request.json()) as {
+      upserts?: Array<{
+        id: string;
+        parentId: string | null;
+        slug: string;
+        title: string;
+        summary: string;
+        description: string;
+        image: string;
+        adminNotes?: string | null;
+        bannerImage?: string | null;
+        items?: unknown;
+        position: number;
+        status: 'active' | 'inactive';
+      }>;
+      deleteIds?: string[];
+    };
+
+    const upserts = Array.isArray(payload.upserts)
+      ? payload.upserts.map((entry) => ({
+          ...entry,
+          items: Array.isArray(entry.items) ? entry.items : []
+        }))
+      : [];
+    const deleteIds = Array.isArray(payload.deleteIds) ? payload.deleteIds.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0) : [];
+
+    await patchCategoryTree({ upserts, deleteIds });
+
+    recordCatalogInvalidation({
+      context: '/api/admin/categories:patch',
+      tags: [CATALOG_PUBLIC_TAG, CATALOG_ADMIN_TAG],
+      revalidatedPaths: 0
+    });
+
+    return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json({ message: error instanceof Error ? error.message : 'Napaka pri shranjevanju.' }, { status: 500 });
   }

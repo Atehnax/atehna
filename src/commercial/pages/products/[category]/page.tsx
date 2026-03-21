@@ -14,6 +14,8 @@ import {
 } from '@/commercial/catalog/catalogServer';
 import AddToCartButton from '@/commercial/features/products/AddToCartButton';
 
+export const dynamic = 'force-static';
+
 export async function generateStaticParams() {
   return (await getCatalogCategorySlugsServer()).map((category) => ({ category }));
 }

@@ -38,6 +38,30 @@ type CatalogItemsIndex = Array<
     subcategories: Array<Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'items'>>;
   }
 >;
+export type AdminPreviewNode = {
+  id: string;
+  parentId: string | null;
+  kind: 'category' | 'subcategory';
+  categorySlug: string;
+  path: string[];
+  slug: string;
+  title: string;
+  description: string;
+  image: string;
+  status: CategoryStatus;
+  position: number;
+  hasChildren: boolean;
+};
+
+export type AdminPreviewPayload = {
+  nodes: AdminPreviewNode[];
+};
+
+export type AdminPreviewLeafItemsPayload = {
+  category: Pick<RecursiveCatalogCategory, 'id' | 'slug' | 'title'>;
+  subcategory: Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title'> | null;
+  items: CatalogItem[];
+};
 
 type CategoryCardRow = Pick<CategoryRow, 'slug' | 'title' | 'summary' | 'image'>;
 type CategorySummaryRow = Pick<CategoryRow, 'slug' | 'title'>;
@@ -245,6 +269,187 @@ async function readCatalogDataFromDatabase(
   const normalizedPayload = includeStatuses ? payload : { categories: payload.categories };
   profilePayloadEstimate('readCatalogDataFromDatabase:payload', normalizedPayload);
   return normalizedPayload;
+}
+
+async function readAdminPreviewPayloadFromDatabase(): Promise<AdminPreviewPayload> {
+  if (!getDatabaseUrl()) {
+    const normalized = await readCatalogFile();
+    const nodes: AdminPreviewNode[] = [];
+
+    const visit = (
+      categorySlug: string,
+      parentId: string,
+      entries: RecursiveCatalogSubcategory[],
+      parentPath: string[] = []
+    ) => {
+      entries.forEach((entry, index) => {
+        const path = [...parentPath, entry.slug];
+        nodes.push({
+          id: entry.id,
+          parentId,
+          kind: 'subcategory',
+          categorySlug,
+          path,
+          slug: entry.slug,
+          title: entry.title,
+          description: entry.description,
+          image: entry.image ?? '',
+          status: 'active',
+          position: index,
+          hasChildren: entry.subcategories.length > 0
+        });
+        visit(categorySlug, entry.id, entry.subcategories, path);
+      });
+    };
+
+    normalized.categories.forEach((category, index) => {
+      nodes.push({
+        id: category.id,
+        parentId: null,
+        kind: 'category',
+        categorySlug: category.slug,
+        path: [],
+        slug: category.slug,
+        title: category.title,
+        description: category.summary,
+        image: category.image ?? '',
+        status: 'active',
+        position: index,
+        hasChildren: category.subcategories.length > 0
+      });
+      visit(category.slug, category.id, category.subcategories);
+    });
+
+    return { nodes };
+  }
+
+  await ensureTable();
+  await seedIfEmpty();
+
+  const pool = await getPool();
+  const result = await profileRoutePhase('db', 'readAdminPreviewPayloadFromDatabase:nodes', () => pool.query(`
+    select id, parent_id, slug, title, summary, description, image, position, status
+    from catalog_categories
+    order by coalesce(parent_id, ''), position asc, title asc
+  `));
+
+  const rows = result.rows as Array<Pick<CategoryRow, 'id' | 'parent_id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'position' | 'status'>>;
+  const childrenByParent = new Map<string, typeof rows>();
+  rows.forEach((row) => {
+    if (!row.parent_id) return;
+    const list = childrenByParent.get(row.parent_id) ?? [];
+    list.push(row);
+    childrenByParent.set(row.parent_id, list);
+  });
+
+  const buildNodes = (
+    parentId: string | null,
+    categorySlug: string | null,
+    parentPath: string[] = []
+  ): AdminPreviewNode[] => {
+    const siblings = parentId === null
+      ? rows.filter((row) => row.parent_id === null)
+      : (childrenByParent.get(parentId) ?? []);
+
+    return siblings.flatMap((row) => {
+      const kind = row.parent_id === null ? 'category' as const : 'subcategory' as const;
+      const nextCategorySlug = kind === 'category' ? row.slug : (categorySlug ?? row.slug);
+      const path = kind === 'category' ? [] : [...parentPath, row.slug];
+      const node: AdminPreviewNode = {
+        id: row.id,
+        parentId: row.parent_id,
+        kind,
+        categorySlug: nextCategorySlug,
+        path,
+        slug: row.slug,
+        title: row.title,
+        description: kind === 'category' ? row.summary : row.description,
+        image: row.image ?? '',
+        status: normalizeStatus(row.status),
+        position: row.position,
+        hasChildren: (childrenByParent.get(row.id)?.length ?? 0) > 0
+      };
+
+      return [node, ...buildNodes(row.id, nextCategorySlug, path)];
+    });
+  };
+
+  const payload = { nodes: buildNodes(null, null) };
+  profilePayloadEstimate('readAdminPreviewPayloadFromDatabase:payload', payload);
+  return payload;
+}
+
+async function readAdminPreviewLeafItemsFromDatabase(nodeId: string): Promise<AdminPreviewLeafItemsPayload | null> {
+  if (!getDatabaseUrl()) {
+    const normalized = await readCatalogFile();
+    for (const category of normalized.categories) {
+      if (category.id === nodeId) {
+        return { category: { id: category.id, slug: category.slug, title: category.title }, subcategory: null, items: category.items ?? [] };
+      }
+
+      const visit = (entries: RecursiveCatalogSubcategory[]): AdminPreviewLeafItemsPayload | null => {
+        for (const entry of entries) {
+          if (entry.id === nodeId) {
+            return {
+              category: { id: category.id, slug: category.slug, title: category.title },
+              subcategory: { id: entry.id, slug: entry.slug, title: entry.title },
+              items: entry.items
+            };
+          }
+          const nested = visit(entry.subcategories);
+          if (nested) return nested;
+        }
+        return null;
+      };
+
+      const found = visit(category.subcategories);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  await ensureTable();
+  await seedIfEmpty();
+  const pool = await getPool();
+  const nodeResult = await profileRoutePhase('db', 'readAdminPreviewLeafItemsFromDatabase:node', () => pool.query(`
+    select id, parent_id, slug, title, items
+    from catalog_categories
+    where id = $1
+    limit 1
+  `, [nodeId]));
+  const node = nodeResult.rows[0] as Pick<CategoryRow, 'id' | 'parent_id' | 'slug' | 'title' | 'items'> | undefined;
+  if (!node) return null;
+
+  if (node.parent_id === null) {
+    return {
+      category: { id: node.id, slug: node.slug, title: node.title },
+      subcategory: null,
+      items: getRowItems(node)
+    };
+  }
+
+  const lineageResult = await profileRoutePhase('db', 'readAdminPreviewLeafItemsFromDatabase:lineage', () => pool.query(`
+    with recursive lineage as (
+      select id, parent_id, slug, title
+      from catalog_categories
+      where id = $1
+      union all
+      select parent.id, parent.parent_id, parent.slug, parent.title
+      from catalog_categories parent
+      inner join lineage child on child.parent_id = parent.id
+    )
+    select id, parent_id, slug, title
+    from lineage
+  `, [nodeId]));
+  const lineage = lineageResult.rows as Array<Pick<CategoryRow, 'id' | 'parent_id' | 'slug' | 'title'>>;
+  const category = lineage.find((entry) => entry.parent_id === null);
+  if (!category) return null;
+
+  return {
+    category: { id: category.id, slug: category.slug, title: category.title },
+    subcategory: { id: node.id, slug: node.slug, title: node.title },
+    items: getRowItems(node)
+  };
 }
 
 
@@ -578,6 +783,12 @@ const getCachedCatalogAdminDataFromDatabase = unstable_cache(
   { tags: [CATALOG_PUBLIC_TAG, CATALOG_ADMIN_TAG] }
 );
 
+const getCachedAdminPreviewPayloadFromDatabase = unstable_cache(
+  async () => instrumentCatalogCacheMiss('getCachedAdminPreviewPayloadFromDatabase', '/admin/kategorije/predogled', () => readAdminPreviewPayloadFromDatabase()),
+  ['admin-preview-payload'],
+  { tags: [CATALOG_ADMIN_TAG] }
+);
+
 const getCachedCatalogCategoryCardsFromDatabase = unstable_cache(
   async () => instrumentCatalogCacheMiss('getCachedCatalogCategoryCardsFromDatabase', 'catalog:category-cards', () => readCatalogCategoryCardsFromDatabase()),
   ['catalog-category-cards'],
@@ -668,6 +879,25 @@ export async function getCatalogSearchIndexFromDatabase(diagnosticsContext = 'ca
 
 export async function getCatalogItemsIndexFromDatabase(diagnosticsContext = 'catalog:items-index'): Promise<CatalogItemsIndex> {
   return instrumentCatalogLoader('getCatalogItemsIndexFromDatabase', diagnosticsContext, async () => getCachedCatalogItemsIndexFromDatabase());
+}
+
+export async function getAdminPreviewPayloadFromDatabase(
+  diagnosticsContext = '/admin/kategorije/predogled'
+): Promise<AdminPreviewPayload> {
+  return instrumentCatalogLoader('getAdminPreviewPayloadFromDatabase', diagnosticsContext, async () => getCachedAdminPreviewPayloadFromDatabase());
+}
+
+export async function getAdminPreviewLeafItemsFromDatabase(
+  nodeId: string,
+  diagnosticsContext = '/admin/kategorije/predogled'
+): Promise<AdminPreviewLeafItemsPayload | null> {
+  const getCachedLeafItems = unstable_cache(
+    async () => instrumentCatalogCacheMiss('getCachedAdminPreviewLeafItemsFromDatabase', diagnosticsContext, () => readAdminPreviewLeafItemsFromDatabase(nodeId)),
+    ['admin-preview-leaf-items', nodeId],
+    { tags: [CATALOG_ADMIN_TAG] }
+  );
+
+  return instrumentCatalogLoader('getAdminPreviewLeafItemsFromDatabase', diagnosticsContext, async () => getCachedLeafItems());
 }
 
 /**
@@ -800,4 +1030,140 @@ export async function replaceCategoryTree(
   }
 
   return normalized;
+}
+
+export async function updateCatalogNode(
+  nodeId: string,
+  updates: Partial<Pick<AdminPreviewNode, 'title' | 'description' | 'image' | 'status' | 'position' | 'parentId'>>
+): Promise<AdminPreviewNode | null> {
+  if (!getDatabaseUrl()) {
+    return null;
+  }
+
+  await ensureTable();
+  await seedIfEmpty();
+
+  const pool = await getPool();
+  const client = await pool.connect();
+
+  try {
+    await client.query('begin');
+
+    const currentResult = await client.query(
+      `
+        select id, parent_id, slug, title, summary, description, image, position, status
+        from catalog_categories
+        where id = $1
+        limit 1
+      `,
+      [nodeId]
+    );
+
+    const current = currentResult.rows[0] as Pick<CategoryRow, 'id' | 'parent_id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'position' | 'status'> | undefined;
+    if (!current) {
+      await client.query('rollback');
+      return null;
+    }
+
+    const isCategory = current.parent_id === null;
+
+    await client.query(
+      `
+        update catalog_categories
+        set
+          parent_id = $2,
+          title = $3,
+          summary = $4,
+          description = $5,
+          image = $6,
+          position = $7,
+          status = $8,
+          updated_at = now()
+        where id = $1
+      `,
+      [
+        nodeId,
+        updates.parentId === undefined ? current.parent_id : updates.parentId,
+        updates.title ?? current.title,
+        isCategory ? (updates.description ?? current.summary) : current.summary,
+        isCategory ? current.description : (updates.description ?? current.description),
+        updates.image ?? current.image,
+        updates.position ?? current.position,
+        updates.status ?? normalizeStatus(current.status)
+      ]
+    );
+
+    await client.query('commit');
+    revalidateTag(CATALOG_PUBLIC_TAG);
+    revalidateTag(CATALOG_ADMIN_TAG);
+
+    const previewPayload = await readAdminPreviewPayloadFromDatabase();
+    return previewPayload.nodes.find((node) => node.id === nodeId) ?? null;
+  } catch (error) {
+    await client.query('rollback');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function createCatalogPreviewCategory(title: string): Promise<AdminPreviewNode | null> {
+  if (!getDatabaseUrl()) {
+    return null;
+  }
+
+  await ensureTable();
+  await seedIfEmpty();
+
+  const pool = await getPool();
+  const client = await pool.connect();
+
+  try {
+    await client.query('begin');
+    const slug = title.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-čšžćđ]/gi, '');
+    if (!slug) {
+      await client.query('rollback');
+      return null;
+    }
+
+    const exists = await client.query('select 1 from catalog_categories where parent_id is null and slug = $1 limit 1', [slug]);
+    if (exists.rowCount) {
+      throw new Error('Kategorija s tem nazivom že obstaja.');
+    }
+
+    const positionResult = await client.query('select coalesce(max(position), -1) + 1 as next_position from catalog_categories where parent_id is null');
+    const nextPosition = Number(positionResult.rows[0]?.next_position ?? 0);
+    const id = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `cat-${Date.now()}`;
+
+    await client.query(`
+      insert into catalog_categories
+        (id, parent_id, slug, title, summary, description, image, items, position, status, updated_at)
+      values
+        ($1, null, $2, $3, $4, '', '', '[]'::jsonb, $5, 'active', now())
+    `, [id, slug, title, title, nextPosition]);
+
+    await client.query('commit');
+    revalidateTag(CATALOG_PUBLIC_TAG);
+    revalidateTag(CATALOG_ADMIN_TAG);
+
+    return {
+      id,
+      parentId: null,
+      kind: 'category',
+      categorySlug: slug,
+      path: [],
+      slug,
+      title,
+      description: title,
+      image: '',
+      status: 'active',
+      position: nextPosition,
+      hasChildren: false
+    };
+  } catch (error) {
+    await client.query('rollback');
+    throw error;
+  } finally {
+    client.release();
+  }
 }

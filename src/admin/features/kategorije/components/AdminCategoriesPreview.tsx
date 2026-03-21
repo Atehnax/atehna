@@ -541,8 +541,7 @@ function CategoryPreviewCard({
               )}
             </div>
             {isEditing ? (
-              <input
-                type="text"
+              <textarea
                 value={editingDraft?.title ?? titlePreview}
                 onChange={(event) =>
                   onEditingRowTitleChange(event.target.value)
@@ -550,13 +549,13 @@ function CategoryPreviewCard({
                 onBlur={handleCardEditBlur}
                 data-inline-edit-field="true"
                 onKeyDown={(event) => {
-                  if (event.key === "Enter") {
+                  if (event.key === "Enter" && !event.shiftKey) {
                     event.preventDefault();
                     onCommitEdit();
                   }
                   if (event.key === "Escape") onCancelEdit();
                 }}
-                className="absolute inset-x-0 top-0 h-10 w-full border-transparent bg-transparent px-0 py-0 text-[1.05rem] font-semibold leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                className="absolute inset-x-0 top-0 h-10 w-full resize-none overflow-hidden border-transparent bg-transparent px-0 py-0 text-[1.05rem] font-semibold leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                 autoFocus
                 aria-label="Naziv kategorije"
               />

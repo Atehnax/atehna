@@ -122,6 +122,21 @@ type TreeNodeRef =
   | { kind: 'category'; category: RecursiveCatalogCategory; categoryIndex: number }
   | { kind: 'subcategory'; category: RecursiveCatalogCategory; node: RecursiveCatalogSubcategory; path: string[] };
 
+type CatalogRowSnapshot = {
+  id: string;
+  parentId: string | null;
+  slug: string;
+  title: string;
+  summary: string;
+  description: string;
+  image: string;
+  adminNotes?: string | null;
+  bannerImage?: string | null;
+  items: CatalogItem[];
+  position: number;
+  status: CategoryStatus;
+};
+
 const bulkDeleteButtonClass = buttonTokenClasses.danger;
 const treeIndent = 32;
 const treeRowHeight = 48;
@@ -349,6 +364,81 @@ async function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+function flattenCatalogRows(
+  catalog: CatalogData,
+  statuses: Record<string, CategoryStatus>
+): Map<string, CatalogRowSnapshot> {
+  const rows = new Map<string, CatalogRowSnapshot>();
+
+  const visitSubcategories = (
+    categorySlug: string,
+    parentId: string,
+    nodes: RecursiveCatalogSubcategory[],
+    parentPath: string[] = []
+  ) => {
+    nodes.forEach((node, index) => {
+      const path = [...parentPath, node.slug];
+      const rowId = subId(categorySlug, path);
+      rows.set(node.id, {
+        id: node.id,
+        parentId,
+        slug: node.slug,
+        title: node.title,
+        summary: '',
+        description: node.description,
+        image: node.image ?? '',
+        adminNotes: node.adminNotes ?? null,
+        bannerImage: null,
+        items: Array.isArray(node.items) ? node.items : [],
+        position: index,
+        status: statuses[rowId] ?? 'active'
+      });
+      visitSubcategories(categorySlug, node.id, node.subcategories, path);
+    });
+  };
+
+  catalog.categories.forEach((category, index) => {
+    rows.set(category.id, {
+      id: category.id,
+      parentId: null,
+      slug: category.slug,
+      title: category.title,
+      summary: category.summary,
+      description: category.description,
+      image: category.image,
+      adminNotes: category.adminNotes ?? null,
+      bannerImage: category.bannerImage ?? null,
+      items: Array.isArray(category.items) ? category.items : [],
+      position: index,
+      status: statuses[catId(category.slug)] ?? 'active'
+    });
+    visitSubcategories(category.slug, category.id, category.subcategories);
+  });
+
+  return rows;
+}
+
+function buildCatalogPatchPayload(
+  previous: CatalogData,
+  next: CatalogData,
+  previousStatuses: Record<string, CategoryStatus>,
+  statuses: Record<string, CategoryStatus>
+) {
+  const previousRows = flattenCatalogRows(previous, previousStatuses);
+  const nextRows = flattenCatalogRows(next, statuses);
+  const upserts: CatalogRowSnapshot[] = [];
+
+  nextRows.forEach((row, id) => {
+    const previousRow = previousRows.get(id);
+    if (!previousRow || JSON.stringify(previousRow) !== JSON.stringify(row)) {
+      upserts.push(row);
+    }
+  });
+
+  const deleteIds = [...previousRows.keys()].filter((id) => !nextRows.has(id));
+  return { upserts, deleteIds };
+}
+
 
 export default function AdminCategoriesMainTable({
   initialView = 'table',
@@ -473,7 +563,10 @@ export default function AdminCategoriesMainTable({
     if (!silent) setLoading(true);
 
     try {
-      const response = await fetch('/api/admin/categories', { cache: 'no-store' });
+      const response = await fetch(
+        activeView === 'preview' ? '/api/admin/categories?view=preview' : '/api/admin/categories',
+        { cache: 'no-store' }
+      );
 
       if (!response.ok) {
         toastRef.current.error('Napaka pri nalaganju kategorij');
@@ -487,7 +580,7 @@ export default function AdminCategoriesMainTable({
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [applyPayloadState]);
+  }, [activeView, applyPayloadState]);
 
   useEffect(() => {
     toastRef.current = toast;
@@ -577,6 +670,8 @@ export default function AdminCategoriesMainTable({
   const persist = async (next: CatalogData, statuses: Record<string, CategoryStatus>, message = 'Shranjeno') => {
     const previousTableCatalog = catalog;
     const previousMillerCatalog = millerCatalog;
+    const previousPersistedCatalog = persistedTableRef.current;
+    const previousStatuses = persistedStatusRef.current;
     const normalizedNext = normalizeCatalogData(next);
 
     setCatalog(normalizedNext);
@@ -584,10 +679,16 @@ export default function AdminCategoriesMainTable({
     setSaving(true);
 
     try {
+      const patchPayload = buildCatalogPatchPayload(previousPersistedCatalog, normalizedNext, previousStatuses, statuses);
+      const isPreviewPatch = activeView === 'preview';
       const response = await fetch('/api/admin/categories', {
-        method: 'PUT',
+        method: isPreviewPatch ? 'PATCH' : 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...normalizedNext, statuses })
+        body: JSON.stringify(
+          isPreviewPatch
+            ? patchPayload
+            : { ...normalizedNext, statuses }
+        )
       });
 
       if (!response.ok) {
@@ -598,11 +699,11 @@ export default function AdminCategoriesMainTable({
         return null;
       }
 
-      const savedPayload = (await response.json()) as AdminCategoriesPayload & { ok?: boolean };
+      const savedPayload = (await response.json().catch(() => ({ ok: true }))) as AdminCategoriesPayload & { ok?: boolean };
       toast.success(message);
       return {
-        categories: normalizeCatalogData(savedPayload).categories,
-        statuses: savedPayload.statuses ?? { ...statuses }
+        categories: isPreviewPatch ? normalizedNext.categories : normalizeCatalogData(savedPayload).categories,
+        statuses: isPreviewPatch ? { ...statuses } : savedPayload.statuses ?? { ...statuses }
       } satisfies AdminCategoriesPayload;
     } catch {
       setCatalog(previousTableCatalog);

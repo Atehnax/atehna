@@ -107,7 +107,7 @@ export function AdminCategoriesPreview({
               title="Nazaj"
               className="inline-flex h-9 w-9 items-center justify-center rounded-xl px-0"
             >
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M9 7 4 12l5 5" />
                 <path d="M5 12h8c4.418 0 8 3.582 8 8" />
               </svg>
@@ -219,7 +219,12 @@ function CategoryPreviewCard({
       }`}
     >
       <div className="relative flex min-h-0 flex-1 flex-col">
-        {isHidden ? <div className="pointer-events-none absolute inset-0 z-[1] bg-black/60" aria-hidden="true" /> : null}
+        {isHidden ? (
+          <div
+            className="pointer-events-none absolute inset-0 z-[1] bg-[linear-gradient(180deg,rgba(15,23,42,0.18)_0%,rgba(15,23,42,0.28)_34%,rgba(15,23,42,0.42)_72%,rgba(15,23,42,0.5)_100%)]"
+            aria-hidden="true"
+          />
+        ) : null}
         <div className="relative h-44 w-full overflow-hidden text-left">
           <button
             type="button"
@@ -236,6 +241,13 @@ function CategoryPreviewCard({
               SKRITO
             </div>
           ) : null}
+          <div className="absolute right-3 top-3 z-20" onPointerDown={(event) => event.stopPropagation()}>
+            <InlineStatusToggle
+              checked={!isHidden}
+              onToggle={() => onStageStatusChange(item.id, isHidden ? 'active' : 'inactive')}
+              ariaLabel={`Spremeni vidnost za ${item.title}`}
+            />
+          </div>
           <div className="absolute inset-0 z-20 flex items-center justify-center gap-2">
             <button
               type="button"
@@ -345,7 +357,7 @@ function CategoryPreviewCard({
                   }
                   if (event.key === 'Escape') onCancelEdit();
                 }}
-                className="absolute inset-0 h-full min-h-[88px] w-full resize-none border-transparent bg-transparent px-0 py-0 text-sm leading-6 text-slate-700 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                className="absolute inset-0 h-full min-h-[88px] w-full resize-none rounded-md border border-transparent bg-transparent px-0 py-0 text-sm leading-6 text-slate-700 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                 aria-label="Opis kategorije"
               />
             ) : null}
@@ -353,13 +365,6 @@ function CategoryPreviewCard({
         </div>
       </div>
 
-      <div className="relative z-20 mt-auto flex h-14 items-center border-t border-slate-200 bg-white px-4" onPointerDown={(event) => event.stopPropagation()}>
-        <InlineStatusToggle
-          checked={!isHidden}
-          onToggle={() => onStageStatusChange(item.id, isHidden ? 'active' : 'inactive')}
-          ariaLabel={`Spremeni vidnost za ${item.title}`}
-        />
-      </div>
 
       <input
           ref={(element) => {

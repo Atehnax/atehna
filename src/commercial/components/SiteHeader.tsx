@@ -2,8 +2,7 @@
 
 import Link from 'next/link';
 import CartButton from '@/commercial/features/cart/CartButton';
-import ItemSearch from '@/commercial/features/products/ItemSearch';
-import type { CatalogSearchItem } from '@/commercial/catalog/catalog';
+import CatalogSearch from '@/commercial/features/products/CatalogSearch';
 
 const navItems = [
   { href: '/products', label: 'Izdelki' },
@@ -12,11 +11,7 @@ const navItems = [
   { href: '/contact', label: 'Kontakt' }
 ];
 
-type SiteHeaderProps = {
-  searchItems: CatalogSearchItem[];
-};
-
-export default function SiteHeader({ searchItems }: SiteHeaderProps) {
+export default function SiteHeader() {
   return (
     <header className="border-b border-slate-200 bg-white/80 backdrop-blur">
       <div className="container-base flex items-center gap-4 py-4">
@@ -25,7 +20,7 @@ export default function SiteHeader({ searchItems }: SiteHeaderProps) {
           <span className="ml-2 text-sm font-medium text-brand-600">Šolska tehnika</span>
         </Link>
         <div className="flex-1">
-          <ItemSearch items={searchItems} />
+          <CatalogSearch />
         </div>
         <div className="flex items-center gap-3">
           <details className="relative">

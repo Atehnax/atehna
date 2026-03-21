@@ -7,6 +7,7 @@ import MdxContent from '@/commercial/components/MdxContent';
 export const metadata = {
   title: 'Izdelki'
 };
+export const dynamic = 'force-static';
 
 export default async function ProductsPage() {
   const page = getPageContent('products');

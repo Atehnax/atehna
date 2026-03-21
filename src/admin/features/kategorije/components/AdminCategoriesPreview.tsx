@@ -480,8 +480,10 @@ function CategoryPreviewCard({
           aria-hidden="true"
         />
         <div className="relative min-h-[88px]">
-          <div className="relative min-h-[20px]">
-            <div className={`min-w-0 ${isEditing ? "invisible" : ""}`}>
+          <div className="relative min-h-[40px]">
+            <div
+              className={`min-h-[40px] min-w-0 ${isEditing ? "invisible" : ""}`}
+            >
               {item.hasChildren ? (
                 <button
                   type="button"
@@ -494,18 +496,19 @@ function CategoryPreviewCard({
                   aria-label={`Odpri ${item.title}`}
                   title={item.openLabel}
                 >
-                  <p className="text-[1.05rem] font-semibold leading-5 text-slate-950">
+                  <p className="line-clamp-2 min-h-[40px] text-[1.05rem] font-semibold leading-5 text-slate-950">
                     {item.title}
                   </p>
                 </button>
               ) : (
-                <p className="text-[1.05rem] font-semibold leading-5 text-slate-950">
+                <p className="line-clamp-2 min-h-[40px] text-[1.05rem] font-semibold leading-5 text-slate-950">
                   {item.title}
                 </p>
               )}
             </div>
             {isEditing ? (
-              <textarea
+              <input
+                type="text"
                 value={editingDraft?.title ?? item.title}
                 onChange={(event) =>
                   onEditingRowTitleChange(event.target.value)
@@ -513,20 +516,20 @@ function CategoryPreviewCard({
                 onBlur={handleCardEditBlur}
                 data-inline-edit-field="true"
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
+                  if (event.key === "Enter") {
                     event.preventDefault();
                     onCommitEdit();
                   }
                   if (event.key === "Escape") onCancelEdit();
                 }}
-                className="absolute inset-0 h-5 w-full resize-none border-transparent bg-transparent px-0 py-0 text-[1.05rem] font-semibold leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                className="absolute inset-x-0 top-0 h-10 w-full border-transparent bg-transparent px-0 py-0 text-[1.05rem] font-semibold leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                 autoFocus
                 aria-label="Naziv kategorije"
               />
             ) : null}
           </div>
 
-          <div className="relative mt-2 min-h-[54px]">
+          <div className="relative mt-2 min-h-[60px]">
             <p
               className={`line-clamp-3 min-h-[60px] whitespace-pre-wrap text-sm leading-5 text-slate-950 ${isEditing ? "invisible" : ""}`}
             >

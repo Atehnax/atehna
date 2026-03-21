@@ -274,7 +274,7 @@ function CategoryPreviewCard({
                     }
                     if (event.key === 'Escape') onCancelEdit();
                   }}
-                  className="h-9 w-full rounded-lg border border-slate-200 px-2.5 text-base font-semibold leading-6 shadow-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30"
+                  className="h-9 w-full rounded-lg px-2.5 text-base font-semibold leading-6 shadow-none"
                   autoFocus
                   aria-label="Naziv kategorije"
                 />
@@ -296,7 +296,10 @@ function CategoryPreviewCard({
             <button
               type="button"
               className="inline-flex h-9 w-5 shrink-0 items-center justify-end text-slate-500 transition hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30"
-              onPointerDown={(event) => event.stopPropagation()}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+                if (isEditing) event.preventDefault();
+              }}
               onClick={() => { if (isEditing) { onCancelEdit(); return; } onStartEdit(item); }}
               aria-label={`${isEditing ? 'Zapri urejanje za' : 'Uredi'} ${item.kind === 'category' ? 'kategorijo' : 'podkategorijo'} ${item.title}`}
               title={isEditing ? 'Zapri urejanje' : 'Uredi'}
@@ -322,7 +325,7 @@ function CategoryPreviewCard({
                   }
                   if (event.key === 'Escape') onCancelEdit();
                 }}
-                className="h-full min-h-[88px] w-full resize-none border-0 bg-transparent px-0 py-0 text-sm leading-6 text-slate-700 outline-none transition focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30"
+                className="h-full min-h-[88px] w-full resize-none rounded-md border border-slate-300 bg-white px-2.5 py-2 text-sm leading-6 text-slate-700 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                 aria-label="Opis kategorije"
               />
             ) : (

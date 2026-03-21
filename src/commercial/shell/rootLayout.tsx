@@ -4,7 +4,6 @@ import SiteFooter from '@/commercial/components/SiteFooter';
 import CartDrawer from '@/commercial/features/cart/CartDrawer';
 import WebsiteAnalyticsTracker from '@/commercial/components/WebsiteAnalyticsTracker';
 import { ToastProvider, Toaster } from '@/shared/ui/toast';
-import { getCatalogSearchItems } from '@/commercial/catalog/catalog';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://atehna.si'),
@@ -29,13 +28,12 @@ export const metadata: Metadata = {
 };
 
 export default function CommercialRootLayout({ children }: { children: React.ReactNode }) {
-  const searchItems = getCatalogSearchItems();
   return (
     <html lang="sl">
       <body className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
         <ToastProvider>
           <WebsiteAnalyticsTracker />
-          <SiteHeader searchItems={searchItems} />
+          <SiteHeader />
           <main className="flex-1">{children}</main>
           <CartDrawer />
           <SiteFooter />

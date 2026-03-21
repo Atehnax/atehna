@@ -13,7 +13,12 @@ export type RecursiveCatalogCategory = Omit<CatalogCategory, 'subcategories' | '
 };
 
 export type CatalogData = { categories: RecursiveCatalogCategory[] };
-export type AdminCategoriesPayload = { categories: CatalogCategory[]; statuses?: Record<string, CategoryStatus> };
+export type AdminCategoriesPayload = {
+  categories: CatalogCategory[];
+  statuses?: Record<string, CategoryStatus>;
+  payloadMode?: 'full' | 'partial';
+  payloadView?: CategoriesView;
+};
 
 export type SelectedNode =
   | { kind: 'root' }

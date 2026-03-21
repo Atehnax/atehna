@@ -20,6 +20,7 @@ type CatalogPreviewCategory = Pick<RecursiveCatalogCategory, 'id' | 'slug' | 'ti
 };
 type CatalogPreviewData = { categories: CatalogPreviewCategory[] };
 type CatalogPreviewDataWithStatuses = CatalogPreviewData & { statuses: Record<string, CategoryStatus> };
+type AdminCategoriesView = 'table' | 'preview' | 'miller';
 
 export const CATALOG_PUBLIC_TAG = 'catalog-public';
 export const CATALOG_ADMIN_TAG = 'catalog-admin';
@@ -758,6 +759,105 @@ export async function getCatalogPreviewDataFromDatabase(
 
     return readCatalogPreviewDataFromDatabase();
   });
+}
+
+function mapPreviewInitialCategory(category: RecursiveCatalogCategory): RecursiveCatalogCategory {
+  return {
+    id: category.id,
+    slug: category.slug,
+    title: category.title,
+    summary: category.summary,
+    description: category.description,
+    image: category.image,
+    items: category.subcategories.length === 0 ? category.items : [],
+    subcategories: category.subcategories.map((subcategory) => ({
+      id: subcategory.id,
+      slug: subcategory.slug,
+      title: subcategory.title,
+      description: subcategory.description,
+      image: subcategory.image,
+      items: [],
+      subcategories: []
+    }))
+  };
+}
+
+function mapTableInitialCategory(category: RecursiveCatalogCategory): RecursiveCatalogCategory {
+  return {
+    id: category.id,
+    slug: category.slug,
+    title: category.title,
+    summary: category.summary,
+    description: category.description,
+    image: '',
+    items: [],
+    subcategories: category.subcategories.map((subcategory) => ({
+      id: subcategory.id,
+      slug: subcategory.slug,
+      title: subcategory.title,
+      description: subcategory.description,
+      image: '',
+      items: [],
+      subcategories: []
+    }))
+  };
+}
+
+function mapMillerInitialCategory(category: RecursiveCatalogCategory): RecursiveCatalogCategory {
+  return {
+    id: category.id,
+    slug: category.slug,
+    title: category.title,
+    summary: '',
+    description: '',
+    image: '',
+    createdAt: category.createdAt,
+    updatedAt: category.updatedAt,
+    items: category.subcategories.length === 0
+      ? category.items.map(({ slug, name, createdAt, updatedAt, created_at, updated_at }) => ({
+          slug,
+          name,
+          description: '',
+          createdAt,
+          updatedAt,
+          created_at,
+          updated_at
+        }))
+      : [],
+    subcategories: category.subcategories.map((subcategory) => ({
+      id: subcategory.id,
+      slug: subcategory.slug,
+      title: subcategory.title,
+      description: '',
+      image: '',
+      createdAt: subcategory.createdAt,
+      updatedAt: subcategory.updatedAt,
+      items: [],
+      subcategories: []
+    }))
+  };
+}
+
+export async function getCatalogAdminInitialPayloadFromDatabase(
+  view: AdminCategoriesView,
+  diagnosticsContext?: string
+): Promise<CatalogDataWithStatuses> {
+  const payload = await getCatalogDataFromDatabase({
+    includeInactive: true,
+    includeStatuses: true,
+    diagnosticsContext: diagnosticsContext ?? '/admin/kategorije'
+  }) as CatalogDataWithStatuses;
+
+  return {
+    categories: payload.categories.map((category) =>
+      view === 'table'
+        ? mapTableInitialCategory(category)
+        : view === 'miller'
+          ? mapMillerInitialCategory(category)
+          : mapPreviewInitialCategory(category)
+    ),
+    statuses: payload.statuses
+  };
 }
 
 type CatalogRowPatch = {

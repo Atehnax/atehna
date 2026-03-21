@@ -1,10 +1,16 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
-import Image from 'next/image';
-import type { CatalogItem } from '@/commercial/catalog/catalog';
-import { formatCatalogPrice, getCatalogCategoryItemPrice, getCatalogCategoryItemSku, getCatalogItemPrice, getCatalogItemSku, getDiscountedPrice, sortCatalogItems } from '@/commercial/catalog/catalog';
-import { Button } from '@/shared/ui/button';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type ChangeEvent } from 'react';
+import { arrayMove, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import type { DragEndEvent } from '@dnd-kit/core';
+import { AdminCategoriesPreview } from '@/admin/features/kategorije/components/AdminCategoriesPreview';
+import type { ContentCard, EditingRowDraft, ImageDeleteTarget, RecursiveCatalogSubcategory, SelectedPreviewContext } from '@/admin/features/kategorije/common/types';
+import { catId, findSubcategoryByPath, slugify, subId } from '@/admin/features/kategorije/common/catalog-helpers';
+import type { CatalogCategory, CatalogItem, CatalogSubcategory } from '@/commercial/catalog/catalog';
+import { sortCatalogItems } from '@/commercial/catalog/catalog';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { Input } from '@/shared/ui/input';
 import { useToast } from '@/shared/ui/toast';
 import type { AdminPreviewNode, AdminPreviewPayload } from '@/shared/server/catalogCategories';
 
@@ -12,147 +18,51 @@ type Draft = { title: string; description: string; status: 'active' | 'inactive'
 type PendingImage = { file: File; objectUrl: string };
 type LeafPayload = { category: { id: string; slug: string; title: string }; subcategory: { id: string; slug: string; title: string } | null; items: CatalogItem[] };
 
-const GRID_MIN = 3;
-const GRID_MAX = 8;
-
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result ?? ''));
-    reader.onerror = () => reject(new Error('Napaka pri branju slike.'));
+    reader.onerror = () => reject(new Error('Napaka pri branju datoteke'));
     reader.readAsDataURL(file);
   });
 }
 
-const PreviewCard = memo(function PreviewCard({
-  node,
-  imageSrc,
-  isEditing,
-  draft,
-  uploadInputRef,
-  onOpen,
-  onStartEdit,
-  onCancelEdit,
-  onDraftChange,
-  onStatusToggle,
-  onSelectImage,
-  onSaveCard,
+function SortableItem({
+  id,
+  children
 }: {
-  node: AdminPreviewNode;
-  imageSrc: string;
-  isEditing: boolean;
-  draft: Draft | null;
-  uploadInputRef: (node: HTMLInputElement | null) => void;
-  onOpen: (node: AdminPreviewNode) => void;
-  onStartEdit: (node: AdminPreviewNode) => void;
-  onCancelEdit: (nodeId: string) => void;
-  onDraftChange: (nodeId: string, patch: Partial<Draft>) => void;
-  onStatusToggle: (node: AdminPreviewNode) => void;
-  onSelectImage: (node: AdminPreviewNode, file: File | null) => void;
-  onSaveCard: (nodeId: string) => void;
+  id: string;
+  children: (args: { dragHandleProps: Record<string, unknown>; setNodeRef: (node: HTMLElement | null) => void; style: CSSProperties }) => ReactNode;
 }) {
-  const title = draft?.title ?? node.title;
-  const description = draft?.description ?? node.description;
-  const isHidden = (draft?.status ?? node.status) === 'inactive';
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
 
-  return (
-    <article className="group flex h-full min-h-[300px] flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
-      <div className="group/image relative h-[226px] overflow-hidden">
-        <div className={`absolute inset-0 ${imageSrc ? 'bg-slate-100' : 'bg-[#323538]'}`} aria-hidden="true">
-          {imageSrc ? (
-            <Image
-              src={imageSrc}
-              alt={title || 'Kategorija'}
-              fill
-              sizes="(max-width: 768px) 50vw, (max-width: 1280px) 25vw, 16vw"
-              className={`object-cover transition duration-200 ${isHidden ? 'scale-[1.02] blur-[2px]' : ''}`}
-            />
-          ) : null}
-        </div>
-        <div className={`pointer-events-none absolute inset-0 ${isHidden ? 'bg-[linear-gradient(180deg,rgba(15,23,42,0.18)_0%,rgba(15,23,42,0.42)_42%,rgba(15,23,42,0.6)_76%,rgba(15,23,42,0.72)_100%)]' : 'bg-[linear-gradient(180deg,rgba(15,23,42,0.02)_0%,rgba(15,23,42,0.08)_48%,rgba(15,23,42,0.18)_100%)]'}`} aria-hidden="true" />
-        <div className="absolute right-3 top-3 z-20 flex flex-col items-end gap-2 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
-          <button type="button" className="inline-flex h-8 min-w-[2rem] items-center justify-center rounded-xl border border-slate-200 bg-white px-2 text-slate-900 shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition hover:bg-slate-50" onClick={() => isEditing ? onCancelEdit(node.id) : onStartEdit(node)}>{isEditing ? 'Zapri' : 'Uredi'}</button>
-          <button type="button" className={`inline-flex h-8 min-w-[2rem] items-center justify-center rounded-xl border bg-white px-2 shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition ${isHidden ? 'border-[#f1c1bd] text-[#d2554a] hover:bg-[#fff7f6]' : 'border-slate-200 text-slate-900 hover:bg-slate-50'}`} onClick={() => onStatusToggle(node)}>{isHidden ? 'Prikaži' : 'Skrij'}</button>
-          <button type="button" className="inline-flex h-8 min-w-[2rem] items-center justify-center rounded-xl border border-slate-200 bg-white px-2 text-slate-900 shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition hover:bg-slate-50" onClick={() => onOpen(node)}>{node.hasChildren ? 'Odpri' : 'Izdelki'}</button>
-          <label className="inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white px-2 py-1 text-xs text-slate-900 shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition hover:bg-slate-50">
-            Slika
-            <input ref={uploadInputRef} type="file" accept="image/*" className="sr-only" onChange={(event) => onSelectImage(node, event.target.files?.[0] ?? null)} />
-          </label>
-        </div>
-        {isHidden ? <div className="absolute left-1/2 top-[44%] z-20 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#d2554a] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white shadow-sm">SKRITO</div> : null}
-      </div>
-
-      <div className="relative flex h-[132px] flex-none flex-col px-4 pb-4 pt-3">
-        {isEditing ? (
-          <div className="flex h-full flex-col gap-2">
-            <input className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-900 focus:border-[#3e67d6] focus:outline-none" value={title} onChange={(event) => onDraftChange(node.id, { title: event.target.value })} />
-            <textarea className="min-h-[56px] rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 focus:border-[#3e67d6] focus:outline-none" value={description} onChange={(event) => onDraftChange(node.id, { description: event.target.value })} />
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => onCancelEdit(node.id)}>Prekliči</Button>
-              <Button variant="primary" size="sm" onClick={() => onSaveCard(node.id)}>Shrani</Button>
-            </div>
-          </div>
-        ) : (
-          <button type="button" className="flex h-full flex-col items-start text-left" onClick={() => onOpen(node)}>
-            <h3 className="line-clamp-2 text-[17px] font-semibold leading-5 text-[#132433]">{title || '—'}</h3>
-            <p className="mt-2 line-clamp-3 text-sm leading-[1.35rem] text-[#536471]">{description || '—'}</p>
-          </button>
-        )}
-      </div>
-    </article>
-  );
-}, (prev, next) =>
-  prev.node === next.node &&
-  prev.imageSrc === next.imageSrc &&
-  prev.isEditing === next.isEditing &&
-  prev.draft?.title === next.draft?.title &&
-  prev.draft?.description === next.draft?.description &&
-  prev.draft?.status === next.draft?.status
-);
+  return children({
+    dragHandleProps: { ...attributes, ...listeners },
+    setNodeRef,
+    style: { transform: CSS.Transform.toString(transform), transition }
+  });
+}
 
 export default function AdminCategoriesPreviewPageClient({ initialPayload }: { initialPayload: AdminPreviewPayload }) {
   const { toast } = useToast();
   const [nodes, setNodes] = useState(initialPayload.nodes);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [lowerViewCount, setLowerViewCount] = useState(5);
+  const [editingRow, setEditingRow] = useState<EditingRowDraft | null>(null);
   const [draftsById, setDraftsById] = useState<Record<string, Draft>>({});
+  const [dirtyIds, setDirtyIds] = useState<string[]>([]);
   const [pendingImagesById, setPendingImagesById] = useState<Record<string, PendingImage>>({});
   const [leafItemsByNodeId, setLeafItemsByNodeId] = useState<Record<string, LeafPayload>>({});
-  const [loadingLeafForNodeId, setLoadingLeafForNodeId] = useState<string | null>(null);
-
-  const nodeById = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
-
-  const selectedNode = selectedId ? nodeById.get(selectedId) ?? null : null;
-  const selectedParentId = selectedNode?.id ?? null;
-  const visibleNodes = useMemo(
-    () => nodes.filter((node) => node.parentId === selectedParentId).sort((left, right) => left.position - right.position),
-    [nodes, selectedParentId]
-  );
-
-  const canNavigateUp = selectedNode !== null;
-
-  const loadLeaf = useCallback(async (node: AdminPreviewNode) => {
-    if (node.hasChildren || leafItemsByNodeId[node.id] || loadingLeafForNodeId === node.id) return;
-    setLoadingLeafForNodeId(node.id);
-    try {
-      const response = await fetch(`/api/admin/categories/preview/${node.id}/items`, { cache: 'no-store' });
-      if (!response.ok) throw new Error();
-      const payload = await response.json() as LeafPayload;
-      setLeafItemsByNodeId((current) => ({ ...current, [node.id]: payload }));
-    } catch {
-      toast.error('Napaka pri nalaganju izdelkov.');
-    } finally {
-      setLoadingLeafForNodeId((current) => (current === node.id ? null : current));
-    }
-  }, [leafItemsByNodeId, loadingLeafForNodeId, toast]);
-
-  useEffect(() => {
-    if (selectedNode) {
-      void loadLeaf(selectedNode);
-    }
-  }, [loadLeaf, selectedNode]);
-
+  const [loadingLeafNodeId, setLoadingLeafNodeId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [tableError, setTableError] = useState<string | null>(null);
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [createName, setCreateName] = useState('');
+  const [imageDeleteTarget, setImageDeleteTarget] = useState<ImageDeleteTarget>(null);
+  const uploadRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const pendingImagesRef = useRef(pendingImagesById);
+
   useEffect(() => {
     pendingImagesRef.current = pendingImagesById;
   }, [pendingImagesById]);
@@ -161,140 +71,475 @@ export default function AdminCategoriesPreviewPageClient({ initialPayload }: { i
     Object.values(pendingImagesRef.current).forEach((entry) => URL.revokeObjectURL(entry.objectUrl));
   }, []);
 
-  const stageDraft = useCallback((node: AdminPreviewNode) => {
-    setDraftsById((current) => current[node.id] ? current : { ...current, [node.id]: { title: node.title, description: node.description, status: node.status } });
+  const nodeById = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
+  const selectedNode = selectedId ? nodeById.get(selectedId) ?? null : null;
+
+  const childNodesByParent = useMemo(() => {
+    const map = new Map<string | null, AdminPreviewNode[]>();
+    nodes.forEach((node) => {
+      const list = map.get(node.parentId) ?? [];
+      list.push(node);
+      map.set(node.parentId, list);
+    });
+    map.forEach((list) => list.sort((left, right) => left.position - right.position));
+    return map;
+  }, [nodes]);
+
+  const getNodeState = useCallback((node: AdminPreviewNode) => {
+    const draft = draftsById[node.id];
+    return {
+      title: draft?.title ?? node.title,
+      description: draft?.description ?? node.description,
+      status: draft?.status ?? node.status,
+      image: pendingImagesById[node.id]?.objectUrl ?? node.image
+    };
+  }, [draftsById, pendingImagesById]);
+
+  const buildSubcategoryTree = useCallback((categorySlug: string, parentId: string): CatalogSubcategory[] => {
+    const children = childNodesByParent.get(parentId) ?? [];
+    return children.map((node) => {
+      const state = getNodeState(node);
+      return {
+        id: node.id,
+        slug: node.slug,
+        title: state.title,
+        description: state.description,
+        image: state.image,
+        items: leafItemsByNodeId[node.id]?.items ?? [],
+        subcategories: buildSubcategoryTree(categorySlug, node.id)
+      } as CatalogSubcategory & { subcategories: CatalogSubcategory[] };
+    });
+  }, [childNodesByParent, getNodeState, leafItemsByNodeId]);
+
+  const selectedContext = useMemo<SelectedPreviewContext>(() => {
+    if (!selectedNode) return { kind: 'root' };
+    if (selectedNode.kind === 'category') {
+      const state = getNodeState(selectedNode);
+      const category: CatalogCategory = {
+        id: selectedNode.id,
+        slug: selectedNode.slug,
+        title: state.title,
+        summary: state.description,
+        description: '',
+        image: state.image,
+        subcategories: buildSubcategoryTree(selectedNode.slug, selectedNode.id),
+        items: leafItemsByNodeId[selectedNode.id]?.items ?? []
+      };
+      return { kind: 'category', category };
+    }
+
+    const categoryNode = nodes.find((node) => node.kind === 'category' && node.slug === selectedNode.categorySlug);
+    if (!categoryNode) return null;
+    const categoryState = getNodeState(categoryNode);
+    const category: CatalogCategory = {
+      id: categoryNode.id,
+      slug: categoryNode.slug,
+      title: categoryState.title,
+      summary: categoryState.description,
+      description: '',
+      image: categoryState.image,
+      subcategories: buildSubcategoryTree(categoryNode.slug, categoryNode.id),
+      items: leafItemsByNodeId[categoryNode.id]?.items ?? []
+    };
+    const subcategory = findSubcategoryByPath(category.subcategories as RecursiveCatalogSubcategory[], selectedNode.path);
+    if (!subcategory) return null;
+    return { kind: 'subcategory', category, subcategory };
+  }, [buildSubcategoryTree, getNodeState, leafItemsByNodeId, nodes, selectedNode]);
+
+  const visibleContent = useMemo<ContentCard[]>(() => {
+    if (!selectedContext) return [];
+    if (selectedContext.kind === 'root') {
+      return (childNodesByParent.get(null) ?? []).map((node) => {
+        const state = getNodeState(node);
+        return {
+          id: catId(node.slug),
+          title: state.title,
+          description: state.description,
+          image: state.image,
+          kind: 'category',
+          categorySlug: node.slug,
+          subcategoryPath: [],
+          openLabel: 'Odpri kategorijo',
+          hasChildren: node.hasChildren,
+          isInactive: state.status === 'inactive'
+        };
+      });
+    }
+
+    if (selectedContext.kind === 'category') {
+      return (childNodesByParent.get(selectedContext.category.id) ?? []).map((node) => {
+        const state = getNodeState(node);
+        return {
+          id: subId(selectedContext.category.slug, node.path),
+          title: state.title,
+          description: state.description,
+          image: state.image,
+          kind: 'subcategory',
+          categorySlug: selectedContext.category.slug,
+          subcategoryPath: node.path,
+          openLabel: 'Odpri podkategorijo',
+          hasChildren: node.hasChildren,
+          isInactive: state.status === 'inactive'
+        };
+      });
+    }
+
+    return (childNodesByParent.get(selectedContext.subcategory.id) ?? []).map((node) => {
+      const state = getNodeState(node);
+      return {
+        id: subId(selectedContext.category.slug, node.path),
+        title: state.title,
+        description: state.description,
+        image: state.image,
+        kind: 'subcategory',
+        categorySlug: selectedContext.category.slug,
+        subcategoryPath: node.path,
+        openLabel: 'Odpri podkategorijo',
+        hasChildren: node.hasChildren,
+        isInactive: state.status === 'inactive'
+      };
+    });
+  }, [childNodesByParent, getNodeState, selectedContext]);
+
+  const loadLeafItems = useCallback(async (node: AdminPreviewNode) => {
+    if (node.hasChildren || leafItemsByNodeId[node.id] || loadingLeafNodeId === node.id) return;
+    setLoadingLeafNodeId(node.id);
+    try {
+      const response = await fetch(`/api/admin/categories/preview/${node.id}/items`, { cache: 'no-store' });
+      if (!response.ok) throw new Error();
+      const payload = await response.json() as LeafPayload;
+      setLeafItemsByNodeId((current) => ({ ...current, [node.id]: payload }));
+    } catch {
+      toast.error('Napaka pri nalaganju izdelkov');
+    } finally {
+      setLoadingLeafNodeId((current) => (current === node.id ? null : current));
+    }
+  }, [leafItemsByNodeId, loadingLeafNodeId, toast]);
+
+  useEffect(() => {
+    if (selectedNode) void loadLeafItems(selectedNode);
+  }, [loadLeafItems, selectedNode]);
+
+  const markDirty = useCallback((nodeId: string) => {
+    setDirtyIds((current) => current.includes(nodeId) ? current : [...current, nodeId]);
   }, []);
 
-  const updateDraft = useCallback((nodeId: string, patch: Partial<Draft>) => {
-    setDraftsById((current) => {
-      const node = nodeById.get(nodeId);
-      const base = current[nodeId] ?? (node ? { title: node.title, description: node.description, status: node.status } : { title: '', description: '', status: 'active' as const });
-      return { ...current, [nodeId]: { ...base, ...patch } };
-    });
-  }, [nodeById]);
+  const clearDirty = useCallback((nodeId: string) => {
+    setDirtyIds((current) => current.filter((entry) => entry !== nodeId));
+  }, []);
 
-  const saveCard = useCallback(async (nodeId: string) => {
-    const node = nodeById.get(nodeId);
+  const startEdit = useCallback((item: ContentCard) => {
+    const node = item.kind === 'category'
+      ? nodes.find((entry) => entry.kind === 'category' && entry.slug === item.categorySlug)
+      : nodes.find((entry) => entry.kind === 'subcategory' && entry.categorySlug === item.categorySlug && entry.path.join('__') === item.subcategoryPath.join('__'));
     if (!node) return;
-    const draft = draftsById[nodeId];
-    const pendingImage = pendingImagesById[nodeId];
-    const changes: Record<string, unknown> = {};
+    const draft = draftsById[node.id];
+    setEditingRow({
+      id: item.id,
+      kind: item.kind,
+      categorySlug: item.categorySlug,
+      subcategoryPath: item.subcategoryPath,
+      subcategorySlug: item.subcategoryPath.at(-1),
+      title: draft?.title ?? item.title,
+      description: draft?.description ?? item.description,
+      status: draft?.status ?? node.status
+    });
+  }, [draftsById, nodes]);
 
-    if (draft) {
-      if (draft.title.trim() !== node.title) changes.title = draft.title.trim();
-      if (draft.description !== node.description) changes.description = draft.description;
-      if (draft.status !== node.status) changes.status = draft.status;
-    }
-    if (pendingImage) {
-      changes.image = await fileToDataUrl(pendingImage.file);
-    }
-    if (Object.keys(changes).length === 0) {
+  const commitInlineEdit = useCallback(() => {
+    if (!editingRow) return;
+    const node = editingRow.kind === 'category'
+      ? nodes.find((entry) => entry.kind === 'category' && entry.slug === editingRow.categorySlug)
+      : nodes.find((entry) => entry.kind === 'subcategory' && entry.categorySlug === editingRow.categorySlug && entry.path.join('__') === (editingRow.subcategoryPath ?? []).join('__'));
+    if (!node) {
+      setEditingRow(null);
       return;
     }
 
+    const nextDraft: Draft = {
+      title: editingRow.title,
+      description: editingRow.description,
+      status: editingRow.status
+    };
+
+    const unchanged = nextDraft.title.trim() === node.title.trim()
+      && nextDraft.description === node.description
+      && nextDraft.status === node.status;
+
+    setDraftsById((current) => {
+      const next = { ...current };
+      if (unchanged && !pendingImagesById[node.id]) {
+        delete next[node.id];
+      } else {
+        next[node.id] = nextDraft;
+      }
+      return next;
+    });
+
+    if (unchanged && !pendingImagesById[node.id]) clearDirty(node.id);
+    else markDirty(node.id);
+
+    setEditingRow(null);
+  }, [clearDirty, editingRow, markDirty, nodes, pendingImagesById]);
+
+  const saveChanges = useCallback(async () => {
+    commitInlineEdit();
+    const nodeIds = [...new Set(dirtyIds)];
+    if (nodeIds.length === 0) {
+      setIsSaveDialogOpen(false);
+      return;
+    }
+
+    setSaving(true);
+    setTableError(null);
+
+    try {
+      for (const nodeId of nodeIds) {
+        const node = nodeById.get(nodeId);
+        if (!node) continue;
+        const draft = draftsById[nodeId];
+        const pendingImage = pendingImagesById[nodeId];
+        const changes: Record<string, unknown> = {};
+
+        if (draft) {
+          if (draft.title.trim() !== node.title) changes.title = draft.title.trim();
+          if (draft.description !== node.description) changes.description = draft.description;
+          if (draft.status !== node.status) changes.status = draft.status;
+        }
+        if (pendingImage) changes.image = await fileToDataUrl(pendingImage.file);
+        if (Object.keys(changes).length === 0) continue;
+
+        const response = await fetch('/api/admin/categories/preview', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: nodeId, changes })
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload.node) {
+          throw new Error(payload?.message ?? 'Shranjevanje ni uspelo');
+        }
+        const updatedNode = payload.node as AdminPreviewNode;
+        setNodes((current) => current.map((entry) => entry.id === nodeId ? updatedNode : entry));
+        setDraftsById((current) => {
+          const next = { ...current };
+          delete next[nodeId];
+          return next;
+        });
+        setPendingImagesById((current) => {
+          const next = { ...current };
+          const pending = next[nodeId];
+          if (pending) URL.revokeObjectURL(pending.objectUrl);
+          delete next[nodeId];
+          return next;
+        });
+      }
+
+      setDirtyIds([]);
+      setIsSaveDialogOpen(false);
+      toast.success('Spremembe shranjene');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Shranjevanje ni uspelo';
+      setTableError(message);
+      toast.error(message);
+    } finally {
+      setSaving(false);
+    }
+  }, [commitInlineEdit, dirtyIds, draftsById, nodeById, pendingImagesById, toast]);
+
+  const handleStatusChange = useCallback((rowId: string, status: 'active' | 'inactive') => {
+    const node = visibleContent.find((item) => item.id === rowId);
+    if (!node) return;
+    const previewNode = node.kind === 'category'
+      ? nodes.find((entry) => entry.kind === 'category' && entry.slug === node.categorySlug)
+      : nodes.find((entry) => entry.kind === 'subcategory' && entry.categorySlug === node.categorySlug && entry.path.join('__') === node.subcategoryPath.join('__'));
+    if (!previewNode) return;
+
+    setDraftsById((current) => ({
+      ...current,
+      [previewNode.id]: {
+        title: current[previewNode.id]?.title ?? previewNode.title,
+        description: current[previewNode.id]?.description ?? previewNode.description,
+        status
+      }
+    }));
+    markDirty(previewNode.id);
+    setEditingRow((current) => current && current.id === rowId ? { ...current, status } : current);
+  }, [markDirty, nodes, visibleContent]);
+
+  const handleImageUpload = useCallback(async (file: File | null, item: ContentCard) => {
+    if (!file) return;
+    const previewNode = item.kind === 'category'
+      ? nodes.find((entry) => entry.kind === 'category' && entry.slug === item.categorySlug)
+      : nodes.find((entry) => entry.kind === 'subcategory' && entry.categorySlug === item.categorySlug && entry.path.join('__') === item.subcategoryPath.join('__'));
+    if (!previewNode) return;
+
+    setPendingImagesById((current) => {
+      const next = { ...current };
+      if (next[previewNode.id]) URL.revokeObjectURL(next[previewNode.id].objectUrl);
+      next[previewNode.id] = { file, objectUrl: URL.createObjectURL(file) };
+      return next;
+    });
+    markDirty(previewNode.id);
+  }, [markDirty, nodes]);
+
+  const saveSummary = useMemo(() => {
+    if (dirtyIds.length === 0) return ['Ni sprememb za shranjevanje.'];
+    return dirtyIds.map((nodeId) => nodeById.get(nodeId)?.title ?? nodeId);
+  }, [dirtyIds, nodeById]);
+
+  const handleCreateCategory = useCallback(async () => {
+    const title = createName.trim();
+    if (!title) return;
     try {
       const response = await fetch('/api/admin/categories/preview', {
-        method: 'PATCH',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: nodeId, changes })
+        body: JSON.stringify({ title })
       });
       const payload = await response.json();
-      if (!response.ok || !payload.node) throw new Error();
-      const updatedNode = payload.node as AdminPreviewNode;
-      setNodes((current) => current.map((entry) => entry.id === nodeId ? updatedNode : entry));
-      setDraftsById((current) => {
-        const next = { ...current };
-        delete next[nodeId];
-        return next;
-      });
-      setPendingImagesById((current) => {
-        const next = { ...current };
-        const pending = next[nodeId];
-        if (pending) URL.revokeObjectURL(pending.objectUrl);
-        delete next[nodeId];
-        return next;
-      });
-      toast.success('Spremembe shranjene.');
-    } catch {
-      toast.error('Shranjevanje ni uspelo.');
+      if (!response.ok || !payload.node) throw new Error(payload?.message ?? 'Dodajanje ni uspelo');
+      setNodes((current) => [...current, payload.node as AdminPreviewNode]);
+      setCreateName('');
+      setIsCreateDialogOpen(false);
+      toast.success('Kategorija dodana');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Dodajanje ni uspelo');
     }
-  }, [draftsById, nodeById, pendingImagesById, toast]);
+  }, [createName, toast]);
 
-  const selectedLeaf = selectedNode ? leafItemsByNodeId[selectedNode.id] : null;
+  const handleDeleteImage = useCallback(() => {
+    if (!imageDeleteTarget) return;
+    const previewNode = imageDeleteTarget.kind === 'category'
+      ? nodes.find((entry) => entry.kind === 'category' && entry.slug === imageDeleteTarget.categorySlug)
+      : nodes.find((entry) => entry.kind === 'subcategory' && entry.categorySlug === imageDeleteTarget.categorySlug && entry.path.at(-1) === imageDeleteTarget.subcategorySlug);
+    if (!previewNode) return;
+
+    setPendingImagesById((current) => {
+      const next = { ...current };
+      if (next[previewNode.id]) URL.revokeObjectURL(next[previewNode.id].objectUrl);
+      delete next[previewNode.id];
+      return next;
+    });
+    setDraftsById((current) => ({
+      ...current,
+      [previewNode.id]: {
+        title: current[previewNode.id]?.title ?? previewNode.title,
+        description: current[previewNode.id]?.description ?? previewNode.description,
+        status: current[previewNode.id]?.status ?? previewNode.status
+      }
+    }));
+    setNodes((current) => current.map((entry) => entry.id === previewNode.id ? { ...entry, image: '' } : entry));
+    markDirty(previewNode.id);
+    setImageDeleteTarget(null);
+  }, [imageDeleteTarget, markDirty, nodes]);
+
+  const onBottomReorder = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const currentIds = visibleContent.map((item) => item.id);
+    const oldIndex = currentIds.indexOf(String(active.id));
+    const newIndex = currentIds.indexOf(String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    const reorderedIds = arrayMove(currentIds, oldIndex, newIndex);
+    const parentId = selectedNode?.id ?? null;
+    const siblings = childNodesByParent.get(parentId) ?? [];
+    const reorderedNodes = reorderedIds.map((id, index) => {
+      const sibling = siblings.find((entry) => (entry.kind === 'category' ? catId(entry.slug) : subId(entry.categorySlug, entry.path)) === id);
+      return sibling ? { ...sibling, position: index } : null;
+    }).filter((entry): entry is AdminPreviewNode => entry !== null);
+    setNodes((current) => current.map((entry) => reorderedNodes.find((node) => node.id === entry.id) ?? entry));
+    reorderedNodes.forEach((node) => markDirty(node.id));
+  }, [childNodesByParent, markDirty, selectedNode, visibleContent]);
 
   return (
-    <div className="space-y-5">
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="text-sm font-semibold text-slate-700">Predogled</p>
-          <div className="flex items-center gap-3">
-            <label className="mr-2 flex items-center gap-2 text-[11px] text-slate-500">
-              Elementov na vrstico
-              <input type="range" min={GRID_MIN} max={GRID_MAX} value={lowerViewCount} onChange={(event) => setLowerViewCount(Number(event.target.value || 5))} className="h-1.5 w-28 accent-[#3e67d6]" />
-              <span className="w-4 text-right text-slate-600">{lowerViewCount}</span>
-            </label>
-            <Button variant="outline" size="toolbar" onClick={() => setSelectedId(selectedNode?.parentId ?? null)} disabled={!canNavigateUp} className="inline-flex h-9 w-9 items-center justify-center rounded-xl px-0">←</Button>
-          </div>
+    <>
+      <AdminCategoriesPreview
+        activeView="preview"
+        tableError={tableError}
+        lowerViewCount={lowerViewCount}
+        onLowerViewCountChange={setLowerViewCount}
+        onRequestSave={() => setIsSaveDialogOpen(true)}
+        canNavigateUp={selectedNode !== null}
+        onNavigateUp={() => setSelectedId(selectedNode?.parentId ?? null)}
+        tableDirty={dirtyIds.length > 0}
+        saving={saving}
+        selectedContext={selectedContext}
+        visibleContent={visibleContent}
+        onBottomReorder={onBottomReorder}
+        renderSortableItem={(id, children) => (
+          <SortableItem key={id} id={id}>
+            {({ dragHandleProps, setNodeRef, style }) => children({ dragHandleProps, setNodeRef, style })}
+          </SortableItem>
+        )}
+        uploadRefs={uploadRefs}
+        onSetImageDeleteTarget={setImageDeleteTarget}
+        onImageUpload={handleImageUpload}
+        onLeafProductsDragEnd={() => {}}
+        sortCatalogItems={sortCatalogItems}
+        editingRow={editingRow}
+        onStartEdit={startEdit}
+        onEditingRowTitleChange={(value) => setEditingRow((current) => current ? { ...current, title: value } : current)}
+        onEditingRowDescriptionChange={(value) => setEditingRow((current) => current ? { ...current, description: value } : current)}
+        onCommitEdit={commitInlineEdit}
+        onCancelEdit={() => setEditingRow(null)}
+        onOpenNode={(item) => {
+          const node = item.kind === 'category'
+            ? nodes.find((entry) => entry.kind === 'category' && entry.slug === item.categorySlug)
+            : nodes.find((entry) => entry.kind === 'subcategory' && entry.categorySlug === item.categorySlug && entry.path.join('__') === item.subcategoryPath.join('__'));
+          if (node) setSelectedId(node.id);
+        }}
+        onStageStatusChange={handleStatusChange}
+        onRequestCreateCategory={() => setIsCreateDialogOpen(true)}
+      />
+
+      <ConfirmDialog
+        open={isSaveDialogOpen}
+        title="Shrani spremembe"
+        description="Pregled pripravljenih sprememb:"
+        confirmLabel="Shrani"
+        cancelLabel="Prekliči"
+        onCancel={() => setIsSaveDialogOpen(false)}
+        onConfirm={() => void saveChanges()}
+      >
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-600">
+          {saveSummary.map((line) => <li key={line}>{line}</li>)}
+        </ul>
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={isCreateDialogOpen}
+        title="Nova kategorija"
+        description="Vnesite ime kategorije."
+        confirmLabel="Dodaj"
+        cancelLabel="Prekliči"
+        onCancel={() => {
+          setIsCreateDialogOpen(false);
+          setCreateName('');
+        }}
+        onConfirm={() => void handleCreateCategory()}
+        confirmDisabled={createName.trim().length === 0}
+      >
+        <div className="mt-3">
+          <Input
+            value={createName}
+            onChange={(event: ChangeEvent<HTMLInputElement>) => setCreateName(event.target.value)}
+            placeholder="Ime kategorije"
+            className="h-9 w-full rounded-xl px-3 text-sm"
+            autoFocus
+          />
         </div>
+      </ConfirmDialog>
 
-        {visibleNodes.length > 0 ? (
-          <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.min(GRID_MAX, Math.max(GRID_MIN, lowerViewCount))}, minmax(0, 1fr))` }}>
-            {visibleNodes.map((node) => (
-              <PreviewCard
-                key={node.id}
-                node={node}
-                imageSrc={pendingImagesById[node.id]?.objectUrl ?? node.image}
-                isEditing={Boolean(draftsById[node.id])}
-                draft={draftsById[node.id] ?? null}
-                uploadInputRef={() => {}}
-                onOpen={(nextNode) => setSelectedId(nextNode.id)}
-                onStartEdit={stageDraft}
-                onCancelEdit={(nodeId) => setDraftsById((current) => {
-                  const next = { ...current };
-                  delete next[nodeId];
-                  return next;
-                })}
-                onDraftChange={updateDraft}
-                onStatusToggle={(nextNode) => updateDraft(nextNode.id, { status: (draftsById[nextNode.id]?.status ?? nextNode.status) === 'inactive' ? 'active' : 'inactive' })}
-                onSelectImage={(nextNode, file) => {
-                  if (!file) return;
-                  setPendingImagesById((current) => {
-                    const previous = current[nextNode.id];
-                    if (previous) URL.revokeObjectURL(previous.objectUrl);
-                    return { ...current, [nextNode.id]: { file, objectUrl: URL.createObjectURL(file) } };
-                  });
-                }}
-                onSaveCard={saveCard}
-              />
-            ))}
-          </div>
-        ) : null}
-
-        {selectedNode && !selectedNode.hasChildren ? (
-          <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-sm font-semibold text-slate-700">{selectedLeaf ? `${selectedLeaf.category.title}${selectedLeaf.subcategory ? ` / ${selectedLeaf.subcategory.title}` : ''}` : selectedNode.title}</p>
-            {loadingLeafForNodeId === selectedNode.id ? <p className="mt-3 text-sm text-slate-500">Nalagam izdelke…</p> : null}
-            {selectedLeaf ? (
-              <ul className="mt-4 space-y-3">
-                {sortCatalogItems(selectedLeaf.items).map((item) => {
-                  const price = selectedLeaf.subcategory ? getCatalogItemPrice(selectedLeaf.category.slug, selectedLeaf.subcategory.slug, item.slug) : getCatalogCategoryItemPrice(selectedLeaf.category.slug, item.slug);
-                  const discounted = getDiscountedPrice(price, item.discountPct);
-                  const sku = selectedLeaf.subcategory ? getCatalogItemSku(selectedLeaf.category.slug, selectedLeaf.subcategory.slug, item.slug) : getCatalogCategoryItemSku(selectedLeaf.category.slug, item.slug);
-                  return (
-                    <li key={item.slug} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3">
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">{item.name}</p>
-                        <p className="text-xs text-slate-500">{sku}</p>
-                      </div>
-                      <div className="text-sm font-semibold text-slate-700">{formatCatalogPrice(discounted)}</div>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : null}
-          </div>
-        ) : null}
-      </section>
-    </div>
+      <ConfirmDialog
+        open={imageDeleteTarget !== null}
+        title="Odstrani sliko"
+        description="Ali želite odstraniti sliko izbrane kategorije?"
+        confirmLabel="Odstrani"
+        cancelLabel="Prekliči"
+        isDanger
+        onCancel={() => setImageDeleteTarget(null)}
+        onConfirm={handleDeleteImage}
+      />
+    </>
   );
 }

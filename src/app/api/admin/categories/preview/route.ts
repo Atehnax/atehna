@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAdminPreviewPayloadFromDatabase, updateCatalogNode } from '@/shared/server/catalogCategories';
+import { createCatalogPreviewCategory, getAdminPreviewPayloadFromDatabase, updateCatalogNode } from '@/shared/server/catalogCategories';
 
 export async function GET() {
   try {
@@ -36,5 +36,21 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: true, node: updated });
   } catch (error) {
     return NextResponse.json({ message: error instanceof Error ? error.message : 'Napaka pri shranjevanju.' }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const payload = (await request.json()) as { title?: string };
+    if (!payload.title?.trim()) {
+      return NextResponse.json({ message: 'Naziv je obvezen.' }, { status: 400 });
+    }
+    const created = await createCatalogPreviewCategory(payload.title.trim());
+    if (!created) {
+      return NextResponse.json({ message: 'Dodajanje ni uspelo.' }, { status: 400 });
+    }
+    return NextResponse.json({ ok: true, node: created });
+  } catch (error) {
+    return NextResponse.json({ message: error instanceof Error ? error.message : 'Napaka pri dodajanju.' }, { status: 500 });
   }
 }

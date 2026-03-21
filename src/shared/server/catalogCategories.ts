@@ -1106,3 +1106,64 @@ export async function updateCatalogNode(
     client.release();
   }
 }
+
+export async function createCatalogPreviewCategory(title: string): Promise<AdminPreviewNode | null> {
+  if (!getDatabaseUrl()) {
+    return null;
+  }
+
+  await ensureTable();
+  await seedIfEmpty();
+
+  const pool = await getPool();
+  const client = await pool.connect();
+
+  try {
+    await client.query('begin');
+    const slug = title.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-čšžćđ]/gi, '');
+    if (!slug) {
+      await client.query('rollback');
+      return null;
+    }
+
+    const exists = await client.query('select 1 from catalog_categories where parent_id is null and slug = $1 limit 1', [slug]);
+    if (exists.rowCount) {
+      throw new Error('Kategorija s tem nazivom že obstaja.');
+    }
+
+    const positionResult = await client.query('select coalesce(max(position), -1) + 1 as next_position from catalog_categories where parent_id is null');
+    const nextPosition = Number(positionResult.rows[0]?.next_position ?? 0);
+    const id = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `cat-${Date.now()}`;
+
+    await client.query(`
+      insert into catalog_categories
+        (id, parent_id, slug, title, summary, description, image, items, position, status, updated_at)
+      values
+        ($1, null, $2, $3, $4, '', '', '[]'::jsonb, $5, 'active', now())
+    `, [id, slug, title, title, nextPosition]);
+
+    await client.query('commit');
+    revalidateTag(CATALOG_PUBLIC_TAG);
+    revalidateTag(CATALOG_ADMIN_TAG);
+
+    return {
+      id,
+      parentId: null,
+      kind: 'category',
+      categorySlug: slug,
+      path: [],
+      slug,
+      title,
+      description: title,
+      image: '',
+      status: 'active',
+      position: nextPosition,
+      hasChildren: false
+    };
+  } catch (error) {
+    await client.query('rollback');
+    throw error;
+  } finally {
+    client.release();
+  }
+}

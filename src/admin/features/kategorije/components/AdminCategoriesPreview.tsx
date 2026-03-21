@@ -107,9 +107,9 @@ export function AdminCategoriesPreview({
               title="Nazaj"
               className="inline-flex h-9 w-9 items-center justify-center rounded-xl px-0"
             >
-              <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M12.5 4.5 7 10l5.5 5.5" />
-                <path d="M7.5 10h8" />
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M9 7 4 12l5 5" />
+                <path d="M5 12h8c4.418 0 8 3.582 8 8" />
               </svg>
             </Button>
             <Button variant="primary" size="toolbar" onClick={onRequestSave} disabled={!tableDirty || saving}>
@@ -219,7 +219,7 @@ function CategoryPreviewCard({
       }`}
     >
       <div className="relative flex min-h-0 flex-1 flex-col">
-        {isHidden ? <div className="pointer-events-none absolute inset-0 z-[1] bg-black/42" aria-hidden="true" /> : null}
+        {isHidden ? <div className="pointer-events-none absolute inset-0 z-[1] bg-black/60" aria-hidden="true" /> : null}
         <div className="relative h-44 w-full overflow-hidden text-left">
           <button
             type="button"
@@ -279,6 +279,20 @@ function CategoryPreviewCard({
         <div className="relative z-10 flex min-h-0 flex-1 flex-col px-4 pb-4 pt-4">
           <div className="flex items-start justify-between gap-3">
             <div className="relative min-w-0 flex-1">
+              {item.hasChildren ? (
+                <button
+                  type="button"
+                  className={`flex h-9 w-full items-center truncate text-left text-base font-semibold transition hover:text-[#3e67d6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30 ${isHidden ? 'text-slate-500' : 'text-slate-900'} ${isEditing ? 'invisible' : ''}`}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={() => onOpenNode(item)}
+                  aria-label={`Odpri ${item.title}`}
+                  title={item.openLabel}
+                >
+                  <span className="truncate">{item.title}</span>
+                </button>
+              ) : (
+                <h3 className={`flex h-9 items-center truncate text-base font-semibold ${isHidden ? 'text-slate-500' : 'text-slate-900'} ${isEditing ? 'invisible' : ''}`}><span className="truncate">{item.title}</span></h3>
+              )}
               {isEditing ? (
                 <Input
                   value={editingRow.title}
@@ -292,24 +306,11 @@ function CategoryPreviewCard({
                     }
                     if (event.key === 'Escape') onCancelEdit();
                   }}
-                  className="h-9 w-full border-transparent bg-transparent px-0 text-base font-semibold leading-6 shadow-none focus:border-[#3e67d6] focus:ring-0"
+                  className="absolute inset-0 h-9 w-full border-transparent bg-transparent px-0 text-base font-semibold leading-6 shadow-none focus:border-[#3e67d6] focus:ring-0"
                   autoFocus
                   aria-label="Naziv kategorije"
                 />
-              ) : item.hasChildren ? (
-                <button
-                  type="button"
-                  className={`flex h-9 w-full items-center truncate text-left text-base font-semibold transition hover:text-[#3e67d6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30 ${isHidden ? 'text-slate-500' : 'text-slate-900'}`}
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onClick={() => onOpenNode(item)}
-                  aria-label={`Odpri ${item.title}`}
-                  title={item.openLabel}
-                >
-                  <span className="truncate">{item.title}</span>
-                </button>
-              ) : (
-                <h3 className={`flex h-9 items-center truncate text-base font-semibold ${isHidden ? 'text-slate-500' : 'text-slate-900'}`}><span className="truncate">{item.title}</span></h3>
-              )}
+              ) : null}
             </div>
             <button
               type="button"
@@ -330,6 +331,7 @@ function CategoryPreviewCard({
           </div>
 
           <div className="relative mt-3 min-h-[88px] flex-1">
+            <p className={`line-clamp-3 text-sm leading-6 ${isHidden ? 'text-slate-500' : 'text-slate-600'} ${isEditing ? 'invisible' : ''}`}>{item.description || '—'}</p>
             {isEditing ? (
               <textarea
                 value={editingRow.description}
@@ -343,12 +345,10 @@ function CategoryPreviewCard({
                   }
                   if (event.key === 'Escape') onCancelEdit();
                 }}
-                className="h-full min-h-[88px] w-full resize-none border-transparent bg-transparent px-0 py-0 text-sm leading-6 text-slate-700 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                className="absolute inset-0 h-full min-h-[88px] w-full resize-none border-transparent bg-transparent px-0 py-0 text-sm leading-6 text-slate-700 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                 aria-label="Opis kategorije"
               />
-            ) : (
-              <p className={`line-clamp-3 text-sm leading-6 ${isHidden ? 'text-slate-500' : 'text-slate-600'}`}>{item.description || '—'}</p>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

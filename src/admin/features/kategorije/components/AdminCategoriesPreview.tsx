@@ -212,7 +212,8 @@ function CategoryPreviewCard({
   onOpenNode: (item: ContentCard) => void;
   onStageStatusChange: (rowId: string, status: CategoryStatus) => void;
 }) {
-  const isEditing = editingRow?.id === item.id;
+  const editingDraft = editingRow?.id === item.id ? editingRow : null;
+  const isEditing = Boolean(editingDraft);
   const isHidden = item.isInactive;
 
   const triggerImagePicker = () => {
@@ -288,10 +289,10 @@ function CategoryPreviewCard({
         event.stopPropagation();
         onStageStatusChange(item.id, isHidden ? 'active' : 'inactive');
       },
-      icon: isHidden ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />,
-      tone: isHidden ? ('brand' as const) : ('light' as const)
+      icon: isHidden ? <EyeOffIcon className="h-4 w-4 text-[#d2554a]" /> : <EyeIcon className="h-4 w-4" />,
+      tone: isHidden ? ('danger' as const) : ('light' as const)
     }
-  ].filter(Boolean) as Array<{ key: string; label: string; onClick: (event: React.MouseEvent<HTMLButtonElement>) => void; icon: React.ReactNode; tone: 'light' | 'brand' }>;
+  ].filter(Boolean) as Array<{ key: string; label: string; onClick: (event: React.MouseEvent<HTMLButtonElement>) => void; icon: React.ReactNode; tone: 'light' | 'danger' }>;
 
   return (
     <article
@@ -311,20 +312,22 @@ function CategoryPreviewCard({
 
         <div className={`pointer-events-none absolute inset-0 ${isHidden ? 'bg-[linear-gradient(180deg,rgba(15,23,42,0.18)_0%,rgba(15,23,42,0.42)_42%,rgba(15,23,42,0.6)_76%,rgba(15,23,42,0.72)_100%)]' : 'bg-[linear-gradient(180deg,rgba(15,23,42,0.02)_0%,rgba(15,23,42,0.08)_48%,rgba(15,23,42,0.18)_100%)]'}`} aria-hidden="true" />
 
-        <div className="absolute right-3 top-3 z-20 flex flex-col items-center gap-2 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
-          {hoverStackButtons.map((action) => (
-            <button
-              key={action.key}
-              type="button"
-              className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${action.tone === 'brand' ? 'bg-[#2f6bff] text-white shadow-[0_8px_18px_rgba(47,107,255,0.35)] hover:bg-[#2459d6]' : 'border border-black/10 bg-white/96 text-slate-900 shadow-sm hover:bg-white'}`}
-              onPointerDown={(event) => { event.stopPropagation(); event.preventDefault(); }}
-              onClick={action.onClick}
-              aria-label={action.label}
-              title={action.label}
-            >
-              {action.icon}
-            </button>
-          ))}
+        <div className="absolute right-2.5 top-2.5 z-20 rounded-[18px] bg-[linear-gradient(180deg,rgba(15,23,42,0.38)_0%,rgba(15,23,42,0.22)_100%)] p-1.5 shadow-[0_10px_30px_rgba(15,23,42,0.18)] opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+          <div className="flex flex-col items-center gap-2">
+            {hoverStackButtons.map((action) => (
+              <button
+                key={action.key}
+                type="button"
+                className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${action.tone === 'danger' ? 'bg-white text-[#d2554a] shadow-sm hover:bg-white' : 'border border-black/10 bg-white/96 text-slate-900 shadow-sm hover:bg-white'}`}
+                onPointerDown={(event) => { event.stopPropagation(); event.preventDefault(); }}
+                onClick={action.onClick}
+                aria-label={action.label}
+                title={action.label}
+              >
+                {action.icon}
+              </button>
+            ))}
+          </div>
         </div>
 
         {isHidden ? (
@@ -357,7 +360,7 @@ function CategoryPreviewCard({
           {isEditing ? (
             <div className="absolute inset-0 space-y-2">
               <Input
-                value={editingRow.title}
+                value={editingDraft?.title ?? item.title}
                 onChange={(event) => onEditingRowTitleChange(event.target.value)}
                 onBlur={onEditFieldBlur}
                 data-inline-edit-field="true"
@@ -373,7 +376,7 @@ function CategoryPreviewCard({
                 aria-label="Naziv kategorije"
               />
               <textarea
-                value={editingRow.description}
+                value={editingDraft?.description ?? item.description}
                 onChange={(event) => onEditingRowDescriptionChange(event.target.value)}
                 onBlur={onEditFieldBlur}
                 data-inline-edit-field="true"

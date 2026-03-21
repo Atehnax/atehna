@@ -200,7 +200,7 @@ function CategoryPreviewCard({
         isHidden ? 'border-slate-300 text-slate-500' : 'border-slate-200 text-slate-900'
       }`}
     >
-      <div className="relative flex flex-1 flex-col">
+      <div className="relative flex min-h-0 flex-1 flex-col">
         {isHidden ? <div className="pointer-events-none absolute inset-0 z-[1] bg-black/22" aria-hidden="true" /> : null}
         <div className="relative h-44 w-full overflow-hidden text-left">
           <button
@@ -258,9 +258,9 @@ function CategoryPreviewCard({
           </div>
         </div>
 
-        <div className="relative z-10 flex flex-1 flex-col px-4 pb-4 pt-4">
+        <div className="relative z-10 flex min-h-0 flex-1 flex-col px-4 pb-4 pt-4">
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
+            <div className="relative min-w-0 flex-1">
               {isEditing ? (
                 <Input
                   value={editingRow.title}
@@ -274,7 +274,7 @@ function CategoryPreviewCard({
                     }
                     if (event.key === 'Escape') onCancelEdit();
                   }}
-                  className="h-9 w-full rounded-lg px-2.5 text-base font-semibold leading-6 shadow-none"
+                  className="h-9 w-full border-transparent bg-transparent px-0 text-base font-semibold leading-6 shadow-none focus:border-[#3e67d6] focus:ring-0"
                   autoFocus
                   aria-label="Naziv kategorije"
                 />
@@ -311,7 +311,7 @@ function CategoryPreviewCard({
             </button>
           </div>
 
-          <div className="mt-3 min-h-[88px] flex-1">
+          <div className="relative mt-3 min-h-[88px] flex-1">
             {isEditing ? (
               <textarea
                 value={editingRow.description}
@@ -325,7 +325,7 @@ function CategoryPreviewCard({
                   }
                   if (event.key === 'Escape') onCancelEdit();
                 }}
-                className="h-full min-h-[88px] w-full resize-none rounded-md border border-slate-300 bg-white px-2.5 py-2 text-sm leading-6 text-slate-700 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                className="h-full min-h-[88px] w-full resize-none border-transparent bg-transparent px-0 py-0 text-sm leading-6 text-slate-700 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                 aria-label="Opis kategorije"
               />
             ) : (
@@ -335,7 +335,7 @@ function CategoryPreviewCard({
         </div>
       </div>
 
-      <div className="flex items-center border-t border-slate-200 px-4 pb-4 pt-4" onPointerDown={(event) => event.stopPropagation()}>
+      <div className="relative z-20 mt-auto flex h-14 items-center border-t border-slate-200 bg-white px-4" onPointerDown={(event) => event.stopPropagation()}>
         <InlineStatusToggle
           checked={!isHidden}
           onToggle={() => onStageStatusChange(item.id, isHidden ? 'active' : 'inactive')}

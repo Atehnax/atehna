@@ -2823,6 +2823,8 @@ export default function AdminCategoriesMainTable({
                 }
               >
                 <input
+                  id={`category-select-${id}`}
+                  name={`categorySelect-${id}`}
                   type="checkbox"
                   checked={isChecked}
                   onChange={toggleChecked}
@@ -2934,6 +2936,8 @@ export default function AdminCategoriesMainTable({
                 <div className="min-w-0 flex-1">
                   {isRowEditing ? (
                     <Input
+                      id={`category-title-${id}`}
+                      name={`categoryTitle-${id}`}
                       value={editingRow.title}
                       onChange={(event: ChangeEvent<HTMLInputElement>) =>
                         setEditingRow((prev) => (prev ? { ...prev, title: event.target.value } : prev))
@@ -2973,6 +2977,8 @@ export default function AdminCategoriesMainTable({
             <td className="border-b border-slate-200 px-3 py-2 text-xs font-normal text-slate-500">
               {isRowEditing ? (
                 <Input
+                  id={`category-description-${id}`}
+                  name={`categoryDescription-${id}`}
                   value={editingRow.description}
                   onChange={(event: ChangeEvent<HTMLInputElement>) =>
                     setEditingRow((prev) => (prev ? { ...prev, description: event.target.value } : prev))
@@ -3338,6 +3344,8 @@ export default function AdminCategoriesMainTable({
       >
         <div className="mt-3">
           <Input
+            id="create-category-name"
+            name="createCategoryName"
             value={createName}
             onChange={(event: ChangeEvent<HTMLInputElement>) => setCreateName(event.target.value)}
             placeholder="Ime kategorije"

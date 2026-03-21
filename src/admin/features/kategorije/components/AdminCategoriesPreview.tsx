@@ -141,6 +141,8 @@ export function AdminCategoriesPreview({
             <label className="mr-2 flex items-center gap-2 text-[11px] text-slate-500">
               Elementov na vrstico
               <input
+                id="categories-preview-columns"
+                name="categoriesPreviewColumns"
                 type="range"
                 min={3}
                 max={8}
@@ -541,6 +543,8 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
             </div>
             {isEditing ? (
               <textarea
+                id={`preview-title-${item.id}`}
+                name={`previewTitle-${item.id}`}
                 value={editingDraft?.title ?? titlePreview}
                 onChange={(event) =>
                   onEditingRowTitleChange(event.target.value)
@@ -569,6 +573,8 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
             </p>
             {isEditing ? (
               <textarea
+                id={`preview-description-${item.id}`}
+                name={`previewDescription-${item.id}`}
                 value={editingDraft?.description ?? descriptionPreview}
                 onChange={(event) =>
                   onEditingRowDescriptionChange(event.target.value)
@@ -605,6 +611,8 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
       </div>
 
       <input
+        id={`preview-image-upload-${item.id}`}
+        name={`previewImageUpload-${item.id}`}
         ref={(element) => {
           uploadRefs.current[item.id] = element;
         }}

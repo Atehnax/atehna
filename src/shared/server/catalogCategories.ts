@@ -782,6 +782,10 @@ function mapPreviewInitialCategory(category: RecursiveCatalogCategory): Recursiv
   };
 }
 
+function mapSearchStubItems(items: CatalogItem[]): CatalogItem[] {
+  return items.map(({ slug, name, description }) => ({ slug, name, description }));
+}
+
 function mapTableInitialCategory(category: RecursiveCatalogCategory): RecursiveCatalogCategory {
   return {
     id: category.id,
@@ -790,14 +794,14 @@ function mapTableInitialCategory(category: RecursiveCatalogCategory): RecursiveC
     summary: category.summary,
     description: category.description,
     image: '',
-    items: [],
+    items: mapSearchStubItems(category.items ?? []),
     subcategories: category.subcategories.map((subcategory) => ({
       id: subcategory.id,
       slug: subcategory.slug,
       title: subcategory.title,
       description: subcategory.description,
       image: '',
-      items: [],
+      items: mapSearchStubItems(subcategory.items),
       subcategories: []
     }))
   };

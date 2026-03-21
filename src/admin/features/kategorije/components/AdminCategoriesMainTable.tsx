@@ -153,7 +153,7 @@ const getCheckboxLeftFromTreeStart = (
   return 0;
 };
 
-const InlineStatusToggle = ({
+export const InlineStatusToggle = ({
   checked,
   onToggle,
   disabled,
@@ -216,15 +216,15 @@ function SortableItem({
   children
 }: {
   id: string;
-  children: (dragHandleProps: Record<string, unknown>) => ReactNode;
+  children: (args: { dragHandleProps: Record<string, unknown>; setNodeRef: (node: HTMLElement | null) => void; style: CSSProperties }) => ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
 
-  return (
-    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }}>
-      {children({ ...attributes, ...listeners })}
-    </div>
-  );
+  return children({
+    dragHandleProps: { ...attributes, ...listeners },
+    setNodeRef,
+    style: { transform: CSS.Transform.toString(transform), transition }
+  });
 }
 
 function SortableTreeRow({
@@ -1980,17 +1980,20 @@ export default function AdminCategoriesMainTable({
     });
   };
 
-  const onImageUpload = async (file: File | null, item: ContentCard, categorySlug?: string) => {
+  const onImageUpload = async (file: File | null, item: ContentCard, _categorySlug?: string) => {
     if (!file) return;
     const dataUrl = await fileToDataUrl(file);
 
     if (item.kind === 'category') {
-      stageTableCatalog({ categories: catalog.categories.map((entry) => (entry.slug === item.id ? { ...entry, image: dataUrl } : entry)) });
+      stageTableCatalog({
+        categories: catalog.categories.map((entry) =>
+          entry.slug === item.categorySlug ? { ...entry, image: dataUrl } : entry
+        )
+      });
       return;
     }
 
-    if (!categorySlug) return;
-    updateSubcategory(categorySlug, item.id, { image: dataUrl });
+    updateSubcategory(item.categorySlug, item.subcategoryPath, { image: dataUrl });
   };
 
  const confirmDeleteNode = () => {
@@ -2059,6 +2062,25 @@ export default function AdminCategoriesMainTable({
       categorySlug: card.categorySlug,
       subcategoryPath: card.subcategoryPath,
       subcategorySlug: card.subcategoryPath.at(-1)
+    });
+  }, []);
+
+  const navigatePreviewUp = useCallback(() => {
+    setSelected((current) => {
+      if (current.kind === 'root') return current;
+      if (current.kind === 'category') return { kind: 'root' } as const;
+
+      const parentPath = toSubcategoryPath(current.subcategoryPath ?? current.subcategorySlug).slice(0, -1);
+      if (parentPath.length === 0) {
+        return { kind: 'category', categorySlug: current.categorySlug } as const;
+      }
+
+      return {
+        kind: 'subcategory',
+        categorySlug: current.categorySlug,
+        subcategoryPath: parentPath,
+        subcategorySlug: parentPath.at(-1)
+      } as const;
     });
   }, []);
 
@@ -3215,6 +3237,8 @@ export default function AdminCategoriesMainTable({
           setTableSaveSummary(summary);
           setIsTableSaveDialogOpen(true);
         }}
+        canNavigateUp={selected.kind !== 'root'}
+        onNavigateUp={navigatePreviewUp}
         tableDirty={tableDirty}
         saving={saving}
         selectedContext={selectedContext}
@@ -3222,7 +3246,7 @@ export default function AdminCategoriesMainTable({
         onBottomReorder={onBottomReorder}
         renderSortableItem={(id, children) => (
           <SortableItem key={id} id={id}>
-            {(dragProps) => children(dragProps)}
+            {({ dragHandleProps, setNodeRef, style }) => children({ dragHandleProps, setNodeRef, style })}
           </SortableItem>
         )}
         uploadRefs={uploadRefs}
@@ -3231,11 +3255,14 @@ export default function AdminCategoriesMainTable({
         onLeafProductsDragEnd={onLeafProductsDragEnd}
         sortCatalogItems={sortCatalogItems}
         editingRow={editingRow}
-        onStartTitleEdit={startPreviewTitleEdit}
-        onEditingRowChange={(value) => setEditingRow((prev) => (prev ? { ...prev, title: value } : prev))}
-        onCommitTitleEdit={() => saveInlineEditRef.current()}
-        onCancelTitleEdit={() => setEditingRow(null)}
+        onStartEdit={startPreviewTitleEdit}
+        onEditingRowTitleChange={(value) => setEditingRow((prev) => (prev ? { ...prev, title: value } : prev))}
+        onEditingRowDescriptionChange={(value) => setEditingRow((prev) => (prev ? { ...prev, description: value } : prev))}
+        onCommitEdit={() => saveInlineEditRef.current()}
+        onCancelEdit={() => setEditingRow(null)}
         onOpenNode={openPreviewNode}
+        onStageStatusChange={(rowId, status) => stageStatusChange({ ...statusByRow, [rowId]: status })}
+        onRequestCreateCategory={() => openCreateDialog({ kind: 'category' })}
       />
 
       <ConfirmDialog

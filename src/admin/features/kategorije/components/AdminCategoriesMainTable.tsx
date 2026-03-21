@@ -501,6 +501,8 @@ export default function AdminCategoriesMainTable({
   const persistedTableRef = useRef<CatalogData>({ categories: [] });
   const persistedMillerRef = useRef<CatalogData>({ categories: [] });
   const persistedStatusRef = useRef<Record<string, CategoryStatus>>({});
+  const partialPayloadRef = useRef(initialPayload?.payloadMode === 'partial');
+  const hydrationPromiseRef = useRef<Promise<AdminCategoriesPayload> | null>(null);
   const stagedTableHistoryRef = useRef<HistorySnapshot[]>([]);
   const stagedMillerHistoryRef = useRef<HistorySnapshot[]>([]);
   const demotedMillerCategoriesRef = useRef<Map<string, RecursiveCatalogCategory>>(new Map());
@@ -519,7 +521,7 @@ export default function AdminCategoriesMainTable({
 
   const canRestoreCommittedHistory = committedHistoryIndexRef.current > 0;
 
-  const applyPayloadState = useCallback((payloadRaw: AdminCategoriesPayload) => {
+  const applyPayloadState = useCallback((payloadRaw: AdminCategoriesPayload, options?: { persistSession?: boolean }) => {
     Object.keys(pendingImageUploadsRef.current).forEach((rowId) => {
       const pending = pendingImageUploadsRef.current[rowId];
       if (pending) URL.revokeObjectURL(pending.objectUrl);
@@ -560,8 +562,40 @@ export default function AdminCategoriesMainTable({
     stagedMillerHistoryRef.current = [];
     committedHistoryRef.current = [initialSnapshot];
     committedHistoryIndexRef.current = 0;
-    setAdminCategoriesSessionPayload({ categories: payload.categories, statuses: nextStatuses });
+    partialPayloadRef.current = payloadRaw.payloadMode === 'partial';
+    if (options?.persistSession ?? payloadRaw.payloadMode !== 'partial') {
+      setAdminCategoriesSessionPayload({
+        categories: payload.categories,
+        statuses: nextStatuses,
+        payloadMode: payloadRaw.payloadMode ?? 'full',
+        payloadView: payloadRaw.payloadView
+      });
+    }
   }, []);
+
+  const prefetchFullPayload = useCallback(async () => {
+    if (!partialPayloadRef.current) return null;
+
+    if (!hydrationPromiseRef.current) {
+      hydrationPromiseRef.current = fetch(
+        activeView === 'preview' ? '/api/admin/categories?view=preview' : '/api/admin/categories',
+        { cache: 'no-store' }
+      )
+        .then(async (response) => {
+          if (!response.ok) {
+            throw new Error('Napaka pri nalaganju kategorij');
+          }
+
+          return (await response.json()) as AdminCategoriesPayload;
+        })
+        .catch((error) => {
+          hydrationPromiseRef.current = null;
+          throw error;
+        });
+    }
+
+    return hydrationPromiseRef.current;
+  }, [activeView]);
 
   const load = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!silent) setLoading(true);
@@ -592,19 +626,38 @@ export default function AdminCategoriesMainTable({
 
   useEffect(() => {
     const sessionPayload = getAdminCategoriesSessionPayload();
-    if (sessionPayload) {
+    if (sessionPayload && sessionPayload.payloadMode !== 'partial') {
       applyPayloadState(sessionPayload);
       setLoading(false);
       return;
     }
 
     if (initialPayload) {
-      applyPayloadState(initialPayload);
+      applyPayloadState(initialPayload, { persistSession: initialPayload.payloadMode !== 'partial' });
       setLoading(false);
       return;
     }
     void load();
   }, [applyPayloadState, initialPayload, load]);
+
+  useEffect(() => {
+    if (!initialPayload || initialPayload.payloadMode !== 'partial') return;
+
+    void prefetchFullPayload()
+      .then((payload) => {
+        if (!payload) return;
+        if (tableDirty || millerDirty) return;
+        if (selected.kind !== 'root') return;
+        if (query.trim().length > 0 || millerSearchQuery.trim().length > 0) return;
+
+        applyPayloadState({
+          ...payload,
+          payloadMode: 'full',
+          payloadView: initialPayload.payloadView
+        });
+      })
+      .catch(() => undefined);
+  }, [applyPayloadState, initialPayload, millerDirty, millerSearchQuery, prefetchFullPayload, query, selected.kind, tableDirty]);
 
   useEffect(() => {
     if (pathname?.endsWith('/miller-view')) {

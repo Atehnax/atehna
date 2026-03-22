@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import CartButton from '@/commercial/features/cart/CartButton';
 import CatalogSearch from '@/commercial/features/products/CatalogSearch';
 
@@ -12,10 +13,18 @@ const navItems = [
 ];
 
 export default function SiteHeader() {
+  const router = useRouter();
+
   return (
     <header className="border-b border-slate-200 bg-white/80 backdrop-blur">
       <div className="container-base flex items-center gap-4 py-4">
-        <Link href="/" className="text-lg font-semibold tracking-tight text-slate-900">
+        <Link
+          href="/"
+          prefetch={false}
+          onMouseEnter={() => router.prefetch('/')}
+          onFocus={() => router.prefetch('/')}
+          className="text-lg font-semibold tracking-tight text-slate-900"
+        >
           Atehna
           <span className="ml-2 text-sm font-medium text-brand-600">Šolska tehnika</span>
         </Link>
@@ -33,6 +42,9 @@ export default function SiteHeader() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={false}
+                  onMouseEnter={() => router.prefetch(item.href)}
+                  onFocus={() => router.prefetch(item.href)}
                   className="block rounded-lg px-3 py-2 text-slate-700 transition hover:bg-[color:var(--hover-neutral)] hover:text-brand-600"
                 >
                   {item.label}

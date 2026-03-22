@@ -30,12 +30,14 @@ export default async function HomePage() {
             <div className="mt-6 flex flex-wrap gap-4">
               <Link
                 href="/how-schools-order"
+                prefetch={false}
                 className="rounded-full bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
               >
                 Kako naročiti
               </Link>
               <Link
                 href="/contact"
+                prefetch={false}
                 className="rounded-full border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-brand-600 hover:text-brand-600"
               >
                 Kontakt
@@ -51,7 +53,7 @@ export default async function HomePage() {
       <section className="container-base py-14">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-semibold text-slate-900">Kategorije izdelkov</h2>
-          <Link href="/products" className="text-sm font-semibold text-brand-600">
+          <Link href="/products" prefetch={false} className="text-sm font-semibold text-brand-600">
             Vsi izdelki →
           </Link>
         </div>
@@ -63,6 +65,7 @@ export default async function HomePage() {
             <Link
               key={category.slug}
               href={`/products/${category.slug}`}
+              prefetch={false}
               className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:border-brand-200"
             >
               <div className="relative h-40">

@@ -68,5 +68,47 @@ The pull request CI workflow runs:
 Playwright smoke tests are not yet present in this repository.
 A commented placeholder is included in `.github/workflows/ci.yml`; enable it after adding `test:e2e` and Playwright specs.
 
+## Deployed network measurement harness
+
+Run the Playwright-based deployed measurement harness from **your own machine** against the real deployed site:
+
+1. Install dependencies: `npm install`
+2. Install Chromium for Playwright: `npx playwright install chromium`
+3. Run the default deployed measurement: `npm run measure:deployed-network`
+
+Useful options:
+- Override the base URL: `npm run measure:deployed-network -- --base-url https://atehna.vercel.app/`
+- Provide explicit dynamic params: `npm run measure:deployed-network -- --category <slug> --order-id <id>`
+- Reuse an authenticated Playwright storage state for admin pages: `npm run measure:deployed-network -- --storage-state ./playwright/.auth/admin.json`
+- Save full HTML document responses for later analysis: `npm run measure:deployed-network -- --save-html true`
+- Write to a custom output directory: `npm run measure:deployed-network -- --output-dir artifacts/measurements/manual-run`
+- Use a custom route list file: `npm run measure:deployed-network -- --routes-file ./routes.txt`
+
+For authenticated admin routes, create a Playwright storage-state file first if needed, for example by using Playwright codegen or a one-off login helper, then pass it with `--storage-state`. Without auth, protected routes will measure whatever the deployed site actually returns (for example a login redirect/page).
+
+The script measures three passes for each route using a real Chromium session:
+- first visit with an empty browser context/cache (`cold`)
+- normal reload with cache enabled (`reload`)
+- hard-reload equivalent with cache disabled for the reload (`hard-reload`)
+
+Outputs:
+- JSON report: `artifacts/measurements/network-report-<timestamp>.json`
+- Markdown summary: `artifacts/measurements/network-report-<timestamp>.md`
+- Saved HTML responses (when `--save-html` is enabled): `artifacts/measurements/html/<route>-<mode>.html`
+
+Default target routes:
+- `/`
+- `/products`
+- `/products/[category]`
+- `/index`
+- `/admin/kategorije`
+- `/admin/kategorije/predogled`
+- `/admin/kategorije/miller-view`
+- `/admin/orders`
+- `/admin/orders/[orderId]`
+
+If `--category` or `--order-id` are not supplied, the script will try to auto-resolve them from the deployed site by finding the first matching category/order link.
+
+
 # License
 Internal / project-specific.

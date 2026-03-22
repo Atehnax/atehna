@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode, type CSSProperties } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -89,9 +90,16 @@ import {
 import { Input } from '@/shared/ui/input';
 import { useToast } from '@/shared/ui/toast';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
-import { AdminCategoriesPreview } from './AdminCategoriesPreview';
-import { AdminCategoriesMiller } from './AdminCategoriesMiller';
-import { AdminCategoriesTableView } from '../views/AdminCategoriesTableView';
+
+const AdminCategoriesPreview = dynamic(
+  () => import('./AdminCategoriesPreview').then((module) => module.AdminCategoriesPreview)
+);
+const AdminCategoriesMiller = dynamic(
+  () => import('./AdminCategoriesMiller').then((module) => module.AdminCategoriesMiller)
+);
+const AdminCategoriesTableView = dynamic(
+  () => import('../views/AdminCategoriesTableView').then((module) => module.AdminCategoriesTableView)
+);
 
 type RecursiveNode = RecursiveCatalogSubcategory;
 type MillerSearchMatch =
@@ -125,7 +133,8 @@ type CatalogRowSnapshot = {
   title: string;
   summary: string;
   description: string;
-  image: string;
+  image: string | null;
+  removeImage?: boolean;
   adminNotes?: string | null;
   bannerImage?: string | null;
   items: CatalogItem[];
@@ -432,7 +441,11 @@ function buildCatalogPatchPayload(
   nextRows.forEach((row, id) => {
     const previousRow = previousRows.get(id);
     if (!previousRow || JSON.stringify(previousRow) !== JSON.stringify(row)) {
-      upserts.push(row);
+      upserts.push(
+        row.image === '' && !!previousRow?.image
+          ? { ...row, image: null, removeImage: true }
+          : { ...row, removeImage: false }
+      );
     }
   });
 
@@ -675,7 +688,7 @@ export default function AdminCategoriesMainTable({
   }, [applyPayloadState, initialPayload, load]);
 
   useEffect(() => {
-    if (!initialPayload || initialPayload.payloadMode !== 'partial' || activeView !== 'table') return;
+    if (!initialPayload || initialPayload.payloadMode !== 'partial' || activeView === 'miller') return;
     if (typeof window === 'undefined') return;
 
     let cancelled = false;
@@ -2339,6 +2352,7 @@ export default function AdminCategoriesMainTable({
 
   const openPreviewNode = useCallback(async (card: ContentCard) => {
     if (card.kind === 'category') {
+      await ensureFullPayloadLoaded();
       setSelected({ kind: 'category', categorySlug: card.categorySlug });
       return;
     }

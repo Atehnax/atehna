@@ -7,6 +7,8 @@ import type { CatalogSearchItem } from '@/commercial/catalog/catalog';
 type ItemSearchProps = {
   items: CatalogSearchItem[];
   placeholder?: string;
+  onOpen?: () => void;
+  loading?: boolean;
 };
 
 const normalize = (value: string) =>
@@ -19,7 +21,9 @@ const normalize = (value: string) =>
 
 export default function ItemSearch({
   items,
-  placeholder = 'Poiščite izdelek...'
+  placeholder = 'Poiščite izdelek...',
+  onOpen,
+  loading = false
 }: ItemSearchProps) {
   const [query, setQuery] = useState('');
   const normalizedQuery = normalize(query);
@@ -41,13 +45,19 @@ export default function ItemSearch({
       <input
         type="search"
         value={query}
-        onChange={(event) => setQuery(event.target.value)}
+        onChange={(event) => {
+          onOpen?.();
+          setQuery(event.target.value);
+        }}
+        onFocus={() => onOpen?.()}
         placeholder={placeholder}
         className="w-full rounded-full border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
       />
       {normalizedQuery && (
         <div className="absolute left-0 right-0 z-20 mt-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
-          {results.length === 0 ? (
+          {loading ? (
+            <p className="px-3 py-2 text-sm text-slate-500">Nalagam izdelke ...</p>
+          ) : results.length === 0 ? (
             <p className="px-3 py-2 text-sm text-slate-500">Ni zadetkov za vpisan pojem.</p>
           ) : (
             results.map((item) => (

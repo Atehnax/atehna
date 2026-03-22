@@ -6,3 +6,4 @@ out
 .vercel
 .env.local
 *.tsbuildinfo
+artifacts/measurements

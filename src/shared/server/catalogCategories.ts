@@ -42,6 +42,13 @@ type CatalogCategorySummary = Pick<RecursiveCatalogCategory, 'slug' | 'title'>;
 type CatalogCategoryWithSubcategories = Pick<RecursiveCatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'items'> & {
   subcategories: Array<Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'items'>>;
 };
+type CatalogCategoryPageSubcategory = Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description'> & {
+  itemCount: number;
+};
+type CatalogCategoryPageData = Pick<RecursiveCatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'description' | 'image'> & {
+  items: CatalogItem[];
+  subcategories: CatalogCategoryPageSubcategory[];
+};
 type CatalogItemsIndex = Array<
   Pick<RecursiveCatalogCategory, 'id' | 'slug' | 'title' | 'items'> & {
     subcategories: Array<Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'items'>>;
@@ -52,6 +59,7 @@ type CategoryCardRow = Pick<CategoryRow, 'slug' | 'title' | 'summary' | 'image'>
 type CategorySummaryRow = Pick<CategoryRow, 'slug' | 'title'>;
 type CategoryDetailRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'items'>;
 type SubcategoryDetailRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'description' | 'items'>;
+type SubcategoryCountRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'description'> & { item_count: number };
 type SearchCategoryRow = Pick<CategoryRow, 'id' | 'slug' | 'items'>;
 type SearchSubcategoryRow = Pick<CategoryRow, 'parent_id' | 'slug' | 'items'>;
 type ItemsIndexCategoryRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'items'>;
@@ -75,6 +83,7 @@ type CategoryRow = {
 
 let ensured = false;
 let seeded = false;
+let cleanedLegacyImages = false;
 
 async function ensureTable() {
   if (ensured) return;
@@ -104,6 +113,23 @@ async function ensureTable() {
   ensured = true;
 }
 
+async function cleanupLegacyCategoryImages() {
+  if (cleanedLegacyImages) return;
+
+  const pool = await getPool();
+  await pool.query(
+    `
+      update catalog_categories
+      set
+        image = case when image like 'data:image/%' then '' else image end,
+        banner_image = case when banner_image like 'data:image/%' then null else banner_image end,
+        updated_at = case when image like 'data:image/%' or banner_image like 'data:image/%' then now() else updated_at end
+      where image like 'data:image/%' or banner_image like 'data:image/%'
+    `
+  );
+  cleanedLegacyImages = true;
+}
+
 async function seedIfEmpty() {
   if (seeded) return;
 
@@ -121,12 +147,25 @@ async function seedIfEmpty() {
   seeded = true;
 }
 
+async function ensureCatalogStorageReady() {
+  await ensureTable();
+  await cleanupLegacyCategoryImages();
+  await seedIfEmpty();
+}
+
 function normalizeStatus(value: string): CategoryStatus {
   return value === 'inactive' ? 'inactive' : 'active';
 }
 
 function getRowItems(row: { items: unknown }): CatalogItem[] {
   return Array.isArray(row.items) ? (row.items as CatalogItem[]) : [];
+}
+
+function normalizeCatalogImage(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  return trimmed.startsWith('data:image/') ? '' : trimmed;
 }
 
 function rowToCategory(row: CategoryRow): RecursiveCatalogCategory {
@@ -136,9 +175,9 @@ function rowToCategory(row: CategoryRow): RecursiveCatalogCategory {
     title: row.title,
     summary: row.summary,
     description: row.description,
-    image: row.image,
+    image: normalizeCatalogImage(row.image),
     adminNotes: row.admin_notes ?? undefined,
-    bannerImage: row.banner_image ?? undefined,
+    bannerImage: normalizeCatalogImage(row.banner_image) || undefined,
     subcategories: [],
     items: getRowItems(row),
     createdAt: row.created_at,
@@ -153,7 +192,7 @@ function rowToSubcategory(row: CategoryRow): RecursiveCatalogSubcategory {
     title: row.title,
     description: row.description,
     adminNotes: row.admin_notes ?? undefined,
-    image: row.image,
+    image: normalizeCatalogImage(row.image),
     items: getRowItems(row),
     subcategories: [],
     createdAt: row.created_at,
@@ -168,7 +207,7 @@ function rowToPreviewCategory(row: CategoryRow): CatalogPreviewCategory {
     title: row.title,
     summary: row.summary,
     description: row.description,
-    image: row.image,
+    image: normalizeCatalogImage(row.image),
     items: getRowItems(row),
     subcategories: []
   };
@@ -180,7 +219,7 @@ function rowToPreviewSubcategory(row: CategoryRow): CatalogPreviewSubcategory {
     slug: row.slug,
     title: row.title,
     description: row.description,
-    image: row.image,
+    image: normalizeCatalogImage(row.image),
     items: getRowItems(row),
     subcategories: []
   };
@@ -241,8 +280,7 @@ async function readCatalogDataFromDatabase(
       : normalized;
   }
 
-  await ensureTable();
-  await seedIfEmpty();
+  await ensureCatalogStorageReady();
 
   const pool = await getPool();
   const result = await profileRoutePhase('db', 'readCatalogDataFromDatabase:allRows', () => pool.query(`
@@ -315,7 +353,7 @@ async function readCatalogPreviewDataFromDatabase(
         title: category.title,
         summary: category.summary,
         description: category.description,
-        image: category.image,
+        image: normalizeCatalogImage(category.image),
         items: category.items,
         subcategories: category.subcategories.map(function mapSubcategories(node): CatalogPreviewSubcategory {
           return {
@@ -323,7 +361,7 @@ async function readCatalogPreviewDataFromDatabase(
             slug: node.slug,
             title: node.title,
             description: node.description,
-            image: node.image ?? '',
+            image: normalizeCatalogImage(node.image),
             items: node.items,
             subcategories: node.subcategories.map(mapSubcategories)
           };
@@ -336,8 +374,7 @@ async function readCatalogPreviewDataFromDatabase(
       : previewPayload;
   }
 
-  await ensureTable();
-  await seedIfEmpty();
+  await ensureCatalogStorageReady();
 
   const pool = await getPool();
   const result = await profileRoutePhase('db', 'readCatalogPreviewDataFromDatabase:allRows', () => pool.query(`
@@ -379,8 +416,7 @@ async function readCatalogCategoryCardsFromDatabase(): Promise<CatalogCategoryCa
     return normalized.categories.map(({ slug, title, summary, image }) => ({ slug, title, summary, image }));
   }
 
-  await ensureTable();
-  await seedIfEmpty();
+  await ensureCatalogStorageReady();
 
   const pool = await getPool();
   const result = await pool.query(`
@@ -399,8 +435,7 @@ async function readCatalogCategorySummariesFromDatabase(): Promise<CatalogCatego
     return normalized.categories.map(({ slug, title }) => ({ slug, title }));
   }
 
-  await ensureTable();
-  await seedIfEmpty();
+  await ensureCatalogStorageReady();
 
   const pool = await getPool();
   const result = await pool.query(`
@@ -439,8 +474,7 @@ async function readCatalogCategoryWithSubcategoriesFromDatabase(
     };
   }
 
-  await ensureTable();
-  await seedIfEmpty();
+  await ensureCatalogStorageReady();
 
   const pool = await getPool();
   const categoryResult = await pool.query(
@@ -484,6 +518,76 @@ async function readCatalogCategoryWithSubcategoriesFromDatabase(
   };
 }
 
+async function readCatalogCategoryPageDataFromDatabase(
+  slug: string
+): Promise<CatalogCategoryPageData | null> {
+  if (!getDatabaseUrl()) {
+    const normalized = await readCatalogFile();
+    const category = normalized.categories.find((entry) => entry.slug === slug);
+    if (!category) return null;
+
+    return {
+      id: category.id,
+      slug: category.slug,
+      title: category.title,
+      summary: category.summary,
+      description: category.description,
+      image: category.image,
+      items: category.subcategories.length === 0 ? category.items : [],
+      subcategories: category.subcategories.map(({ id, slug: subSlug, title, description, items }) => ({
+        id,
+        slug: subSlug,
+        title,
+        description,
+        itemCount: items.length
+      }))
+    };
+  }
+
+  await ensureCatalogStorageReady();
+
+  const pool = await getPool();
+  const categoryResult = await pool.query(
+    `
+      select id, slug, title, summary, description, image, items
+      from catalog_categories
+      where parent_id is null and status = 'active' and slug = $1
+      limit 1
+    `,
+    [slug]
+  );
+
+  const categoryRow = (categoryResult.rows as CategoryDetailRow[])[0];
+  if (!categoryRow) return null;
+
+  const subcategoryResult = await pool.query(
+    `
+      select id, slug, title, description, coalesce(jsonb_array_length(items), 0)::int as item_count
+      from catalog_categories
+      where parent_id = $1 and status = 'active'
+      order by position asc, title asc
+    `,
+    [categoryRow.id]
+  );
+
+  return {
+    id: categoryRow.id,
+    slug: categoryRow.slug,
+    title: categoryRow.title,
+    summary: categoryRow.summary,
+    description: categoryRow.description,
+    image: categoryRow.image,
+    items: subcategoryResult.rowCount === 0 ? getRowItems(categoryRow) : [],
+    subcategories: (subcategoryResult.rows as SubcategoryCountRow[]).map((row) => ({
+      id: row.id,
+      slug: row.slug,
+      title: row.title,
+      description: row.description,
+      itemCount: Number(row.item_count ?? 0)
+    }))
+  };
+}
+
 async function readCatalogSubcategoryWithCategoryFromDatabase(
   categorySlug: string,
   subSlug: string
@@ -509,8 +613,7 @@ async function readCatalogSubcategoryWithCategoryFromDatabase(
     };
   }
 
-  await ensureTable();
-  await seedIfEmpty();
+  await ensureCatalogStorageReady();
 
   const pool = await getPool();
   const categoryResult = await pool.query(
@@ -573,8 +676,7 @@ async function readCatalogSearchIndexFromDatabase(): Promise<{
     };
   }
 
-  await ensureTable();
-  await seedIfEmpty();
+  await ensureCatalogStorageReady();
 
   const pool = await getPool();
   const categoryResult = await pool.query(`
@@ -636,8 +738,7 @@ async function readCatalogItemsIndexFromDatabase(): Promise<CatalogItemsIndex> {
     }));
   }
 
-  await ensureTable();
-  await seedIfEmpty();
+  await ensureCatalogStorageReady();
 
   const pool = await getPool();
   const categoryResult = await profileRoutePhase('db', 'readCatalogItemsIndexFromDatabase:categories', () => pool.query(`
@@ -871,7 +972,8 @@ type CatalogRowPatch = {
   title: string;
   summary: string;
   description: string;
-  image: string;
+  image: string | null;
+  removeImage?: boolean;
   adminNotes?: string | null;
   bannerImage?: string | null;
   items: CatalogItem[];
@@ -887,7 +989,7 @@ export async function patchCategoryTree(
   if (!getDatabaseUrl()) return;
   if (upserts.length === 0 && deleteIds.length === 0) return;
 
-  await ensureTable();
+  await ensureCatalogStorageReady();
   const pool = await getPool();
   const client = await pool.connect();
 
@@ -922,9 +1024,9 @@ export async function patchCategoryTree(
           patch.title,
           patch.summary,
           patch.description,
-          patch.image,
+          patch.removeImage || patch.image === null ? '' : normalizeCatalogImage(patch.image),
           patch.adminNotes ?? null,
-          patch.bannerImage ?? null,
+          patch.bannerImage ? normalizeCatalogImage(patch.bannerImage) : null,
           JSON.stringify(Array.isArray(patch.items) ? patch.items : []),
           patch.position,
           patch.status
@@ -968,6 +1070,22 @@ export async function getCatalogCategoryWithSubcategoriesFromDatabase(
   );
 
   return instrumentCatalogLoader('getCatalogCategoryWithSubcategoriesFromDatabase', diagnosticsContext, async () => getCachedCategory());
+}
+
+export async function getCatalogCategoryPageDataFromDatabase(
+  slug: string,
+  diagnosticsContext = '/products/[category]'
+): Promise<CatalogCategoryPageData | null> {
+  const getCachedCategoryPageData = unstable_cache(
+    async () =>
+      instrumentCatalogCacheMiss('getCachedCatalogCategoryPageDataFromDatabase', diagnosticsContext, () =>
+        readCatalogCategoryPageDataFromDatabase(slug)
+      ),
+    ['catalog-category-page-data', slug],
+    { tags: [CATALOG_PUBLIC_TAG] }
+  );
+
+  return instrumentCatalogLoader('getCatalogCategoryPageDataFromDatabase', diagnosticsContext, async () => getCachedCategoryPageData());
 }
 
 export async function getCatalogSubcategoryWithCategoryFromDatabase(
@@ -1021,7 +1139,7 @@ export async function replaceCategoryTree(
     return normalized;
   }
 
-  await ensureTable();
+  await ensureCatalogStorageReady();
   const pool = await getPool();
   const client = await pool.connect();
 
@@ -1066,7 +1184,7 @@ export async function replaceCategoryTree(
             node.slug,
             node.title,
             node.description,
-            node.image ?? '',
+            normalizeCatalogImage(node.image),
             node.adminNotes ?? null,
             JSON.stringify(Array.isArray(node.items) ? node.items : []),
             position,
@@ -1109,7 +1227,7 @@ export async function replaceCategoryTree(
           category.description,
           category.image,
           category.adminNotes ?? null,
-          category.bannerImage ?? null,
+          normalizeCatalogImage(category.bannerImage) || null,
           JSON.stringify(Array.isArray(category.items) ? category.items : []),
           categoryIndex,
           statuses[`cat:${category.slug}`] ?? 'active'

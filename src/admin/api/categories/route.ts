@@ -59,7 +59,8 @@ export async function PATCH(request: Request) {
         title: string;
         summary: string;
         description: string;
-        image: string;
+        image: string | null;
+        removeImage?: boolean;
         adminNotes?: string | null;
         bannerImage?: string | null;
         items?: unknown;

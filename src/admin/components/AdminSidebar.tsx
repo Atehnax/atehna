@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 
@@ -47,14 +47,6 @@ export default function AdminSidebar() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    rootLinks.forEach((link) => {
-      if (link.href !== pathname) {
-        router.prefetch(link.href);
-      }
-    });
-  }, [pathname, router]);
-
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
@@ -91,7 +83,7 @@ export default function AdminSidebar() {
                   <div key={link.href}>
                     <Link
                       href={link.href}
-                      prefetch
+                      prefetch={false}
                       onMouseEnter={() => router.prefetch(link.href)}
                       onFocus={() => router.prefetch(link.href)}
                       className={`flex items-center gap-2 rounded-xl px-2.5 py-2 pr-4 text-sm transition ${

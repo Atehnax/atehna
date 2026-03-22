@@ -27,7 +27,7 @@ export default function SiteFooter() {
           <ul className="space-y-2">
             {legalLinks.map((link) => (
               <li key={link.href}>
-                <Link href={link.href} className="transition hover:text-brand-600">
+                <Link href={link.href} prefetch={false} className="transition hover:text-brand-600">
                   {link.label}
                 </Link>
               </li>

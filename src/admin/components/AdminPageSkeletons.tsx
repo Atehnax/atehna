@@ -183,7 +183,7 @@ function CategoryTabsSkeleton({ initialView }: { initialView: 'table' | 'preview
   );
 }
 
-function CategoryTableSkeleton() {
+export function AdminCategoriesTableContentSkeleton() {
   return (
     <AdminTableLayout
       className="border"
@@ -270,7 +270,7 @@ function CategoryPreviewCardSkeleton({ showAddButton = false }: { showAddButton?
   );
 }
 
-function CategoryPreviewSkeleton() {
+export function AdminCategoriesPreviewContentSkeleton() {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-3">
@@ -294,7 +294,7 @@ function CategoryPreviewSkeleton() {
   );
 }
 
-function CategoryMillerSkeleton() {
+export function AdminCategoriesMillerContentSkeleton() {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-3">
@@ -339,9 +339,9 @@ export function AdminCategoriesRouteSkeleton({ initialView }: { initialView: 'ta
       description="Top: povezano drevo levo → desno. Bottom: vsebina izbrane kategorije v storefront admin pogledu."
     >
       <CategoryTabsSkeleton initialView={initialView} />
-      {initialView === 'table' ? <CategoryTableSkeleton /> : null}
-      {initialView === 'preview' ? <CategoryPreviewSkeleton /> : null}
-      {initialView === 'miller' ? <CategoryMillerSkeleton /> : null}
+      {initialView === 'table' ? <AdminCategoriesTableContentSkeleton /> : null}
+      {initialView === 'preview' ? <AdminCategoriesPreviewContentSkeleton /> : null}
+      {initialView === 'miller' ? <AdminCategoriesMillerContentSkeleton /> : null}
     </AdminSectionShell>
   );
 }

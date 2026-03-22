@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode, type CSSProperties } from 'react';
-import dynamic from 'next/dynamic';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   DndContext,
@@ -73,7 +72,11 @@ import { getAdminCategoriesSessionPayload, setAdminCategoriesSessionPayload } fr
 import { sortCatalogItems } from '@/commercial/catalog/catalogUtils';
 import { Button } from '@/shared/ui/button';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
-import { AdminCategoriesRouteSkeleton } from '@/admin/components/AdminPageSkeletons';
+import {
+  AdminCategoriesMillerContentSkeleton,
+  AdminCategoriesPreviewContentSkeleton,
+  AdminCategoriesTableContentSkeleton
+} from '@/admin/components/AdminPageSkeletons';
 import { IconButton } from '@/shared/ui/icon-button';
 import { Chip } from '@/shared/ui/badge';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
@@ -86,9 +89,9 @@ import {
 import { Input } from '@/shared/ui/input';
 import { useToast } from '@/shared/ui/toast';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
-const AdminCategoriesPreview = dynamic(() => import('./AdminCategoriesPreview').then((mod) => mod.AdminCategoriesPreview));
-const AdminCategoriesMiller = dynamic(() => import('./AdminCategoriesMiller').then((mod) => mod.AdminCategoriesMiller));
-const AdminCategoriesTableView = dynamic(() => import('../views/AdminCategoriesTableView').then((mod) => mod.AdminCategoriesTableView));
+import { AdminCategoriesPreview } from './AdminCategoriesPreview';
+import { AdminCategoriesMiller } from './AdminCategoriesMiller';
+import { AdminCategoriesTableView } from '../views/AdminCategoriesTableView';
 
 type RecursiveNode = RecursiveCatalogSubcategory;
 type MillerSearchMatch =
@@ -3353,10 +3356,6 @@ export default function AdminCategoriesMainTable({
   ]);
 
 
-  if (loading) {
-    return <AdminCategoriesRouteSkeleton initialView={activeView} />;
-  }
-
   return (
     <div className="space-y-5">
       <header>
@@ -3467,7 +3466,9 @@ export default function AdminCategoriesMainTable({
         </div>
       </ConfirmDialog>
 
-      {activeView === 'table' ? (
+      {loading && activeView === 'table' ? <AdminCategoriesTableContentSkeleton /> : null}
+
+      {!loading && activeView === 'table' ? (
         <AdminCategoriesTableView
           activeView={activeView}
           query={query}
@@ -3520,7 +3521,9 @@ export default function AdminCategoriesMainTable({
         />
       ) : null}
 
-      {activeView === 'preview' ? (
+      {loading && activeView === 'preview' ? <AdminCategoriesPreviewContentSkeleton /> : null}
+
+      {!loading && activeView === 'preview' ? (
         <AdminCategoriesPreview
         activeView={activeView}
         tableError={tableError}
@@ -3609,7 +3612,9 @@ export default function AdminCategoriesMainTable({
         </ul>
       </ConfirmDialog>
 
-      {activeView === 'miller' ? (
+      {loading && activeView === 'miller' ? <AdminCategoriesMillerContentSkeleton /> : null}
+
+      {!loading && activeView === 'miller' ? (
         <AdminCategoriesMiller
         activeView={activeView}
         millerDirty={millerDirty}

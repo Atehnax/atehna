@@ -80,6 +80,7 @@ Useful options:
 - Override the base URL: `npm run measure:deployed-network -- --base-url https://atehna.vercel.app/`
 - Provide explicit dynamic params: `npm run measure:deployed-network -- --category <slug> --order-id <id>`
 - Reuse an authenticated Playwright storage state for admin pages: `npm run measure:deployed-network -- --storage-state ./playwright/.auth/admin.json`
+- Save full HTML document responses for later analysis: `npm run measure:deployed-network -- --save-html true`
 - Write to a custom output directory: `npm run measure:deployed-network -- --output-dir artifacts/measurements/manual-run`
 - Use a custom route list file: `npm run measure:deployed-network -- --routes-file ./routes.txt`
 
@@ -93,6 +94,7 @@ The script measures three passes for each route using a real Chromium session:
 Outputs:
 - JSON report: `artifacts/measurements/network-report-<timestamp>.json`
 - Markdown summary: `artifacts/measurements/network-report-<timestamp>.md`
+- Saved HTML responses (when `--save-html` is enabled): `artifacts/measurements/html/<route>-<mode>.html`
 
 Default target routes:
 - `/`

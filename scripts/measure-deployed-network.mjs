@@ -18,6 +18,7 @@ const DEFAULT_ROUTE_TEMPLATES = [
 ];
 const DEFAULT_OUTPUT_DIR = path.join('artifacts', 'measurements');
 const WAIT_AFTER_NETWORK_IDLE_MS = 2_000;
+const DEFAULT_REPEAT_WINDOW_LENGTHS = [2048, 1024, 512, 256];
 
 function printHelp() {
   console.log(`Measure deployed Chromium network usage for Atehna routes.
@@ -36,6 +37,7 @@ Options:
   --headless <true|false>    Launch Chromium headless or headed. Default: true
   --timeout <ms>             Navigation timeout in milliseconds. Default: 60000
   --settle-ms <ms>           Extra wait after networkidle. Default: ${WAIT_AFTER_NETWORK_IDLE_MS}
+  --save-html <true|false>   Save main document HTML responses. Default: true
   --help                     Show this help.
 
 Examples:
@@ -57,7 +59,8 @@ function parseArgs(argv) {
     storageState: process.env.MEASURE_STORAGE_STATE ?? null,
     headless: true,
     timeout: 60_000,
-    settleMs: WAIT_AFTER_NETWORK_IDLE_MS
+    settleMs: WAIT_AFTER_NETWORK_IDLE_MS,
+    saveHtml: true
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -114,6 +117,11 @@ function parseArgs(argv) {
     }
     if (token === '--settle-ms') {
       args.settleMs = Number(next);
+      index += 1;
+      continue;
+    }
+    if (token === '--save-html') {
+      args.saveHtml = next !== 'false';
       index += 1;
       continue;
     }
@@ -256,6 +264,99 @@ function createRouteResult(routeTemplate, resolvedPath, mode, records) {
     biggestByTransferredBytes: buildTopRequests(records, 'transferredBytes'),
     biggestByResourceSizeBytes: buildTopRequests(records, 'resourceSizeBytes'),
     requests: records
+  };
+}
+
+function countOccurrences(haystack, needle) {
+  if (!needle) return 0;
+  let count = 0;
+  let index = 0;
+  while (true) {
+    index = haystack.indexOf(needle, index);
+    if (index === -1) break;
+    count += 1;
+    index += needle.length;
+  }
+  return count;
+}
+
+function collectLargestInlineScripts(html, limit = 10) {
+  const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
+  return scripts
+    .map((match, index) => {
+      const content = match[1] ?? '';
+      let kind = 'inline-script';
+      if (content.includes('__next_f.push')) kind = 'next-flight';
+      else if (content.includes('self.__next_f=')) kind = 'next-flight-bootstrap';
+      return {
+        index,
+        kind,
+        bytes: Buffer.byteLength(content, 'utf8'),
+        snippet: content.trim().slice(0, 240)
+      };
+    })
+    .sort((left, right) => right.bytes - left.bytes)
+    .slice(0, limit);
+}
+
+function collectRepeatedSubstrings(html, limit = 10) {
+  const normalized = html.replace(/\s+/g, ' ');
+  const results = [];
+
+  for (const windowLength of DEFAULT_REPEAT_WINDOW_LENGTHS) {
+    const counts = new Map();
+    const step = Math.max(32, Math.floor(windowLength / 4));
+    for (let index = 0; index + windowLength <= normalized.length; index += step) {
+      const sample = normalized.slice(index, index + windowLength);
+      if (!/[{\[]/.test(sample) && !sample.includes('__next_f.push')) continue;
+      if (new Set(sample).size < 12) continue;
+      counts.set(sample, (counts.get(sample) ?? 0) + 1);
+    }
+
+    for (const [sample, count] of counts.entries()) {
+      if (count < 2) continue;
+      results.push({
+        length: windowLength,
+        occurrences: count,
+        repeatedBytes: windowLength * count,
+        snippet: sample.slice(0, 240)
+      });
+    }
+  }
+
+  return results
+    .sort((left, right) => right.repeatedBytes - left.repeatedBytes)
+    .slice(0, limit);
+}
+
+function collectLargeJsonLikeRegions(html, limit = 10) {
+  const matches = [...html.matchAll(/(__next_f\.push\([\s\S]{120,}?<\/script>|initialPayload[\s\S]{120,}?[\]\}])/gi)];
+  return matches
+    .map((match) => ({
+      bytes: Buffer.byteLength(match[0], 'utf8'),
+      snippet: match[0].slice(0, 240)
+    }))
+    .sort((left, right) => right.bytes - left.bytes)
+    .slice(0, limit);
+}
+
+function analyzeDocumentHtml(html) {
+  return {
+    htmlBytes: Buffer.byteLength(html, 'utf8'),
+    inlineScriptCount: countOccurrences(html, '<script'),
+    nextFlightPushCount: countOccurrences(html, '__next_f.push'),
+    suspiciousMarkerCounts: {
+      categories: countOccurrences(html, 'categories'),
+      subcategories: countOccurrences(html, 'subcategories'),
+      items: countOccurrences(html, 'items'),
+      search: countOccurrences(html.toLowerCase(), 'search'),
+      payload: countOccurrences(html, 'payload'),
+      initialPayload: countOccurrences(html, 'initialPayload'),
+      __next_f_push: countOccurrences(html, '__next_f.push')
+    },
+    largestInlineScripts: collectLargestInlineScripts(html),
+    repeatedSubstrings: collectRepeatedSubstrings(html),
+    largeJsonLikeRegions: collectLargeJsonLikeRegions(html)
   };
 }
 
@@ -484,13 +585,27 @@ async function measureRoute(browser, baseUrl, routeTemplate, resolvedPath, optio
     const collector = createCollector(baseOrigin);
     collector.attach(page);
     try {
-      await navigate();
+      const response = await navigate();
       await page.waitForLoadState('networkidle', { timeout: options.timeout });
       if (options.settleMs > 0) {
         await page.waitForTimeout(options.settleMs);
       }
       const records = await collector.buildRecords(page);
-      return createRouteResult(routeTemplate, resolvedPath, mode, records);
+      const result = createRouteResult(routeTemplate, resolvedPath, mode, records);
+      if (options.saveHtml && response) {
+        const html = await response.text().catch(() => '');
+        const htmlBaseName = `${routeSlug(resolvedPath)}-${mode}.html`;
+        const htmlPath = path.join(options.outputDir, 'html', htmlBaseName);
+        await fs.mkdir(path.dirname(htmlPath), { recursive: true });
+        await fs.writeFile(htmlPath, html, 'utf8');
+        result.documentHtml = {
+          path: htmlPath,
+          status: response.status(),
+          url: response.url(),
+          analysis: analyzeDocumentHtml(html)
+        };
+      }
+      return result;
     } finally {
       collector.detach(page);
     }
@@ -517,6 +632,12 @@ async function measureRoute(browser, baseUrl, routeTemplate, resolvedPath, optio
   } finally {
     await context.close();
   }
+}
+
+function routeSlug(routePath) {
+  return routePath === '/'
+    ? 'root'
+    : routePath.replace(/^\//, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase();
 }
 
 function formatBytes(bytes) {
@@ -550,6 +671,10 @@ function renderSummaryMarkdown(report) {
       lines.push(`- Total resource size: ${formatBytes(run.totals.resourceSizeBytes)}`);
       lines.push(`- Total transferred bytes: ${formatBytes(run.totals.transferredBytes)}`);
       lines.push(`- Total origin-served transferred bytes: ${formatBytes(run.totals.originTransferredBytes)}`);
+      if (run.documentHtml) {
+        lines.push(`- HTML document bytes: ${formatBytes(run.documentHtml.analysis.htmlBytes)}`);
+        lines.push(`- Saved HTML: ${run.documentHtml.path}`);
+      }
       lines.push('');
       lines.push('| Metric | Same-origin | Third-party |');
       lines.push('| --- | ---: | ---: |');
@@ -563,6 +688,16 @@ function renderSummaryMarkdown(report) {
         lines.push(`| ${classification} | ${bucket.requestCount} | ${formatBytes(bucket.transferredBytes)} | ${formatBytes(bucket.resourceSizeBytes)} | ${bucket.cacheHits} |`);
       }
       lines.push('');
+      if (run.documentHtml) {
+        lines.push('Largest inline script blocks:');
+        lines.push('');
+        lines.push('| Index | Kind | Bytes | Snippet |');
+        lines.push('| ---: | --- | ---: | --- |');
+        for (const script of run.documentHtml.analysis.largestInlineScripts) {
+          lines.push(`| ${script.index} | ${script.kind} | ${formatBytes(script.bytes)} | ${script.snippet.replace(/\|/g, '\\|')} |`);
+        }
+        lines.push('');
+      }
       lines.push('Top 10 by transferred bytes:');
       lines.push('');
       lines.push('| URL | Classification | Party | Cache | Transferred | Resource size | Status |');
@@ -624,7 +759,8 @@ async function main() {
         timeout: options.timeout,
         settleMs: options.settleMs,
         headless: options.headless,
-        storageState: options.storageState
+        storageState: options.storageState,
+        saveHtml: options.saveHtml
       },
       routes: measuredRoutes
     };

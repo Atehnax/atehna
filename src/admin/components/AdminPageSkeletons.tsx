@@ -41,18 +41,12 @@ export function AdminOrdersSectionSkeleton() {
 
 export function AdminArchiveSectionSkeleton() {
   return (
-    <div className="space-y-4">
-      <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1">
-        <Skeleton className="h-9 w-36 rounded-lg" />
-        <Skeleton className="ml-1 h-9 w-36 rounded-lg" />
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-4 flex flex-wrap gap-2">
+        <Skeleton className="h-10 w-40 rounded-xl" />
+        <Skeleton className="h-10 w-32 rounded-xl" />
       </div>
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="mb-4 flex flex-wrap gap-2">
-          <Skeleton className="h-10 w-40 rounded-xl" />
-          <Skeleton className="h-10 w-32 rounded-xl" />
-        </div>
-        <TableSkeleton rows={8} cols={5} className="border-0" />
-      </div>
+      <TableSkeleton rows={8} cols={5} className="border-0" />
     </div>
   );
 }
@@ -75,30 +69,23 @@ export function AdminItemsSectionSkeleton() {
 
 export function AdminAnalyticsSectionSkeleton() {
   return (
-    <div className="space-y-4">
-      <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1">
-        <Skeleton className="h-9 w-24 rounded-lg" />
-        <Skeleton className="ml-1 h-9 w-20 rounded-lg" />
-        <Skeleton className="ml-1 h-9 w-28 rounded-lg" />
-      </div>
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex gap-2">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <Skeleton key={index} className="h-9 w-16 rounded-lg" />
-            ))}
-          </div>
-          <Skeleton className="h-10 w-32 rounded-xl" />
-        </div>
-        <div className="grid gap-4 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="rounded-2xl border border-slate-200 bg-white p-4">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="mt-3 h-8 w-28" />
-              <Skeleton className="mt-6 h-40 w-full rounded-xl" />
-            </div>
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-2">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Skeleton key={index} className="h-9 w-16 rounded-lg" />
           ))}
         </div>
+        <Skeleton className="h-10 w-32 rounded-xl" />
+      </div>
+      <div className="grid gap-4 lg:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div key={index} className="rounded-2xl border border-slate-200 bg-white p-4">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="mt-3 h-8 w-28" />
+            <Skeleton className="mt-6 h-40 w-full rounded-xl" />
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -196,7 +183,7 @@ function CategoryTabsSkeleton({ initialView }: { initialView: 'table' | 'preview
   );
 }
 
-function CategoryTableSkeleton() {
+export function AdminCategoriesTableContentSkeleton() {
   return (
     <AdminTableLayout
       className="border"
@@ -283,7 +270,7 @@ function CategoryPreviewCardSkeleton({ showAddButton = false }: { showAddButton?
   );
 }
 
-function CategoryPreviewSkeleton() {
+export function AdminCategoriesPreviewContentSkeleton() {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-3">
@@ -307,7 +294,7 @@ function CategoryPreviewSkeleton() {
   );
 }
 
-function CategoryMillerSkeleton() {
+export function AdminCategoriesMillerContentSkeleton() {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-3">
@@ -352,9 +339,9 @@ export function AdminCategoriesRouteSkeleton({ initialView }: { initialView: 'ta
       description="Top: povezano drevo levo → desno. Bottom: vsebina izbrane kategorije v storefront admin pogledu."
     >
       <CategoryTabsSkeleton initialView={initialView} />
-      {initialView === 'table' ? <CategoryTableSkeleton /> : null}
-      {initialView === 'preview' ? <CategoryPreviewSkeleton /> : null}
-      {initialView === 'miller' ? <CategoryMillerSkeleton /> : null}
+      {initialView === 'table' ? <AdminCategoriesTableContentSkeleton /> : null}
+      {initialView === 'preview' ? <AdminCategoriesPreviewContentSkeleton /> : null}
+      {initialView === 'miller' ? <AdminCategoriesMillerContentSkeleton /> : null}
     </AdminSectionShell>
   );
 }

@@ -683,7 +683,7 @@ export default function AdminCategoriesMainTable({
   }, [applyPayloadState, initialPayload, load]);
 
   useEffect(() => {
-    if (!initialPayload || initialPayload.payloadMode !== 'partial' || activeView !== 'table') return;
+    if (!initialPayload || initialPayload.payloadMode !== 'partial' || activeView === 'miller') return;
     if (typeof window === 'undefined') return;
 
     let cancelled = false;
@@ -2347,6 +2347,7 @@ export default function AdminCategoriesMainTable({
 
   const openPreviewNode = useCallback(async (card: ContentCard) => {
     if (card.kind === 'category') {
+      await ensureFullPayloadLoaded();
       setSelected({ kind: 'category', categorySlug: card.categorySlug });
       return;
     }

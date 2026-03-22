@@ -56,7 +56,7 @@ export default async function CategoryPage({ params }: { params: { category: str
                   {category.subcategories.map((subcategory) => (
                     <Link key={subcategory.slug} href={`/products/${category.slug}/${subcategory.slug}`} prefetch={false} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm transition hover:border-brand-200">
                       <span className="font-semibold text-slate-900">{subcategory.title}</span>
-                      <span className="text-xs text-slate-500">{subcategory.items.length} {getArticleLabel(subcategory.items.length)}</span>
+                      <span className="text-xs text-slate-500">{subcategory.itemCount} {getArticleLabel(subcategory.itemCount)}</span>
                     </Link>
                   ))}
                 </div>

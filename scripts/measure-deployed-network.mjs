@@ -19,6 +19,14 @@ const DEFAULT_ROUTE_TEMPLATES = [
 const DEFAULT_OUTPUT_DIR = path.join('artifacts', 'measurements');
 const WAIT_AFTER_NETWORK_IDLE_MS = 2_000;
 const DEFAULT_REPEAT_WINDOW_LENGTHS = [2048, 1024, 512, 256];
+const FALLBACK_CHROMIUM_EXECUTABLES = [
+  process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
+  process.env.CHROME_PATH,
+  '/usr/bin/google-chrome-stable',
+  '/usr/bin/google-chrome',
+  '/usr/bin/chromium',
+  '/usr/bin/chromium-browser'
+].filter(Boolean);
 
 function printHelp() {
   console.log(`Measure deployed Chromium network usage for Atehna routes.
@@ -46,6 +54,19 @@ Examples:
   npm run measure:deployed-network -- --base-url https://atehna.vercel.app --output-dir artifacts/measurements/manual-run
   npm run measure:deployed-network -- --routes-file ./routes.txt
 `);
+}
+
+
+async function resolveChromiumLaunchOptions(options) {
+  for (const executablePath of FALLBACK_CHROMIUM_EXECUTABLES) {
+    try {
+      await fs.access(executablePath);
+      return { headless: options.headless, executablePath };
+    } catch {
+      // Try the next candidate.
+    }
+  }
+  return { headless: options.headless };
 }
 
 function parseArgs(argv) {
@@ -600,6 +621,7 @@ async function measureRoute(browser, baseUrl, routeTemplate, resolvedPath, optio
         await fs.writeFile(htmlPath, html, 'utf8');
         result.documentHtml = {
           path: htmlPath,
+          savedHtmlPath: htmlPath,
           status: response.status(),
           url: response.url(),
           analysis: analyzeDocumentHtml(html)
@@ -614,18 +636,21 @@ async function measureRoute(browser, baseUrl, routeTemplate, resolvedPath, optio
   try {
     const cold = await measureOnce('cold', async () => {
       await client.send('Network.setCacheDisabled', { cacheDisabled: false });
-      await page.goto(url, { waitUntil: 'networkidle', timeout: options.timeout });
+      return page.goto(url, { waitUntil: 'networkidle', timeout: options.timeout });
     });
 
     const warm = await measureOnce('reload', async () => {
       await client.send('Network.setCacheDisabled', { cacheDisabled: false });
-      await page.reload({ waitUntil: 'networkidle', timeout: options.timeout });
+      return page.reload({ waitUntil: 'networkidle', timeout: options.timeout });
     });
 
     const hardReload = await measureOnce('hard-reload', async () => {
       await client.send('Network.setCacheDisabled', { cacheDisabled: true });
-      await page.reload({ waitUntil: 'networkidle', timeout: options.timeout });
-      await client.send('Network.setCacheDisabled', { cacheDisabled: false });
+      try {
+        return await page.reload({ waitUntil: 'networkidle', timeout: options.timeout });
+      } finally {
+        await client.send('Network.setCacheDisabled', { cacheDisabled: false });
+      }
     });
 
     return { routeTemplate, resolvedPath, url, runs: [cold, warm, hardReload] };
@@ -689,12 +714,43 @@ function renderSummaryMarkdown(report) {
       }
       lines.push('');
       if (run.documentHtml) {
+        lines.push('HTML analysis:');
+        lines.push('');
+        lines.push(`- Saved HTML path: ${run.documentHtml.savedHtmlPath ?? run.documentHtml.path}`);
+        lines.push(`- HTML document bytes: ${formatBytes(run.documentHtml.analysis.htmlBytes)}`);
+        lines.push(`- Inline script count: ${run.documentHtml.analysis.inlineScriptCount}`);
+        lines.push(`- __next_f.push count: ${run.documentHtml.analysis.nextFlightPushCount}`);
+        lines.push('');
+        lines.push('Suspicious marker counts:');
+        lines.push('');
+        lines.push('| Marker | Count |');
+        lines.push('| --- | ---: |');
+        for (const [marker, count] of Object.entries(run.documentHtml.analysis.suspiciousMarkerCounts)) {
+          lines.push(`| ${marker} | ${count} |`);
+        }
+        lines.push('');
         lines.push('Largest inline script blocks:');
         lines.push('');
         lines.push('| Index | Kind | Bytes | Snippet |');
         lines.push('| ---: | --- | ---: | --- |');
         for (const script of run.documentHtml.analysis.largestInlineScripts) {
           lines.push(`| ${script.index} | ${script.kind} | ${formatBytes(script.bytes)} | ${script.snippet.replace(/\|/g, '\\|')} |`);
+        }
+        lines.push('');
+        lines.push('Repeated substring heuristics:');
+        lines.push('');
+        lines.push('| Window bytes | Occurrences | Repeated bytes | Snippet |');
+        lines.push('| ---: | ---: | ---: | --- |');
+        for (const repeated of run.documentHtml.analysis.repeatedSubstrings) {
+          lines.push(`| ${repeated.length} | ${repeated.occurrences} | ${formatBytes(repeated.repeatedBytes)} | ${repeated.snippet.replace(/\|/g, '\\|')} |`);
+        }
+        lines.push('');
+        lines.push('Large JSON-like regions:');
+        lines.push('');
+        lines.push('| Bytes | Snippet |');
+        lines.push('| ---: | --- |');
+        for (const region of run.documentHtml.analysis.largeJsonLikeRegions) {
+          lines.push(`| ${formatBytes(region.bytes)} | ${region.snippet.replace(/\|/g, '\\|')} |`);
         }
         lines.push('');
       }
@@ -730,7 +786,7 @@ async function main() {
   options.baseUrl = normalizeBaseUrl(options.baseUrl);
   await fs.mkdir(options.outputDir, { recursive: true });
 
-  const browser = await chromium.launch({ headless: options.headless });
+  const browser = await chromium.launch(await resolveChromiumLaunchOptions(options));
   try {
     const { routeTemplates, params } = await resolveRouteTemplates(browser, options);
     const routes = routeTemplates.map((routeTemplate) => ({

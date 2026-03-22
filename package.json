@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "measure:deployed-network": "node scripts/measure-deployed-network.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

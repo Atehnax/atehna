@@ -1268,7 +1268,7 @@ export default function AdminOrdersTable({
                       <TD className="text-center font-semibold text-slate-900" data-no-row-nav>
                         <Link
                           href={`/admin/orders/${order.id}`}
-                          prefetch
+                          prefetch={false}
                           className="inline-flex rounded-sm px-1 text-[13px] font-semibold text-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
                           aria-label={`Odpri naročilo ${toDisplayOrderNumber(order.order_number)}`}
                         >
@@ -1360,6 +1360,7 @@ export default function AdminOrdersTable({
                         <RowActions>
                           <IconButton
                             href={`/admin/orders/${order.id}`}
+                            prefetch={false}
                             tone="neutral"
                             aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
                             title="Uredi"

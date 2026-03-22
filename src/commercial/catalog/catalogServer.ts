@@ -4,6 +4,7 @@ import { sortCatalogItems } from '@/commercial/catalog/catalog';
 import { instrumentCatalogCacheMiss, instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
 import {
   getCatalogCategoryCardsFromDatabase,
+  getCatalogCategoryPageDataFromDatabase,
   getCatalogCategorySummariesFromDatabase,
   getCatalogCategoryWithSubcategoriesFromDatabase,
   getCatalogDataFromDatabase,
@@ -104,11 +105,11 @@ const loadCatalogHomeDataServer = cache(async (): Promise<{
 });
 
 const loadCatalogCategoryPageDataServer = cache(async (slug: string): Promise<{
-  category: CatalogCategory;
+  category: NonNullable<Awaited<ReturnType<typeof getCatalogCategoryPageDataFromDatabase>>>;
   categories: Array<Pick<CatalogCategory, 'slug' | 'title'>>;
 }> => {
   const [category, categories] = await Promise.all([
-    loadCatalogCategoryDetailsServer(slug),
+    getCatalogCategoryPageDataFromDatabase(slug, '/products/[category]'),
     loadCatalogCategorySummariesServer()
   ]);
 
@@ -269,7 +270,7 @@ export async function getCatalogPageDataServer(): Promise<{
 }
 
 export async function getCatalogCategoryPageDataServer(slug: string): Promise<{
-  category: CatalogCategory;
+  category: NonNullable<Awaited<ReturnType<typeof getCatalogCategoryPageDataFromDatabase>>>;
   categories: Array<Pick<CatalogCategory, 'slug' | 'title'>>;
 }> {
   return instrumentCatalogLoader('getCatalogCategoryPageDataServer', '/products/[category]', () => loadCatalogCategoryPageDataServer(slug));

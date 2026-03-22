@@ -1,5 +1,6 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react';
 import Link from 'next/link';
+import type { LinkProps } from 'next/link';
 import { iconButtonTokenClasses } from '@/shared/ui/theme/tokens';
 
 type SharedIconButtonProps = {
@@ -18,6 +19,7 @@ type IconButtonAsButtonProps = SharedIconButtonProps &
 type IconButtonAsLinkProps = SharedIconButtonProps &
   Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'className' | 'children' | 'href'> & {
     href: string;
+    prefetch?: LinkProps['prefetch'];
   };
 
 export type IconButtonProps = IconButtonAsButtonProps | IconButtonAsLinkProps;

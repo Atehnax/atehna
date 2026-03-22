@@ -2,6 +2,13 @@ import fs from 'fs/promises';
 import path from 'path';
 import type { CatalogCategory, CatalogItem, CatalogSubcategory } from '@/commercial/catalog/catalog';
 
+function normalizeCatalogImage(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  return trimmed.startsWith('data:image/') ? '' : trimmed;
+}
+
 export type RecursiveCatalogSubcategory = Omit<CatalogSubcategory, 'items'> & {
   items: CatalogItem[];
   subcategories: RecursiveCatalogSubcategory[];
@@ -51,9 +58,9 @@ function normalizeCategory(raw: unknown): RecursiveCatalogCategory | null {
     title: typeof category.title === 'string' ? category.title : slug,
     summary: typeof category.summary === 'string' ? category.summary : '',
     description: typeof category.description === 'string' ? category.description : '',
-    image: typeof category.image === 'string' ? category.image : '',
+    image: normalizeCatalogImage(category.image),
     adminNotes: typeof category.adminNotes === 'string' ? category.adminNotes : undefined,
-    bannerImage: typeof category.bannerImage === 'string' ? category.bannerImage : undefined,
+    bannerImage: normalizeCatalogImage(category.bannerImage) || undefined,
     subcategories: subcategoriesSource
       .map((rawSubcategory) => normalizeSubcategory(rawSubcategory, categoryId, []))
       .filter((entry): entry is RecursiveCatalogSubcategory => entry !== null),
@@ -81,7 +88,7 @@ function normalizeSubcategory(
     title: typeof subcategory.title === 'string' ? subcategory.title : slug,
     description: typeof subcategory.description === 'string' ? subcategory.description : '',
     adminNotes: typeof subcategory.adminNotes === 'string' ? subcategory.adminNotes : undefined,
-    image: typeof subcategory.image === 'string' ? subcategory.image : '',
+    image: normalizeCatalogImage(subcategory.image),
     items: Array.isArray(subcategory.items) ? subcategory.items : [],
     subcategories: childrenSource
       .map((child) => normalizeSubcategory(child, categoryId, currentPath))

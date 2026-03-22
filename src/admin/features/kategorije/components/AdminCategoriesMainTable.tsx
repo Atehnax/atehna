@@ -133,7 +133,8 @@ type CatalogRowSnapshot = {
   title: string;
   summary: string;
   description: string;
-  image: string;
+  image: string | null;
+  removeImage?: boolean;
   adminNotes?: string | null;
   bannerImage?: string | null;
   items: CatalogItem[];
@@ -440,7 +441,11 @@ function buildCatalogPatchPayload(
   nextRows.forEach((row, id) => {
     const previousRow = previousRows.get(id);
     if (!previousRow || JSON.stringify(previousRow) !== JSON.stringify(row)) {
-      upserts.push(row);
+      upserts.push(
+        row.image === '' && !!previousRow?.image
+          ? { ...row, image: null, removeImage: true }
+          : { ...row, removeImage: false }
+      );
     }
   });
 

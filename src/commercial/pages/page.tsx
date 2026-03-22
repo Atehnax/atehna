@@ -1,13 +1,15 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { getPageContent } from '@/commercial/content/content';
-import { getCatalogPageDataServer } from '@/commercial/catalog/catalogServer';
+import { getCatalogCategoryCardsServer } from '@/commercial/catalog/catalogServer';
 import MdxContent from '@/commercial/components/MdxContent';
-import ItemSearch from '@/commercial/features/products/ItemSearch';
+import CatalogSearch from '@/commercial/features/products/CatalogSearch';
+
+export const dynamic = 'force-static';
 
 export default async function HomePage() {
   const page = getPageContent('home');
-  const { categories, searchItems } = await getCatalogPageDataServer();
+  const categories = await getCatalogCategoryCardsServer();
 
   return (
     <div>
@@ -54,7 +56,7 @@ export default async function HomePage() {
           </Link>
         </div>
         <div className="mt-6">
-          <ItemSearch items={searchItems} />
+          <CatalogSearch />
         </div>
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {categories.map((category) => (

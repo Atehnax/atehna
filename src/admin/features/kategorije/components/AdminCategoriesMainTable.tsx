@@ -501,6 +501,11 @@ export default function AdminCategoriesMainTable({
   const persistedTableRef = useRef<CatalogData>({ categories: [] });
   const persistedMillerRef = useRef<CatalogData>({ categories: [] });
   const persistedStatusRef = useRef<Record<string, CategoryStatus>>({});
+  const catalogRef = useRef<CatalogData>({ categories: [] });
+  const millerCatalogRef = useRef<CatalogData>({ categories: [] });
+  const statusByRowRef = useRef<Record<string, CategoryStatus>>({});
+  const partialPayloadRef = useRef(initialPayload?.payloadMode === 'partial');
+  const hydrationPromiseRef = useRef<Promise<AdminCategoriesPayload> | null>(null);
   const stagedTableHistoryRef = useRef<HistorySnapshot[]>([]);
   const stagedMillerHistoryRef = useRef<HistorySnapshot[]>([]);
   const demotedMillerCategoriesRef = useRef<Map<string, RecursiveCatalogCategory>>(new Map());
@@ -519,7 +524,7 @@ export default function AdminCategoriesMainTable({
 
   const canRestoreCommittedHistory = committedHistoryIndexRef.current > 0;
 
-  const applyPayloadState = useCallback((payloadRaw: AdminCategoriesPayload) => {
+  const applyPayloadState = useCallback((payloadRaw: AdminCategoriesPayload, options?: { persistSession?: boolean }) => {
     Object.keys(pendingImageUploadsRef.current).forEach((rowId) => {
       const pending = pendingImageUploadsRef.current[rowId];
       if (pending) URL.revokeObjectURL(pending.objectUrl);
@@ -530,6 +535,8 @@ export default function AdminCategoriesMainTable({
 
     setCatalog(payload);
     setMillerCatalog(payload);
+    catalogRef.current = payload;
+    millerCatalogRef.current = payload;
     persistedTableRef.current = payload;
     persistedMillerRef.current = payload;
     setTableDirty(false);
@@ -553,6 +560,7 @@ export default function AdminCategoriesMainTable({
         });
       });
       persistedStatusRef.current = next;
+      statusByRowRef.current = next;
       return next;
     });
     const initialSnapshot = { catalog: payload, statuses: { ...persistedStatusRef.current } };
@@ -560,8 +568,53 @@ export default function AdminCategoriesMainTable({
     stagedMillerHistoryRef.current = [];
     committedHistoryRef.current = [initialSnapshot];
     committedHistoryIndexRef.current = 0;
-    setAdminCategoriesSessionPayload({ categories: payload.categories, statuses: nextStatuses });
+    partialPayloadRef.current = payloadRaw.payloadMode === 'partial';
+    if (options?.persistSession ?? payloadRaw.payloadMode !== 'partial') {
+      setAdminCategoriesSessionPayload({
+        categories: payload.categories,
+        statuses: nextStatuses,
+        payloadMode: payloadRaw.payloadMode ?? 'full',
+        payloadView: payloadRaw.payloadView
+      });
+    }
   }, []);
+
+  const prefetchFullPayload = useCallback(async () => {
+    if (!partialPayloadRef.current) return null;
+
+    if (!hydrationPromiseRef.current) {
+      hydrationPromiseRef.current = fetch(
+        activeView === 'preview' ? '/api/admin/categories?view=preview' : '/api/admin/categories',
+        { cache: 'no-store' }
+      )
+        .then(async (response) => {
+          if (!response.ok) {
+            throw new Error('Napaka pri nalaganju kategorij');
+          }
+
+          return (await response.json()) as AdminCategoriesPayload;
+        })
+        .catch((error) => {
+          hydrationPromiseRef.current = null;
+          throw error;
+        });
+    }
+
+    return hydrationPromiseRef.current;
+  }, [activeView]);
+
+  const ensureFullPayloadLoaded = useCallback(async () => {
+    if (!partialPayloadRef.current) return;
+
+    const payload = await prefetchFullPayload();
+    if (!payload) return;
+
+    applyPayloadState({
+      ...payload,
+      payloadMode: 'full',
+      payloadView: activeView
+    });
+  }, [activeView, applyPayloadState, prefetchFullPayload]);
 
   const load = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!silent) setLoading(true);
@@ -591,20 +644,73 @@ export default function AdminCategoriesMainTable({
   }, [toast]);
 
   useEffect(() => {
+    catalogRef.current = catalog;
+  }, [catalog]);
+
+  useEffect(() => {
+    millerCatalogRef.current = millerCatalog;
+  }, [millerCatalog]);
+
+  useEffect(() => {
+    statusByRowRef.current = statusByRow;
+  }, [statusByRow]);
+
+  useEffect(() => {
     const sessionPayload = getAdminCategoriesSessionPayload();
-    if (sessionPayload) {
+    if (sessionPayload && sessionPayload.payloadMode !== 'partial') {
       applyPayloadState(sessionPayload);
       setLoading(false);
       return;
     }
 
     if (initialPayload) {
-      applyPayloadState(initialPayload);
+      applyPayloadState(initialPayload, { persistSession: initialPayload.payloadMode !== 'partial' });
       setLoading(false);
       return;
     }
     void load();
   }, [applyPayloadState, initialPayload, load]);
+
+  useEffect(() => {
+    if (!initialPayload || initialPayload.payloadMode !== 'partial' || activeView !== 'table') return;
+    if (typeof window === 'undefined') return;
+
+    let cancelled = false;
+    let idleId: number | null = null;
+    const warm = () => {
+      void prefetchFullPayload()
+        .then((payload) => {
+          if (!payload || cancelled) return;
+          if (tableDirty || millerDirty) return;
+          if (selected.kind !== 'root') return;
+          if (query.trim().length > 0 || millerSearchQuery.trim().length > 0) return;
+
+          applyPayloadState({
+            ...payload,
+            payloadMode: 'full',
+            payloadView: initialPayload.payloadView
+          });
+        })
+        .catch(() => undefined);
+    };
+
+    const timeoutId = window.setTimeout(() => {
+      if ('requestIdleCallback' in window) {
+        idleId = window.requestIdleCallback(() => warm(), { timeout: 2000 });
+        return;
+      }
+
+      warm();
+    }, 4000);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+      if (idleId !== null && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(idleId);
+      }
+    };
+  }, [activeView, applyPayloadState, initialPayload, millerDirty, millerSearchQuery, prefetchFullPayload, query, selected.kind, tableDirty]);
 
   useEffect(() => {
     if (pathname?.endsWith('/miller-view')) {
@@ -868,7 +974,9 @@ export default function AdminCategoriesMainTable({
       statuses: { ...statusByRow }
     });
     setMillerCatalog(normalized);
+    millerCatalogRef.current = normalized;
     setStatusByRow(nextStatuses);
+    statusByRowRef.current = nextStatuses;
     setMillerDirty(
       !areMillerCatalogsEqual(normalized, persistedMillerRef.current) ||
         !areStatusesEqual(nextStatuses, persistedStatusRef.current)
@@ -887,7 +995,9 @@ export default function AdminCategoriesMainTable({
       statuses: { ...statusByRow }
     });
     setCatalog(normalized);
+    catalogRef.current = normalized;
     setStatusByRow(nextStatuses);
+    statusByRowRef.current = nextStatuses;
     setTableDirty(
       !areCatalogsEqual(normalized, persistedTableRef.current) ||
         !areStatusesEqual(nextStatuses, persistedStatusRef.current)
@@ -1189,7 +1299,8 @@ export default function AdminCategoriesMainTable({
     setCreateName('');
   };
 
-  const confirmCreate = () => {
+  const confirmCreate = async () => {
+    await ensureFullPayloadLoaded();
     const nextName = createName.trim();
     if (!nextName || !createTarget) return;
 
@@ -1209,7 +1320,8 @@ export default function AdminCategoriesMainTable({
   };
 
 
-  const onTreeDragEnd = (event: DragEndEvent) => {
+  const onTreeDragEnd = async (event: DragEndEvent) => {
+    await ensureFullPayloadLoaded();
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
@@ -1312,7 +1424,8 @@ export default function AdminCategoriesMainTable({
     stageTableCatalog({ categories: nextCategories });
   };
 
-  const onBottomReorder = (event: DragEndEvent) => {
+  const onBottomReorder = async (event: DragEndEvent) => {
+    await ensureFullPayloadLoaded();
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
@@ -1363,7 +1476,8 @@ export default function AdminCategoriesMainTable({
     stageTableCatalog(next);
   };
 
-  const onLeafProductsDragEnd = (event: DragEndEvent) => {
+  const onLeafProductsDragEnd = async (event: DragEndEvent) => {
+    await ensureFullPayloadLoaded();
     const { active, over } = event;
     if (!over || active.id === over.id || !selectedContext || selectedContext.kind === 'root') return;
 
@@ -1472,7 +1586,8 @@ export default function AdminCategoriesMainTable({
     ancestor.length < candidate.length && ancestor.every((part, index) => candidate[index] === part)
   ), []);
 
-  const applyMillerMove = (dropLocation: MillerDropLocation | null) => {
+  const applyMillerMove = async (dropLocation: MillerDropLocation | null) => {
+    await ensureFullPayloadLoaded();
     if (millerSelection.length === 0) return;
     if (!dropLocation) return;
     if (millerSelection.includes(dropLocation.parentId)) return;
@@ -1708,7 +1823,8 @@ export default function AdminCategoriesMainTable({
     }
   };
 
-  const applyMillerRename = () => {
+  const applyMillerRename = async () => {
+    await ensureFullPayloadLoaded();
     if (!millerRename) return;
     const value = millerRename.value.trim();
     if (!value) {
@@ -1748,7 +1864,8 @@ export default function AdminCategoriesMainTable({
     }
   };
 
-  const requestDeleteMillerSelection = (column: 'categories' | 'subcategories' | 'items') => {
+  const requestDeleteMillerSelection = async (column: 'categories' | 'subcategories' | 'items') => {
+    await ensureFullPayloadLoaded();
     const ids = millerSelection.filter((entry) =>
       column === 'categories' ? entry.startsWith('cat:') : column === 'subcategories' ? entry.startsWith('sub:') : entry.startsWith('item:')
     );
@@ -1810,7 +1927,8 @@ export default function AdminCategoriesMainTable({
     setMillerDeleteTarget(null);
   };
 
-  const addMillerNode = (column: 'categories' | 'subcategories' | 'items') => {
+  const addMillerNode = async (column: 'categories' | 'subcategories' | 'items') => {
+    await ensureFullPayloadLoaded();
     if (column === 'categories') {
       openCreateDialog({ kind: 'category' });
       return;
@@ -1825,8 +1943,9 @@ export default function AdminCategoriesMainTable({
   };
 
   const saveMillerChanges = async () => {
-    const savedCatalog = normalizeCatalogData(millerCatalog);
-    const savedPayload = await persist(savedCatalog, statusByRow, 'Miller spremembe shranjene');
+    await ensureFullPayloadLoaded();
+    const savedCatalog = normalizeCatalogData(millerCatalogRef.current);
+    const savedPayload = await persist(savedCatalog, statusByRowRef.current, 'Miller spremembe shranjene');
 
     if (!savedPayload) {
       setMillerError('Shranjevanje Miller sprememb ni uspelo. Lokalno stanje je ohranjeno.');
@@ -1861,8 +1980,9 @@ export default function AdminCategoriesMainTable({
   };
 
   const saveTableChanges = async () => {
-    const savedCatalog = normalizeCatalogData(catalog);
-    const savedPayload = await persist(savedCatalog, statusByRow, 'Spremembe shranjene');
+    await ensureFullPayloadLoaded();
+    const savedCatalog = normalizeCatalogData(catalogRef.current);
+    const savedPayload = await persist(savedCatalog, statusByRowRef.current, 'Spremembe shranjene');
 
     if (!savedPayload) {
       setTableError('Shranjevanje sprememb ni uspelo. Lokalno stanje je ohranjeno.');
@@ -1908,12 +2028,14 @@ export default function AdminCategoriesMainTable({
     [activeView, millerCatalog.categories, millerSearchQuery]
   );
 
-  const navigateToMillerSearchMatch = useCallback((match: MillerSearchMatch) => {
+  const navigateToMillerSearchMatch = useCallback(async (match: MillerSearchMatch) => {
     if (match.kind === 'category') {
       setSelected({ kind: 'category', categorySlug: match.categorySlug });
       setMillerSelection([match.id]);
       return;
     }
+
+    await ensureFullPayloadLoaded();
 
     if (match.kind === 'subcategory') {
       setSelected({
@@ -1937,7 +2059,7 @@ export default function AdminCategoriesMainTable({
       setSelected({ kind: 'category', categorySlug: match.categorySlug });
     }
     setMillerSelection([match.id]);
-  }, []);
+  }, [ensureFullPayloadLoaded]);
 
   useEffect(() => {
     if (!millerSearchQuery.trim() || millerSearchIndex.matches.length === 0) return;
@@ -1945,7 +2067,7 @@ export default function AdminCategoriesMainTable({
     const selectedMatchId = millerSelection.at(-1);
     if (selectedMatchId && millerSearchIndex.matches.some((entry) => entry.id === selectedMatchId)) return;
 
-    navigateToMillerSearchMatch(millerSearchIndex.matches[0]);
+    void navigateToMillerSearchMatch(millerSearchIndex.matches[0]);
   }, [millerSearchIndex.matches, millerSearchQuery, millerSelection, navigateToMillerSearchMatch]);
 
 
@@ -2023,7 +2145,8 @@ export default function AdminCategoriesMainTable({
             isInactive: (statusByRow[id] ?? 'active') === 'inactive',
             createdAt: subcategory.createdAt,
             updatedAt: subcategory.updatedAt,
-            onClick: (event) => {
+            onClick: async (event) => {
+              await ensureFullPayloadLoaded();
               setSelected({
                 kind: 'subcategory',
                 categorySlug: activeCategory.slug,
@@ -2211,11 +2334,13 @@ export default function AdminCategoriesMainTable({
     setImageDeleteTarget(null);
   };
 
-  const openPreviewNode = useCallback((card: ContentCard) => {
+  const openPreviewNode = useCallback(async (card: ContentCard) => {
     if (card.kind === 'category') {
       setSelected({ kind: 'category', categorySlug: card.categorySlug });
       return;
     }
+
+    await ensureFullPayloadLoaded();
 
     setSelected({
       kind: 'subcategory',
@@ -2223,7 +2348,7 @@ export default function AdminCategoriesMainTable({
       subcategoryPath: card.subcategoryPath,
       subcategorySlug: card.subcategoryPath.at(-1)
     });
-  }, []);
+  }, [ensureFullPayloadLoaded]);
 
   const navigatePreviewUp = useCallback(() => {
     setSelected((current) => {
@@ -2244,7 +2369,8 @@ export default function AdminCategoriesMainTable({
     });
   }, []);
 
-  const startPreviewTitleEdit = useCallback((card: ContentCard) => {
+  const startPreviewTitleEdit = useCallback(async (card: ContentCard) => {
+    await ensureFullPayloadLoaded();
     const rowId = card.kind === 'category' ? catId(card.categorySlug) : subId(card.categorySlug, card.subcategoryPath);
     setEditingRow({
       id: rowId,
@@ -2256,7 +2382,7 @@ export default function AdminCategoriesMainTable({
       description: card.description,
       status: statusByRow[rowId] ?? 'active'
     });
-  }, [statusByRow]);
+  }, [ensureFullPayloadLoaded, statusByRow]);
 
   const visibleContent = useMemo(() => {
     if (activeView !== 'preview') return [];
@@ -2667,6 +2793,7 @@ export default function AdminCategoriesMainTable({
   };
 
   const confirmBulkDelete = async () => {
+    await ensureFullPayloadLoaded();
     if (selectedRows.length === 0) return;
     if (hasIncompleteDescendantSelection(selectedRows)) {
       showDeleteSelectionWarning();
@@ -2735,7 +2862,8 @@ export default function AdminCategoriesMainTable({
     const rowDepthTone = getAdminCategoryRowToneClass(level);
     const rowStatus = statusByRow[id] ?? 'active';
 
-    const toggleInlineEdit = () => {
+    const toggleInlineEdit = async () => {
+      await ensureFullPayloadLoaded();
       if (isRowEditing) {
         setEditingRow(null);
         return;
@@ -2753,7 +2881,8 @@ export default function AdminCategoriesMainTable({
       });
     };
 
-    const setStatus = (nextStatus: CategoryStatus) => {
+    const setStatus = async (nextStatus: CategoryStatus) => {
+      await ensureFullPayloadLoaded();
       const nextStatuses = { ...statusByRow, [id]: nextStatus };
       stageStatusChange(nextStatuses);
       setEditingRow((prev) => (prev && prev.id === id ? { ...prev, status: nextStatus } : prev));

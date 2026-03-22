@@ -54,7 +54,7 @@ export default async function CategoryPage({ params }: { params: { category: str
                 <p className="mt-2 text-sm text-slate-600">Izberite podkategorijo za ogled razpoložljivih artiklov.</p>
                 <div className="mt-4 space-y-3">
                   {category.subcategories.map((subcategory) => (
-                    <Link key={subcategory.slug} href={`/products/${category.slug}/${subcategory.slug}`} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm transition hover:border-brand-200">
+                    <Link key={subcategory.slug} href={`/products/${category.slug}/${subcategory.slug}`} prefetch={false} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm transition hover:border-brand-200">
                       <span className="font-semibold text-slate-900">{subcategory.title}</span>
                       <span className="text-xs text-slate-500">{subcategory.items.length} {getArticleLabel(subcategory.items.length)}</span>
                     </Link>
@@ -74,7 +74,7 @@ export default async function CategoryPage({ params }: { params: { category: str
                     const itemHref = `/products/${category.slug}/items/${item.slug}`;
                     return <div key={item.slug} className="flex h-full flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm transition hover:border-brand-200">
                       <div>
-                        <Link href={itemHref} className="group block">
+                        <Link href={itemHref} prefetch={false} className="group block">
                           {(item.images?.[0] ?? item.image) && <div className="relative h-24 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50"><Image src={item.images?.[0] ?? item.image ?? ''} alt={item.name} fill className="object-contain p-3 transition duration-300 group-hover:scale-105" /></div>}
                           <p className="mt-3 text-base font-semibold text-slate-900 transition group-hover:text-brand-600">{item.name}</p>
                         </Link>
@@ -91,7 +91,7 @@ export default async function CategoryPage({ params }: { params: { category: str
         </div>
         <aside className="space-y-4">
           <div className="relative h-52 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><Image src={category.image} alt={category.title} fill className="object-cover" /></div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm"><p className="font-semibold text-slate-900">Druge kategorije</p><ul className="mt-3 space-y-2">{categories.filter((item) => item.slug !== category.slug).map((item) => <li key={item.slug}><Link href={`/products/${item.slug}`} className="hover:text-brand-600">{item.title}</Link></li>)}</ul></div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm"><p className="font-semibold text-slate-900">Druge kategorije</p><ul className="mt-3 space-y-2">{categories.filter((item) => item.slug !== category.slug).map((item) => <li key={item.slug}><Link href={`/products/${item.slug}`} prefetch={false} className="hover:text-brand-600">{item.title}</Link></li>)}</ul></div>
         </aside>
       </div>
     </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { CatalogSearchItem } from '@/commercial/catalog/catalog';
 import ItemSearch from './ItemSearch';
 
@@ -32,17 +32,27 @@ async function loadSearchItems(): Promise<CatalogSearchItem[]> {
 
 export default function CatalogSearch({ placeholder }: { placeholder?: string }) {
   const [items, setItems] = useState<CatalogSearchItem[]>(() => searchItemsCache ?? []);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  const ensureItemsLoaded = useCallback(() => {
     if (searchItemsCache) {
       setItems(searchItemsCache);
       return;
     }
 
+    setLoading(true);
     void loadSearchItems()
       .then((nextItems) => setItems(nextItems))
-      .catch(() => setItems([]));
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
   }, []);
 
-  return <ItemSearch items={items} placeholder={placeholder} />;
+  return (
+    <ItemSearch
+      items={items}
+      placeholder={placeholder}
+      loading={loading && items.length === 0}
+      onOpen={ensureItemsLoaded}
+    />
+  );
 }

@@ -42,6 +42,13 @@ type CatalogCategorySummary = Pick<RecursiveCatalogCategory, 'slug' | 'title'>;
 type CatalogCategoryWithSubcategories = Pick<RecursiveCatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'items'> & {
   subcategories: Array<Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'items'>>;
 };
+type CatalogCategoryPageSubcategory = Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description'> & {
+  itemCount: number;
+};
+type CatalogCategoryPageData = Pick<RecursiveCatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'description' | 'image'> & {
+  items: CatalogItem[];
+  subcategories: CatalogCategoryPageSubcategory[];
+};
 type CatalogItemsIndex = Array<
   Pick<RecursiveCatalogCategory, 'id' | 'slug' | 'title' | 'items'> & {
     subcategories: Array<Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'items'>>;
@@ -52,6 +59,7 @@ type CategoryCardRow = Pick<CategoryRow, 'slug' | 'title' | 'summary' | 'image'>
 type CategorySummaryRow = Pick<CategoryRow, 'slug' | 'title'>;
 type CategoryDetailRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'items'>;
 type SubcategoryDetailRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'description' | 'items'>;
+type SubcategoryCountRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'description'> & { item_count: number };
 type SearchCategoryRow = Pick<CategoryRow, 'id' | 'slug' | 'items'>;
 type SearchSubcategoryRow = Pick<CategoryRow, 'parent_id' | 'slug' | 'items'>;
 type ItemsIndexCategoryRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'items'>;
@@ -480,6 +488,77 @@ async function readCatalogCategoryWithSubcategoriesFromDatabase(
       title: row.title,
       description: row.description,
       items: getRowItems(row)
+    }))
+  };
+}
+
+async function readCatalogCategoryPageDataFromDatabase(
+  slug: string
+): Promise<CatalogCategoryPageData | null> {
+  if (!getDatabaseUrl()) {
+    const normalized = await readCatalogFile();
+    const category = normalized.categories.find((entry) => entry.slug === slug);
+    if (!category) return null;
+
+    return {
+      id: category.id,
+      slug: category.slug,
+      title: category.title,
+      summary: category.summary,
+      description: category.description,
+      image: category.image,
+      items: category.subcategories.length === 0 ? category.items : [],
+      subcategories: category.subcategories.map(({ id, slug: subSlug, title, description, items }) => ({
+        id,
+        slug: subSlug,
+        title,
+        description,
+        itemCount: items.length
+      }))
+    };
+  }
+
+  await ensureTable();
+  await seedIfEmpty();
+
+  const pool = await getPool();
+  const categoryResult = await pool.query(
+    `
+      select id, slug, title, summary, description, image, items
+      from catalog_categories
+      where parent_id is null and status = 'active' and slug = $1
+      limit 1
+    `,
+    [slug]
+  );
+
+  const categoryRow = (categoryResult.rows as CategoryDetailRow[])[0];
+  if (!categoryRow) return null;
+
+  const subcategoryResult = await pool.query(
+    `
+      select id, slug, title, description, coalesce(jsonb_array_length(items), 0)::int as item_count
+      from catalog_categories
+      where parent_id = $1 and status = 'active'
+      order by position asc, title asc
+    `,
+    [categoryRow.id]
+  );
+
+  return {
+    id: categoryRow.id,
+    slug: categoryRow.slug,
+    title: categoryRow.title,
+    summary: categoryRow.summary,
+    description: categoryRow.description,
+    image: categoryRow.image,
+    items: subcategoryResult.rowCount === 0 ? getRowItems(categoryRow) : [],
+    subcategories: (subcategoryResult.rows as SubcategoryCountRow[]).map((row) => ({
+      id: row.id,
+      slug: row.slug,
+      title: row.title,
+      description: row.description,
+      itemCount: Number(row.item_count ?? 0)
     }))
   };
 }
@@ -968,6 +1047,22 @@ export async function getCatalogCategoryWithSubcategoriesFromDatabase(
   );
 
   return instrumentCatalogLoader('getCatalogCategoryWithSubcategoriesFromDatabase', diagnosticsContext, async () => getCachedCategory());
+}
+
+export async function getCatalogCategoryPageDataFromDatabase(
+  slug: string,
+  diagnosticsContext = '/products/[category]'
+): Promise<CatalogCategoryPageData | null> {
+  const getCachedCategoryPageData = unstable_cache(
+    async () =>
+      instrumentCatalogCacheMiss('getCachedCatalogCategoryPageDataFromDatabase', diagnosticsContext, () =>
+        readCatalogCategoryPageDataFromDatabase(slug)
+      ),
+    ['catalog-category-page-data', slug],
+    { tags: [CATALOG_PUBLIC_TAG] }
+  );
+
+  return instrumentCatalogLoader('getCatalogCategoryPageDataFromDatabase', diagnosticsContext, async () => getCachedCategoryPageData());
 }
 
 export async function getCatalogSubcategoryWithCategoryFromDatabase(

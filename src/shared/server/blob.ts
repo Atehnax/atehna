@@ -28,6 +28,22 @@ export function buildOrderBlobPath(orderId: string | number, fileName: string): 
   return `orders/${safeOrderId}/${safeFileName}`;
 }
 
+export function buildCatalogImageBlobPath(
+  categorySlug: string,
+  fileName: string,
+  subcategoryPath?: string[]
+): string {
+  const safeCategorySlug = sanitizeBlobSegment(categorySlug) || 'category';
+  const safeSegments = (subcategoryPath ?? []).map((segment) => sanitizeBlobSegment(segment)).filter(Boolean);
+  const safeFileName = sanitizeBlobSegment(fileName).replace(/^\/+/, '');
+
+  if (!safeFileName || safeFileName.endsWith('/')) {
+    throw new Error(`Invalid blob fileName: "${safeFileName}".`);
+  }
+
+  return ['catalog-categories', safeCategorySlug, ...safeSegments, safeFileName].join('/');
+}
+
 export async function uploadBlob(
   pathname: string,
   data: Buffer | Uint8Array,

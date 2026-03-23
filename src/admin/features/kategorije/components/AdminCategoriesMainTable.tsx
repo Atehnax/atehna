@@ -365,15 +365,6 @@ const getMillerSearchIndex = (categories: RecursiveCatalogCategory[], query: str
   return emptyIndex;
 };
 
-async function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ''));
-    reader.onerror = () => reject(new Error('Napaka pri branju datoteke'));
-    reader.readAsDataURL(file);
-  });
-}
-
 function flattenCatalogRows(
   catalog: CatalogData,
   statuses: Record<string, CategoryStatus>
@@ -798,10 +789,40 @@ export default function AdminCategoriesMainTable({
     const pendingEntries = Object.entries(pendingImageUploadsRef.current);
     if (pendingEntries.length === 0) return source;
 
-    const dataUrlByRowId = new Map<string, string>();
+    const rowTargets = new Map<string, { categorySlug: string; subcategoryPath: string[] }>();
+    source.categories.forEach((category) => {
+      rowTargets.set(catId(category.slug), { categorySlug: category.slug, subcategoryPath: [] });
+      mapSubcategoryTree(category.subcategories, (_subcategory, path) => {
+        rowTargets.set(subId(category.slug, path), { categorySlug: category.slug, subcategoryPath: path });
+        return _subcategory;
+      });
+    });
+
+    const uploadedUrlByRowId = new Map<string, string>();
     await Promise.all(
       pendingEntries.map(async ([rowId, pending]) => {
-        dataUrlByRowId.set(rowId, await fileToDataUrl(pending.file));
+        const target = rowTargets.get(rowId);
+        if (!target) return;
+
+        const formData = new FormData();
+        formData.append('file', pending.file);
+        formData.append('categorySlug', target.categorySlug);
+        if (target.subcategoryPath.length > 0) {
+          formData.append('subcategoryPath', target.subcategoryPath.join('__'));
+        }
+
+        const response = await fetch('/api/admin/categories/images', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as { message?: string } | null;
+          throw new Error(payload?.message || 'Nalaganje slike ni uspelo.');
+        }
+
+        const payload = (await response.json()) as { url: string };
+        uploadedUrlByRowId.set(rowId, payload.url);
       })
     );
 
@@ -810,7 +831,7 @@ export default function AdminCategoriesMainTable({
         const categoryRowId = catId(category.slug);
         const categoryPending = pendingImageUploadsRef.current[categoryRowId];
         const nextCategoryImage = categoryPending && category.image === categoryPending.objectUrl
-          ? (dataUrlByRowId.get(categoryRowId) ?? category.image)
+          ? (uploadedUrlByRowId.get(categoryRowId) ?? category.image)
           : category.image;
 
         return {
@@ -822,7 +843,7 @@ export default function AdminCategoriesMainTable({
             if (!pending || subcategory.image !== pending.objectUrl) return subcategory;
             return {
               ...subcategory,
-              image: dataUrlByRowId.get(rowId) ?? subcategory.image
+              image: uploadedUrlByRowId.get(rowId) ?? subcategory.image
             };
           })
         };

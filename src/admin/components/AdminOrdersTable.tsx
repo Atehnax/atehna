@@ -13,7 +13,6 @@ import { SegmentedControl } from '@/shared/ui/segmented';
 import { CustomSelect } from '@/shared/ui/select';
 import { Spinner } from '@/shared/ui/loading';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
-import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
@@ -87,7 +86,11 @@ type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'cus
 
 const bulkDeleteButtonClass = buttonTokenClasses.danger;
 const PAGE_SIZE_OPTIONS = [50, 100];
-const AdminOrdersPreviewChart = dynamic(() => import('@/admin/components/AdminOrdersPreviewChart'));
+const AdminOrdersPreviewChart = dynamic(() => import('@/admin/components/AdminOrdersPreviewChart'), { ssr: false });
+const LazyConfirmDialog = dynamic(
+  () => import('@/shared/ui/confirm-dialog').then((module) => module.ConfirmDialog),
+  { ssr: false }
+);
 
 export default function AdminOrdersTable({
   orders: serializedOrders,
@@ -178,6 +181,7 @@ export default function AdminOrdersTable({
   const debouncedFromDate = useDebouncedValue(fromDate, 200);
   const debouncedToDate = useDebouncedValue(toDate, 200);
   const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
+  const [isChartReady, setIsChartReady] = useState(false);
 
   const [documentType, setDocumentType] = useState<DocumentType>('all');
   const { toast } = useToast();
@@ -191,6 +195,17 @@ export default function AdminOrdersTable({
 
   const [isStatusHeaderMenuOpen, setIsStatusHeaderMenuOpen] = useState(false);
   const [isPaymentHeaderMenuOpen, setIsPaymentHeaderMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof globalThis.window === 'undefined') return;
+    if ('requestIdleCallback' in globalThis.window) {
+      const idleId = globalThis.window.requestIdleCallback(() => setIsChartReady(true), { timeout: 1200 });
+      return () => globalThis.window.cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = globalThis.setTimeout(() => setIsChartReady(true), 0);
+    return () => globalThis.clearTimeout(timeoutId);
+  }, []);
 
   useEffect(() => {
     const closeOnOutsideClick = (mouseEvent: MouseEvent) => {
@@ -415,6 +430,48 @@ export default function AdminOrdersTable({
     return result;
   }, [documents, attachments]);
 
+  const orderRuntimeById = useMemo(() => {
+    const runtime = new Map<number, {
+      createdAtTimestamp: number;
+      createdAtDayTimestamp: number;
+      numericOrderNumber: number;
+      customerLabel: string;
+      addressLabel: string;
+      typeLabel: string;
+      statusLabel: string;
+      paymentLabel: string;
+      searchBlob: string;
+    }>();
+
+    orders.forEach((order) => {
+      const createdAtTimestamp = new Date(order.created_at).getTime();
+      const createdAtDate = new Date(order.created_at);
+      createdAtDate.setHours(0, 0, 0, 0);
+      const customerLabel = order.organization_name || order.contact_name || '';
+      const addressLabel = formatOrderAddress(order);
+      const typeLabel = getCustomerTypeLabel(order.customer_type);
+      const statusLabel = getOrderStatusLabelForUi(order.status);
+      const paymentLabel = getPaymentLabel(order.payment_status);
+      runtime.set(order.id, {
+        createdAtTimestamp,
+        createdAtDayTimestamp: createdAtDate.getTime(),
+        numericOrderNumber: getNumericOrderNumber(order.order_number),
+        customerLabel,
+        addressLabel,
+        typeLabel,
+        statusLabel,
+        paymentLabel,
+        searchBlob: normalizeForSearch(
+          [order.order_number, customerLabel, addressLabel, typeLabel, statusLabel, paymentLabel]
+            .filter(Boolean)
+            .join(' ')
+        )
+      });
+    });
+
+    return runtime;
+  }, [orders]);
+
   const filteredAndSortedOrders = useMemo(() => {
     const normalizedQuery = normalizeForSearch(debouncedQuery);
 
@@ -425,7 +482,8 @@ export default function AdminOrdersTable({
         return false;
       }
 
-      const orderTimestamp = new Date(order.created_at).getTime();
+      const orderRuntime = orderRuntimeById.get(order.id);
+      const orderTimestamp = orderRuntime?.createdAtTimestamp ?? new Date(order.created_at).getTime();
 
       if (debouncedFromDate) {
         const fromTimestamp = new Date(`${debouncedFromDate}T00:00:00`).getTime();
@@ -441,17 +499,7 @@ export default function AdminOrdersTable({
         }
       }
 
-      const customerLabel = order.organization_name || order.contact_name || '';
-      const addressLabel = formatOrderAddress(order);
-      const typeLabel = getCustomerTypeLabel(order.customer_type);
-      const statusLabel = getOrderStatusLabelForUi(order.status);
-      const paymentLabel = getPaymentLabel(order.payment_status);
-
-      const orderSearchBlob = normalizeForSearch(
-        [order.order_number, customerLabel, addressLabel, typeLabel, statusLabel, paymentLabel]
-          .filter(Boolean)
-          .join(' ')
-      );
+      const orderSearchBlob = orderRuntime?.searchBlob ?? '';
 
       const orderMatches = !normalizedQuery || orderSearchBlob.includes(normalizedQuery);
 
@@ -482,8 +530,10 @@ export default function AdminOrdersTable({
 
     const sortedOrders = [...filteredOrders].sort((leftOrder, rightOrder) => {
       const sortMultiplier = sortDirection === 'asc' ? 1 : -1;
-      const leftOrderNumberNumeric = getNumericOrderNumber(leftOrder.order_number);
-      const rightOrderNumberNumeric = getNumericOrderNumber(rightOrder.order_number);
+      const leftRuntime = orderRuntimeById.get(leftOrder.id);
+      const rightRuntime = orderRuntimeById.get(rightOrder.id);
+      const leftOrderNumberNumeric = leftRuntime?.numericOrderNumber ?? getNumericOrderNumber(leftOrder.order_number);
+      const rightOrderNumberNumeric = rightRuntime?.numericOrderNumber ?? getNumericOrderNumber(rightOrder.order_number);
 
       let leftValue: string | number;
       let rightValue: string | number;
@@ -507,24 +557,24 @@ export default function AdminOrdersTable({
           rightValue = rightOrder.order_number;
           break;
         case 'customer':
-          leftValue = leftOrder.organization_name || leftOrder.contact_name || '';
-          rightValue = rightOrder.organization_name || rightOrder.contact_name || '';
+          leftValue = leftRuntime?.customerLabel ?? (leftOrder.organization_name || leftOrder.contact_name || '');
+          rightValue = rightRuntime?.customerLabel ?? (rightOrder.organization_name || rightOrder.contact_name || '');
           break;
         case 'address':
-          leftValue = formatOrderAddress(leftOrder);
-          rightValue = formatOrderAddress(rightOrder);
+          leftValue = leftRuntime?.addressLabel ?? formatOrderAddress(leftOrder);
+          rightValue = rightRuntime?.addressLabel ?? formatOrderAddress(rightOrder);
           break;
         case 'type':
-          leftValue = getCustomerTypeLabel(leftOrder.customer_type);
-          rightValue = getCustomerTypeLabel(rightOrder.customer_type);
+          leftValue = leftRuntime?.typeLabel ?? getCustomerTypeLabel(leftOrder.customer_type);
+          rightValue = rightRuntime?.typeLabel ?? getCustomerTypeLabel(rightOrder.customer_type);
           break;
         case 'status':
-          leftValue = getOrderStatusLabelForUi(leftOrder.status);
-          rightValue = getOrderStatusLabelForUi(rightOrder.status);
+          leftValue = leftRuntime?.statusLabel ?? getOrderStatusLabelForUi(leftOrder.status);
+          rightValue = rightRuntime?.statusLabel ?? getOrderStatusLabelForUi(rightOrder.status);
           break;
         case 'payment':
-          leftValue = getPaymentLabel(leftOrder.payment_status);
-          rightValue = getPaymentLabel(rightOrder.payment_status);
+          leftValue = leftRuntime?.paymentLabel ?? getPaymentLabel(leftOrder.payment_status);
+          rightValue = rightRuntime?.paymentLabel ?? getPaymentLabel(rightOrder.payment_status);
           break;
         case 'total':
           leftValue = toAmount(leftOrder.total);
@@ -532,12 +582,8 @@ export default function AdminOrdersTable({
           break;
         case 'created_at':
         default: {
-          const leftDate = new Date(leftOrder.created_at);
-          const rightDate = new Date(rightOrder.created_at);
-          leftDate.setHours(0, 0, 0, 0);
-          rightDate.setHours(0, 0, 0, 0);
-          leftValue = leftDate.getTime();
-          rightValue = rightDate.getTime();
+          leftValue = leftRuntime?.createdAtDayTimestamp ?? 0;
+          rightValue = rightRuntime?.createdAtDayTimestamp ?? 0;
           break;
         }
       }
@@ -572,6 +618,7 @@ export default function AdminOrdersTable({
     debouncedToDate,
     documentType,
     latestDocumentsByOrder,
+    orderRuntimeById,
     sortKey,
     sortDirection
   ]);
@@ -602,10 +649,11 @@ export default function AdminOrdersTable({
   }, [pagedOrders]);
 
   const visibleOrderIds = useMemo(() => pagedOrders.map((order) => order.id), [pagedOrders]);
+  const selectedOrderIds = useMemo(() => new Set(selected), [selected]);
 
   const selectedVisibleCount = useMemo(
-    () => visibleOrderIds.filter((orderId) => selected.includes(orderId)).length,
-    [visibleOrderIds, selected]
+    () => visibleOrderIds.filter((orderId) => selectedOrderIds.has(orderId)).length,
+    [visibleOrderIds, selectedOrderIds]
   );
 
   const allSelected = visibleOrderIds.length > 0 && selectedVisibleCount === visibleOrderIds.length;
@@ -910,42 +958,50 @@ export default function AdminOrdersTable({
   return (
     <div className="w-full">
       <div className="mx-auto w-full max-w-[1600px]">
-        <AdminOrdersPreviewChart
-          orders={orders}
-          appearance={analyticsAppearance}
-          fromDate={debouncedFromDate}
-          toDate={debouncedToDate}
-          activeRange={rangePreset}
-          onRangeChange={applyAnalyticsRangePreset}
-        />
+        {isChartReady ? (
+          <AdminOrdersPreviewChart
+            orders={orders}
+            appearance={analyticsAppearance}
+            fromDate={debouncedFromDate}
+            toDate={debouncedToDate}
+            activeRange={rangePreset}
+            onRangeChange={applyAnalyticsRangePreset}
+          />
+        ) : (
+          <div aria-hidden="true" className="mb-3 h-[292px] rounded-2xl border border-slate-200/80 bg-white/60" />
+        )}
 
-        <ConfirmDialog
-          open={isBulkDeleteDialogOpen}
-          title="Izbris naročil"
-          description={`Ali ste prepričani, da želite izbrisati ${selected.length} naročil?`}
-          confirmLabel="Izbriši"
-          cancelLabel="Prekliči"
-          isDanger
-          onCancel={() => setIsBulkDeleteDialogOpen(false)}
-          onConfirm={() => {
-            void confirmDeleteSelected();
-          }}
-          confirmDisabled={isDeleting}
-        />
+        {isBulkDeleteDialogOpen ? (
+          <LazyConfirmDialog
+            open={isBulkDeleteDialogOpen}
+            title="Izbris naročil"
+            description={`Ali ste prepričani, da želite izbrisati ${selected.length} naročil?`}
+            confirmLabel="Izbriši"
+            cancelLabel="Prekliči"
+            isDanger
+            onCancel={() => setIsBulkDeleteDialogOpen(false)}
+            onConfirm={() => {
+              void confirmDeleteSelected();
+            }}
+            confirmDisabled={isDeleting}
+          />
+        ) : null}
 
-        <ConfirmDialog
-          open={confirmDeleteRowId !== null}
-          title="Izbris naročila"
-          description="Ali ste prepričani, da želite izbrisati to naročilo?"
-          confirmLabel="Izbriši"
-          cancelLabel="Prekliči"
-          isDanger
-          onCancel={() => setConfirmDeleteRowId(null)}
-          onConfirm={() => {
-            void confirmDeleteRow();
-          }}
-          confirmDisabled={deletingRowId !== null}
-        />
+        {confirmDeleteRowId !== null ? (
+          <LazyConfirmDialog
+            open={confirmDeleteRowId !== null}
+            title="Izbris naročila"
+            description="Ali ste prepričani, da želite izbrisati to naročilo?"
+            confirmLabel="Izbriši"
+            cancelLabel="Prekliči"
+            isDanger
+            onCancel={() => setConfirmDeleteRowId(null)}
+            onConfirm={() => {
+              void confirmDeleteRow();
+            }}
+            confirmDisabled={deletingRowId !== null}
+          />
+        ) : null}
 
         <AdminTableLayout
           className="border"

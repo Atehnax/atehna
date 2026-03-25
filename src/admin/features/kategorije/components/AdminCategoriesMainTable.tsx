@@ -72,7 +72,6 @@ import {
 import { getAdminCategoriesSessionPayload, setAdminCategoriesSessionPayload } from '../common/client-session';
 import { sortCatalogItems } from '@/commercial/catalog/catalogUtils';
 import { Button } from '@/shared/ui/button';
-import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import {
   AdminCategoriesMillerContentSkeleton,
   AdminCategoriesPreviewContentSkeleton,
@@ -99,6 +98,10 @@ const AdminCategoriesMiller = dynamic(
 );
 const AdminCategoriesTableView = dynamic(
   () => import('../views/AdminCategoriesTableView').then((module) => module.AdminCategoriesTableView)
+);
+const LazyConfirmDialog = dynamic(
+  () => import('@/shared/ui/confirm-dialog').then((module) => module.ConfirmDialog),
+  { ssr: false }
 );
 
 type RecursiveNode = RecursiveCatalogSubcategory;
@@ -2780,10 +2783,11 @@ export default function AdminCategoriesMainTable({
   }, [closingRowIds, expanded, filteredCategories, isSearchActive]);
 
   const selectableVisibleRowIds = useMemo(() => visibleRowIds, [visibleRowIds]);
+  const selectedRowIdSet = useMemo(() => new Set(selectedRows), [selectedRows]);
 
   const selectedVisibleCount = useMemo(
-    () => selectableVisibleRowIds.filter((id) => selectedRows.includes(id)).length,
-    [selectableVisibleRowIds, selectedRows]
+    () => selectableVisibleRowIds.filter((id) => selectedRowIdSet.has(id)).length,
+    [selectableVisibleRowIds, selectedRowIdSet]
   );
 
   const allRowsSelected =
@@ -2805,7 +2809,8 @@ export default function AdminCategoriesMainTable({
 
   const toggleSelectAll = () => {
     if (allRowsSelected) {
-      setSelectedRows((current) => current.filter((id) => !selectableVisibleRowIds.includes(id)));
+      const selectableVisibleRowIdSet = new Set(selectableVisibleRowIds);
+      setSelectedRows((current) => current.filter((id) => !selectableVisibleRowIdSet.has(id)));
       return;
     }
 
@@ -2954,13 +2959,22 @@ export default function AdminCategoriesMainTable({
     const gutterWidth = level === 0 ? treeButtonDiameter : buttonLeft + treeButtonDiameter;
 
     return (
-      <SortableTreeRow
-        key={id}
-        id={id}
-        disabled={kind === 'root' || (kind === 'subcategory' && resolvedSubcategoryPath.length > 1)}
-      >
-        {({ dragHandleProps, setNodeRef, style, isDragging }) => (
+      (() => {
+        const isDragDisabled = kind === 'root' || (kind === 'subcategory' && resolvedSubcategoryPath.length > 1);
+
+        const row = ({
+          dragHandleProps,
+          setNodeRef,
+          style,
+          isDragging
+        }: {
+          dragHandleProps: Record<string, unknown>;
+          setNodeRef?: (node: HTMLElement | null) => void;
+          style?: CSSProperties;
+          isDragging: boolean;
+        }) => (
           <tr
+            key={id}
             ref={setNodeRef}
             style={style}
             className={`${isSelected ? adminTableRowToneClasses.selected : rowDepthTone} transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''} ${isDragging ? 'opacity-70' : ''} ${kind !== 'root' ? 'cursor-grab active:cursor-grabbing select-none' : ''}`}
@@ -3248,8 +3262,23 @@ export default function AdminCategoriesMainTable({
               </RowActions>
             </td>
           </tr>
-        )}
-      </SortableTreeRow>
+        );
+
+        if (isDragDisabled) {
+          return row({ dragHandleProps: {}, isDragging: false });
+        }
+
+        return (
+          <SortableTreeRow
+            key={id}
+            id={id}
+            disabled={false}
+          >
+            {({ dragHandleProps, setNodeRef, style, isDragging }) =>
+              row({ dragHandleProps, setNodeRef, style, isDragging })}
+          </SortableTreeRow>
+        );
+      })()
     );
   }, [
     catalog.categories,
@@ -3422,7 +3451,7 @@ export default function AdminCategoriesMainTable({
         </TabsList>
       </Tabs>
 
-      <ConfirmDialog
+      {isBulkDeleteDialogOpen ? <LazyConfirmDialog
         open={isBulkDeleteDialogOpen}
         title="Izbris kategorij"
         description={`Ali ste prepričani, da želite izbrisati ${selectedRows.length} izbranih vrstic?`}
@@ -3434,18 +3463,18 @@ export default function AdminCategoriesMainTable({
           void confirmBulkDelete();
         }}
         confirmDisabled={isBulkDeleting}
-      />
+      /> : null}
 
-      <ConfirmDialog
+      {warningDialog !== null ? <LazyConfirmDialog
         open={warningDialog !== null}
         title={warningDialog?.title ?? 'Opozorilo'}
         description={warningDialog?.description}
         confirmLabel="V redu"
         onCancel={() => setWarningDialog(null)}
         onConfirm={() => setWarningDialog(null)}
-      />
+      /> : null}
 
-      <ConfirmDialog
+      {isUnsavedLeaveDialogOpen ? <LazyConfirmDialog
         open={isUnsavedLeaveDialogOpen}
         title="Neshranjene spremembe"
         description="Imate neshranjene spremembe. Če zapustite stran, bodo lokalne spremembe izgubljene."
@@ -3462,9 +3491,9 @@ export default function AdminCategoriesMainTable({
           setPendingNavigation(null);
           if (nextPath) router.push(nextPath);
         }}
-      />
+      /> : null}
 
-      <ConfirmDialog
+      {imageDeleteTarget !== null ? <LazyConfirmDialog
         open={imageDeleteTarget !== null}
         title="Odstrani sliko"
         description="Ali ste prepričani, da želite odstraniti sliko?"
@@ -3473,9 +3502,9 @@ export default function AdminCategoriesMainTable({
         isDanger
         onCancel={() => setImageDeleteTarget(null)}
         onConfirm={confirmDeleteImage}
-      />
+      /> : null}
 
-      <ConfirmDialog
+      {createTarget !== null ? <LazyConfirmDialog
         open={createTarget !== null}
         title={createTarget?.kind === 'category' ? 'Nova kategorija' : 'Nova podkategorija'}
         description="Vnesite ime kategorije."
@@ -3499,7 +3528,7 @@ export default function AdminCategoriesMainTable({
             autoFocus
           />
         </div>
-      </ConfirmDialog>
+      </LazyConfirmDialog> : null}
 
       {loading && activeView === 'table' ? <AdminCategoriesTableContentSkeleton /> : null}
 
@@ -3598,7 +3627,7 @@ export default function AdminCategoriesMainTable({
         />
       ) : null}
 
-      <ConfirmDialog
+      {isTableSaveDialogOpen ? <LazyConfirmDialog
         open={isTableSaveDialogOpen}
         title="Shrani spremembe"
         description="Pregled pripravljenih sprememb:"
@@ -3615,9 +3644,9 @@ export default function AdminCategoriesMainTable({
             <li key={line}>{line}</li>
           ))}
         </ul>
-      </ConfirmDialog>
+      </LazyConfirmDialog> : null}
 
-      <ConfirmDialog
+      {millerDeleteTarget !== null ? <LazyConfirmDialog
         open={millerDeleteTarget !== null}
         title="Izbriši izbrane vnose"
         description="Ali ste prepričani, da želite izbrisati izbrane vnose v tem stolpcu?"
@@ -3626,9 +3655,9 @@ export default function AdminCategoriesMainTable({
         isDanger
         onCancel={() => setMillerDeleteTarget(null)}
         onConfirm={confirmMillerDelete}
-      />
+      /> : null}
 
-      <ConfirmDialog
+      {isMillerSaveDialogOpen ? <LazyConfirmDialog
         open={isMillerSaveDialogOpen}
         title="Shrani Miller spremembe"
         description="Pregled pripravljenih sprememb:"
@@ -3645,7 +3674,7 @@ export default function AdminCategoriesMainTable({
             <li key={line}>{line}</li>
           ))}
         </ul>
-      </ConfirmDialog>
+      </LazyConfirmDialog> : null}
 
       {loading && activeView === 'miller' ? <AdminCategoriesMillerContentSkeleton /> : null}
 

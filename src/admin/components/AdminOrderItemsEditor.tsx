@@ -36,8 +36,9 @@ type ItemsSectionMode = 'read' | 'edit';
 
 const TAX_RATE = 0.22;
 const toMoney = (value: number) => Math.round(value * 100) / 100;
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }).format(value);
+const currencyFormatter = new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' });
+const decimalFormatter = new Intl.NumberFormat('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const formatCurrency = (value: number) => currencyFormatter.format(value);
 
 const parseLocaleNumber = (value: string) => {
   const trimmed = value.trim();
@@ -46,8 +47,7 @@ const parseLocaleNumber = (value: string) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-const formatDecimalInput = (value: number) =>
-  new Intl.NumberFormat('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+const formatDecimalInput = (value: number) => decimalFormatter.format(value);
 
 const mapIncomingItems = (sourceItems: OrderItemInput[]): EditableItem[] =>
   sourceItems.map((item) => ({
@@ -63,6 +63,27 @@ const mapIncomingItems = (sourceItems: OrderItemInput[]): EditableItem[] =>
 
 const cloneEditableItems = (sourceItems: EditableItem[]): EditableItem[] =>
   sourceItems.map((item) => ({ ...item }));
+
+const areEditableItemsEqual = (left: EditableItem[], right: EditableItem[]) => {
+  if (left.length !== right.length) return false;
+  for (let index = 0; index < left.length; index += 1) {
+    const leftItem = left[index];
+    const rightItem = right[index];
+    if (
+      leftItem.id !== rightItem.id ||
+      leftItem.persistedId !== rightItem.persistedId ||
+      leftItem.sku !== rightItem.sku ||
+      leftItem.name !== rightItem.name ||
+      leftItem.unit !== rightItem.unit ||
+      leftItem.quantity !== rightItem.quantity ||
+      leftItem.unitPrice !== rightItem.unitPrice ||
+      leftItem.discountPercentage !== rightItem.discountPercentage
+    ) {
+      return false;
+    }
+  }
+  return true;
+};
 
 function SaveIcon() {
   return (
@@ -104,9 +125,10 @@ export default function AdminOrderItemsEditor({
   initialTax?: number;
   initialTotal?: number;
 }) {
+  const initialMappedItems = useMemo(() => mapIncomingItems(items), [items]);
   const [itemsSectionMode, setItemsSectionMode] = useState<ItemsSectionMode>('read');
-  const [persistedItems, setPersistedItems] = useState<EditableItem[]>(() => mapIncomingItems(items));
-  const [draftItems, setDraftItems] = useState<EditableItem[]>(() => mapIncomingItems(items));
+  const [persistedItems, setPersistedItems] = useState<EditableItem[]>(initialMappedItems);
+  const [draftItems, setDraftItems] = useState<EditableItem[]>(() => cloneEditableItems(initialMappedItems));
   const initialShipping = Math.max(0, toMoney(initialTotal - initialSubtotal - initialTax));
   const [persistedShipping, setPersistedShipping] = useState(initialShipping);
   const [draftShipping, setDraftShipping] = useState(initialShipping);
@@ -118,7 +140,7 @@ export default function AdminOrderItemsEditor({
   const { toast } = useToast();
 
   const isItemsDirty = useMemo(
-    () => JSON.stringify(draftItems) !== JSON.stringify(persistedItems) || toMoney(draftShipping) !== toMoney(persistedShipping),
+    () => !areEditableItemsEqual(draftItems, persistedItems) || toMoney(draftShipping) !== toMoney(persistedShipping),
     [draftItems, persistedItems, draftShipping, persistedShipping]
   );
 

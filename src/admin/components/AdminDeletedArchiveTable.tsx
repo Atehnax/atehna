@@ -1,10 +1,10 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
 import { CustomSelect } from '@/shared/ui/select';
-import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 import { EmptyState, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
@@ -39,6 +39,10 @@ const TYPE_FILTER_OPTIONS: Array<{ value: TypeFilterValue; label: string }> = [
   { value: 'order', label: 'Naročila' },
   { value: 'pdf', label: 'PDF datoteke' }
 ];
+const LazyConfirmDialog = dynamic(
+  () => import('@/shared/ui/confirm-dialog').then((module) => module.ConfirmDialog),
+  { ssr: false }
+);
 
 const archiveDateTimeFormatter = new Intl.DateTimeFormat('sl-SI', {
   timeZone: 'Europe/Ljubljana',
@@ -140,7 +144,8 @@ export default function AdminDeletedArchiveTable({
   }, [filtered, sortDirection, sortKey, typeFilter]);
 
   const visibleIds = useMemo(() => displayRows.map((row) => row.entry.id), [displayRows]);
-  const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.includes(id));
+  const selectedIdSet = useMemo(() => new Set(selected), [selected]);
+  const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIdSet.has(id));
 
   const groupedChildIdsByOrder = useMemo(() => {
     const groupedChildIds = new Map<number, number[]>();
@@ -169,9 +174,9 @@ export default function AdminDeletedArchiveTable({
         .map((row) => row.entry)
         .filter(
           (entry, index, entriesArray) =>
-            selected.includes(entry.id) && entriesArray.findIndex((candidate) => candidate.id === entry.id) === index
+            selectedIdSet.has(entry.id) && entriesArray.findIndex((candidate) => candidate.id === entry.id) === index
         ),
-    [displayRows, selected]
+    [displayRows, selectedIdSet]
   );
 
   const toggleOne = (row: DisplayRow) => {
@@ -179,7 +184,7 @@ export default function AdminDeletedArchiveTable({
 
     if (isChild && parentOrderId !== null) {
       const parentRowId = parentRowIdByOrder.get(parentOrderId);
-      if (!parentRowId || !selected.includes(parentRowId)) return;
+      if (!parentRowId || !selectedIdSet.has(parentRowId)) return;
     }
 
     setSelected((previousSelected) => {
@@ -210,7 +215,10 @@ export default function AdminDeletedArchiveTable({
 
   const toggleAll = () => {
     setSelected((previousSelected) => {
-      if (allSelected) return previousSelected.filter((id) => !visibleIds.includes(id));
+      if (allSelected) {
+        const visibleIdSet = new Set(visibleIds);
+        return previousSelected.filter((id) => !visibleIdSet.has(id));
+      }
 
       const mergedSelection = new Set(previousSelected);
       displayRows.forEach((row) => {
@@ -345,19 +353,21 @@ export default function AdminDeletedArchiveTable({
       }
       contentClassName="overflow-x-auto"
     >
-      <ConfirmDialog
-        open={isDeleteConfirmOpen}
-        title="Trajni izbris"
-        description="Ali ste prepričani, da želite trajno izbrisati izbrane zapise?"
-        confirmLabel="Izbriši"
-        cancelLabel="Prekliči"
-        isDanger
-        onCancel={() => setIsDeleteConfirmOpen(false)}
-        onConfirm={() => {
-          void confirmBulkDelete();
-        }}
-        confirmDisabled={isDeleting}
-      />
+      {isDeleteConfirmOpen ? (
+        <LazyConfirmDialog
+          open={isDeleteConfirmOpen}
+          title="Trajni izbris"
+          description="Ali ste prepričani, da želite trajno izbrisati izbrane zapise?"
+          confirmLabel="Izbriši"
+          cancelLabel="Prekliči"
+          isDanger
+          onCancel={() => setIsDeleteConfirmOpen(false)}
+          onConfirm={() => {
+            void confirmBulkDelete();
+          }}
+          confirmDisabled={isDeleting}
+        />
+      ) : null}
 
       <Table className="w-full table-fixed border-collapse text-sm">
           <THead>
@@ -387,7 +397,7 @@ export default function AdminDeletedArchiveTable({
                   ? true
                   : (() => {
                       const parentRowId = parentRowIdByOrder.get(parentOrderId);
-                      return parentRowId ? selected.includes(parentRowId) : false;
+                      return parentRowId ? selectedIdSet.has(parentRowId) : false;
                     })();
 
               return (
@@ -396,7 +406,7 @@ export default function AdminDeletedArchiveTable({
                     <input
                       type="checkbox"
                       className="disabled:cursor-default disabled:opacity-50"
-                      checked={selected.includes(entry.id)}
+                      checked={selectedIdSet.has(entry.id)}
                       onChange={() => toggleOne(row)}
                       disabled={isChild && !parentSelected}
                       aria-label={`Izberi zapis ${entry.label}`}

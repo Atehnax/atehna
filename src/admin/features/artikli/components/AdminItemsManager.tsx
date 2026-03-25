@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
@@ -211,36 +211,64 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   const [newCategoryValue, setNewCategoryValue] = useState('');
   const [editorMode, setEditorMode] = useState<'view' | 'edit'>('view');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const hasCompletedInitialStorageHydrationRef = useRef(false);
+  const pendingStorageWriteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw) as Item[];
-      if (Array.isArray(parsed)) {
-        const canonicalBySku = new Map(normalizedSeedItems.map((item) => [item.sku, item]));
-        setItems(
-          parsed.map((item) => {
-            const canonical = canonicalBySku.get(item.sku);
-            return {
-              ...item,
-              category: canonical?.category ?? item.category,
-              categoryId: canonical?.categoryId ?? item.categoryId ?? null,
-              subcategoryId: canonical?.subcategoryId ?? item.subcategoryId ?? null,
-              archivedAt: item.archivedAt ?? null,
-              displayOrder: item.displayOrder ?? null
-            };
-          })
-        );
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as Item[];
+        if (Array.isArray(parsed)) {
+          const canonicalBySku = new Map(normalizedSeedItems.map((item) => [item.sku, item]));
+          setItems(
+            parsed.map((item) => {
+              const canonical = canonicalBySku.get(item.sku);
+              return {
+                ...item,
+                category: canonical?.category ?? item.category,
+                categoryId: canonical?.categoryId ?? item.categoryId ?? null,
+                subcategoryId: canonical?.subcategoryId ?? item.subcategoryId ?? null,
+                archivedAt: item.archivedAt ?? null,
+                displayOrder: item.displayOrder ?? null
+              };
+            })
+          );
+        }
+      } catch {
+        // ignore malformed local state
       }
-    } catch {
-      // ignore malformed local state
     }
+    hasCompletedInitialStorageHydrationRef.current = true;
+    return undefined;
   }, [normalizedSeedItems]);
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    if (!hasCompletedInitialStorageHydrationRef.current) {
+      hasCompletedInitialStorageHydrationRef.current = true;
+      return;
+    }
+
+    const persist = () => {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+      pendingStorageWriteTimerRef.current = null;
+    };
+
+    if ('requestIdleCallback' in window) {
+      const idleId = window.requestIdleCallback(() => persist(), { timeout: 1200 });
+      return () => {
+        window.cancelIdleCallback(idleId);
+      };
+    }
+
+    pendingStorageWriteTimerRef.current = globalThis.setTimeout(() => persist(), 250);
+    return () => {
+      if (pendingStorageWriteTimerRef.current !== null) {
+        globalThis.clearTimeout(pendingStorageWriteTimerRef.current);
+        pendingStorageWriteTimerRef.current = null;
+      }
+    };
   }, [items]);
 
 

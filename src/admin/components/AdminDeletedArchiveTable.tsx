@@ -40,12 +40,14 @@ const TYPE_FILTER_OPTIONS: Array<{ value: TypeFilterValue; label: string }> = [
   { value: 'pdf', label: 'PDF datoteke' }
 ];
 
+const archiveDateTimeFormatter = new Intl.DateTimeFormat('sl-SI', {
+  timeZone: 'Europe/Ljubljana',
+  dateStyle: 'medium',
+  timeStyle: 'short'
+});
+
 const formatDateTime = (value: string) =>
-  new Intl.DateTimeFormat('sl-SI', {
-    timeZone: 'Europe/Ljubljana',
-    dateStyle: 'medium',
-    timeStyle: 'short'
-  }).format(new Date(value));
+  archiveDateTimeFormatter.format(new Date(value));
 
 const tupleToArchiveEntry = (entry: ArchiveEntryTuple): ArchiveEntry => ({
   id: entry[0],
@@ -122,9 +124,16 @@ export default function AdminDeletedArchiveTable({
         .forEach((entry) => rows.push({ entry, isChild: false, parentOrderId: null }));
     }
 
+    const timestampByRowId = new Map<number, number>();
+    rows.forEach((row) => {
+      const parsed = new Date(row.entry[sortKey]).getTime();
+      const stamp = Number.isNaN(parsed) ? 0 : parsed;
+      timestampByRowId.set(row.entry.id, stamp);
+    });
+
     return rows.sort((leftRow, rightRow) => {
-      const leftValue = new Date(leftRow.entry[sortKey]).getTime();
-      const rightValue = new Date(rightRow.entry[sortKey]).getTime();
+      const leftValue = timestampByRowId.get(leftRow.entry.id) ?? 0;
+      const rightValue = timestampByRowId.get(rightRow.entry.id) ?? 0;
       const multiplier = sortDirection === 'asc' ? 1 : -1;
       return (leftValue - rightValue) * multiplier;
     });

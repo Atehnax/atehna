@@ -587,6 +587,19 @@ export default function AdminOrdersTable({
     const startIndex = (page - 1) * pageSize;
     return filteredAndSortedOrders.slice(startIndex, startIndex + pageSize);
   }, [filteredAndSortedOrders, page, pageSize]);
+  const rowDisplayByOrderId = useMemo(() => {
+    const next = new Map<number, { dateLabel: string; dateTimeLabel: string; orderAddress: string; typeLabel: string; totalLabel: string }>();
+    pagedOrders.forEach((order) => {
+      next.set(order.id, {
+        dateLabel: formatSlDate(order.created_at),
+        dateTimeLabel: formatSlDateTime(order.created_at),
+        orderAddress: formatOrderAddress(order),
+        typeLabel: getCustomerTypeLabel(order.customer_type),
+        totalLabel: formatCurrency(order.total)
+      });
+    });
+    return next;
+  }, [pagedOrders]);
 
   const visibleOrderIds = useMemo(() => pagedOrders.map((order) => order.id), [pagedOrders]);
 
@@ -1311,8 +1324,9 @@ export default function AdminOrdersTable({
                 </TR>
               ) : (
                 pagedOrders.map((order, orderIndex) => {
-                  const orderAddress = formatOrderAddress(order);
-                  const typeLabel = getCustomerTypeLabel(order.customer_type);
+                  const rowDisplay = rowDisplayByOrderId.get(order.id);
+                  const orderAddress = rowDisplay?.orderAddress ?? formatOrderAddress(order);
+                  const typeLabel = rowDisplay?.typeLabel ?? getCustomerTypeLabel(order.customer_type);
                   const rowStatus = rowStatusOverrides[order.id] ?? order.status;
                   const rowPaymentStatus = rowPaymentOverrides[order.id] ?? order.payment_status ?? null;
                   const isRowSelected = selected.includes(order.id);
@@ -1352,11 +1366,11 @@ export default function AdminOrdersTable({
                       <TD className="text-center whitespace-nowrap text-slate-700">
                         <span
                           className="inline-block rounded-sm px-1 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
-                          title={formatSlDateTime(order.created_at)}
-                          aria-label={`Datum naročila ${formatSlDateTime(order.created_at)}`}
+                          title={rowDisplay?.dateTimeLabel ?? formatSlDateTime(order.created_at)}
+                          aria-label={`Datum naročila ${rowDisplay?.dateTimeLabel ?? formatSlDateTime(order.created_at)}`}
                           tabIndex={0}
                         >
-                          {formatSlDate(order.created_at)}
+                          {rowDisplay?.dateLabel ?? formatSlDate(order.created_at)}
                         </span>
                       </TD>
 
@@ -1416,7 +1430,7 @@ export default function AdminOrdersTable({
                         )}
                       </TD>
 
-                      <TD className="text-center text-slate-700">{formatCurrency(order.total)}</TD>
+                      <TD className="text-center text-slate-700">{rowDisplay?.totalLabel ?? formatCurrency(order.total)}</TD>
 
                       <TD className="min-w-[100px] pl-0 pr-0 text-center" data-no-row-nav>
                         <div className="flex justify-center">

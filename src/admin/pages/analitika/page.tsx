@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import AdminAnalyticsDashboard from '@/admin/components/AdminAnalyticsDashboard';
+import AdminAnalyticsDashboardLoader from '@/admin/components/AdminAnalyticsDashboardLoader';
 import AdminAnalyticsTopTabs from '@/admin/components/AdminAnalyticsTopTabs';
 import { AdminAnalyticsSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 import { emptyOrdersAnalyticsResponse, fetchOrdersAnalytics } from '@/shared/server/orderAnalytics';
@@ -41,11 +41,11 @@ async function AdminAnalyticsDashboardSection({
     });
 
     return (
-      <AdminAnalyticsDashboard
-      initialData={data}
-      initialCharts={charts}
-      initialFocusKey={searchParams?.focus ?? ''}
-      initialAppearance={appearance}
+      <AdminAnalyticsDashboardLoader
+        initialData={data}
+        initialCharts={charts}
+        initialFocusKey={searchParams?.focus ?? ''}
+        initialAppearance={appearance}
       />
     );
   });

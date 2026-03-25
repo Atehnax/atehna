@@ -1,11 +1,11 @@
 'use client';
 
 import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
+import dynamic from 'next/dynamic';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import PlotlyClient from '@/admin/components/charts/PlotlyClient';
-import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToast } from '@/shared/ui/toast';
 import { SegmentedControl } from '@/shared/ui/segmented';
 import { Spinner, TableSkeleton } from '@/shared/ui/loading';
@@ -29,6 +29,11 @@ type Props = {
   initialFocusKey?: string;
   initialAppearance: AnalyticsGlobalAppearance;
 };
+
+const LazyConfirmDialog = dynamic(
+  () => import('@/shared/ui/confirm-dialog').then((module) => module.ConfirmDialog),
+  { ssr: false }
+);
 
 const metricOptions: Array<{ value: AnalyticsMetricField; label: string; unit: 'count' | 'eur' | 'percent' | 'hours' }> = [
   { value: 'order_count', label: 'Orders', unit: 'count' },
@@ -397,7 +402,7 @@ export default function AdminAnalyticsDashboard({ initialData, initialCharts, in
         </SortableContext>
       </DndContext>
 
-      <ConfirmDialog
+      <LazyConfirmDialog
         open={confirmDeleteChartId !== null}
         title="Izbris grafa"
         description="Ali res želite izbrisati ta graf?"

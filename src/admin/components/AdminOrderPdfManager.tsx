@@ -51,7 +51,8 @@ const normalizeType = (type: string): PdfTypeKey | null => {
 
 const pdfTimestampFormatter = new Intl.DateTimeFormat('sl-SI', {
   dateStyle: 'medium',
-  timeStyle: 'short'
+  timeStyle: 'short',
+  timeZone: 'Europe/Ljubljana'
 });
 const formatTimestamp = (value: string) => pdfTimestampFormatter.format(new Date(value));
 const LazyConfirmDialog = dynamic(

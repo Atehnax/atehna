@@ -1,4 +1,4 @@
-import AdminCategoriesMainTable from '@/admin/features/kategorije/components/AdminCategoriesMainTable';
+import AdminCategoriesTablePageClient from '@/admin/features/kategorije/components/AdminCategoriesTablePageClient';
 import { getCatalogAdminInitialPayloadFromDatabase } from '@/shared/server/catalogCategories';
 import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 
@@ -12,6 +12,6 @@ export default async function AdminCategoriesPage() {
     await profileRoutePhase('payload', 'AdminCategoriesPage:payload', async () => {
       profilePayloadEstimate('AdminCategoriesPage:payload', payload);
     });
-    return <AdminCategoriesMainTable initialView="table" initialPayload={{ ...payload, payloadMode: 'partial', payloadView: 'table' }} />;
+    return <AdminCategoriesTablePageClient initialPayload={{ ...payload, payloadMode: 'partial', payloadView: 'table' }} />;
   });
 }

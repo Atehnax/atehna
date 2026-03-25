@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Button } from '@/shared/ui/button';
 import { ButtonGroup } from '@/shared/ui/button-group';
@@ -99,6 +99,11 @@ export default function AdminOrdersTable({
   initialFrom = '',
   initialTo = '',
   initialQuery = '',
+  initialStatusFilter = 'all',
+  initialDocumentType = 'all',
+  initialPage = 1,
+  initialPageSize = 50,
+  totalCount,
   topAction,
   analyticsAppearance
 }: {
@@ -108,6 +113,11 @@ export default function AdminOrdersTable({
   initialFrom?: string;
   initialTo?: string;
   initialQuery?: string;
+  initialStatusFilter?: StatusTab | string;
+  initialDocumentType?: DocumentType | string;
+  initialPage?: number;
+  initialPageSize?: number;
+  totalCount?: number;
   topAction?: ReactNode;
   analyticsAppearance?: AnalyticsGlobalAppearance;
 }) {
@@ -161,6 +171,8 @@ export default function AdminOrdersTable({
     [serializedAttachments]
   );
   const router = useRouter();
+  const pathname = usePathname();
+  const isServerFilteredMode = typeof totalCount === 'number';
   const [selected, setSelected] = useState<number[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deletingRowId, setDeletingRowId] = useState<number | null>(null);
@@ -168,7 +180,7 @@ export default function AdminOrdersTable({
   const [confirmDeleteRowId, setConfirmDeleteRowId] = useState<number | null>(null);
   const [isBulkUpdatingStatus, setIsBulkUpdatingStatus] = useState(false);
 
-  const [statusFilter, setStatusFilter] = useState<StatusTab>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusTab>((initialStatusFilter as StatusTab) ?? 'all');
   const [query, setQuery] = useState(initialQuery);
 
   const [sortKey, setSortKey] = useState<SortKey>('order_number');
@@ -183,7 +195,7 @@ export default function AdminOrdersTable({
   const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
   const [isChartReady, setIsChartReady] = useState(false);
 
-  const [documentType, setDocumentType] = useState<DocumentType>('all');
+  const [documentType, setDocumentType] = useState<DocumentType>((initialDocumentType as DocumentType) ?? 'all');
   const { toast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -473,6 +485,9 @@ export default function AdminOrdersTable({
   }, [orders]);
 
   const filteredAndSortedOrders = useMemo(() => {
+    if (isServerFilteredMode) {
+      return orders;
+    }
     const normalizedQuery = normalizeForSearch(debouncedQuery);
 
     const filteredOrders = orders.filter((order) => {
@@ -620,20 +635,68 @@ export default function AdminOrdersTable({
     latestDocumentsByOrder,
     orderRuntimeById,
     sortKey,
-    sortDirection
+    sortDirection,
+    isServerFilteredMode
   ]);
 
-  const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
+  const { page: clientPage, pageSize: clientPageSize, pageCount: clientPageCount, setPage, setPageSize } = useTablePagination({
     totalCount: filteredAndSortedOrders.length,
     storageKey: 'adminOrders.pageSize',
     defaultPageSize: 50,
     pageSizeOptions: PAGE_SIZE_OPTIONS
   });
 
+  const page = isServerFilteredMode ? Math.max(1, initialPage) : clientPage;
+  const pageSize = isServerFilteredMode ? initialPageSize : clientPageSize;
+  const pageCount = isServerFilteredMode ? Math.max(1, Math.ceil((totalCount ?? orders.length) / Math.max(1, pageSize))) : clientPageCount;
+
+  const updateServerFilters = useCallback(
+    (updates: Partial<Record<'from' | 'to' | 'q' | 'status' | 'docType' | 'page' | 'pageSize', string>>) => {
+      if (!isServerFilteredMode) return;
+      const params = new URLSearchParams();
+      const applyValue = (key: keyof typeof updates, fallbackValue: string) => {
+        const candidate = (updates[key] ?? fallbackValue).trim();
+        if (candidate) params.set(key, candidate);
+      };
+      applyValue('from', debouncedFromDate);
+      applyValue('to', debouncedToDate);
+      applyValue('q', debouncedQuery);
+      applyValue('status', statusFilter === 'all' ? '' : statusFilter);
+      applyValue('docType', documentType === 'all' ? '' : documentType);
+      applyValue('page', String(page));
+      applyValue('pageSize', String(pageSize));
+
+      router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ''}`);
+    },
+    [debouncedFromDate, debouncedQuery, debouncedToDate, documentType, isServerFilteredMode, page, pageSize, pathname, router, statusFilter]
+  );
+  const handlePageChange = useCallback(
+    (nextPage: number) => {
+      if (isServerFilteredMode) {
+        updateServerFilters({ page: String(nextPage) });
+        return;
+      }
+      setPage(nextPage);
+    },
+    [isServerFilteredMode, setPage, updateServerFilters]
+  );
+
+  const handlePageSizeChange = useCallback(
+    (nextPageSize: number) => {
+      if (isServerFilteredMode) {
+        updateServerFilters({ pageSize: String(nextPageSize), page: '1' });
+        return;
+      }
+      setPageSize(nextPageSize);
+    },
+    [isServerFilteredMode, setPageSize, updateServerFilters]
+  );
+
   const pagedOrders = useMemo(() => {
+    if (isServerFilteredMode) return filteredAndSortedOrders;
     const startIndex = (page - 1) * pageSize;
     return filteredAndSortedOrders.slice(startIndex, startIndex + pageSize);
-  }, [filteredAndSortedOrders, page, pageSize]);
+  }, [filteredAndSortedOrders, isServerFilteredMode, page, pageSize]);
   const rowDisplayByOrderId = useMemo(() => {
     const next = new Map<number, { dateLabel: string; dateTimeLabel: string; orderAddress: string; typeLabel: string; totalLabel: string }>();
     pagedOrders.forEach((order) => {
@@ -687,8 +750,12 @@ export default function AdminOrdersTable({
   }, [orders]);
 
   useEffect(() => {
+    if (isServerFilteredMode) {
+      updateServerFilters({ page: '1' });
+      return;
+    }
     setPage(1);
-  }, [debouncedFromDate, debouncedQuery, debouncedToDate, documentType, setPage, sortDirection, sortKey, statusFilter]);
+  }, [debouncedFromDate, debouncedQuery, debouncedToDate, documentType, isServerFilteredMode, setPage, sortDirection, sortKey, statusFilter, updateServerFilters]);
 
   const toggleSelected = (orderId: number) => {
     setSelected((previousSelected) =>
@@ -1174,11 +1241,11 @@ export default function AdminOrdersTable({
           }
           filterRowRight={
             <>
-              <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={setPageSize} />
-              <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="topPills" size="sm" showNumbers={false} />
+              <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={handlePageSizeChange} />
+              <Pagination page={page} pageCount={pageCount} onPageChange={handlePageChange} variant="topPills" size="sm" showNumbers={false} />
             </>
           }
-          footerRight={<Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" size="sm" showNumbers={false} />}
+          footerRight={<Pagination page={page} pageCount={pageCount} onPageChange={handlePageChange} variant="bottomBar" size="sm" showNumbers={false} />}
         >
           <Table className="min-w-[1180px] w-full">
             <colgroup>

@@ -1,13 +1,12 @@
 import type { ReactNode } from 'react';
 import { Suspense } from 'react';
 import Link from 'next/link';
+import dynamicImport from 'next/dynamic';
 import { notFound } from 'next/navigation';
-import AdminOrderItemsEditor from '@/admin/components/AdminOrderItemsEditor';
 import {
   AdminOrderDocumentsSectionSkeleton,
   AdminOrderItemsSectionSkeleton
 } from '@/admin/components/AdminPageSkeletons';
-import AdminOrderPdfManager from '@/admin/components/AdminOrderPdfManager';
 import AdminOrderHeaderChips from '@/admin/components/AdminOrderHeaderChips';
 import { toDisplayOrderNumber } from '@/admin/components/adminOrdersTableUtils';
 import {
@@ -26,6 +25,15 @@ export const metadata = {
 };
 
 export const dynamic = 'force-dynamic';
+
+const AdminOrderItemsEditor = dynamicImport(() => import('@/admin/components/AdminOrderItemsEditor'), {
+  loading: () => <AdminOrderItemsSectionSkeleton />,
+  ssr: false
+});
+const AdminOrderPdfManager = dynamicImport(() => import('@/admin/components/AdminOrderPdfManager'), {
+  loading: () => <AdminOrderDocumentsSectionSkeleton />,
+  ssr: false
+});
 
 const asText = (value: unknown, fallback = '') => (typeof value === 'string' ? value : fallback);
 const asNumber = (value: unknown, fallback = 0) => {

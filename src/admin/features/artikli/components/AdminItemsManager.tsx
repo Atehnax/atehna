@@ -32,6 +32,20 @@ type Item = {
   displayOrder: number | null;
 };
 
+type SeedItemTuple = [
+  id: string,
+  name: string,
+  description: string,
+  category: string,
+  categoryId: string | null,
+  subcategoryId: string | null,
+  price: number,
+  sku: string,
+  images: string[],
+  discountPct: number,
+  displayOrder: number | null
+];
+
 type SortKey = 'name' | 'sku' | 'category' | 'price' | 'status';
 type StatusTab = 'active' | 'inactive';
 
@@ -154,8 +168,37 @@ function FloatingSelect({
   );
 }
 
-export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) {
-  const [items, setItems] = useState<Item[]>(seedItems.map((item) => ({ ...item, categoryId: item.categoryId ?? null, subcategoryId: item.subcategoryId ?? null, archivedAt: item.archivedAt ?? null, displayOrder: item.displayOrder ?? null })));
+export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTuple[] }) {
+  const normalizedSeedItems = useMemo<Item[]>(
+    () =>
+      seedItems.map((itemTuple) => ({
+        id: itemTuple[0],
+        name: itemTuple[1],
+        description: itemTuple[2],
+        category: itemTuple[3],
+        categoryId: itemTuple[4] ?? null,
+        subcategoryId: itemTuple[5] ?? null,
+        price: itemTuple[6],
+        unit: 'kos',
+        sku: itemTuple[7],
+        active: true,
+        images: itemTuple[8],
+        discountPct: itemTuple[9],
+        displayOrder: itemTuple[10] ?? null,
+        updatedAt: nowIso(),
+        archivedAt: null
+      })),
+    [seedItems]
+  );
+  const [items, setItems] = useState<Item[]>(
+    normalizedSeedItems.map((item) => ({
+      ...item,
+      categoryId: item.categoryId ?? null,
+      subcategoryId: item.subcategoryId ?? null,
+      archivedAt: item.archivedAt ?? null,
+      displayOrder: item.displayOrder ?? null
+    }))
+  );
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusTab, setStatusTab] = useState<StatusTab>('active');
@@ -176,7 +219,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
     try {
       const parsed = JSON.parse(raw) as Item[];
       if (Array.isArray(parsed)) {
-        const canonicalBySku = new Map(seedItems.map((item) => [item.sku, item]));
+        const canonicalBySku = new Map(normalizedSeedItems.map((item) => [item.sku, item]));
         setItems(
           parsed.map((item) => {
             const canonical = canonicalBySku.get(item.sku);
@@ -194,7 +237,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
     } catch {
       // ignore malformed local state
     }
-  }, [seedItems]);
+  }, [normalizedSeedItems]);
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
@@ -204,13 +247,13 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
   const canonicalCategoryLabelByRef = useMemo(() => {
     const map = new Map<string, string>();
 
-    seedItems.forEach((item) => {
+    normalizedSeedItems.forEach((item) => {
       if (!item.categoryId) return;
       map.set(`${item.categoryId}:${item.subcategoryId ?? ''}`, item.category);
     });
 
     return map;
-  }, [seedItems]);
+  }, [normalizedSeedItems]);
 
   const getResolvedCategoryLabel = useCallback((item: Item) => {
     if (!item.categoryId) return item.category;

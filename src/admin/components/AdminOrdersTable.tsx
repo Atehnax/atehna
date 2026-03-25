@@ -59,6 +59,29 @@ import {
   toDateInputValue,
   toDisplayOrderNumber
 } from '@/admin/components/adminOrdersTableUtils';
+type OrderRowTuple = [
+  id: number,
+  orderNumber: string,
+  customerType: string,
+  organizationName: string | null,
+  contactName: string,
+  email: string,
+  phone: string | null,
+  deliveryAddress: string | null,
+  reference: string | null,
+  notes: string | null,
+  status: string,
+  paymentStatus: string | null,
+  paymentNotes: string | null,
+  subtotal: number | string | null,
+  tax: number | string | null,
+  total: number | string | null,
+  createdAt: string,
+  isDraft: boolean,
+  deletedAt?: string | null
+];
+type PdfDocTuple = readonly [id: number, orderId: number, type: PdfDoc['type'], filename: string, blobUrl: string, createdAt: string];
+type AttachmentTuple = readonly [id: number, orderId: number, type: Attachment['type'], filename: string, blobUrl: string, createdAt?: string];
 
 type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
 
@@ -67,24 +90,73 @@ const PAGE_SIZE_OPTIONS = [50, 100];
 const AdminOrdersPreviewChart = dynamic(() => import('@/admin/components/AdminOrdersPreviewChart'));
 
 export default function AdminOrdersTable({
-  orders,
-  documents,
-  attachments,
+  orders: serializedOrders,
+  documents: serializedDocuments,
+  attachments: serializedAttachments,
   initialFrom = '',
   initialTo = '',
   initialQuery = '',
   topAction,
   analyticsAppearance
 }: {
-  orders: OrderRow[];
-  documents: PdfDoc[];
-  attachments: Attachment[];
+  orders: ReadonlyArray<Readonly<OrderRowTuple>>;
+  documents: ReadonlyArray<PdfDocTuple>;
+  attachments: ReadonlyArray<AttachmentTuple>;
   initialFrom?: string;
   initialTo?: string;
   initialQuery?: string;
   topAction?: ReactNode;
   analyticsAppearance?: AnalyticsGlobalAppearance;
 }) {
+  const orders = useMemo<OrderRow[]>(
+    () =>
+      serializedOrders.map((row) => ({
+        id: row[0],
+        order_number: row[1],
+        customer_type: row[2],
+        organization_name: row[3] ?? '',
+        contact_name: row[4],
+        email: row[5],
+        phone: row[6] ?? '',
+        delivery_address: row[7] ?? '',
+        reference: row[8] ?? '',
+        notes: row[9],
+        status: row[10],
+        payment_status: row[11],
+        payment_notes: row[12],
+        subtotal: row[13] ?? 0,
+        tax: row[14] ?? 0,
+        total: row[15] ?? 0,
+        created_at: row[16],
+        is_draft: row[17],
+        deleted_at: row[18] ?? null
+      })),
+    [serializedOrders]
+  );
+  const documents = useMemo<PdfDoc[]>(
+    () =>
+      serializedDocuments.map((entry) => ({
+        id: entry[0],
+        order_id: entry[1],
+        type: entry[2],
+        filename: entry[3],
+        blob_url: entry[4],
+        created_at: entry[5]
+      })),
+    [serializedDocuments]
+  );
+  const attachments = useMemo<Attachment[]>(
+    () =>
+      serializedAttachments.map((entry) => ({
+        id: entry[0],
+        order_id: entry[1],
+        type: entry[2],
+        filename: entry[3],
+        blob_url: entry[4],
+        created_at: entry[5] ?? ''
+      })),
+    [serializedAttachments]
+  );
   const router = useRouter();
   const [selected, setSelected] = useState<number[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);

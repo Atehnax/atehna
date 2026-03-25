@@ -2780,10 +2780,11 @@ export default function AdminCategoriesMainTable({
   }, [closingRowIds, expanded, filteredCategories, isSearchActive]);
 
   const selectableVisibleRowIds = useMemo(() => visibleRowIds, [visibleRowIds]);
+  const selectedRowIdSet = useMemo(() => new Set(selectedRows), [selectedRows]);
 
   const selectedVisibleCount = useMemo(
-    () => selectableVisibleRowIds.filter((id) => selectedRows.includes(id)).length,
-    [selectableVisibleRowIds, selectedRows]
+    () => selectableVisibleRowIds.filter((id) => selectedRowIdSet.has(id)).length,
+    [selectableVisibleRowIds, selectedRowIdSet]
   );
 
   const allRowsSelected =
@@ -2805,7 +2806,8 @@ export default function AdminCategoriesMainTable({
 
   const toggleSelectAll = () => {
     if (allRowsSelected) {
-      setSelectedRows((current) => current.filter((id) => !selectableVisibleRowIds.includes(id)));
+      const selectableVisibleRowIdSet = new Set(selectableVisibleRowIds);
+      setSelectedRows((current) => current.filter((id) => !selectableVisibleRowIdSet.has(id)));
       return;
     }
 
@@ -2954,13 +2956,22 @@ export default function AdminCategoriesMainTable({
     const gutterWidth = level === 0 ? treeButtonDiameter : buttonLeft + treeButtonDiameter;
 
     return (
-      <SortableTreeRow
-        key={id}
-        id={id}
-        disabled={kind === 'root' || (kind === 'subcategory' && resolvedSubcategoryPath.length > 1)}
-      >
-        {({ dragHandleProps, setNodeRef, style, isDragging }) => (
+      (() => {
+        const isDragDisabled = kind === 'root' || (kind === 'subcategory' && resolvedSubcategoryPath.length > 1);
+
+        const row = ({
+          dragHandleProps,
+          setNodeRef,
+          style,
+          isDragging
+        }: {
+          dragHandleProps: Record<string, unknown>;
+          setNodeRef?: (node: HTMLElement | null) => void;
+          style?: CSSProperties;
+          isDragging: boolean;
+        }) => (
           <tr
+            key={id}
             ref={setNodeRef}
             style={style}
             className={`${isSelected ? adminTableRowToneClasses.selected : rowDepthTone} transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''} ${isDragging ? 'opacity-70' : ''} ${kind !== 'root' ? 'cursor-grab active:cursor-grabbing select-none' : ''}`}
@@ -3248,8 +3259,23 @@ export default function AdminCategoriesMainTable({
               </RowActions>
             </td>
           </tr>
-        )}
-      </SortableTreeRow>
+        );
+
+        if (isDragDisabled) {
+          return row({ dragHandleProps: {}, isDragging: false });
+        }
+
+        return (
+          <SortableTreeRow
+            key={id}
+            id={id}
+            disabled={false}
+          >
+            {({ dragHandleProps, setNodeRef, style, isDragging }) =>
+              row({ dragHandleProps, setNodeRef, style, isDragging })}
+          </SortableTreeRow>
+        );
+      })()
     );
   }, [
     catalog.categories,

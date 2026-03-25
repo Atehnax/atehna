@@ -49,11 +49,11 @@ const normalizeType = (type: string): PdfTypeKey | null => {
   return null;
 };
 
-const formatTimestamp = (value: string) =>
-  new Date(value).toLocaleString('sl-SI', {
-    dateStyle: 'medium',
-    timeStyle: 'short'
-  });
+const pdfTimestampFormatter = new Intl.DateTimeFormat('sl-SI', {
+  dateStyle: 'medium',
+  timeStyle: 'short'
+});
+const formatTimestamp = (value: string) => pdfTimestampFormatter.format(new Date(value));
 
 function SaveIcon() {
   return (

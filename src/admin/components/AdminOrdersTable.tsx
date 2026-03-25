@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Button } from '@/shared/ui/button';
 import { ButtonGroup } from '@/shared/ui/button-group';
 import { IconButton } from '@/shared/ui/icon-button';
@@ -25,7 +26,6 @@ import {
 import { AdminTableLayout } from '@/shared/ui/admin-table';
 import AdminOrdersPdfCell from '@/admin/components/AdminOrdersPdfCell';
 import AdminOrderPaymentSelect from '@/admin/components/AdminOrderPaymentSelect';
-import AdminOrdersPreviewChart from '@/admin/components/AdminOrdersPreviewChart';
 import StatusChip from '@/admin/components/StatusChip';
 import PaymentChip from '@/admin/components/PaymentChip';
 import { getCustomerTypeLabel } from '@/shared/domain/order/customerType';
@@ -64,6 +64,7 @@ type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'cus
 
 const bulkDeleteButtonClass = buttonTokenClasses.danger;
 const PAGE_SIZE_OPTIONS = [50, 100];
+const AdminOrdersPreviewChart = dynamic(() => import('@/admin/components/AdminOrdersPreviewChart'));
 
 export default function AdminOrdersTable({
   orders,

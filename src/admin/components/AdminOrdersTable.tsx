@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Button } from '@/shared/ui/button';
 import { ButtonGroup } from '@/shared/ui/button-group';
 import { IconButton } from '@/shared/ui/icon-button';
@@ -25,7 +26,6 @@ import {
 import { AdminTableLayout } from '@/shared/ui/admin-table';
 import AdminOrdersPdfCell from '@/admin/components/AdminOrdersPdfCell';
 import AdminOrderPaymentSelect from '@/admin/components/AdminOrderPaymentSelect';
-import AdminOrdersPreviewChart from '@/admin/components/AdminOrdersPreviewChart';
 import StatusChip from '@/admin/components/StatusChip';
 import PaymentChip from '@/admin/components/PaymentChip';
 import { getCustomerTypeLabel } from '@/shared/domain/order/customerType';
@@ -59,31 +59,104 @@ import {
   toDateInputValue,
   toDisplayOrderNumber
 } from '@/admin/components/adminOrdersTableUtils';
+type OrderRowTuple = [
+  id: number,
+  orderNumber: string,
+  customerType: string,
+  organizationName: string | null,
+  contactName: string,
+  email: string,
+  phone: string | null,
+  deliveryAddress: string | null,
+  reference: string | null,
+  notes: string | null,
+  status: string,
+  paymentStatus: string | null,
+  paymentNotes: string | null,
+  subtotal: number | string | null,
+  tax: number | string | null,
+  total: number | string | null,
+  createdAt: string,
+  isDraft: boolean,
+  deletedAt?: string | null
+];
+type PdfDocTuple = readonly [id: number, orderId: number, type: PdfDoc['type'], filename: string, blobUrl: string, createdAt: string];
+type AttachmentTuple = readonly [id: number, orderId: number, type: Attachment['type'], filename: string, blobUrl: string, createdAt?: string];
 
 type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
 
 const bulkDeleteButtonClass = buttonTokenClasses.danger;
 const PAGE_SIZE_OPTIONS = [50, 100];
+const AdminOrdersPreviewChart = dynamic(() => import('@/admin/components/AdminOrdersPreviewChart'));
 
 export default function AdminOrdersTable({
-  orders,
-  documents,
-  attachments,
+  orders: serializedOrders,
+  documents: serializedDocuments,
+  attachments: serializedAttachments,
   initialFrom = '',
   initialTo = '',
   initialQuery = '',
   topAction,
   analyticsAppearance
 }: {
-  orders: OrderRow[];
-  documents: PdfDoc[];
-  attachments: Attachment[];
+  orders: ReadonlyArray<Readonly<OrderRowTuple>>;
+  documents: ReadonlyArray<PdfDocTuple>;
+  attachments: ReadonlyArray<AttachmentTuple>;
   initialFrom?: string;
   initialTo?: string;
   initialQuery?: string;
   topAction?: ReactNode;
   analyticsAppearance?: AnalyticsGlobalAppearance;
 }) {
+  const orders = useMemo<OrderRow[]>(
+    () =>
+      serializedOrders.map((row) => ({
+        id: row[0],
+        order_number: row[1],
+        customer_type: row[2],
+        organization_name: row[3] ?? '',
+        contact_name: row[4],
+        email: row[5],
+        phone: row[6] ?? '',
+        delivery_address: row[7] ?? '',
+        reference: row[8] ?? '',
+        notes: row[9],
+        status: row[10],
+        payment_status: row[11],
+        payment_notes: row[12],
+        subtotal: row[13] ?? 0,
+        tax: row[14] ?? 0,
+        total: row[15] ?? 0,
+        created_at: row[16],
+        is_draft: row[17],
+        deleted_at: row[18] ?? null
+      })),
+    [serializedOrders]
+  );
+  const documents = useMemo<PdfDoc[]>(
+    () =>
+      serializedDocuments.map((entry) => ({
+        id: entry[0],
+        order_id: entry[1],
+        type: entry[2],
+        filename: entry[3],
+        blob_url: entry[4],
+        created_at: entry[5]
+      })),
+    [serializedDocuments]
+  );
+  const attachments = useMemo<Attachment[]>(
+    () =>
+      serializedAttachments.map((entry) => ({
+        id: entry[0],
+        order_id: entry[1],
+        type: entry[2],
+        filename: entry[3],
+        blob_url: entry[4],
+        created_at: entry[5] ?? ''
+      })),
+    [serializedAttachments]
+  );
   const router = useRouter();
   const [selected, setSelected] = useState<number[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -514,6 +587,19 @@ export default function AdminOrdersTable({
     const startIndex = (page - 1) * pageSize;
     return filteredAndSortedOrders.slice(startIndex, startIndex + pageSize);
   }, [filteredAndSortedOrders, page, pageSize]);
+  const rowDisplayByOrderId = useMemo(() => {
+    const next = new Map<number, { dateLabel: string; dateTimeLabel: string; orderAddress: string; typeLabel: string; totalLabel: string }>();
+    pagedOrders.forEach((order) => {
+      next.set(order.id, {
+        dateLabel: formatSlDate(order.created_at),
+        dateTimeLabel: formatSlDateTime(order.created_at),
+        orderAddress: formatOrderAddress(order),
+        typeLabel: getCustomerTypeLabel(order.customer_type),
+        totalLabel: formatCurrency(order.total)
+      });
+    });
+    return next;
+  }, [pagedOrders]);
 
   const visibleOrderIds = useMemo(() => pagedOrders.map((order) => order.id), [pagedOrders]);
 
@@ -1238,8 +1324,9 @@ export default function AdminOrdersTable({
                 </TR>
               ) : (
                 pagedOrders.map((order, orderIndex) => {
-                  const orderAddress = formatOrderAddress(order);
-                  const typeLabel = getCustomerTypeLabel(order.customer_type);
+                  const rowDisplay = rowDisplayByOrderId.get(order.id);
+                  const orderAddress = rowDisplay?.orderAddress ?? formatOrderAddress(order);
+                  const typeLabel = rowDisplay?.typeLabel ?? getCustomerTypeLabel(order.customer_type);
                   const rowStatus = rowStatusOverrides[order.id] ?? order.status;
                   const rowPaymentStatus = rowPaymentOverrides[order.id] ?? order.payment_status ?? null;
                   const isRowSelected = selected.includes(order.id);
@@ -1279,11 +1366,11 @@ export default function AdminOrdersTable({
                       <TD className="text-center whitespace-nowrap text-slate-700">
                         <span
                           className="inline-block rounded-sm px-1 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
-                          title={formatSlDateTime(order.created_at)}
-                          aria-label={`Datum naročila ${formatSlDateTime(order.created_at)}`}
+                          title={rowDisplay?.dateTimeLabel ?? formatSlDateTime(order.created_at)}
+                          aria-label={`Datum naročila ${rowDisplay?.dateTimeLabel ?? formatSlDateTime(order.created_at)}`}
                           tabIndex={0}
                         >
-                          {formatSlDate(order.created_at)}
+                          {rowDisplay?.dateLabel ?? formatSlDate(order.created_at)}
                         </span>
                       </TD>
 
@@ -1343,7 +1430,7 @@ export default function AdminOrdersTable({
                         )}
                       </TD>
 
-                      <TD className="text-center text-slate-700">{formatCurrency(order.total)}</TD>
+                      <TD className="text-center text-slate-700">{rowDisplay?.totalLabel ?? formatCurrency(order.total)}</TD>
 
                       <TD className="min-w-[100px] pl-0 pr-0 text-center" data-no-row-nav>
                         <div className="flex justify-center">

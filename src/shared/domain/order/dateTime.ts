@@ -1,30 +1,48 @@
 const padTwoDigits = (value: number) => String(value).padStart(2, '0');
 
-const toSlDateParts = (value: string) => {
-  const parsedDate = new Date(value);
-  if (Number.isNaN(parsedDate.getTime())) return null;
+const slDateFormatter = new Intl.DateTimeFormat('sl-SI', {
+  timeZone: 'Europe/Ljubljana',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit'
+});
 
-  const day = padTwoDigits(parsedDate.getDate());
-  const month = padTwoDigits(parsedDate.getMonth() + 1);
-  const year = parsedDate.getFullYear();
-  const hour = padTwoDigits(parsedDate.getHours());
-  const minute = padTwoDigits(parsedDate.getMinutes());
+const slDateTimeFormatter = new Intl.DateTimeFormat('sl-SI', {
+  timeZone: 'Europe/Ljubljana',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false
+});
 
-  return { day, month, year, hour, minute };
+const formatFromParts = (value: string | Date, formatter: Intl.DateTimeFormat) => {
+  const parsedDate = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) return String(value);
+
+  const parts = formatter.formatToParts(parsedDate);
+  const day = parts.find((part) => part.type === 'day')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const hour = parts.find((part) => part.type === 'hour')?.value;
+  const minute = parts.find((part) => part.type === 'minute')?.value;
+
+  if (!day || !month || !year) {
+    return formatter.format(parsedDate).replace(',', '').replace(/\s+/g, ' ').trim();
+  }
+
+  return hour && minute
+    ? `${day}.${month}.${year} ${hour}:${minute}`
+    : `${day}.${month}.${year}`;
 };
 
 export const formatSlDateTime = (value: string) => {
-  const parts = toSlDateParts(value);
-  if (!parts) return value;
-
-  return `${parts.day}.${parts.month}.${parts.year} ${parts.hour}:${parts.minute}`;
+  return formatFromParts(value, slDateTimeFormatter);
 };
 
 export const formatSlDate = (value: string) => {
-  const parts = toSlDateParts(value);
-  if (!parts) return value;
-
-  return `${parts.day}.${parts.month}.${parts.year}`;
+  return formatFromParts(value, slDateFormatter);
 };
 
 export const formatSlDateFromDateInput = (value: string) => {

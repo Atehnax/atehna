@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
@@ -31,6 +31,20 @@ type Item = {
   archivedAt?: string | null;
   displayOrder: number | null;
 };
+
+type SeedItemTuple = [
+  id: string,
+  name: string,
+  description: string,
+  category: string,
+  categoryId: string | null,
+  subcategoryId: string | null,
+  price: number,
+  sku: string,
+  images: string[],
+  discountPct: number,
+  displayOrder: number | null
+];
 
 type SortKey = 'name' | 'sku' | 'category' | 'price' | 'status';
 type StatusTab = 'active' | 'inactive';
@@ -154,8 +168,37 @@ function FloatingSelect({
   );
 }
 
-export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) {
-  const [items, setItems] = useState<Item[]>(seedItems.map((item) => ({ ...item, categoryId: item.categoryId ?? null, subcategoryId: item.subcategoryId ?? null, archivedAt: item.archivedAt ?? null, displayOrder: item.displayOrder ?? null })));
+export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTuple[] }) {
+  const normalizedSeedItems = useMemo<Item[]>(
+    () =>
+      seedItems.map((itemTuple) => ({
+        id: itemTuple[0],
+        name: itemTuple[1],
+        description: itemTuple[2],
+        category: itemTuple[3],
+        categoryId: itemTuple[4] ?? null,
+        subcategoryId: itemTuple[5] ?? null,
+        price: itemTuple[6],
+        unit: 'kos',
+        sku: itemTuple[7],
+        active: true,
+        images: itemTuple[8],
+        discountPct: itemTuple[9],
+        displayOrder: itemTuple[10] ?? null,
+        updatedAt: nowIso(),
+        archivedAt: null
+      })),
+    [seedItems]
+  );
+  const [items, setItems] = useState<Item[]>(
+    normalizedSeedItems.map((item) => ({
+      ...item,
+      categoryId: item.categoryId ?? null,
+      subcategoryId: item.subcategoryId ?? null,
+      archivedAt: item.archivedAt ?? null,
+      displayOrder: item.displayOrder ?? null
+    }))
+  );
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusTab, setStatusTab] = useState<StatusTab>('active');
@@ -168,49 +211,77 @@ export default function AdminItemsManager({ seedItems }: { seedItems: Item[] }) 
   const [newCategoryValue, setNewCategoryValue] = useState('');
   const [editorMode, setEditorMode] = useState<'view' | 'edit'>('view');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const hasCompletedInitialStorageHydrationRef = useRef(false);
+  const pendingStorageWriteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw) as Item[];
-      if (Array.isArray(parsed)) {
-        const canonicalBySku = new Map(seedItems.map((item) => [item.sku, item]));
-        setItems(
-          parsed.map((item) => {
-            const canonical = canonicalBySku.get(item.sku);
-            return {
-              ...item,
-              category: canonical?.category ?? item.category,
-              categoryId: canonical?.categoryId ?? item.categoryId ?? null,
-              subcategoryId: canonical?.subcategoryId ?? item.subcategoryId ?? null,
-              archivedAt: item.archivedAt ?? null,
-              displayOrder: item.displayOrder ?? null
-            };
-          })
-        );
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as Item[];
+        if (Array.isArray(parsed)) {
+          const canonicalBySku = new Map(normalizedSeedItems.map((item) => [item.sku, item]));
+          setItems(
+            parsed.map((item) => {
+              const canonical = canonicalBySku.get(item.sku);
+              return {
+                ...item,
+                category: canonical?.category ?? item.category,
+                categoryId: canonical?.categoryId ?? item.categoryId ?? null,
+                subcategoryId: canonical?.subcategoryId ?? item.subcategoryId ?? null,
+                archivedAt: item.archivedAt ?? null,
+                displayOrder: item.displayOrder ?? null
+              };
+            })
+          );
+        }
+      } catch {
+        // ignore malformed local state
       }
-    } catch {
-      // ignore malformed local state
     }
-  }, [seedItems]);
+    hasCompletedInitialStorageHydrationRef.current = true;
+    return undefined;
+  }, [normalizedSeedItems]);
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    if (!hasCompletedInitialStorageHydrationRef.current) {
+      hasCompletedInitialStorageHydrationRef.current = true;
+      return;
+    }
+
+    const persist = () => {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+      pendingStorageWriteTimerRef.current = null;
+    };
+
+    if ('requestIdleCallback' in window) {
+      const idleId = window.requestIdleCallback(() => persist(), { timeout: 1200 });
+      return () => {
+        window.cancelIdleCallback(idleId);
+      };
+    }
+
+    pendingStorageWriteTimerRef.current = globalThis.setTimeout(() => persist(), 250);
+    return () => {
+      if (pendingStorageWriteTimerRef.current !== null) {
+        globalThis.clearTimeout(pendingStorageWriteTimerRef.current);
+        pendingStorageWriteTimerRef.current = null;
+      }
+    };
   }, [items]);
 
 
   const canonicalCategoryLabelByRef = useMemo(() => {
     const map = new Map<string, string>();
 
-    seedItems.forEach((item) => {
+    normalizedSeedItems.forEach((item) => {
       if (!item.categoryId) return;
       map.set(`${item.categoryId}:${item.subcategoryId ?? ''}`, item.category);
     });
 
     return map;
-  }, [seedItems]);
+  }, [normalizedSeedItems]);
 
   const getResolvedCategoryLabel = useCallback((item: Item) => {
     if (!item.categoryId) return item.category;

@@ -20,6 +20,7 @@ type ArchiveEntry = {
   deleted_at: string;
   expires_at: string;
 };
+type ArchiveEntryTuple = readonly [id: number, itemType: 'order' | 'pdf', orderId: number | null, documentId: number | null, label: string, deletedAt: string, expiresAt: string];
 
 type DisplayRow = {
   entry: ArchiveEntry;
@@ -39,19 +40,33 @@ const TYPE_FILTER_OPTIONS: Array<{ value: TypeFilterValue; label: string }> = [
   { value: 'pdf', label: 'PDF datoteke' }
 ];
 
+const archiveDateTimeFormatter = new Intl.DateTimeFormat('sl-SI', {
+  timeZone: 'Europe/Ljubljana',
+  dateStyle: 'medium',
+  timeStyle: 'short'
+});
+
 const formatDateTime = (value: string) =>
-  new Date(value).toLocaleString('sl-SI', {
-    dateStyle: 'medium',
-    timeStyle: 'short'
-  });
+  archiveDateTimeFormatter.format(new Date(value));
+
+const tupleToArchiveEntry = (entry: ArchiveEntryTuple): ArchiveEntry => ({
+  id: entry[0],
+  item_type: entry[1],
+  order_id: entry[2],
+  document_id: entry[3],
+  label: entry[4],
+  deleted_at: entry[5],
+  expires_at: entry[6]
+});
 
 export default function AdminDeletedArchiveTable({
   initialEntries
 }: {
-  initialEntries: ArchiveEntry[];
+  initialEntries: ArchiveEntryTuple[];
 }) {
+  const normalizedInitialEntries = useMemo(() => initialEntries.map(tupleToArchiveEntry), [initialEntries]);
   const router = useRouter();
-  const [entries, setEntries] = useState(initialEntries);
+  const [entries, setEntries] = useState(normalizedInitialEntries);
   const [selected, setSelected] = useState<number[]>([]);
   const [typeFilter, setTypeFilter] = useState<TypeFilterValue>('all');
   const [sortKey, setSortKey] = useState<ArchiveSortKey>('deleted_at');
@@ -109,9 +124,16 @@ export default function AdminDeletedArchiveTable({
         .forEach((entry) => rows.push({ entry, isChild: false, parentOrderId: null }));
     }
 
+    const timestampByRowId = new Map<number, number>();
+    rows.forEach((row) => {
+      const parsed = new Date(row.entry[sortKey]).getTime();
+      const stamp = Number.isNaN(parsed) ? 0 : parsed;
+      timestampByRowId.set(row.entry.id, stamp);
+    });
+
     return rows.sort((leftRow, rightRow) => {
-      const leftValue = new Date(leftRow.entry[sortKey]).getTime();
-      const rightValue = new Date(rightRow.entry[sortKey]).getTime();
+      const leftValue = timestampByRowId.get(leftRow.entry.id) ?? 0;
+      const rightValue = timestampByRowId.get(rightRow.entry.id) ?? 0;
       const multiplier = sortDirection === 'asc' ? 1 : -1;
       return (leftValue - rightValue) * multiplier;
     });

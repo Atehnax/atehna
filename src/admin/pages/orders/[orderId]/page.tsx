@@ -27,10 +27,12 @@ export const metadata = {
 export const dynamic = 'force-dynamic';
 
 const AdminOrderItemsEditor = dynamicImport(() => import('@/admin/components/AdminOrderItemsEditor'), {
-  loading: () => <AdminOrderItemsSectionSkeleton />
+  loading: () => <AdminOrderItemsSectionSkeleton />,
+  ssr: false
 });
 const AdminOrderPdfManager = dynamicImport(() => import('@/admin/components/AdminOrderPdfManager'), {
-  loading: () => <AdminOrderDocumentsSectionSkeleton />
+  loading: () => <AdminOrderDocumentsSectionSkeleton />,
+  ssr: false
 });
 
 const asText = (value: unknown, fallback = '') => (typeof value === 'string' ? value : fallback);

@@ -6,7 +6,8 @@ import type { OrdersAnalyticsResponse } from '@/shared/server/orderAnalytics';
 import type { AnalyticsChartRow, AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
 
 const LazyAdminAnalyticsDashboard = dynamic(() => import('@/admin/components/AdminAnalyticsDashboard'), {
-  loading: () => <AdminAnalyticsSectionSkeleton />
+  loading: () => <AdminAnalyticsSectionSkeleton />,
+  ssr: false
 });
 
 export default function AdminAnalyticsDashboardLoader({

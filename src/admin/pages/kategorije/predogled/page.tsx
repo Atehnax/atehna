@@ -1,4 +1,4 @@
-import AdminCategoriesPreviewPageClient from '@/admin/features/kategorije/components/AdminCategoriesPreviewPageClient';
+import AdminCategoriesRuntimeGate from '@/admin/features/kategorije/components/AdminCategoriesRuntimeGate';
 import { getCatalogPreviewDataFromDatabase } from '@/shared/server/catalogCategories';
 import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 
@@ -17,7 +17,8 @@ export default async function AdminCategoriesPreviewPage() {
       profilePayloadEstimate('AdminCategoriesPreviewPage:payload', payload);
     });
     return (
-      <AdminCategoriesPreviewPageClient
+      <AdminCategoriesRuntimeGate
+        initialView="preview"
         initialPayload={{
           categories: payload.categories.map((category) => ({
             id: category.id,

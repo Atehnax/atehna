@@ -179,6 +179,20 @@ export type OrderAnalyticsRow = {
   total: number;
 };
 
+export type OrderListDocumentSummaryRow = {
+  order_id: number;
+  type: string;
+  filename: string;
+  blob_url: string;
+  created_at: string;
+};
+
+export type OrderListPageResult = {
+  orders: OrderRow[];
+  documentSummaries: OrderListDocumentSummaryRow[];
+  totalCount: number;
+};
+
 function parseNullableNumber(rawValue: unknown): number | null {
   if (rawValue === null || rawValue === undefined) return null;
   if (typeof rawValue === 'number') return Number.isFinite(rawValue) ? rawValue : null;
@@ -423,6 +437,214 @@ export async function fetchOrders(
         fallbackResult.rows.map((rawRow) => mapOrderRow(rawRow as Record<string, unknown>))
       );
     }
+  });
+}
+
+export async function fetchOrdersListPage(
+  options?: {
+    fromDate?: string | null;
+    toDate?: string | null;
+    query?: string | null;
+    includeDrafts?: boolean;
+    status?: string | null;
+    documentType?: string | null;
+    page?: number;
+    pageSize?: number;
+  },
+  diagnosticsContext = '/admin/orders'
+): Promise<OrderListPageResult> {
+  return instrumentCatalogLoader('fetchOrdersListPage', diagnosticsContext, async () => {
+    const pool = await getPool();
+    const {
+      supportsDraftColumn,
+      supportsDeletedColumn,
+      supportsPaymentStatusColumn,
+      supportsPaymentNotesColumn
+    } = await getOrdersSchemaSupport();
+    const { supportsDeletedColumn: supportsDocumentsDeletedColumn } = await getDocumentsSchemaSupport();
+
+    const conditions: string[] = [];
+    const queryParams: unknown[] = [];
+
+    if (!options?.includeDrafts && supportsDraftColumn) {
+      conditions.push(`not (
+        coalesce(orders.is_draft, false) = true
+        and coalesce(orders.email, '') = 'draft@atehna.si'
+        and coalesce(orders.contact_name, '') = 'Osnutek'
+      )`);
+    }
+    if (supportsDeletedColumn) {
+      conditions.push('orders.deleted_at is null');
+    }
+
+    if (options?.fromDate) {
+      queryParams.push(options.fromDate);
+      conditions.push(`orders.created_at >= $${queryParams.length}`);
+    }
+    if (options?.toDate) {
+      queryParams.push(options.toDate);
+      conditions.push(`orders.created_at <= $${queryParams.length}`);
+    }
+    if (options?.status && options.status !== 'all') {
+      queryParams.push(options.status);
+      conditions.push(`orders.status = $${queryParams.length}`);
+    }
+    if (options?.query) {
+      queryParams.push(`%${options.query}%`);
+      const queryIndex = queryParams.length;
+      conditions.push(
+        `(
+          orders.order_number::text ilike $${queryIndex}
+          or orders.organization_name ilike $${queryIndex}
+          or orders.contact_name ilike $${queryIndex}
+          or orders.delivery_address ilike $${queryIndex}
+          or orders.customer_type ilike $${queryIndex}
+          or orders.status ilike $${queryIndex}
+          ${supportsPaymentStatusColumn ? `or orders.payment_status ilike $${queryIndex}` : ''}
+        )`
+      );
+    }
+
+    if (options?.documentType && options.documentType !== 'all') {
+      queryParams.push(options.documentType);
+      const documentTypeIndex = queryParams.length;
+      conditions.push(`(
+        exists (
+          select 1
+          from order_documents od
+          where od.order_id = orders.id
+            ${supportsDocumentsDeletedColumn ? 'and od.deleted_at is null' : ''}
+            and od.type = $${documentTypeIndex}
+        )
+        or (
+          $${documentTypeIndex} = 'purchase_order'
+          and exists (
+            select 1
+            from order_attachments oa
+            where oa.order_id = orders.id
+              and oa.type = 'purchase_order'
+          )
+        )
+      )`);
+    }
+
+    const pageSize = Math.min(100, Math.max(10, options?.pageSize ?? 50));
+    const page = Math.max(1, options?.page ?? 1);
+    const offset = (page - 1) * pageSize;
+    queryParams.push(pageSize, offset);
+    const limitParam = `$${queryParams.length - 1}`;
+    const offsetParam = `$${queryParams.length}`;
+    const whereClause = conditions.length > 0 ? `where ${conditions.join(' and ')}` : '';
+
+    const query = `
+      with filtered_orders as (
+        select
+          orders.id,
+          orders.order_number,
+          orders.customer_type,
+          orders.organization_name,
+          orders.contact_name,
+          orders.email,
+          orders.phone,
+          orders.delivery_address,
+          orders.reference,
+          orders.notes,
+          orders.status,
+          ${supportsPaymentStatusColumn ? 'orders.payment_status' : 'null::text as payment_status'},
+          ${supportsPaymentNotesColumn ? 'orders.payment_notes' : 'null::text as payment_notes'},
+          coalesce(orders.subtotal::text, computed_totals.subtotal::text, '0') as subtotal,
+          coalesce(orders.tax::text, computed_totals.tax::text, '0') as tax,
+          coalesce(orders.total::text, computed_totals.total::text, '0') as total,
+          orders.created_at,
+          ${supportsDraftColumn ? 'orders.is_draft' : 'false as is_draft'},
+          ${supportsDeletedColumn ? 'orders.deleted_at' : 'null::timestamptz as deleted_at'}
+        from orders
+        left join (
+          select
+            order_items.order_id,
+            round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))), 2) as subtotal,
+            round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 0.22, 2) as tax,
+            round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 1.22, 2) as total
+          from order_items
+          group by order_items.order_id
+        ) as computed_totals
+          on computed_totals.order_id = orders.id
+        ${whereClause}
+      ),
+      paged_orders as (
+        select * from filtered_orders
+        order by created_at desc, id desc
+        limit ${limitParam}
+        offset ${offsetParam}
+      ),
+      latest_documents as (
+        select distinct on (order_id, type)
+          order_id,
+          type,
+          filename,
+          blob_url,
+          created_at
+        from (
+          select
+            od.order_id,
+            od.type,
+            od.filename,
+            od.blob_url,
+            od.created_at
+          from order_documents od
+          where od.order_id in (select id from paged_orders)
+            ${supportsDocumentsDeletedColumn ? 'and od.deleted_at is null' : ''}
+          union all
+          select
+            oa.order_id,
+            'purchase_order'::text as type,
+            oa.filename,
+            oa.blob_url,
+            oa.created_at
+          from order_attachments oa
+          where oa.order_id in (select id from paged_orders)
+            and oa.type = 'purchase_order'
+        ) source_docs
+        order by order_id, type, created_at desc
+      )
+      select
+        (select count(*)::int from filtered_orders) as total_count,
+        (
+          select coalesce(json_agg(po order by po.created_at desc, po.id desc), '[]'::json)
+          from paged_orders po
+        ) as orders_json,
+        (
+          select coalesce(json_agg(ld order by ld.order_id, ld.type), '[]'::json)
+          from latest_documents ld
+        ) as documents_json
+    `;
+
+    const result = await profileRoutePhase('db', 'fetchOrdersListPage:query', () => pool.query(query, queryParams));
+    const firstRow = (result.rows[0] ?? {}) as { total_count?: number; orders_json?: unknown[]; documents_json?: unknown[] };
+    const ordersJson = Array.isArray(firstRow.orders_json) ? firstRow.orders_json : [];
+    const docsJson = Array.isArray(firstRow.documents_json) ? firstRow.documents_json : [];
+
+    const dedupedDocs = new Map<string, OrderListDocumentSummaryRow>();
+    docsJson.forEach((rawDoc) => {
+      const row = rawDoc as Record<string, unknown>;
+      const mapped: OrderListDocumentSummaryRow = {
+        order_id: Number(row.order_id),
+        type: String(row.type),
+        filename: String(row.filename),
+        blob_url: String(row.blob_url),
+        created_at: toIsoTimestamp(row.created_at)
+      };
+      const key = `${mapped.order_id}:${mapped.type}`;
+      if (!dedupedDocs.has(key)) {
+        dedupedDocs.set(key, mapped);
+      }
+    });
+
+    return {
+      totalCount: Number(firstRow.total_count ?? 0),
+      orders: ordersJson.map((rawRow) => mapOrderRow(rawRow as Record<string, unknown>)),
+      documentSummaries: Array.from(dedupedDocs.values())
+    };
   });
 }
 

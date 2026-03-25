@@ -3,12 +3,8 @@ import AdminOrdersTable from '@/admin/components/AdminOrdersTable';
 import AdminCreateDraftOrderButton from '@/admin/components/AdminCreateDraftOrderButton';
 import { AdminOrdersSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 import {
-  type OrderAttachmentRow,
-  type OrderDocumentRow,
   type OrderRow,
-  fetchOrderAttachmentsForOrders,
-  fetchOrderDocumentsForOrders,
-  fetchOrders
+  fetchOrdersListPage
 } from '@/shared/server/orders';
 import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';
@@ -55,12 +51,26 @@ const getToDateIsoOrNull = (value: string) => {
 async function AdminOrdersTableSection({
   searchParams
 }: {
-  searchParams?: { from?: string | string[]; to?: string | string[]; q?: string | string[] };
+  searchParams?: {
+    from?: string | string[];
+    to?: string | string[];
+    q?: string | string[];
+    status?: string | string[];
+    docType?: string | string[];
+    page?: string | string[];
+    pageSize?: string | string[];
+  };
 }) {
   return instrumentAdminRouteRender('/admin/orders', async () => {
     const from = normalizeDateInput(normalizeSearchParam(searchParams?.from));
     const to = normalizeDateInput(normalizeSearchParam(searchParams?.to));
     const query = normalizeSearchParam(searchParams?.q).trim();
+    const status = normalizeSearchParam(searchParams?.status).trim() || 'all';
+    const documentType = normalizeSearchParam(searchParams?.docType).trim() || 'all';
+    const page = Math.max(1, Number(normalizeSearchParam(searchParams?.page)) || 1);
+    const pageSize = [50, 100].includes(Number(normalizeSearchParam(searchParams?.pageSize)))
+      ? Number(normalizeSearchParam(searchParams?.pageSize))
+      : 50;
 
   const demoOrders: OrderRow[] = [
     {
@@ -85,7 +95,7 @@ async function AdminOrdersTableSection({
     }
   ];
 
-  const demoDocuments: OrderDocumentRow[] = [
+  const demoDocuments = [
     {
       id: 1,
       order_id: 1,
@@ -97,20 +107,17 @@ async function AdminOrdersTableSection({
     }
   ];
 
-  const demoAttachments: OrderAttachmentRow[] = [
-    {
-      id: 1,
-      order_id: 1,
-      type: 'purchase_order',
-      filename: '#1-narocilnica.pdf',
-      blob_url: '#',
-      created_at: new Date().toISOString()
-    }
-  ];
-
   let orders: OrderRow[] = demoOrders;
-  let documents: OrderDocumentRow[] = demoDocuments;
-  let attachments: OrderAttachmentRow[] = demoAttachments;
+  let documents: Array<{
+    id: number;
+    order_id: number;
+    type: string;
+    filename: string;
+    blob_url: string;
+    blob_pathname: string | null;
+    created_at: string;
+  }> = demoDocuments;
+  let totalCount = demoOrders.length;
   let warningMessage: string | null = null;
 
   const fallbackAppearance: AnalyticsGlobalAppearance = {
@@ -129,38 +136,32 @@ async function AdminOrdersTableSection({
     warningMessage = 'Povezava z bazo ni nastavljena — prikazan je demo pogled.';
   } else {
     try {
-      // Always load the full active dataset on the server and let the table apply
-      // date/search/document filters client-side. This avoids accidental empty states
-      // caused by stale URL params or server-side filter drift.
-      const [ordersResult, analyticsAppearanceResult] = await Promise.all([
-        fetchOrders({ includeDrafts: true }),
+      const [ordersPageResult, analyticsAppearanceResult] = await Promise.all([
+        fetchOrdersListPage({
+          includeDrafts: true,
+          fromDate: toIsoOrNull(from),
+          toDate: getToDateIsoOrNull(to),
+          query,
+          status,
+          documentType,
+          page,
+          pageSize
+        }),
         fetchGlobalAnalyticsAppearance('narocila', '/admin/orders').catch(() => fallbackAppearance)
       ]);
-      orders = ordersResult;
+      orders = ordersPageResult.orders;
+      documents = ordersPageResult.documentSummaries.map((documentSummary, index) => ({
+        id: index + 1,
+        order_id: documentSummary.order_id,
+        type: documentSummary.type,
+        filename: documentSummary.filename,
+        blob_url: documentSummary.blob_url,
+        blob_pathname: null,
+        created_at: documentSummary.created_at
+      }));
+      totalCount = ordersPageResult.totalCount;
       analyticsAppearance = analyticsAppearanceResult;
-      console.info(`/admin/orders loaded rows=${orders.length}`);
-
-      const orderIds = orders.map((order) => order.id);
-      const [documentsResult, attachmentsResult] = await Promise.allSettled([
-        fetchOrderDocumentsForOrders(orderIds),
-        fetchOrderAttachmentsForOrders(orderIds)
-      ]);
-
-      if (documentsResult.status === 'fulfilled') {
-        documents = documentsResult.value;
-      } else {
-        console.error('Failed to load /admin/orders documents', documentsResult.reason);
-        warningMessage =
-          warningMessage ?? 'Nekaterih dokumentov ni bilo mogoče naložiti. Naročila so vseeno prikazana.';
-      }
-
-      if (attachmentsResult.status === 'fulfilled') {
-        attachments = attachmentsResult.value;
-      } else {
-        console.error('Failed to load /admin/orders attachments', attachmentsResult.reason);
-        warningMessage =
-          warningMessage ?? 'Nekaterih priponk ni bilo mogoče naložiti. Naročila so vseeno prikazana.';
-      }
+      console.info(`/admin/orders loaded rows=${orders.length} total=${totalCount} page=${page} pageSize=${pageSize}`);
     } catch (error) {
       console.error('Failed to load /admin/orders data', error);
       warningMessage =
@@ -171,7 +172,7 @@ async function AdminOrdersTableSection({
     await profileRoutePhase('payload', 'AdminOrdersTableSection:props', async () => {
       profilePayloadEstimate('AdminOrdersTableSection:orders', orders);
       profilePayloadEstimate('AdminOrdersTableSection:documents', documents);
-      profilePayloadEstimate('AdminOrdersTableSection:attachments', attachments);
+      profilePayloadEstimate('AdminOrdersTableSection:totalCount', totalCount);
     });
 
     const compactOrders = orders.map((order) => [
@@ -203,15 +204,6 @@ async function AdminOrdersTableSection({
       document.blob_url,
       document.created_at
     ] as const);
-    const compactAttachments = attachments.map((attachment) => [
-      attachment.id,
-      attachment.order_id,
-      attachment.type,
-      attachment.filename,
-      attachment.blob_url,
-      attachment.created_at ?? null
-    ] as const);
-
     return (
       <>
         {warningMessage ? (
@@ -223,10 +215,15 @@ async function AdminOrdersTableSection({
         <AdminOrdersTable
           orders={compactOrders}
           documents={compactDocuments}
-          attachments={compactAttachments}
+          attachments={[]}
           initialFrom={from}
           initialTo={to}
           initialQuery={query}
+          initialStatusFilter={status}
+          initialDocumentType={documentType}
+          initialPage={page}
+          initialPageSize={pageSize}
+          totalCount={totalCount}
           topAction={<AdminCreateDraftOrderButton />}
           analyticsAppearance={analyticsAppearance}
         />
@@ -238,7 +235,15 @@ async function AdminOrdersTableSection({
 export default function AdminOrdersPage({
   searchParams
 }: {
-  searchParams?: { from?: string | string[]; to?: string | string[]; q?: string | string[] };
+  searchParams?: {
+    from?: string | string[];
+    to?: string | string[];
+    q?: string | string[];
+    status?: string | string[];
+    docType?: string | string[];
+    page?: string | string[];
+    pageSize?: string | string[];
+  };
 }) {
   return (
     <div className="w-full">

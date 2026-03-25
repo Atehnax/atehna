@@ -682,47 +682,6 @@ export default function AdminCategoriesMainTable({
   }, [applyPayloadState, initialPayload, load]);
 
   useEffect(() => {
-    if (!initialPayload || initialPayload.payloadMode !== 'partial' || activeView === 'miller') return;
-    if (typeof window === 'undefined') return;
-
-    let cancelled = false;
-    let idleId: number | null = null;
-    const warm = () => {
-      void prefetchFullPayload()
-        .then((payload) => {
-          if (!payload || cancelled) return;
-          if (tableDirty || millerDirty) return;
-          if (selected.kind !== 'root') return;
-          if (query.trim().length > 0 || millerSearchQuery.trim().length > 0) return;
-
-          applyPayloadState({
-            ...payload,
-            payloadMode: 'full',
-            payloadView: initialPayload.payloadView
-          });
-        })
-        .catch(() => undefined);
-    };
-
-    const timeoutId = window.setTimeout(() => {
-      if ('requestIdleCallback' in window) {
-        idleId = window.requestIdleCallback(() => warm(), { timeout: 2000 });
-        return;
-      }
-
-      warm();
-    }, 4000);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeoutId);
-      if (idleId !== null && 'cancelIdleCallback' in window) {
-        window.cancelIdleCallback(idleId);
-      }
-    };
-  }, [activeView, applyPayloadState, initialPayload, millerDirty, millerSearchQuery, prefetchFullPayload, query, selected.kind, tableDirty]);
-
-  useEffect(() => {
     if (pathname?.endsWith('/miller-view')) {
       setActiveView('miller');
       return;

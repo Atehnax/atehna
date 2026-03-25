@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import SiteHeader from '@/commercial/components/SiteHeader';
 import SiteFooter from '@/commercial/components/SiteFooter';
-import CartDrawer from '@/commercial/features/cart/CartDrawer';
-import WebsiteAnalyticsTracker from '@/commercial/components/WebsiteAnalyticsTracker';
+import CommercialEnhancements from '@/commercial/components/CommercialEnhancements';
 import { ToastProvider, Toaster } from '@/shared/ui/toast';
 
 export const metadata: Metadata = {
@@ -32,10 +31,9 @@ export default function CommercialRootLayout({ children }: { children: React.Rea
     <html lang="sl">
       <body className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
         <ToastProvider>
-          <WebsiteAnalyticsTracker />
+          <CommercialEnhancements />
           <SiteHeader />
           <main className="flex-1">{children}</main>
-          <CartDrawer />
           <SiteFooter />
           <Toaster />
         </ToastProvider>

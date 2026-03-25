@@ -13,7 +13,6 @@ import { SegmentedControl } from '@/shared/ui/segmented';
 import { CustomSelect } from '@/shared/ui/select';
 import { Spinner } from '@/shared/ui/loading';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
-import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
@@ -87,7 +86,11 @@ type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'cus
 
 const bulkDeleteButtonClass = buttonTokenClasses.danger;
 const PAGE_SIZE_OPTIONS = [50, 100];
-const AdminOrdersPreviewChart = dynamic(() => import('@/admin/components/AdminOrdersPreviewChart'));
+const AdminOrdersPreviewChart = dynamic(() => import('@/admin/components/AdminOrdersPreviewChart'), { ssr: false });
+const LazyConfirmDialog = dynamic(
+  () => import('@/shared/ui/confirm-dialog').then((module) => module.ConfirmDialog),
+  { ssr: false }
+);
 
 export default function AdminOrdersTable({
   orders: serializedOrders,
@@ -178,6 +181,7 @@ export default function AdminOrdersTable({
   const debouncedFromDate = useDebouncedValue(fromDate, 200);
   const debouncedToDate = useDebouncedValue(toDate, 200);
   const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
+  const [isChartReady, setIsChartReady] = useState(false);
 
   const [documentType, setDocumentType] = useState<DocumentType>('all');
   const { toast } = useToast();
@@ -191,6 +195,17 @@ export default function AdminOrdersTable({
 
   const [isStatusHeaderMenuOpen, setIsStatusHeaderMenuOpen] = useState(false);
   const [isPaymentHeaderMenuOpen, setIsPaymentHeaderMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof globalThis.window === 'undefined') return;
+    if ('requestIdleCallback' in globalThis.window) {
+      const idleId = globalThis.window.requestIdleCallback(() => setIsChartReady(true), { timeout: 1200 });
+      return () => globalThis.window.cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = globalThis.setTimeout(() => setIsChartReady(true), 0);
+    return () => globalThis.clearTimeout(timeoutId);
+  }, []);
 
   useEffect(() => {
     const closeOnOutsideClick = (mouseEvent: MouseEvent) => {
@@ -943,42 +958,50 @@ export default function AdminOrdersTable({
   return (
     <div className="w-full">
       <div className="mx-auto w-full max-w-[1600px]">
-        <AdminOrdersPreviewChart
-          orders={orders}
-          appearance={analyticsAppearance}
-          fromDate={debouncedFromDate}
-          toDate={debouncedToDate}
-          activeRange={rangePreset}
-          onRangeChange={applyAnalyticsRangePreset}
-        />
+        {isChartReady ? (
+          <AdminOrdersPreviewChart
+            orders={orders}
+            appearance={analyticsAppearance}
+            fromDate={debouncedFromDate}
+            toDate={debouncedToDate}
+            activeRange={rangePreset}
+            onRangeChange={applyAnalyticsRangePreset}
+          />
+        ) : (
+          <div aria-hidden="true" className="mb-3 h-[292px] rounded-2xl border border-slate-200/80 bg-white/60" />
+        )}
 
-        <ConfirmDialog
-          open={isBulkDeleteDialogOpen}
-          title="Izbris naročil"
-          description={`Ali ste prepričani, da želite izbrisati ${selected.length} naročil?`}
-          confirmLabel="Izbriši"
-          cancelLabel="Prekliči"
-          isDanger
-          onCancel={() => setIsBulkDeleteDialogOpen(false)}
-          onConfirm={() => {
-            void confirmDeleteSelected();
-          }}
-          confirmDisabled={isDeleting}
-        />
+        {isBulkDeleteDialogOpen ? (
+          <LazyConfirmDialog
+            open={isBulkDeleteDialogOpen}
+            title="Izbris naročil"
+            description={`Ali ste prepričani, da želite izbrisati ${selected.length} naročil?`}
+            confirmLabel="Izbriši"
+            cancelLabel="Prekliči"
+            isDanger
+            onCancel={() => setIsBulkDeleteDialogOpen(false)}
+            onConfirm={() => {
+              void confirmDeleteSelected();
+            }}
+            confirmDisabled={isDeleting}
+          />
+        ) : null}
 
-        <ConfirmDialog
-          open={confirmDeleteRowId !== null}
-          title="Izbris naročila"
-          description="Ali ste prepričani, da želite izbrisati to naročilo?"
-          confirmLabel="Izbriši"
-          cancelLabel="Prekliči"
-          isDanger
-          onCancel={() => setConfirmDeleteRowId(null)}
-          onConfirm={() => {
-            void confirmDeleteRow();
-          }}
-          confirmDisabled={deletingRowId !== null}
-        />
+        {confirmDeleteRowId !== null ? (
+          <LazyConfirmDialog
+            open={confirmDeleteRowId !== null}
+            title="Izbris naročila"
+            description="Ali ste prepričani, da želite izbrisati to naročilo?"
+            confirmLabel="Izbriši"
+            cancelLabel="Prekliči"
+            isDanger
+            onCancel={() => setConfirmDeleteRowId(null)}
+            onConfirm={() => {
+              void confirmDeleteRow();
+            }}
+            confirmDisabled={deletingRowId !== null}
+          />
+        ) : null}
 
         <AdminTableLayout
           className="border"

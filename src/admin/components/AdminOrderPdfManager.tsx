@@ -1,7 +1,7 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useMemo, useRef, useState } from 'react';
-import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { IconButton } from '@/shared/ui/icon-button';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
@@ -54,6 +54,10 @@ const pdfTimestampFormatter = new Intl.DateTimeFormat('sl-SI', {
   timeStyle: 'short'
 });
 const formatTimestamp = (value: string) => pdfTimestampFormatter.format(new Date(value));
+const LazyConfirmDialog = dynamic(
+  () => import('@/shared/ui/confirm-dialog').then((module) => module.ConfirmDialog),
+  { ssr: false }
+);
 
 function SaveIcon() {
   return (
@@ -485,18 +489,20 @@ export default function AdminOrderPdfManager({
         })}
       </div>
 
-      <ConfirmDialog
-        open={confirmDeleteDocumentId !== null}
-        title="Izbris verzije PDF"
-        description="Ali ste prepričani, da želite izbrisati to verzijo PDF dokumenta?"
-        confirmLabel="Izbriši"
-        cancelLabel="Prekliči"
-        isDanger
-        onCancel={() => setConfirmDeleteDocumentId(null)}
-        onConfirm={() => {
-          void confirmDeleteDocument();
-        }}
-      />
+      {confirmDeleteDocumentId !== null ? (
+        <LazyConfirmDialog
+          open={confirmDeleteDocumentId !== null}
+          title="Izbris verzije PDF"
+          description="Ali ste prepričani, da želite izbrisati to verzijo PDF dokumenta?"
+          confirmLabel="Izbriši"
+          cancelLabel="Prekliči"
+          isDanger
+          onCancel={() => setConfirmDeleteDocumentId(null)}
+          onConfirm={() => {
+            void confirmDeleteDocument();
+          }}
+        />
+      ) : null}
     </section>
   );
 }

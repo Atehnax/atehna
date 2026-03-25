@@ -140,7 +140,8 @@ export default function AdminDeletedArchiveTable({
   }, [filtered, sortDirection, sortKey, typeFilter]);
 
   const visibleIds = useMemo(() => displayRows.map((row) => row.entry.id), [displayRows]);
-  const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.includes(id));
+  const selectedIdSet = useMemo(() => new Set(selected), [selected]);
+  const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIdSet.has(id));
 
   const groupedChildIdsByOrder = useMemo(() => {
     const groupedChildIds = new Map<number, number[]>();
@@ -169,9 +170,9 @@ export default function AdminDeletedArchiveTable({
         .map((row) => row.entry)
         .filter(
           (entry, index, entriesArray) =>
-            selected.includes(entry.id) && entriesArray.findIndex((candidate) => candidate.id === entry.id) === index
+            selectedIdSet.has(entry.id) && entriesArray.findIndex((candidate) => candidate.id === entry.id) === index
         ),
-    [displayRows, selected]
+    [displayRows, selectedIdSet]
   );
 
   const toggleOne = (row: DisplayRow) => {
@@ -179,7 +180,7 @@ export default function AdminDeletedArchiveTable({
 
     if (isChild && parentOrderId !== null) {
       const parentRowId = parentRowIdByOrder.get(parentOrderId);
-      if (!parentRowId || !selected.includes(parentRowId)) return;
+      if (!parentRowId || !selectedIdSet.has(parentRowId)) return;
     }
 
     setSelected((previousSelected) => {
@@ -210,7 +211,10 @@ export default function AdminDeletedArchiveTable({
 
   const toggleAll = () => {
     setSelected((previousSelected) => {
-      if (allSelected) return previousSelected.filter((id) => !visibleIds.includes(id));
+      if (allSelected) {
+        const visibleIdSet = new Set(visibleIds);
+        return previousSelected.filter((id) => !visibleIdSet.has(id));
+      }
 
       const mergedSelection = new Set(previousSelected);
       displayRows.forEach((row) => {

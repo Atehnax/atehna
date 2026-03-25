@@ -353,15 +353,17 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   }, [filteredItems, page, pageSize]);
 
   const visibleIds = useMemo(() => pagedItems.map((item) => item.id), [pagedItems]);
-  const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
+  const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const filteredItemIdSet = useMemo(() => new Set(filteredItems.map((item) => item.id)), [filteredItems]);
+  const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIdSet.has(id));
 
   useEffect(() => {
     setPage(1);
   }, [categoryFilter, search, setPage, sortDirection, sortKey, statusTab]);
 
   useEffect(() => {
-    setSelectedIds((current) => current.filter((id) => filteredItems.some((item) => item.id === id)));
-  }, [filteredItems]);
+    setSelectedIds((current) => current.filter((id) => filteredItemIdSet.has(id)));
+  }, [filteredItemIdSet]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -374,7 +376,8 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
 
   const toggleAll = () => {
     if (allSelected) {
-      setSelectedIds((current) => current.filter((id) => !visibleIds.includes(id)));
+      const visibleIdSet = new Set(visibleIds);
+      setSelectedIds((current) => current.filter((id) => !visibleIdSet.has(id)));
       return;
     }
     setSelectedIds((current) => Array.from(new Set([...current, ...visibleIds])));

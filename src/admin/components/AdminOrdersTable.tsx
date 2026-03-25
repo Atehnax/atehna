@@ -415,6 +415,48 @@ export default function AdminOrdersTable({
     return result;
   }, [documents, attachments]);
 
+  const orderRuntimeById = useMemo(() => {
+    const runtime = new Map<number, {
+      createdAtTimestamp: number;
+      createdAtDayTimestamp: number;
+      numericOrderNumber: number;
+      customerLabel: string;
+      addressLabel: string;
+      typeLabel: string;
+      statusLabel: string;
+      paymentLabel: string;
+      searchBlob: string;
+    }>();
+
+    orders.forEach((order) => {
+      const createdAtTimestamp = new Date(order.created_at).getTime();
+      const createdAtDate = new Date(order.created_at);
+      createdAtDate.setHours(0, 0, 0, 0);
+      const customerLabel = order.organization_name || order.contact_name || '';
+      const addressLabel = formatOrderAddress(order);
+      const typeLabel = getCustomerTypeLabel(order.customer_type);
+      const statusLabel = getOrderStatusLabelForUi(order.status);
+      const paymentLabel = getPaymentLabel(order.payment_status);
+      runtime.set(order.id, {
+        createdAtTimestamp,
+        createdAtDayTimestamp: createdAtDate.getTime(),
+        numericOrderNumber: getNumericOrderNumber(order.order_number),
+        customerLabel,
+        addressLabel,
+        typeLabel,
+        statusLabel,
+        paymentLabel,
+        searchBlob: normalizeForSearch(
+          [order.order_number, customerLabel, addressLabel, typeLabel, statusLabel, paymentLabel]
+            .filter(Boolean)
+            .join(' ')
+        )
+      });
+    });
+
+    return runtime;
+  }, [orders]);
+
   const filteredAndSortedOrders = useMemo(() => {
     const normalizedQuery = normalizeForSearch(debouncedQuery);
 
@@ -425,7 +467,8 @@ export default function AdminOrdersTable({
         return false;
       }
 
-      const orderTimestamp = new Date(order.created_at).getTime();
+      const orderRuntime = orderRuntimeById.get(order.id);
+      const orderTimestamp = orderRuntime?.createdAtTimestamp ?? new Date(order.created_at).getTime();
 
       if (debouncedFromDate) {
         const fromTimestamp = new Date(`${debouncedFromDate}T00:00:00`).getTime();
@@ -441,17 +484,7 @@ export default function AdminOrdersTable({
         }
       }
 
-      const customerLabel = order.organization_name || order.contact_name || '';
-      const addressLabel = formatOrderAddress(order);
-      const typeLabel = getCustomerTypeLabel(order.customer_type);
-      const statusLabel = getOrderStatusLabelForUi(order.status);
-      const paymentLabel = getPaymentLabel(order.payment_status);
-
-      const orderSearchBlob = normalizeForSearch(
-        [order.order_number, customerLabel, addressLabel, typeLabel, statusLabel, paymentLabel]
-          .filter(Boolean)
-          .join(' ')
-      );
+      const orderSearchBlob = orderRuntime?.searchBlob ?? '';
 
       const orderMatches = !normalizedQuery || orderSearchBlob.includes(normalizedQuery);
 
@@ -482,8 +515,10 @@ export default function AdminOrdersTable({
 
     const sortedOrders = [...filteredOrders].sort((leftOrder, rightOrder) => {
       const sortMultiplier = sortDirection === 'asc' ? 1 : -1;
-      const leftOrderNumberNumeric = getNumericOrderNumber(leftOrder.order_number);
-      const rightOrderNumberNumeric = getNumericOrderNumber(rightOrder.order_number);
+      const leftRuntime = orderRuntimeById.get(leftOrder.id);
+      const rightRuntime = orderRuntimeById.get(rightOrder.id);
+      const leftOrderNumberNumeric = leftRuntime?.numericOrderNumber ?? getNumericOrderNumber(leftOrder.order_number);
+      const rightOrderNumberNumeric = rightRuntime?.numericOrderNumber ?? getNumericOrderNumber(rightOrder.order_number);
 
       let leftValue: string | number;
       let rightValue: string | number;
@@ -507,24 +542,24 @@ export default function AdminOrdersTable({
           rightValue = rightOrder.order_number;
           break;
         case 'customer':
-          leftValue = leftOrder.organization_name || leftOrder.contact_name || '';
-          rightValue = rightOrder.organization_name || rightOrder.contact_name || '';
+          leftValue = leftRuntime?.customerLabel ?? (leftOrder.organization_name || leftOrder.contact_name || '');
+          rightValue = rightRuntime?.customerLabel ?? (rightOrder.organization_name || rightOrder.contact_name || '');
           break;
         case 'address':
-          leftValue = formatOrderAddress(leftOrder);
-          rightValue = formatOrderAddress(rightOrder);
+          leftValue = leftRuntime?.addressLabel ?? formatOrderAddress(leftOrder);
+          rightValue = rightRuntime?.addressLabel ?? formatOrderAddress(rightOrder);
           break;
         case 'type':
-          leftValue = getCustomerTypeLabel(leftOrder.customer_type);
-          rightValue = getCustomerTypeLabel(rightOrder.customer_type);
+          leftValue = leftRuntime?.typeLabel ?? getCustomerTypeLabel(leftOrder.customer_type);
+          rightValue = rightRuntime?.typeLabel ?? getCustomerTypeLabel(rightOrder.customer_type);
           break;
         case 'status':
-          leftValue = getOrderStatusLabelForUi(leftOrder.status);
-          rightValue = getOrderStatusLabelForUi(rightOrder.status);
+          leftValue = leftRuntime?.statusLabel ?? getOrderStatusLabelForUi(leftOrder.status);
+          rightValue = rightRuntime?.statusLabel ?? getOrderStatusLabelForUi(rightOrder.status);
           break;
         case 'payment':
-          leftValue = getPaymentLabel(leftOrder.payment_status);
-          rightValue = getPaymentLabel(rightOrder.payment_status);
+          leftValue = leftRuntime?.paymentLabel ?? getPaymentLabel(leftOrder.payment_status);
+          rightValue = rightRuntime?.paymentLabel ?? getPaymentLabel(rightOrder.payment_status);
           break;
         case 'total':
           leftValue = toAmount(leftOrder.total);
@@ -532,12 +567,8 @@ export default function AdminOrdersTable({
           break;
         case 'created_at':
         default: {
-          const leftDate = new Date(leftOrder.created_at);
-          const rightDate = new Date(rightOrder.created_at);
-          leftDate.setHours(0, 0, 0, 0);
-          rightDate.setHours(0, 0, 0, 0);
-          leftValue = leftDate.getTime();
-          rightValue = rightDate.getTime();
+          leftValue = leftRuntime?.createdAtDayTimestamp ?? 0;
+          rightValue = rightRuntime?.createdAtDayTimestamp ?? 0;
           break;
         }
       }
@@ -572,6 +603,7 @@ export default function AdminOrdersTable({
     debouncedToDate,
     documentType,
     latestDocumentsByOrder,
+    orderRuntimeById,
     sortKey,
     sortDirection
   ]);
@@ -602,10 +634,11 @@ export default function AdminOrdersTable({
   }, [pagedOrders]);
 
   const visibleOrderIds = useMemo(() => pagedOrders.map((order) => order.id), [pagedOrders]);
+  const selectedOrderIds = useMemo(() => new Set(selected), [selected]);
 
   const selectedVisibleCount = useMemo(
-    () => visibleOrderIds.filter((orderId) => selected.includes(orderId)).length,
-    [visibleOrderIds, selected]
+    () => visibleOrderIds.filter((orderId) => selectedOrderIds.has(orderId)).length,
+    [visibleOrderIds, selectedOrderIds]
   );
 
   const allSelected = visibleOrderIds.length > 0 && selectedVisibleCount === visibleOrderIds.length;

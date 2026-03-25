@@ -36,11 +36,20 @@ async function AdminArchiveTableSection() {
           expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
         }
       ];
+    const compactEntries = entries.map((entry) => [
+      entry.id,
+      entry.item_type,
+      entry.order_id,
+      entry.document_id,
+      entry.label,
+      entry.deleted_at,
+      entry.expires_at
+    ] as const);
 
     await profileRoutePhase('payload', 'AdminArchiveTableSection:entries', async () => {
-      profilePayloadEstimate('AdminArchiveTableSection:entries', entries);
+      profilePayloadEstimate('AdminArchiveTableSection:entries', compactEntries);
     });
-    return <AdminDeletedArchiveTable initialEntries={entries} />;
+    return <AdminDeletedArchiveTable initialEntries={compactEntries} />;
   });
 }
 

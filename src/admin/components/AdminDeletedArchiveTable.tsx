@@ -20,6 +20,7 @@ type ArchiveEntry = {
   deleted_at: string;
   expires_at: string;
 };
+type ArchiveEntryTuple = readonly [id: number, itemType: 'order' | 'pdf', orderId: number | null, documentId: number | null, label: string, deletedAt: string, expiresAt: string];
 
 type DisplayRow = {
   entry: ArchiveEntry;
@@ -40,18 +41,30 @@ const TYPE_FILTER_OPTIONS: Array<{ value: TypeFilterValue; label: string }> = [
 ];
 
 const formatDateTime = (value: string) =>
-  new Date(value).toLocaleString('sl-SI', {
+  new Intl.DateTimeFormat('sl-SI', {
+    timeZone: 'Europe/Ljubljana',
     dateStyle: 'medium',
     timeStyle: 'short'
-  });
+  }).format(new Date(value));
+
+const tupleToArchiveEntry = (entry: ArchiveEntryTuple): ArchiveEntry => ({
+  id: entry[0],
+  item_type: entry[1],
+  order_id: entry[2],
+  document_id: entry[3],
+  label: entry[4],
+  deleted_at: entry[5],
+  expires_at: entry[6]
+});
 
 export default function AdminDeletedArchiveTable({
   initialEntries
 }: {
-  initialEntries: ArchiveEntry[];
+  initialEntries: ArchiveEntryTuple[];
 }) {
+  const normalizedInitialEntries = useMemo(() => initialEntries.map(tupleToArchiveEntry), [initialEntries]);
   const router = useRouter();
-  const [entries, setEntries] = useState(initialEntries);
+  const [entries, setEntries] = useState(normalizedInitialEntries);
   const [selected, setSelected] = useState<number[]>([]);
   const [typeFilter, setTypeFilter] = useState<TypeFilterValue>('all');
   const [sortKey, setSortKey] = useState<ArchiveSortKey>('deleted_at');

@@ -174,6 +174,44 @@ async function AdminOrdersTableSection({
       profilePayloadEstimate('AdminOrdersTableSection:attachments', attachments);
     });
 
+    const compactOrders = orders.map((order) => [
+      order.id,
+      order.order_number,
+      order.customer_type,
+      order.organization_name,
+      order.contact_name,
+      order.email,
+      order.phone ?? null,
+      order.delivery_address ?? null,
+      order.reference ?? null,
+      order.notes ?? null,
+      order.status,
+      order.payment_status ?? null,
+      order.payment_notes ?? null,
+      order.subtotal,
+      order.tax,
+      order.total,
+      order.created_at,
+      order.is_draft ?? false,
+      order.deleted_at ?? null
+    ] as const);
+    const compactDocuments = documents.map((document) => [
+      document.id,
+      document.order_id,
+      document.type,
+      document.filename,
+      document.blob_url,
+      document.created_at
+    ] as const);
+    const compactAttachments = attachments.map((attachment) => [
+      attachment.id,
+      attachment.order_id,
+      attachment.type,
+      attachment.filename,
+      attachment.blob_url,
+      attachment.created_at ?? null
+    ] as const);
+
     return (
       <>
         {warningMessage ? (
@@ -183,9 +221,9 @@ async function AdminOrdersTableSection({
         ) : null}
 
         <AdminOrdersTable
-          orders={orders}
-          documents={documents}
-          attachments={attachments}
+          orders={compactOrders}
+          documents={compactDocuments}
+          attachments={compactAttachments}
           initialFrom={from}
           initialTo={to}
           initialQuery={query}

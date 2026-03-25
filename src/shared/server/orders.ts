@@ -537,7 +537,7 @@ export async function fetchOrdersListPage(
     const whereClause = conditions.length > 0 ? `where ${conditions.join(' and ')}` : '';
 
     const query = `
-      with filtered_orders as (
+      with base_filtered_orders as (
         select
           orders.id,
           orders.order_number,
@@ -552,24 +552,49 @@ export async function fetchOrdersListPage(
           orders.status,
           ${supportsPaymentStatusColumn ? 'orders.payment_status' : 'null::text as payment_status'},
           ${supportsPaymentNotesColumn ? 'orders.payment_notes' : 'null::text as payment_notes'},
-          coalesce(orders.subtotal::text, computed_totals.subtotal::text, '0') as subtotal,
-          coalesce(orders.tax::text, computed_totals.tax::text, '0') as tax,
-          coalesce(orders.total::text, computed_totals.total::text, '0') as total,
+          orders.subtotal,
+          orders.tax,
+          orders.total,
           orders.created_at,
           ${supportsDraftColumn ? 'orders.is_draft' : 'false as is_draft'},
           ${supportsDeletedColumn ? 'orders.deleted_at' : 'null::timestamptz as deleted_at'}
         from orders
-        left join (
-          select
-            order_items.order_id,
-            round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))), 2) as subtotal,
-            round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 0.22, 2) as tax,
-            round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 1.22, 2) as total
-          from order_items
-          group by order_items.order_id
-        ) as computed_totals
-          on computed_totals.order_id = orders.id
         ${whereClause}
+      ),
+      computed_totals as (
+        select
+          order_items.order_id,
+          round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))), 2) as subtotal,
+          round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 0.22, 2) as tax,
+          round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 1.22, 2) as total
+        from order_items
+        where order_items.order_id in (select id from base_filtered_orders)
+        group by order_items.order_id
+      ),
+      filtered_orders as (
+        select
+          base_filtered_orders.id,
+          base_filtered_orders.order_number,
+          base_filtered_orders.customer_type,
+          base_filtered_orders.organization_name,
+          base_filtered_orders.contact_name,
+          base_filtered_orders.email,
+          base_filtered_orders.phone,
+          base_filtered_orders.delivery_address,
+          base_filtered_orders.reference,
+          base_filtered_orders.notes,
+          base_filtered_orders.status,
+          base_filtered_orders.payment_status,
+          base_filtered_orders.payment_notes,
+          coalesce(base_filtered_orders.subtotal::text, computed_totals.subtotal::text, '0') as subtotal,
+          coalesce(base_filtered_orders.tax::text, computed_totals.tax::text, '0') as tax,
+          coalesce(base_filtered_orders.total::text, computed_totals.total::text, '0') as total,
+          base_filtered_orders.created_at,
+          base_filtered_orders.is_draft,
+          base_filtered_orders.deleted_at
+        from base_filtered_orders
+        left join computed_totals
+          on computed_totals.order_id = base_filtered_orders.id
       ),
       paged_orders as (
         select * from filtered_orders

@@ -1,4 +1,4 @@
-import AdminWebsiteAnalyticsDashboard from '@/admin/components/AdminWebsiteAnalyticsDashboard';
+import AdminWebsiteAnalyticsDashboardLoader from '@/admin/components/AdminWebsiteAnalyticsDashboardLoader';
 import AdminAnalyticsTopTabs from '@/admin/components/AdminAnalyticsTopTabs';
 import { fetchWebsiteAnalytics } from '@/shared/server/websiteAnalytics';
 import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
@@ -44,7 +44,7 @@ export default async function AdminWebsiteAnalyticsPage({
         <p className="mt-1 text-sm text-slate-500">Pregled analitike naročil in spletnega obiska.</p>
       </div>
       <AdminAnalyticsTopTabs />
-      <AdminWebsiteAnalyticsDashboard
+      <AdminWebsiteAnalyticsDashboardLoader
       visitsByDay={analytics.visitsByDay}
       topPages={analytics.topPages}
       topProducts={analytics.topProducts}

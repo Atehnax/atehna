@@ -1,8 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useEffect, useState } from 'react';
 import { AdminArchiveSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
+import { useProgressiveActivation } from '@/shared/ui/useProgressiveActivation';
 
 const LazyAdminDeletedArchiveTable = dynamic(() => import('@/admin/components/AdminDeletedArchiveTable'), {
   ssr: false,
@@ -12,16 +12,11 @@ const LazyAdminDeletedArchiveTable = dynamic(() => import('@/admin/components/Ad
 type ArchiveEntryTuple = readonly [id: number, itemType: 'order' | 'pdf', orderId: number | null, documentId: number | null, label: string, deletedAt: string, expiresAt: string];
 
 export default function AdminDeletedArchiveTableLoader({ initialEntries }: { initialEntries: ArchiveEntryTuple[] }) {
-  const [isReady, setIsReady] = useState(false);
+  const { isActive, activate } = useProgressiveActivation();
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => setIsReady(true), 220);
-    return () => window.clearTimeout(timer);
-  }, []);
-
-  if (!isReady) {
-    return <AdminArchiveSectionSkeleton />;
-  }
-
-  return <LazyAdminDeletedArchiveTable initialEntries={initialEntries} />;
+  return (
+    <div onPointerDownCapture={activate} onFocusCapture={activate}>
+      {isActive ? <LazyAdminDeletedArchiveTable initialEntries={initialEntries} /> : <AdminArchiveSectionSkeleton />}
+    </div>
+  );
 }

@@ -1,9 +1,9 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useEffect, useState } from 'react';
 import { AdminCategoriesRouteSkeleton } from '@/admin/components/AdminPageSkeletons';
 import type { AdminCategoriesPayload } from '@/admin/features/kategorije/common/types';
+import { useProgressiveActivation } from '@/shared/ui/useProgressiveActivation';
 
 const LazyAdminCategoriesTablePageClient = dynamic(
   () => import('@/admin/features/kategorije/components/AdminCategoriesTablePageClient'),
@@ -14,16 +14,11 @@ const LazyAdminCategoriesTablePageClient = dynamic(
 );
 
 export default function AdminCategoriesTablePageLoader({ initialPayload }: { initialPayload: AdminCategoriesPayload }) {
-  const [isReady, setIsReady] = useState(false);
+  const { isActive, activate } = useProgressiveActivation();
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => setIsReady(true), 220);
-    return () => window.clearTimeout(timer);
-  }, []);
-
-  if (!isReady) {
-    return <AdminCategoriesRouteSkeleton initialView="table" />;
-  }
-
-  return <LazyAdminCategoriesTablePageClient initialPayload={initialPayload} />;
+  return (
+    <div onPointerDownCapture={activate} onFocusCapture={activate}>
+      {isActive ? <LazyAdminCategoriesTablePageClient initialPayload={initialPayload} /> : <AdminCategoriesRouteSkeleton initialView="table" />}
+    </div>
+  );
 }

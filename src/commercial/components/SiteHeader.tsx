@@ -1,26 +1,47 @@
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
+
+function CatalogSearchShell() {
+  return (
+    <div className="relative">
+      <input
+        type="search"
+        disabled
+        readOnly
+        value=""
+        aria-label="Poiščite izdelek..."
+        placeholder="Poiščite izdelek..."
+        className="w-full rounded-full border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+      />
+    </div>
+  );
+}
+
+function CartButtonShell() {
+  return (
+    <button
+      type="button"
+      disabled
+      className={`relative ${buttonTokenClasses.outline} px-4 py-2`}
+    >
+      <span>Košarica</span>
+      <span className="ml-2 text-xs font-semibold text-slate-500 opacity-0">0,00&nbsp;€</span>
+      <span className="ml-2 inline-flex min-w-[1.5rem] items-center justify-center rounded-full bg-brand-600 px-2 py-0.5 text-xs font-semibold text-white opacity-0">
+        0
+      </span>
+    </button>
+  );
+}
 
 const ProgressiveCatalogSearch = dynamic(() => import('@/commercial/features/products/CatalogSearch'), {
   ssr: false,
-  loading: () => (
-    <div className="w-full rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-400 shadow-sm">
-      Poiščite izdelek...
-    </div>
-  )
+  loading: () => <CatalogSearchShell />
 });
 
 const ProgressiveCartButton = dynamic(() => import('@/commercial/features/cart/CartButton'), {
   ssr: false,
-  loading: () => (
-    <button
-      type="button"
-      disabled
-      className="relative rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm"
-    >
-      <span>Košarica</span>
-    </button>
-  )
+  loading: () => <CartButtonShell />
 });
 
 const navItems = [

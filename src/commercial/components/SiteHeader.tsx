@@ -61,8 +61,14 @@ export default function SiteHeader() {
   if (isAdminPath) {
     return (
       <header className="border-b border-slate-200 bg-white/80 backdrop-blur">
-        <div className="container-base py-4 text-lg font-semibold tracking-tight text-slate-900">
-          Atehna Šolska tehnika | Administracija
+        <div className="container-base flex items-center gap-3 py-4">
+          <Link href="/" prefetch={false} className="text-lg font-semibold tracking-tight text-slate-900">
+            Atehna
+            <span className="ml-2 text-sm font-medium text-brand-600">Šolska tehnika</span>
+          </Link>
+          <span className="rounded-full border border-[color:var(--semantic-info-border)] bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-[color:var(--blue-500)]">
+            Administracija
+          </span>
         </div>
       </header>
     );

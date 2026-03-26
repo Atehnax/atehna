@@ -47,6 +47,8 @@ export default function AdminAnalyticsDashboardViewer({ initialData, initialChar
 
   const chartRenderModels = useMemo(() => charts.map((chart) => buildChartModel(chart, data, chartTheme, previewAppearance)), [charts, data, chartTheme, previewAppearance]);
   const modelById = useMemo(() => new Map(chartRenderModels.map((model) => [model.chart.id, model])), [chartRenderModels]);
+  const shouldRenderAdminTools =
+    showAppearance || reorderMode || builderOpen || confirmDeleteChartId !== null;
 
   const reloadCharts = async () => {
     const response = await fetch('/api/admin/analytics/charts');
@@ -172,66 +174,68 @@ export default function AdminAnalyticsDashboardViewer({ initialData, initialChar
         </div>
       ) : null}
 
-      <LazyAdminTools
-        showAppearance={showAppearance}
-        reorderMode={reorderMode}
-        builderOpen={builderOpen}
-        confirmDeleteChartId={confirmDeleteChartId}
-        setConfirmDeleteChartId={setConfirmDeleteChartId}
-        onConfirmDelete={() => void confirmDeleteChart()}
-        appearance={previewAppearance}
-        savedAppearance={savedAppearance}
-        onChangeAppearance={setPreviewAppearance}
-        onResetAppearance={() => setPreviewAppearance(savedAppearance)}
-        onSaveAppearance={async () => {
-          const response = await fetch('/api/admin/analytics/charts/appearance', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(previewAppearance) });
-          if (!response.ok) return toast.error('Napaka pri shranjevanju');
-          setSavedAppearance(previewAppearance);
-          toast.success('Shranjeno');
-        }}
-        builder={{
-          title: builderTitle,
-          description: builderDescription,
-          comment: builderComment,
-          chartType: builderChartType,
-          config: builderConfig,
-          mode: editingChartId ? 'edit' : 'create',
-          onChangeTitle: setBuilderTitle,
-          onChangeDescription: setBuilderDescription,
-          onChangeComment: setBuilderComment,
-          onChangeChartType: setBuilderChartType,
-          onChangeConfig: setBuilderConfig,
-          onClose: () => { setBuilderOpen(false); setEditingChartId(null); },
-          onSave: () => void createOrUpdateChart(),
-          onDelete: editingChartId ? () => setConfirmDeleteChartId(editingChartId) : undefined
-        }}
-        data={data}
-        chartTheme={chartTheme}
-        sortable={reorderMode ? {
-          ids: chartRenderModels.map((model) => model.chart.id),
-          onDragEnd: (event) => void onDragEnd(event),
-          renderItem: (id) => {
-            const model = modelById.get(id);
-            if (!model) return null;
-            return (
-              <AnalyticsChartCardView
-                chart={model.chart}
-                isFocused={focusedKey === model.chart.key}
-                onFocus={() => setFocusedKey(model.chart.key)}
-                cardBackground={model.resolvedCardBg}
-                reorderMode
-                onAction={(action) => {
-                  if (action === 'edit') openEdit(model.chart);
-                  if (action === 'delete') setConfirmDeleteChartId(model.chart.id);
-                  if (action === 'export') exportCsv(model.chart.title, model.x, model.exportRows);
-                }}
-              >
-                <AnalyticsPlotlySurface data={model.traces} layout={model.layout} onClick={() => setFocusedKey(model.chart.key)} />
-              </AnalyticsChartCardView>
-            );
-          }
-        } : undefined}
-      />
+      {shouldRenderAdminTools ? (
+        <LazyAdminTools
+          showAppearance={showAppearance}
+          reorderMode={reorderMode}
+          builderOpen={builderOpen}
+          confirmDeleteChartId={confirmDeleteChartId}
+          setConfirmDeleteChartId={setConfirmDeleteChartId}
+          onConfirmDelete={() => void confirmDeleteChart()}
+          appearance={previewAppearance}
+          savedAppearance={savedAppearance}
+          onChangeAppearance={setPreviewAppearance}
+          onResetAppearance={() => setPreviewAppearance(savedAppearance)}
+          onSaveAppearance={async () => {
+            const response = await fetch('/api/admin/analytics/charts/appearance', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(previewAppearance) });
+            if (!response.ok) return toast.error('Napaka pri shranjevanju');
+            setSavedAppearance(previewAppearance);
+            toast.success('Shranjeno');
+          }}
+          builder={{
+            title: builderTitle,
+            description: builderDescription,
+            comment: builderComment,
+            chartType: builderChartType,
+            config: builderConfig,
+            mode: editingChartId ? 'edit' : 'create',
+            onChangeTitle: setBuilderTitle,
+            onChangeDescription: setBuilderDescription,
+            onChangeComment: setBuilderComment,
+            onChangeChartType: setBuilderChartType,
+            onChangeConfig: setBuilderConfig,
+            onClose: () => { setBuilderOpen(false); setEditingChartId(null); },
+            onSave: () => void createOrUpdateChart(),
+            onDelete: editingChartId ? () => setConfirmDeleteChartId(editingChartId) : undefined
+          }}
+          data={data}
+          chartTheme={chartTheme}
+          sortable={reorderMode ? {
+            ids: chartRenderModels.map((model) => model.chart.id),
+            onDragEnd: (event) => void onDragEnd(event),
+            renderItem: (id) => {
+              const model = modelById.get(id);
+              if (!model) return null;
+              return (
+                <AnalyticsChartCardView
+                  chart={model.chart}
+                  isFocused={focusedKey === model.chart.key}
+                  onFocus={() => setFocusedKey(model.chart.key)}
+                  cardBackground={model.resolvedCardBg}
+                  reorderMode
+                  onAction={(action) => {
+                    if (action === 'edit') openEdit(model.chart);
+                    if (action === 'delete') setConfirmDeleteChartId(model.chart.id);
+                    if (action === 'export') exportCsv(model.chart.title, model.x, model.exportRows);
+                  }}
+                >
+                  <AnalyticsPlotlySurface data={model.traces} layout={model.layout} onClick={() => setFocusedKey(model.chart.key)} />
+                </AnalyticsChartCardView>
+              );
+            }
+          } : undefined}
+        />
+      ) : null}
     </div>
   );
 }

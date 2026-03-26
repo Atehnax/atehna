@@ -23,7 +23,6 @@ import {
   getAdminStripedRowToneClass
 } from '@/shared/ui/theme/tokens';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
-import AdminOrdersPdfCell from '@/admin/components/AdminOrdersPdfCell';
 import AdminOrderPaymentSelect from '@/admin/components/AdminOrderPaymentSelect';
 import StatusChip from '@/admin/components/StatusChip';
 import PaymentChip from '@/admin/components/PaymentChip';
@@ -87,6 +86,18 @@ type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'cus
 const bulkDeleteButtonClass = buttonTokenClasses.danger;
 const PAGE_SIZE_OPTIONS = [50, 100];
 const AdminOrdersPreviewChart = dynamic(() => import('@/admin/components/AdminOrdersPreviewChart'), { ssr: false });
+const LazyAdminOrdersPdfCell = dynamic(() => import('@/admin/components/AdminOrdersPdfCell'), {
+  ssr: false,
+  loading: () => (
+    <button
+      type="button"
+      disabled
+      className="inline-flex h-8 min-w-[72px] items-center justify-center rounded-md border border-slate-300 bg-slate-100 px-2 text-[11px] font-medium text-slate-500"
+    >
+      PDF
+    </button>
+  )
+});
 const LazyConfirmDialog = dynamic(
   () => import('@/shared/ui/confirm-dialog').then((module) => module.ConfirmDialog),
   { ssr: false }
@@ -1557,7 +1568,7 @@ export default function AdminOrdersTable({
 
                       <TD className="min-w-[100px] pl-0 pr-0 text-center" data-no-row-nav>
                         <div className="flex justify-center">
-                          <AdminOrdersPdfCell
+                          <LazyAdminOrdersPdfCell
                             orderId={order.id}
                             documents={documentsByOrder.get(order.id) ?? []}
                             attachments={attachmentsByOrder.get(order.id) ?? []}

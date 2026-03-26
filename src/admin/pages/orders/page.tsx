@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
-import AdminOrdersTable from '@/admin/components/AdminOrdersTable';
 import AdminCreateDraftOrderButton from '@/admin/components/AdminCreateDraftOrderButton';
+import AdminOrdersTableLoader from '@/admin/components/AdminOrdersTableLoader';
 import { AdminOrdersSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 import {
   type OrderRow,
@@ -212,7 +212,7 @@ async function AdminOrdersTableSection({
           </div>
         ) : null}
 
-        <AdminOrdersTable
+        <AdminOrdersTableLoader
           orders={compactOrders}
           documents={compactDocuments}
           attachments={[]}

@@ -20,6 +20,9 @@ const bottomLinks = [{ href: '/', label: 'Glavna stran', icon: 'home' }] as cons
 
 type SidebarIconType = (typeof primaryLinks)[number]['icon'] | (typeof bottomLinks)[number]['icon'] | 'logout';
 
+const COLLAPSED_WIDTH = 'w-16';
+const EXPANDED_WIDTH = 'w-72';
+
 function SidebarIcon({ type }: { type: SidebarIconType }) {
   if (type === 'home') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3.5 9.5 10 4l6.5 5.5"/><path d="M5.5 8.5V16h9V8.5"/></svg>;
   if (type === 'orders') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="4" y="3" width="12" height="14" rx="2.2"/><path d="M7 7h6"/><path d="M7 10.5h4.5"/><path d="M13 10.5h.01"/><path d="M7 14h4.5"/><path d="M13 14h.01"/></svg>;
@@ -72,9 +75,11 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
   };
 
   return (
-    <div className="relative z-30 min-h-full w-16 shrink-0 self-stretch">
+    <div className={`relative min-h-full shrink-0 self-stretch ${EXPANDED_WIDTH}`}>
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-full" />
+
       <aside
-        className={`absolute inset-y-0 left-0 overflow-y-auto overflow-x-hidden border-r border-[color:var(--semantic-info-border)] bg-slate-50/90 shadow-sm transition-[width] duration-300 ease-out ${isExpanded ? 'w-72' : 'w-16'}`}
+        className={`absolute inset-y-0 left-0 ${COLLAPSED_WIDTH} overflow-y-auto overflow-x-hidden border-r border-[color:var(--semantic-info-border)] bg-slate-50/90 shadow-sm transition-[width] duration-300 ease-out ${isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH}`}
         onMouseEnter={() => setExpanded(true)}
         onMouseLeave={() => setExpanded(false)}
       >

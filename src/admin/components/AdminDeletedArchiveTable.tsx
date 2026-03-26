@@ -330,14 +330,14 @@ export default function AdminDeletedArchiveTable({
 
   return (
     <AdminTableLayout
-      className="border-slate-200 bg-white"
+      className="mx-auto w-full max-w-[1120px] border-slate-200 bg-white"
       headerLeft={
         <div className="relative min-w-[140px]">
           <CustomSelect
             value={typeFilter}
             onChange={(next) => setTypeFilter(next as TypeFilterValue)}
             options={TYPE_FILTER_OPTIONS}
-            className="h-8 min-w-[140px] px-3 py-0 text-xs font-semibold"
+            className="h-7 min-w-[130px] px-2.5 py-0 text-[11px] font-semibold"
           />
         </div>
       }
@@ -369,20 +369,20 @@ export default function AdminDeletedArchiveTable({
         />
       ) : null}
 
-      <Table className="w-full table-fixed border-collapse text-sm">
+      <Table className="w-full table-fixed border-collapse text-[11px]">
           <THead>
             <TR>
               <TH className="w-10 text-center">
                 <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" />
               </TH>
-              <TH className="w-28">Vrsta</TH>
-              <TH>Element</TH>
-              <TH className="w-44">
+              <TH className="w-24 text-sm">Vrsta</TH>
+              <TH className="text-sm">Element</TH>
+              <TH className="w-40 text-sm">
                 <button type="button" onClick={() => handleSort('deleted_at')} className="inline-flex items-center font-semibold hover:text-slate-700">
                   Izbrisano {sortIndicator('deleted_at')}
                 </button>
               </TH>
-              <TH className="w-44">
+              <TH className="w-40 text-sm">
                 <button type="button" onClick={() => handleSort('expires_at')} className="inline-flex items-center font-semibold hover:text-slate-700">
                   Poteče {sortIndicator('expires_at')}
                 </button>

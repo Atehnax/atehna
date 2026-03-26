@@ -97,9 +97,9 @@ export const statusTabs: Array<{ value: StatusTab; label: string }> = [
 
 export const columnWidths = {
   selectAndDelete: '40px',
-  order: '60px',
+  order: '52px',
   customer: '160px',
-  address: '190px',
+  address: '152px',
   type: '105px',
   status: '110px',
   payment: '110px',

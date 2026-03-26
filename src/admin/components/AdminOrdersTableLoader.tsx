@@ -1,9 +1,9 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useEffect, useState } from 'react';
 import { AdminOrdersSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 import type { AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
+import { useProgressiveActivation } from '@/shared/ui/useProgressiveActivation';
 
 const LazyAdminOrdersTable = dynamic(() => import('@/admin/components/AdminOrdersTable'), {
   ssr: false,
@@ -49,16 +49,11 @@ export default function AdminOrdersTableLoader(props: {
   topAction?: React.ReactNode;
   analyticsAppearance?: AnalyticsGlobalAppearance;
 }) {
-  const [isReady, setIsReady] = useState(false);
+  const { isActive, activate } = useProgressiveActivation();
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => setIsReady(true), 220);
-    return () => window.clearTimeout(timer);
-  }, []);
-
-  if (!isReady) {
-    return <AdminOrdersSectionSkeleton />;
-  }
-
-  return <LazyAdminOrdersTable {...props} />;
+  return (
+    <div onPointerDownCapture={activate} onFocusCapture={activate}>
+      {isActive ? <LazyAdminOrdersTable {...props} /> : <AdminOrdersSectionSkeleton />}
+    </div>
+  );
 }

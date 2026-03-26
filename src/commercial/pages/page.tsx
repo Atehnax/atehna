@@ -1,9 +1,18 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import dynamicImport from 'next/dynamic';
 import { getPageContent } from '@/commercial/content/content';
 import { getCatalogCategoryCardsServer } from '@/commercial/catalog/catalogServer';
 import MdxContent from '@/commercial/components/MdxContent';
-import CatalogSearch from '@/commercial/features/products/CatalogSearch';
+
+const ProgressiveCatalogSearch = dynamicImport(() => import('@/commercial/features/products/CatalogSearch'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-400 shadow-sm">
+      Poiščite izdelek...
+    </div>
+  )
+});
 
 export const dynamic = 'force-static';
 
@@ -58,7 +67,7 @@ export default async function HomePage() {
           </Link>
         </div>
         <div className="mt-6">
-          <CatalogSearch />
+          <ProgressiveCatalogSearch />
         </div>
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {categories.map((category) => (

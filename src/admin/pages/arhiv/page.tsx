@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import AdminDeletedArchiveTable from '@/admin/components/AdminDeletedArchiveTable';
+import AdminDeletedArchiveTableLoader from '@/admin/components/AdminDeletedArchiveTableLoader';
 import AdminArchiveTabs from '@/admin/components/AdminArchiveTabs';
 import { AdminArchiveSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 import { fetchArchiveEntries } from '@/shared/server/deletedArchive';
@@ -49,7 +49,7 @@ async function AdminArchiveTableSection() {
     await profileRoutePhase('payload', 'AdminArchiveTableSection:entries', async () => {
       profilePayloadEstimate('AdminArchiveTableSection:entries', compactEntries);
     });
-    return <AdminDeletedArchiveTable initialEntries={compactEntries} />;
+    return <AdminDeletedArchiveTableLoader initialEntries={compactEntries} />;
   });
 }
 

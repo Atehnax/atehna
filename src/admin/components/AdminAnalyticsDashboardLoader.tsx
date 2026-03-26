@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { useEffect, useState } from 'react';
 import { AdminAnalyticsSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 import type { OrdersAnalyticsResponse } from '@/shared/server/orderAnalytics';
 import type { AnalyticsChartRow, AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
@@ -21,6 +22,17 @@ export default function AdminAnalyticsDashboardLoader({
   initialFocusKey?: string;
   initialAppearance: AnalyticsGlobalAppearance;
 }) {
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setIsReady(true), 220);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  if (!isReady) {
+    return <AdminAnalyticsSectionSkeleton />;
+  }
+
   return (
     <LazyAdminAnalyticsDashboard
       initialData={initialData}

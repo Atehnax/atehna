@@ -19,11 +19,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <div className="flex min-h-full w-full flex-1 items-stretch">
         <AdminSidebar onExpandedChange={setIsSidebarExpanded} />
         <main
-          className={`min-w-0 flex-1 overflow-x-hidden px-6 py-6 transition-[filter] duration-300 ease-out ${
+          className={`min-w-0 flex-1 overflow-x-hidden px-6 py-6 transition-[filter] duration-300 ease-out md:px-8 ${
             isSidebarExpanded ? 'blur-[2px]' : 'blur-0'
           }`}
         >
-          {children}
+          <div className="mx-auto w-full max-w-[1200px]">{children}</div>
         </main>
       </div>
     </div>

@@ -454,6 +454,20 @@ export default function AdminOrdersTable({
   }, [documents, attachments]);
 
   const orderRuntimeById = useMemo(() => {
+    if (isServerFilteredMode) {
+      return new Map<number, {
+        createdAtTimestamp: number;
+        createdAtDayTimestamp: number;
+        numericOrderNumber: number;
+        customerLabel: string;
+        addressLabel: string;
+        typeLabel: string;
+        statusLabel: string;
+        paymentLabel: string;
+        searchBlob: string;
+      }>();
+    }
+
     const runtime = new Map<number, {
       createdAtTimestamp: number;
       createdAtDayTimestamp: number;
@@ -493,7 +507,7 @@ export default function AdminOrdersTable({
     });
 
     return runtime;
-  }, [orders]);
+  }, [orders, isServerFilteredMode]);
 
   const filteredAndSortedOrders = useMemo(() => {
     if (isServerFilteredMode) {

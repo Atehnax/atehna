@@ -2469,6 +2469,7 @@ export default function AdminCategoriesMainTable({
   }, [catalog.categories]);
 
   const expandableRowIds = useMemo(() => {
+    if (activeView !== 'table') return [];
     return [
       rootId,
       ...catalog.categories.flatMap((category) => [
@@ -2476,7 +2477,7 @@ export default function AdminCategoriesMainTable({
         ...collectExpandableSubcategoryIds(category.slug, category.subcategories)
       ])
     ];
-  }, [catalog.categories]);
+  }, [activeView, catalog.categories]);
 
   const isRowExpanded = useCallback((id: string) => {
     return id === rootId ? (expanded[rootId] ?? true) : Boolean(expanded[id]);
@@ -2675,7 +2676,7 @@ export default function AdminCategoriesMainTable({
   const isSearchActive = searchQuery.length > 0;
 
   const filteredCategories = useMemo(() => {
-    if (activeView !== 'table') return catalog.categories;
+    if (activeView !== 'table') return [];
     if (!isSearchActive) return catalog.categories;
 
     return catalog.categories
@@ -2700,6 +2701,7 @@ export default function AdminCategoriesMainTable({
   }, [activeView, catalog.categories, isSearchActive, searchQuery]);
 
   const visibleRowIds = useMemo(() => {
+    if (activeView !== 'table') return [];
     const ids: string[] = [rootId];
     const isRootExpanded =
       isSearchActive || (expanded[rootId] ?? true) || closingRowIds.includes(rootId);
@@ -2734,7 +2736,7 @@ export default function AdminCategoriesMainTable({
     });
 
     return ids;
-  }, [closingRowIds, expanded, filteredCategories, isSearchActive]);
+  }, [activeView, closingRowIds, expanded, filteredCategories, isSearchActive]);
 
   const selectableVisibleRowIds = useMemo(() => visibleRowIds, [visibleRowIds]);
   const selectedRowIdSet = useMemo(() => new Set(selectedRows), [selectedRows]);
@@ -2748,13 +2750,14 @@ export default function AdminCategoriesMainTable({
     selectableVisibleRowIds.length > 0 && selectedVisibleCount === selectableVisibleRowIds.length;
 
   useEffect(() => {
+    if (activeView !== 'table') return;
     const validIds = new Set([
       ...catalog.categories.map((category) => catId(category.slug)),
       ...catalog.categories.flatMap((category) => collectSubcategoryIds(category.slug, category.subcategories))
     ]);
 
     setSelectedRows((current) => current.filter((id) => validIds.has(id)));
-  }, [catalog.categories]);
+  }, [activeView, catalog.categories]);
 
   useEffect(() => {
     if (!selectAllRef.current) return;

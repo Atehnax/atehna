@@ -97,49 +97,136 @@ export function AdminOrdersSectionSkeleton() {
 
 export function AdminArchiveSectionSkeleton() {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="mb-4 flex flex-wrap gap-2">
-        <Skeleton className="h-10 w-40 rounded-xl" />
-        <Skeleton className="h-10 w-32 rounded-xl" />
-      </div>
-      <TableSkeleton rows={8} cols={5} className="border-0" />
-    </div>
+    <AdminTableLayout
+      className="border-slate-200 bg-white"
+      headerLeft={<Skeleton className="h-8 min-w-[140px] w-[140px] rounded-lg" />}
+      headerRight={
+        <>
+          <Skeleton className="h-8 w-[92px] rounded-xl" />
+          <Skeleton className="h-8 w-[118px] rounded-xl" />
+        </>
+      }
+      contentClassName="overflow-x-auto"
+    >
+      <table className="w-full table-fixed border-collapse text-sm">
+        <thead>
+          <tr className="h-11 border-b border-slate-200 bg-white">
+            <th className="w-10 px-2 text-center"><Skeleton className="mx-auto h-4 w-4 rounded-sm" /></th>
+            <th className="w-28 px-2 text-left"><Skeleton className="h-3.5 w-12" /></th>
+            <th className="px-2 text-left"><Skeleton className="h-3.5 w-14" /></th>
+            <th className="w-44 px-2 text-left"><Skeleton className="h-3.5 w-16" /></th>
+            <th className="w-44 px-2 text-left"><Skeleton className="h-3.5 w-12" /></th>
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: 10 }).map((_, index) => (
+            <tr key={`archive-row-${index}`} className="h-[41px] border-b border-slate-100 bg-white">
+              <td className="px-0 py-2 text-center"><Skeleton className="mx-auto h-4 w-4 rounded-sm" /></td>
+              <td className="px-0 py-2"><Skeleton className="h-3.5 w-16" /></td>
+              <td className="px-0 py-2"><Skeleton className={`h-3.5 ${index % 2 === 0 ? 'w-52' : 'w-64'}`} /></td>
+              <td className="px-0 py-2"><Skeleton className="h-3.5 w-28" /></td>
+              <td className="px-0 py-2"><Skeleton className="h-3.5 w-28" /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </AdminTableLayout>
   );
 }
 
 export function AdminItemsSectionSkeleton() {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
-          <Skeleton className="h-10 w-56 rounded-xl" />
-          <Skeleton className="h-10 w-40 rounded-xl" />
-          <Skeleton className="h-10 w-28 rounded-xl" />
-        </div>
-        <Skeleton className="h-10 w-40 rounded-xl" />
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-2xl font-semibold text-slate-900">Artikli</h1>
       </div>
-      <TableSkeleton rows={8} cols={6} hasActions className="border-0" />
+      <AdminTableLayout
+        className="border shadow-sm"
+        style={{
+          background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)',
+          borderColor: '#e2e8f0',
+          boxShadow: '0 10px 24px rgba(15,23,42,0.06)'
+        }}
+        headerLeft={
+          <>
+            <Skeleton className="h-8 min-w-[240px] flex-1 rounded-xl" />
+            <Skeleton className="h-8 min-w-[220px] w-[220px] rounded-xl" />
+          </>
+        }
+        headerRight={
+          <>
+            <Skeleton className="h-8 w-[74px] rounded-xl" />
+            <Skeleton className="h-8 w-[84px] rounded-xl" />
+          </>
+        }
+        filterRowLeft={<Skeleton className="h-8 w-[240px] rounded-full" />}
+        filterRowRight={
+          <>
+            <Skeleton className="h-8 w-[64px] rounded-xl" />
+            <Skeleton className="h-8 w-[82px] rounded-xl" />
+          </>
+        }
+        contentClassName="overflow-x-auto"
+        footerRight={<Skeleton className="h-8 w-[82px] rounded-xl" />}
+      >
+        <table className="min-w-[1000px] w-full border-collapse text-sm">
+          <thead>
+            <tr className="h-11 border-b border-slate-200 bg-white">
+              {Array.from({ length: 9 }).map((_, index) => (
+                <th key={`items-head-${index}`} className="px-3 text-center">
+                  <Skeleton className={index === 0 ? 'mx-auto h-4 w-4 rounded-sm' : 'mx-auto h-3.5 w-16'} />
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: 10 }).map((_, rowIndex) => (
+              <tr key={`items-row-${rowIndex}`} className="h-[41px] border-t border-slate-200 bg-white">
+                {Array.from({ length: 9 }).map((_, cellIndex) => (
+                  <td key={`items-cell-${rowIndex}-${cellIndex}`} className="px-3 py-2">
+                    {cellIndex === 8 ? (
+                      <div className="flex items-center justify-center gap-1.5">
+                        <Skeleton className="h-8 w-8 rounded-xl" />
+                        <Skeleton className="h-8 w-8 rounded-xl" />
+                        <Skeleton className="h-8 w-8 rounded-xl" />
+                      </div>
+                    ) : (
+                      <Skeleton className={cellIndex === 0 ? 'mx-auto h-4 w-4 rounded-sm' : 'h-3.5 w-full'} />
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </AdminTableLayout>
     </div>
   );
 }
 
 export function AdminAnalyticsSectionSkeleton() {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-2">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <Skeleton key={index} className="h-9 w-16 rounded-lg" />
-          ))}
+    <div className="min-h-full rounded-2xl border border-slate-200 p-4 text-slate-900">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <Skeleton className="h-7 w-52" />
+          <Skeleton className="mt-1 h-3.5 w-36" />
         </div>
-        <Skeleton className="h-10 w-32 rounded-xl" />
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-8 w-[230px] rounded-lg" />
+          <Skeleton className="h-8 w-[86px] rounded-md" />
+          <Skeleton className="h-8 w-[90px] rounded-md" />
+          <Skeleton className="h-8 w-[78px] rounded-md" />
+        </div>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         {Array.from({ length: 4 }).map((_, index) => (
           <div key={index} className="rounded-2xl border border-slate-200 bg-white p-4">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="mt-3 h-8 w-28" />
-            <Skeleton className="mt-6 h-[300px] w-full rounded-xl" />
+            <Skeleton className="h-5 w-48" />
+            <Skeleton className="mt-2 h-3.5 w-64" />
+            <div className="mt-4 h-[312px] w-full rounded-xl border border-slate-100 p-3">
+              <Skeleton className="h-full w-full rounded-lg" />
+            </div>
           </div>
         ))}
       </div>

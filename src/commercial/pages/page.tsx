@@ -5,13 +5,25 @@ import { getPageContent } from '@/commercial/content/content';
 import { getCatalogCategoryCardsServer } from '@/commercial/catalog/catalogServer';
 import MdxContent from '@/commercial/components/MdxContent';
 
+function CatalogSearchShell() {
+  return (
+    <div className="relative">
+      <input
+        type="search"
+        disabled
+        readOnly
+        value=""
+        aria-label="Poiščite izdelek..."
+        placeholder="Poiščite izdelek..."
+        className="w-full rounded-full border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+      />
+    </div>
+  );
+}
+
 const ProgressiveCatalogSearch = dynamicImport(() => import('@/commercial/features/products/CatalogSearch'), {
   ssr: false,
-  loading: () => (
-    <div className="w-full rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-400 shadow-sm">
-      Poiščite izdelek...
-    </div>
-  )
+  loading: () => <CatalogSearchShell />
 });
 
 export const dynamic = 'force-static';

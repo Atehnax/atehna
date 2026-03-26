@@ -13,15 +13,16 @@ import {
   getCatalogCategoryServer,
   getCatalogCategorySlugsServer
 } from '@/commercial/catalog/catalogServer';
+import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 const ProgressiveAddToCartButton = dynamicImport(() => import('@/commercial/features/products/AddToCartButton'), {
   ssr: false,
   loading: () => (
     <button
       type="button"
       disabled
-      className="mt-4 w-full cursor-default rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-500"
+      className={`mt-4 w-full justify-center ${buttonTokenClasses.primary}`}
     >
-      Dodaj v košarico
+      Dodaj v naročilo
     </button>
   )
 });

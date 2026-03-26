@@ -1,7 +1,6 @@
 import AdminWebsiteAnalyticsDashboard from '@/admin/components/AdminWebsiteAnalyticsDashboard';
 import AdminAnalyticsTopTabs from '@/admin/components/AdminAnalyticsTopTabs';
 import { fetchWebsiteAnalytics } from '@/shared/server/websiteAnalytics';
-import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';
 
 export const metadata = {
@@ -22,38 +21,30 @@ export default async function AdminWebsiteAnalyticsPage({
 }: {
   searchParams?: { from?: string; to?: string };
 }) {
-  return instrumentAdminRouteRender('/admin/analitika/splet', async () => {
-    const from = searchParams?.from ?? '';
+  const from = searchParams?.from ?? '';
   const to = searchParams?.to ?? '';
 
   const fallbackAnalytics = { visitsByDay: [], topPages: [], topProducts: [], returningVisitors7d: 0, retentionByDay: [] };
   const analytics = getDatabaseUrl()
-    ? await profileRoutePhase('db', 'AdminWebsiteAnalyticsPage:fetchWebsiteAnalytics', () =>
-        fetchWebsiteAnalytics({ fromDate: toIsoOrNull(from), toDate: toIsoOrNull(to) })
-      ).catch(() => fallbackAnalytics)
+    ? await fetchWebsiteAnalytics({ fromDate: toIsoOrNull(from), toDate: toIsoOrNull(to) }).catch(() => fallbackAnalytics)
     : fallbackAnalytics;
 
-  await profileRoutePhase('payload', 'AdminWebsiteAnalyticsPage:analytics', async () => {
-    profilePayloadEstimate('AdminWebsiteAnalyticsPage:analytics', analytics);
-  });
-
-    return (
-      <div className="w-full">
+  return (
+    <div className="w-full">
       <div className="mb-4">
         <h1 className="text-2xl font-semibold text-slate-900">Analitika</h1>
         <p className="mt-1 text-sm text-slate-500">Pregled analitike naročil in spletnega obiska.</p>
       </div>
       <AdminAnalyticsTopTabs />
       <AdminWebsiteAnalyticsDashboard
-      visitsByDay={analytics.visitsByDay}
-      topPages={analytics.topPages}
-      topProducts={analytics.topProducts}
-      returningVisitors7d={analytics.returningVisitors7d}
-      retentionByDay={analytics.retentionByDay}
-      initialFrom={from}
-      initialTo={to}
+        visitsByDay={analytics.visitsByDay}
+        topPages={analytics.topPages}
+        topProducts={analytics.topProducts}
+        returningVisitors7d={analytics.returningVisitors7d}
+        retentionByDay={analytics.retentionByDay}
+        initialFrom={from}
+        initialTo={to}
       />
-      </div>
-    );
-  });
+    </div>
+  );
 }

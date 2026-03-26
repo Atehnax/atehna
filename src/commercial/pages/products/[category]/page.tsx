@@ -51,7 +51,7 @@ const getArticleLabel = (count: number) => {
 export default async function CategoryPage({ params }: { params: { category: string } }) {
   const { category, categories } = await getCatalogCategoryPageDataServer(params.category);
 
-  return <div>{/* unchanged JSX below */}
+  return (
     <div className="container-base py-12">
       <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
         <div>
@@ -108,5 +108,5 @@ export default async function CategoryPage({ params }: { params: { category: str
         </aside>
       </div>
     </div>
-  </div>;
+  );
 }

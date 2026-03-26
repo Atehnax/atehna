@@ -13,8 +13,10 @@ import { SegmentedControl } from '@/shared/ui/segmented';
 import { Spinner, TableSkeleton } from '@/shared/ui/loading';
 import type { OrdersAnalyticsResponse } from '@/shared/server/orderAnalytics';
 import type { AnalyticsChartConfig, AnalyticsChartRow, AnalyticsChartType, AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
+import { markRouteEvent, measureRouteDuration, observeInitialLongTasks } from '@/shared/client/routePerformance';
 
 const LazyAdminTools = dynamic(() => import('@/admin/components/analytics/AdminAnalyticsAdminTools'), { ssr: false });
+const ROUTE_ID = '/admin/analitika';
 
 type Props = {
   initialData: OrdersAnalyticsResponse;
@@ -49,6 +51,36 @@ export default function AdminAnalyticsDashboardViewer({ initialData, initialChar
   const modelById = useMemo(() => new Map(chartRenderModels.map((model) => [model.chart.id, model])), [chartRenderModels]);
   const shouldRenderAdminTools =
     showAppearance || reorderMode || builderOpen || confirmDeleteChartId !== null;
+
+  useEffect(() => {
+    markRouteEvent(ROUTE_ID, 'page-shell-visible');
+    markRouteEvent(ROUTE_ID, 'analytics-viewer-mounted', {
+      chartCount: initialCharts.length
+    });
+    measureRouteDuration(ROUTE_ID, 'shell-to-viewer-mounted', 'page-shell-visible', 'analytics-viewer-mounted');
+    const cleanupLongTasks = observeInitialLongTasks(ROUTE_ID);
+    return () => cleanupLongTasks();
+  }, [initialCharts.length]);
+
+  useEffect(() => {
+    const rafId = window.requestAnimationFrame(() => {
+      markRouteEvent(ROUTE_ID, 'primary-content-visible', { chartCards: chartRenderModels.length });
+      measureRouteDuration(ROUTE_ID, 'viewer-mounted-to-primary-content', 'analytics-viewer-mounted', 'primary-content-visible');
+    });
+    return () => window.cancelAnimationFrame(rafId);
+  }, [chartRenderModels.length]);
+
+  useEffect(() => {
+    if (chartRenderModels.length === 0) return;
+    markRouteEvent(ROUTE_ID, 'chart-card-shell-visible', { count: chartRenderModels.length });
+    measureRouteDuration(ROUTE_ID, 'primary-content-to-chart-shell', 'primary-content-visible', 'chart-card-shell-visible');
+  }, [chartRenderModels.length]);
+
+  useEffect(() => {
+    if (loading) return;
+    markRouteEvent(ROUTE_ID, 'heavy-controls-ready', { range });
+    measureRouteDuration(ROUTE_ID, 'primary-content-to-heavy-controls', 'primary-content-visible', 'heavy-controls-ready');
+  }, [loading, range]);
 
   const reloadCharts = async () => {
     const response = await fetch('/api/admin/analytics/charts');

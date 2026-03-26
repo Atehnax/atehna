@@ -13,6 +13,7 @@ import {
   getCatalogCategoryServer,
   getCatalogCategorySlugsServer
 } from '@/commercial/catalog/catalogServer';
+import PublicRoutePerformanceBeacon from '@/commercial/components/PublicRoutePerformanceBeacon';
 import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 const ProgressiveAddToCartButton = dynamicImport(() => import('@/commercial/features/products/AddToCartButton'), {
   ssr: false,
@@ -52,6 +53,7 @@ export default async function CategoryPage({ params }: { params: { category: str
   const { category, categories } = await getCatalogCategoryPageDataServer(params.category);
 
   return <div>{/* unchanged JSX below */}
+    <PublicRoutePerformanceBeacon routeId="/products/[category]" />
     <div className="container-base py-12">
       <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
         <div>

@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 import type { Data, Layout } from 'plotly.js';
+import { markRouteEvent, measureRouteDuration } from '@/shared/client/routePerformance';
 
 const LazyPlotlyClient = dynamic(() => import('@/admin/components/charts/PlotlyClient'), {
   ssr: false
@@ -18,6 +19,7 @@ export default function AnalyticsPlotlySurface({
   onClick: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const hasMarkedFirstRenderRef = useRef(false);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -46,6 +48,12 @@ export default function AnalyticsPlotlySurface({
           useResizeHandler
           style={{ width: '100%', height: 300 }}
           onClick={onClick}
+          onAfterPlot={() => {
+            if (hasMarkedFirstRenderRef.current) return;
+            hasMarkedFirstRenderRef.current = true;
+            markRouteEvent('/admin/analitika', 'first-chart-render-complete');
+            measureRouteDuration('/admin/analitika', 'plotly-import-to-first-chart-render', 'plotly-import-start', 'first-chart-render-complete');
+          }}
         />
       ) : (
         <div className="h-[300px] animate-pulse rounded bg-slate-100" />

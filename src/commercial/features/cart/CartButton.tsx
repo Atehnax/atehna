@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { useCartStore } from '@/commercial/cart/store';
+import { markRouteEvent, measureRouteDuration } from '@/shared/client/routePerformance';
 
 export default function CartButton() {
+  const pathname = usePathname();
   const items = useCartStore((state) => state.items);
   const itemCount = useCartStore((state) => state.getItemCount());
   const openDrawer = useCartStore((state) => state.openDrawer);
@@ -22,6 +25,13 @@ export default function CartButton() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!pathname?.startsWith('/products/')) return;
+    if (!isMounted) return;
+    markRouteEvent('/products/[category]', 'cart-ready', { itemCount });
+    measureRouteDuration('/products/[category]', 'primary-content-to-cart-ready', 'primary-content-visible', 'cart-ready');
+  }, [isMounted, itemCount, pathname]);
 
   return (
     <button

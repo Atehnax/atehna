@@ -1,7 +1,9 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import type { CatalogSearchItem } from '@/commercial/catalog/catalog';
+import { markRouteEvent, measureRouteDuration } from '@/shared/client/routePerformance';
 import ItemSearch from './ItemSearch';
 
 let searchItemsCache: CatalogSearchItem[] | null = null;
@@ -31,8 +33,15 @@ async function loadSearchItems(): Promise<CatalogSearchItem[]> {
 }
 
 export default function CatalogSearch({ placeholder }: { placeholder?: string }) {
+  const pathname = usePathname();
   const [items, setItems] = useState<CatalogSearchItem[]>(() => searchItemsCache ?? []);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!pathname?.startsWith('/products/')) return;
+    markRouteEvent('/products/[category]', 'search-ready', { cachedItems: searchItemsCache?.length ?? 0 });
+    measureRouteDuration('/products/[category]', 'primary-content-to-search-ready', 'primary-content-visible', 'search-ready');
+  }, [pathname]);
 
   const ensureItemsLoaded = useCallback(() => {
     if (searchItemsCache) {

@@ -1,8 +1,8 @@
 'use client';
 
-import AdminCategoriesProgressivePageClient from '@/admin/features/kategorije/components/AdminCategoriesProgressivePageClient';
+import AdminCategoriesMainTable from '@/admin/features/kategorije/components/AdminCategoriesMainTable';
 import type { AdminCategoriesPayload } from '@/admin/features/kategorije/common/types';
 
 export default function AdminCategoriesMillerPageClient({ initialPayload }: { initialPayload: AdminCategoriesPayload }) {
-  return <AdminCategoriesProgressivePageClient initialView="miller" initialPayload={initialPayload} />;
+  return <AdminCategoriesMainTable initialView="miller" initialPayload={initialPayload} />;
 }

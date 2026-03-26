@@ -31,6 +31,7 @@ import { ORDER_STATUS_OPTIONS } from '@/shared/domain/order/orderStatus';
 import { formatSlDate, formatSlDateFromDateInput, formatSlDateTime } from '@/shared/domain/order/dateTime';
 import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, isPaymentStatus } from '@/shared/domain/order/paymentStatus';
 import type { AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
+import { markRouteEvent, measureRouteDuration, observeInitialLongTasks } from '@/shared/client/routePerformance';
 
 import {
   type Attachment,
@@ -85,6 +86,7 @@ type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'cus
 
 const bulkDeleteButtonClass = buttonTokenClasses.danger;
 const PAGE_SIZE_OPTIONS = [50, 100];
+const ROUTE_ID = '/admin/orders';
 const AdminOrdersPreviewChart = dynamic(() => import('@/admin/components/AdminOrdersPreviewChart'), { ssr: false });
 const LazyAdminOrdersPdfCell = dynamic(() => import('@/admin/components/AdminOrdersPdfCell'), {
   ssr: false,
@@ -215,9 +217,37 @@ export default function AdminOrdersTable({
   const statusHeaderMenuRef = useRef<HTMLDivElement>(null);
   const paymentHeaderMenuRef = useRef<HTMLDivElement>(null);
   const hasAutoResetFiltersRef = useRef(false);
+  const hasMarkedTableStructureRef = useRef(false);
 
   const [isStatusHeaderMenuOpen, setIsStatusHeaderMenuOpen] = useState(false);
   const [isPaymentHeaderMenuOpen, setIsPaymentHeaderMenuOpen] = useState(false);
+
+  useEffect(() => {
+    markRouteEvent(ROUTE_ID, 'page-shell-visible');
+    const cleanupLongTasks = observeInitialLongTasks(ROUTE_ID);
+    return () => cleanupLongTasks();
+  }, []);
+
+  useEffect(() => {
+    const rafId = window.requestAnimationFrame(() => {
+      markRouteEvent(ROUTE_ID, 'primary-content-visible', { orders: orders.length });
+      measureRouteDuration(ROUTE_ID, 'shell-to-primary-content', 'page-shell-visible', 'primary-content-visible');
+    });
+    return () => window.cancelAnimationFrame(rafId);
+  }, [orders.length]);
+
+  useEffect(() => {
+    if (hasMarkedTableStructureRef.current) return;
+    hasMarkedTableStructureRef.current = true;
+    markRouteEvent(ROUTE_ID, 'table-structure-rendered');
+    measureRouteDuration(ROUTE_ID, 'primary-content-to-table-structure', 'primary-content-visible', 'table-structure-rendered');
+  }, []);
+
+  useEffect(() => {
+    if (!isChartReady) return;
+    markRouteEvent(ROUTE_ID, 'heavy-controls-ready');
+    measureRouteDuration(ROUTE_ID, 'shell-to-heavy-controls', 'page-shell-visible', 'heavy-controls-ready');
+  }, [isChartReady]);
 
   useEffect(() => {
     if (typeof globalThis.window === 'undefined') return;
@@ -708,6 +738,15 @@ export default function AdminOrdersTable({
     const startIndex = (page - 1) * pageSize;
     return filteredAndSortedOrders.slice(startIndex, startIndex + pageSize);
   }, [filteredAndSortedOrders, isServerFilteredMode, page, pageSize]);
+
+  useEffect(() => {
+    markRouteEvent(ROUTE_ID, 'table-rows-data-ready', {
+      rowsVisible: pagedOrders.length,
+      rowsTotal: filteredAndSortedOrders.length,
+      serverFiltered: isServerFilteredMode
+    });
+    measureRouteDuration(ROUTE_ID, 'table-structure-to-rows-ready', 'table-structure-rendered', 'table-rows-data-ready');
+  }, [filteredAndSortedOrders.length, isServerFilteredMode, pagedOrders.length]);
   const rowDisplayByOrderId = useMemo(() => {
     const next = new Map<number, { dateLabel: string; dateTimeLabel: string; orderAddress: string; typeLabel: string; totalLabel: string }>();
     pagedOrders.forEach((order) => {

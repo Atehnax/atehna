@@ -38,16 +38,18 @@ async function buildSeedItems(): Promise<SeedItemTuple[]> {
   await profileRoutePhase('transform', 'buildSeedItems:flattenIndex', async () => {
     for (const category of catalogIndex) {
       for (const item of sortCatalogItems(category.items ?? [])) {
+        const sku = getCatalogCategoryItemSku(category.slug, item.slug);
+        const imageList = item.images?.length ? item.images : item.image ? [item.image] : [];
         items.push([
-            getCatalogCategoryItemSku(category.slug, item.slug),
+            sku,
             item.name,
             item.description,
             category.title,
             category.id,
             null,
             item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug),
-            getCatalogCategoryItemSku(category.slug, item.slug),
-            item.images?.length ? item.images : item.image ? [item.image] : [],
+            sku,
+            imageList,
             item.discountPct ?? 0,
             item.displayOrder ?? null
           ]);
@@ -55,16 +57,18 @@ async function buildSeedItems(): Promise<SeedItemTuple[]> {
 
       for (const sub of category.subcategories) {
         for (const item of sortCatalogItems(sub.items)) {
+          const sku = getCatalogItemSku(category.slug, sub.slug, item.slug);
+          const imageList = item.images?.length ? item.images : item.image ? [item.image] : [];
           items.push([
-            getCatalogItemSku(category.slug, sub.slug, item.slug),
+            sku,
             item.name,
             item.description,
             `${category.title} / ${sub.title}`,
             category.id,
             sub.id,
             item.price ?? getCatalogItemPrice(category.slug, sub.slug, item.slug),
-            getCatalogItemSku(category.slug, sub.slug, item.slug),
-            item.images?.length ? item.images : item.image ? [item.image] : [],
+            sku,
+            imageList,
             item.discountPct ?? 0,
             item.displayOrder ?? null
           ]);

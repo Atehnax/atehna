@@ -13,6 +13,7 @@ import { useToast } from '@/shared/ui/toast';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
 import { adminTableRowToneClasses, buttonTokenClasses, getAdminStripedRowToneClass } from '@/shared/ui/theme/tokens';
+import { markRouteEvent, measureRouteDuration, observeInitialLongTasks } from '@/shared/client/routePerformance';
 
 type Item = {
   id: string;
@@ -51,6 +52,7 @@ type StatusTab = 'active' | 'inactive';
 
 const STORAGE_KEY = 'admin-items-crud-v3';
 const PAGE_SIZE_OPTIONS = [50, 100];
+const ROUTE_ID = '/admin/artikli';
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }).format(value);
@@ -213,7 +215,22 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const hasCompletedInitialStorageHydrationRef = useRef(false);
   const pendingStorageWriteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasMarkedTableStructureRef = useRef(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    markRouteEvent(ROUTE_ID, 'page-shell-visible', { seedCount: seedItems.length });
+    const cleanupLongTasks = observeInitialLongTasks(ROUTE_ID);
+    return () => cleanupLongTasks();
+  }, [seedItems.length]);
+
+  useEffect(() => {
+    const rafId = window.requestAnimationFrame(() => {
+      markRouteEvent(ROUTE_ID, 'primary-content-visible');
+      measureRouteDuration(ROUTE_ID, 'shell-to-primary-content', 'page-shell-visible', 'primary-content-visible');
+    });
+    return () => window.cancelAnimationFrame(rafId);
+  }, []);
 
   useEffect(() => {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -351,6 +368,28 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
     const startIndex = (page - 1) * pageSize;
     return filteredItems.slice(startIndex, startIndex + pageSize);
   }, [filteredItems, page, pageSize]);
+
+  useEffect(() => {
+    if (hasMarkedTableStructureRef.current) return;
+    hasMarkedTableStructureRef.current = true;
+    markRouteEvent(ROUTE_ID, 'table-structure-rendered');
+    measureRouteDuration(ROUTE_ID, 'primary-content-to-table-structure', 'primary-content-visible', 'table-structure-rendered');
+  }, []);
+
+  useEffect(() => {
+    markRouteEvent(ROUTE_ID, 'table-rows-data-ready', {
+      rowsVisible: pagedItems.length,
+      rowsTotal: filteredItems.length
+    });
+    measureRouteDuration(ROUTE_ID, 'table-structure-to-rows-ready', 'table-structure-rendered', 'table-rows-data-ready');
+  }, [filteredItems.length, pagedItems.length]);
+
+  useEffect(() => {
+    markRouteEvent(ROUTE_ID, 'heavy-controls-ready', {
+      categories: categories.length
+    });
+    measureRouteDuration(ROUTE_ID, 'shell-to-heavy-controls', 'page-shell-visible', 'heavy-controls-ready');
+  }, [categories.length]);
 
   const visibleIds = useMemo(() => pagedItems.map((item) => item.id), [pagedItems]);
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);

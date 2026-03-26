@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { usePathname } from 'next/navigation';
 import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 
 function CatalogSearchShell() {
@@ -52,6 +55,19 @@ const navItems = [
 ];
 
 export default function SiteHeader() {
+  const pathname = usePathname();
+  const isAdminPath = pathname.startsWith('/admin');
+
+  if (isAdminPath) {
+    return (
+      <header className="border-b border-slate-200 bg-white/80 backdrop-blur">
+        <div className="container-base py-4 text-lg font-semibold tracking-tight text-slate-900">
+          Atehna Šolska tehnika | Administracija
+        </div>
+      </header>
+    );
+  }
+
   return (
     <header className="border-b border-slate-200 bg-white/80 backdrop-blur">
       <div className="container-base flex items-center gap-4 py-4">

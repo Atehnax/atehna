@@ -7,6 +7,7 @@ import { Spinner } from '@/shared/ui/loading';
 import { useToast } from '@/shared/ui/toast';
 
 const rootLinks = [
+  { href: '/', label: 'Prva stran', icon: 'home' },
   { href: '/admin/orders', label: 'Naročila', icon: 'orders' },
   { href: '/admin/artikli', label: 'Artikli', icon: 'products' },
   { href: '/admin/kategorije', label: 'Kategorije', icon: 'categories' },
@@ -19,8 +20,9 @@ const rootLinks = [
 type SidebarIconType = (typeof rootLinks)[number]['icon'] | 'logout';
 
 function SidebarIcon({ type }: { type: SidebarIconType }) {
-  if (type === 'orders') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3 4h2l1.1 8h8.6L16 6H6"/><circle cx="8" cy="15.5" r="1"/><circle cx="13.5" cy="15.5" r="1"/></svg>;
-  if (type === 'products') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3.5 6.5 10 3l6.5 3.5V14L10 17l-6.5-3z"/><path d="M10 3v14"/></svg>;
+  if (type === 'home') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3.5 9.5 10 4l6.5 5.5"/><path d="M5.5 8.5V16h9V8.5"/></svg>;
+  if (type === 'orders') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="4" y="3" width="12" height="14" rx="2.2"/><path d="M7 7h6"/><path d="M7 10.5h4.5"/><path d="M13 10.5h.01"/><path d="M7 14h4.5"/><path d="M13 14h.01"/></svg>;
+  if (type === 'products') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="4" y="4" width="12" height="12" rx="2"/><path d="M7 8h6"/><path d="M7 12h6"/></svg>;
   if (type === 'categories') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3.5 4.5h5v4h-5z"/><path d="M11.5 4.5H16v4h-4.5z"/><path d="M7 8.5v2h6"/><path d="M10 10.5v5"/><path d="M7.5 13.5h5v3h-5z"/></svg>;
   if (type === 'analytics') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3 16h14"/><path d="M5.5 13V9.5"/><path d="M10 13V6"/><path d="M14.5 13V4"/></svg>;
   if (type === 'customers') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="7" cy="7" r="2.3"/><circle cx="13.2" cy="8" r="1.8"/><path d="M3.2 15c.9-2 2.2-3 3.8-3s2.9 1 3.8 3"/><path d="M11.4 14.3c.5-1.3 1.4-2 2.6-2"/></svg>;
@@ -31,10 +33,7 @@ function SidebarIcon({ type }: { type: SidebarIconType }) {
 
 function ActiveChevron({ visible }: { visible: boolean }) {
   return (
-    <span
-      className={`ml-auto overflow-hidden text-[color:var(--blue-500)] transition-all duration-200 ${visible ? 'max-w-4 opacity-100' : 'max-w-0 opacity-0'}`}
-      aria-hidden={!visible}
-    >
+    <span className={`ml-auto overflow-hidden text-[color:var(--blue-500)] transition-all duration-200 ${visible ? 'max-w-4 opacity-100' : 'max-w-0 opacity-0'}`} aria-hidden={!visible}>
       &gt;
     </span>
   );
@@ -73,11 +72,13 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
   };
 
   return (
-    <div className="relative z-30 min-h-full w-16 shrink-0 self-stretch overflow-visible">
+    <div
+      className="relative z-30 min-h-full w-72 shrink-0 self-stretch overflow-hidden border-r border-[color:var(--semantic-info-border)] bg-slate-50/55"
+      onMouseEnter={() => setExpanded(true)}
+      onMouseLeave={() => setExpanded(false)}
+    >
       <aside
-        className={`absolute inset-y-0 left-0 overflow-y-auto overflow-x-hidden border-r border-[color:var(--semantic-info-border)] bg-slate-50/90 shadow-sm transition-[width] duration-300 ease-out ${isExpanded ? 'w-72' : 'w-16'}`}
-        onMouseEnter={() => setExpanded(true)}
-        onMouseLeave={() => setExpanded(false)}
+        className={`absolute inset-y-0 left-0 overflow-y-auto overflow-x-hidden bg-slate-50/90 shadow-sm transition-[width] duration-300 ease-out ${isExpanded ? 'w-72' : 'w-16'}`}
       >
         <div className="flex h-full min-h-full flex-col px-2 py-6">
           <div className={`mb-4 flex transition-all duration-200 ${isExpanded ? 'justify-start px-2' : 'justify-center px-0'}`}>
@@ -91,7 +92,9 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
 
           <nav className="space-y-1">
             {rootLinks.map((link) => {
-              const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
+              const isHome = link.href === '/';
+              const isActive = isHome ? pathname === '/' : pathname === link.href || pathname.startsWith(`${link.href}/`);
+
               return (
                 <Link
                   key={link.href}
@@ -99,7 +102,7 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
                   prefetch={false}
                   onMouseEnter={() => router.prefetch(link.href)}
                   onFocus={() => router.prefetch(link.href)}
-                  className={`flex items-center rounded-xl py-2 text-sm transition-all duration-200 ${isExpanded ? 'gap-2 px-2.5 pr-3' : 'justify-center px-0'} ${
+                  className={`flex rounded-xl py-2 text-sm transition-all duration-200 ${isExpanded ? 'w-full items-center gap-2 px-2.5 pr-3' : 'mx-auto grid h-9 w-9 place-items-center'} ${
                     isActive
                       ? 'bg-white/75 font-semibold text-[color:var(--blue-500)]'
                       : 'text-slate-900 hover:bg-white/75 hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]'
@@ -124,7 +127,7 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
             type="button"
             onClick={() => void handleLogout()}
             disabled={isLoggingOut}
-            className={`mt-auto flex items-center rounded-xl py-2 text-sm transition-all duration-200 disabled:opacity-60 ${isExpanded ? 'gap-2 px-2.5 pr-3' : 'justify-center px-0'} text-slate-900 hover:bg-white/75 hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]`}
+            className={`mt-auto flex rounded-xl py-2 text-sm transition-all duration-200 disabled:opacity-60 ${isExpanded ? 'w-full items-center gap-2 px-2.5 pr-3' : 'mx-auto grid h-9 w-9 place-items-center'} text-slate-900 hover:bg-white/75 hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]`}
           >
             <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
               <SidebarIcon type="logout" />

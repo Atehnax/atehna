@@ -7,10 +7,10 @@ import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 
 const rootLinks = [
-  { href: '/admin/analitika', label: 'Analitika', icon: 'chart' },
+  { href: '/admin/orders', label: 'Naročila', icon: 'cart' },
   { href: '/admin/artikli', label: 'Artikli', icon: 'box' },
   { href: '/admin/kategorije', label: 'Kategorije', icon: 'tree' },
-  { href: '/admin/orders', label: 'Naročila', icon: 'cart' },
+  { href: '/admin/analitika', label: 'Analitika', icon: 'chart' },
   { href: '/admin/kupci', label: 'Seznam kupcev', icon: 'users' },
   { href: '/admin/celostna-podoba', label: 'Vizualna podoba', icon: 'palette' },
   { href: '/admin/arhiv', label: 'Arhiv', icon: 'archive' }
@@ -26,26 +26,17 @@ function SidebarIcon({ type }: { type: (typeof rootLinks)[number]['icon'] }) {
   return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 5h12v12H4z"/><path d="M7 5V3h6v2"/></svg>;
 }
 
-
-function SidebarHandle({ isCollapsed, onToggle }: { isCollapsed: boolean; onToggle: () => void }) {
-  return (
-    <button
-      type="button"
-      aria-label={isCollapsed ? 'Odpri meni' : 'Skrij meni'}
-      onClick={onToggle}
-      className="absolute right-[-14px] top-3 z-40 inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[color:var(--semantic-info-border)] bg-white text-sm text-[color:var(--semantic-info)] shadow-sm transition hover:bg-[color:var(--blue-100)]"
-    >
-      <span aria-hidden="true">{isCollapsed ? '❯' : '❮'}</span>
-    </button>
-  );
-}
-
-export default function AdminSidebar() {
+export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: (expanded: boolean) => void }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { toast } = useToast();
+
+  const setExpanded = (expanded: boolean) => {
+    setIsExpanded(expanded);
+    onExpandedChange?.(expanded);
+  };
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -68,57 +59,74 @@ export default function AdminSidebar() {
   };
 
   return (
-    <div className={`relative min-h-full self-stretch shrink-0 overflow-visible transition-all duration-300 ${isCollapsed ? 'w-10' : 'w-[19rem]'}`}>
-      <aside className="h-full min-h-full overflow-y-auto overflow-x-visible border-r border-[color:var(--semantic-info-border)] bg-slate-50/90 shadow-sm">
-        <div className={`relative z-10 flex h-full min-h-full flex-col px-3 py-10 transition-opacity duration-200 ${isCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100'}`}>
-          <div className="mb-5 px-2 pr-4">
-            <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[color:var(--blue-500)]">Administracija</p>
+    <div
+      className={`min-h-full self-stretch shrink-0 overflow-hidden border-r border-[color:var(--semantic-info-border)] bg-slate-50/90 shadow-sm transition-[width] duration-300 ease-out ${isExpanded ? 'w-72' : 'w-16'}`}
+      onMouseEnter={() => setExpanded(true)}
+      onMouseLeave={() => setExpanded(false)}
+    >
+      <aside className="h-full min-h-full overflow-y-auto overflow-x-hidden">
+        <div className="flex h-full min-h-full flex-col px-2 py-6">
+          <div className={`mb-4 flex transition-all duration-200 ${isExpanded ? 'justify-start px-2' : 'justify-center px-0'}`}>
+            <p
+              className={`whitespace-nowrap text-sm font-semibold uppercase tracking-[0.12em] text-[color:var(--blue-500)] transition-all duration-200 ${isExpanded ? 'max-w-[12rem] translate-x-0 opacity-100' : 'max-w-0 -translate-x-1 opacity-0'}`}
+              aria-hidden={!isExpanded}
+            >
+              Administracija
+            </p>
           </div>
 
-          <div className="flex h-full min-h-full flex-col">
-            <nav className="space-y-1">
-              {rootLinks.map((link) => {
-                const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
-                return (
-                  <div key={link.href}>
-                    <Link
-                      href={link.href}
-                      prefetch={false}
-                      onMouseEnter={() => router.prefetch(link.href)}
-                      onFocus={() => router.prefetch(link.href)}
-                      className={`flex items-center gap-2 rounded-xl px-2.5 py-2 pr-4 text-sm transition ${
-                        isActive
-                          ? 'font-semibold text-[color:var(--blue-500)]'
-                          : 'text-[color:var(--semantic-info)] hover:bg-white/75 hover:text-[color:var(--blue-500)]'
-                      }`}
-                    >
-                      <SidebarIcon type={link.icon} />
-                      <span>{link.label}</span>
-                    </Link>
-                  </div>
-                );
-              })}
-            </nav>
+          <nav className="space-y-1">
+            {rootLinks.map((link) => {
+              const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  prefetch={false}
+                  onMouseEnter={() => router.prefetch(link.href)}
+                  onFocus={() => router.prefetch(link.href)}
+                  className={`group relative flex items-center rounded-xl py-2 text-sm transition-colors duration-200 ${isExpanded ? 'gap-2 px-2.5 pr-4' : 'justify-center px-0'} ${
+                    isActive
+                      ? 'font-semibold text-[color:var(--blue-500)]'
+                      : 'text-slate-900 hover:bg-white/75 hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]'
+                  }`}
+                >
+                  <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
+                    <SidebarIcon type={link.icon} />
+                  </span>
+                  <span
+                    className={`overflow-hidden whitespace-nowrap transition-all duration-200 ${isExpanded ? 'max-w-[12rem] translate-x-0 opacity-100' : 'pointer-events-none max-w-0 -translate-x-1 opacity-0'}`}
+                    aria-hidden={!isExpanded}
+                  >
+                    {link.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </nav>
 
-            <div className="mt-3 border-t border-[color:var(--semantic-info-border)] pt-3">
-              <button
-                type="button"
-                onClick={() => void handleLogout()}
-                disabled={isLoggingOut}
-                className="flex w-full items-center gap-2 rounded-xl border border-slate-300 bg-white/85 px-2.5 py-2 pr-4 text-sm font-semibold text-slate-700 transition hover:bg-white disabled:opacity-60"
+          <div className="mt-auto border-t border-[color:var(--semantic-info-border)] pt-3">
+            <button
+              type="button"
+              onClick={() => void handleLogout()}
+              disabled={isLoggingOut}
+              className={`group flex w-full items-center rounded-xl border border-slate-300 bg-white/85 py-2 text-sm font-semibold text-slate-900 transition-all duration-200 hover:text-[color:var(--blue-500)] hover:bg-white disabled:opacity-60 ${isExpanded ? 'gap-2 px-2.5 pr-4 justify-start' : 'justify-center px-0'}`}
+            >
+              <svg viewBox="0 0 20 20" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.7">
+                <path d="M12 4h4v12h-4"/>
+                <path d="M8 6L4 10l4 4"/>
+                <path d="M4 10h9"/>
+              </svg>
+              <span
+                className={`overflow-hidden whitespace-nowrap transition-all duration-200 ${isExpanded ? 'max-w-[12rem] translate-x-0 opacity-100' : 'pointer-events-none max-w-0 -translate-x-1 opacity-0'}`}
+                aria-hidden={!isExpanded}
               >
-                <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7">
-                  <path d="M12 4h4v12h-4"/>
-                  <path d="M8 6L4 10l4 4"/>
-                  <path d="M4 10h9"/>
-                </svg>
-                <span>{isLoggingOut ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Odjava ...</span> : 'Odjava'}</span>
-              </button>
-            </div>
+                {isLoggingOut ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Odjava ...</span> : 'Odjava'}
+              </span>
+            </button>
           </div>
         </div>
       </aside>
-      <SidebarHandle isCollapsed={isCollapsed} onToggle={() => setIsCollapsed((current) => !current)} />
     </div>
   );
 }

@@ -1,9 +1,27 @@
-'use client';
-
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import CartButton from '@/commercial/features/cart/CartButton';
-import CatalogSearch from '@/commercial/features/products/CatalogSearch';
+import dynamic from 'next/dynamic';
+
+const ProgressiveCatalogSearch = dynamic(() => import('@/commercial/features/products/CatalogSearch'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-400 shadow-sm">
+      Poiščite izdelek...
+    </div>
+  )
+});
+
+const ProgressiveCartButton = dynamic(() => import('@/commercial/features/cart/CartButton'), {
+  ssr: false,
+  loading: () => (
+    <button
+      type="button"
+      disabled
+      className="relative rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm"
+    >
+      <span>Košarica</span>
+    </button>
+  )
+});
 
 const navItems = [
   { href: '/products', label: 'Izdelki' },
@@ -13,23 +31,15 @@ const navItems = [
 ];
 
 export default function SiteHeader() {
-  const router = useRouter();
-
   return (
     <header className="border-b border-slate-200 bg-white/80 backdrop-blur">
       <div className="container-base flex items-center gap-4 py-4">
-        <Link
-          href="/"
-          prefetch={false}
-          onMouseEnter={() => router.prefetch('/')}
-          onFocus={() => router.prefetch('/')}
-          className="text-lg font-semibold tracking-tight text-slate-900"
-        >
+        <Link href="/" prefetch={false} className="text-lg font-semibold tracking-tight text-slate-900">
           Atehna
           <span className="ml-2 text-sm font-medium text-brand-600">Šolska tehnika</span>
         </Link>
         <div className="flex-1">
-          <CatalogSearch />
+          <ProgressiveCatalogSearch />
         </div>
         <div className="flex items-center gap-3">
           <details className="relative">
@@ -43,8 +53,6 @@ export default function SiteHeader() {
                   key={item.href}
                   href={item.href}
                   prefetch={false}
-                  onMouseEnter={() => router.prefetch(item.href)}
-                  onFocus={() => router.prefetch(item.href)}
                   className="block rounded-lg px-3 py-2 text-slate-700 transition hover:bg-[color:var(--hover-neutral)] hover:text-brand-600"
                 >
                   {item.label}
@@ -52,7 +60,7 @@ export default function SiteHeader() {
               ))}
             </div>
           </details>
-          <CartButton />
+          <ProgressiveCartButton />
         </div>
       </div>
     </header>

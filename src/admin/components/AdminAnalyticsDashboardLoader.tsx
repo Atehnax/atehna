@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { AdminAnalyticsSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 import type { OrdersAnalyticsResponse } from '@/shared/server/orderAnalytics';
 import type { AnalyticsChartRow, AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
+import { useProgressiveActivation } from '@/shared/ui/useProgressiveActivation';
 
 const LazyAdminAnalyticsDashboard = dynamic(() => import('@/admin/components/AdminAnalyticsDashboard'), {
   loading: () => <AdminAnalyticsSectionSkeleton />,
@@ -21,12 +22,20 @@ export default function AdminAnalyticsDashboardLoader({
   initialFocusKey?: string;
   initialAppearance: AnalyticsGlobalAppearance;
 }) {
+  const { isActive, activate } = useProgressiveActivation();
+
   return (
-    <LazyAdminAnalyticsDashboard
-      initialData={initialData}
-      initialCharts={initialCharts}
-      initialFocusKey={initialFocusKey}
-      initialAppearance={initialAppearance}
-    />
+    <div onPointerDownCapture={activate} onFocusCapture={activate}>
+      {isActive ? (
+        <LazyAdminAnalyticsDashboard
+          initialData={initialData}
+          initialCharts={initialCharts}
+          initialFocusKey={initialFocusKey}
+          initialAppearance={initialAppearance}
+        />
+      ) : (
+        <AdminAnalyticsSectionSkeleton />
+      )}
+    </div>
   );
 }

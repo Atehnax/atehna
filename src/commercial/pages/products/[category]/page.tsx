@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import dynamicImport from 'next/dynamic';
 import {
   formatCatalogPrice,
   getCatalogCategoryItemPrice,
@@ -12,7 +13,18 @@ import {
   getCatalogCategoryServer,
   getCatalogCategorySlugsServer
 } from '@/commercial/catalog/catalogServer';
-import AddToCartButton from '@/commercial/features/products/AddToCartButton';
+const ProgressiveAddToCartButton = dynamicImport(() => import('@/commercial/features/products/AddToCartButton'), {
+  ssr: false,
+  loading: () => (
+    <button
+      type="button"
+      disabled
+      className="mt-4 w-full cursor-default rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-500"
+    >
+      Dodaj v košarico
+    </button>
+  )
+});
 
 export const dynamic = 'force-static';
 
@@ -81,7 +93,7 @@ export default async function CategoryPage({ params }: { params: { category: str
                         <p className="mt-2 text-sm text-slate-600">{item.description}</p>
                         <p className="mt-3 text-sm font-semibold text-slate-900">{price}</p>
                       </div>
-                      <AddToCartButton sku={itemSku} name={item.name} price={finalPrice} category={category.title} className="mt-4 w-full justify-center" />
+                      <ProgressiveAddToCartButton sku={itemSku} name={item.name} price={finalPrice} category={category.title} className="mt-4 w-full justify-center" />
                     </div>;
                   })}
                 </div>

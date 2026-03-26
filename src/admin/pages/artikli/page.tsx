@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import AdminItemsManager from '@/admin/features/artikli/components/AdminItemsManager';
+import AdminItemsManagerLoader from '@/admin/components/AdminItemsManagerLoader';
 import { AdminItemsSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 import {
   getCatalogCategoryItemPrice,
@@ -82,7 +82,7 @@ async function buildSeedItems(): Promise<SeedItemTuple[]> {
 async function AdminItemsManagerSection() {
   return instrumentAdminRouteRender('/admin/artikli', async () => {
     const seedItems = await buildSeedItems();
-    return <AdminItemsManager seedItems={seedItems} />;
+    return <AdminItemsManagerLoader seedItems={seedItems} />;
   });
 }
 

@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
 import Skeleton from '@/shared/ui/loading/skeleton';
 import TableSkeleton from '@/shared/ui/loading/table-skeleton';
+import { columnWidths } from '@/admin/components/adminOrdersTableUtils';
 
 type SectionProps = {
   title?: string;
@@ -25,17 +26,72 @@ function AdminSectionShell({ title, description, children }: SectionProps) {
 
 export function AdminOrdersSectionSkeleton() {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
-          <Skeleton className="h-10 w-44 rounded-xl" />
-          <Skeleton className="h-10 w-36 rounded-xl" />
-          <Skeleton className="h-10 w-32 rounded-xl" />
-        </div>
-        <Skeleton className="h-10 w-44 rounded-xl" />
-      </div>
-      <TableSkeleton rows={8} cols={8} hasActions className="border-0" />
-    </div>
+    <AdminTableLayout
+      className="border"
+      style={{
+        background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)',
+        borderColor: '#e2e8f0',
+        boxShadow: '0 10px 24px rgba(15,23,42,0.06)'
+      }}
+      contentClassName="overflow-x-auto"
+      headerLeft={
+        <>
+          <Skeleton className="h-8 min-w-[175px] rounded-xl" />
+          <Skeleton className="h-8 min-w-[260px] flex-1 rounded-xl" />
+          <Skeleton className="h-8 min-w-[260px] rounded-xl" />
+        </>
+      }
+      headerRight={
+        <>
+          <Skeleton className="h-8 w-[76px] rounded-xl" />
+          <Skeleton className="h-8 w-[140px] rounded-xl" />
+        </>
+      }
+      filterRowLeft={<Skeleton className="h-8 w-[220px] rounded-xl" />}
+      filterRowRight={
+        <>
+          <Skeleton className="h-8 w-[130px] rounded-xl" />
+          <Skeleton className="h-8 w-[90px] rounded-xl" />
+        </>
+      }
+      footerRight={<Skeleton className="h-8 w-[90px] rounded-xl" />}
+    >
+      <table className="min-w-[1180px] w-full border-collapse">
+        <colgroup>
+          <col style={{ width: columnWidths.selectAndDelete }} />
+          <col style={{ width: columnWidths.order }} />
+          <col style={{ width: columnWidths.date }} />
+          <col style={{ width: columnWidths.customer }} />
+          <col style={{ width: columnWidths.address }} />
+          <col style={{ width: columnWidths.type }} />
+          <col style={{ width: columnWidths.status }} />
+          <col style={{ width: columnWidths.payment }} />
+          <col style={{ width: columnWidths.total }} />
+          <col style={{ width: columnWidths.documents }} />
+          <col style={{ width: columnWidths.edit }} />
+        </colgroup>
+        <thead>
+          <tr className="h-11 border-b border-slate-200 bg-white">
+            {Array.from({ length: 11 }).map((_, index) => (
+              <th key={`orders-head-${index}`} className="px-2 text-center">
+                <Skeleton className={index === 0 ? 'mx-auto h-4 w-4 rounded-sm' : 'mx-auto h-3 w-16'} />
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: 10 }).map((_, rowIndex) => (
+            <tr key={`orders-row-${rowIndex}`} className="h-[58px] border-b border-slate-200 bg-white">
+              {Array.from({ length: 11 }).map((_, cellIndex) => (
+                <td key={`orders-cell-${rowIndex}-${cellIndex}`} className="px-2 py-2">
+                  <Skeleton className={cellIndex === 0 ? 'mx-auto h-4 w-4 rounded-sm' : 'h-4 w-full'} />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </AdminTableLayout>
   );
 }
 
@@ -78,12 +134,12 @@ export function AdminAnalyticsSectionSkeleton() {
         </div>
         <Skeleton className="h-10 w-32 rounded-xl" />
       </div>
-      <div className="grid gap-4 lg:grid-cols-3">
-        {Array.from({ length: 3 }).map((_, index) => (
+      <div className="grid gap-4 md:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, index) => (
           <div key={index} className="rounded-2xl border border-slate-200 bg-white p-4">
             <Skeleton className="h-4 w-24" />
             <Skeleton className="mt-3 h-8 w-28" />
-            <Skeleton className="mt-6 h-40 w-full rounded-xl" />
+            <Skeleton className="mt-6 h-[300px] w-full rounded-xl" />
           </div>
         ))}
       </div>

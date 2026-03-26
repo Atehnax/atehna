@@ -72,11 +72,6 @@ import {
 import { getAdminCategoriesSessionPayload, setAdminCategoriesSessionPayload } from '../common/client-session';
 import { sortCatalogItems } from '@/commercial/catalog/catalogUtils';
 import { Button } from '@/shared/ui/button';
-import {
-  AdminCategoriesMillerContentSkeleton,
-  AdminCategoriesPreviewContentSkeleton,
-  AdminCategoriesTableContentSkeleton
-} from '@/admin/components/AdminPageSkeletons';
 import { IconButton } from '@/shared/ui/icon-button';
 import { Chip } from '@/shared/ui/badge';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
@@ -3489,9 +3484,13 @@ export default function AdminCategoriesMainTable({
         </div>
       </LazyConfirmDialog> : null}
 
-      {loading && activeView === 'table' ? <AdminCategoriesTableContentSkeleton /> : null}
+      {loading ? (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600">
+          Nalaganje podatkov kategorij …
+        </div>
+      ) : null}
 
-      {!loading && activeView === 'table' ? (
+      {activeView === 'table' ? (
         <AdminCategoriesTableView
           activeView={activeView}
           query={query}
@@ -3544,9 +3543,7 @@ export default function AdminCategoriesMainTable({
         />
       ) : null}
 
-      {loading && activeView === 'preview' ? <AdminCategoriesPreviewContentSkeleton /> : null}
-
-      {!loading && activeView === 'preview' ? (
+      {activeView === 'preview' ? (
         <AdminCategoriesPreview
         activeView={activeView}
         tableError={tableError}
@@ -3635,9 +3632,7 @@ export default function AdminCategoriesMainTable({
         </ul>
       </LazyConfirmDialog> : null}
 
-      {loading && activeView === 'miller' ? <AdminCategoriesMillerContentSkeleton /> : null}
-
-      {!loading && activeView === 'miller' ? (
+      {activeView === 'miller' ? (
         <AdminCategoriesMiller
         activeView={activeView}
         millerDirty={millerDirty}

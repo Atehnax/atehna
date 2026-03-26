@@ -1,7 +1,5 @@
-import { Suspense } from 'react';
 import AdminOrdersTableLoader from '@/admin/components/AdminOrdersTableLoader';
 import AdminCreateDraftOrderButton from '@/admin/components/AdminCreateDraftOrderButton';
-import { AdminOrdersSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 import {
   type OrderRow,
   fetchOrdersListPage
@@ -232,7 +230,7 @@ async function AdminOrdersTableSection({
   });
 }
 
-export default function AdminOrdersPage({
+export default async function AdminOrdersPage({
   searchParams
 }: {
   searchParams?: {
@@ -255,9 +253,7 @@ export default function AdminOrdersPage({
           </div>
         </div>
 
-        <Suspense fallback={<AdminOrdersSectionSkeleton />}>
-          <AdminOrdersTableSection searchParams={searchParams} />
-        </Suspense>
+        {await AdminOrdersTableSection({ searchParams })}
       </div>
     </div>
   );

@@ -1,7 +1,5 @@
-import { Suspense } from 'react';
 import AdminDeletedArchiveTableLoader from '@/admin/components/AdminDeletedArchiveTableLoader';
 import AdminArchiveTabs from '@/admin/components/AdminArchiveTabs';
-import { AdminArchiveSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 import { fetchArchiveEntries } from '@/shared/server/deletedArchive';
 import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';
@@ -53,7 +51,7 @@ async function AdminArchiveTableSection() {
   });
 }
 
-export default function AdminArchivePage() {
+export default async function AdminArchivePage() {
   return (
     <div className="space-y-4">
       <div>
@@ -61,9 +59,7 @@ export default function AdminArchivePage() {
         <p className="mt-1 text-sm text-slate-600">Izbrisani zapisi se hranijo 60 dni, nato se trajno odstranijo.</p>
       </div>
       <AdminArchiveTabs />
-      <Suspense fallback={<AdminArchiveSectionSkeleton />}>
-        <AdminArchiveTableSection />
-      </Suspense>
+      {await AdminArchiveTableSection()}
     </div>
   );
 }

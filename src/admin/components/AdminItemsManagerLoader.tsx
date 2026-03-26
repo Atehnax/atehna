@@ -1,13 +1,4 @@
-'use client';
-
-import dynamic from 'next/dynamic';
-import { AdminItemsSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
-import { useProgressiveActivation } from '@/shared/ui/useProgressiveActivation';
-
-const LazyAdminItemsManager = dynamic(() => import('@/admin/features/artikli/components/AdminItemsManager'), {
-  ssr: false,
-  loading: () => <AdminItemsSectionSkeleton />
-});
+import AdminItemsManager from '@/admin/features/artikli/components/AdminItemsManager';
 
 type SeedItemTuple = [
   id: string,
@@ -24,11 +15,5 @@ type SeedItemTuple = [
 ];
 
 export default function AdminItemsManagerLoader({ seedItems }: { seedItems: SeedItemTuple[] }) {
-  const { isActive, activate } = useProgressiveActivation();
-
-  return (
-    <div onPointerDownCapture={activate} onFocusCapture={activate}>
-      {isActive ? <LazyAdminItemsManager seedItems={seedItems} /> : <AdminItemsSectionSkeleton />}
-    </div>
-  );
+  return <AdminItemsManager seedItems={seedItems} />;
 }

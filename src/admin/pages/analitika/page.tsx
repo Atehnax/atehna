@@ -1,7 +1,5 @@
-import { Suspense } from 'react';
 import AdminAnalyticsDashboardLoader from '@/admin/components/AdminAnalyticsDashboardLoader';
 import AdminAnalyticsTopTabs from '@/admin/components/AdminAnalyticsTopTabs';
-import { AdminAnalyticsSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 import { emptyOrdersAnalyticsResponse, fetchOrdersAnalytics } from '@/shared/server/orderAnalytics';
 import { fetchAnalyticsCharts, fetchGlobalAnalyticsAppearance } from '@/shared/server/analyticsCharts';
 import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
@@ -51,7 +49,7 @@ async function AdminAnalyticsDashboardSection({
   });
 }
 
-export default function AdminAnalyticsIndexPage({
+export default async function AdminAnalyticsIndexPage({
   searchParams
 }: {
   searchParams?: { range?: string; from?: string; to?: string; grouping?: string; view?: string; focus?: string };
@@ -63,9 +61,7 @@ export default function AdminAnalyticsIndexPage({
         <p className="mt-1 text-sm text-slate-500">Pregled analitike naročil in spletnega obiska.</p>
       </div>
       <AdminAnalyticsTopTabs />
-      <Suspense fallback={<AdminAnalyticsSectionSkeleton />}>
-        <AdminAnalyticsDashboardSection searchParams={searchParams} />
-      </Suspense>
+      {await AdminAnalyticsDashboardSection({ searchParams })}
     </div>
   );
 }

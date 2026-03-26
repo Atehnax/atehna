@@ -1,14 +1,5 @@
-'use client';
-
-import dynamic from 'next/dynamic';
-import { AdminOrdersSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
+import AdminOrdersTable from '@/admin/components/AdminOrdersTable';
 import type { AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
-import { useProgressiveActivation } from '@/shared/ui/useProgressiveActivation';
-
-const LazyAdminOrdersTable = dynamic(() => import('@/admin/components/AdminOrdersTable'), {
-  ssr: false,
-  loading: () => <AdminOrdersSectionSkeleton />
-});
 
 type OrderRowTuple = readonly [
   id: number,
@@ -49,11 +40,5 @@ export default function AdminOrdersTableLoader(props: {
   topAction?: React.ReactNode;
   analyticsAppearance?: AnalyticsGlobalAppearance;
 }) {
-  const { isActive, activate } = useProgressiveActivation();
-
-  return (
-    <div onPointerDownCapture={activate} onFocusCapture={activate}>
-      {isActive ? <LazyAdminOrdersTable {...props} /> : <AdminOrdersSectionSkeleton />}
-    </div>
-  );
+  return <AdminOrdersTable {...props} />;
 }

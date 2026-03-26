@@ -21,7 +21,7 @@ const bottomLinks = [{ href: '/', label: 'Glavna stran', icon: 'home' }] as cons
 type SidebarIconType = (typeof primaryLinks)[number]['icon'] | (typeof bottomLinks)[number]['icon'] | 'logout';
 
 const COLLAPSED_WIDTH = 'w-16';
-const EXPANDED_WIDTH = 'w-[17.125rem]';
+const EXPANDED_WIDTH = 'w-[14.5rem]';
 
 function SidebarIcon({ type }: { type: SidebarIconType }) {
   if (type === 'home') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3.5 9.5 10 4l6.5 5.5"/><path d="M5.5 8.5V16h9V8.5"/></svg>;

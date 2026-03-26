@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import SiteHeader from '@/commercial/components/SiteHeader';
 import SiteFooter from '@/commercial/components/SiteFooter';
 import CommercialEnhancements from '@/commercial/components/CommercialEnhancements';
-import { ToastProvider, Toaster } from '@/shared/ui/toast';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://atehna.si'),
@@ -30,13 +29,10 @@ export default function CommercialRootLayout({ children }: { children: React.Rea
   return (
     <html lang="sl">
       <body className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
-        <ToastProvider>
-          <CommercialEnhancements />
-          <SiteHeader />
-          <main className="flex-1">{children}</main>
-          <SiteFooter />
-          <Toaster />
-        </ToastProvider>
+        <CommercialEnhancements />
+        <SiteHeader />
+        <main className="flex-1">{children}</main>
+        <SiteFooter />
       </body>
     </html>
   );

@@ -8,9 +8,10 @@ import { Spinner } from '@/shared/ui/loading';
 
 type Props = {
   className?: string;
+  buttonClassName?: string;
 };
 
-export default function AdminCreateDraftOrderButton({ className }: Props) {
+export default function AdminCreateDraftOrderButton({ className, buttonClassName }: Props) {
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,6 +46,7 @@ export default function AdminCreateDraftOrderButton({ className }: Props) {
         aria-label="Novo naročilo"
         variant="primary"
         size="toolbar"
+        className={buttonClassName}
       >
         {isCreating ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Ustvarjam ...</span> : 'Novo naročilo'}
       </Button>

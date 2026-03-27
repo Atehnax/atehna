@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { IconButton } from '@/shared/ui/icon-button';
+import { TrashCanIcon } from '@/shared/ui/icons/TrashCanIcon';
 import { useToast } from '@/shared/ui/toast';
 
 type OrderItemInput = {
@@ -409,7 +410,7 @@ export default function AdminOrderItemsEditor({
                           aria-label="Odstrani postavko"
                           title="Odstrani"
                         >
-                          ×
+                          <TrashCanIcon className="h-[18px] w-[18px]" />
                         </button>
                       ) : null}
                     </td>

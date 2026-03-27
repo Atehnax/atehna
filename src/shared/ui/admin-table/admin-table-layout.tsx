@@ -39,14 +39,14 @@ export default function AdminTableLayout({
           </div>
         ) : null}
 
-        {hasHeaderRow && hasFilterRow ? <hr className="my-2 border-slate-200" /> : null}
-
         {hasFilterRow ? (
-          <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className={classNames('flex flex-wrap items-center justify-between gap-2', hasHeaderRow ? 'mt-2' : undefined)}>
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">{filterRowLeft}</div>
             <div className="ml-auto flex flex-wrap items-center justify-end gap-2">{filterRowRight}</div>
           </div>
         ) : null}
+
+        {hasFilterRow ? <hr className="mt-2 border-slate-200" /> : null}
       </div>
 
       <div className={contentClassName}>{children}</div>

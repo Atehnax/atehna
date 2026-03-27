@@ -375,14 +375,14 @@ export default function AdminDeletedArchiveTable({
               <TH className="w-10 text-center">
                 <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" />
               </TH>
-              <TH className="w-24 text-sm">Vrsta</TH>
-              <TH className="text-sm">Element</TH>
-              <TH className="w-40 text-sm">
+              <TH className="w-24 text-[11px]">Vrsta</TH>
+              <TH className="text-[11px]">Element</TH>
+              <TH className="w-40 text-[11px]">
                 <button type="button" onClick={() => handleSort('deleted_at')} className="inline-flex items-center font-semibold hover:text-slate-700">
                   Izbrisano {sortIndicator('deleted_at')}
                 </button>
               </TH>
-              <TH className="w-40 text-sm">
+              <TH className="w-40 text-[11px]">
                 <button type="button" onClick={() => handleSort('expires_at')} className="inline-flex items-center font-semibold hover:text-slate-700">
                   Poteče {sortIndicator('expires_at')}
                 </button>
@@ -412,7 +412,7 @@ export default function AdminDeletedArchiveTable({
                       aria-label={`Izberi zapis ${entry.label}`}
                     />
                   </TD>
-                  <TD className="px-0 py-2 text-xs font-semibold text-slate-700">
+                  <TD className="px-0 py-2 text-[11px] font-semibold text-slate-700">
                     {entry.item_type === 'order' ? 'Naročilo' : 'PDF datoteka'}
                   </TD>
                   <TD className={`px-0 py-2 text-slate-800 ${isChild ? 'pl-6' : ''}`}>

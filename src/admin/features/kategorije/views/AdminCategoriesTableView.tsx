@@ -145,8 +145,8 @@ export function AdminCategoriesTableView({
                 </colgroup>
                 <thead className="bg-slate-50/90">
                   <tr>
-                    <th className="border-b border-slate-200 px-2 py-2 text-center text-sm font-semibold text-slate-600"><input id="categories-select-all" name="categoriesSelectAll" ref={selectAllRef} type="checkbox" checked={allRowsSelected} onChange={onToggleSelectAll} aria-label="Izberi vse" /></th>
-                    <th className="border-b border-slate-200 px-2.5 py-0 text-left text-sm font-semibold text-slate-600 align-middle">
+                    <th className="border-b border-slate-200 px-2 py-2 text-center text-[11px] font-semibold text-slate-600"><input id="categories-select-all" name="categoriesSelectAll" ref={selectAllRef} type="checkbox" checked={allRowsSelected} onChange={onToggleSelectAll} aria-label="Izberi vse" /></th>
+                    <th className="border-b border-slate-200 px-2.5 py-0 text-left text-[11px] font-semibold text-slate-600 align-middle">
                       <div className="relative flex h-12 items-center gap-2 overflow-visible px-1">
                         <div className="relative shrink-0 overflow-visible" style={{ width: `${treeButtonDiameter}px`, height: `${treeRowHeight}px` }}>
                           <div className="absolute inset-y-0 z-10 flex items-center justify-center" style={{ left: 0, width: `${treeButtonDiameter}px` }}>
@@ -158,10 +158,10 @@ export function AdminCategoriesTableView({
                         <span>Kategorija</span>
                       </div>
                     </th>
-                    <th className="border-b border-slate-200 px-2.5 py-2 text-left text-sm font-semibold text-slate-600">Opis</th>
-                    <th className="border-b border-slate-200 px-2.5 py-2 text-center text-sm font-semibold text-slate-600">Podkategorije</th>
-                    <th className="border-b border-slate-200 px-2.5 py-2 text-center text-sm font-semibold text-slate-600">Izdelki</th>
-                    <th className="h-11 border-b border-slate-200 px-2.5 py-0 text-center text-sm font-semibold text-slate-600 align-middle">
+                    <th className="border-b border-slate-200 px-2.5 py-2 text-left text-[11px] font-semibold text-slate-600">Opis</th>
+                    <th className="border-b border-slate-200 px-2.5 py-2 text-center text-[11px] font-semibold text-slate-600">Podkategorije</th>
+                    <th className="border-b border-slate-200 px-2.5 py-2 text-center text-[11px] font-semibold text-slate-600">Izdelki</th>
+                    <th className="h-11 border-b border-slate-200 px-2.5 py-0 text-center text-[11px] font-semibold text-slate-600 align-middle">
                       <div className="relative flex h-8 items-center justify-center" ref={statusHeaderMenuRef}>
                         <button type="button" onClick={onToggleStatusHeaderMenu} className={`inline-flex h-6 items-center rounded-full border px-2 text-[11px] font-semibold ${selectedRows.length > 0 ? 'border-slate-300 bg-white text-slate-700 hover:bg-[color:var(--hover-neutral)]' : 'border-transparent bg-transparent text-slate-500 cursor-default'}`} aria-haspopup="menu" aria-expanded={selectedRows.length > 0 ? isStatusHeaderMenuOpen : false} disabled={selectedRows.length === 0}>
                           {selectedRows.length > 0 ? `Vidnost ▾ (${selectedRows.length})` : 'Vidnost'}
@@ -174,7 +174,7 @@ export function AdminCategoriesTableView({
                         ) : null}
                       </div>
                     </th>
-                    <th className="border-b border-slate-200 px-2.5 py-2 text-center text-sm font-semibold text-slate-600">Uredi</th>
+                    <th className="border-b border-slate-200 px-2.5 py-2 text-center text-[11px] font-semibold text-slate-600">Uredi</th>
                   </tr>
                 </thead>
                 <tbody>{treeRows}</tbody>

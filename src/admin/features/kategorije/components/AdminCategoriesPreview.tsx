@@ -327,6 +327,11 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
   const descriptionPreview = item.description || "—";
   const shouldShowHoverDetails =
     titlePreview.length > 50 || descriptionPreview.length > 75;
+  const moveCaretToEnd = (event: FocusEvent<HTMLTextAreaElement>) => {
+    const input = event.currentTarget;
+    const end = input.value.length;
+    input.setSelectionRange(end, end);
+  };
 
   const triggerImagePicker = () => {
     const input = uploadRefs.current[item.id];
@@ -531,12 +536,12 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
                   aria-label={`Odpri ${titlePreview}`}
                   title={item.openLabel}
                 >
-                  <p className="line-clamp-2 min-h-[40px] text-[0.98rem] font-semibold leading-5 text-slate-950">
+                  <p className="line-clamp-2 min-h-[40px] text-[0.92rem] font-semibold leading-5 text-slate-950">
                     {titlePreview}
                   </p>
                 </button>
               ) : (
-                <p className="line-clamp-2 min-h-[40px] text-[0.98rem] font-semibold leading-5 text-slate-950">
+                <p className="line-clamp-2 min-h-[40px] text-[0.92rem] font-semibold leading-5 text-slate-950">
                   {titlePreview}
                 </p>
               )}
@@ -550,6 +555,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
                   onEditingRowTitleChange(event.target.value)
                 }
                 onBlur={handleCardEditBlur}
+                onFocus={moveCaretToEnd}
                 data-inline-edit-field="true"
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && !event.shiftKey) {
@@ -558,7 +564,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
                   }
                   if (event.key === "Escape") onCancelEdit();
                 }}
-                className="absolute inset-x-0 top-0 h-10 w-full resize-none overflow-hidden border-transparent bg-transparent px-0 py-0 text-[0.98rem] font-semibold leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                className="absolute inset-x-0 top-0 h-10 w-full resize-none overflow-hidden border-transparent bg-transparent px-0 py-0 text-[0.92rem] font-semibold leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                 autoFocus
                 aria-label="Naziv kategorije"
               />
@@ -567,7 +573,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
 
           <div className="relative mt-2 min-h-[60px] flex-1">
             <p
-              className={`line-clamp-3 min-h-[60px] whitespace-pre-wrap text-[13px] leading-5 text-slate-950 ${isEditing ? "invisible" : ""}`}
+              className={`line-clamp-3 min-h-[60px] whitespace-pre-wrap text-[12px] leading-5 text-slate-950 ${isEditing ? "invisible" : ""}`}
             >
               {descriptionPreview}
             </p>
@@ -591,7 +597,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
                   }
                   if (event.key === "Escape") onCancelEdit();
                 }}
-                className="absolute inset-0 min-h-[54px] w-full resize-none border-transparent bg-transparent px-0 py-0 text-[13px] leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                className="absolute inset-0 min-h-[54px] w-full resize-none border-transparent bg-transparent px-0 py-0 text-[12px] leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                 aria-label="Opis kategorije"
               />
             ) : null}

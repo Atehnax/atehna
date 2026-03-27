@@ -1282,7 +1282,7 @@ export default function AdminOrdersTable({
 
             <THead>
               <TR>
-                <TH className="h-11 text-center text-sm">
+                <TH className="h-11 text-center text-[11px]">
                   <input
                     type="checkbox"
                     ref={selectAllRef}
@@ -1296,53 +1296,53 @@ export default function AdminOrdersTable({
                   <button
                     type="button"
                     onClick={() => onSort('order_number')}
-                    className="inline-flex items-center text-sm font-semibold hover:text-slate-700"
+                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
                   >
                     Naročilo {sortIndicator('order_number')}
                   </button>
                 </TH>
 
-                <TH className="h-11 text-center text-sm">
+                <TH className="h-11 text-center text-[11px]">
                   <button
                     type="button"
                     onClick={() => onSort('created_at')}
-                    className="inline-flex items-center text-sm font-semibold hover:text-slate-700"
+                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
                   >
                     Datum {sortIndicator('created_at')}
                   </button>
                 </TH>
 
-                <TH className="text-sm">
+                <TH className="text-[11px]">
                   <button
                     type="button"
                     onClick={() => onSort('customer')}
-                    className="inline-flex items-center text-sm font-semibold hover:text-slate-700"
+                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
                   >
                     Naročnik {sortIndicator('customer')}
                   </button>
                 </TH>
 
-                <TH className="text-sm">
+                <TH className="text-[11px]">
                   <button
                     type="button"
                     onClick={() => onSort('address')}
-                    className="inline-flex items-center text-sm font-semibold hover:text-slate-700"
+                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
                   >
                     Naslov {sortIndicator('address')}
                   </button>
                 </TH>
 
-                {visibleColumns.type ? <TH className="h-11 text-center text-sm">
+                {visibleColumns.type ? <TH className="h-11 text-center text-[11px]">
                   <button
                     type="button"
                     onClick={() => onSort('type')}
-                    className="inline-flex items-center text-sm font-semibold hover:text-slate-700"
+                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
                   >
                     Tip {sortIndicator('type')}
                   </button>
                 </TH> : null}
 
-                <TH className="h-11 text-center text-sm">
+                <TH className="h-11 text-center text-[11px]">
                   <div className="relative inline-flex" ref={statusHeaderMenuRef}>
                     {selectedCount > 0 ? (
                       <>
@@ -1377,7 +1377,7 @@ export default function AdminOrdersTable({
                       <button
                         type="button"
                         onClick={() => onSort('status')}
-                        className="inline-flex items-center text-sm font-semibold hover:text-slate-700"
+                        className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
                       >
                         Status {sortIndicator('status')}
                       </button>
@@ -1385,7 +1385,7 @@ export default function AdminOrdersTable({
                   </div>
                 </TH>
 
-                <TH className="h-11 text-center text-sm">
+                <TH className="h-11 text-center text-[11px]">
                   <div className="relative inline-flex" ref={paymentHeaderMenuRef}>
                     {selectedCount > 0 ? (
                       <>
@@ -1420,7 +1420,7 @@ export default function AdminOrdersTable({
                       <button
                         type="button"
                         onClick={() => onSort('payment')}
-                        className="inline-flex items-center text-sm font-semibold hover:text-slate-700"
+                        className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
                       >
                         Plačilo {sortIndicator('payment')}
                       </button>
@@ -1428,18 +1428,18 @@ export default function AdminOrdersTable({
                   </div>
                 </TH>
 
-                <TH className="h-11 text-center text-sm">
+                <TH className="h-11 text-center text-[11px]">
                   <button
                     type="button"
                     onClick={() => onSort('total')}
-                    className="inline-flex items-center text-sm font-semibold hover:text-slate-700"
+                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
                   >
                     Skupaj {sortIndicator('total')}
                   </button>
                 </TH>
 
-                <TH className="min-w-[100px] text-center text-sm">PDF datoteke</TH>
-                <TH className="text-center text-sm">Uredi</TH>
+                <TH className="min-w-[100px] text-center text-[11px]">PDF datoteke</TH>
+                <TH className="text-center text-[11px]">Uredi</TH>
               </TR>
             </THead>
 
@@ -1497,7 +1497,7 @@ export default function AdminOrdersTable({
                         <Link
                           href={`/admin/orders/${order.id}`}
                           prefetch={false}
-                          className="inline-flex rounded-sm px-1 text-[13px] font-semibold text-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
+                          className="inline-flex rounded-sm px-1 text-[11px] font-semibold text-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
                           aria-label={`Odpri naročilo ${toDisplayOrderNumber(order.order_number)}`}
                         >
                           {toDisplayOrderNumber(order.order_number)}

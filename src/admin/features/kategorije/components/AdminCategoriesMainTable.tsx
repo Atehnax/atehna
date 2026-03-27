@@ -3122,10 +3122,10 @@ export default function AdminCategoriesMainTable({
               )}
             </td>
 
-            <td className="border-b border-slate-200 px-3 py-2 text-center text-sm text-slate-600">{childrenCount}</td>
-            <td className="border-b border-slate-200 px-3 py-2 text-center text-sm text-slate-600">{productCount}</td>
+            <td className="border-b border-slate-200 px-3 py-2 text-center text-[11px] text-slate-600">{childrenCount}</td>
+            <td className="border-b border-slate-200 px-3 py-2 text-center text-[11px] text-slate-600">{productCount}</td>
 
-            <td className="border-b border-slate-200 px-3 py-2 text-center text-sm">
+            <td className="border-b border-slate-200 px-3 py-2 text-center text-[11px]">
               {kind === 'root' ? (
                 <span className="text-xs text-slate-400">—</span>
               ) : (

@@ -594,24 +594,24 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
             <THead>
               <TR>
                 <TH className="w-[44px] text-center"><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" /></TH>
-                {visibleColumns.name ? <TH className="text-sm">
+                {visibleColumns.name ? <TH className="text-[11px]">
                   <button type="button" onClick={() => handleSort('name')} className="inline-flex items-center font-semibold hover:text-slate-700">Naziv <SortIndicator active={sortKey === 'name'} direction={sortDirection} /></button>
                 </TH> : null}
-                {visibleColumns.sku ? <TH className="text-sm">
+                {visibleColumns.sku ? <TH className="text-[11px]">
                   <button type="button" onClick={() => handleSort('sku')} className="inline-flex items-center font-semibold hover:text-slate-700">SKU <SortIndicator active={sortKey === 'sku'} direction={sortDirection} /></button>
                 </TH> : null}
-                {visibleColumns.category ? <TH className="text-sm">
+                {visibleColumns.category ? <TH className="text-[11px]">
                   <button type="button" onClick={() => handleSort('category')} className="inline-flex items-center font-semibold hover:text-slate-700">Kategorija <SortIndicator active={sortKey === 'category'} direction={sortDirection} /></button>
                 </TH> : null}
-                {visibleColumns.price ? <TH className="text-center text-sm">
+                {visibleColumns.price ? <TH className="text-center text-[11px]">
                   <button type="button" onClick={() => handleSort('price')} className="inline-flex items-center font-semibold hover:text-slate-700">Cena <SortIndicator active={sortKey === 'price'} direction={sortDirection} /></button>
                 </TH> : null}
-                {visibleColumns.discount ? <TH className="text-center text-sm"><span className="inline-flex items-center">Popust</span></TH> : null}
-                {visibleColumns.salePrice ? <TH className="whitespace-nowrap text-center text-sm"><span className="inline-flex items-center">Akcijska cena</span></TH> : null}
-                {visibleColumns.status ? <TH className="text-center text-sm">
+                {visibleColumns.discount ? <TH className="text-center text-[11px]"><span className="inline-flex items-center">Popust</span></TH> : null}
+                {visibleColumns.salePrice ? <TH className="whitespace-nowrap text-center text-[11px]"><span className="inline-flex items-center">Akcijska cena</span></TH> : null}
+                {visibleColumns.status ? <TH className="text-center text-[11px]">
                   <button type="button" onClick={() => handleSort('status')} className="inline-flex items-center font-semibold hover:text-slate-700">Status <SortIndicator active={sortKey === 'status'} direction={sortDirection} /></button>
                 </TH> : null}
-                <TH className="text-center text-sm"><span className="inline-flex items-center">Uredi</span></TH>
+                <TH className="text-center text-[11px]"><span className="inline-flex items-center">Uredi</span></TH>
               </TR>
             </THead>
             <tbody>

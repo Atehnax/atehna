@@ -474,7 +474,7 @@ export default function AdminOrderPdfManager({
                                 aria-label={`Izbriši dokument ${doc.filename}`}
                                 title="Izbriši"
                               >
-                                {deletingDocumentId === doc.id ? '…' : <TrashCanIcon className="h-[15px] w-[15px]" />}
+                                {deletingDocumentId === doc.id ? '…' : <TrashCanIcon className="h-[18px] w-[18px]" />}
                               </button>
                             </div>
                           </li>

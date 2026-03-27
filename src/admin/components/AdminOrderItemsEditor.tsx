@@ -410,7 +410,7 @@ export default function AdminOrderItemsEditor({
                           aria-label="Odstrani postavko"
                           title="Odstrani"
                         >
-                          <TrashCanIcon className="h-[15px] w-[15px]" />
+                          <TrashCanIcon className="h-[18px] w-[18px]" />
                         </button>
                       ) : null}
                     </td>

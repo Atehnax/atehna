@@ -330,7 +330,7 @@ export default function AdminDeletedArchiveTable({
 
   return (
     <AdminTableLayout
-      className="mx-auto w-full max-w-[1120px] border-slate-200 bg-white"
+      className="w-full border-slate-200 bg-white"
       headerLeft={
         <div className="relative min-w-[140px]">
           <CustomSelect

@@ -140,7 +140,7 @@ export default function AdminAnalyticsDashboardViewer({ initialData, initialChar
   };
 
   return (
-    <div className="mx-auto min-h-full w-full max-w-[1120px] rounded-2xl border border-slate-200 p-3 text-slate-900" style={{ backgroundColor: previewAppearance.sectionBg }}>
+    <div className="min-h-full w-full rounded-2xl border border-slate-200 p-3 text-slate-900" style={{ backgroundColor: previewAppearance.sectionBg }}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div><h1 className="text-[19px] font-semibold">Analytics (Orders)</h1><p className="text-[11px] text-slate-500">Timezone bucketing: UTC.</p></div>
         <div className="flex items-center gap-2">

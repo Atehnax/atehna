@@ -589,7 +589,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
         contentClassName="overflow-x-auto"
         footerRight={<Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" size="sm" showNumbers={false} />}
       >
-        <div className="mx-auto w-full max-w-[1120px] overflow-x-auto">
+        <div className="w-full overflow-x-auto">
           <Table className="min-w-[860px] text-[11px]">
             <THead>
               <TR>

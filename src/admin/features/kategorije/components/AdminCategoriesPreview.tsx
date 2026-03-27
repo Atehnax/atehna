@@ -128,7 +128,7 @@ export function AdminCategoriesPreview({
     : false;
 
   return (
-    <div className={activeView === "preview" ? "mx-auto w-full max-w-[1140px] space-y-4" : "hidden"}>
+    <div className={activeView === "preview" ? "w-full space-y-4" : "hidden"}>
       <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
         {tableError ? (
           <p className="mb-3 rounded-lg border border-[var(--danger-300)] bg-[var(--danger-100)] px-3 py-2 text-xs text-[var(--danger-700)]">

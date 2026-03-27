@@ -36,10 +36,10 @@ function SidebarIcon({ type }: { type: SidebarIconType }) {
 }
 
 function ActiveChevron({ visible }: { visible: boolean }) {
-  return <span className={`ml-auto overflow-hidden text-[color:var(--blue-500)] transition-all duration-200 ${visible ? 'max-w-4 opacity-100' : 'max-w-0 opacity-0'}`} aria-hidden={!visible}>&gt;</span>;
+  return <span className={`absolute right-3 text-[color:var(--blue-500)] transition-opacity duration-150 ${visible ? 'opacity-100' : 'opacity-0'}`} aria-hidden={!visible}>&gt;</span>;
 }
 
-const expandedRowClass = 'w-full items-center gap-2 px-2.5 pr-3';
+const expandedRowClass = 'relative w-full items-center gap-2 px-2.5 pr-6';
 const collapsedRowClass = 'mx-auto grid h-9 w-9 place-items-center';
 
 export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: (expanded: boolean) => void }) {
@@ -86,7 +86,7 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
         <div className="flex h-full min-h-full flex-col px-2 py-6">
           <div className={`mb-4 flex transition-all duration-200 ${isExpanded ? 'justify-start px-2' : 'justify-center px-0'}`}>
             <p
-              className={`whitespace-nowrap text-sm font-semibold uppercase tracking-[0.12em] text-[color:var(--blue-500)] transition-all duration-200 ${isExpanded ? 'max-w-[12rem] translate-x-0 opacity-100' : 'max-w-0 -translate-x-1 opacity-0'}`}
+              className={`whitespace-nowrap text-sm font-semibold uppercase tracking-[0.12em] text-[color:var(--blue-500)] transition-[max-width,opacity] duration-200 ${isExpanded ? 'max-w-[12rem] opacity-100' : 'max-w-0 opacity-0'}`}
               aria-hidden={!isExpanded}
             >
               Administracija
@@ -103,7 +103,7 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
                   prefetch={false}
                   onMouseEnter={() => router.prefetch(link.href)}
                   onFocus={() => router.prefetch(link.href)}
-                  className={`flex rounded-xl py-2 text-sm transition-all duration-200 ${isExpanded ? expandedRowClass : collapsedRowClass} ${
+                  className={`flex rounded-xl py-2 text-sm transition-colors duration-200 ${isExpanded ? expandedRowClass : collapsedRowClass} ${
                     isActive
                       ? 'bg-white/75 font-semibold text-[color:var(--blue-500)]'
                       : 'text-slate-900 hover:bg-white/75 hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]'
@@ -112,7 +112,7 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
                   <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
                     <SidebarIcon type={link.icon} />
                   </span>
-                  <span className={`overflow-hidden whitespace-nowrap transition-all duration-200 ${isExpanded ? 'max-w-[11.5rem] translate-x-0 opacity-100' : 'pointer-events-none max-w-0 -translate-x-1 opacity-0'}`} aria-hidden={!isExpanded}>
+                  <span className={`overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ${isExpanded ? 'max-w-[11.5rem] opacity-100' : 'pointer-events-none max-w-0 opacity-0'}`} aria-hidden={!isExpanded}>
                     {link.label}
                   </span>
                   <ActiveChevron visible={isExpanded && isActive} />
@@ -131,7 +131,7 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
                   prefetch={false}
                   onMouseEnter={() => router.prefetch(link.href)}
                   onFocus={() => router.prefetch(link.href)}
-                  className={`flex rounded-xl py-2 text-sm transition-all duration-200 ${isExpanded ? expandedRowClass : collapsedRowClass} ${
+                  className={`flex rounded-xl py-2 text-sm transition-colors duration-200 ${isExpanded ? expandedRowClass : collapsedRowClass} ${
                     isActive
                       ? 'bg-white/75 font-semibold text-[color:var(--blue-500)]'
                       : 'text-slate-900 hover:bg-white/75 hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]'
@@ -140,7 +140,7 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
                   <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
                     <SidebarIcon type={link.icon} />
                   </span>
-                  <span className={`overflow-hidden whitespace-nowrap transition-all duration-200 ${isExpanded ? 'max-w-[11.5rem] translate-x-0 opacity-100' : 'pointer-events-none max-w-0 -translate-x-1 opacity-0'}`} aria-hidden={!isExpanded}>
+                  <span className={`overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ${isExpanded ? 'max-w-[11.5rem] opacity-100' : 'pointer-events-none max-w-0 opacity-0'}`} aria-hidden={!isExpanded}>
                     {link.label}
                   </span>
                   <ActiveChevron visible={isExpanded && isActive} />
@@ -152,12 +152,12 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
               type="button"
               onClick={() => void handleLogout()}
               disabled={isLoggingOut}
-              className={`flex rounded-xl py-2 text-sm transition-all duration-200 disabled:opacity-60 ${isExpanded ? expandedRowClass : collapsedRowClass} text-slate-900 hover:bg-white/75 hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]`}
+              className={`flex rounded-xl py-2 text-sm transition-colors duration-200 disabled:opacity-60 ${isExpanded ? expandedRowClass : collapsedRowClass} text-slate-900 hover:bg-white/75 hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]`}
             >
               <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
                 <SidebarIcon type="logout" />
               </span>
-              <span className={`overflow-hidden whitespace-nowrap transition-all duration-200 ${isExpanded ? 'max-w-[11.5rem] translate-x-0 opacity-100' : 'pointer-events-none max-w-0 -translate-x-1 opacity-0'}`} aria-hidden={!isExpanded}>
+              <span className={`overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ${isExpanded ? 'max-w-[11.5rem] opacity-100' : 'pointer-events-none max-w-0 opacity-0'}`} aria-hidden={!isExpanded}>
                 {isLoggingOut ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Odjava ...</span> : 'Odjava'}
               </span>
             </button>

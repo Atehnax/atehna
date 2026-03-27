@@ -95,7 +95,7 @@ export default function AdminWebsiteAnalyticsDashboard({
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1120px] space-y-5">
+    <div className="w-full space-y-5">
       <div>
         <h1 className="text-2xl font-semibold text-slate-900">Analitika splet</h1>
         <p className="mt-1 text-[13px] text-slate-600">Promet, angažiranost, vsebina in konverzijski lijak spletnega mesta.</p>

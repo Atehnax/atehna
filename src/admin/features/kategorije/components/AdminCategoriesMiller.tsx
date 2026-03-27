@@ -154,7 +154,7 @@ export function AdminCategoriesMiller({
     ) : null;
 
   return (
-    <section className={activeView === 'miller' ? 'mx-auto w-full max-w-[1140px] rounded-2xl border border-slate-200 bg-white p-3 shadow-sm' : 'hidden'}>
+    <section className={activeView === 'miller' ? 'w-full rounded-2xl border border-slate-200 bg-white p-3 shadow-sm' : 'hidden'}>
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="ml-[30px] min-w-0 text-xs text-slate-600">
           <nav className="truncate whitespace-nowrap text-sm text-slate-700" aria-label="Breadcrumb">

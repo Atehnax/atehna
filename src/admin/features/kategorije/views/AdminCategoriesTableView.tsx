@@ -91,7 +91,7 @@ export function AdminCategoriesTableView({
   treeRows: ReactNode;
 }) {
   return (
-    <div className={activeView === 'table' ? 'mx-auto w-full max-w-[1140px] space-y-4' : 'hidden'}>
+    <div className={activeView === 'table' ? 'w-full space-y-4' : 'hidden'}>
       <section>
         <AdminTableLayout
           className="border"

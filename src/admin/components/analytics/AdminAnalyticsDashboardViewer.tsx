@@ -140,18 +140,18 @@ export default function AdminAnalyticsDashboardViewer({ initialData, initialChar
   };
 
   return (
-    <div className="min-h-full rounded-2xl border border-slate-200 p-4 text-slate-900" style={{ backgroundColor: previewAppearance.sectionBg }}>
+    <div className="min-h-full w-full rounded-2xl border border-slate-200 p-3 text-slate-900" style={{ backgroundColor: previewAppearance.sectionBg }}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <div><h1 className="text-xl font-semibold">Analytics (Orders)</h1><p className="text-xs text-slate-500">Timezone bucketing: UTC.</p></div>
+        <div><h1 className="text-[19px] font-semibold">Analytics (Orders)</h1><p className="text-[11px] text-slate-500">Timezone bucketing: UTC.</p></div>
         <div className="flex items-center gap-2">
           <SegmentedControl size="sm" value={range} onChange={(next) => void loadRange(next as RangeOption)} options={rangeOptions.map((option) => ({ value: option, label: option === 'ytd' ? 'YTD' : option }))} className="rounded-lg border-slate-300 bg-slate-100 p-0.5" />
-          <button type="button" onClick={() => { setEditingChartId(null); setBuilderTitle('New chart'); setBuilderDescription(''); setBuilderComment(''); setBuilderChartType('combo'); setBuilderOpen(true); }} className="rounded-md border border-cyan-500 bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-cyan-500">New Chart</button>
-          <button type="button" onClick={() => setShowAppearance((v) => !v)} className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Appearance</button>
-          <button type="button" onClick={() => setReorderMode((v) => !v)} className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">{reorderMode ? 'Done reorder' : 'Reorder'}</button>
+          <button type="button" onClick={() => { setEditingChartId(null); setBuilderTitle('New chart'); setBuilderDescription(''); setBuilderComment(''); setBuilderChartType('combo'); setBuilderOpen(true); }} className="rounded-md border border-cyan-500 bg-cyan-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-cyan-500">New Chart</button>
+          <button type="button" onClick={() => setShowAppearance((v) => !v)} className="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700">Appearance</button>
+          <button type="button" onClick={() => setReorderMode((v) => !v)} className="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700">{reorderMode ? 'Done reorder' : 'Reorder'}</button>
         </div>
       </div>
 
-      {loading ? <div className="mb-4 space-y-3"><p className="inline-flex items-center gap-2 text-xs text-slate-500"><Spinner size="sm" className="text-slate-500" />Loading analytics…</p><TableSkeleton rows={4} cols={2} className="border-slate-200" /></div> : null}
+      {loading ? <div className="mb-4 space-y-3"><p className="inline-flex items-center gap-2 text-[11px] text-slate-500"><Spinner size="sm" className="text-slate-500" />Loading analytics…</p><TableSkeleton rows={4} cols={2} className="border-slate-200" /></div> : null}
 
       {!reorderMode ? (
         <div className="grid gap-4 md:grid-cols-2">

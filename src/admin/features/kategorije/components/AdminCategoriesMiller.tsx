@@ -154,7 +154,7 @@ export function AdminCategoriesMiller({
     ) : null;
 
   return (
-    <section className={activeView === 'miller' ? 'rounded-2xl border border-slate-200 bg-white p-3 shadow-sm' : 'hidden'}>
+    <section className={activeView === 'miller' ? 'w-full rounded-2xl border border-slate-200 bg-white p-3 shadow-sm' : 'hidden'}>
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="ml-[30px] min-w-0 text-xs text-slate-600">
           <nav className="truncate whitespace-nowrap text-sm text-slate-700" aria-label="Breadcrumb">
@@ -183,17 +183,18 @@ export function AdminCategoriesMiller({
             value={searchQuery}
             onChange={(event) => onSearchQueryChange(event.target.value)}
             placeholder="Išči po kategorijah"
-            className="w-[280px]"
+            className="w-[250px]"
             aria-label="Išči v Miller stolpcih"
           />
           <Button type="button" variant="primary" size="toolbar" onClick={onRequestSave} disabled={!millerDirty || saving}>
             Shrani spremembe
           </Button>
-          <IconButton type="button" tone="neutral" aria-label="Dodaj" onClick={() => onAddNode(activeColumnKind)}>
+          <IconButton type="button" size="sm" tone="neutral" aria-label="Dodaj" onClick={() => onAddNode(activeColumnKind)}>
             {plusIcon}
           </IconButton>
           <IconButton
             type="button"
+            size="sm"
             tone="danger"
             aria-label="Izbriši"
             onClick={() => onRequestDelete(activeColumnKind)}
@@ -202,7 +203,7 @@ export function AdminCategoriesMiller({
             ✕
           </IconButton>
           <div className="relative" ref={millerHistoryMenuRef}>
-            <IconButton type="button" tone="neutral" aria-label="Zgodovina" onClick={onToggleHistoryMenu}>⋮</IconButton>
+            <IconButton type="button" size="sm" tone="neutral" aria-label="Zgodovina" onClick={onToggleHistoryMenu}>⋮</IconButton>
             {isHistoryMenuOpen ? (
               <MenuPanel className="absolute right-0 top-9 z-20 w-40">
                 <MenuItem
@@ -265,7 +266,7 @@ export function AdminCategoriesMiller({
             </div>
 
             <div
-              className={`h-[520px] space-y-0 overflow-auto p-1.5 ${millerDropTarget?.columnKey === column.key ? 'ring-2 ring-[#3e67d6]/30' : ''}`}
+              className={`h-[500px] space-y-0 overflow-auto p-1.5 ${millerDropTarget?.columnKey === column.key ? 'ring-2 ring-[#3e67d6]/30' : ''}`}
               onDragOver={(event) => {
                 event.preventDefault();
                 const parentId = column.kind === 'categories' ? rootId : column.rows[0]?.onDropTarget ?? rootId;

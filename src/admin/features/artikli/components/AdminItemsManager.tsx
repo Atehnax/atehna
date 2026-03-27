@@ -11,7 +11,7 @@ import { Table, THead, TH, TR } from '@/shared/ui/table';
 import { Chip } from '@/shared/ui/badge';
 import { useToast } from '@/shared/ui/toast';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
-import { AdminTableLayout } from '@/shared/ui/admin-table';
+import { AdminTableLayout, ColumnVisibilityControl } from '@/shared/ui/admin-table';
 import { adminTableRowToneClasses, buttonTokenClasses, getAdminStripedRowToneClass } from '@/shared/ui/theme/tokens';
 
 type Item = {
@@ -48,6 +48,7 @@ type SeedItemTuple = [
 
 type SortKey = 'name' | 'sku' | 'category' | 'price' | 'status';
 type StatusTab = 'active' | 'inactive';
+type ItemColumnKey = 'name' | 'sku' | 'category' | 'price' | 'discount' | 'salePrice' | 'status';
 
 const STORAGE_KEY = 'admin-items-crud-v3';
 const PAGE_SIZE_OPTIONS = [50, 100];
@@ -81,6 +82,15 @@ const discountedPrice = (price: number, discountPct: number) =>
 const statusTabs: Array<{ key: StatusTab; label: string; activeClassName: string }> = [
   { key: 'active', label: 'Aktivni', activeClassName: buttonTokenClasses.activeSuccessBorderless },
   { key: 'inactive', label: 'Neaktivni', activeClassName: buttonTokenClasses.inactiveNeutralBorderless }
+];
+const itemColumnOptions: Array<{ key: ItemColumnKey; label: string }> = [
+  { key: 'name', label: 'Naziv' },
+  { key: 'sku', label: 'SKU' },
+  { key: 'category', label: 'Kategorija' },
+  { key: 'price', label: 'Cena' },
+  { key: 'discount', label: 'Popust' },
+  { key: 'salePrice', label: 'Akcijska cena' },
+  { key: 'status', label: 'Status' }
 ];
 
 function SortIndicator({ active, direction }: { active: boolean; direction: 'asc' | 'desc' }) {
@@ -211,6 +221,15 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   const [newCategoryValue, setNewCategoryValue] = useState('');
   const [editorMode, setEditorMode] = useState<'view' | 'edit'>('view');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [visibleColumns, setVisibleColumns] = useState<Record<ItemColumnKey, boolean>>({
+    name: true,
+    sku: false,
+    category: true,
+    price: true,
+    discount: true,
+    salePrice: true,
+    status: true
+  });
   const hasCompletedInitialStorageHydrationRef = useRef(false);
   const pendingStorageWriteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { toast } = useToast();
@@ -356,6 +375,15 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const filteredItemIdSet = useMemo(() => new Set(filteredItems.map((item) => item.id)), [filteredItems]);
   const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIdSet.has(id));
+  const toggleColumnVisibility = (key: ItemColumnKey) => {
+    setVisibleColumns((current) => {
+      if (key === 'name' && current.name) return current;
+      const next = { ...current, [key]: !current[key] };
+      const visibleCount = Object.values(next).filter(Boolean).length;
+      if (visibleCount === 0) return current;
+      return next;
+    });
+  };
 
   useEffect(() => {
     setPage(1);
@@ -511,7 +539,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Poišči po nazivu, SKU ali kategoriji …"
-              className={`${ADMIN_CONTROL_HEIGHT} min-w-[240px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} text-xs focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
+              className={`${ADMIN_CONTROL_HEIGHT} min-w-[240px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} text-[11px] focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
             />
             <div className="relative min-w-[220px]">
               <CustomSelect
@@ -521,7 +549,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                   { value: 'all', label: 'Vse kategorije' },
                   ...categories.map((category) => ({ value: category, label: category }))
                 ]}
-                className={`${ADMIN_CONTROL_HEIGHT} ${ADMIN_CONTROL_PADDING_X} py-0 text-xs font-semibold`}
+                className={`${ADMIN_CONTROL_HEIGHT} ${ADMIN_CONTROL_PADDING_X} py-0 text-[11px] font-semibold`}
                 valueClassName="min-w-0 flex-1 text-left"
                 menuClassName="min-w-full w-max max-w-[560px]"
               />
@@ -549,6 +577,11 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
         }
         filterRowRight={
           <>
+            <ColumnVisibilityControl
+              options={itemColumnOptions.map((option) => ({ ...option, disabled: option.key === 'name' }))}
+              visibleMap={visibleColumns}
+              onToggle={(key) => toggleColumnVisibility(key as ItemColumnKey)}
+            />
             <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={setPageSize} />
             <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="topPills" size="sm" showNumbers={false} />
           </>
@@ -556,50 +589,50 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
         contentClassName="overflow-x-auto"
         footerRight={<Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" size="sm" showNumbers={false} />}
       >
-        <div className="overflow-x-auto">
-          <Table className="min-w-[1000px] text-sm">
+        <div className="w-full overflow-x-auto">
+          <Table className="min-w-[860px] text-[11px]">
             <THead>
               <TR>
-                <TH className="text-center"><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" /></TH>
-                <TH>
+                <TH className="w-[44px] text-center"><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" /></TH>
+                {visibleColumns.name ? <TH className="text-[11px]">
                   <button type="button" onClick={() => handleSort('name')} className="inline-flex items-center font-semibold hover:text-slate-700">Naziv <SortIndicator active={sortKey === 'name'} direction={sortDirection} /></button>
-                </TH>
-                <TH>
+                </TH> : null}
+                {visibleColumns.sku ? <TH className="text-[11px]">
                   <button type="button" onClick={() => handleSort('sku')} className="inline-flex items-center font-semibold hover:text-slate-700">SKU <SortIndicator active={sortKey === 'sku'} direction={sortDirection} /></button>
-                </TH>
-                <TH>
+                </TH> : null}
+                {visibleColumns.category ? <TH className="text-[11px]">
                   <button type="button" onClick={() => handleSort('category')} className="inline-flex items-center font-semibold hover:text-slate-700">Kategorija <SortIndicator active={sortKey === 'category'} direction={sortDirection} /></button>
-                </TH>
-                <TH className="text-center">
+                </TH> : null}
+                {visibleColumns.price ? <TH className="text-center text-[11px]">
                   <button type="button" onClick={() => handleSort('price')} className="inline-flex items-center font-semibold hover:text-slate-700">Cena <SortIndicator active={sortKey === 'price'} direction={sortDirection} /></button>
-                </TH>
-                <TH className="text-center"><span className="inline-flex items-center">Popust</span></TH>
-                <TH className="whitespace-nowrap text-center"><span className="inline-flex items-center">Akcijska cena</span></TH>
-                <TH className="text-center">
+                </TH> : null}
+                {visibleColumns.discount ? <TH className="text-center text-[11px]"><span className="inline-flex items-center">Popust</span></TH> : null}
+                {visibleColumns.salePrice ? <TH className="whitespace-nowrap text-center text-[11px]"><span className="inline-flex items-center">Akcijska cena</span></TH> : null}
+                {visibleColumns.status ? <TH className="text-center text-[11px]">
                   <button type="button" onClick={() => handleSort('status')} className="inline-flex items-center font-semibold hover:text-slate-700">Status <SortIndicator active={sortKey === 'status'} direction={sortDirection} /></button>
-                </TH>
-                <TH className="text-center"><span className="inline-flex items-center">Uredi</span></TH>
+                </TH> : null}
+                <TH className="text-center text-[11px]"><span className="inline-flex items-center">Uredi</span></TH>
               </TR>
             </THead>
             <tbody>
               {pagedItems.map((item, index) => (
                 <tr key={item.id} className={`border-t border-slate-200 transition-colors ${getAdminStripedRowToneClass(index)} ${adminTableRowToneClasses.hover}`}>
-                  <td className="px-3 py-2 text-center"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleOne(item.id)} aria-label={`Izberi ${item.name}`} /></td>
-                  <td className="px-3 py-2 font-medium text-slate-900">{item.name}</td>
-                  <td className="px-3 py-2 text-slate-600">{item.sku}</td>
-                  <td className="px-3 py-2 text-slate-600">{getResolvedCategoryLabel(item)}</td>
-                  <td className="px-3 py-2 text-center text-slate-600">{formatCurrency(item.price)}</td>
-                  <td className="px-3 py-2 text-center text-slate-600">{item.discountPct}%</td>
-                  <td className="px-3 py-2 text-center text-slate-600">{formatCurrency(discountedPrice(item.price, item.discountPct))}</td>
-                  <td className="px-3 py-2 text-center">
+                  <td className="px-2.5 py-2 text-center"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleOne(item.id)} aria-label={`Izberi ${item.name}`} /></td>
+                  {visibleColumns.name ? <td className="px-2.5 py-2 text-[11px] font-medium text-slate-900">{item.name}</td> : null}
+                  {visibleColumns.sku ? <td className="px-2.5 py-2 text-[11px] text-slate-600">{item.sku}</td> : null}
+                  {visibleColumns.category ? <td className="px-2.5 py-2 text-[11px] text-slate-600">{getResolvedCategoryLabel(item)}</td> : null}
+                  {visibleColumns.price ? <td className="px-2.5 py-2 text-center text-[11px] text-slate-600">{formatCurrency(item.price)}</td> : null}
+                  {visibleColumns.discount ? <td className="px-2.5 py-2 text-center text-[11px] text-slate-600">{item.discountPct}%</td> : null}
+                  {visibleColumns.salePrice ? <td className="px-2.5 py-2 text-center text-[11px] text-slate-600">{formatCurrency(discountedPrice(item.price, item.discountPct))}</td> : null}
+                  {visibleColumns.status ? <td className="px-2.5 py-2 text-center">
                     <Chip
                       variant={item.active ? 'success' : 'neutral'}
-                      className={`min-w-0 px-2.5 text-xs ${item.active ? buttonTokenClasses.activeSuccess : buttonTokenClasses.inactiveNeutral}`}
+                      className={`min-w-0 px-2.5 text-[11px] ${item.active ? buttonTokenClasses.activeSuccess : buttonTokenClasses.inactiveNeutral}`}
                     >
                       {item.active ? 'Aktiven' : 'Neaktiven'}
                     </Chip>
-                  </td>
-                  <td className="px-3 py-2"><div className="flex items-center justify-center gap-1.5"><IconButton type="button" tone="neutral" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi"><ActionIcon type="edit" /></IconButton><IconButton type="button" tone="neutral" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji"><ActionIcon type="copy" /></IconButton><IconButton type="button" tone="warning" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj"><ActionIcon type="archive" /></IconButton></div></td>
+                  </td> : null}
+                  <td className="px-2.5 py-2"><div className="flex items-center justify-center gap-1.5"><IconButton type="button" size="sm" tone="neutral" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi"><ActionIcon type="edit" /></IconButton><IconButton type="button" size="sm" tone="neutral" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji"><ActionIcon type="copy" /></IconButton><IconButton type="button" size="sm" tone="warning" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj"><ActionIcon type="archive" /></IconButton></div></td>
                 </tr>
               ))}
             </tbody>

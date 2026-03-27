@@ -12,13 +12,13 @@ import type { CategoryStatus, CategoriesView } from '../common/types';
 const treeRowHeight = 48;
 const treeButtonDiameter = 28;
 const categoryTableColumnWidths = {
-  select: 56,
-  category: 420,
-  description: 320,
-  subcategories: 128,
-  items: 112,
-  visibility: 128,
-  actions: 160
+  select: 50,
+  category: 315,
+  description: 208,
+  subcategories: 116,
+  items: 100,
+  visibility: 116,
+  actions: 144
 } as const;
 const categoryTableTotalWidth = Object.values(categoryTableColumnWidths).reduce((sum, width) => sum + width, 0);
 const categoryTableFixedWidthWithoutDescription = categoryTableTotalWidth - categoryTableColumnWidths.description;
@@ -91,7 +91,7 @@ export function AdminCategoriesTableView({
   treeRows: ReactNode;
 }) {
   return (
-    <div className={activeView === 'table' ? 'space-y-5' : 'hidden'}>
+    <div className={activeView === 'table' ? 'w-full space-y-4' : 'hidden'}>
       <section>
         <AdminTableLayout
           className="border"
@@ -103,7 +103,7 @@ export function AdminCategoriesTableView({
               value={query}
               onChange={(event) => onQueryChange(event.target.value)}
               placeholder="Išči po kategoriji ali opisu ..."
-              className={`${ADMIN_CONTROL_HEIGHT} min-w-[260px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} text-xs text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
+              className={`${ADMIN_CONTROL_HEIGHT} min-w-[240px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} text-[11px] text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
             />
           }
           headerRight={
@@ -133,7 +133,7 @@ export function AdminCategoriesTableView({
         >
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onTreeDragEnd}>
             <SortableContext items={visibleRowIds} strategy={verticalListSortingStrategy}>
-              <table className="table-fixed border-separate border-spacing-0 border-x border-b border-slate-200" style={{ width: '100%', minWidth: `${categoryTableTotalWidth}px` }}>
+              <table className="table-fixed border-separate border-spacing-0 border-x border-b border-slate-200 text-[11px]" style={{ width: '100%', minWidth: `${categoryTableTotalWidth}px` }}>
                 <colgroup>
                   <col style={{ width: `${categoryTableColumnWidths.select}px` }} />
                   <col style={{ width: `${categoryTableColumnWidths.category}px` }} />
@@ -145,8 +145,8 @@ export function AdminCategoriesTableView({
                 </colgroup>
                 <thead className="bg-slate-50/90">
                   <tr>
-                    <th className="border-b border-slate-200 px-2 py-2 text-center text-xs font-semibold text-slate-500"><input id="categories-select-all" name="categoriesSelectAll" ref={selectAllRef} type="checkbox" checked={allRowsSelected} onChange={onToggleSelectAll} aria-label="Izberi vse" /></th>
-                    <th className="border-b border-slate-200 px-3 py-0 text-left text-xs font-semibold text-slate-500 align-middle">
+                    <th className="border-b border-slate-200 px-2 py-2 text-center text-[11px] font-semibold text-slate-600"><input id="categories-select-all" name="categoriesSelectAll" ref={selectAllRef} type="checkbox" checked={allRowsSelected} onChange={onToggleSelectAll} aria-label="Izberi vse" /></th>
+                    <th className="border-b border-slate-200 px-2.5 py-0 text-left text-[11px] font-semibold text-slate-600 align-middle">
                       <div className="relative flex h-12 items-center gap-2 overflow-visible px-1">
                         <div className="relative shrink-0 overflow-visible" style={{ width: `${treeButtonDiameter}px`, height: `${treeRowHeight}px` }}>
                           <div className="absolute inset-y-0 z-10 flex items-center justify-center" style={{ left: 0, width: `${treeButtonDiameter}px` }}>
@@ -158,12 +158,12 @@ export function AdminCategoriesTableView({
                         <span>Kategorija</span>
                       </div>
                     </th>
-                    <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-500">Opis</th>
-                    <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">Podkategorije</th>
-                    <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">Izdelki</th>
-                    <th className="h-11 border-b border-slate-200 px-3 py-0 text-center text-xs font-semibold text-slate-500 align-middle">
+                    <th className="border-b border-slate-200 px-2.5 py-2 text-left text-[11px] font-semibold text-slate-600">Opis</th>
+                    <th className="border-b border-slate-200 px-2.5 py-2 text-center text-[11px] font-semibold text-slate-600">Podkategorije</th>
+                    <th className="border-b border-slate-200 px-2.5 py-2 text-center text-[11px] font-semibold text-slate-600">Izdelki</th>
+                    <th className="h-11 border-b border-slate-200 px-2.5 py-0 text-center text-[11px] font-semibold text-slate-600 align-middle">
                       <div className="relative flex h-8 items-center justify-center" ref={statusHeaderMenuRef}>
-                        <button type="button" onClick={onToggleStatusHeaderMenu} className={`inline-flex h-7 items-center rounded-full border px-2 text-xs font-semibold ${selectedRows.length > 0 ? 'border-slate-300 bg-white text-slate-700 hover:bg-[color:var(--hover-neutral)]' : 'border-transparent bg-transparent text-slate-500 cursor-default'}`} aria-haspopup="menu" aria-expanded={selectedRows.length > 0 ? isStatusHeaderMenuOpen : false} disabled={selectedRows.length === 0}>
+                        <button type="button" onClick={onToggleStatusHeaderMenu} className={`inline-flex h-6 items-center rounded-full border px-2 text-[11px] font-semibold ${selectedRows.length > 0 ? 'border-slate-300 bg-white text-slate-700 hover:bg-[color:var(--hover-neutral)]' : 'border-transparent bg-transparent text-slate-500 cursor-default'}`} aria-haspopup="menu" aria-expanded={selectedRows.length > 0 ? isStatusHeaderMenuOpen : false} disabled={selectedRows.length === 0}>
                           {selectedRows.length > 0 ? `Vidnost ▾ (${selectedRows.length})` : 'Vidnost'}
                         </button>
                         {selectedRows.length > 0 && isStatusHeaderMenuOpen ? (
@@ -174,7 +174,7 @@ export function AdminCategoriesTableView({
                         ) : null}
                       </div>
                     </th>
-                    <th className="border-b border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-500">Uredi</th>
+                    <th className="border-b border-slate-200 px-2.5 py-2 text-center text-[11px] font-semibold text-slate-600">Uredi</th>
                   </tr>
                 </thead>
                 <tbody>{treeRows}</tbody>

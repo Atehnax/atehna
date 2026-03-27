@@ -22,7 +22,7 @@ import {
   dateInputTokenClasses,
   getAdminStripedRowToneClass
 } from '@/shared/ui/theme/tokens';
-import { AdminTableLayout } from '@/shared/ui/admin-table';
+import { AdminTableLayout, ColumnVisibilityControl } from '@/shared/ui/admin-table';
 import AdminOrderPaymentSelect from '@/admin/components/AdminOrderPaymentSelect';
 import StatusChip from '@/admin/components/StatusChip';
 import PaymentChip from '@/admin/components/PaymentChip';
@@ -82,6 +82,7 @@ type PdfDocTuple = readonly [id: number, orderId: number, type: PdfDoc['type'], 
 type AttachmentTuple = readonly [id: number, orderId: number, type: Attachment['type'], filename: string, blobUrl: string, createdAt?: string];
 
 type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
+type OrdersColumnKey = 'type';
 
 const bulkDeleteButtonClass = buttonTokenClasses.danger;
 const PAGE_SIZE_OPTIONS = [50, 100];
@@ -218,6 +219,7 @@ export default function AdminOrdersTable({
 
   const [isStatusHeaderMenuOpen, setIsStatusHeaderMenuOpen] = useState(false);
   const [isPaymentHeaderMenuOpen, setIsPaymentHeaderMenuOpen] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState<Record<OrdersColumnKey, boolean>>({ type: false });
 
   useEffect(() => {
     if (typeof globalThis.window === 'undefined') return;
@@ -1035,7 +1037,7 @@ export default function AdminOrdersTable({
 
   return (
     <div className="w-full">
-      <div className="mx-auto w-full max-w-[1600px]">
+      <div className="w-full">
         {isChartReady ? (
           <AdminOrdersPreviewChart
             orders={orders}
@@ -1252,20 +1254,25 @@ export default function AdminOrdersTable({
           }
           filterRowRight={
             <>
+              <ColumnVisibilityControl
+                options={[{ key: 'type', label: 'Tip' }]}
+                visibleMap={visibleColumns}
+                onToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }))}
+              />
               <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={handlePageSizeChange} />
               <Pagination page={page} pageCount={pageCount} onPageChange={handlePageChange} variant="topPills" size="sm" showNumbers={false} />
             </>
           }
           footerRight={<Pagination page={page} pageCount={pageCount} onPageChange={handlePageChange} variant="bottomBar" size="sm" showNumbers={false} />}
         >
-          <Table className="min-w-[1180px] w-full">
+          <Table className="min-w-[1060px] w-full text-[11px]">
             <colgroup>
               <col style={{ width: columnWidths.selectAndDelete }} />
               <col style={{ width: columnWidths.order }} />
               <col style={{ width: columnWidths.date }} />
               <col style={{ width: columnWidths.customer }} />
               <col style={{ width: columnWidths.address }} />
-              <col style={{ width: columnWidths.type }} />
+              {visibleColumns.type ? <col style={{ width: columnWidths.type }} /> : null}
               <col style={{ width: columnWidths.status }} />
               <col style={{ width: columnWidths.payment }} />
               <col style={{ width: columnWidths.total }} />
@@ -1275,7 +1282,7 @@ export default function AdminOrdersTable({
 
             <THead>
               <TR>
-                <TH className="h-11 text-center">
+                <TH className="h-11 text-center text-[11px]">
                   <input
                     type="checkbox"
                     ref={selectAllRef}
@@ -1289,53 +1296,53 @@ export default function AdminOrdersTable({
                   <button
                     type="button"
                     onClick={() => onSort('order_number')}
-                    className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
+                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
                   >
                     Naročilo {sortIndicator('order_number')}
                   </button>
                 </TH>
 
-                <TH className="h-11 text-center">
+                <TH className="h-11 text-center text-[11px]">
                   <button
                     type="button"
                     onClick={() => onSort('created_at')}
-                    className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
+                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
                   >
                     Datum {sortIndicator('created_at')}
                   </button>
                 </TH>
 
-                <TH>
+                <TH className="text-[11px]">
                   <button
                     type="button"
                     onClick={() => onSort('customer')}
-                    className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
+                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
                   >
                     Naročnik {sortIndicator('customer')}
                   </button>
                 </TH>
 
-                <TH>
+                <TH className="text-[11px]">
                   <button
                     type="button"
                     onClick={() => onSort('address')}
-                    className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
+                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
                   >
                     Naslov {sortIndicator('address')}
                   </button>
                 </TH>
 
-                <TH className="h-11 text-center">
+                {visibleColumns.type ? <TH className="h-11 text-center text-[11px]">
                   <button
                     type="button"
                     onClick={() => onSort('type')}
-                    className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
+                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
                   >
                     Tip {sortIndicator('type')}
                   </button>
-                </TH>
+                </TH> : null}
 
-                <TH className="h-11 text-center">
+                <TH className="h-11 text-center text-[11px]">
                   <div className="relative inline-flex" ref={statusHeaderMenuRef}>
                     {selectedCount > 0 ? (
                       <>
@@ -1343,7 +1350,7 @@ export default function AdminOrdersTable({
                           type="button"
                           onClick={() => setIsStatusHeaderMenuOpen((previousOpen) => !previousOpen)}
                           disabled={isBulkUpdatingStatus}
-                          className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
+                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
                           aria-haspopup="menu"
                           aria-expanded={isStatusHeaderMenuOpen}
                         >
@@ -1370,7 +1377,7 @@ export default function AdminOrdersTable({
                       <button
                         type="button"
                         onClick={() => onSort('status')}
-                        className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
+                        className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
                       >
                         Status {sortIndicator('status')}
                       </button>
@@ -1378,7 +1385,7 @@ export default function AdminOrdersTable({
                   </div>
                 </TH>
 
-                <TH className="h-11 text-center">
+                <TH className="h-11 text-center text-[11px]">
                   <div className="relative inline-flex" ref={paymentHeaderMenuRef}>
                     {selectedCount > 0 ? (
                       <>
@@ -1386,7 +1393,7 @@ export default function AdminOrdersTable({
                           type="button"
                           onClick={() => setIsPaymentHeaderMenuOpen((previousOpen) => !previousOpen)}
                           disabled={isBulkUpdatingStatus}
-                          className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
+                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
                           aria-haspopup="menu"
                           aria-expanded={isPaymentHeaderMenuOpen}
                         >
@@ -1413,7 +1420,7 @@ export default function AdminOrdersTable({
                       <button
                         type="button"
                         onClick={() => onSort('payment')}
-                        className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
+                        className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
                       >
                         Plačilo {sortIndicator('payment')}
                       </button>
@@ -1421,25 +1428,25 @@ export default function AdminOrdersTable({
                   </div>
                 </TH>
 
-                <TH className="h-11 text-center">
+                <TH className="h-11 text-center text-[11px]">
                   <button
                     type="button"
                     onClick={() => onSort('total')}
-                    className="inline-flex items-center text-xs font-semibold hover:text-slate-700"
+                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
                   >
                     Skupaj {sortIndicator('total')}
                   </button>
                 </TH>
 
-                <TH className="min-w-[100px] text-center">PDF datoteke</TH>
-                <TH className="text-center">Uredi</TH>
+                <TH className="min-w-[100px] text-center text-[11px]">PDF datoteke</TH>
+                <TH className="text-center text-[11px]">Uredi</TH>
               </TR>
             </THead>
 
             <TBody>
               {filteredAndSortedOrders.length === 0 ? (
                 <TR>
-                  <TD className="py-6 text-center text-slate-500" colSpan={10}>
+                  <TD className="py-6 text-center text-slate-500" colSpan={visibleColumns.type ? 11 : 10}>
                     <EmptyState
                       title="Ni zadetkov za izbrane filtre."
                       action={
@@ -1490,7 +1497,7 @@ export default function AdminOrdersTable({
                         <Link
                           href={`/admin/orders/${order.id}`}
                           prefetch={false}
-                          className="inline-flex rounded-sm px-1 text-[13px] font-semibold text-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
+                          className="inline-flex rounded-sm px-1 text-[11px] font-semibold text-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
                           aria-label={`Odpri naročilo ${toDisplayOrderNumber(order.order_number)}`}
                         >
                           {toDisplayOrderNumber(order.order_number)}
@@ -1520,7 +1527,7 @@ export default function AdminOrdersTable({
                         </span>
                       </TD>
 
-                      <TD className="text-center text-slate-700">{typeLabel}</TD>
+                      {visibleColumns.type ? <TD className="text-center text-slate-700">{typeLabel}</TD> : null}
 
                       <TD className="text-center text-slate-700">
                         {selectedCount > 1 ? (

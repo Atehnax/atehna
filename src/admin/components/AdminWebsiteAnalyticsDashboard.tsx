@@ -95,23 +95,23 @@ export default function AdminWebsiteAnalyticsDashboard({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="w-full space-y-5">
       <div>
         <h1 className="text-2xl font-semibold text-slate-900">Analitika splet</h1>
-        <p className="mt-1 text-sm text-slate-600">Promet, angažiranost, vsebina in konverzijski lijak spletnega mesta.</p>
+        <p className="mt-1 text-[13px] text-slate-600">Promet, angažiranost, vsebina in konverzijski lijak spletnega mesta.</p>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-3">
+      <div className="rounded-xl border border-slate-200 bg-white p-2.5">
         <div className="flex flex-wrap items-end gap-3">
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">Od</label>
-            <input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} className="h-9 rounded-lg border border-slate-300 px-2 text-sm" />
+            <label className="mb-1 block text-[11px] font-semibold uppercase text-slate-500">Od</label>
+            <input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} className="h-8 rounded-lg border border-slate-300 px-2 text-[13px]" />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">Do</label>
-            <input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} className="h-9 rounded-lg border border-slate-300 px-2 text-sm" />
+            <label className="mb-1 block text-[11px] font-semibold uppercase text-slate-500">Do</label>
+            <input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} className="h-8 rounded-lg border border-slate-300 px-2 text-[13px]" />
           </div>
-          <Button type="button" variant="brand" onClick={applyRange} className="h-9 rounded-lg px-3 text-sm font-medium">
+          <Button type="button" variant="brand" onClick={applyRange} className="h-8 rounded-lg px-3 text-[13px] font-medium">
             Uporabi obdobje
           </Button>
         </div>

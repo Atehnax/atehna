@@ -198,7 +198,7 @@ export const InlineStatusToggle = ({
       event.stopPropagation();
       onToggle();
     }}
-    className={`relative inline-flex h-7 w-14 items-center rounded-full border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${
+    className={`relative inline-flex h-6 w-12 items-center rounded-full border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${
       checked
         ? 'border-[#243f58] bg-[#3c5167] text-[#d4c08f]'
         : 'border-[#3e556d] bg-[#e8eaee] text-[#5e636b]'
@@ -225,8 +225,8 @@ export const InlineStatusToggle = ({
     </span>
     <span
       aria-hidden="true"
-      className={`absolute inset-y-0 z-10 w-6 rounded-full border border-[#1f2a36] bg-[#2f3942] shadow-[inset_0_1px_2px_rgba(255,255,255,0.08),inset_0_-3px_6px_rgba(0,0,0,0.2),0_2px_5px_rgba(15,23,42,0.25)] transition-transform duration-200 ${
-        checked ? 'translate-x-8' : 'translate-x-0'
+      className={`absolute inset-y-0 z-10 w-5 rounded-full border border-[#1f2a36] bg-[#2f3942] shadow-[inset_0_1px_2px_rgba(255,255,255,0.08),inset_0_-3px_6px_rgba(0,0,0,0.2),0_2px_5px_rgba(15,23,42,0.25)] transition-transform duration-200 ${
+        checked ? 'translate-x-7' : 'translate-x-0'
       }`}
     >
       <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#9aa0a7]" />
@@ -3071,7 +3071,7 @@ export default function AdminCategoriesMainTable({
                       }
                       data-inline-edit-field="true"
                       onBlur={handleInlineBlur}
-                      className="h-8 min-w-[10ch] max-w-[34ch] truncate whitespace-nowrap px-2 text-xs font-semibold text-slate-500"
+                      className="h-7 min-w-[10ch] max-w-[34ch] truncate whitespace-nowrap px-2 text-[11px] font-semibold text-slate-500"
                       style={{ width: `${Math.min(34, Math.max(10, editingRow.title.length + 2))}ch` }}
                       autoFocus
                     />
@@ -3091,7 +3091,7 @@ export default function AdminCategoriesMainTable({
                         }
                       }}
                       onPointerDown={(event) => event.stopPropagation()}
-                      className="block w-full truncate whitespace-nowrap text-left text-xs font-semibold text-slate-500"
+                      className="block w-full truncate whitespace-nowrap text-left text-[11px] font-semibold text-slate-500"
                       title={title}
                     >
                       {title}
@@ -3101,7 +3101,7 @@ export default function AdminCategoriesMainTable({
               </div>
             </td>
 
-            <td className="border-b border-slate-200 px-3 py-2 text-xs font-normal text-slate-500">
+            <td className="border-b border-slate-200 px-2.5 py-2 text-[11px] font-normal text-slate-500">
               {isRowEditing ? (
                 <Input
                   id={`category-description-${id}`}
@@ -3112,7 +3112,7 @@ export default function AdminCategoriesMainTable({
                   }
                   data-inline-edit-field="true"
                   onBlur={handleInlineBlur}
-                  className="h-8 min-w-[18ch] max-w-[64ch] truncate whitespace-nowrap px-2 text-xs font-normal text-slate-500"
+                  className="h-7 min-w-[18ch] max-w-[64ch] truncate whitespace-nowrap px-2 text-[11px] font-normal text-slate-500"
                   style={{ width: `${Math.min(64, Math.max(18, editingRow.description.length + 2))}ch` }}
                 />
               ) : (
@@ -3122,10 +3122,10 @@ export default function AdminCategoriesMainTable({
               )}
             </td>
 
-            <td className="border-b border-slate-200 px-3 py-2 text-center text-sm text-slate-600">{childrenCount}</td>
-            <td className="border-b border-slate-200 px-3 py-2 text-center text-sm text-slate-600">{productCount}</td>
+            <td className="border-b border-slate-200 px-3 py-2 text-center text-[11px] text-slate-600">{childrenCount}</td>
+            <td className="border-b border-slate-200 px-3 py-2 text-center text-[11px] text-slate-600">{productCount}</td>
 
-            <td className="border-b border-slate-200 px-3 py-2 text-center text-sm">
+            <td className="border-b border-slate-200 px-3 py-2 text-center text-[11px]">
               {kind === 'root' ? (
                 <span className="text-xs text-slate-400">—</span>
               ) : (

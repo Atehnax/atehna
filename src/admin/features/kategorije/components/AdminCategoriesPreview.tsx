@@ -128,15 +128,15 @@ export function AdminCategoriesPreview({
     : false;
 
   return (
-    <div className={activeView === "preview" ? "space-y-5" : "hidden"}>
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className={activeView === "preview" ? "w-full space-y-4" : "hidden"}>
+      <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
         {tableError ? (
           <p className="mb-3 rounded-lg border border-[var(--danger-300)] bg-[var(--danger-100)] px-3 py-2 text-xs text-[var(--danger-700)]">
             {tableError}
           </p>
         ) : null}
         <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="text-sm font-semibold text-slate-700">Predogled</p>
+          <p className="text-[13px] font-semibold text-slate-700">Predogled</p>
           <div className="flex items-center gap-3">
             <label className="mr-2 flex items-center gap-2 text-[11px] text-slate-500">
               Elementov na vrstico
@@ -163,11 +163,11 @@ export function AdminCategoriesPreview({
               disabled={!canNavigateUp}
               aria-label="Nazaj na nadrejeno kategorijo"
               title="Nazaj"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl px-0"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-xl px-0"
             >
               <svg
                 viewBox="0 0 24 24"
-                className="h-5 w-5"
+                className="h-4 w-4"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.8"
@@ -204,7 +204,7 @@ export function AdminCategoriesPreview({
               strategy={rectSortingStrategy}
             >
               <div
-                className="grid gap-4"
+                className="grid gap-3"
                 style={{
                   gridTemplateColumns: `repeat(${Math.min(8, Math.max(3, lowerViewCount))}, minmax(0, 1fr))`,
                 }}
@@ -245,7 +245,7 @@ export function AdminCategoriesPreview({
           </DndContext>
         ) : selectedContext?.kind === "root" ? (
           <div
-            className="grid gap-4"
+            className="grid gap-3"
             style={{
               gridTemplateColumns: `repeat(${Math.min(8, Math.max(3, lowerViewCount))}, minmax(0, 1fr))`,
             }}
@@ -327,6 +327,11 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
   const descriptionPreview = item.description || "—";
   const shouldShowHoverDetails =
     titlePreview.length > 50 || descriptionPreview.length > 75;
+  const moveCaretToEnd = (event: FocusEvent<HTMLTextAreaElement>) => {
+    const input = event.currentTarget;
+    const end = input.value.length;
+    input.setSelectionRange(end, end);
+  };
 
   const triggerImagePicker = () => {
     const input = uploadRefs.current[item.id];
@@ -457,9 +462,9 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
     <article
       ref={setNodeRef}
       style={style}
-      className="group flex h-full min-h-[300px] flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04)]"
+      className="group flex h-full min-h-[225px] flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04)]"
     >
-      <div className="group/image relative h-[226px] overflow-hidden">
+      <div className="group/image relative h-[170px] overflow-hidden">
         <div
           className={`absolute inset-0 ${item.image ? "bg-slate-100" : "bg-[#323538]"}`}
           aria-hidden="true"
@@ -480,12 +485,12 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
           aria-hidden="true"
         />
 
-        <div className="absolute right-3 top-3 z-20 flex flex-col items-end gap-2 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+        <div className="absolute inset-y-0 right-3 z-20 flex flex-col items-end justify-center gap-2 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
           {hoverStackButtons.map((action) => (
             <button
               key={action.key}
               type="button"
-              className={`inline-flex h-8 min-w-[2rem] items-center justify-center rounded-xl border px-0 shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${action.tone === "danger" ? "border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]" : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50"} ${action.dragHandle ? "cursor-grab active:cursor-grabbing" : ""}`}
+              className={`inline-flex h-[25px] min-w-[1.6rem] items-center justify-center rounded-xl border px-0 shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${action.tone === "danger" ? "border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]" : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50"} ${action.dragHandle ? "cursor-grab active:cursor-grabbing" : ""}`}
               onPointerDown={(event) => {
                 if (!action.dragHandle) {
                   event.stopPropagation();
@@ -509,7 +514,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
         ) : null}
       </div>
 
-      <div className="relative flex h-[132px] flex-none flex-col px-4 pb-4 pt-3">
+      <div className="relative flex h-[110px] flex-none flex-col px-3 pb-3 pt-2.5">
         <div
           className="absolute inset-x-0 top-0 h-5 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.9),rgba(255,255,255,0)_72%)]"
           aria-hidden="true"
@@ -531,12 +536,12 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
                   aria-label={`Odpri ${titlePreview}`}
                   title={item.openLabel}
                 >
-                  <p className="line-clamp-2 min-h-[40px] text-[1.05rem] font-semibold leading-5 text-slate-950">
+                  <p className="line-clamp-2 min-h-[40px] text-[0.92rem] font-semibold leading-5 text-slate-950">
                     {titlePreview}
                   </p>
                 </button>
               ) : (
-                <p className="line-clamp-2 min-h-[40px] text-[1.05rem] font-semibold leading-5 text-slate-950">
+                <p className="line-clamp-2 min-h-[40px] text-[0.92rem] font-semibold leading-5 text-slate-950">
                   {titlePreview}
                 </p>
               )}
@@ -550,6 +555,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
                   onEditingRowTitleChange(event.target.value)
                 }
                 onBlur={handleCardEditBlur}
+                onFocus={moveCaretToEnd}
                 data-inline-edit-field="true"
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && !event.shiftKey) {
@@ -558,16 +564,16 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
                   }
                   if (event.key === "Escape") onCancelEdit();
                 }}
-                className="absolute inset-x-0 top-0 h-10 w-full resize-none overflow-hidden border-transparent bg-transparent px-0 py-0 text-[1.05rem] font-semibold leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                className="absolute inset-x-0 top-0 h-10 w-full resize-none overflow-hidden border-transparent bg-transparent px-0 py-0 text-[0.92rem] font-semibold leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                 autoFocus
                 aria-label="Naziv kategorije"
               />
             ) : null}
           </div>
 
-          <div className="relative mt-2 min-h-[60px] flex-1">
+          <div className="relative mt-2 min-h-[66px] flex-1">
             <p
-              className={`line-clamp-3 min-h-[60px] whitespace-pre-wrap text-sm leading-5 text-slate-950 ${isEditing ? "invisible" : ""}`}
+              className={`line-clamp-3 min-h-[60px] whitespace-pre-wrap text-[12px] leading-5 text-slate-950 ${isEditing ? "invisible" : ""}`}
             >
               {descriptionPreview}
             </p>
@@ -591,7 +597,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
                   }
                   if (event.key === "Escape") onCancelEdit();
                 }}
-                className="absolute inset-0 min-h-[54px] w-full resize-none border-transparent bg-transparent px-0 py-0 text-sm leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                className="absolute inset-0 min-h-[54px] w-full resize-none border-transparent bg-transparent px-0 py-0 text-[12px] leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                 aria-label="Opis kategorije"
               />
             ) : null}
@@ -652,10 +658,10 @@ function CreateCategoryCard({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-[300px] flex-col items-center justify-center rounded-[18px] border border-dashed border-slate-300 bg-slate-50/40 px-6 text-center transition hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/40"
+      className="flex min-h-[225px] flex-col items-center justify-center rounded-[18px] border border-dashed border-slate-300 bg-slate-50/40 px-6 text-center transition hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/40"
       aria-label="Ustvari novo kategorijo"
     >
-      <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-slate-600 shadow-sm">
+      <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-slate-600 shadow-sm">
         <svg
           viewBox="0 0 24 24"
           className="h-5 w-5"

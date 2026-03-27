@@ -13,6 +13,7 @@ import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { CustomSelect } from '@/shared/ui/select';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { IconButton } from '@/shared/ui/icon-button';
+import { TrashCanIcon } from '@/shared/ui/icons/TrashCanIcon';
 import { useToast } from '@/shared/ui/toast';
 import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 
@@ -388,7 +389,7 @@ export default function AdminOrderHeaderChips(props: Props) {
             aria-label="Izbriši naročilo"
             title="Izbriši"
           >
-            ×
+            <TrashCanIcon className="h-[18px] w-[18px]" />
           </button>
         </div>
       </div>

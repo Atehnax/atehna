@@ -74,6 +74,7 @@ import { sortCatalogItems } from '@/commercial/catalog/catalogUtils';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { Chip } from '@/shared/ui/badge';
+import { TrashCanIcon } from '@/shared/ui/icons/TrashCanIcon';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActions } from '@/shared/ui/table';
 import {
@@ -3211,7 +3212,7 @@ export default function AdminCategoriesMainTable({
                     }
                   }}
                 >
-                  ×
+                  <TrashCanIcon className="h-[18px] w-[18px]" />
                 </Button>
               </RowActions>
             </td>

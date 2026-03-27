@@ -2,6 +2,7 @@ import { useMemo, type RefObject, type ReactNode } from 'react';
 import Selecto from 'react-selecto';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
+import { TrashCanIcon } from '@/shared/ui/icons/TrashCanIcon';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 
@@ -200,7 +201,7 @@ export function AdminCategoriesMiller({
             onClick={() => onRequestDelete(activeColumnKind)}
             disabled={!millerSelection.some((id) => millerColumns.find((column) => column.kind === activeColumnKind)?.ids.includes(id))}
           >
-            ✕
+            <TrashCanIcon className="h-4 w-4" />
           </IconButton>
           <div className="relative" ref={millerHistoryMenuRef}>
             <IconButton type="button" size="sm" tone="neutral" aria-label="Zgodovina" onClick={onToggleHistoryMenu}>⋮</IconButton>

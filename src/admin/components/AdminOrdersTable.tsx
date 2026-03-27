@@ -11,6 +11,7 @@ import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { CustomSelect } from '@/shared/ui/select';
 import { Spinner } from '@/shared/ui/loading';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
+import { TrashCanIcon } from '@/shared/ui/icons/TrashCanIcon';
 import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
@@ -1651,17 +1652,6 @@ function useDebouncedValue<T>(value: T, delayMs: number) {
   }, [value, delayMs]);
 
   return debounced;
-}
-
-function TrashCanIcon({ className = 'h-5 w-5' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4.5 7h15" />
-      <path d="M8.2 7 9 4.5h6L15.8 7" />
-      <path d="M7.2 7.2 8 19a2 2 0 0 0 2 1.9h4a2 2 0 0 0 2-1.9l.8-11.8" />
-      <path d="M10 10v7M12 10v7M14 10v7" />
-    </svg>
-  );
 }
 
 function formatCompactDate(dateValue: Date) {

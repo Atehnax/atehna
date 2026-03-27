@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useMemo, useRef, useState } from 'react';
 import { IconButton } from '@/shared/ui/icon-button';
+import { TrashCanIcon } from '@/shared/ui/icons/TrashCanIcon';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 import { surfaceTokenClasses } from '@/shared/ui/theme/tokens';
@@ -473,7 +474,7 @@ export default function AdminOrderPdfManager({
                                 aria-label={`Izbriši dokument ${doc.filename}`}
                                 title="Izbriši"
                               >
-                                {deletingDocumentId === doc.id ? '…' : '×'}
+                                {deletingDocumentId === doc.id ? '…' : <TrashCanIcon className="h-[15px] w-[15px]" />}
                               </button>
                             </div>
                           </li>

@@ -189,11 +189,12 @@ export function AdminCategoriesMiller({
           <Button type="button" variant="primary" size="toolbar" onClick={onRequestSave} disabled={!millerDirty || saving}>
             Shrani spremembe
           </Button>
-          <IconButton type="button" tone="neutral" aria-label="Dodaj" onClick={() => onAddNode(activeColumnKind)}>
+          <IconButton type="button" size="sm" tone="neutral" aria-label="Dodaj" onClick={() => onAddNode(activeColumnKind)}>
             {plusIcon}
           </IconButton>
           <IconButton
             type="button"
+            size="sm"
             tone="danger"
             aria-label="Izbriši"
             onClick={() => onRequestDelete(activeColumnKind)}
@@ -202,7 +203,7 @@ export function AdminCategoriesMiller({
             ✕
           </IconButton>
           <div className="relative" ref={millerHistoryMenuRef}>
-            <IconButton type="button" tone="neutral" aria-label="Zgodovina" onClick={onToggleHistoryMenu}>⋮</IconButton>
+            <IconButton type="button" size="sm" tone="neutral" aria-label="Zgodovina" onClick={onToggleHistoryMenu}>⋮</IconButton>
             {isHistoryMenuOpen ? (
               <MenuPanel className="absolute right-0 top-9 z-20 w-40">
                 <MenuItem

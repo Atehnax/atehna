@@ -1037,7 +1037,7 @@ export default function AdminOrdersTable({
 
   return (
     <div className="w-full">
-      <div className="mx-auto w-full max-w-[1240px]">
+      <div className="w-full">
         {isChartReady ? (
           <AdminOrdersPreviewChart
             orders={orders}

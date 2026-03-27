@@ -1,14 +1,31 @@
 import type { InputHTMLAttributes } from 'react';
 import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
 
-type AdminSearchInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>;
+type AdminSearchInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & {
+  showIcon?: boolean;
+};
 
-export function AdminSearchInput({ className = '', ...props }: AdminSearchInputProps) {
+export function AdminSearchInput({ className = '', showIcon = true, ...props }: AdminSearchInputProps) {
   return (
-    <input
-      type="search"
-      className={`${ADMIN_CONTROL_HEIGHT} min-w-[260px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} text-xs text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] ${className}`}
-      {...props}
-    />
+    <div className="relative min-w-[260px] flex-1">
+      {showIcon ? (
+        <svg
+          viewBox="0 0 20 20"
+          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          aria-hidden="true"
+        >
+          <circle cx="9" cy="9" r="5.6" />
+          <path d="m13 13 3.8 3.8" />
+        </svg>
+      ) : null}
+      <input
+        type="search"
+        className={`${ADMIN_CONTROL_HEIGHT} min-w-[260px] w-full rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} ${showIcon ? 'pl-9' : ''} text-xs text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] ${className}`}
+        {...props}
+      />
+    </div>
   );
 }

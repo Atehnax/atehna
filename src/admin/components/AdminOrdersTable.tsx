@@ -5,16 +5,15 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Button } from '@/shared/ui/button';
-import { ButtonGroup } from '@/shared/ui/button-group';
 import { IconButton } from '@/shared/ui/icon-button';
 import AdminOrderStatusSelect from '@/admin/components/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
-import { SegmentedControl } from '@/shared/ui/segmented';
 import { CustomSelect } from '@/shared/ui/select';
 import { Spinner } from '@/shared/ui/loading';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
 import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
+import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
 import {
   adminTableRowToneClasses,
@@ -28,7 +27,7 @@ import StatusChip from '@/admin/components/StatusChip';
 import PaymentChip from '@/admin/components/PaymentChip';
 import { getCustomerTypeLabel } from '@/shared/domain/order/customerType';
 import { ORDER_STATUS_OPTIONS } from '@/shared/domain/order/orderStatus';
-import { formatSlDate, formatSlDateFromDateInput, formatSlDateTime } from '@/shared/domain/order/dateTime';
+import { formatSlDate, formatSlDateTime } from '@/shared/domain/order/dateTime';
 import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, isPaymentStatus } from '@/shared/domain/order/paymentStatus';
 import type { AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
 
@@ -82,10 +81,21 @@ type PdfDocTuple = readonly [id: number, orderId: number, type: PdfDoc['type'], 
 type AttachmentTuple = readonly [id: number, orderId: number, type: Attachment['type'], filename: string, blobUrl: string, createdAt?: string];
 
 type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
-type OrdersColumnKey = 'type';
+type OrdersColumnKey = 'order' | 'date' | 'customer' | 'address' | 'type' | 'status' | 'payment' | 'total' | 'documents';
 
 const bulkDeleteButtonClass = buttonTokenClasses.danger;
 const PAGE_SIZE_OPTIONS = [50, 100];
+const ORDER_COLUMN_OPTIONS: Array<{ key: OrdersColumnKey; label: string }> = [
+  { key: 'order', label: 'Naročilo' },
+  { key: 'date', label: 'Datum' },
+  { key: 'customer', label: 'Naročnik' },
+  { key: 'address', label: 'Naslov' },
+  { key: 'type', label: 'Tip' },
+  { key: 'status', label: 'Status' },
+  { key: 'payment', label: 'Plačilo' },
+  { key: 'total', label: 'Skupaj' },
+  { key: 'documents', label: 'PDF datoteke' }
+];
 const AdminOrdersPreviewChart = dynamic(() => import('@/admin/components/AdminOrdersPreviewChart'), { ssr: false });
 const LazyAdminOrdersPdfCell = dynamic(() => import('@/admin/components/AdminOrdersPdfCell'), {
   ssr: false,
@@ -219,7 +229,17 @@ export default function AdminOrdersTable({
 
   const [isStatusHeaderMenuOpen, setIsStatusHeaderMenuOpen] = useState(false);
   const [isPaymentHeaderMenuOpen, setIsPaymentHeaderMenuOpen] = useState(false);
-  const [visibleColumns, setVisibleColumns] = useState<Record<OrdersColumnKey, boolean>>({ type: false });
+  const [visibleColumns, setVisibleColumns] = useState<Record<OrdersColumnKey, boolean>>({
+    order: true,
+    date: true,
+    customer: true,
+    address: true,
+    type: true,
+    status: true,
+    payment: true,
+    total: true,
+    documents: true
+  });
 
   useEffect(() => {
     if (typeof globalThis.window === 'undefined') return;
@@ -930,23 +950,23 @@ export default function AdminOrdersTable({
   };
 
   const defaultDateRangeLabel = useMemo(() => {
-    if (orders.length === 0) return '📅 —';
+    if (orders.length === 0) return '—';
 
     const timestamps = orders
       .map((order) => new Date(order.created_at).getTime())
       .filter((timestamp) => !Number.isNaN(timestamp));
 
-    if (timestamps.length === 0) return '📅 —';
+    if (timestamps.length === 0) return '—';
 
     const minTimestamp = Math.min(...timestamps);
     const maxTimestamp = Math.max(...timestamps);
 
-    return `${formatSlDate(new Date(minTimestamp).toISOString())} – ${formatSlDate(new Date(maxTimestamp).toISOString())}`;
+    return `${formatCompactDate(new Date(minTimestamp))} - ${formatCompactDate(new Date(maxTimestamp))}`;
   }, [orders]);
 
   const dateRangeLabel =
     fromDate || toDate
-      ? `${formatSlDateFromDateInput(fromDate)} – ${formatSlDateFromDateInput(toDate)}`
+      ? `${formatCompactDateFromDateInput(fromDate)} - ${formatCompactDateFromDateInput(toDate)}`
       : defaultDateRangeLabel;
 
   const resetAllFilters = () => {
@@ -973,10 +993,6 @@ export default function AdminOrdersTable({
     hasAutoResetFiltersRef.current = true;
     resetAllFilters();
   }, [orders.length, hasActiveFilters, filteredAndSortedOrders.length]);
-
-  const handleResetDocumentFilter = () => {
-    setDocumentType('all');
-  };
 
   const downloadFile = async (fileUrl: string, downloadFilename: string) => {
     const response = await fetch(fileUrl);
@@ -1093,33 +1109,105 @@ export default function AdminOrdersTable({
           contentClassName="overflow-x-auto"
           headerLeft={
             <>
+              <div className="flex min-w-0 flex-1 items-center gap-1 border-b border-slate-200 pb-1">
+                {statusTabs.map((tab) => {
+                  const isActive = statusFilter === tab.value;
+                  return (
+                    <button
+                      key={tab.value}
+                      type="button"
+                      onClick={() => setStatusFilter(tab.value)}
+                      className={`relative px-3 py-2 text-sm font-medium transition ${
+                        isActive
+                          ? 'text-slate-900 after:absolute after:inset-x-0 after:bottom-[-5px] after:h-[2px] after:rounded-full after:bg-slate-800'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          }
+          headerRight={
+            <>
+              <div className="flex items-center gap-2 pb-1">
+                <CustomSelect
+                  value={documentType}
+                  onChange={(next) => setDocumentType(next as DocumentType)}
+                  options={documentTypeOptions}
+                  triggerClassName={`${ADMIN_CONTROL_HEIGHT} min-w-[144px] rounded-xl border border-slate-300 bg-white ${ADMIN_CONTROL_PADDING_X} py-0 text-xs font-semibold text-slate-700 shadow-none hover:bg-[color:var(--hover-neutral)]`}
+                />
+                <Button
+                  type="button"
+                  variant="default"
+                  onClick={handleDownloadAllDocuments}
+                  disabled={isDownloading}
+                  className={`${ADMIN_CONTROL_HEIGHT} rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 shadow-none hover:bg-[color:var(--hover-neutral)]`}
+                >
+                  {isDownloading ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Spinner size="sm" className="text-slate-500" />
+                      Prenos...
+                    </span>
+                  ) : selected.length > 0 ? (
+                    `Prenesi (${selected.length})`
+                  ) : (
+                    'Prenesi vse'
+                  )}
+                </Button>
+                <IconButton
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={selected.length === 0 || isDeleting}
+                  tone="danger"
+                  size="md"
+                  className={`${bulkDeleteButtonClass} !rounded-xl !px-2.5`}
+                  aria-label="Izbriši izbrana naročila"
+                  title="Izbriši"
+                >
+                  {isDeleting ? (
+                    <Spinner size="sm" className="text-[var(--danger-600)]" />
+                  ) : (
+                    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                      <path d="M3.5 5.5h13" />
+                      <path d="M7.5 3.8h5l.5 1.7h2.5" />
+                      <path d="M6.4 5.5 7 15.8c.04.7.62 1.2 1.32 1.2h3.36c.7 0 1.28-.54 1.32-1.2l.6-10.3" />
+                      <path d="M8.4 8.2v5.6M11.6 8.2v5.6" />
+                    </svg>
+                  )}
+                </IconButton>
+                {topAction ? <div className="flex items-center [&_button]:!rounded-xl">{topAction}</div> : null}
+              </div>
+            </>
+          }
+          filterRowLeft={
+            <AdminSearchInput
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Poišči naročila"
+              className="h-12 min-w-[360px] rounded-2xl border-slate-200 bg-slate-100 pl-10 pr-3 text-sm"
+            />
+          }
+          filterRowRight={
+            <>
               <div className="relative min-w-[170px]" ref={datePopoverRef}>
                 <button
                   type="button"
                   onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-                  className={`${ADMIN_CONTROL_HEIGHT} min-w-[175px] rounded-xl border border-slate-300 bg-transparent ${ADMIN_CONTROL_PADDING_X} py-0 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none`}
+                  className={`${ADMIN_CONTROL_HEIGHT} min-w-[138px] rounded-xl border border-slate-300 bg-white ${ADMIN_CONTROL_PADDING_X} py-0 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none`}
                 >
                   <span className="inline-flex h-full w-full items-center gap-1.5 leading-none">
-                    <svg
-                      aria-hidden="true"
-                      viewBox="0 0 24 24"
-                      className="h-3.5 w-3.5 text-slate-600"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                    >
+                    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5 text-slate-600" fill="none" stroke="currentColor" strokeWidth="1.8">
                       <rect x="3" y="5" width="18" height="16" rx="2" />
                       <path d="M16 3v4M8 3v4M3 10h18" />
                     </svg>
                     <span className="truncate">{dateRangeLabel}</span>
                   </span>
                 </button>
-
                 {isDatePopoverOpen && (
-                  <div
-                    lang="sl-SI"
-                    className="absolute left-0 z-20 mt-2 w-[420px] rounded-xl border border-slate-200 bg-white p-3 shadow-lg"
-                  >
+                  <div lang="sl-SI" className="absolute right-0 z-20 mt-2 w-[420px] rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
                     <div className="grid grid-cols-[180px_1fr] gap-4">
                       <div className="space-y-1 border-r border-slate-200 pr-3">
                         {[
@@ -1141,7 +1229,6 @@ export default function AdminOrdersTable({
                           </button>
                         ))}
                       </div>
-
                       <div className="space-y-3">
                         <div>
                           <label className="text-xs font-semibold uppercase text-slate-500">Od</label>
@@ -1174,109 +1261,32 @@ export default function AdminOrdersTable({
                   </div>
                 )}
               </div>
-
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Poišči po številki, naročniku, naslovu, opombi ..."
-                className={`${ADMIN_CONTROL_HEIGHT} min-w-[260px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} text-xs text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
-              />
-
-              <ButtonGroup
-                className={`${ADMIN_CONTROL_HEIGHT} w-fit rounded-xl border border-slate-300 overflow-hidden bg-white divide-x divide-slate-300`}
-              >
-                <CustomSelect
-                  value={documentType}
-                  onChange={(next) => setDocumentType(next as DocumentType)}
-                  options={documentTypeOptions}
-                  triggerClassName={`relative h-full min-w-[140px] bg-transparent border-0 ${ADMIN_CONTROL_PADDING_X} py-0 text-sm font-medium flex items-center justify-between !rounded-l-xl !rounded-r-none shadow-none hover:!bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10`}
-                />
-
-                <Button
-                  type="button"
-                  variant="default"
-                  onClick={handleResetDocumentFilter}
-                  disabled={documentType === 'all'}
-                  className={`relative ${ADMIN_CONTROL_PADDING_X} h-full rounded-none border-0 bg-transparent text-sm font-medium shadow-none hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10`}
-                >
-                  Ponastavi
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="default"
-                  onClick={handleDownloadAllDocuments}
-                  disabled={isDownloading}
-                  className="relative h-full w-[80px] inline-flex items-center justify-center rounded-none border-0 bg-transparent px-2 whitespace-nowrap text-sm font-medium tabular-nums shadow-none hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none focus:z-10"
-                >
-                  {isDownloading ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      <Spinner size="sm" className="text-slate-500" />
-                      Prenos...
-                    </span>
-                  ) : selected.length > 0 ? (
-                    `Prenesi (${selected.length})`
-                  ) : (
-                    'Prenesi vse'
-                  )}
-                </Button>
-              </ButtonGroup>
-            </>
-          }
-          headerRight={
-            <>
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={selected.length === 0 || isDeleting}
-                className={bulkDeleteButtonClass}
-              >
-                {isDeleting ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Spinner size="sm" className="text-[var(--danger-600)]" />
-                    Brisanje...
-                  </span>
-                ) : (
-                  'Izbriši'
-                )}
-              </button>
-
-              {topAction ? <div className="flex h-8 items-center">{topAction}</div> : null}
-            </>
-          }
-          filterRowLeft={
-            <SegmentedControl
-              size="sm"
-              value={statusFilter}
-              onChange={(next) => setStatusFilter(next as typeof statusFilter)}
-              options={statusTabs.map((tab) => ({ value: tab.value, label: tab.label }))}
-            />
-          }
-          filterRowRight={
-            <>
               <ColumnVisibilityControl
-                options={[{ key: 'type', label: 'Tip' }]}
+                options={ORDER_COLUMN_OPTIONS}
                 visibleMap={visibleColumns}
                 onToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }))}
               />
-              <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={handlePageSizeChange} />
-              <Pagination page={page} pageCount={pageCount} onPageChange={handlePageChange} variant="topPills" size="sm" showNumbers={false} />
             </>
           }
-          footerRight={<Pagination page={page} pageCount={pageCount} onPageChange={handlePageChange} variant="bottomBar" size="sm" showNumbers={false} />}
+          footerRight={
+            <div className="flex w-full flex-wrap items-center justify-between gap-2">
+              <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={handlePageSizeChange} />
+              <Pagination page={page} pageCount={pageCount} onPageChange={handlePageChange} variant="bottomBar" size="sm" showNumbers={false} />
+            </div>
+          }
         >
           <Table className="min-w-[1060px] w-full text-[11px]">
             <colgroup>
               <col style={{ width: columnWidths.selectAndDelete }} />
-              <col style={{ width: columnWidths.order }} />
-              <col style={{ width: columnWidths.date }} />
-              <col style={{ width: columnWidths.customer }} />
-              <col style={{ width: columnWidths.address }} />
+              {visibleColumns.order ? <col style={{ width: columnWidths.order }} /> : null}
+              {visibleColumns.date ? <col style={{ width: columnWidths.date }} /> : null}
+              {visibleColumns.customer ? <col style={{ width: columnWidths.customer }} /> : null}
+              {visibleColumns.address ? <col style={{ width: columnWidths.address }} /> : null}
               {visibleColumns.type ? <col style={{ width: columnWidths.type }} /> : null}
-              <col style={{ width: columnWidths.status }} />
-              <col style={{ width: columnWidths.payment }} />
-              <col style={{ width: columnWidths.total }} />
-              <col style={{ width: columnWidths.documents }} />
+              {visibleColumns.status ? <col style={{ width: columnWidths.status }} /> : null}
+              {visibleColumns.payment ? <col style={{ width: columnWidths.payment }} /> : null}
+              {visibleColumns.total ? <col style={{ width: columnWidths.total }} /> : null}
+              {visibleColumns.documents ? <col style={{ width: columnWidths.documents }} /> : null}
               <col style={{ width: columnWidths.edit }} />
             </colgroup>
 
@@ -1292,7 +1302,7 @@ export default function AdminOrdersTable({
                   />
                 </TH>
 
-                <TH className="h-11 text-center">
+                {visibleColumns.order ? <TH className="h-11 text-center">
                   <button
                     type="button"
                     onClick={() => onSort('order_number')}
@@ -1300,9 +1310,9 @@ export default function AdminOrdersTable({
                   >
                     Naročilo {sortIndicator('order_number')}
                   </button>
-                </TH>
+                </TH> : null}
 
-                <TH className="h-11 text-center text-[11px]">
+                {visibleColumns.date ? <TH className="h-11 text-center text-[11px]">
                   <button
                     type="button"
                     onClick={() => onSort('created_at')}
@@ -1310,9 +1320,9 @@ export default function AdminOrdersTable({
                   >
                     Datum {sortIndicator('created_at')}
                   </button>
-                </TH>
+                </TH> : null}
 
-                <TH className="text-[11px]">
+                {visibleColumns.customer ? <TH className="text-[11px]">
                   <button
                     type="button"
                     onClick={() => onSort('customer')}
@@ -1320,9 +1330,9 @@ export default function AdminOrdersTable({
                   >
                     Naročnik {sortIndicator('customer')}
                   </button>
-                </TH>
+                </TH> : null}
 
-                <TH className="text-[11px]">
+                {visibleColumns.address ? <TH className="text-[11px]">
                   <button
                     type="button"
                     onClick={() => onSort('address')}
@@ -1330,7 +1340,7 @@ export default function AdminOrdersTable({
                   >
                     Naslov {sortIndicator('address')}
                   </button>
-                </TH>
+                </TH> : null}
 
                 {visibleColumns.type ? <TH className="h-11 text-center text-[11px]">
                   <button
@@ -1342,7 +1352,7 @@ export default function AdminOrdersTable({
                   </button>
                 </TH> : null}
 
-                <TH className="h-11 text-center text-[11px]">
+                {visibleColumns.status ? <TH className="h-11 text-center text-[11px]">
                   <div className="relative inline-flex" ref={statusHeaderMenuRef}>
                     {selectedCount > 0 ? (
                       <>
@@ -1383,9 +1393,9 @@ export default function AdminOrdersTable({
                       </button>
                     )}
                   </div>
-                </TH>
+                </TH> : null}
 
-                <TH className="h-11 text-center text-[11px]">
+                {visibleColumns.payment ? <TH className="h-11 text-center text-[11px]">
                   <div className="relative inline-flex" ref={paymentHeaderMenuRef}>
                     {selectedCount > 0 ? (
                       <>
@@ -1426,9 +1436,9 @@ export default function AdminOrdersTable({
                       </button>
                     )}
                   </div>
-                </TH>
+                </TH> : null}
 
-                <TH className="h-11 text-center text-[11px]">
+                {visibleColumns.total ? <TH className="h-11 text-center text-[11px]">
                   <button
                     type="button"
                     onClick={() => onSort('total')}
@@ -1436,9 +1446,9 @@ export default function AdminOrdersTable({
                   >
                     Skupaj {sortIndicator('total')}
                   </button>
-                </TH>
+                </TH> : null}
 
-                <TH className="min-w-[100px] text-center text-[11px]">PDF datoteke</TH>
+                {visibleColumns.documents ? <TH className="min-w-[100px] text-center text-[11px]">PDF datoteke</TH> : null}
                 <TH className="text-center text-[11px]">Uredi</TH>
               </TR>
             </THead>
@@ -1446,7 +1456,7 @@ export default function AdminOrdersTable({
             <TBody>
               {filteredAndSortedOrders.length === 0 ? (
                 <TR>
-                  <TD className="py-6 text-center text-slate-500" colSpan={visibleColumns.type ? 11 : 10}>
+                  <TD className="py-6 text-center text-slate-500" colSpan={Object.values(visibleColumns).filter(Boolean).length + 2}>
                     <EmptyState
                       title="Ni zadetkov za izbrane filtre."
                       action={
@@ -1493,7 +1503,7 @@ export default function AdminOrdersTable({
                         </div>
                       </TD>
 
-                      <TD className="text-center font-semibold text-slate-900" data-no-row-nav>
+                      {visibleColumns.order ? <TD className="text-center font-semibold text-slate-900" data-no-row-nav>
                         <Link
                           href={`/admin/orders/${order.id}`}
                           prefetch={false}
@@ -1502,9 +1512,9 @@ export default function AdminOrdersTable({
                         >
                           {toDisplayOrderNumber(order.order_number)}
                         </Link>
-                      </TD>
+                      </TD> : null}
 
-                      <TD className="text-center whitespace-nowrap text-slate-700">
+                      {visibleColumns.date ? <TD className="text-center whitespace-nowrap text-slate-700">
                         <span
                           className="inline-block rounded-sm px-1 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
                           title={rowDisplay?.dateTimeLabel ?? formatSlDateTime(order.created_at)}
@@ -1513,23 +1523,23 @@ export default function AdminOrdersTable({
                         >
                           {rowDisplay?.dateLabel ?? formatSlDate(order.created_at)}
                         </span>
-                      </TD>
+                      </TD> : null}
 
-                      <TD className="text-slate-700">
+                      {visibleColumns.customer ? <TD className="text-slate-700">
                         <span className="block truncate" title={order.organization_name || order.contact_name}>
                           {order.organization_name || order.contact_name}
                         </span>
-                      </TD>
+                      </TD> : null}
 
-                      <TD className="text-slate-700">
+                      {visibleColumns.address ? <TD className="text-slate-700">
                         <span className="block truncate" title={orderAddress || '—'}>
                           {orderAddress || '—'}
                         </span>
-                      </TD>
+                      </TD> : null}
 
                       {visibleColumns.type ? <TD className="text-center text-slate-700">{typeLabel}</TD> : null}
 
-                      <TD className="text-center text-slate-700">
+                      {visibleColumns.status ? <TD className="text-center text-slate-700">
                         {selectedCount > 1 ? (
                           <div className="flex justify-center">
                             <StatusChip status={rowStatus} />
@@ -1548,9 +1558,9 @@ export default function AdminOrdersTable({
                             }
                           />
                         )}
-                      </TD>
+                      </TD> : null}
 
-                      <TD className="text-center">
+                      {visibleColumns.payment ? <TD className="text-center">
                         {selectedCount > 1 ? (
                           <div className="flex justify-center">
                             <PaymentChip status={rowPaymentStatus} />
@@ -1569,11 +1579,11 @@ export default function AdminOrdersTable({
                             }
                           />
                         )}
-                      </TD>
+                      </TD> : null}
 
-                      <TD className="text-center text-slate-700">{rowDisplay?.totalLabel ?? formatCurrency(order.total)}</TD>
+                      {visibleColumns.total ? <TD className="text-center text-slate-700">{rowDisplay?.totalLabel ?? formatCurrency(order.total)}</TD> : null}
 
-                      <TD className="min-w-[100px] pl-0 pr-0 text-center" data-no-row-nav>
+                      {visibleColumns.documents ? <TD className="min-w-[100px] pl-0 pr-0 text-center" data-no-row-nav>
                         <div className="flex justify-center">
                           <LazyAdminOrdersPdfCell
                             orderId={order.id}
@@ -1582,7 +1592,7 @@ export default function AdminOrdersTable({
                             interactionsDisabled={false}
                           />
                         </div>
-                      </TD>
+                      </TD> : null}
 
                       <TD className="pl-0 pr-0 text-center" data-no-row-nav>
                         <RowActions>
@@ -1643,4 +1653,15 @@ function useDebouncedValue<T>(value: T, delayMs: number) {
   }, [value, delayMs]);
 
   return debounced;
+}
+
+function formatCompactDate(dateValue: Date) {
+  if (Number.isNaN(dateValue.getTime())) return '—';
+  return `${String(dateValue.getDate()).padStart(2, '0')}.${String(dateValue.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function formatCompactDateFromDateInput(value: string) {
+  if (!value) return '—';
+  const parsedDate = new Date(`${value}T00:00:00`);
+  return formatCompactDate(parsedDate);
 }

@@ -1220,7 +1220,7 @@ export default function AdminOrdersTable({
                   {isDownloading ? (
                     <Spinner size="sm" className="text-slate-500" />
                   ) : (
-                    <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M12 3.5v11" />
                       <path d="m7.5 10 4.5 4.5 4.5-4.5" />
                       <path d="M4 15.5v2.5A3 3 0 0 0 7 21h10a3 3 0 0 0 3-3v-2.5" />
@@ -1232,7 +1232,7 @@ export default function AdminOrdersTable({
                   visibleMap={visibleColumns}
                   onToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }))}
                   showLabel={false}
-                  className="[&>button]:!h-8 [&>button]:!w-8"
+                  className="[&>button]:!h-8 [&>button]:!w-8 [&_svg]:!h-5 [&_svg]:!w-5"
                 />
                 <IconButton
                   type="button"
@@ -1247,12 +1247,7 @@ export default function AdminOrdersTable({
                   {isDeleting ? (
                     <Spinner size="sm" className="text-[var(--danger-600)]" />
                   ) : (
-                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M4.5 7h15" />
-                      <path d="M9 4.5h6l.8 2.5H8.2L9 4.5Z" />
-                      <path d="M7.2 7.2 8 19a2 2 0 0 0 2 1.9h4a2 2 0 0 0 2-1.9l.8-11.8" />
-                      <path d="M10 10v7M14 10v7" />
-                    </svg>
+                    <TrashCanIcon className="h-[22px] w-[22px]" />
                   )}
                 </IconButton>
                 {topAction ? <div className="flex items-center [&_button]:!rounded-xl">{topAction}</div> : null}
@@ -1602,7 +1597,7 @@ export default function AdminOrdersTable({
                             href={`/admin/orders/${order.id}`}
                             prefetch={false}
                             tone="neutral"
-                            className="h-8 w-8 border-0 bg-transparent text-slate-600 shadow-none hover:bg-[color:var(--hover-neutral)]"
+                            className="h-8 w-8 border-0 bg-transparent text-slate-600 shadow-none hover:text-slate-800 active:bg-transparent"
                             aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
                             title="Uredi"
                           >
@@ -1623,19 +1618,14 @@ export default function AdminOrdersTable({
                             type="button"
                             onClick={() => void handleDeleteRow(order.id)}
                             disabled={deletingRowId === order.id}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border-0 bg-transparent text-[var(--danger-600)] hover:bg-[color:var(--hover-neutral)] disabled:opacity-60"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border-0 bg-transparent text-[var(--danger-600)] hover:text-[var(--danger-700)] active:bg-transparent disabled:opacity-60"
                             aria-label={`Izbriši naročilo ${toDisplayOrderNumber(order.order_number)}`}
                             title="Izbriši"
                           >
                             {deletingRowId === order.id ? (
                               <Spinner size="sm" className="text-[var(--danger-600)]" />
                             ) : (
-                              <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                                <path d="M3.5 5.5h13" />
-                                <path d="M7.5 3.8h5l.5 1.7h2.5" />
-                                <path d="M6.4 5.5 7 15.8c.04.7.62 1.2 1.32 1.2h3.36c.7 0 1.28-.54 1.32-1.2l.6-10.3" />
-                                <path d="M8.4 8.2v5.6M11.6 8.2v5.6" />
-                              </svg>
+                              <TrashCanIcon className="h-[18px] w-[18px]" />
                             )}
                           </button>
                         </RowActions>
@@ -1661,6 +1651,17 @@ function useDebouncedValue<T>(value: T, delayMs: number) {
   }, [value, delayMs]);
 
   return debounced;
+}
+
+function TrashCanIcon({ className = 'h-5 w-5' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4.5 7h15" />
+      <path d="M8.2 7 9 4.5h6L15.8 7" />
+      <path d="M7.2 7.2 8 19a2 2 0 0 0 2 1.9h4a2 2 0 0 0 2-1.9l.8-11.8" />
+      <path d="M10 10v7M12 10v7M14 10v7" />
+    </svg>
+  );
 }
 
 function formatCompactDate(dateValue: Date) {

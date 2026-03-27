@@ -74,14 +74,14 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
   };
 
   return (
-    <div className={`relative h-screen shrink-0 self-start ${EXPANDED_WIDTH}`}>
+    <div className="pointer-events-none fixed inset-y-0 left-0 z-40 flex">
       <aside
-        className={`sticky top-0 h-screen ${COLLAPSED_WIDTH} overflow-y-auto overflow-x-hidden border-r border-[color:var(--semantic-info-border)] bg-slate-50/90 shadow-sm transition-[width] duration-300 ease-out ${isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH}`}
+        className={`pointer-events-auto h-screen ${COLLAPSED_WIDTH} overflow-hidden border-r border-[color:var(--semantic-info-border)] bg-slate-50/90 shadow-sm transition-[width] duration-300 ease-out ${isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH}`}
         onMouseEnter={() => setExpanded(true)}
         onMouseLeave={() => setExpanded(false)}
       >
-        <div className="flex h-full min-h-full flex-col px-2 py-6">
-          <div className={`mb-4 flex transition-all duration-200 ${isExpanded ? 'justify-start px-2' : 'justify-center px-0'}`}>
+        <div className="flex h-full flex-col px-2 py-4">
+          <div className={`mb-2 flex transition-all duration-200 ${isExpanded ? 'justify-start px-2' : 'justify-center px-0'}`}>
             <p
               className={`whitespace-nowrap text-sm font-semibold uppercase tracking-[0.12em] text-[color:var(--blue-500)] transition-[max-width,opacity] duration-200 ${isExpanded ? 'max-w-[12rem] opacity-100' : 'max-w-0 opacity-0'}`}
               aria-hidden={!isExpanded}
@@ -100,7 +100,7 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
                   prefetch={false}
                   onMouseEnter={() => router.prefetch(link.href)}
                   onFocus={() => router.prefetch(link.href)}
-                  className={`flex rounded-xl py-2 text-sm transition-colors duration-200 ${expandedRowClass} ${
+                  className={`flex rounded-xl py-1.5 text-sm transition-colors duration-200 ${expandedRowClass} ${
                     isActive
                       ? 'bg-white/75 font-semibold text-[color:var(--blue-500)]'
                       : 'text-slate-900 hover:bg-white/75 hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]'
@@ -128,7 +128,7 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
                   prefetch={false}
                   onMouseEnter={() => router.prefetch(link.href)}
                   onFocus={() => router.prefetch(link.href)}
-                  className={`flex rounded-xl py-2 text-sm transition-colors duration-200 ${expandedRowClass} ${
+                  className={`flex rounded-xl py-1.5 text-sm transition-colors duration-200 ${expandedRowClass} ${
                     isActive
                       ? 'bg-white/75 font-semibold text-[color:var(--blue-500)]'
                       : 'text-slate-900 hover:bg-white/75 hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]'
@@ -149,7 +149,7 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
               type="button"
               onClick={() => void handleLogout()}
               disabled={isLoggingOut}
-              className={`flex rounded-xl py-2 text-sm transition-colors duration-200 disabled:opacity-60 ${expandedRowClass} text-slate-900 hover:bg-white/75 hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]`}
+              className={`flex rounded-xl py-1.5 text-sm transition-colors duration-200 disabled:opacity-60 ${expandedRowClass} text-slate-900 hover:bg-white/75 hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]`}
             >
               <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
                 <SidebarIcon type="logout" />

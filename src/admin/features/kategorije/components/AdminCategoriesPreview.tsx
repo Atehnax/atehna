@@ -490,7 +490,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
             <button
               key={action.key}
               type="button"
-              className={`inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded-xl border px-0 shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${action.tone === "danger" ? "border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]" : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50"} ${action.dragHandle ? "cursor-grab active:cursor-grabbing" : ""}`}
+              className={`inline-flex h-[25px] min-w-[1.6rem] items-center justify-center rounded-xl border px-0 shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${action.tone === "danger" ? "border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]" : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50"} ${action.dragHandle ? "cursor-grab active:cursor-grabbing" : ""}`}
               onPointerDown={(event) => {
                 if (!action.dragHandle) {
                   event.stopPropagation();
@@ -514,7 +514,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
         ) : null}
       </div>
 
-      <div className="relative flex h-[100px] flex-none flex-col px-3 pb-3 pt-2.5">
+      <div className="relative flex h-[110px] flex-none flex-col px-3 pb-3 pt-2.5">
         <div
           className="absolute inset-x-0 top-0 h-5 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.9),rgba(255,255,255,0)_72%)]"
           aria-hidden="true"
@@ -571,7 +571,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
             ) : null}
           </div>
 
-          <div className="relative mt-2 min-h-[60px] flex-1">
+          <div className="relative mt-2 min-h-[66px] flex-1">
             <p
               className={`line-clamp-3 min-h-[60px] whitespace-pre-wrap text-[12px] leading-5 text-slate-950 ${isEditing ? "invisible" : ""}`}
             >

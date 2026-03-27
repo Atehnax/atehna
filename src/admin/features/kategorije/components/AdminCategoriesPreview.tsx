@@ -485,7 +485,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
           aria-hidden="true"
         />
 
-        <div className="absolute right-3 top-3 z-20 flex flex-col items-end gap-2 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+        <div className="absolute inset-y-0 right-3 z-20 flex flex-col items-end justify-center gap-2 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
           {hoverStackButtons.map((action) => (
             <button
               key={action.key}

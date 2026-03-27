@@ -74,22 +74,13 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
   };
 
   return (
-    <div className="pointer-events-none fixed inset-y-0 left-0 z-40 flex">
+    <div className="pointer-events-none fixed bottom-8 left-0 top-16 z-40 flex">
       <aside
-        className={`pointer-events-auto h-screen ${COLLAPSED_WIDTH} overflow-hidden border-r border-[color:var(--semantic-info-border)] bg-slate-50/90 shadow-sm transition-[width] duration-300 ease-out ${isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH}`}
+        className={`pointer-events-auto h-full ${COLLAPSED_WIDTH} overflow-hidden border-r border-[color:var(--semantic-info-border)] bg-slate-50/90 shadow-sm transition-[width] duration-300 ease-out ${isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH}`}
         onMouseEnter={() => setExpanded(true)}
         onMouseLeave={() => setExpanded(false)}
       >
         <div className="flex h-full flex-col px-2 py-4">
-          <div className={`mb-2 flex transition-all duration-200 ${isExpanded ? 'justify-start px-2' : 'justify-center px-0'}`}>
-            <p
-              className={`whitespace-nowrap text-sm font-semibold uppercase tracking-[0.12em] text-[color:var(--blue-500)] transition-[max-width,opacity] duration-200 ${isExpanded ? 'max-w-[12rem] opacity-100' : 'max-w-0 opacity-0'}`}
-              aria-hidden={!isExpanded}
-            >
-              Administracija
-            </p>
-          </div>
-
           <nav className="space-y-1">
             {primaryLinks.map((link) => {
               const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);

@@ -49,11 +49,20 @@ export function ColumnVisibilityControl({
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
         aria-haspopup="menu"
         aria-expanded={isOpen}
+        aria-label="Filtriraj stolpce"
+        title="Filtriraj stolpce"
       >
-        Stolpci ▾
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+          <circle cx="15" cy="6" r="2.5" fill="white" />
+          <circle cx="8" cy="12" r="2.5" fill="white" />
+          <circle cx="13" cy="18" r="2.5" fill="white" />
+        </svg>
       </button>
       {isOpen ? (
         <div className="absolute right-0 top-9 z-30 w-44 rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg" role="menu">

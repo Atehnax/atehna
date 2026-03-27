@@ -102,8 +102,11 @@ const toCustomerBucket = (customerType: string): CustomerBucketKey => {
   return 'individual';
 };
 
-const stat = (value: number, suffix = '') =>
-  `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 2 }).format(value)}${suffix}`;
+const formatCompactK = (value: number | null | undefined) => {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '—';
+  if (Math.abs(value) < 1000) return Intl.NumberFormat('sl-SI', { maximumFractionDigits: 2 }).format(value);
+  return `${Intl.NumberFormat('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value / 1000)}k`;
+};
 
 const formatInt = (value: number | null | undefined) =>
   value === null || value === undefined || !Number.isFinite(value)
@@ -354,7 +357,7 @@ function AdminOrdersPreviewChart({
       key: 'orders-ma',
       focusKey: 'narocila-orders-ma',
       title: 'Število naročil',
-      value: stat(data.totalOrders),
+      value: formatCompactK(data.totalOrders),
       ...(() => {
         const delta = formatDeltaPair(periodChange(data.ordersSeries, 7), periodChange(data.ordersSeries, 30));
         return { delta: delta.text, deltaClassName: delta.className };
@@ -389,7 +392,7 @@ function AdminOrdersPreviewChart({
       key: 'revenue-ma',
       focusKey: 'narocila-revenue-ma',
       title: 'Prihodki',
-      value: `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 1, minimumFractionDigits: 1 }).format(data.totalRevenue)} €`,
+      value: `${formatCompactK(data.totalRevenue)} €`,
       ...(() => {
         const delta = formatDeltaPair(periodChange(data.revenueSeries, 7), periodChange(data.revenueSeries, 30));
         return { delta: delta.text, deltaClassName: delta.className };
@@ -423,8 +426,8 @@ function AdminOrdersPreviewChart({
     {
       key: 'aov-ma',
       focusKey: 'narocila-aov-median',
-      title: 'Povp. €/naročilo',
-      value: `${stat(data.rangeAov)} €`,
+      title: 'Povprečje',
+      value: `${formatCompactK(data.rangeAov)} €`,
       ...(() => {
         const delta = formatDeltaPair(periodChange(data.dailyAov, 7), periodChange(data.dailyAov, 30));
         return { delta: delta.text, deltaClassName: delta.className };
@@ -432,7 +435,7 @@ function AdminOrdersPreviewChart({
       traces: [
         {
           type: 'bar',
-          name: 'Povp. €/naročilo',
+          name: 'Povprečje',
           x: data.x,
           y: data.dailyAov,
           marker: { color: semanticChartColors.avgOrderValue.fill },
@@ -451,7 +454,7 @@ function AdminOrdersPreviewChart({
         }
       ],
       tooltipRowsAt: (i) => [
-        { label: 'Povp. €/naročilo', value: formatCurrency(data.dailyAov[i]), color: semanticChartColors.avgOrderValue.fill, numericValue: data.dailyAov[i] ?? null },
+        { label: 'Povprečje', value: formatCurrency(data.dailyAov[i]), color: semanticChartColors.avgOrderValue.fill, numericValue: data.dailyAov[i] ?? null },
         { label: '7d MA', value: formatCurrency(data.dailyAovMa[i]), color: semanticChartColors.avgOrderValue.line, numericValue: data.dailyAovMa[i] ?? null }
       ],
       enforceTopDownTooltipOrder: true,
@@ -596,7 +599,7 @@ function AdminOrdersPreviewChart({
                     <p className="absolute left-0 top-0 min-w-0 max-w-full truncate text-[clamp(0.75rem,1.2vw,0.875rem)] font-semibold tracking-wide text-slate-700">
                       {chart.title}
                     </p>
-                    <p className="min-w-0 max-w-full truncate text-[clamp(1.1rem,3.4vw,1.7rem)] font-bold leading-none text-slate-700">{chart.value}</p>
+                    <p className="min-w-0 max-w-full truncate text-[clamp(0.95rem,3vw,1.55rem)] font-bold leading-none text-slate-700">{chart.value}</p>
                   </>
                 )}
                 <p className={`absolute bottom-[8px] left-0 text-[11px] font-medium leading-none ${chart.deltaClassName}`}>{chart.delta}</p>

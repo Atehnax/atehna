@@ -1133,6 +1133,75 @@ export default function AdminOrdersTable({
           headerRight={
             <>
               <div className="flex items-center gap-2 pb-1">
+                <div className="relative" ref={datePopoverRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
+                    className={`${ADMIN_CONTROL_HEIGHT} w-[124px] rounded-xl border border-slate-300 bg-white ${ADMIN_CONTROL_PADDING_X} py-0 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none`}
+                  >
+                    <span className="inline-flex h-full w-full items-center gap-1.5 leading-none">
+                      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5 text-slate-600" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <rect x="3" y="5" width="18" height="16" rx="2" />
+                        <path d="M16 3v4M8 3v4M3 10h18" />
+                      </svg>
+                      <span className="truncate">{dateRangeLabel}</span>
+                    </span>
+                  </button>
+                  {isDatePopoverOpen && (
+                    <div lang="sl-SI" className="absolute right-0 top-9 z-20 w-[420px] rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+                      <div className="grid grid-cols-[180px_1fr] gap-4">
+                        <div className="space-y-1 border-r border-slate-200 pr-3">
+                          {[
+                            { key: 'today', label: 'Danes' },
+                            { key: 'yesterday', label: 'Včeraj' },
+                            { key: '7d', label: 'Zadnjih 7 dni' },
+                            { key: '30d', label: 'Zadnjih 30 dni' },
+                            { key: '3m', label: 'Zadnje 3 mesece' },
+                            { key: '6m', label: 'Zadnjih 6 mesecev' },
+                            { key: '1y', label: 'Zadnje leto' }
+                          ].map((item) => (
+                            <button
+                              key={item.key}
+                              type="button"
+                              onClick={() => applyQuickDateRange(item.key as any)}
+                              className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:outline-none"
+                            >
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-xs font-semibold uppercase text-slate-500">Od</label>
+                            <input
+                              type="date"
+                              lang="sl-SI"
+                              value={fromDate}
+                              onChange={(event) => {
+                                setFromDate(event.target.value);
+                                setRangePreset('custom');
+                              }}
+                              className={`mt-1 ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-semibold uppercase text-slate-500">Do</label>
+                            <input
+                              type="date"
+                              lang="sl-SI"
+                              value={toDate}
+                              onChange={(event) => {
+                                setToDate(event.target.value);
+                                setRangePreset('custom');
+                              }}
+                              className={`mt-1 ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <CustomSelect
                   value={documentType}
                   onChange={(next) => setDocumentType(next as DocumentType)}
@@ -1144,24 +1213,27 @@ export default function AdminOrdersTable({
                   variant="default"
                   onClick={handleDownloadAllDocuments}
                   disabled={isDownloading}
-                  className={`${ADMIN_CONTROL_HEIGHT} rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 shadow-none hover:bg-[color:var(--hover-neutral)]`}
+                  className={`${ADMIN_CONTROL_HEIGHT} w-8 rounded-xl border border-slate-300 bg-white px-0 text-xs font-semibold text-slate-700 shadow-none hover:bg-[color:var(--hover-neutral)]`}
+                  aria-label={selected.length > 0 ? `Prenesi izbrane (${selected.length})` : 'Prenesi vse dokumente'}
+                  title={selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
                 >
                   {isDownloading ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      <Spinner size="sm" className="text-slate-500" />
-                      Prenos...
-                    </span>
+                    <Spinner size="sm" className="text-slate-500" />
                   ) : (
-                    <span className="inline-flex items-center gap-1.5">
-                      <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                        <path d="M10 3v8" />
-                        <path d="m6.8 8.8 3.2 3.2 3.2-3.2" />
-                        <path d="M3.5 14.5h13" />
-                      </svg>
-                      {selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
-                    </span>
+                    <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M12 3.5v11" />
+                      <path d="m7.5 10 4.5 4.5 4.5-4.5" />
+                      <path d="M4 15.5v2.5A3 3 0 0 0 7 21h10a3 3 0 0 0 3-3v-2.5" />
+                    </svg>
                   )}
                 </Button>
+                <ColumnVisibilityControl
+                  options={ORDER_COLUMN_OPTIONS}
+                  visibleMap={visibleColumns}
+                  onToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }))}
+                  showLabel={false}
+                  className="[&>button]:!h-8 [&>button]:!w-8"
+                />
                 <IconButton
                   type="button"
                   onClick={handleDelete}
@@ -1175,11 +1247,11 @@ export default function AdminOrdersTable({
                   {isDeleting ? (
                     <Spinner size="sm" className="text-[var(--danger-600)]" />
                   ) : (
-                    <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                      <path d="M3.5 5.5h13" />
-                      <path d="M7.5 3.8h5l.5 1.7h2.5" />
-                      <path d="M6.4 5.5 7 15.8c.04.7.62 1.2 1.32 1.2h3.36c.7 0 1.28-.54 1.32-1.2l.6-10.3" />
-                      <path d="M8.4 8.2v5.6M11.6 8.2v5.6" />
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M4.5 7h15" />
+                      <path d="M9 4.5h6l.8 2.5H8.2L9 4.5Z" />
+                      <path d="M7.2 7.2 8 19a2 2 0 0 0 2 1.9h4a2 2 0 0 0 2-1.9l.8-11.8" />
+                      <path d="M10 10v7M14 10v7" />
                     </svg>
                   )}
                 </IconButton>
@@ -1196,85 +1268,7 @@ export default function AdminOrdersTable({
             />
           }
           filterRowRight={
-            <>
-              <div className="relative flex items-center overflow-hidden rounded-xl border border-slate-300" ref={datePopoverRef}>
-                <button
-                  type="button"
-                  onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-                  className={`${ADMIN_CONTROL_HEIGHT} w-[124px] border-0 bg-white ${ADMIN_CONTROL_PADDING_X} py-0 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none`}
-                >
-                  <span className="inline-flex h-full w-full items-center gap-1.5 leading-none">
-                    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5 text-slate-600" fill="none" stroke="currentColor" strokeWidth="1.8">
-                      <rect x="3" y="5" width="18" height="16" rx="2" />
-                      <path d="M16 3v4M8 3v4M3 10h18" />
-                    </svg>
-                    <span className="truncate">{dateRangeLabel}</span>
-                  </span>
-                </button>
-                <div className="h-5 w-px bg-slate-300" />
-                <ColumnVisibilityControl
-                  options={ORDER_COLUMN_OPTIONS}
-                  visibleMap={visibleColumns}
-                  onToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }))}
-                  showLabel={false}
-                  className="[&>button]:!h-8 [&>button]:!rounded-none [&>button]:!border-0"
-                />
-                {isDatePopoverOpen && (
-                  <div lang="sl-SI" className="absolute right-0 top-9 z-20 w-[420px] rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
-                    <div className="grid grid-cols-[180px_1fr] gap-4">
-                      <div className="space-y-1 border-r border-slate-200 pr-3">
-                        {[
-                          { key: 'today', label: 'Danes' },
-                          { key: 'yesterday', label: 'Včeraj' },
-                          { key: '7d', label: 'Zadnjih 7 dni' },
-                          { key: '30d', label: 'Zadnjih 30 dni' },
-                          { key: '3m', label: 'Zadnje 3 mesece' },
-                          { key: '6m', label: 'Zadnjih 6 mesecev' },
-                          { key: '1y', label: 'Zadnje leto' }
-                        ].map((item) => (
-                          <button
-                            key={item.key}
-                            type="button"
-                            onClick={() => applyQuickDateRange(item.key as any)}
-                            className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:outline-none"
-                          >
-                            {item.label}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-xs font-semibold uppercase text-slate-500">Od</label>
-                          <input
-                            type="date"
-                            lang="sl-SI"
-                            value={fromDate}
-                            onChange={(event) => {
-                              setFromDate(event.target.value);
-                              setRangePreset('custom');
-                            }}
-                            className={`mt-1 ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`}
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs font-semibold uppercase text-slate-500">Do</label>
-                          <input
-                            type="date"
-                            lang="sl-SI"
-                            value={toDate}
-                            onChange={(event) => {
-                              setToDate(event.target.value);
-                              setRangePreset('custom');
-                            }}
-                            className={`mt-1 ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
+            <></>
           }
           footerRight={
             <div className="flex w-full flex-wrap items-center justify-between gap-2">
@@ -1456,8 +1450,8 @@ export default function AdminOrdersTable({
                   </button>
                 </TH> : null}
 
-                {visibleColumns.documents ? <TH className="min-w-[100px] text-center text-[11px]">PDF datoteke</TH> : null}
-                <TH className="text-center text-[11px]">Uredi</TH>
+                {visibleColumns.documents ? <TH className="h-11 min-w-[100px] text-center text-[11px] font-semibold leading-none">PDF datoteke</TH> : null}
+                <TH className="h-11 text-center text-[11px] font-semibold leading-none">Uredi</TH>
               </TR>
             </THead>
 

@@ -201,7 +201,7 @@ export function AdminCategoriesMiller({
             onClick={() => onRequestDelete(activeColumnKind)}
             disabled={!millerSelection.some((id) => millerColumns.find((column) => column.kind === activeColumnKind)?.ids.includes(id))}
           >
-            <TrashCanIcon className="h-4 w-4" />
+            <TrashCanIcon className="h-[18px] w-[18px]" />
           </IconButton>
           <div className="relative" ref={millerHistoryMenuRef}>
             <IconButton type="button" size="sm" tone="neutral" aria-label="Zgodovina" onClick={onToggleHistoryMenu}>⋮</IconButton>

@@ -12,12 +12,14 @@ export function ColumnVisibilityControl({
   options,
   visibleMap,
   onToggle,
-  className
+  className,
+  showLabel = true
 }: {
   options: ColumnOption[];
   visibleMap: Record<string, boolean>;
   onToggle: (key: string) => void;
   className?: string;
+  showLabel?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -49,13 +51,13 @@ export function ColumnVisibilityControl({
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className="inline-flex h-8 items-center justify-between gap-2 rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+        className={`inline-flex h-8 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 ${showLabel ? 'min-w-[92px]' : 'w-8'}`}
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        aria-label="Stolpci"
-        title="Stolpci"
+        aria-label="Filtriraj stolpce"
+        title="Filtriraj stolpce"
       >
-        <span>Stolpci</span>
+        {showLabel ? <span>Stolpci</span> : null}
         <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <line x1="3" y1="6" x2="21" y2="6" />
           <line x1="3" y1="12" x2="21" y2="12" />

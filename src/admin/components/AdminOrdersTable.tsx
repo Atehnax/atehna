@@ -1109,7 +1109,7 @@ export default function AdminOrdersTable({
           contentClassName="overflow-x-auto"
           headerLeft={
             <>
-              <div className="flex min-w-0 flex-1 items-center gap-1 border-b border-slate-200 pb-1">
+              <div className="inline-flex items-center gap-0.5 border-b border-slate-200 pb-1">
                 {statusTabs.map((tab) => {
                   const isActive = statusFilter === tab.value;
                   return (
@@ -1117,7 +1117,7 @@ export default function AdminOrdersTable({
                       key={tab.value}
                       type="button"
                       onClick={() => setStatusFilter(tab.value)}
-                      className={`relative px-3 py-2 text-sm font-medium transition ${
+                      className={`relative px-3 py-1.5 text-[11px] font-medium transition ${
                         isActive
                           ? 'text-slate-900 after:absolute after:inset-x-0 after:bottom-[-5px] after:h-[2px] after:rounded-full after:bg-slate-800'
                           : 'text-slate-500 hover:text-slate-700'
@@ -1137,7 +1137,7 @@ export default function AdminOrdersTable({
                   value={documentType}
                   onChange={(next) => setDocumentType(next as DocumentType)}
                   options={documentTypeOptions}
-                  triggerClassName={`${ADMIN_CONTROL_HEIGHT} min-w-[144px] rounded-xl border border-slate-300 bg-white ${ADMIN_CONTROL_PADDING_X} py-0 text-xs font-semibold text-slate-700 shadow-none hover:bg-[color:var(--hover-neutral)]`}
+                  triggerClassName={`${ADMIN_CONTROL_HEIGHT} w-[126px] rounded-xl border border-slate-300 bg-white ${ADMIN_CONTROL_PADDING_X} py-0 text-xs font-semibold text-slate-700 shadow-none hover:bg-[color:var(--hover-neutral)]`}
                 />
                 <Button
                   type="button"
@@ -1151,10 +1151,15 @@ export default function AdminOrdersTable({
                       <Spinner size="sm" className="text-slate-500" />
                       Prenos...
                     </span>
-                  ) : selected.length > 0 ? (
-                    `Prenesi (${selected.length})`
                   ) : (
-                    'Prenesi vse'
+                    <span className="inline-flex items-center gap-1.5">
+                      <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                        <path d="M10 3v8" />
+                        <path d="m6.8 8.8 3.2 3.2 3.2-3.2" />
+                        <path d="M3.5 14.5h13" />
+                      </svg>
+                      {selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
+                    </span>
                   )}
                 </Button>
                 <IconButton
@@ -1170,7 +1175,7 @@ export default function AdminOrdersTable({
                   {isDeleting ? (
                     <Spinner size="sm" className="text-[var(--danger-600)]" />
                   ) : (
-                    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                    <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                       <path d="M3.5 5.5h13" />
                       <path d="M7.5 3.8h5l.5 1.7h2.5" />
                       <path d="M6.4 5.5 7 15.8c.04.7.62 1.2 1.32 1.2h3.36c.7 0 1.28-.54 1.32-1.2l.6-10.3" />
@@ -1192,11 +1197,11 @@ export default function AdminOrdersTable({
           }
           filterRowRight={
             <>
-              <div className="relative min-w-[170px]" ref={datePopoverRef}>
+              <div className="relative flex items-center overflow-hidden rounded-xl border border-slate-300" ref={datePopoverRef}>
                 <button
                   type="button"
                   onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-                  className={`${ADMIN_CONTROL_HEIGHT} min-w-[138px] rounded-xl border border-slate-300 bg-white ${ADMIN_CONTROL_PADDING_X} py-0 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none`}
+                  className={`${ADMIN_CONTROL_HEIGHT} w-[124px] border-0 bg-white ${ADMIN_CONTROL_PADDING_X} py-0 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none`}
                 >
                   <span className="inline-flex h-full w-full items-center gap-1.5 leading-none">
                     <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5 text-slate-600" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -1206,8 +1211,16 @@ export default function AdminOrdersTable({
                     <span className="truncate">{dateRangeLabel}</span>
                   </span>
                 </button>
+                <div className="h-5 w-px bg-slate-300" />
+                <ColumnVisibilityControl
+                  options={ORDER_COLUMN_OPTIONS}
+                  visibleMap={visibleColumns}
+                  onToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }))}
+                  showLabel={false}
+                  className="[&>button]:!h-8 [&>button]:!rounded-none [&>button]:!border-0"
+                />
                 {isDatePopoverOpen && (
-                  <div lang="sl-SI" className="absolute right-0 z-20 mt-2 w-[420px] rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+                  <div lang="sl-SI" className="absolute right-0 top-9 z-20 w-[420px] rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
                     <div className="grid grid-cols-[180px_1fr] gap-4">
                       <div className="space-y-1 border-r border-slate-200 pr-3">
                         {[
@@ -1261,11 +1274,6 @@ export default function AdminOrdersTable({
                   </div>
                 )}
               </div>
-              <ColumnVisibilityControl
-                options={ORDER_COLUMN_OPTIONS}
-                visibleMap={visibleColumns}
-                onToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }))}
-              />
             </>
           }
           footerRight={
@@ -1487,7 +1495,7 @@ export default function AdminOrdersTable({
                   return (
                     <TR
                       key={order.id}
-                      className={`border-t border-slate-100 transition-colors duration-200 ${
+                      className={`border-t border-slate-100 text-[11px] transition-colors duration-200 ${
                         isRowSelected ? adminTableRowToneClasses.selected : getAdminStripedRowToneClass(orderIndex)
                       } ${adminTableRowToneClasses.hover}`}
                     >
@@ -1600,6 +1608,7 @@ export default function AdminOrdersTable({
                             href={`/admin/orders/${order.id}`}
                             prefetch={false}
                             tone="neutral"
+                            className="h-8 w-8 border-0 bg-transparent text-slate-600 shadow-none hover:bg-[color:var(--hover-neutral)]"
                             aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
                             title="Uredi"
                           >
@@ -1616,20 +1625,25 @@ export default function AdminOrdersTable({
                             </svg>
                           </IconButton>
 
-                          <Button
+                          <button
                             type="button"
-                            variant="close-x"
                             onClick={() => void handleDeleteRow(order.id)}
                             disabled={deletingRowId === order.id}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border-0 bg-transparent text-[var(--danger-600)] hover:bg-[color:var(--hover-neutral)] disabled:opacity-60"
                             aria-label={`Izbriši naročilo ${toDisplayOrderNumber(order.order_number)}`}
                             title="Izbriši"
                           >
                             {deletingRowId === order.id ? (
                               <Spinner size="sm" className="text-[var(--danger-600)]" />
                             ) : (
-                              '×'
+                              <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                                <path d="M3.5 5.5h13" />
+                                <path d="M7.5 3.8h5l.5 1.7h2.5" />
+                                <path d="M6.4 5.5 7 15.8c.04.7.62 1.2 1.32 1.2h3.36c.7 0 1.28-.54 1.32-1.2l.6-10.3" />
+                                <path d="M8.4 8.2v5.6M11.6 8.2v5.6" />
+                              </svg>
                             )}
-                          </Button>
+                          </button>
                         </RowActions>
                       </TD>
                     </TR>

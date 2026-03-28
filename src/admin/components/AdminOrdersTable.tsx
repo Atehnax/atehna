@@ -1219,7 +1219,7 @@ export default function AdminOrdersTable({
                   {isDownloading ? (
                     <Spinner size="sm" className="text-slate-500" />
                   ) : (
-                    <ActionDownloadIcon />
+                    <ActionDownloadIcon className="h-5 w-5" />
                   )}
                 </IconButton>
                 <ColumnVisibilityControl
@@ -1228,7 +1228,7 @@ export default function AdminOrdersTable({
                   onToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }))}
                   showLabel={false}
                   buttonClassName="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-transparent text-slate-600 shadow-none transition hover:border-slate-300 hover:bg-[color:var(--hover-neutral)] active:bg-[color:var(--hover-neutral)] hover:text-slate-700 focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-60"
-                  iconClassName="h-3.5 w-3.5"
+                  iconClassName="h-5 w-5"
                 />
                 <IconButton
                   type="button"
@@ -1243,7 +1243,7 @@ export default function AdminOrdersTable({
                   {isDeleting ? (
                     <Spinner size="sm" className="text-[var(--danger-600)]" />
                   ) : (
-                    <OrdersTrashIcon />
+                    <OrdersTrashIcon className="h-5 w-5" />
                   )}
                 </IconButton>
                 {topAction ? <div className="flex items-center [&_button]:!rounded-xl">{topAction}</div> : null}

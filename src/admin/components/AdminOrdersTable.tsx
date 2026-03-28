@@ -1231,7 +1231,7 @@ export default function AdminOrdersTable({
                   onToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }))}
                   showLabel={false}
                   className="[&>button]:!h-7 [&>button]:!w-7"
-                  icon={<FilterIcon className="h-5 w-5" />}
+                  icon={<FilterIcon className="h-[18px] w-[18px]" />}
                 />
                 <button
                   type="button"

@@ -8,11 +8,11 @@ import {
   ArchiveIcon,
   CloseIcon,
   CopyIcon,
+  FilterIcon,
   PencilIcon,
   SaveIcon
 } from '@/shared/ui/icons/AdminActionIcons';
 import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
-import { SegmentedControl } from '@/shared/ui/segmented';
 import { CustomSelect } from '@/shared/ui/select';
 import { RowActionsDropdown, Table, THead, TH, TR } from '@/shared/ui/table';
 import { Chip } from '@/shared/ui/badge';
@@ -86,9 +86,9 @@ const emptyItem = (): Item => ({
 const discountedPrice = (price: number, discountPct: number) =>
   Number((price * (1 - Math.max(0, Math.min(100, discountPct)) / 100)).toFixed(2));
 
-const statusTabs: Array<{ key: StatusTab; label: string; activeClassName: string }> = [
-  { key: 'active', label: 'Aktivni', activeClassName: buttonTokenClasses.activeSuccessBorderless },
-  { key: 'inactive', label: 'Neaktivni', activeClassName: buttonTokenClasses.inactiveNeutralBorderless }
+const statusTabs: Array<{ key: StatusTab; label: string }> = [
+  { key: 'active', label: 'Aktivni' },
+  { key: 'inactive', label: 'Neaktivni' }
 ];
 const itemColumnOptions: Array<{ key: ItemColumnKey; label: string }> = [
   { key: 'name', label: 'Naziv' },
@@ -541,6 +541,53 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
         className="border shadow-sm"
         style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)', borderColor: '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
         headerLeft={
+          <div className="inline-flex items-center gap-0.5 border-b border-slate-200 pb-1">
+            {statusTabs.map((tab) => {
+              const isActive = statusTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setStatusTab(tab.key)}
+                  className={`relative px-3 py-1.5 text-[11px] font-medium transition ${
+                    isActive
+                      ? 'text-slate-900 after:absolute after:inset-x-0 after:bottom-[-5px] after:h-[2px] after:rounded-full after:bg-slate-800'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        }
+        headerRight={
+          <>
+            <ColumnVisibilityControl
+              options={itemColumnOptions.map((option) => ({ ...option, disabled: option.key === 'name' }))}
+              visibleMap={visibleColumns}
+              onToggle={(key) => toggleColumnVisibility(key as ItemColumnKey)}
+              showLabel={false}
+              className="[&>button]:!h-7 [&>button]:!w-7 [&>button]:!rounded-md [&>button]:!border-slate-200 [&>button]:!bg-transparent [&>button]:!px-0 [&>button]:!text-slate-600 [&>button]:hover:!border-slate-300 [&>button]:hover:!bg-[color:var(--hover-neutral)] [&>button]:hover:!text-slate-700"
+              icon={<FilterIcon className="h-3.5 w-3.5" />}
+            />
+            <IconButton
+              type="button"
+              size="sm"
+              tone={selectedIds.length > 0 ? 'warning' : 'neutral'}
+              onClick={archiveSelected}
+              disabled={selectedIds.length === 0}
+              aria-label="Arhiviraj izbrane artikle"
+              title="Arhiviraj"
+            >
+              <ActionIcon type="archive" />
+            </IconButton>
+            <Button type="button" variant="primary" size="toolbar" onClick={openCreate}>
+              Nov artikel
+            </Button>
+          </>
+        }
+        filterRowLeft={
           <>
             <input
               value={search}
@@ -563,41 +610,8 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
             </div>
           </>
         }
-        headerRight={
-          <>
-            <Button
-              type="button"
-              variant={selectedIds.length > 0 ? 'archive' : 'default'}
-              size="toolbar"
-              onClick={archiveSelected}
-              disabled={selectedIds.length === 0}
-            >
-              <span className="inline-flex items-center gap-1.5">
-                <ActionIcon type="archive" />
-                Arhiviraj
-              </span>
-            </Button>
-            <Button type="button" variant="primary" size="toolbar" onClick={openCreate}>
-              Nov artikel
-            </Button>
-          </>
-        }
-        filterRowLeft={
-          <SegmentedControl
-            size="sm"
-            className="border-transparent"
-            value={statusTab}
-            onChange={(next) => setStatusTab(next as StatusTab)}
-            options={statusTabs.map((tab) => ({ value: tab.key, label: tab.label, activeClassName: tab.activeClassName }))}
-          />
-        }
         filterRowRight={
           <>
-            <ColumnVisibilityControl
-              options={itemColumnOptions.map((option) => ({ ...option, disabled: option.key === 'name' }))}
-              visibleMap={visibleColumns}
-              onToggle={(key) => toggleColumnVisibility(key as ItemColumnKey)}
-            />
             <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={setPageSize} />
             <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="topPills" size="sm" showNumbers={false} />
           </>

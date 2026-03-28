@@ -380,7 +380,7 @@ export default function AdminOrdersTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const applyQuickDateRange = (range: 'today' | 'yesterday' | '7d' | '30d' | '3m' | '6m' | '1y') => {
+  const applyQuickDateRange = (range: 'today' | 'yesterday' | '7d' | '30d' | '3m' | '6m' | '1y' | 'allYears') => {
     const anchorDate = new Date(latestOrderDate);
 
     if (range === 'today') {
@@ -391,6 +391,13 @@ export default function AdminOrdersTable({
     if (range === 'yesterday') {
       const yesterdayDate = shiftDateByDays(anchorDate, -1);
       applyDateRange(yesterdayDate, yesterdayDate, 'custom');
+      return;
+    }
+
+    if (range === 'allYears') {
+      const todayDate = new Date();
+      todayDate.setHours(0, 0, 0, 0);
+      applyDateRange(earliestOrderDate, todayDate, 'custom');
       return;
     }
 
@@ -1143,14 +1150,14 @@ export default function AdminOrdersTable({
                   <button
                     type="button"
                     onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-                    className={`${ADMIN_CONTROL_HEIGHT} w-[124px] rounded-xl border border-slate-300 bg-white ${ADMIN_CONTROL_PADDING_X} py-0 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none`}
+                    className={`${ADMIN_CONTROL_HEIGHT} rounded-xl border border-slate-300 bg-white px-2.5 py-0 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none`}
                   >
                     <span className="inline-flex h-full w-full items-center gap-1.5 leading-none">
                       <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5 text-slate-600" fill="none" stroke="currentColor" strokeWidth="1.8">
                         <rect x="3" y="5" width="18" height="16" rx="2" />
                         <path d="M16 3v4M8 3v4M3 10h18" />
                       </svg>
-                      <span className="truncate">{dateRangeLabel}</span>
+                      <span className="whitespace-nowrap">{dateRangeLabel}</span>
                     </span>
                   </button>
                   {isDatePopoverOpen && (
@@ -1164,7 +1171,8 @@ export default function AdminOrdersTable({
                             { key: '30d', label: 'Zadnjih 30 dni' },
                             { key: '3m', label: 'Zadnje 3 mesece' },
                             { key: '6m', label: 'Zadnjih 6 mesecev' },
-                            { key: '1y', label: 'Zadnje leto' }
+                            { key: '1y', label: 'Zadnje leto' },
+                            { key: 'allYears', label: 'Vsa Leta' }
                           ].map((item) => (
                             <button
                               key={item.key}
@@ -1178,7 +1186,7 @@ export default function AdminOrdersTable({
                         </div>
                         <div className="space-y-3">
                           <div>
-                            <label className="text-xs font-semibold uppercase text-slate-500">Od</label>
+                            <label className="text-xs font-semibold text-slate-500">Od</label>
                             <input
                               type="date"
                               lang="sl-SI"
@@ -1191,7 +1199,7 @@ export default function AdminOrdersTable({
                             />
                           </div>
                           <div>
-                            <label className="text-xs font-semibold uppercase text-slate-500">Do</label>
+                            <label className="text-xs font-semibold text-slate-500">Do</label>
                             <input
                               type="date"
                               lang="sl-SI"
@@ -1262,7 +1270,7 @@ export default function AdminOrdersTable({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Poišči naročila"
-              className="h-10 min-w-[280px] max-w-[360px] rounded-xl border-slate-200 bg-slate-100 pl-10 pr-3 text-sm"
+              className="h-10 min-w-[280px] flex-1 rounded-xl border-slate-200 bg-slate-100 pl-10 pr-3 text-sm"
             />
           }
           filterRowRight={
@@ -1446,8 +1454,8 @@ export default function AdminOrdersTable({
                   </button>
                 </TH> : null}
 
-                {visibleColumns.documents ? <TH className="h-11 min-w-[100px] text-center text-[11px] font-semibold leading-none">PDF datoteke</TH> : null}
-                <TH className="h-11 text-center text-[11px] font-semibold leading-none">Uredi</TH>
+                {visibleColumns.documents ? <TH className="h-11 min-w-[100px] text-center text-[11px]">PDF datoteke</TH> : null}
+                <TH className="h-11 text-center text-[11px]">Uredi</TH>
               </TR>
             </THead>
 

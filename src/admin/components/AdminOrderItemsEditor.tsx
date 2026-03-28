@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { IconButton } from '@/shared/ui/icon-button';
-import { TrashCanIcon } from '@/shared/ui/icons/TrashCanIcon';
+import { TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
 
 type OrderItemInput = {

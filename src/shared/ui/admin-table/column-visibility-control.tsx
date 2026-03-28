@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 type ColumnOption = {
   key: string;
@@ -13,13 +13,15 @@ export function ColumnVisibilityControl({
   visibleMap,
   onToggle,
   className,
-  showLabel = true
+  showLabel = true,
+  icon
 }: {
   options: ColumnOption[];
   visibleMap: Record<string, boolean>;
   onToggle: (key: string) => void;
   className?: string;
   showLabel?: boolean;
+  icon?: ReactNode;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -58,14 +60,16 @@ export function ColumnVisibilityControl({
         title="Filtriraj stolpce"
       >
         {showLabel ? <span>Stolpci</span> : null}
-        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <line x1="3" y1="6" x2="21" y2="6" />
-          <line x1="3" y1="12" x2="21" y2="12" />
-          <line x1="3" y1="18" x2="21" y2="18" />
-          <circle cx="15" cy="6" r="2.5" fill="white" />
-          <circle cx="8" cy="12" r="2.5" fill="white" />
-          <circle cx="13" cy="18" r="2.5" fill="white" />
-        </svg>
+        {icon ?? (
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+            <circle cx="15" cy="6" r="2.5" fill="white" />
+            <circle cx="8" cy="12" r="2.5" fill="white" />
+            <circle cx="13" cy="18" r="2.5" fill="white" />
+          </svg>
+        )}
       </button>
       {isOpen ? (
         <div className="absolute right-0 top-9 z-30 w-52 rounded-xl border border-slate-200 bg-white p-2 shadow-lg" role="menu">

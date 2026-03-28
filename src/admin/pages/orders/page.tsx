@@ -66,9 +66,9 @@ async function AdminOrdersTableSection({
     const status = normalizeSearchParam(searchParams?.status).trim() || 'all';
     const documentType = normalizeSearchParam(searchParams?.docType).trim() || 'all';
     const page = Math.max(1, Number(normalizeSearchParam(searchParams?.page)) || 1);
-    const pageSize = [50, 100].includes(Number(normalizeSearchParam(searchParams?.pageSize)))
+    const pageSize = [25, 50, 100].includes(Number(normalizeSearchParam(searchParams?.pageSize)))
       ? Number(normalizeSearchParam(searchParams?.pageSize))
-      : 50;
+      : 25;
 
   const demoOrders: OrderRow[] = [
     {

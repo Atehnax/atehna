@@ -13,12 +13,11 @@ import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagi
 import {
   DownloadIcon,
   FilterIcon,
-  HorizontalDotsIcon,
   PencilIcon,
   TrashCanIcon
 } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
-import { EmptyState, RowActions, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
+import { EmptyState, RowActions, RowActionsDropdown, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
 import {
@@ -88,7 +87,7 @@ type AttachmentTuple = readonly [id: number, orderId: number, type: Attachment['
 type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
 type OrdersColumnKey = 'order' | 'date' | 'customer' | 'address' | 'type' | 'status' | 'payment' | 'total' | 'documents';
 
-const PAGE_SIZE_OPTIONS = [50, 100];
+const PAGE_SIZE_OPTIONS = [25, 50, 100];
 const ORDER_COLUMN_OPTIONS: Array<{ key: OrdersColumnKey; label: string }> = [
   { key: 'order', label: 'Naročilo' },
   { key: 'date', label: 'Datum' },
@@ -128,7 +127,7 @@ export default function AdminOrdersTable({
   initialStatusFilter = 'all',
   initialDocumentType = 'all',
   initialPage = 1,
-  initialPageSize = 50,
+  initialPageSize = 25,
   totalCount,
   topAction,
   analyticsAppearance
@@ -204,7 +203,6 @@ export default function AdminOrdersTable({
   const [deletingRowId, setDeletingRowId] = useState<number | null>(null);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [confirmDeleteRowId, setConfirmDeleteRowId] = useState<number | null>(null);
-  const [rowActionMenuOrderId, setRowActionMenuOrderId] = useState<number | null>(null);
   const [isBulkUpdatingStatus, setIsBulkUpdatingStatus] = useState(false);
 
   const [statusFilter, setStatusFilter] = useState<StatusTab>((initialStatusFilter as StatusTab) ?? 'all');
@@ -228,7 +226,6 @@ export default function AdminOrdersTable({
 
   const selectAllRef = useRef<HTMLInputElement>(null);
   const datePopoverRef = useRef<HTMLDivElement>(null);
-  const rowActionMenuRef = useRef<HTMLDivElement>(null);
   const statusHeaderMenuRef = useRef<HTMLDivElement>(null);
   const paymentHeaderMenuRef = useRef<HTMLDivElement>(null);
   const hasAutoResetFiltersRef = useRef(false);
@@ -303,30 +300,6 @@ export default function AdminOrdersTable({
       document.removeEventListener('keydown', handleEscape);
     };
   }, [isPaymentHeaderMenuOpen, isStatusHeaderMenuOpen]);
-
-  useEffect(() => {
-    if (rowActionMenuOrderId === null) return;
-
-    const handleOutsideClick = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (!rowActionMenuRef.current?.contains(target)) {
-        setRowActionMenuOrderId(null);
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setRowActionMenuOrderId(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleOutsideClick);
-    document.addEventListener('keydown', handleEscape);
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [rowActionMenuOrderId]);
 
   const latestOrderDate = useMemo(() => {
     const timestamps = orders
@@ -1289,18 +1262,16 @@ export default function AdminOrdersTable({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Poišči naročila"
-              className="h-12 min-w-[360px] rounded-2xl border-slate-200 bg-slate-100 pl-10 pr-3 text-sm"
+              className="h-10 min-w-[280px] max-w-[360px] rounded-xl border-slate-200 bg-slate-100 pl-10 pr-3 text-sm"
             />
           }
           filterRowRight={
-            <></>
-          }
-          footerRight={
-            <div className="flex w-full flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
               <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={handlePageSizeChange} />
-              <Pagination page={page} pageCount={pageCount} onPageChange={handlePageChange} variant="bottomBar" size="sm" showNumbers={false} />
+              <Pagination page={page} pageCount={pageCount} onPageChange={handlePageChange} variant="topPills" size="sm" showNumbers={false} />
             </div>
           }
+          footerRight={null}
         >
           <Table className="min-w-[1060px] w-full text-[11px] [&_th]:!bg-white">
             <colgroup>
@@ -1387,7 +1358,7 @@ export default function AdminOrdersTable({
                           type="button"
                           onClick={() => setIsStatusHeaderMenuOpen((previousOpen) => !previousOpen)}
                           disabled={isBulkUpdatingStatus}
-                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
+                        className="inline-flex items-center rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
                           aria-haspopup="menu"
                           aria-expanded={isStatusHeaderMenuOpen}
                         >
@@ -1430,7 +1401,7 @@ export default function AdminOrdersTable({
                           type="button"
                           onClick={() => setIsPaymentHeaderMenuOpen((previousOpen) => !previousOpen)}
                           disabled={isBulkUpdatingStatus}
-                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
+                        className="inline-flex items-center rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
                           aria-haspopup="menu"
                           aria-expanded={isPaymentHeaderMenuOpen}
                         >
@@ -1623,46 +1594,29 @@ export default function AdminOrdersTable({
 
                       <TD className="pl-0 pr-0 text-center" data-no-row-nav>
                         <RowActions className="relative">
-                          <div ref={rowActionMenuOrderId === order.id ? rowActionMenuRef : null}>
-                            <IconButton
-                              type="button"
-                              tone="neutral"
-                              className="h-8 w-8 border-0 bg-transparent text-slate-600 shadow-none hover:text-slate-800 active:bg-transparent"
-                              aria-label={`Možnosti za naročilo ${toDisplayOrderNumber(order.order_number)}`}
-                              title="Možnosti"
-                              onClick={() => setRowActionMenuOrderId((currentId) => (currentId === order.id ? null : order.id))}
-                            >
-                              <HorizontalDotsIcon />
-                            </IconButton>
-
-                            {rowActionMenuOrderId === order.id ? (
-                              <MenuPanel className="absolute right-0 top-8 z-20 w-28">
-                                <MenuItem
-                                  onClick={() => {
-                                    setRowActionMenuOrderId(null);
-                                    router.push(`/admin/orders/${order.id}`);
-                                  }}
-                                >
-                                  <span className="inline-flex items-center gap-1.5">
-                                    <PencilIcon />
-                                    Uredi
-                                  </span>
-                                </MenuItem>
-                                <MenuItem
-                                  disabled={deletingRowId === order.id}
-                                  onClick={() => {
-                                    setRowActionMenuOrderId(null);
-                                    void handleDeleteRow(order.id);
-                                  }}
-                                >
-                                  <span className="inline-flex items-center gap-1.5 text-[rgb(192,64,46)]">
-                                    {deletingRowId === order.id ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : <TrashCanIcon className="h-[18px] w-[18px]" />}
-                                    Izbriši
-                                  </span>
-                                </MenuItem>
-                              </MenuPanel>
-                            ) : null}
-                          </div>
+                          <RowActionsDropdown
+                            label={`Možnosti za naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                            items={[
+                              {
+                                key: 'edit',
+                                label: 'Uredi',
+                                icon: <PencilIcon />,
+                                onSelect: () => {
+                                  router.push(`/admin/orders/${order.id}`);
+                                }
+                              },
+                              {
+                                key: 'delete',
+                                label: 'Izbriši',
+                                icon: deletingRowId === order.id ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : <TrashCanIcon className="h-[18px] w-[18px]" />,
+                                className: 'text-[rgb(192,64,46)]',
+                                disabled: deletingRowId === order.id,
+                                onSelect: () => {
+                                  void handleDeleteRow(order.id);
+                                }
+                              }
+                            ]}
+                          />
                         </RowActions>
                       </TD>
                     </TR>

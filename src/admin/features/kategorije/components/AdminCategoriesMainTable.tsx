@@ -74,9 +74,9 @@ import { sortCatalogItems } from '@/commercial/catalog/catalogUtils';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { Chip } from '@/shared/ui/badge';
-import { PlusIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { PencilIcon, PlusIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
-import { RowActions } from '@/shared/ui/table';
+import { RowActions, RowActionsDropdown } from '@/shared/ui/table';
 import {
   adminTableRowToneClasses,
   buttonTokenClasses,
@@ -3132,80 +3132,76 @@ export default function AdminCategoriesMainTable({
 
             <td className="border-b border-slate-200 px-3 py-2 text-center">
               <RowActions>
-                <IconButton type="button" tone="neutral" onPointerDown={(event) => event.stopPropagation()} onClick={toggleInlineEdit} aria-label="Uredi" title="Uredi">
-                  <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                    <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
-                    <path d="M11.5 4.5l3 3" />
-                  </svg>
-                </IconButton>
+                <RowActionsDropdown
+                  label={`Možnosti za ${title}`}
+                  items={[
+                    {
+                      key: 'edit',
+                      label: 'Uredi',
+                      icon: <PencilIcon />,
+                      onSelect: toggleInlineEdit
+                    },
+                    {
+                      key: 'add',
+                      label: 'Dodaj',
+                      icon: <PlusIcon />,
+                      onSelect: () => {
+                        if (kind === 'root') {
+                          openCreateDialog({ kind: 'category' });
+                          return;
+                        }
 
-                <IconButton
-                  type="button"
-                  tone="neutral"
-                  aria-label="Dodaj podkategorijo"
-                  title="Dodaj podkategorijo"
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onClick={() => {
-                    if (kind === 'root') {
-                      openCreateDialog({ kind: 'category' });
-                      return;
-                    }
+                        if (kind === 'category' && categorySlug) {
+                          openCreateDialog({ kind: 'subcategory', categorySlug, parentPath: [] });
+                          return;
+                        }
 
-                    if (kind === 'category' && categorySlug) {
-                      openCreateDialog({ kind: 'subcategory', categorySlug, parentPath: [] });
-                      return;
-                    }
+                        if (kind === 'subcategory' && categorySlug) {
+                          openCreateDialog({
+                            kind: 'subcategory',
+                            categorySlug,
+                            parentPath: resolvedSubcategoryPath
+                          });
+                        }
+                      }
+                    },
+                    {
+                      key: 'delete',
+                      label: 'Izbriši',
+                      icon: <TrashCanIcon className="h-[18px] w-[18px]" />,
+                      className: 'text-[rgb(192,64,46)]',
+                      onSelect: () => {
+                        if (kind === 'root') {
+                          stageTableCatalog({ categories: [] });
+                          setSelected({ kind: 'root' });
+                          return;
+                        }
 
-                    if (kind === 'subcategory' && categorySlug) {
-                      openCreateDialog({
-                        kind: 'subcategory',
-                        categorySlug,
-                        parentPath: resolvedSubcategoryPath
-                      });
-                    }
-                  }}
-                >
-                  <PlusIcon />
-                </IconButton>
+                        if (kind === 'category' && categorySlug) {
+                          stageTableCatalog({
+                            categories: catalog.categories.filter((entry) => entry.slug !== categorySlug)
+                          });
+                          setSelected({ kind: 'root' });
+                          return;
+                        }
 
-                <Button
-                  type="button"
-                  variant="close-x"
-                  aria-label="Izbriši"
-                  title="Izbriši"
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onClick={() => {
-                    if (kind === 'root') {
-                      stageTableCatalog({ categories: [] });
-                      setSelected({ kind: 'root' });
-                      return;
+                        if (kind === 'subcategory' && categorySlug) {
+                          stageTableCatalog({
+                            categories: catalog.categories.map((entry) =>
+                              entry.slug === categorySlug
+                                ? {
+                                    ...entry,
+                                    subcategories: removeSubcategoryTree(entry.subcategories, resolvedSubcategoryPath)
+                                  }
+                                : entry
+                            )
+                          });
+                          setSelected({ kind: 'category', categorySlug });
+                        }
+                      }
                     }
-
-                    if (kind === 'category' && categorySlug) {
-                      stageTableCatalog({
-                        categories: catalog.categories.filter((entry) => entry.slug !== categorySlug)
-                      });
-                      setSelected({ kind: 'root' });
-                      return;
-                    }
-
-                    if (kind === 'subcategory' && categorySlug) {
-                      stageTableCatalog({
-                        categories: catalog.categories.map((entry) =>
-                          entry.slug === categorySlug
-                            ? {
-                                ...entry,
-                                subcategories: removeSubcategoryTree(entry.subcategories, resolvedSubcategoryPath)
-                              }
-                            : entry
-                        )
-                      });
-                      setSelected({ kind: 'category', categorySlug });
-                    }
-                  }}
-                >
-                  <TrashCanIcon className="h-[18px] w-[18px]" />
-                </Button>
+                  ]}
+                />
               </RowActions>
             </td>
           </tr>

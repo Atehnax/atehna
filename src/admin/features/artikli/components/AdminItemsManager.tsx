@@ -14,7 +14,7 @@ import {
 import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
 import { SegmentedControl } from '@/shared/ui/segmented';
 import { CustomSelect } from '@/shared/ui/select';
-import { Table, THead, TH, TR } from '@/shared/ui/table';
+import { RowActionsDropdown, Table, THead, TH, TR } from '@/shared/ui/table';
 import { Chip } from '@/shared/ui/badge';
 import { useToast } from '@/shared/ui/toast';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
@@ -565,8 +565,17 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
         }
         headerRight={
           <>
-            <Button type="button" variant="archive" size="toolbar" onClick={archiveSelected} disabled={selectedIds.length === 0}>
-              Arhiviraj
+            <Button
+              type="button"
+              variant={selectedIds.length > 0 ? 'archive' : 'default'}
+              size="toolbar"
+              onClick={archiveSelected}
+              disabled={selectedIds.length === 0}
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <ActionIcon type="archive" />
+                Arhiviraj
+              </span>
             </Button>
             <Button type="button" variant="primary" size="toolbar" onClick={openCreate}>
               Nov artikel
@@ -639,7 +648,32 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                       {item.active ? 'Aktiven' : 'Neaktiven'}
                     </Chip>
                   </td> : null}
-                  <td className="px-2.5 py-2"><div className="flex items-center justify-center gap-1.5"><IconButton type="button" size="sm" tone="neutral" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi"><ActionIcon type="edit" /></IconButton><IconButton type="button" size="sm" tone="neutral" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji"><ActionIcon type="copy" /></IconButton><IconButton type="button" size="sm" tone="warning" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj"><ActionIcon type="archive" /></IconButton></div></td>
+                  <td className="px-2.5 py-2 text-center">
+                    <RowActionsDropdown
+                      label={`Možnosti za artikel ${item.name}`}
+                      items={[
+                        {
+                          key: 'edit',
+                          label: 'Uredi',
+                          icon: <ActionIcon type="edit" />,
+                          onSelect: () => openEdit(item)
+                        },
+                        {
+                          key: 'duplicate',
+                          label: 'Podvoji',
+                          icon: <ActionIcon type="copy" />,
+                          onSelect: () => duplicate(item)
+                        },
+                        {
+                          key: 'archive',
+                          label: 'Arhiviraj',
+                          icon: <ActionIcon type="archive" />,
+                          className: 'text-amber-700',
+                          onSelect: () => archive(item)
+                        }
+                      ]}
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>

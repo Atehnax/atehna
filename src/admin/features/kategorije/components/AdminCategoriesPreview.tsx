@@ -490,7 +490,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
             <button
               key={action.key}
               type="button"
-              className={`inline-flex h-[25px] min-w-[1.6rem] items-center justify-center rounded-xl border px-0 shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${action.tone === "danger" ? "border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]" : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50"} ${action.dragHandle ? "cursor-grab active:cursor-grabbing" : ""}`}
+              className={`inline-flex h-[25px] min-w-[1.6rem] items-center justify-center rounded-md border px-0 shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${action.tone === "danger" ? "border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]" : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50"} ${action.dragHandle ? "cursor-grab active:cursor-grabbing" : ""}`}
               onPointerDown={(event) => {
                 if (!action.dragHandle) {
                   event.stopPropagation();

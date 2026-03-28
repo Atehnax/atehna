@@ -106,6 +106,20 @@ export function OrdersTrashIcon({ className, ...props }: ActionIconProps) {
   );
 }
 
+export function ActionRestoreIcon({ className, ...props }: ActionIconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={iconClassName(className)}
+      fill="currentColor"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M8.2 2.8c-.72 0-1.37.45-1.62 1.12L5.86 5.8H3.3a.9.9 0 1 0 0 1.8h17.4a.9.9 0 1 0 0-1.8h-2.56l-.72-1.88a1.72 1.72 0 0 0-1.62-1.12H8.2Zm-2 6.6c-.5 0-.9.4-.9.9v8.5A2.4 2.4 0 0 0 7.7 21.2h8.6a2.4 2.4 0 0 0 2.4-2.4v-8.5c0-.5-.4-.9-.9-.9H6.2Zm5.16 8.88a.9.9 0 1 0 1.28 0l-2.37-2.36v-2.7a.9.9 0 1 0-1.8 0v2.7L6.1 18.28a.9.9 0 1 0 1.28 1.27l1.09-1.08v1.83a.9.9 0 0 0 1.8 0v-1.83l1.09 1.08Z" />
+    </svg>
+  );
+}
+
 export function PencilIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg

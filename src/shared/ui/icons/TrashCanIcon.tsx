@@ -1,12 +1,12 @@
 import type { SVGProps } from 'react';
 
-export function TrashCanIcon({ className = 'h-[18px] w-[18px]', ...props }: SVGProps<SVGSVGElement>) {
+export function TrashCanIcon({ className = 'h-[18px] w-[18px] text-[#C43A4A]', ...props }: SVGProps<SVGSVGElement>) {
   return (
     <svg
       viewBox="0 0 24 24"
       className={className}
       fill="none"
-      stroke="#C43A4A"
+      stroke="currentColor"
       strokeWidth="2.6"
       strokeLinecap="round"
       strokeLinejoin="round"

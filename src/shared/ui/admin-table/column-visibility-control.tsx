@@ -65,7 +65,7 @@ export function ColumnVisibilityControl({
         title="Filtriraj stolpce"
       >
         {showLabel ? <span>Stolpci</span> : null}
-        {triggerIcon ?? <ActionFilterIcon className={iconClassName ?? 'h-4 w-4'} />}
+        {triggerIcon ?? <ActionFilterIcon className={iconClassName} />}
       </button>
       {isOpen ? (
         <div className="absolute right-0 top-9 z-30 w-52 rounded-xl border border-slate-200 bg-white p-2 shadow-lg" role="menu">

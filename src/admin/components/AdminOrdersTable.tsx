@@ -4,9 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { IconButton } from '@/shared/ui/icon-button';
 import AdminOrderStatusSelect from '@/admin/components/AdminOrderStatusSelect';
-import { ActionDownloadIcon, OrdersTrashIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { ActionDownloadIcon, ActionPencilIcon, AdminTrashIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { CustomSelect } from '@/shared/ui/select';
 import { Spinner } from '@/shared/ui/loading';
@@ -1206,46 +1205,41 @@ export default function AdminOrdersTable({
                   options={documentTypeOptions}
                   triggerClassName={`${ADMIN_CONTROL_HEIGHT} w-[126px] rounded-xl border border-slate-300 bg-white ${ADMIN_CONTROL_PADDING_X} py-0 text-xs font-semibold text-slate-700 shadow-none hover:bg-[color:var(--hover-neutral)]`}
                 />
-                <IconButton
+                <button
                   type="button"
-                  size="md"
-                  tone="neutral"
                   onClick={handleDownloadAllDocuments}
                   disabled={isDownloading}
-                  className="rounded-xl"
+                  className={`${ADMIN_CONTROL_HEIGHT} inline-flex w-8 items-center justify-center bg-transparent text-slate-600 transition-colors hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:opacity-50`}
                   aria-label={selected.length > 0 ? `Prenesi izbrane (${selected.length})` : 'Prenesi vse dokumente'}
                   title={selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
                 >
                   {isDownloading ? (
                     <Spinner size="sm" className="text-slate-500" />
                   ) : (
-                    <ActionDownloadIcon className="h-5 w-5" />
+                    <ActionDownloadIcon />
                   )}
-                </IconButton>
+                </button>
                 <ColumnVisibilityControl
                   options={ORDER_COLUMN_OPTIONS}
                   visibleMap={visibleColumns}
                   onToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }))}
                   showLabel={false}
-                  buttonClassName="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-transparent text-slate-600 shadow-none transition hover:border-slate-300 hover:bg-[color:var(--hover-neutral)] active:bg-[color:var(--hover-neutral)] hover:text-slate-700 focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-60"
-                  iconClassName="h-5 w-5"
+                  buttonClassName="inline-flex h-8 w-8 items-center justify-center bg-transparent text-slate-600 transition-colors hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:pointer-events-none disabled:opacity-60"
                 />
-                <IconButton
+                <button
                   type="button"
-                  size="md"
-                  tone="danger"
                   onClick={handleDelete}
                   disabled={selected.length === 0 || isDeleting}
-                  className="rounded-xl"
+                  className={`${ADMIN_CONTROL_HEIGHT} inline-flex w-8 items-center justify-center bg-transparent text-[#C43A4A] transition-colors hover:text-[#a5303f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:opacity-50`}
                   aria-label="Izbriši izbrana naročila"
                   title="Izbriši"
                 >
                   {isDeleting ? (
                     <Spinner size="sm" className="text-[var(--danger-600)]" />
                   ) : (
-                    <OrdersTrashIcon className="h-5 w-5" />
+                    <AdminTrashIcon />
                   )}
-                </IconButton>
+                </button>
                 {topAction ? <div className="flex items-center [&_button]:!rounded-xl">{topAction}</div> : null}
               </div>
             </>
@@ -1596,17 +1590,7 @@ export default function AdminOrdersTable({
                             aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
                             title="Uredi"
                           >
-                            <svg
-                              viewBox="0 0 20 20"
-                              className="h-[18px] w-[18px]"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.8"
-                              aria-hidden="true"
-                            >
-                              <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
-                              <path d="M11.5 4.5l3 3" />
-                            </svg>
+                            <ActionPencilIcon />
                           </Link>
 
                           <button
@@ -1620,7 +1604,7 @@ export default function AdminOrdersTable({
                             {deletingRowId === order.id ? (
                               <Spinner size="sm" className="text-[var(--danger-600)]" />
                             ) : (
-                              <OrdersTrashIcon className="h-[18px] w-[18px]" />
+                              <AdminTrashIcon className="h-[18px] w-[18px]" />
                             )}
                           </button>
                         </RowActions>

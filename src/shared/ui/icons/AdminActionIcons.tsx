@@ -80,12 +80,12 @@ export function ActionFilterIcon({ className = 'h-5 w-5', ...props }: ActionIcon
       aria-hidden="true"
       {...props}
     >
-      <path d="M3 5h14" />
-      <path d="M3 10h14" />
-      <path d="M3 15h14" />
-      <circle cx="7" cy="5" r="1.8" fill="currentColor" stroke="none" />
-      <circle cx="12.5" cy="10" r="1.8" fill="currentColor" stroke="none" />
-      <circle cx="9" cy="15" r="1.8" fill="currentColor" stroke="none" />
+      <path d="M3.4 5.2h13.2" />
+      <path d="M3.4 10h13.2" />
+      <path d="M3.4 14.8h13.2" />
+      <circle cx="7.2" cy="5.2" r="1.55" fill="currentColor" stroke="none" />
+      <circle cx="12.2" cy="10" r="1.55" fill="currentColor" stroke="none" />
+      <circle cx="9.1" cy="14.8" r="1.55" fill="currentColor" stroke="none" />
     </svg>
   );
 }

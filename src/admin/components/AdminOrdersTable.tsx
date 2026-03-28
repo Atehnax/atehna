@@ -1222,7 +1222,7 @@ export default function AdminOrdersTable({
                   {isDownloading ? (
                     <Spinner size="sm" className="text-slate-500" />
                   ) : (
-                    <DownloadIcon className="h-5 w-5" />
+                    <DownloadIcon />
                   )}
                 </button>
                 <ColumnVisibilityControl

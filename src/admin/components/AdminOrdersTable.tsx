@@ -4,21 +4,18 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Button } from '@/shared/ui/button';
-import { IconButton } from '@/shared/ui/icon-button';
 import AdminOrderStatusSelect from '@/admin/components/AdminOrderStatusSelect';
+import { ActionDownloadIcon, ActionPencilIcon, AdminTrashIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { CustomSelect } from '@/shared/ui/select';
 import { Spinner } from '@/shared/ui/loading';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
-import { TrashCanIcon } from '@/shared/ui/icons/TrashCanIcon';
 import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
 import {
   adminTableRowToneClasses,
-  buttonTokenClasses,
   dateInputTokenClasses,
   getAdminStripedRowToneClass
 } from '@/shared/ui/theme/tokens';
@@ -84,7 +81,6 @@ type AttachmentTuple = readonly [id: number, orderId: number, type: Attachment['
 type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
 type OrdersColumnKey = 'order' | 'date' | 'customer' | 'address' | 'type' | 'status' | 'payment' | 'total' | 'documents';
 
-const bulkDeleteButtonClass = buttonTokenClasses.danger;
 const PAGE_SIZE_OPTIONS = [50, 100];
 const ORDER_COLUMN_OPTIONS: Array<{ key: OrdersColumnKey; label: string }> = [
   { key: 'order', label: 'Naročilo' },
@@ -1209,48 +1205,41 @@ export default function AdminOrdersTable({
                   options={documentTypeOptions}
                   triggerClassName={`${ADMIN_CONTROL_HEIGHT} w-[126px] rounded-xl border border-slate-300 bg-white ${ADMIN_CONTROL_PADDING_X} py-0 text-xs font-semibold text-slate-700 shadow-none hover:bg-[color:var(--hover-neutral)]`}
                 />
-                <Button
+                <button
                   type="button"
-                  variant="default"
                   onClick={handleDownloadAllDocuments}
                   disabled={isDownloading}
-                  className={`${ADMIN_CONTROL_HEIGHT} w-8 rounded-xl border border-slate-300 bg-white px-0 text-xs font-semibold text-slate-700 shadow-none hover:bg-[color:var(--hover-neutral)]`}
+                  className={`${ADMIN_CONTROL_HEIGHT} inline-flex w-8 items-center justify-center bg-transparent text-slate-600 transition-colors hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:opacity-50`}
                   aria-label={selected.length > 0 ? `Prenesi izbrane (${selected.length})` : 'Prenesi vse dokumente'}
                   title={selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
                 >
                   {isDownloading ? (
                     <Spinner size="sm" className="text-slate-500" />
                   ) : (
-                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M12 3.5v11" />
-                      <path d="m7.5 10 4.5 4.5 4.5-4.5" />
-                      <path d="M4 15.5v2.5A3 3 0 0 0 7 21h10a3 3 0 0 0 3-3v-2.5" />
-                    </svg>
+                    <ActionDownloadIcon />
                   )}
-                </Button>
+                </button>
                 <ColumnVisibilityControl
                   options={ORDER_COLUMN_OPTIONS}
                   visibleMap={visibleColumns}
                   onToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }))}
                   showLabel={false}
-                  className="[&>button]:!h-8 [&>button]:!w-8 [&_svg]:!h-5 [&_svg]:!w-5"
+                  buttonClassName="inline-flex h-8 w-8 items-center justify-center bg-transparent text-slate-600 transition-colors hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:pointer-events-none disabled:opacity-60"
                 />
-                <IconButton
+                <button
                   type="button"
                   onClick={handleDelete}
                   disabled={selected.length === 0 || isDeleting}
-                  tone="danger"
-                  size="md"
-                  className={`${bulkDeleteButtonClass} !rounded-xl !px-2.5`}
+                  className={`${ADMIN_CONTROL_HEIGHT} inline-flex w-8 items-center justify-center bg-transparent text-[#C43A4A] transition-colors hover:text-[#a5303f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:opacity-50`}
                   aria-label="Izbriši izbrana naročila"
                   title="Izbriši"
                 >
                   {isDeleting ? (
                     <Spinner size="sm" className="text-[var(--danger-600)]" />
                   ) : (
-                    <TrashCanIcon className="h-[22px] w-[22px]" />
+                    <AdminTrashIcon />
                   )}
-                </IconButton>
+                </button>
                 {topAction ? <div className="flex items-center [&_button]:!rounded-xl">{topAction}</div> : null}
               </div>
             </>
@@ -1594,39 +1583,28 @@ export default function AdminOrdersTable({
 
                       <TD className="pl-0 pr-0 text-center" data-no-row-nav>
                         <RowActions>
-                          <IconButton
+                          <Link
                             href={`/admin/orders/${order.id}`}
                             prefetch={false}
-                            tone="neutral"
-                            className="h-8 w-8 border-0 bg-transparent text-slate-600 shadow-none hover:text-slate-800 active:bg-transparent"
+                            className="inline-flex h-9 w-9 items-center justify-center text-slate-600 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
                             aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
                             title="Uredi"
                           >
-                            <svg
-                              viewBox="0 0 20 20"
-                              className="h-3.5 w-3.5"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.8"
-                              aria-hidden="true"
-                            >
-                              <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
-                              <path d="M11.5 4.5l3 3" />
-                            </svg>
-                          </IconButton>
+                            <ActionPencilIcon />
+                          </Link>
 
                           <button
                             type="button"
                             onClick={() => void handleDeleteRow(order.id)}
                             disabled={deletingRowId === order.id}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border-0 bg-transparent text-[var(--danger-600)] hover:text-[var(--danger-700)] active:bg-transparent disabled:opacity-60"
+                            className="inline-flex h-9 w-9 items-center justify-center text-[var(--danger-600)] hover:text-[var(--danger-700)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger-300)] disabled:opacity-60"
                             aria-label={`Izbriši naročilo ${toDisplayOrderNumber(order.order_number)}`}
                             title="Izbriši"
                           >
                             {deletingRowId === order.id ? (
                               <Spinner size="sm" className="text-[var(--danger-600)]" />
                             ) : (
-                              <TrashCanIcon className="h-[18px] w-[18px]" />
+                              <AdminTrashIcon className="h-[18px] w-[18px]" />
                             )}
                           </button>
                         </RowActions>

@@ -1,6 +1,6 @@
 import type { SVGProps } from 'react';
 
-type AdminActionIconProps = SVGProps<SVGSVGElement>;
+type ActionIconProps = SVGProps<SVGSVGElement>;
 
 const classNames = (...parts: Array<string | null | undefined | false>) => parts.filter(Boolean).join(' ');
 const defaultIconSizeClassName = 'h-3.5 w-3.5';
@@ -9,7 +9,7 @@ function iconClassName(className?: string) {
   return classNames(defaultIconSizeClassName, className);
 }
 
-export function DownloadIcon({ className, ...props }: AdminActionIconProps) {
+export function DownloadIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg
       viewBox="0 0 20 20"
@@ -29,7 +29,7 @@ export function DownloadIcon({ className, ...props }: AdminActionIconProps) {
   );
 }
 
-export function UploadIcon({ className, ...props }: AdminActionIconProps) {
+export function UploadIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg
       viewBox="0 0 20 20"
@@ -49,7 +49,7 @@ export function UploadIcon({ className, ...props }: AdminActionIconProps) {
   );
 }
 
-export function SaveIcon({ className, ...props }: AdminActionIconProps) {
+export function SaveIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg
       viewBox="0 0 20 20"
@@ -67,32 +67,32 @@ export function SaveIcon({ className, ...props }: AdminActionIconProps) {
   );
 }
 
-export function ActionFilterIcon({ className, ...props }: AdminActionIconProps) {
+export function ActionFilterIcon({ className = 'h-5 w-5', ...props }: ActionIconProps) {
   return (
     <svg
       viewBox="0 0 20 20"
-      className={iconClassName(className)}
+      className={className}
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="1.9"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
       {...props}
     >
-      <line x1="2.5" y1="4.5" x2="17.5" y2="4.5" />
-      <line x1="2.5" y1="10" x2="17.5" y2="10" />
-      <line x1="2.5" y1="15.5" x2="17.5" y2="15.5" />
-      <circle cx="13.5" cy="4.5" r="2.25" fill="white" />
-      <circle cx="6.5" cy="10" r="2.25" fill="white" />
-      <circle cx="11" cy="15.5" r="2.25" fill="white" />
+      <path d="M3 5h14" />
+      <path d="M3 10h14" />
+      <path d="M3 15h14" />
+      <circle cx="7" cy="5" r="1.8" fill="currentColor" stroke="none" />
+      <circle cx="12.5" cy="10" r="1.8" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="15" r="1.8" fill="currentColor" stroke="none" />
     </svg>
   );
 }
 
 export const FilterIcon = ActionFilterIcon;
 
-export function OrdersTrashIcon({ className, ...props }: AdminActionIconProps) {
+export function OrdersTrashIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -113,7 +113,7 @@ export function OrdersTrashIcon({ className, ...props }: AdminActionIconProps) {
   );
 }
 
-export function PencilIcon({ className, ...props }: AdminActionIconProps) {
+export function PencilIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg
       viewBox="0 0 20 20"
@@ -130,7 +130,7 @@ export function PencilIcon({ className, ...props }: AdminActionIconProps) {
   );
 }
 
-export function PlusIcon({ className, ...props }: AdminActionIconProps) {
+export function PlusIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg
       viewBox="0 0 20 20"
@@ -146,7 +146,7 @@ export function PlusIcon({ className, ...props }: AdminActionIconProps) {
   );
 }
 
-export function MoreActionsIcon({ className, ...props }: AdminActionIconProps) {
+export function MoreActionsIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg
       viewBox="0 0 20 20"
@@ -162,7 +162,7 @@ export function MoreActionsIcon({ className, ...props }: AdminActionIconProps) {
   );
 }
 
-export function CopyIcon({ className, ...props }: AdminActionIconProps) {
+export function CopyIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg
       viewBox="0 0 20 20"
@@ -179,7 +179,7 @@ export function CopyIcon({ className, ...props }: AdminActionIconProps) {
   );
 }
 
-export function ArchiveIcon({ className, ...props }: AdminActionIconProps) {
+export function ArchiveIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg
       viewBox="0 0 20 20"
@@ -196,7 +196,7 @@ export function ArchiveIcon({ className, ...props }: AdminActionIconProps) {
   );
 }
 
-export function CloseIcon({ className, ...props }: AdminActionIconProps) {
+export function CloseIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg
       viewBox="0 0 20 20"
@@ -212,7 +212,7 @@ export function CloseIcon({ className, ...props }: AdminActionIconProps) {
   );
 }
 
-export function GeneratePdfIcon({ className, ...props }: AdminActionIconProps) {
+export function GeneratePdfIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg
       viewBox="0 0 20 20"

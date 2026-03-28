@@ -53,7 +53,7 @@ export function ColumnVisibilityControl({
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className={`inline-flex h-8 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 ${showLabel ? 'min-w-[92px]' : 'w-8'}`}
+        className={`inline-flex h-8 items-center justify-center rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 ${showLabel ? 'min-w-[92px] gap-2 px-2.5' : 'w-8 px-0'}`}
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-label="Filtriraj stolpce"

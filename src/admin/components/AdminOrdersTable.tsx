@@ -757,6 +757,7 @@ export default function AdminOrdersTable({
 
   const allSelected = visibleOrderIds.length > 0 && selectedVisibleCount === visibleOrderIds.length;
   const selectedCount = selected.length;
+  const hasSelectedRows = selectedCount > 0;
   const isSingleSelection = selectedCount === 1;
 
   const [rowStatusOverrides, setRowStatusOverrides] = useState<Record<number, string>>({});
@@ -1237,8 +1238,8 @@ export default function AdminOrdersTable({
                 <IconButton
                   type="button"
                   onClick={handleDelete}
-                  disabled={selected.length === 0 || isDeleting}
-                  tone="danger"
+                  disabled={!hasSelectedRows || isDeleting}
+                  tone={hasSelectedRows ? 'danger' : 'neutral'}
                   size="sm"
                   aria-label="Izbriši izbrana naročila"
                   title="Izbriši"

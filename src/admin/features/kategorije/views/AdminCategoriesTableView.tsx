@@ -163,7 +163,7 @@ export function AdminCategoriesTableView({
                     <th className="border-b border-slate-200 px-2.5 py-2 text-center text-[11px] font-semibold text-slate-600">Izdelki</th>
                     <th className="h-11 border-b border-slate-200 px-2.5 py-0 text-center text-[11px] font-semibold text-slate-600 align-middle">
                       <div className="relative flex h-8 items-center justify-center" ref={statusHeaderMenuRef}>
-                        <button type="button" onClick={onToggleStatusHeaderMenu} className={`inline-flex h-6 items-center rounded-full border px-2 text-[11px] font-semibold ${selectedRows.length > 0 ? 'border-slate-300 bg-white text-slate-700 hover:bg-[color:var(--hover-neutral)]' : 'border-transparent bg-transparent text-slate-500 cursor-default'}`} aria-haspopup="menu" aria-expanded={selectedRows.length > 0 ? isStatusHeaderMenuOpen : false} disabled={selectedRows.length === 0}>
+                        <button type="button" onClick={onToggleStatusHeaderMenu} className={`inline-flex h-6 items-center rounded-md border px-2 text-[11px] font-semibold ${selectedRows.length > 0 ? 'border-slate-300 bg-white text-slate-700 hover:bg-[color:var(--hover-neutral)]' : 'border-transparent bg-transparent text-slate-500 cursor-default'}`} aria-haspopup="menu" aria-expanded={selectedRows.length > 0 ? isStatusHeaderMenuOpen : false} disabled={selectedRows.length === 0}>
                           {selectedRows.length > 0 ? `Vidnost ▾ (${selectedRows.length})` : 'Vidnost'}
                         </button>
                         {selectedRows.length > 0 && isStatusHeaderMenuOpen ? (

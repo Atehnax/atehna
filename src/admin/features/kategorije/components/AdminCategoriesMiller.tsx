@@ -2,7 +2,7 @@ import { useMemo, type RefObject, type ReactNode } from 'react';
 import Selecto from 'react-selecto';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
-import { TrashCanIcon } from '@/shared/ui/icons/TrashCanIcon';
+import { MoreActionsIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 
@@ -204,7 +204,9 @@ export function AdminCategoriesMiller({
             <TrashCanIcon className="h-[18px] w-[18px]" />
           </IconButton>
           <div className="relative" ref={millerHistoryMenuRef}>
-            <IconButton type="button" size="sm" tone="neutral" aria-label="Zgodovina" onClick={onToggleHistoryMenu}>⋮</IconButton>
+            <IconButton type="button" size="sm" tone="neutral" aria-label="Zgodovina" onClick={onToggleHistoryMenu}>
+              <MoreActionsIcon />
+            </IconButton>
             {isHistoryMenuOpen ? (
               <MenuPanel className="absolute right-0 top-9 z-20 w-40">
                 <MenuItem

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 type ColumnOption = {
   key: string;
@@ -13,13 +13,17 @@ export function ColumnVisibilityControl({
   visibleMap,
   onToggle,
   className,
-  showLabel = true
+  showLabel = true,
+  icon,
+  menuClassName
 }: {
   options: ColumnOption[];
   visibleMap: Record<string, boolean>;
   onToggle: (key: string) => void;
   className?: string;
   showLabel?: boolean;
+  icon?: ReactNode;
+  menuClassName?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -51,24 +55,26 @@ export function ColumnVisibilityControl({
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className={`inline-flex h-8 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 ${showLabel ? 'min-w-[92px]' : 'w-8'}`}
+        className={`inline-flex h-8 items-center justify-center rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 ${showLabel ? 'min-w-[92px] gap-2 px-2.5' : 'w-8 px-0'}`}
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-label="Filtriraj stolpce"
         title="Filtriraj stolpce"
       >
         {showLabel ? <span>Stolpci</span> : null}
-        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <line x1="3" y1="6" x2="21" y2="6" />
-          <line x1="3" y1="12" x2="21" y2="12" />
-          <line x1="3" y1="18" x2="21" y2="18" />
-          <circle cx="15" cy="6" r="2.5" fill="white" />
-          <circle cx="8" cy="12" r="2.5" fill="white" />
-          <circle cx="13" cy="18" r="2.5" fill="white" />
-        </svg>
+        {icon ?? (
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+            <circle cx="15" cy="6" r="2.5" fill="white" />
+            <circle cx="8" cy="12" r="2.5" fill="white" />
+            <circle cx="13" cy="18" r="2.5" fill="white" />
+          </svg>
+        )}
       </button>
       {isOpen ? (
-        <div className="absolute right-0 top-9 z-30 w-52 rounded-xl border border-slate-200 bg-white p-2 shadow-lg" role="menu">
+        <div className={`absolute right-0 top-9 z-30 w-52 rounded-xl border border-slate-200 bg-white p-2 shadow-lg ${menuClassName ?? ''}`} role="menu">
           {options.map((option) => {
             const isChecked = visibleMap[option.key] ?? false;
             return (

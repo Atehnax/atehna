@@ -4,10 +4,17 @@ import Image from 'next/image';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
+import {
+  ArchiveIcon,
+  CloseIcon,
+  CopyIcon,
+  FilterIcon,
+  PencilIcon,
+  SaveIcon
+} from '@/shared/ui/icons/AdminActionIcons';
 import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
-import { SegmentedControl } from '@/shared/ui/segmented';
 import { CustomSelect } from '@/shared/ui/select';
-import { Table, THead, TH, TR } from '@/shared/ui/table';
+import { RowActionsDropdown, Table, THead, TH, TR } from '@/shared/ui/table';
 import { Chip } from '@/shared/ui/badge';
 import { useToast } from '@/shared/ui/toast';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
@@ -79,9 +86,9 @@ const emptyItem = (): Item => ({
 const discountedPrice = (price: number, discountPct: number) =>
   Number((price * (1 - Math.max(0, Math.min(100, discountPct)) / 100)).toFixed(2));
 
-const statusTabs: Array<{ key: StatusTab; label: string; activeClassName: string }> = [
-  { key: 'active', label: 'Aktivni', activeClassName: buttonTokenClasses.activeSuccessBorderless },
-  { key: 'inactive', label: 'Neaktivni', activeClassName: buttonTokenClasses.inactiveNeutralBorderless }
+const statusTabs: Array<{ key: StatusTab; label: string }> = [
+  { key: 'active', label: 'Aktivni' },
+  { key: 'inactive', label: 'Neaktivni' }
 ];
 const itemColumnOptions: Array<{ key: ItemColumnKey; label: string }> = [
   { key: 'name', label: 'Naziv' },
@@ -99,11 +106,11 @@ function SortIndicator({ active, direction }: { active: boolean; direction: 'asc
 }
 
 function ActionIcon({ type }: { type: 'edit' | 'copy' | 'archive' | 'save' | 'close' }) {
-  if (type === 'edit') return <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 14.8V17h2.2L15.8 6.4l-2.2-2.2L3 14.8z"/><path d="M12.9 3.1l2.2 2.2"/></svg>;
-  if (type === 'copy') return <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="7" y="7" width="10" height="10" rx="2"/><rect x="3" y="3" width="10" height="10" rx="2"/></svg>;
-  if (type === 'save') return <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 3h10l2 2v12H4z"/><path d="M7 3v5h6V3"/><path d="M7 13h6"/></svg>;
-  if (type === 'close') return <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 5l10 10M15 5L5 15"/></svg>;
-  return <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 6h14v11H3z"/><path d="M7 6V4h6v2"/></svg>;
+  if (type === 'edit') return <PencilIcon />;
+  if (type === 'copy') return <CopyIcon />;
+  if (type === 'save') return <SaveIcon />;
+  if (type === 'close') return <CloseIcon />;
+  return <ArchiveIcon />;
 }
 
 function FloatingInput({
@@ -534,6 +541,53 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
         className="border shadow-sm"
         style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)', borderColor: '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
         headerLeft={
+          <div className="inline-flex items-center gap-0.5 border-b border-slate-200 pb-1">
+            {statusTabs.map((tab) => {
+              const isActive = statusTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setStatusTab(tab.key)}
+                  className={`relative px-3 py-1.5 text-[11px] font-medium transition ${
+                    isActive
+                      ? 'text-slate-900 after:absolute after:inset-x-0 after:bottom-[-5px] after:h-[2px] after:rounded-full after:bg-slate-800'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        }
+        headerRight={
+          <>
+            <ColumnVisibilityControl
+              options={itemColumnOptions.map((option) => ({ ...option, disabled: option.key === 'name' }))}
+              visibleMap={visibleColumns}
+              onToggle={(key) => toggleColumnVisibility(key as ItemColumnKey)}
+              showLabel={false}
+              className="[&>button]:!h-7 [&>button]:!w-7 [&>button]:!rounded-md [&>button]:!border-slate-200 [&>button]:!bg-transparent [&>button]:!px-0 [&>button]:!text-slate-600 [&>button]:hover:!border-slate-300 [&>button]:hover:!bg-[color:var(--hover-neutral)] [&>button]:hover:!text-slate-700"
+              icon={<FilterIcon className="h-3.5 w-3.5" />}
+            />
+            <IconButton
+              type="button"
+              size="sm"
+              tone={selectedIds.length > 0 ? 'warning' : 'neutral'}
+              onClick={archiveSelected}
+              disabled={selectedIds.length === 0}
+              aria-label="Arhiviraj izbrane artikle"
+              title="Arhiviraj"
+            >
+              <ActionIcon type="archive" />
+            </IconButton>
+            <Button type="button" variant="primary" size="toolbar" onClick={openCreate}>
+              Nov artikel
+            </Button>
+          </>
+        }
+        filterRowLeft={
           <>
             <input
               value={search}
@@ -556,32 +610,8 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
             </div>
           </>
         }
-        headerRight={
-          <>
-            <Button type="button" variant="archive" size="toolbar" onClick={archiveSelected} disabled={selectedIds.length === 0}>
-              Arhiviraj
-            </Button>
-            <Button type="button" variant="primary" size="toolbar" onClick={openCreate}>
-              Nov artikel
-            </Button>
-          </>
-        }
-        filterRowLeft={
-          <SegmentedControl
-            size="sm"
-            className="border-transparent"
-            value={statusTab}
-            onChange={(next) => setStatusTab(next as StatusTab)}
-            options={statusTabs.map((tab) => ({ value: tab.key, label: tab.label, activeClassName: tab.activeClassName }))}
-          />
-        }
         filterRowRight={
           <>
-            <ColumnVisibilityControl
-              options={itemColumnOptions.map((option) => ({ ...option, disabled: option.key === 'name' }))}
-              visibleMap={visibleColumns}
-              onToggle={(key) => toggleColumnVisibility(key as ItemColumnKey)}
-            />
             <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={setPageSize} />
             <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="topPills" size="sm" showNumbers={false} />
           </>
@@ -632,7 +662,32 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                       {item.active ? 'Aktiven' : 'Neaktiven'}
                     </Chip>
                   </td> : null}
-                  <td className="px-2.5 py-2"><div className="flex items-center justify-center gap-1.5"><IconButton type="button" size="sm" tone="neutral" onClick={() => openEdit(item)} title="Uredi" aria-label="Uredi"><ActionIcon type="edit" /></IconButton><IconButton type="button" size="sm" tone="neutral" onClick={() => duplicate(item)} title="Podvoji" aria-label="Podvoji"><ActionIcon type="copy" /></IconButton><IconButton type="button" size="sm" tone="warning" onClick={() => archive(item)} title="Arhiviraj" aria-label="Arhiviraj"><ActionIcon type="archive" /></IconButton></div></td>
+                  <td className="px-2.5 py-2 text-center">
+                    <RowActionsDropdown
+                      label={`Možnosti za artikel ${item.name}`}
+                      items={[
+                        {
+                          key: 'edit',
+                          label: 'Uredi',
+                          icon: <ActionIcon type="edit" />,
+                          onSelect: () => openEdit(item)
+                        },
+                        {
+                          key: 'duplicate',
+                          label: 'Podvoji',
+                          icon: <ActionIcon type="copy" />,
+                          onSelect: () => duplicate(item)
+                        },
+                        {
+                          key: 'archive',
+                          label: 'Arhiviraj',
+                          icon: <ActionIcon type="archive" />,
+                          className: 'text-amber-700',
+                          onSelect: () => archive(item)
+                        }
+                      ]}
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>

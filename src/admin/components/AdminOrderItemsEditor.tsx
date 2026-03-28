@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { IconButton } from '@/shared/ui/icon-button';
-import { TrashCanIcon } from '@/shared/ui/icons/TrashCanIcon';
+import { PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
 
 type OrderItemInput = {
@@ -85,33 +85,6 @@ const areEditableItemsEqual = (left: EditableItem[], right: EditableItem[]) => {
   }
   return true;
 };
-
-function SaveIcon() {
-  return (
-    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M4 3h9l3 3v11H4z" />
-      <path d="M7 3v5h6V3" />
-      <path d="M7 13h6" />
-    </svg>
-  );
-}
-
-function PencilIcon() {
-  return (
-    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
-      <path d="M11.5 4.5l3 3" />
-    </svg>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M10 4v12M4 10h12" />
-    </svg>
-  );
-}
 
 export default function AdminOrderItemsEditor({
   orderId,

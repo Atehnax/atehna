@@ -4,21 +4,24 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import AdminOrderStatusSelect from '@/admin/components/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { CustomSelect } from '@/shared/ui/select';
 import { Spinner } from '@/shared/ui/loading';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
-import { TrashCanIcon } from '@/shared/ui/icons/TrashCanIcon';
+import {
+  DownloadIcon,
+  FilterIcon,
+  PencilIcon,
+  TrashCanIcon
+} from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
-import { EmptyState, RowActions, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
+import { EmptyState, RowActions, RowActionsDropdown, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
 import {
   adminTableRowToneClasses,
-  buttonTokenClasses,
   dateInputTokenClasses,
   getAdminStripedRowToneClass
 } from '@/shared/ui/theme/tokens';
@@ -84,8 +87,7 @@ type AttachmentTuple = readonly [id: number, orderId: number, type: Attachment['
 type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
 type OrdersColumnKey = 'order' | 'date' | 'customer' | 'address' | 'type' | 'status' | 'payment' | 'total' | 'documents';
 
-const bulkDeleteButtonClass = buttonTokenClasses.danger;
-const PAGE_SIZE_OPTIONS = [50, 100];
+const PAGE_SIZE_OPTIONS = [25, 50, 100];
 const ORDER_COLUMN_OPTIONS: Array<{ key: OrdersColumnKey; label: string }> = [
   { key: 'order', label: 'Naročilo' },
   { key: 'date', label: 'Datum' },
@@ -125,7 +127,7 @@ export default function AdminOrdersTable({
   initialStatusFilter = 'all',
   initialDocumentType = 'all',
   initialPage = 1,
-  initialPageSize = 50,
+  initialPageSize = 25,
   totalCount,
   topAction,
   analyticsAppearance
@@ -371,12 +373,14 @@ export default function AdminOrdersTable({
 
   useEffect(() => {
     if (!initialFrom && !initialTo) {
-      applyAnalyticsRangePreset('1m');
+      const todayDate = new Date();
+      todayDate.setHours(0, 0, 0, 0);
+      applyDateRange(earliestOrderDate, todayDate, 'custom');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const applyQuickDateRange = (range: 'today' | 'yesterday' | '7d' | '30d' | '3m' | '6m' | '1y') => {
+  const applyQuickDateRange = (range: 'today' | 'yesterday' | '7d' | '30d' | '3m' | '6m' | '1y' | 'allYears') => {
     const anchorDate = new Date(latestOrderDate);
 
     if (range === 'today') {
@@ -387,6 +391,13 @@ export default function AdminOrdersTable({
     if (range === 'yesterday') {
       const yesterdayDate = shiftDateByDays(anchorDate, -1);
       applyDateRange(yesterdayDate, yesterdayDate, 'custom');
+      return;
+    }
+
+    if (range === 'allYears') {
+      const todayDate = new Date();
+      todayDate.setHours(0, 0, 0, 0);
+      applyDateRange(earliestOrderDate, todayDate, 'custom');
       return;
     }
 
@@ -755,6 +766,7 @@ export default function AdminOrdersTable({
 
   const allSelected = visibleOrderIds.length > 0 && selectedVisibleCount === visibleOrderIds.length;
   const selectedCount = selected.length;
+  const hasSelectedRows = selectedCount > 0;
   const isSingleSelection = selectedCount === 1;
 
   const [rowStatusOverrides, setRowStatusOverrides] = useState<Record<number, string>>({});
@@ -1103,11 +1115,11 @@ export default function AdminOrdersTable({
         <AdminTableLayout
           className="border"
           style={{
-            background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)',
+            background: '#ffffff',
             borderColor: analyticsAppearance?.gridColor ?? '#e2e8f0',
             boxShadow: '0 10px 24px rgba(15,23,42,0.06)'
           }}
-          contentClassName="overflow-x-auto"
+          contentClassName="overflow-x-auto bg-white"
           headerLeft={
             <>
               <div className="inline-flex items-center gap-0.5 border-b border-slate-200 pb-1">
@@ -1138,14 +1150,14 @@ export default function AdminOrdersTable({
                   <button
                     type="button"
                     onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-                    className={`${ADMIN_CONTROL_HEIGHT} w-[124px] rounded-xl border border-slate-300 bg-white ${ADMIN_CONTROL_PADDING_X} py-0 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none`}
+                    className={`${ADMIN_CONTROL_HEIGHT} rounded-xl border border-slate-300 bg-white px-2.5 py-0 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none`}
                   >
                     <span className="inline-flex h-full w-full items-center gap-1.5 leading-none">
                       <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5 text-slate-600" fill="none" stroke="currentColor" strokeWidth="1.8">
                         <rect x="3" y="5" width="18" height="16" rx="2" />
                         <path d="M16 3v4M8 3v4M3 10h18" />
                       </svg>
-                      <span className="truncate">{dateRangeLabel}</span>
+                      <span className="whitespace-nowrap">{dateRangeLabel}</span>
                     </span>
                   </button>
                   {isDatePopoverOpen && (
@@ -1159,7 +1171,8 @@ export default function AdminOrdersTable({
                             { key: '30d', label: 'Zadnjih 30 dni' },
                             { key: '3m', label: 'Zadnje 3 mesece' },
                             { key: '6m', label: 'Zadnjih 6 mesecev' },
-                            { key: '1y', label: 'Zadnje leto' }
+                            { key: '1y', label: 'Zadnje leto' },
+                            { key: 'allYears', label: 'Vsa Leta' }
                           ].map((item) => (
                             <button
                               key={item.key}
@@ -1173,7 +1186,7 @@ export default function AdminOrdersTable({
                         </div>
                         <div className="space-y-3">
                           <div>
-                            <label className="text-xs font-semibold uppercase text-slate-500">Od</label>
+                            <label className="text-xs font-semibold text-slate-500">Od</label>
                             <input
                               type="date"
                               lang="sl-SI"
@@ -1186,7 +1199,7 @@ export default function AdminOrdersTable({
                             />
                           </div>
                           <div>
-                            <label className="text-xs font-semibold uppercase text-slate-500">Do</label>
+                            <label className="text-xs font-semibold text-slate-500">Do</label>
                             <input
                               type="date"
                               lang="sl-SI"
@@ -1209,46 +1222,43 @@ export default function AdminOrdersTable({
                   options={documentTypeOptions}
                   triggerClassName={`${ADMIN_CONTROL_HEIGHT} w-[126px] rounded-xl border border-slate-300 bg-white ${ADMIN_CONTROL_PADDING_X} py-0 text-xs font-semibold text-slate-700 shadow-none hover:bg-[color:var(--hover-neutral)]`}
                 />
-                <Button
+                <IconButton
                   type="button"
-                  variant="default"
                   onClick={handleDownloadAllDocuments}
                   disabled={isDownloading}
-                  className={`${ADMIN_CONTROL_HEIGHT} w-8 rounded-xl border border-slate-300 bg-white px-0 text-xs font-semibold text-slate-700 shadow-none hover:bg-[color:var(--hover-neutral)]`}
+                  tone="neutral"
+                  size="sm"
                   aria-label={selected.length > 0 ? `Prenesi izbrane (${selected.length})` : 'Prenesi vse dokumente'}
                   title={selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
                 >
                   {isDownloading ? (
                     <Spinner size="sm" className="text-slate-500" />
                   ) : (
-                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M12 3.5v11" />
-                      <path d="m7.5 10 4.5 4.5 4.5-4.5" />
-                      <path d="M4 15.5v2.5A3 3 0 0 0 7 21h10a3 3 0 0 0 3-3v-2.5" />
-                    </svg>
+                    <DownloadIcon />
                   )}
-                </Button>
+                </IconButton>
                 <ColumnVisibilityControl
                   options={ORDER_COLUMN_OPTIONS}
                   visibleMap={visibleColumns}
                   onToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }))}
                   showLabel={false}
-                  className="[&>button]:!h-8 [&>button]:!w-8 [&_svg]:!h-5 [&_svg]:!w-5"
+                  className="[&>button]:!h-7 [&>button]:!w-7 [&>button]:!rounded-md [&>button]:!border-slate-200 [&>button]:!bg-transparent [&>button]:!px-0 [&>button]:!text-slate-600 [&>button]:hover:!border-slate-300 [&>button]:hover:!bg-[color:var(--hover-neutral)] [&>button]:hover:!text-slate-700"
+                  icon={<FilterIcon className="h-3.5 w-3.5" />}
+                  menuClassName="!w-28"
                 />
                 <IconButton
                   type="button"
                   onClick={handleDelete}
-                  disabled={selected.length === 0 || isDeleting}
-                  tone="danger"
-                  size="md"
-                  className={`${bulkDeleteButtonClass} !rounded-xl !px-2.5`}
+                  disabled={!hasSelectedRows || isDeleting}
+                  tone={hasSelectedRows ? 'danger' : 'neutral'}
+                  size="sm"
                   aria-label="Izbriši izbrana naročila"
                   title="Izbriši"
                 >
                   {isDeleting ? (
                     <Spinner size="sm" className="text-[var(--danger-600)]" />
                   ) : (
-                    <TrashCanIcon className="h-[22px] w-[22px]" />
+                    <TrashCanIcon className="h-[18px] w-[18px]" />
                   )}
                 </IconButton>
                 {topAction ? <div className="flex items-center [&_button]:!rounded-xl">{topAction}</div> : null}
@@ -1260,20 +1270,18 @@ export default function AdminOrdersTable({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Poišči naročila"
-              className="h-12 min-w-[360px] rounded-2xl border-slate-200 bg-slate-100 pl-10 pr-3 text-sm"
+              className="h-10 min-w-[280px] flex-1 rounded-xl border-slate-200 bg-slate-100 pl-10 pr-3 text-sm"
             />
           }
           filterRowRight={
-            <></>
-          }
-          footerRight={
-            <div className="flex w-full flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
               <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={handlePageSizeChange} />
-              <Pagination page={page} pageCount={pageCount} onPageChange={handlePageChange} variant="bottomBar" size="sm" showNumbers={false} />
+              <Pagination page={page} pageCount={pageCount} onPageChange={handlePageChange} variant="topPills" size="sm" showNumbers={false} />
             </div>
           }
+          footerRight={null}
         >
-          <Table className="min-w-[1060px] w-full text-[11px]">
+          <Table className="min-w-[1060px] w-full text-[11px] [&_th]:!bg-white">
             <colgroup>
               <col style={{ width: columnWidths.selectAndDelete }} />
               {visibleColumns.order ? <col style={{ width: columnWidths.order }} /> : null}
@@ -1358,7 +1366,7 @@ export default function AdminOrdersTable({
                           type="button"
                           onClick={() => setIsStatusHeaderMenuOpen((previousOpen) => !previousOpen)}
                           disabled={isBulkUpdatingStatus}
-                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
+                        className="inline-flex items-center rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
                           aria-haspopup="menu"
                           aria-expanded={isStatusHeaderMenuOpen}
                         >
@@ -1401,7 +1409,7 @@ export default function AdminOrdersTable({
                           type="button"
                           onClick={() => setIsPaymentHeaderMenuOpen((previousOpen) => !previousOpen)}
                           disabled={isBulkUpdatingStatus}
-                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
+                        className="inline-flex items-center rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
                           aria-haspopup="menu"
                           aria-expanded={isPaymentHeaderMenuOpen}
                         >
@@ -1446,8 +1454,8 @@ export default function AdminOrdersTable({
                   </button>
                 </TH> : null}
 
-                {visibleColumns.documents ? <TH className="h-11 min-w-[100px] text-center text-[11px] font-semibold leading-none">PDF datoteke</TH> : null}
-                <TH className="h-11 text-center text-[11px] font-semibold leading-none">Uredi</TH>
+                {visibleColumns.documents ? <TH className="h-11 min-w-[100px] text-center text-[11px]">PDF datoteke</TH> : null}
+                <TH className="h-11 text-center text-[11px]">Uredi</TH>
               </TR>
             </THead>
 
@@ -1593,42 +1601,30 @@ export default function AdminOrdersTable({
                       </TD> : null}
 
                       <TD className="pl-0 pr-0 text-center" data-no-row-nav>
-                        <RowActions>
-                          <IconButton
-                            href={`/admin/orders/${order.id}`}
-                            prefetch={false}
-                            tone="neutral"
-                            className="h-8 w-8 border-0 bg-transparent text-slate-600 shadow-none hover:text-slate-800 active:bg-transparent"
-                            aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
-                            title="Uredi"
-                          >
-                            <svg
-                              viewBox="0 0 20 20"
-                              className="h-3.5 w-3.5"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.8"
-                              aria-hidden="true"
-                            >
-                              <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
-                              <path d="M11.5 4.5l3 3" />
-                            </svg>
-                          </IconButton>
-
-                          <button
-                            type="button"
-                            onClick={() => void handleDeleteRow(order.id)}
-                            disabled={deletingRowId === order.id}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border-0 bg-transparent text-[var(--danger-600)] hover:text-[var(--danger-700)] active:bg-transparent disabled:opacity-60"
-                            aria-label={`Izbriši naročilo ${toDisplayOrderNumber(order.order_number)}`}
-                            title="Izbriši"
-                          >
-                            {deletingRowId === order.id ? (
-                              <Spinner size="sm" className="text-[var(--danger-600)]" />
-                            ) : (
-                              <TrashCanIcon className="h-[18px] w-[18px]" />
-                            )}
-                          </button>
+                        <RowActions className="relative">
+                          <RowActionsDropdown
+                            label={`Možnosti za naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                            items={[
+                              {
+                                key: 'edit',
+                                label: 'Uredi',
+                                icon: <PencilIcon />,
+                                onSelect: () => {
+                                  router.push(`/admin/orders/${order.id}`);
+                                }
+                              },
+                              {
+                                key: 'delete',
+                                label: 'Izbriši',
+                                icon: deletingRowId === order.id ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : <TrashCanIcon className="h-[18px] w-[18px]" />,
+                                className: 'text-[rgb(192,64,46)]',
+                                disabled: deletingRowId === order.id,
+                                onSelect: () => {
+                                  void handleDeleteRow(order.id);
+                                }
+                              }
+                            ]}
+                          />
                         </RowActions>
                       </TD>
                     </TR>

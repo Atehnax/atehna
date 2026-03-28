@@ -3,7 +3,13 @@
 import dynamic from 'next/dynamic';
 import { useMemo, useRef, useState } from 'react';
 import { IconButton } from '@/shared/ui/icon-button';
-import { TrashCanIcon } from '@/shared/ui/icons/TrashCanIcon';
+import {
+  GeneratePdfIcon,
+  PencilIcon,
+  SaveIcon,
+  TrashCanIcon,
+  UploadIcon
+} from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 import { surfaceTokenClasses } from '@/shared/ui/theme/tokens';
@@ -60,46 +66,6 @@ const LazyConfirmDialog = dynamic(
   () => import('@/shared/ui/confirm-dialog').then((module) => module.ConfirmDialog),
   { ssr: false }
 );
-
-function SaveIcon() {
-  return (
-    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M4 3h9l3 3v11H4z" />
-      <path d="M7 3v5h6V3" />
-      <path d="M7 13h6" />
-    </svg>
-  );
-}
-
-function PencilIcon() {
-  return (
-    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
-      <path d="M11.5 4.5l3 3" />
-    </svg>
-  );
-}
-
-function UploadIcon() {
-  return (
-    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M3.5 13.5v2.5h13v-2.5" />
-      <path d="M10 4v8" />
-      <path d="M6.5 7.5L10 4l3.5 3.5" />
-    </svg>
-  );
-}
-
-function GeneratePdfIcon() {
-  return (
-    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M6 2.8h6.2l3 3V17H6z" />
-      <path d="M12.2 2.8v3h3" />
-      <path d="M8 10h4" />
-      <path d="M10 8v4" />
-    </svg>
-  );
-}
 
 const notesBoxClass = 'mt-2 h-[44px] overflow-y-auto whitespace-pre-wrap rounded-xl border border-slate-300 px-3 py-1.5 text-[12px] leading-5 text-slate-900 shadow-sm';
 
@@ -470,7 +436,7 @@ export default function AdminOrderPdfManager({
                                 type="button"
                                 onClick={() => handleDeleteDocument(doc.id)}
                                 disabled={deletingDocumentId === doc.id}
-                                className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-rose-200 text-sm font-semibold leading-none text-rose-600 hover:bg-rose-50 disabled:text-slate-300"
+                                className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-[rgb(192,64,46,0.28)] text-sm font-semibold leading-none text-[rgb(192,64,46)] hover:bg-[rgb(192,64,46,0.08)] disabled:opacity-40"
                                 aria-label={`Izbriši dokument ${doc.filename}`}
                                 title="Izbriši"
                               >

@@ -4,6 +4,13 @@ import Image from 'next/image';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
+import {
+  ArchiveIcon,
+  CloseIcon,
+  CopyIcon,
+  PencilIcon,
+  SaveIcon
+} from '@/shared/ui/icons/AdminActionIcons';
 import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
 import { SegmentedControl } from '@/shared/ui/segmented';
 import { CustomSelect } from '@/shared/ui/select';
@@ -99,11 +106,11 @@ function SortIndicator({ active, direction }: { active: boolean; direction: 'asc
 }
 
 function ActionIcon({ type }: { type: 'edit' | 'copy' | 'archive' | 'save' | 'close' }) {
-  if (type === 'edit') return <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 14.8V17h2.2L15.8 6.4l-2.2-2.2L3 14.8z"/><path d="M12.9 3.1l2.2 2.2"/></svg>;
-  if (type === 'copy') return <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="7" y="7" width="10" height="10" rx="2"/><rect x="3" y="3" width="10" height="10" rx="2"/></svg>;
-  if (type === 'save') return <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 3h10l2 2v12H4z"/><path d="M7 3v5h6V3"/><path d="M7 13h6"/></svg>;
-  if (type === 'close') return <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 5l10 10M15 5L5 15"/></svg>;
-  return <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 6h14v11H3z"/><path d="M7 6V4h6v2"/></svg>;
+  if (type === 'edit') return <PencilIcon />;
+  if (type === 'copy') return <CopyIcon />;
+  if (type === 'save') return <SaveIcon />;
+  if (type === 'close') return <CloseIcon />;
+  return <ArchiveIcon />;
 }
 
 function FloatingInput({

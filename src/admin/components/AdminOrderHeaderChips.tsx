@@ -13,7 +13,7 @@ import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { CustomSelect } from '@/shared/ui/select';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { IconButton } from '@/shared/ui/icon-button';
-import { TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { PencilIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
 import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 
@@ -76,25 +76,6 @@ const asTopData = ({
   status,
   paymentStatus: isPaymentStatus(paymentStatus ?? '') ? paymentStatus ?? 'unpaid' : 'unpaid'
 });
-
-function SaveIcon() {
-  return (
-    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M4 3h9l3 3v11H4z" />
-      <path d="M7 3v5h6V3" />
-      <path d="M7 13h6" />
-    </svg>
-  );
-}
-
-function PencilIcon() {
-  return (
-    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
-      <path d="M11.5 4.5l3 3" />
-    </svg>
-  );
-}
 
 type CompactDropdownOption = {
   value: string;

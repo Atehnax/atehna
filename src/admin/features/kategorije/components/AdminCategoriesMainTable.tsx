@@ -74,7 +74,7 @@ import { sortCatalogItems } from '@/commercial/catalog/catalogUtils';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { Chip } from '@/shared/ui/badge';
-import { TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { PlusIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActions } from '@/shared/ui/table';
 import {
@@ -276,14 +276,6 @@ function SortableTreeRow({
     style: { transform: CSS.Transform.toString(transform), transition },
     isDragging
   });
-}
-
-function PlusIcon() {
-  return (
-    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-      <path d="M10 4v12M4 10h12" />
-    </svg>
-  );
 }
 
 const getMillerSearchIndex = (categories: RecursiveCatalogCategory[], query: string): MillerSearchIndex => {

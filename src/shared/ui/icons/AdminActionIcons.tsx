@@ -67,28 +67,30 @@ export function SaveIcon({ className, ...props }: AdminActionIconProps) {
   );
 }
 
-export function FilterIcon({ className, ...props }: AdminActionIconProps) {
+export function ActionFilterIcon({ className, ...props }: AdminActionIconProps) {
   return (
     <svg
       viewBox="0 0 20 20"
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
       {...props}
     >
-      <line x1="3" y1="5" x2="17" y2="5" />
-      <line x1="3" y1="10" x2="17" y2="10" />
-      <line x1="3" y1="15" x2="17" y2="15" />
-      <circle cx="12.5" cy="5" r="1.8" fill="white" />
-      <circle cx="7" cy="10" r="1.8" fill="white" />
-      <circle cx="10.5" cy="15" r="1.8" fill="white" />
+      <line x1="2.5" y1="4.5" x2="17.5" y2="4.5" />
+      <line x1="2.5" y1="10" x2="17.5" y2="10" />
+      <line x1="2.5" y1="15.5" x2="17.5" y2="15.5" />
+      <circle cx="13.5" cy="4.5" r="2.25" fill="white" />
+      <circle cx="6.5" cy="10" r="2.25" fill="white" />
+      <circle cx="11" cy="15.5" r="2.25" fill="white" />
     </svg>
   );
 }
+
+export const FilterIcon = ActionFilterIcon;
 
 export function OrdersTrashIcon({ className, ...props }: AdminActionIconProps) {
   return (
@@ -124,6 +126,88 @@ export function PencilIcon({ className, ...props }: AdminActionIconProps) {
     >
       <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
       <path d="M11.5 4.5l3 3" />
+    </svg>
+  );
+}
+
+export function PlusIcon({ className, ...props }: AdminActionIconProps) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className={iconClassName(className)}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M10 4v12M4 10h12" />
+    </svg>
+  );
+}
+
+export function MoreActionsIcon({ className, ...props }: AdminActionIconProps) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className={iconClassName(className)}
+      fill="currentColor"
+      aria-hidden="true"
+      {...props}
+    >
+      <circle cx="10" cy="4.5" r="1.5" />
+      <circle cx="10" cy="10" r="1.5" />
+      <circle cx="10" cy="15.5" r="1.5" />
+    </svg>
+  );
+}
+
+export function CopyIcon({ className, ...props }: AdminActionIconProps) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className={iconClassName(className)}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      aria-hidden="true"
+      {...props}
+    >
+      <rect x="7" y="7" width="10" height="10" rx="2" />
+      <rect x="3" y="3" width="10" height="10" rx="2" />
+    </svg>
+  );
+}
+
+export function ArchiveIcon({ className, ...props }: AdminActionIconProps) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className={iconClassName(className)}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M3 6h14v11H3z" />
+      <path d="M7 6V4h6v2" />
+    </svg>
+  );
+}
+
+export function CloseIcon({ className, ...props }: AdminActionIconProps) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className={iconClassName(className)}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M5 5l10 10M15 5L5 15" />
     </svg>
   );
 }

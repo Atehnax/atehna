@@ -1237,7 +1237,7 @@ export default function AdminOrdersTable({
                   type="button"
                   onClick={handleDelete}
                   disabled={selected.length === 0 || isDeleting}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-xl border border-rose-200 bg-white text-[var(--danger-600)] hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-xl border border-[rgb(192,64,46,0.28)] bg-white text-[rgb(192,64,46)] hover:bg-[rgb(192,64,46,0.08)] disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Izbriši izbrana naročila"
                   title="Izbriši"
                 >
@@ -1605,7 +1605,7 @@ export default function AdminOrdersTable({
                             type="button"
                             onClick={() => void handleDeleteRow(order.id)}
                             disabled={deletingRowId === order.id}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border-0 bg-transparent text-[var(--danger-600)] hover:text-[var(--danger-700)] active:bg-transparent disabled:opacity-60"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border-0 bg-transparent text-[rgb(192,64,46)] hover:text-[rgb(170,56,40)] active:bg-transparent disabled:opacity-40"
                             aria-label={`Izbriši naročilo ${toDisplayOrderNumber(order.order_number)}`}
                             title="Izbriši"
                           >

@@ -436,7 +436,7 @@ export default function AdminOrderPdfManager({
                                 type="button"
                                 onClick={() => handleDeleteDocument(doc.id)}
                                 disabled={deletingDocumentId === doc.id}
-                                className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-rose-200 text-sm font-semibold leading-none text-rose-600 hover:bg-rose-50 disabled:text-slate-300"
+                                className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-[rgb(192,64,46,0.28)] text-sm font-semibold leading-none text-[rgb(192,64,46)] hover:bg-[rgb(192,64,46,0.08)] disabled:opacity-40"
                                 aria-label={`Izbriši dokument ${doc.filename}`}
                                 title="Izbriši"
                               >

@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { ActionFilterIcon } from '@/shared/ui/icons/AdminActionIcons';
 
 type ColumnOption = {
   key: string;
@@ -15,7 +16,8 @@ export function ColumnVisibilityControl({
   className,
   showLabel = true,
   buttonClassName,
-  iconClassName
+  iconClassName,
+  triggerIcon
 }: {
   options: ColumnOption[];
   visibleMap: Record<string, boolean>;
@@ -24,6 +26,7 @@ export function ColumnVisibilityControl({
   showLabel?: boolean;
   buttonClassName?: string;
   iconClassName?: string;
+  triggerIcon?: ReactNode;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -62,14 +65,7 @@ export function ColumnVisibilityControl({
         title="Filtriraj stolpce"
       >
         {showLabel ? <span>Stolpci</span> : null}
-        <svg viewBox="0 0 24 24" className={iconClassName ?? 'h-4 w-4'} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <line x1="3" y1="6" x2="21" y2="6" />
-          <line x1="3" y1="12" x2="21" y2="12" />
-          <line x1="3" y1="18" x2="21" y2="18" />
-          <circle cx="15" cy="6" r="2.5" fill="white" />
-          <circle cx="8" cy="12" r="2.5" fill="white" />
-          <circle cx="13" cy="18" r="2.5" fill="white" />
-        </svg>
+        {triggerIcon ?? <ActionFilterIcon className={iconClassName ?? 'h-4 w-4'} />}
       </button>
       {isOpen ? (
         <div className="absolute right-0 top-9 z-30 w-52 rounded-xl border border-slate-200 bg-white p-2 shadow-lg" role="menu">

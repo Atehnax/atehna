@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import { IconButton } from '@/shared/ui/icon-button';
 import AdminOrderStatusSelect from '@/admin/components/AdminOrderStatusSelect';
+import { ActionDownloadIcon, OrdersTrashIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { CustomSelect } from '@/shared/ui/select';
 import { Spinner } from '@/shared/ui/loading';
@@ -1204,46 +1206,46 @@ export default function AdminOrdersTable({
                   options={documentTypeOptions}
                   triggerClassName={`${ADMIN_CONTROL_HEIGHT} w-[126px] rounded-xl border border-slate-300 bg-white ${ADMIN_CONTROL_PADDING_X} py-0 text-xs font-semibold text-slate-700 shadow-none hover:bg-[color:var(--hover-neutral)]`}
                 />
-                <button
+                <IconButton
                   type="button"
+                  size="md"
+                  tone="neutral"
                   onClick={handleDownloadAllDocuments}
                   disabled={isDownloading}
-                  className={`${ADMIN_CONTROL_HEIGHT} inline-flex w-10 items-center justify-center text-slate-600 transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:opacity-50`}
+                  className="rounded-xl"
                   aria-label={selected.length > 0 ? `Prenesi izbrane (${selected.length})` : 'Prenesi vse dokumente'}
                   title={selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
                 >
                   {isDownloading ? (
                     <Spinner size="sm" className="text-slate-500" />
                   ) : (
-                    <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M12 3.5v11" />
-                      <path d="m7.5 10 4.5 4.5 4.5-4.5" />
-                      <path d="M4 15.5v2.5A3 3 0 0 0 7 21h10a3 3 0 0 0 3-3v-2.5" />
-                    </svg>
+                    <ActionDownloadIcon />
                   )}
-                </button>
+                </IconButton>
                 <ColumnVisibilityControl
                   options={ORDER_COLUMN_OPTIONS}
                   visibleMap={visibleColumns}
                   onToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }))}
                   showLabel={false}
-                  buttonClassName={`${ADMIN_CONTROL_HEIGHT} inline-flex w-10 items-center justify-center text-slate-600 transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300`}
-                  iconClassName="h-7 w-7"
+                  buttonClassName="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-transparent text-slate-600 shadow-none transition hover:border-slate-300 hover:bg-[color:var(--hover-neutral)] active:bg-[color:var(--hover-neutral)] hover:text-slate-700 focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-60"
+                  iconClassName="h-3.5 w-3.5"
                 />
-                <button
+                <IconButton
                   type="button"
+                  size="md"
+                  tone="danger"
                   onClick={handleDelete}
                   disabled={selected.length === 0 || isDeleting}
-                  className={`${ADMIN_CONTROL_HEIGHT} inline-flex w-10 items-center justify-center text-[var(--danger-600)] transition-colors hover:text-[var(--danger-700)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger-300)] disabled:opacity-50`}
+                  className="rounded-xl"
                   aria-label="Izbriši izbrana naročila"
                   title="Izbriši"
                 >
                   {isDeleting ? (
                     <Spinner size="sm" className="text-[var(--danger-600)]" />
                   ) : (
-                    <OrdersTrashIcon className="h-7 w-7" />
+                    <OrdersTrashIcon />
                   )}
-                </button>
+                </IconButton>
                 {topAction ? <div className="flex items-center [&_button]:!rounded-xl">{topAction}</div> : null}
               </div>
             </>
@@ -1618,7 +1620,7 @@ export default function AdminOrdersTable({
                             {deletingRowId === order.id ? (
                               <Spinner size="sm" className="text-[var(--danger-600)]" />
                             ) : (
-                              <OrdersTrashIcon className="h-5 w-5" />
+                              <OrdersTrashIcon className="h-[18px] w-[18px]" />
                             )}
                           </button>
                         </RowActions>
@@ -1644,20 +1646,6 @@ function useDebouncedValue<T>(value: T, delayMs: number) {
   }, [value, delayMs]);
 
   return debounced;
-}
-
-function OrdersTrashIcon({ className = 'h-5 w-5' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M8 5.75h8" />
-      <path d="M9.25 5.75c.28-1.15 1.11-1.75 2.75-1.75s2.47.6 2.75 1.75" />
-      <path d="M5.75 7.5h12.5" />
-      <path d="M7.6 7.5 8.5 19a1.7 1.7 0 0 0 1.7 1.55h3.6A1.7 1.7 0 0 0 15.5 19l.9-11.5" />
-      <path d="M10 10.2v7.2" />
-      <path d="M12 10.2v7.2" />
-      <path d="M14 10.2v7.2" />
-    </svg>
-  );
 }
 
 function formatCompactDate(dateValue: Date) {

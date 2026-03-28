@@ -1211,11 +1211,12 @@ export default function AdminOrdersTable({
                   options={documentTypeOptions}
                   triggerClassName={`${ADMIN_CONTROL_HEIGHT} w-[126px] rounded-xl border border-slate-300 bg-white ${ADMIN_CONTROL_PADDING_X} py-0 text-xs font-semibold text-slate-700 shadow-none hover:bg-[color:var(--hover-neutral)]`}
                 />
-                <button
+                <IconButton
                   type="button"
                   onClick={handleDownloadAllDocuments}
                   disabled={isDownloading}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-not-allowed disabled:opacity-60"
+                  tone="neutral"
+                  size="sm"
                   aria-label={selected.length > 0 ? `Prenesi izbrane (${selected.length})` : 'Prenesi vse dokumente'}
                   title={selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
                 >
@@ -1224,29 +1225,30 @@ export default function AdminOrdersTable({
                   ) : (
                     <DownloadIcon />
                   )}
-                </button>
+                </IconButton>
                 <ColumnVisibilityControl
                   options={ORDER_COLUMN_OPTIONS}
                   visibleMap={visibleColumns}
                   onToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }))}
                   showLabel={false}
-                  className="[&>button]:!h-7 [&>button]:!w-7"
-                  icon={<FilterIcon className="h-4 w-4" />}
+                  className="[&>button]:!h-7 [&>button]:!w-7 [&>button]:!rounded-md [&>button]:!border-slate-200 [&>button]:!bg-transparent [&>button]:!px-0 [&>button]:!text-slate-600 [&>button]:hover:!border-slate-300 [&>button]:hover:!bg-[color:var(--hover-neutral)] [&>button]:hover:!text-slate-700"
+                  icon={<FilterIcon className="h-3.5 w-3.5" />}
                 />
-                <button
+                <IconButton
                   type="button"
                   onClick={handleDelete}
                   disabled={selected.length === 0 || isDeleting}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-xl border border-[rgb(192,64,46,0.28)] bg-white text-[rgb(192,64,46)] hover:bg-[rgb(192,64,46,0.08)] disabled:cursor-not-allowed disabled:opacity-40"
+                  tone="danger"
+                  size="sm"
                   aria-label="Izbriši izbrana naročila"
                   title="Izbriši"
                 >
                   {isDeleting ? (
                     <Spinner size="sm" className="text-[var(--danger-600)]" />
                   ) : (
-                    <TrashCanIcon className="h-5 w-5" />
+                    <TrashCanIcon className="h-[18px] w-[18px]" />
                   )}
-                </button>
+                </IconButton>
                 {topAction ? <div className="flex items-center [&_button]:!rounded-xl">{topAction}</div> : null}
               </div>
             </>

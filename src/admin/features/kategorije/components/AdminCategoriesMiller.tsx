@@ -2,8 +2,7 @@ import { useMemo, type RefObject, type ReactNode } from 'react';
 import Selecto from 'react-selecto';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
-import { MoreActionsIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
-import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import { ActionRestoreIcon, ActionUndoIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 
 const padTwoDigits = (value: number) => String(value).padStart(2, '0');
@@ -61,9 +60,6 @@ export function AdminCategoriesMiller({
   activeColumnKind,
   onRequestSave,
   saving,
-  millerHistoryMenuRef,
-  isHistoryMenuOpen,
-  onToggleHistoryMenu,
   canUndoStagedChanges,
   onUndo,
   canRestoreCommittedHistory,
@@ -93,9 +89,6 @@ export function AdminCategoriesMiller({
   activeColumnKind: 'categories' | 'subcategories' | 'items';
   onRequestSave: () => void;
   saving: boolean;
-  millerHistoryMenuRef: RefObject<HTMLDivElement>;
-  isHistoryMenuOpen: boolean;
-  onToggleHistoryMenu: () => void;
   canUndoStagedChanges: boolean;
   onUndo: () => void;
   canRestoreCommittedHistory: boolean;
@@ -154,6 +147,11 @@ export function AdminCategoriesMiller({
       </div>
     ) : null;
 
+  const hasColumnSelection = millerSelection.some((id) =>
+    millerColumns.find((column) => column.kind === activeColumnKind)?.ids.includes(id)
+  );
+  const canUseRestore = canRestoreCommittedHistory && !hasPendingStagedChanges;
+
   return (
     <section className={activeView === 'miller' ? 'w-full rounded-2xl border border-slate-200 bg-white p-3 shadow-sm' : 'hidden'}>
       <div className="mb-3 flex items-center justify-between gap-3">
@@ -196,41 +194,36 @@ export function AdminCategoriesMiller({
           <IconButton
             type="button"
             size="sm"
-            tone="danger"
+            tone="neutral"
+            aria-label="Razveljavi"
+            title="Razveljavi"
+            onClick={onUndo}
+            disabled={!canUndoStagedChanges}
+          >
+            <ActionUndoIcon className="h-[18px] w-[18px]" />
+          </IconButton>
+          <IconButton
+            type="button"
+            size="sm"
+            tone="neutral"
+            aria-label="Obnovi"
+            title="Obnovi"
+            onClick={onRestore}
+            disabled={!canUseRestore}
+          >
+            <ActionRestoreIcon className="h-[18px] w-[18px]" />
+          </IconButton>
+          <IconButton
+            type="button"
+            size="sm"
+            tone={hasColumnSelection ? 'danger' : 'neutral'}
             aria-label="Izbriši"
+            title="Izbriši"
             onClick={() => onRequestDelete(activeColumnKind)}
-            disabled={!millerSelection.some((id) => millerColumns.find((column) => column.kind === activeColumnKind)?.ids.includes(id))}
+            disabled={!hasColumnSelection}
           >
             <TrashCanIcon className="h-[18px] w-[18px]" />
           </IconButton>
-          <div className="relative" ref={millerHistoryMenuRef}>
-            <IconButton type="button" size="sm" tone="neutral" aria-label="Zgodovina" onClick={onToggleHistoryMenu}>
-              <MoreActionsIcon />
-            </IconButton>
-            {isHistoryMenuOpen ? (
-              <MenuPanel className="absolute right-0 top-9 z-20 w-40">
-                <MenuItem
-                  disabled={!canUndoStagedChanges}
-                  onClick={() => {
-                    if (!canUndoStagedChanges) return;
-                    onUndo();
-                  }}
-                >
-                  Razveljavi
-                </MenuItem>
-
-                <MenuItem
-                  disabled={!canRestoreCommittedHistory || hasPendingStagedChanges}
-                  onClick={() => {
-                    if (!canRestoreCommittedHistory || hasPendingStagedChanges) return;
-                    onRestore();
-                  }}
-                >
-                  Obnovi
-                </MenuItem>
-              </MenuPanel>
-            ) : null}
-          </div>
         </div>
       </div>
 

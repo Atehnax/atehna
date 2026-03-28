@@ -364,17 +364,13 @@ export default function AdminDeletedArchiveTable({
             variant={hasSelectedRows ? 'danger' : 'default'}
             onClick={bulkDelete}
             disabled={!hasSelectedRows || isDeleting || isRestoring}
+            aria-label="Trajno izbriši izbrano"
+            title="Trajno izbriši"
           >
             {isDeleting ? (
-              <span className="inline-flex items-center gap-1.5">
-                <Spinner size="sm" className="text-rose-700" />
-                Brišem ...
-              </span>
+              <Spinner size="sm" className="text-rose-700" />
             ) : (
-              <span className="inline-flex items-center gap-1.5">
-                <TrashCanIcon className="h-[18px] w-[18px]" />
-                Trajno izbriši
-              </span>
+              <TrashCanIcon className="h-[18px] w-[18px]" />
             )}
           </Button>
         </>

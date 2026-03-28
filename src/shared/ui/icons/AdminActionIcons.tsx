@@ -155,6 +155,22 @@ export function MoreActionsIcon({ className, ...props }: ActionIconProps) {
   );
 }
 
+export function HorizontalDotsIcon({ className, ...props }: ActionIconProps) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className={iconClassName(className)}
+      fill="currentColor"
+      aria-hidden="true"
+      {...props}
+    >
+      <circle cx="4.5" cy="10" r="1.5" />
+      <circle cx="10" cy="10" r="1.5" />
+      <circle cx="15.5" cy="10" r="1.5" />
+    </svg>
+  );
+}
+
 export function CopyIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg

@@ -14,7 +14,8 @@ export function ColumnVisibilityControl({
   onToggle,
   className,
   showLabel = true,
-  icon
+  icon,
+  menuClassName
 }: {
   options: ColumnOption[];
   visibleMap: Record<string, boolean>;
@@ -22,6 +23,7 @@ export function ColumnVisibilityControl({
   className?: string;
   showLabel?: boolean;
   icon?: ReactNode;
+  menuClassName?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -72,7 +74,7 @@ export function ColumnVisibilityControl({
         )}
       </button>
       {isOpen ? (
-        <div className="absolute right-0 top-9 z-30 w-52 rounded-xl border border-slate-200 bg-white p-2 shadow-lg" role="menu">
+        <div className={`absolute right-0 top-9 z-30 w-52 rounded-xl border border-slate-200 bg-white p-2 shadow-lg ${menuClassName ?? ''}`} role="menu">
           {options.map((option) => {
             const isChecked = visibleMap[option.key] ?? false;
             return (

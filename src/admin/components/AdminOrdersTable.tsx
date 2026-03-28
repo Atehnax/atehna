@@ -13,6 +13,7 @@ import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagi
 import {
   DownloadIcon,
   FilterIcon,
+  HorizontalDotsIcon,
   PencilIcon,
   TrashCanIcon
 } from '@/shared/ui/icons/AdminActionIcons';
@@ -203,6 +204,7 @@ export default function AdminOrdersTable({
   const [deletingRowId, setDeletingRowId] = useState<number | null>(null);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [confirmDeleteRowId, setConfirmDeleteRowId] = useState<number | null>(null);
+  const [rowActionMenuOrderId, setRowActionMenuOrderId] = useState<number | null>(null);
   const [isBulkUpdatingStatus, setIsBulkUpdatingStatus] = useState(false);
 
   const [statusFilter, setStatusFilter] = useState<StatusTab>((initialStatusFilter as StatusTab) ?? 'all');
@@ -226,6 +228,7 @@ export default function AdminOrdersTable({
 
   const selectAllRef = useRef<HTMLInputElement>(null);
   const datePopoverRef = useRef<HTMLDivElement>(null);
+  const rowActionMenuRef = useRef<HTMLDivElement>(null);
   const statusHeaderMenuRef = useRef<HTMLDivElement>(null);
   const paymentHeaderMenuRef = useRef<HTMLDivElement>(null);
   const hasAutoResetFiltersRef = useRef(false);
@@ -301,6 +304,30 @@ export default function AdminOrdersTable({
     };
   }, [isPaymentHeaderMenuOpen, isStatusHeaderMenuOpen]);
 
+  useEffect(() => {
+    if (rowActionMenuOrderId === null) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!rowActionMenuRef.current?.contains(target)) {
+        setRowActionMenuOrderId(null);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setRowActionMenuOrderId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [rowActionMenuOrderId]);
+
   const latestOrderDate = useMemo(() => {
     const timestamps = orders
       .map((order) => new Date(order.created_at).getTime())
@@ -373,7 +400,9 @@ export default function AdminOrdersTable({
 
   useEffect(() => {
     if (!initialFrom && !initialTo) {
-      applyAnalyticsRangePreset('1m');
+      const todayDate = new Date();
+      todayDate.setHours(0, 0, 0, 0);
+      applyDateRange(earliestOrderDate, todayDate, 'custom');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1106,11 +1135,11 @@ export default function AdminOrdersTable({
         <AdminTableLayout
           className="border"
           style={{
-            background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)',
+            background: '#ffffff',
             borderColor: analyticsAppearance?.gridColor ?? '#e2e8f0',
             boxShadow: '0 10px 24px rgba(15,23,42,0.06)'
           }}
-          contentClassName="overflow-x-auto"
+          contentClassName="overflow-x-auto bg-white"
           headerLeft={
             <>
               <div className="inline-flex items-center gap-0.5 border-b border-slate-200 pb-1">
@@ -1234,6 +1263,7 @@ export default function AdminOrdersTable({
                   showLabel={false}
                   className="[&>button]:!h-7 [&>button]:!w-7 [&>button]:!rounded-md [&>button]:!border-slate-200 [&>button]:!bg-transparent [&>button]:!px-0 [&>button]:!text-slate-600 [&>button]:hover:!border-slate-300 [&>button]:hover:!bg-[color:var(--hover-neutral)] [&>button]:hover:!text-slate-700"
                   icon={<FilterIcon className="h-3.5 w-3.5" />}
+                  menuClassName="!w-28"
                 />
                 <IconButton
                   type="button"
@@ -1272,7 +1302,7 @@ export default function AdminOrdersTable({
             </div>
           }
         >
-          <Table className="min-w-[1060px] w-full text-[11px]">
+          <Table className="min-w-[1060px] w-full text-[11px] [&_th]:!bg-white">
             <colgroup>
               <col style={{ width: columnWidths.selectAndDelete }} />
               {visibleColumns.order ? <col style={{ width: columnWidths.order }} /> : null}
@@ -1592,32 +1622,47 @@ export default function AdminOrdersTable({
                       </TD> : null}
 
                       <TD className="pl-0 pr-0 text-center" data-no-row-nav>
-                        <RowActions>
-                          <IconButton
-                            href={`/admin/orders/${order.id}`}
-                            prefetch={false}
-                            tone="neutral"
-                            className="h-8 w-8 border-0 bg-transparent text-slate-600 shadow-none hover:text-slate-800 active:bg-transparent"
-                            aria-label={`Uredi naročilo ${toDisplayOrderNumber(order.order_number)}`}
-                            title="Uredi"
-                          >
-                            <PencilIcon />
-                          </IconButton>
+                        <RowActions className="relative">
+                          <div ref={rowActionMenuOrderId === order.id ? rowActionMenuRef : null}>
+                            <IconButton
+                              type="button"
+                              tone="neutral"
+                              className="h-8 w-8 border-0 bg-transparent text-slate-600 shadow-none hover:text-slate-800 active:bg-transparent"
+                              aria-label={`Možnosti za naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                              title="Možnosti"
+                              onClick={() => setRowActionMenuOrderId((currentId) => (currentId === order.id ? null : order.id))}
+                            >
+                              <HorizontalDotsIcon />
+                            </IconButton>
 
-                          <button
-                            type="button"
-                            onClick={() => void handleDeleteRow(order.id)}
-                            disabled={deletingRowId === order.id}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border-0 bg-transparent text-[rgb(192,64,46)] hover:text-[rgb(170,56,40)] active:bg-transparent disabled:opacity-40"
-                            aria-label={`Izbriši naročilo ${toDisplayOrderNumber(order.order_number)}`}
-                            title="Izbriši"
-                          >
-                            {deletingRowId === order.id ? (
-                              <Spinner size="sm" className="text-[var(--danger-600)]" />
-                            ) : (
-                              <TrashCanIcon className="h-[18px] w-[18px]" />
-                            )}
-                          </button>
+                            {rowActionMenuOrderId === order.id ? (
+                              <MenuPanel className="absolute right-0 top-8 z-20 w-28">
+                                <MenuItem
+                                  onClick={() => {
+                                    setRowActionMenuOrderId(null);
+                                    router.push(`/admin/orders/${order.id}`);
+                                  }}
+                                >
+                                  <span className="inline-flex items-center gap-1.5">
+                                    <PencilIcon />
+                                    Uredi
+                                  </span>
+                                </MenuItem>
+                                <MenuItem
+                                  disabled={deletingRowId === order.id}
+                                  onClick={() => {
+                                    setRowActionMenuOrderId(null);
+                                    void handleDeleteRow(order.id);
+                                  }}
+                                >
+                                  <span className="inline-flex items-center gap-1.5 text-[rgb(192,64,46)]">
+                                    {deletingRowId === order.id ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : <TrashCanIcon className="h-[18px] w-[18px]" />}
+                                    Izbriši
+                                  </span>
+                                </MenuItem>
+                              </MenuPanel>
+                            ) : null}
+                          </div>
                         </RowActions>
                       </TD>
                     </TR>

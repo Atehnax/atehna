@@ -350,17 +350,13 @@ export default function AdminDeletedArchiveTable({
             variant={hasSelectedRows ? 'restore' : 'default'}
             onClick={bulkRestore}
             disabled={!hasSelectedRows || isRestoring || isDeleting}
+            aria-label="Obnovi izbrano"
+            title="Obnovi"
           >
             {isRestoring ? (
-              <span className="inline-flex items-center gap-1.5">
-                <Spinner size="sm" className="text-slate-500" />
-                Obnavljam ...
-              </span>
+              <Spinner size="sm" className="text-slate-500" />
             ) : (
-              <span className="inline-flex items-center gap-1.5">
-                <ActionRestoreIcon className="h-[18px] w-[18px]" />
-                Obnovi
-              </span>
+              <ActionRestoreIcon className="h-[18px] w-[18px]" />
             )}
           </Button>
           <Button

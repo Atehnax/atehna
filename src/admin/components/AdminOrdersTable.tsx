@@ -1208,14 +1208,14 @@ export default function AdminOrdersTable({
                   type="button"
                   onClick={handleDownloadAllDocuments}
                   disabled={isDownloading}
-                  className={`${ADMIN_CONTROL_HEIGHT} inline-flex w-9 items-center justify-center text-slate-600 transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:opacity-50`}
+                  className={`${ADMIN_CONTROL_HEIGHT} inline-flex w-10 items-center justify-center text-slate-600 transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:opacity-50`}
                   aria-label={selected.length > 0 ? `Prenesi izbrane (${selected.length})` : 'Prenesi vse dokumente'}
                   title={selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
                 >
                   {isDownloading ? (
                     <Spinner size="sm" className="text-slate-500" />
                   ) : (
-                    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M12 3.5v11" />
                       <path d="m7.5 10 4.5 4.5 4.5-4.5" />
                       <path d="M4 15.5v2.5A3 3 0 0 0 7 21h10a3 3 0 0 0 3-3v-2.5" />
@@ -1227,21 +1227,21 @@ export default function AdminOrdersTable({
                   visibleMap={visibleColumns}
                   onToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }))}
                   showLabel={false}
-                  buttonClassName={`${ADMIN_CONTROL_HEIGHT} inline-flex w-9 items-center justify-center text-slate-600 transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300`}
-                  iconClassName="h-6 w-6"
+                  buttonClassName={`${ADMIN_CONTROL_HEIGHT} inline-flex w-10 items-center justify-center text-slate-600 transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300`}
+                  iconClassName="h-7 w-7"
                 />
                 <button
                   type="button"
                   onClick={handleDelete}
                   disabled={selected.length === 0 || isDeleting}
-                  className={`${ADMIN_CONTROL_HEIGHT} inline-flex w-9 items-center justify-center text-[var(--danger-600)] transition-colors hover:text-[var(--danger-700)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger-300)] disabled:opacity-50`}
+                  className={`${ADMIN_CONTROL_HEIGHT} inline-flex w-10 items-center justify-center text-[var(--danger-600)] transition-colors hover:text-[var(--danger-700)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger-300)] disabled:opacity-50`}
                   aria-label="Izbriši izbrana naročila"
                   title="Izbriši"
                 >
                   {isDeleting ? (
                     <Spinner size="sm" className="text-[var(--danger-600)]" />
                   ) : (
-                    <OrdersTrashIcon className="h-6 w-6" />
+                    <OrdersTrashIcon className="h-7 w-7" />
                   )}
                 </button>
                 {topAction ? <div className="flex items-center [&_button]:!rounded-xl">{topAction}</div> : null}

@@ -100,7 +100,7 @@ export function TabsList({ children, className }: TabsListProps) {
       className={classNames(
         variant === 'motion'
           ? 'relative flex h-11 w-full items-end gap-1 pb-1'
-          : classNames(pillTokenClasses.list, 'h-8 gap-1 rounded-full px-1'),
+          : classNames(pillTokenClasses.list, 'h-8 gap-1 rounded-xl px-1'),
         className
       )}
     >
@@ -174,7 +174,7 @@ export function TabsTrigger({ value, disabled, children, className }: TabsTrigge
         variant === 'motion'
           ? 'relative rounded-none px-5 py-2 text-sm font-semibold transition-colors duration-200 ease-out text-[color:var(--semantic-info)] hover:text-[color:var(--blue-500)] data-[active=true]:text-[color:var(--blue-500)]'
           : classNames(
-              'rounded-full px-3 py-1 text-xs',
+              'rounded-lg px-3 py-1 text-xs',
               pillTokenClasses.itemBase,
               isActive ? pillTokenClasses.itemActive : pillTokenClasses.itemIdle
             ),

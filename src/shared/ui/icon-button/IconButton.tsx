@@ -28,7 +28,7 @@ const classNames = (...parts: Array<string | false | null | undefined>) =>
   parts.filter(Boolean).join(' ');
 
 const shapeClassMap = {
-  rounded: 'rounded-full',
+  rounded: 'rounded-xl',
   square: 'rounded-md'
 } as const;
 

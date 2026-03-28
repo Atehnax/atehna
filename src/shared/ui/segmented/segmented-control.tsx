@@ -24,8 +24,8 @@ const classNames = (...parts: Array<string | false | null | undefined>) =>
 
 const sizeClassMap = {
   sm: {
-    root: 'h-8 px-1 gap-1 rounded-full',
-    item: 'px-3 py-1 text-xs rounded-full'
+    root: 'h-8 px-1 gap-1 rounded-xl',
+    item: 'px-3 py-1 text-xs rounded-lg'
   },
   md: {
     root: 'h-9 px-1 gap-1 rounded-lg',

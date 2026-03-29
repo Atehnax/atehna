@@ -86,7 +86,7 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
     >
       <defs>
         <clipPath id={backClipId}>
-          <rect x="0" y="0" width="10.14" height="20" />
+          <rect x="0" y="0" width="9.6" height="20" />
         </clipPath>
         <mask id={cutMaskId}>
           <rect fill="white" x="0" y="0" width="20" height="20" />
@@ -105,7 +105,7 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
       <path
         clipPath={`url(#${backClipId})`}
         mask={`url(#${cutMaskId})`}
-        d="M 1.37,6.4 L 11.11,6.4 L 7.54,12.9 L 7.54,17.4 L 4.94,14.9 L 4.94,12.9 Z"
+        d="M 0.77,6.9 L 10.51,6.9 L 6.94,13.4 L 6.94,17.9 L 4.34,15.4 L 4.34,13.4 Z"
       />
       <path d="M 7.47,2.5 L 17.21,2.5 L 13.64,9.0 L 13.64,13.5 L 11.04,11.0 L 11.04,9.0 Z" />
     </svg>

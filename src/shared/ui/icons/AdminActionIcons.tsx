@@ -82,8 +82,8 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
       aria-hidden="true"
       {...props}
     >
-      <path d="M 1.45,7.15 L 7.65,7.15 L 5.35,10.95 L 5.35,15.45 L 3.55,13.7 L 3.55,10.95 Z" />
-      <path d="M 7.1,2.45 L 18.3,2.45 L 14.1,8.6 L 14.1,13.75 L 11.5,11.15 L 11.5,8.6 Z" />
+      <path d="M 1.35,7.1 L 8.15,7.1 L 5.55,10.9 L 5.55,15.45 L 3.7,13.65 L 3.7,10.9 Z" />
+      <path d="M 7.05,2.45 L 18.25,2.45 L 14.05,8.6 L 14.05,13.75 L 11.45,11.15 L 11.45,8.6 Z" />
     </svg>
   );
 }

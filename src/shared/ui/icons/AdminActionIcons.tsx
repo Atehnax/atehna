@@ -85,7 +85,7 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
           <path
             fill="black"
             stroke="black"
-            strokeWidth="252"
+            strokeWidth="110"
             strokeLinejoin="round"
             strokeLinecap="round"
             d="M 190,48 L 490,48 L 380,240 L 380,440 L 300,360 L 300,240 Z"
@@ -97,14 +97,14 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
         mask={`url(#${cutMaskId})`}
         d="M 30,128 L 330,128 L 220,320 L 220,520 L 140,440 L 140,320 Z"
         stroke="currentColor"
-        strokeWidth="50.4"
+        strokeWidth="22"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <path
         d="M 190,48 L 490,48 L 380,240 L 380,440 L 300,360 L 300,240 Z"
         stroke="currentColor"
-        strokeWidth="50.4"
+        strokeWidth="22"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

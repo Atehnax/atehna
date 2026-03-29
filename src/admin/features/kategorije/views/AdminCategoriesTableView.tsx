@@ -137,7 +137,7 @@ export function AdminCategoriesTableView({
               >
                 {isBulkDeleting ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : <TrashCanIcon className="h-[18px] w-[18px]" />}
               </IconButton>
-              <Button variant="primary" size="toolbar" onClick={onRequestSave} disabled={!tableDirty || saving}>Shrani spremembe</Button>
+              <Button variant="primary" size="toolbar" onClick={onRequestSave} disabled={!tableDirty || saving}>Shrani</Button>
             </>
           }
         >

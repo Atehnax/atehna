@@ -185,9 +185,6 @@ export function AdminCategoriesMiller({
             className="w-[250px]"
             aria-label="Išči v Miller stolpcih"
           />
-          <Button type="button" variant="primary" size="toolbar" onClick={onRequestSave} disabled={!millerDirty || saving}>
-            Shrani spremembe
-          </Button>
           <IconButton type="button" size="sm" tone="neutral" aria-label="Dodaj" onClick={() => onAddNode(activeColumnKind)}>
             {plusIcon}
           </IconButton>
@@ -224,6 +221,9 @@ export function AdminCategoriesMiller({
           >
             <TrashCanIcon className="h-[18px] w-[18px]" />
           </IconButton>
+          <Button type="button" variant="primary" size="toolbar" onClick={onRequestSave} disabled={!millerDirty || saving}>
+            Shrani
+          </Button>
         </div>
       </div>
 

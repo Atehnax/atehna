@@ -1116,8 +1116,7 @@ export default function AdminOrdersTable({
           className="border"
           style={{
             background: '#ffffff',
-            borderColor: analyticsAppearance?.gridColor ?? '#e2e8f0',
-            boxShadow: '0 10px 24px rgba(15,23,42,0.06)'
+            borderColor: analyticsAppearance?.gridColor ?? '#e2e8f0'
           }}
           contentClassName="overflow-x-auto bg-white"
           headerLeft={
@@ -1145,12 +1144,12 @@ export default function AdminOrdersTable({
           }
           headerRight={
             <>
-              <div className="flex items-center gap-2 pb-1">
+              <div className="flex items-center gap-2.5 pb-1">
                 <div className="relative" ref={datePopoverRef}>
                   <button
                     type="button"
                     onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-                    className={`${ADMIN_CONTROL_HEIGHT} rounded-xl border border-slate-300 bg-white px-2.5 py-0 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none`}
+                    className={`${ADMIN_CONTROL_HEIGHT} rounded-xl border border-slate-200 bg-white px-3 py-0 text-left text-xs font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50 focus:border-[#3e67d6] focus:outline-none focus:ring-0`}
                   >
                     <span className="inline-flex h-full w-full items-center gap-1.5 leading-none">
                       <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5 text-slate-600" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -1161,7 +1160,7 @@ export default function AdminOrdersTable({
                     </span>
                   </button>
                   {isDatePopoverOpen && (
-                    <div lang="sl-SI" className="absolute right-0 top-9 z-20 w-[420px] rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+                    <div lang="sl-SI" className="absolute right-0 top-10 z-20 w-[420px] rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
                       <div className="grid grid-cols-[180px_1fr] gap-4">
                         <div className="space-y-1 border-r border-slate-200 pr-3">
                           {[
@@ -1178,7 +1177,7 @@ export default function AdminOrdersTable({
                               key={item.key}
                               type="button"
                               onClick={() => applyQuickDateRange(item.key as any)}
-                              className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:outline-none"
+                              className="w-full rounded-lg border border-transparent bg-transparent px-2.5 py-1.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
                             >
                               {item.label}
                             </button>
@@ -1220,7 +1219,7 @@ export default function AdminOrdersTable({
                   value={documentType}
                   onChange={(next) => setDocumentType(next as DocumentType)}
                   options={documentTypeOptions}
-                  triggerClassName={`${ADMIN_CONTROL_HEIGHT} w-[126px] rounded-xl border border-slate-300 bg-white ${ADMIN_CONTROL_PADDING_X} py-0 text-xs font-semibold text-slate-700 shadow-none hover:bg-[color:var(--hover-neutral)]`}
+                  triggerClassName={`${ADMIN_CONTROL_HEIGHT} w-[126px] rounded-xl border border-slate-200 bg-white ${ADMIN_CONTROL_PADDING_X} py-0 text-xs font-semibold text-slate-700 shadow-none hover:border-slate-300 hover:bg-slate-50`}
                 />
                 <IconButton
                   type="button"
@@ -1242,7 +1241,7 @@ export default function AdminOrdersTable({
                   visibleMap={visibleColumns}
                   onToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }))}
                   showLabel={false}
-                  className="[&>button]:!h-7 [&>button]:!w-7 [&>button]:!rounded-md [&>button]:!border-slate-200 [&>button]:!bg-transparent [&>button]:!px-0 [&>button]:!text-slate-600 [&>button]:hover:!border-slate-300 [&>button]:hover:!bg-[color:var(--hover-neutral)] [&>button]:hover:!text-slate-700"
+                  className="[&>button]:!h-9 [&>button]:!w-9 [&>button]:!rounded-xl [&>button]:!border-slate-200 [&>button]:!bg-white [&>button]:!px-0 [&>button]:!text-slate-600 [&>button]:hover:!border-slate-300 [&>button]:hover:!bg-slate-50 [&>button]:hover:!text-slate-700"
                   icon={<FilterIcon className="h-3.5 w-3.5" />}
                   menuClassName="!w-28"
                 />
@@ -1270,7 +1269,7 @@ export default function AdminOrdersTable({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Poišči naročila"
-              className="h-10 min-w-[280px] flex-1 rounded-xl border-slate-200 bg-slate-100 pl-10 pr-3 text-sm"
+              className="min-w-[280px] flex-1 border-slate-200 bg-white pl-10 pr-3 text-sm"
             />
           }
           filterRowRight={
@@ -1281,7 +1280,7 @@ export default function AdminOrdersTable({
           }
           footerRight={null}
         >
-          <Table className="min-w-[1060px] w-full text-[11px] [&_th]:!bg-white">
+          <Table className="min-w-[1060px] w-full text-[11px]">
             <colgroup>
               <col style={{ width: columnWidths.selectAndDelete }} />
               {visibleColumns.order ? <col style={{ width: columnWidths.order }} /> : null}
@@ -1366,7 +1365,7 @@ export default function AdminOrdersTable({
                           type="button"
                           onClick={() => setIsStatusHeaderMenuOpen((previousOpen) => !previousOpen)}
                           disabled={isBulkUpdatingStatus}
-                        className="inline-flex items-center rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
+                        className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-default disabled:text-slate-300"
                           aria-haspopup="menu"
                           aria-expanded={isStatusHeaderMenuOpen}
                         >
@@ -1409,7 +1408,7 @@ export default function AdminOrdersTable({
                           type="button"
                           onClick={() => setIsPaymentHeaderMenuOpen((previousOpen) => !previousOpen)}
                           disabled={isBulkUpdatingStatus}
-                        className="inline-flex items-center rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
+                        className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-default disabled:text-slate-300"
                           aria-haspopup="menu"
                           aria-expanded={isPaymentHeaderMenuOpen}
                         >
@@ -1493,7 +1492,7 @@ export default function AdminOrdersTable({
                   return (
                     <TR
                       key={order.id}
-                      className={`border-t border-slate-100 text-[11px] transition-colors duration-200 ${
+                      className={`border-t border-slate-200/70 text-[11px] ${
                         isRowSelected ? adminTableRowToneClasses.selected : getAdminStripedRowToneClass(orderIndex)
                       } ${adminTableRowToneClasses.hover}`}
                     >

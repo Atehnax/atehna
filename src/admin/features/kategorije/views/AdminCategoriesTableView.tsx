@@ -99,7 +99,7 @@ export function AdminCategoriesTableView({
               value={query}
               onChange={(event) => onQueryChange(event.target.value)}
               placeholder="Išči po kategoriji ali opisu ..."
-              className={`${ADMIN_CONTROL_HEIGHT} min-w-[240px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} text-[11px] text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
+              className={`${ADMIN_CONTROL_HEIGHT} min-w-[240px] flex-1 rounded-xl border border-slate-200 bg-white ${ADMIN_CONTROL_PADDING_X} text-[11px] text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0`}
             />
           }
           headerRight={
@@ -153,7 +153,7 @@ export function AdminCategoriesTableView({
                   <col style={{ width: `${categoryTableColumnWidths.visibility}px` }} />
                   <col style={{ width: `${categoryTableColumnWidths.actions}px` }} />
                 </colgroup>
-                <thead className="bg-slate-50/90">
+                <thead className="bg-slate-50/85">
                   <tr>
                     <th className="border-b border-slate-200 px-2 py-2 text-center text-[11px] font-semibold text-slate-600"><input id="categories-select-all" name="categoriesSelectAll" ref={selectAllRef} type="checkbox" checked={allRowsSelected} onChange={onToggleSelectAll} aria-label="Izberi vse" /></th>
                     <th className="border-b border-slate-200 px-2.5 py-0 text-left text-[11px] font-semibold text-slate-600 align-middle">

@@ -19,9 +19,9 @@ const classNames = (...parts: Array<string | false | null | undefined>) =>
 
 const sizeClassMap = {
   sm: {
-    icon: 'h-7 w-7',
+    icon: 'h-8 w-8',
     label: 'text-xs',
-    input: 'h-7 w-[44px] text-xs'
+    input: 'h-8 w-[48px] text-xs'
   },
   md: {
     icon: 'h-8 w-8',
@@ -81,7 +81,7 @@ export default function Pagination({
           inputMode="numeric"
           pattern="[0-9]*"
           aria-label="Številka strani"
-          className={classNames(sizeClassMap[size].input, 'px-1 text-center font-semibold leading-none')}
+          className={classNames(sizeClassMap[size].input, 'rounded-lg border-slate-200 bg-white px-1 text-center font-semibold leading-none')}
           onChange={(event) => setPageInput(event.target.value.replace(/[^0-9]/g, ''))}
           onBlur={commitPageInput}
           onKeyDown={(event) => {
@@ -94,7 +94,7 @@ export default function Pagination({
         <span className={sizeClassMap[size].label}>od {safePageCount}</span>
       </div>
 
-      <div className="inline-flex items-center gap-0.5">
+      <div className="inline-flex items-center gap-1">
         <IconButton
           type="button"
           tone="neutral"
@@ -102,7 +102,7 @@ export default function Pagination({
           size={size === 'sm' ? 'sm' : 'md'}
           onClick={() => onPageChange(1)}
           disabled={safePage <= 1}
-          className={classNames('group border-0 bg-transparent text-slate-600 shadow-none active:bg-[color:var(--hover-neutral)] disabled:bg-transparent disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
+          className={classNames('group border-slate-200 bg-white text-slate-600 shadow-none hover:border-slate-300 hover:bg-slate-50 active:bg-slate-100 disabled:border-slate-200 disabled:bg-white disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
           aria-label="Prva stran"
           title="Prva stran"
         >
@@ -116,7 +116,7 @@ export default function Pagination({
           size={size === 'sm' ? 'sm' : 'md'}
           onClick={() => onPageChange(safePage - 1)}
           disabled={safePage <= 1}
-          className={classNames('group border-0 bg-transparent text-slate-600 shadow-none active:bg-[color:var(--hover-neutral)] disabled:bg-transparent disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
+          className={classNames('group border-slate-200 bg-white text-slate-600 shadow-none hover:border-slate-300 hover:bg-slate-50 active:bg-slate-100 disabled:border-slate-200 disabled:bg-white disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
           aria-label="Prejšnja stran"
           title="Prejšnja stran"
         >
@@ -130,7 +130,7 @@ export default function Pagination({
           size={size === 'sm' ? 'sm' : 'md'}
           onClick={() => onPageChange(safePage + 1)}
           disabled={safePage >= safePageCount}
-          className={classNames('group border-0 bg-transparent text-slate-600 shadow-none active:bg-[color:var(--hover-neutral)] disabled:bg-transparent disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
+          className={classNames('group border-slate-200 bg-white text-slate-600 shadow-none hover:border-slate-300 hover:bg-slate-50 active:bg-slate-100 disabled:border-slate-200 disabled:bg-white disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
           aria-label="Naslednja stran"
           title="Naslednja stran"
         >
@@ -144,7 +144,7 @@ export default function Pagination({
           size={size === 'sm' ? 'sm' : 'md'}
           onClick={() => onPageChange(safePageCount)}
           disabled={safePage >= safePageCount}
-          className={classNames('group border-0 bg-transparent text-slate-600 shadow-none active:bg-[color:var(--hover-neutral)] disabled:bg-transparent disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
+          className={classNames('group border-slate-200 bg-white text-slate-600 shadow-none hover:border-slate-300 hover:bg-slate-50 active:bg-slate-100 disabled:border-slate-200 disabled:bg-white disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
           aria-label="Zadnja stran"
           title="Zadnja stran"
         >

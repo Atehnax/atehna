@@ -68,8 +68,9 @@ export function SaveIcon({ className, ...props }: ActionIconProps) {
 }
 
 export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
-  const maskId = useId().replace(/:/g, '');
-  const cutMaskId = `orders-filter-cut-${maskId}`;
+  const iconId = useId().replace(/:/g, '');
+  const backClipId = `orders-filter-backclip-${iconId}`;
+  const cutMaskId = `orders-filter-cut-${iconId}`;
 
   return (
     <svg
@@ -84,24 +85,29 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
       {...props}
     >
       <defs>
+        <clipPath id={backClipId}>
+          <rect x="0" y="0" width="10.14" height="20" />
+        </clipPath>
         <mask id={cutMaskId}>
           <rect fill="white" x="0" y="0" width="20" height="20" />
+          <rect fill="black" x="11.04" y="0" width="20" height="20" />
           <path
             fill="black"
             stroke="black"
-            strokeWidth="3.6"
+            strokeWidth="1.35"
             strokeLinejoin="round"
             strokeLinecap="round"
-            d="M 7.47,1.71 L 17.21,1.71 L 13.64,8.57 L 13.64,15.71 L 11.04,12.86 L 11.04,8.57 Z"
+            d="M 7.47,2.5 L 17.21,2.5 L 13.64,9.0 L 13.64,20 L 11.04,20 L 11.04,9.0 Z"
           />
         </mask>
       </defs>
 
       <path
+        clipPath={`url(#${backClipId})`}
         mask={`url(#${cutMaskId})`}
-        d="M 2.27,4.57 L 12.01,4.57 L 8.44,11.43 L 8.44,18.57 L 5.84,15.71 L 5.84,11.43 Z"
+        d="M 2.27,5.5 L 12.01,5.5 L 8.44,12.0 L 8.44,16.5 L 5.84,14.0 L 5.84,12.0 Z"
       />
-      <path d="M 7.47,1.71 L 17.21,1.71 L 13.64,8.57 L 13.64,15.71 L 11.04,12.86 L 11.04,8.57 Z" />
+      <path d="M 7.47,2.5 L 17.21,2.5 L 13.64,9.0 L 13.64,13.5 L 11.04,11.0 L 11.04,9.0 Z" />
     </svg>
   );
 }

@@ -73,41 +73,35 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
 
   return (
     <svg
-      viewBox="-3.273 0 50.4 45.818"
+      viewBox="0 0 20 20"
       className={iconClassName(className)}
       fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-hidden="true"
       {...props}
     >
       <defs>
         <mask id={cutMaskId}>
-          <rect fill="white" x="-3.273" y="0" width="53.673" height="45.818" />
+          <rect fill="white" x="0" y="0" width="20" height="20" />
           <path
             fill="black"
             stroke="black"
-            strokeWidth="9"
+            strokeWidth="3.6"
             strokeLinejoin="round"
             strokeLinecap="round"
-            d="M 15.545,3.927 L 40.091,3.927 L 31.091,19.636 L 31.091,36 L 24.545,29.455 L 24.545,19.636 Z"
+            d="M 7.47,1.71 L 17.21,1.71 L 13.64,8.57 L 13.64,15.71 L 11.04,12.86 L 11.04,8.57 Z"
           />
         </mask>
       </defs>
 
       <path
         mask={`url(#${cutMaskId})`}
-        d="M 5.727,10.473 L 30.273,10.473 L 21.273,26.182 L 21.273,42.545 L 14.727,36 L 14.727,26.182 Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        d="M 2.27,4.57 L 12.01,4.57 L 8.44,11.43 L 8.44,18.57 L 5.84,15.71 L 5.84,11.43 Z"
       />
-      <path
-        d="M 15.545,3.927 L 40.091,3.927 L 31.091,19.636 L 31.091,36 L 24.545,29.455 L 24.545,19.636 Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M 7.47,1.71 L 17.21,1.71 L 13.64,8.57 L 13.64,15.71 L 11.04,12.86 L 11.04,8.57 Z" />
     </svg>
   );
 }

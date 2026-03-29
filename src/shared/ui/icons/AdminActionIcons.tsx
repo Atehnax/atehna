@@ -105,7 +105,7 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
       <path
         clipPath={`url(#${backClipId})`}
         mask={`url(#${cutMaskId})`}
-        d="M 2.27,5.5 L 12.01,5.5 L 8.44,12.0 L 8.44,16.5 L 5.84,14.0 L 5.84,12.0 Z"
+        d="M 1.37,6.4 L 11.11,6.4 L 7.54,12.9 L 7.54,17.4 L 4.94,14.9 L 4.94,12.9 Z"
       />
       <path d="M 7.47,2.5 L 17.21,2.5 L 13.64,9.0 L 13.64,13.5 L 11.04,11.0 L 11.04,9.0 Z" />
     </svg>

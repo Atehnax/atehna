@@ -1,4 +1,4 @@
-import type { SVGProps } from 'react';
+import { useId, type SVGProps } from 'react';
 
 type ActionIconProps = SVGProps<SVGSVGElement>;
 
@@ -68,20 +68,46 @@ export function SaveIcon({ className, ...props }: ActionIconProps) {
 }
 
 export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
+  const maskId = useId().replace(/:/g, '');
+  const cutMaskId = `orders-filter-cut-${maskId}`;
+
   return (
     <svg
-      viewBox="0 0 20 20"
+      viewBox="-40 0 616 560"
       className={iconClassName(className)}
       fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
       aria-hidden="true"
       {...props}
     >
-      <path d="M8.2 2.6h8.7l-3.3 5.7v6.3l-2.4-2.3V8.3z" />
-      <path d="M3.5 5.1h8.7L8.9 11v6.2L6.5 15V11z" />
+      <defs>
+        <mask id={cutMaskId}>
+          <rect fill="white" x="-40" y="0" width="656" height="560" />
+          <path
+            fill="black"
+            stroke="black"
+            strokeWidth="252"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            d="M 190,48 L 490,48 L 380,240 L 380,440 L 300,360 L 300,240 Z"
+          />
+        </mask>
+      </defs>
+
+      <path
+        mask={`url(#${cutMaskId})`}
+        d="M 30,128 L 330,128 L 220,320 L 220,520 L 140,440 L 140,320 Z"
+        stroke="currentColor"
+        strokeWidth="50.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M 190,48 L 490,48 L 380,240 L 380,440 L 300,360 L 300,240 Z"
+        stroke="currentColor"
+        strokeWidth="50.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }

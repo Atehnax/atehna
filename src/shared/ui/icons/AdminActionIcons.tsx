@@ -68,7 +68,18 @@ export function SaveIcon({ className, ...props }: ActionIconProps) {
 }
 
 export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
+  const iconId = useId().replace(/:/g, '');
+  const cutMaskId = `orders-filter-cut-${iconId}`;
+
   const strokeWidth = 1.8;
+  const gapWidth = strokeWidth * 0.75;
+  const cutStrokeWidth = strokeWidth + gapWidth * 2;
+
+  const funnelPath =
+    'M 7.1,2.45 L 18.3,2.45 L 14.1,8.6 L 14.1,13.75 L 11.5,11.15 L 11.5,8.6 Z';
+
+  const backTranslateX = -5.65;
+  const backTranslateY = 4.7;
 
   return (
     <svg
@@ -82,8 +93,35 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
       aria-hidden="true"
       {...props}
     >
-      <path d="M 1.35,7.1 L 8.15,7.1 L 5.55,10.9 L 5.55,15.45 L 3.7,13.65 L 3.7,10.9 Z" />
-      <path d="M 7.05,2.45 L 18.25,2.45 L 14.05,8.6 L 14.05,13.75 L 11.45,11.15 L 11.45,8.6 Z" />
+      <defs>
+        <mask
+          id={cutMaskId}
+          maskUnits="userSpaceOnUse"
+          maskContentUnits="userSpaceOnUse"
+          x="0"
+          y="0"
+          width="20"
+          height="20"
+        >
+          <rect x="0" y="0" width="20" height="20" fill="white" />
+          <path
+            d={funnelPath}
+            fill="black"
+            stroke="black"
+            strokeWidth={cutStrokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </mask>
+      </defs>
+
+      <path
+        d={funnelPath}
+        transform={`translate(${backTranslateX} ${backTranslateY})`}
+        mask={`url(#${cutMaskId})`}
+      />
+
+      <path d={funnelPath} />
     </svg>
   );
 }

@@ -69,19 +69,21 @@ export function SaveIcon({ className, ...props }: ActionIconProps) {
 
 export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
   const iconId = useId().replace(/:/g, '');
-  const backClipId = `orders-filter-backclip-${iconId}`;
   const cutMaskId = `orders-filter-cut-${iconId}`;
 
   const strokeWidth = 1.8;
-  const gapWidth = strokeWidth * 0.5;
+
+  // bigger separation than before
+  const gapWidth = strokeWidth * 0.9;
   const maskStrokeWidth = strokeWidth + gapWidth * 2;
-  const backOffsetX = 0.32;
 
-  const frontFunnelPath =
-    'M 7.47,2.5 L 17.21,2.5 L 13.64,9.0 L 13.64,13.5 L 11.04,11.0 L 11.04,9.0 Z';
+  // wider master funnel
+  const funnelPath =
+    'M 6.7,2.35 L 17.85,2.35 L 13.65,8.45 L 13.65,14.05 L 11.0,11.45 L 11.0,8.45 Z';
 
-  const backFunnelPath =
-    'M 0.77,6.9 L 10.51,6.9 L 6.94,13.4 L 6.94,17.9 L 4.34,15.4 L 4.34,13.4 Z';
+  // offset for the rear funnel
+  const backTranslateX = -6.05;
+  const backTranslateY = 4.55;
 
   return (
     <svg
@@ -96,10 +98,6 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
       {...props}
     >
       <defs>
-        <clipPath id={backClipId} clipPathUnits="userSpaceOnUse">
-          <rect x="0" y="0" width="9.6" height="20" />
-        </clipPath>
-
         <mask
           id={cutMaskId}
           maskUnits="userSpaceOnUse"
@@ -110,12 +108,12 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
         >
           <rect x="0" y="0" width="20" height="20" fill="white" />
 
-          {/* hard cut for anything behind the right neck */}
-          <rect x="11.04" y="0" width="20" height="20" fill="black" />
+          {/* extra cut on the far right so the rear funnel never bleeds through */}
+          <rect x="10.9" y="0" width="20" height="20" fill="black" />
 
-          {/* expanded silhouette of the front funnel to create a real gap */}
+          {/* oversized front silhouette creates the visible gap */}
           <path
-            d={frontFunnelPath}
+            d={funnelPath}
             fill="black"
             stroke="black"
             strokeWidth={maskStrokeWidth}
@@ -125,14 +123,15 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
         </mask>
       </defs>
 
+      {/* rear / bottom-left funnel */}
       <path
-        d={backFunnelPath}
-        transform={`translate(${backOffsetX} 0)`}
-        clipPath={`url(#${backClipId})`}
+        d={funnelPath}
+        transform={`translate(${backTranslateX} ${backTranslateY})`}
         mask={`url(#${cutMaskId})`}
       />
 
-      <path d={frontFunnelPath} />
+      {/* front / top-right funnel */}
+      <path d={funnelPath} />
     </svg>
   );
 }

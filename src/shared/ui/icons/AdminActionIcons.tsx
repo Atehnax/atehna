@@ -70,22 +70,41 @@ export function SaveIcon({ className, ...props }: ActionIconProps) {
 export function ActionFilterIcon({ className = 'h-5 w-5', ...props }: ActionIconProps) {
   return (
     <svg
-      viewBox="0 0 20 20"
+      viewBox="-40 0 616 560"
       className={className}
       fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
       aria-hidden="true"
       {...props}
     >
-      <path d="M3.4 5.2h13.2" />
-      <path d="M3.4 10h13.2" />
-      <path d="M3.4 14.8h13.2" />
-      <circle cx="7.2" cy="5.2" r="1.55" fill="currentColor" stroke="none" />
-      <circle cx="12.2" cy="10" r="1.55" fill="currentColor" stroke="none" />
-      <circle cx="9.1" cy="14.8" r="1.55" fill="currentColor" stroke="none" />
+      <defs>
+        <mask id="orders-filter-cut">
+          <rect fill="white" x="-40" y="0" width="656" height="560" />
+          <path
+            fill="black"
+            stroke="black"
+            strokeWidth="110"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            d="M 190,48 L 490,48 L 380,240 L 380,440 L 300,360 L 300,240 Z"
+          />
+        </mask>
+      </defs>
+
+      <path
+        mask="url(#orders-filter-cut)"
+        d="M 30,128 L 330,128 L 220,320 L 220,520 L 140,440 L 140,320 Z"
+        stroke="currentColor"
+        strokeWidth="22"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M 190,48 L 490,48 L 380,240 L 380,440 L 300,360 L 300,240 Z"
+        stroke="currentColor"
+        strokeWidth="22"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }

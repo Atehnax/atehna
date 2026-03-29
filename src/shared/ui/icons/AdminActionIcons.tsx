@@ -69,27 +69,7 @@ export function SaveIcon({ className, ...props }: ActionIconProps) {
 
 export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
   const iconId = useId().replace(/:/g, '');
-  const rearCutMaskId = `orders-filter-rear-cut-${iconId}`;
-
-  const strokeWidth = 1.8;
-
-  // both funnels use the exact same path
-  const funnelPath =
-    'M 7.1,2.45 L 18.3,2.45 L 14.1,8.6 L 14.1,13.75 L 11.5,11.15 L 11.5,8.6 Z';
-
-  // rear funnel placement
-  const backTranslateX = -5.65;
-  const backTranslateY = 4.7;
-
-  // this is the transparent "gap cut"
-  // widen/nudge these if you want a bigger separation
-  const gapStrokeWidth = 2.7;
-  const gapLine = {
-    x1: 8.2,
-    y1: 4.15,
-    x2: 13.05,
-    y2: 10.95,
-  };
+  const cutMaskId = `filter-cut-${iconId}`;
 
   return (
     <svg
@@ -97,46 +77,33 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth={strokeWidth}
+      strokeWidth={1.8}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
       {...props}
     >
       <defs>
-        <mask
-          id={rearCutMaskId}
-          maskUnits="userSpaceOnUse"
-          maskContentUnits="userSpaceOnUse"
-          x="0"
-          y="0"
-          width="20"
-          height="20"
-        >
-          <rect x="0" y="0" width="20" height="20" fill="white" />
-
-          {/* diagonal transparent cut through the rear funnel */}
-          <line
-            x1={gapLine.x1}
-            y1={gapLine.y1}
-            x2={gapLine.x2}
-            y2={gapLine.y2}
+        <mask id={cutMaskId}>
+          <rect fill="white" x="0" y="0" width="20" height="20" />
+          {/* hide front funnel + gap */}
+          <path
+            fill="black"
             stroke="black"
-            strokeWidth={gapStrokeWidth}
+            strokeWidth={3.2}
+            strokeLinejoin="round"
             strokeLinecap="round"
+            d="M 8.0,2.0 L 18.5,2.0 L 14.5,8.5 L 14.5,14.0 L 11.8,11.3 L 11.8,8.5 Z"
           />
         </mask>
       </defs>
-
-      {/* rear / bottom-left funnel */}
+      {/* back/left funnel */}
       <path
-        d={funnelPath}
-        transform={`translate(${backTranslateX} ${backTranslateY})`}
-        mask={`url(#${rearCutMaskId})`}
+        mask={`url(#${cutMaskId})`}
+        d="M 2.5,5.5 L 13.0,5.5 L 9.0,12.0 L 9.0,17.5 L 6.3,14.8 L 6.3,12.0 Z"
       />
-
-      {/* front / top-right funnel */}
-      <path d={funnelPath} />
+      {/* front/right funnel */}
+      <path d="M 8.0,2.0 L 18.5,2.0 L 14.5,8.5 L 14.5,14.0 L 11.8,11.3 L 11.8,8.5 Z" />
     </svg>
   );
 }

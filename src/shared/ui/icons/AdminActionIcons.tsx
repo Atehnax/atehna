@@ -69,17 +69,27 @@ export function SaveIcon({ className, ...props }: ActionIconProps) {
 
 export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
   const iconId = useId().replace(/:/g, '');
-  const cutMaskId = `orders-filter-cut-${iconId}`;
+  const rearCutMaskId = `orders-filter-rear-cut-${iconId}`;
 
   const strokeWidth = 1.8;
-  const gapWidth = strokeWidth * 0.75;
-  const cutStrokeWidth = strokeWidth + gapWidth * 2;
 
+  // both funnels use the exact same path
   const funnelPath =
     'M 7.1,2.45 L 18.3,2.45 L 14.1,8.6 L 14.1,13.75 L 11.5,11.15 L 11.5,8.6 Z';
 
+  // rear funnel placement
   const backTranslateX = -5.65;
   const backTranslateY = 4.7;
+
+  // this is the transparent "gap cut"
+  // widen/nudge these if you want a bigger separation
+  const gapStrokeWidth = 2.7;
+  const gapLine = {
+    x1: 8.2,
+    y1: 4.15,
+    x2: 13.05,
+    y2: 10.95,
+  };
 
   return (
     <svg
@@ -95,7 +105,7 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
     >
       <defs>
         <mask
-          id={cutMaskId}
+          id={rearCutMaskId}
           maskUnits="userSpaceOnUse"
           maskContentUnits="userSpaceOnUse"
           x="0"
@@ -104,23 +114,28 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
           height="20"
         >
           <rect x="0" y="0" width="20" height="20" fill="white" />
-          <path
-            d={funnelPath}
-            fill="black"
+
+          {/* diagonal transparent cut through the rear funnel */}
+          <line
+            x1={gapLine.x1}
+            y1={gapLine.y1}
+            x2={gapLine.x2}
+            y2={gapLine.y2}
             stroke="black"
-            strokeWidth={cutStrokeWidth}
+            strokeWidth={gapStrokeWidth}
             strokeLinecap="round"
-            strokeLinejoin="round"
           />
         </mask>
       </defs>
 
+      {/* rear / bottom-left funnel */}
       <path
         d={funnelPath}
         transform={`translate(${backTranslateX} ${backTranslateY})`}
-        mask={`url(#${cutMaskId})`}
+        mask={`url(#${rearCutMaskId})`}
       />
 
+      {/* front / top-right funnel */}
       <path d={funnelPath} />
     </svg>
   );

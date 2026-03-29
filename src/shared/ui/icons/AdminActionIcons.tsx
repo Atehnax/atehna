@@ -106,6 +106,35 @@ export function OrdersTrashIcon({ className, ...props }: ActionIconProps) {
   );
 }
 
+export function ActionRestoreIcon({ className, ...props }: ActionIconProps) {
+  return (
+    <svg
+      viewBox="0 0 640 640"
+      className={iconClassName(className)}
+      fill="currentColor"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M262.2 48C248.9 48 236.9 56.3 232.2 68.8L216 112L120 112C106.7 112 96 122.7 96 136C96 149.3 106.7 160 120 160L520 160C533.3 160 544 149.3 544 136C544 122.7 533.3 112 520 112L424 112L407.8 68.8C403.1 56.3 391.2 48 377.8 48L262.2 48zM128 208L128 512C128 547.3 156.7 576 192 576L448 576C483.3 576 512 547.3 512 512L512 208L464 208L464 512C464 520.8 456.8 528 448 528L192 528C183.2 528 176 520.8 176 512L176 208L128 208z" />
+      <path d="M337 267C327.6 257.6 312.4 257.6 303.1 267L231.1 339C221.7 348.4 221.7 363.6 231.1 372.9C240.5 382.2 255.7 382.3 265 372.9L296 341.9L296 444C296 457.3 306.7 468 320 468C333.3 468 344 457.3 344 444L344 341.9L375 372.9C384.4 382.3 399.6 382.3 408.9 372.9C418.2 363.5 418.3 348.3 408.9 339L336.9 267z" />
+    </svg>
+  );
+}
+
+export function ActionUndoIcon({ className, ...props }: ActionIconProps) {
+  return (
+    <svg
+      viewBox="0 0 640 640"
+      className={iconClassName(className)}
+      fill="currentColor"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M320 128C263.2 128 212.1 152.7 176.9 192L224 192C241.7 192 256 206.3 256 224C256 241.7 241.7 256 224 256L96 256C78.3 256 64 241.7 64 224L64 96C64 78.3 78.3 64 96 64C113.7 64 128 78.3 128 96L128 150.7C174.9 97.6 243.5 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576C233 576 156.1 532.6 109.9 466.3C99.8 451.8 103.3 431.9 117.8 421.7C132.3 411.5 152.2 415.1 162.4 429.6C197.2 479.4 254.8 511.9 320 511.9C426 511.9 512 425.9 512 319.9C512 213.9 426 128 320 128z" />
+    </svg>
+  );
+}
+
 export function PencilIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg

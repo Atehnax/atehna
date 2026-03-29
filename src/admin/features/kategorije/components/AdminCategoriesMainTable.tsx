@@ -79,7 +79,6 @@ import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActions, RowActionsDropdown } from '@/shared/ui/table';
 import {
   adminTableRowToneClasses,
-  buttonTokenClasses,
   getAdminCategoryRowToneClass
 } from '@/shared/ui/theme/tokens';
 import { Input } from '@/shared/ui/input';
@@ -146,7 +145,6 @@ type PendingImageUpload = {
   objectUrl: string;
 };
 
-const bulkDeleteButtonClass = buttonTokenClasses.danger;
 const treeIndent = 32;
 const treeRowHeight = 48;
 const treeHalfRowHeight = treeRowHeight / 2;
@@ -480,7 +478,6 @@ export default function AdminCategoriesMainTable({
   const [millerSaveSummary, setMillerSaveSummary] = useState<string[]>([]);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
   const [isUnsavedLeaveDialogOpen, setIsUnsavedLeaveDialogOpen] = useState(false);
-  const [isHistoryMenuOpen, setIsHistoryMenuOpen] = useState(false);
   const [activeMillerDragId, setActiveMillerDragId] = useState<string | null>(null);
 
   const { toast } = useToast();
@@ -509,8 +506,6 @@ export default function AdminCategoriesMainTable({
   const demotedMillerCategoriesRef = useRef<Map<string, RecursiveCatalogCategory>>(new Map());
   const committedHistoryRef = useRef<HistorySnapshot[]>([]);
   const committedHistoryIndexRef = useRef(0);
-  const tableHistoryMenuRef = useRef<HTMLDivElement | null>(null);
-  const millerHistoryMenuRef = useRef<HTMLDivElement | null>(null);
   const millerViewportRef = useRef<HTMLDivElement | null>(null);
   const canUndoStagedChanges =
     activeView === 'miller'
@@ -1048,20 +1043,6 @@ export default function AdminCategoriesMainTable({
     document.addEventListener('click', handleDocumentClick, true);
     return () => document.removeEventListener('click', handleDocumentClick, true);
   }, [hasUnsavedChanges, pathname]);
-
-  useEffect(() => {
-    const closeHistoryMenuOnOutside = (event: MouseEvent) => {
-      if (!isHistoryMenuOpen) return;
-      const target = event.target as Node | null;
-      const activeMenuRef = activeView === 'miller' ? millerHistoryMenuRef.current : tableHistoryMenuRef.current;
-      if (activeMenuRef && target && !activeMenuRef.contains(target)) {
-        setIsHistoryMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', closeHistoryMenuOnOutside);
-    return () => document.removeEventListener('mousedown', closeHistoryMenuOnOutside);
-  }, [activeView, isHistoryMenuOpen]);
 
   const guardedNavigate = (nextPath: string) => {
     if (nextPath === pathname) return;
@@ -3487,7 +3468,6 @@ export default function AdminCategoriesMainTable({
           onBulkDelete={handleBulkDelete}
           selectedRows={selectedRows}
           isBulkDeleting={isBulkDeleting}
-          bulkDeleteButtonClass={bulkDeleteButtonClass}
           onRequestSave={() => {
             const summary = summarizeCatalogChanges(persistedTableRef.current, catalog, persistedStatusRef.current, statusByRow);
             setTableSaveSummary(summary);
@@ -3495,19 +3475,14 @@ export default function AdminCategoriesMainTable({
           }}
           tableDirty={tableDirty}
           saving={saving}
-          tableHistoryMenuRef={tableHistoryMenuRef}
-          isHistoryMenuOpen={isHistoryMenuOpen}
-          onToggleHistoryMenu={() => setIsHistoryMenuOpen((prev) => !prev)}
           canUndoStagedChanges={canUndoStagedChanges}
           onUndo={() => {
             undoStagedChanges();
-            setIsHistoryMenuOpen(false);
           }}
           canRestoreCommittedHistory={canRestoreCommittedHistory}
           hasPendingStagedChanges={hasPendingStagedChanges}
           onRestore={() => {
             restoreCommittedHistory();
-            setIsHistoryMenuOpen(false);
           }}
           sensors={sensors}
           onTreeDragEnd={onTreeDragEnd}
@@ -3635,19 +3610,14 @@ export default function AdminCategoriesMainTable({
           setIsMillerSaveDialogOpen(true);
         }}
         saving={saving}
-        millerHistoryMenuRef={millerHistoryMenuRef}
-        isHistoryMenuOpen={isHistoryMenuOpen}
-        onToggleHistoryMenu={() => setIsHistoryMenuOpen((prev) => !prev)}
         canUndoStagedChanges={canUndoStagedChanges}
         onUndo={() => {
           undoStagedChanges();
-          setIsHistoryMenuOpen(false);
         }}
         canRestoreCommittedHistory={canRestoreCommittedHistory}
         hasPendingStagedChanges={hasPendingStagedChanges}
         onRestore={() => {
           restoreCommittedHistory();
-          setIsHistoryMenuOpen(false);
         }}
         millerError={millerError}
         millerViewportRef={millerViewportRef}

@@ -6,6 +6,7 @@ import { IconButton } from '@/shared/ui/icon-button';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
 import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
+import { ActionRestoreIcon, ActionUndoIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { Spinner } from '@/shared/ui/loading';
 import type { CategoryStatus, CategoriesView } from '../common/types';
 
@@ -30,13 +31,9 @@ export function AdminCategoriesTableView({
   onBulkDelete,
   selectedRows,
   isBulkDeleting,
-  bulkDeleteButtonClass,
   onRequestSave,
   tableDirty,
   saving,
-  tableHistoryMenuRef,
-  isHistoryMenuOpen,
-  onToggleHistoryMenu,
   canUndoStagedChanges,
   onUndo,
   canRestoreCommittedHistory,
@@ -63,13 +60,9 @@ export function AdminCategoriesTableView({
   onBulkDelete: () => void;
   selectedRows: string[];
   isBulkDeleting: boolean;
-  bulkDeleteButtonClass: string;
   onRequestSave: () => void;
   tableDirty: boolean;
   saving: boolean;
-  tableHistoryMenuRef: RefObject<HTMLDivElement>;
-  isHistoryMenuOpen: boolean;
-  onToggleHistoryMenu: () => void;
   canUndoStagedChanges: boolean;
   onUndo: () => void;
   canRestoreCommittedHistory: boolean;
@@ -90,6 +83,9 @@ export function AdminCategoriesTableView({
   onStageStatusChange: (nextStatuses: Record<string, CategoryStatus>) => void;
   treeRows: ReactNode;
 }) {
+  const canUseRestore = canRestoreCommittedHistory && !hasPendingStagedChanges;
+  const hasSelectedRows = selectedRows.length > 0;
+
   return (
     <div className={activeView === 'table' ? 'w-full space-y-4' : 'hidden'}>
       <section>
@@ -108,26 +104,40 @@ export function AdminCategoriesTableView({
           }
           headerRight={
             <>
-              <button type="button" onClick={onBulkDelete} disabled={selectedRows.length === 0 || isBulkDeleting} className={bulkDeleteButtonClass}>
-                {isBulkDeleting ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Spinner size="sm" className="text-[var(--danger-600)]" />
-                    Brisanje...
-                  </span>
-                ) : (
-                  'Izbriši'
-                )}
-              </button>
-              <Button variant="primary" size="toolbar" onClick={onRequestSave} disabled={!tableDirty || saving}>Shrani spremembe</Button>
-              <div className="relative" ref={tableHistoryMenuRef}>
-                <IconButton type="button" size="md" tone="neutral" aria-label="Zgodovina" onClick={onToggleHistoryMenu}>⋮</IconButton>
-                {isHistoryMenuOpen ? (
-                  <MenuPanel className="absolute right-0 top-9 z-20 w-40">
-                    <MenuItem disabled={!canUndoStagedChanges} onClick={() => { if (!canUndoStagedChanges) return; onUndo(); }}>Razveljavi</MenuItem>
-                    <MenuItem disabled={!canRestoreCommittedHistory || hasPendingStagedChanges} onClick={() => { if (!canRestoreCommittedHistory || hasPendingStagedChanges) return; onRestore(); }}>Obnovi</MenuItem>
-                  </MenuPanel>
-                ) : null}
-              </div>
+              <IconButton
+                type="button"
+                size="md"
+                tone="neutral"
+                aria-label="Razveljavi"
+                title="Razveljavi"
+                onClick={onUndo}
+                disabled={!canUndoStagedChanges}
+              >
+                <ActionUndoIcon className="h-[18px] w-[18px]" />
+              </IconButton>
+              <IconButton
+                type="button"
+                size="md"
+                tone="neutral"
+                aria-label="Obnovi"
+                title="Obnovi"
+                onClick={onRestore}
+                disabled={!canUseRestore}
+              >
+                <ActionRestoreIcon className="h-[18px] w-[18px]" />
+              </IconButton>
+              <IconButton
+                type="button"
+                size="md"
+                tone={hasSelectedRows ? 'danger' : 'neutral'}
+                aria-label="Izbriši"
+                title="Izbriši"
+                onClick={onBulkDelete}
+                disabled={!hasSelectedRows || isBulkDeleting}
+              >
+                {isBulkDeleting ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : <TrashCanIcon className="h-[18px] w-[18px]" />}
+              </IconButton>
+              <Button variant="primary" size="toolbar" onClick={onRequestSave} disabled={!tableDirty || saving}>Shrani</Button>
             </>
           }
         >

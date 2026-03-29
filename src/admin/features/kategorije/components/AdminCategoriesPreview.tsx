@@ -188,7 +188,7 @@ export function AdminCategoriesPreview({
               }}
               disabled={(!tableDirty && !hasActiveEditChanges) || saving}
             >
-              Shrani spremembe
+              Shrani
             </Button>
           </div>
         </div>

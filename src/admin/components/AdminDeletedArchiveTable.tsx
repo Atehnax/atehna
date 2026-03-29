@@ -9,7 +9,8 @@ import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 import { EmptyState, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
-import { adminTableRowToneClasses, buttonTokenClasses, getAdminStripedRowToneClass } from '@/shared/ui/theme/tokens';
+import { ActionRestoreIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { adminTableRowToneClasses, getAdminStripedRowToneClass } from '@/shared/ui/theme/tokens';
 
 type ArchiveEntry = {
   id: number;
@@ -146,6 +147,7 @@ export default function AdminDeletedArchiveTable({
   const visibleIds = useMemo(() => displayRows.map((row) => row.entry.id), [displayRows]);
   const selectedIdSet = useMemo(() => new Set(selected), [selected]);
   const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIdSet.has(id));
+  const hasSelectedRows = selected.length > 0;
 
   const groupedChildIdsByOrder = useMemo(() => {
     const groupedChildIds = new Map<number, number[]>();
@@ -343,11 +345,33 @@ export default function AdminDeletedArchiveTable({
       }
       headerRight={
         <>
-          <Button type="button" variant="restore" onClick={bulkRestore} disabled={selected.length === 0 || isRestoring || isDeleting}>
-            {isRestoring ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Obnavljam ...</span> : 'Obnovi'}
+          <Button
+            type="button"
+            variant={hasSelectedRows ? 'restore' : 'default'}
+            onClick={bulkRestore}
+            disabled={!hasSelectedRows || isRestoring || isDeleting}
+            aria-label="Obnovi izbrano"
+            title="Obnovi"
+          >
+            {isRestoring ? (
+              <Spinner size="sm" className="text-slate-500" />
+            ) : (
+              <ActionRestoreIcon className="h-[18px] w-[18px]" />
+            )}
           </Button>
-          <Button type="button" variant="danger" onClick={bulkDelete} disabled={selected.length === 0 || isDeleting || isRestoring}>
-            {isDeleting ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-rose-700" />Brišem ...</span> : 'Trajno izbriši'}
+          <Button
+            type="button"
+            variant={hasSelectedRows ? 'danger' : 'default'}
+            onClick={bulkDelete}
+            disabled={!hasSelectedRows || isDeleting || isRestoring}
+            aria-label="Trajno izbriši izbrano"
+            title="Trajno izbriši"
+          >
+            {isDeleting ? (
+              <Spinner size="sm" className="text-rose-700" />
+            ) : (
+              <TrashCanIcon className="h-[18px] w-[18px]" />
+            )}
           </Button>
         </>
       }

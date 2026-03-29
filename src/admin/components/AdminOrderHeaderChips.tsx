@@ -370,7 +370,7 @@ export default function AdminOrderHeaderChips(props: Props) {
             aria-label="Izbriši naročilo"
             title="Izbriši"
           >
-            <TrashCanIcon className="h-[18px] w-[18px]" />
+            <TrashCanIcon />
           </button>
         </div>
       </div>

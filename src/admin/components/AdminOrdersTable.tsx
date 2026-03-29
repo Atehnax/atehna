@@ -1243,7 +1243,7 @@ export default function AdminOrdersTable({
                   onToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }))}
                   showLabel={false}
                   className="[&>button]:!h-7 [&>button]:!w-7 [&>button]:!rounded-md [&>button]:!border-slate-200 [&>button]:!bg-transparent [&>button]:!px-0 [&>button]:!text-slate-600 [&>button]:hover:!border-slate-300 [&>button]:hover:!bg-[color:var(--hover-neutral)] [&>button]:hover:!text-slate-700"
-                  icon={<FilterIcon className="h-3.5 w-3.5" />}
+                  icon={<FilterIcon />}
                   menuClassName="!w-28"
                 />
                 <IconButton
@@ -1258,7 +1258,7 @@ export default function AdminOrdersTable({
                   {isDeleting ? (
                     <Spinner size="sm" className="text-[var(--danger-600)]" />
                   ) : (
-                    <TrashCanIcon className="h-[18px] w-[18px]" />
+                    <TrashCanIcon />
                   )}
                 </IconButton>
                 {topAction ? <div className="flex items-center [&_button]:!rounded-xl">{topAction}</div> : null}
@@ -1616,7 +1616,7 @@ export default function AdminOrdersTable({
                               {
                                 key: 'delete',
                                 label: 'Izbriši',
-                                icon: deletingRowId === order.id ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : <TrashCanIcon className="h-[18px] w-[18px]" />,
+                                icon: deletingRowId === order.id ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : <TrashCanIcon />,
                                 className: 'text-[rgb(192,64,46)]',
                                 disabled: deletingRowId === order.id,
                                 onSelect: () => {

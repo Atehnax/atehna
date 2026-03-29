@@ -197,7 +197,7 @@ export function AdminCategoriesMiller({
             onClick={onUndo}
             disabled={!canUndoStagedChanges}
           >
-            <ActionUndoIcon className="h-[18px] w-[18px]" />
+            <ActionUndoIcon />
           </IconButton>
           <IconButton
             type="button"
@@ -208,7 +208,7 @@ export function AdminCategoriesMiller({
             onClick={onRestore}
             disabled={!canUseRestore}
           >
-            <ActionRestoreIcon className="h-[18px] w-[18px]" />
+            <ActionRestoreIcon />
           </IconButton>
           <IconButton
             type="button"
@@ -219,7 +219,7 @@ export function AdminCategoriesMiller({
             onClick={() => onRequestDelete(activeColumnKind)}
             disabled={!hasColumnSelection}
           >
-            <TrashCanIcon className="h-[18px] w-[18px]" />
+            <TrashCanIcon />
           </IconButton>
           <Button type="button" variant="primary" size="toolbar" onClick={onRequestSave} disabled={!millerDirty || saving}>
             Shrani

@@ -3,7 +3,7 @@ import type { SVGProps } from 'react';
 type ActionIconProps = SVGProps<SVGSVGElement>;
 
 const classNames = (...parts: Array<string | null | undefined | false>) => parts.filter(Boolean).join(' ');
-const defaultIconSizeClassName = 'h-3.5 w-3.5';
+const defaultIconSizeClassName = 'h-[18px] w-[18px] shrink-0';
 
 function iconClassName(className?: string) {
   return classNames(defaultIconSizeClassName, className);
@@ -67,44 +67,21 @@ export function SaveIcon({ className, ...props }: ActionIconProps) {
   );
 }
 
-export function ActionFilterIcon({ className = 'h-5 w-5', ...props }: ActionIconProps) {
+export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg
-      viewBox="-40 0 616 560"
-      className={className}
+      viewBox="0 0 20 20"
+      className={iconClassName(className)}
       fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-hidden="true"
       {...props}
     >
-      <defs>
-        <mask id="orders-filter-cut">
-          <rect fill="white" x="-40" y="0" width="656" height="560" />
-          <path
-            fill="black"
-            stroke="black"
-            strokeWidth="110"
-            strokeLinejoin="round"
-            strokeLinecap="round"
-            d="M 190,48 L 490,48 L 380,240 L 380,440 L 300,360 L 300,240 Z"
-          />
-        </mask>
-      </defs>
-
-      <path
-        mask="url(#orders-filter-cut)"
-        d="M 30,128 L 330,128 L 220,320 L 220,520 L 140,440 L 140,320 Z"
-        stroke="currentColor"
-        strokeWidth="22"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M 190,48 L 490,48 L 380,240 L 380,440 L 300,360 L 300,240 Z"
-        stroke="currentColor"
-        strokeWidth="22"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M8.2 2.6h8.7l-3.3 5.7v6.3l-2.4-2.3V8.3z" />
+      <path d="M3.5 5.1h8.7L8.9 11v6.2L6.5 15V11z" />
     </svg>
   );
 }

@@ -569,7 +569,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
               onToggle={(key) => toggleColumnVisibility(key as ItemColumnKey)}
               showLabel={false}
               className="[&>button]:!h-7 [&>button]:!w-7 [&>button]:!rounded-md [&>button]:!border-slate-200 [&>button]:!bg-transparent [&>button]:!px-0 [&>button]:!text-slate-600 [&>button]:hover:!border-slate-300 [&>button]:hover:!bg-[color:var(--hover-neutral)] [&>button]:hover:!text-slate-700"
-              icon={<FilterIcon className="h-3.5 w-3.5" />}
+              icon={<FilterIcon />}
             />
             <IconButton
               type="button"

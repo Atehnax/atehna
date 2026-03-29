@@ -68,22 +68,7 @@ export function SaveIcon({ className, ...props }: ActionIconProps) {
 }
 
 export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
-  const iconId = useId().replace(/:/g, '');
-  const cutMaskId = `orders-filter-cut-${iconId}`;
-
   const strokeWidth = 1.8;
-
-  // bigger separation than before
-  const gapWidth = strokeWidth * 0.9;
-  const maskStrokeWidth = strokeWidth + gapWidth * 2;
-
-  // wider master funnel
-  const funnelPath =
-    'M 6.7,2.35 L 17.85,2.35 L 13.65,8.45 L 13.65,14.05 L 11.0,11.45 L 11.0,8.45 Z';
-
-  // offset for the rear funnel
-  const backTranslateX = -6.05;
-  const backTranslateY = 4.55;
 
   return (
     <svg
@@ -97,41 +82,8 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
       aria-hidden="true"
       {...props}
     >
-      <defs>
-        <mask
-          id={cutMaskId}
-          maskUnits="userSpaceOnUse"
-          x="0"
-          y="0"
-          width="20"
-          height="20"
-        >
-          <rect x="0" y="0" width="20" height="20" fill="white" />
-
-          {/* extra cut on the far right so the rear funnel never bleeds through */}
-          <rect x="10.9" y="0" width="20" height="20" fill="black" />
-
-          {/* oversized front silhouette creates the visible gap */}
-          <path
-            d={funnelPath}
-            fill="black"
-            stroke="black"
-            strokeWidth={maskStrokeWidth}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </mask>
-      </defs>
-
-      {/* rear / bottom-left funnel */}
-      <path
-        d={funnelPath}
-        transform={`translate(${backTranslateX} ${backTranslateY})`}
-        mask={`url(#${cutMaskId})`}
-      />
-
-      {/* front / top-right funnel */}
-      <path d={funnelPath} />
+      <path d="M 1.45,7.15 L 7.65,7.15 L 5.35,10.95 L 5.35,15.45 L 3.55,13.7 L 3.55,10.95 Z" />
+      <path d="M 7.1,2.45 L 18.3,2.45 L 14.1,8.6 L 14.1,13.75 L 11.5,11.15 L 11.5,8.6 Z" />
     </svg>
   );
 }

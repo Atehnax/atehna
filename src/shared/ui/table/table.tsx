@@ -8,11 +8,11 @@ type BaseProps = {
 const classNames = (...parts: Array<string | false | null | undefined>) =>
   parts.filter(Boolean).join(' ');
 
-const ADMIN_TABLE_BG = 'bg-slate-50/90';
+const ADMIN_TABLE_BG = 'bg-slate-50/85';
 
 export function Table({ children, className, ...props }: BaseProps & TableHTMLAttributes<HTMLTableElement>) {
   return (
-    <table className={classNames('w-full table-auto text-left text-[13px]', className)} {...props}>
+    <table className={classNames('w-full table-auto text-left text-[13px] text-slate-700', className)} {...props}>
       {children}
     </table>
   );
@@ -36,7 +36,7 @@ export function TBody({ children, className, ...props }: BaseProps & HTMLAttribu
 
 export function TR({ children, className, ...props }: BaseProps & HTMLAttributes<HTMLTableRowElement>) {
   return (
-    <tr className={classNames('transition-colors hover:bg-[color:var(--admin-table-row-hover)]', className)} {...props}>
+    <tr className={classNames('transition-colors duration-150 hover:bg-slate-50', className)} {...props}>
       {children}
     </tr>
   );
@@ -44,7 +44,7 @@ export function TR({ children, className, ...props }: BaseProps & HTMLAttributes
 
 export function TH({ children, className, ...props }: BaseProps & ThHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <th className={classNames(`${ADMIN_TABLE_BG} border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-600 align-middle`, className)} {...props}>
+    <th className={classNames(`${ADMIN_TABLE_BG} border-b border-slate-200/90 px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-slate-500 align-middle`, className)} {...props}>
       {children}
     </th>
   );
@@ -52,7 +52,7 @@ export function TH({ children, className, ...props }: BaseProps & ThHTMLAttribut
 
 export function TD({ children, className, ...props }: BaseProps & TdHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <td className={classNames('px-2 py-2 align-middle', className)} {...props}>
+    <td className={classNames('px-2.5 py-2.5 align-middle', className)} {...props}>
       {children}
     </td>
   );

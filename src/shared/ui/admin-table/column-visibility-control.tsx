@@ -55,7 +55,7 @@ export function ColumnVisibilityControl({
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className={`inline-flex h-8 items-center justify-center rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 ${showLabel ? 'min-w-[92px] gap-2 px-2.5' : 'w-8 px-0'}`}
+        className={`inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50 ${showLabel ? 'min-w-[92px] gap-2 px-3' : 'w-9 px-0'}`}
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-label="Filtriraj stolpce"
@@ -74,20 +74,20 @@ export function ColumnVisibilityControl({
         )}
       </button>
       {isOpen ? (
-        <div className={`absolute right-0 top-9 z-30 w-52 rounded-xl border border-slate-200 bg-white p-2 shadow-lg ${menuClassName ?? ''}`} role="menu">
+        <div className={`absolute right-0 top-10 z-30 w-52 rounded-xl border border-slate-200 bg-white p-2 shadow-lg ${menuClassName ?? ''}`} role="menu">
           {options.map((option) => {
             const isChecked = visibleMap[option.key] ?? false;
             return (
               <label
                 key={option.key}
-                className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-[11px] text-slate-700 hover:bg-slate-50"
+                className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-700 hover:bg-slate-50"
               >
                 <input
                   type="checkbox"
                   checked={isChecked}
                   disabled={option.disabled}
                   onChange={() => onToggle(option.key)}
-                  className="h-3.5 w-3.5"
+                  className="h-3.5 w-3.5 rounded border-slate-300"
                 />
                 <span className={option.disabled ? 'opacity-60' : ''}>{option.label}</span>
               </label>

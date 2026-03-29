@@ -539,7 +539,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
 
       <AdminTableLayout
         className="border shadow-sm"
-        style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)', borderColor: '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
+        style={{ borderColor: '#e2e8f0' }}
         headerLeft={
           <div className="inline-flex items-center gap-0.5 border-b border-slate-200 pb-1">
             {statusTabs.map((tab) => {
@@ -568,7 +568,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
               visibleMap={visibleColumns}
               onToggle={(key) => toggleColumnVisibility(key as ItemColumnKey)}
               showLabel={false}
-              className="[&>button]:!h-7 [&>button]:!w-7 [&>button]:!rounded-md [&>button]:!border-slate-200 [&>button]:!bg-transparent [&>button]:!px-0 [&>button]:!text-slate-600 [&>button]:hover:!border-slate-300 [&>button]:hover:!bg-[color:var(--hover-neutral)] [&>button]:hover:!text-slate-700"
+              className="[&>button]:!h-9 [&>button]:!w-9 [&>button]:!rounded-xl [&>button]:!border-slate-200 [&>button]:!bg-white [&>button]:!px-0 [&>button]:!text-slate-600 [&>button]:hover:!border-slate-300 [&>button]:hover:!bg-slate-50 [&>button]:hover:!text-slate-700"
               icon={<FilterIcon className="h-3.5 w-3.5" />}
             />
             <IconButton
@@ -593,7 +593,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Poišči po nazivu, SKU ali kategoriji …"
-              className={`${ADMIN_CONTROL_HEIGHT} min-w-[240px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} text-[11px] focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
+              className={`${ADMIN_CONTROL_HEIGHT} min-w-[240px] flex-1 rounded-xl border border-slate-200 bg-white ${ADMIN_CONTROL_PADDING_X} text-[11px] focus:border-[#3e67d6] focus:ring-0`}
             />
             <div className="relative min-w-[220px]">
               <CustomSelect
@@ -646,7 +646,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
             </THead>
             <tbody>
               {pagedItems.map((item, index) => (
-                <tr key={item.id} className={`border-t border-slate-200 transition-colors ${getAdminStripedRowToneClass(index)} ${adminTableRowToneClasses.hover}`}>
+                <tr key={item.id} className={`border-t border-slate-200/70 ${getAdminStripedRowToneClass(index)} ${adminTableRowToneClasses.hover}`}>
                   <td className="px-2.5 py-2 text-center"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleOne(item.id)} aria-label={`Izberi ${item.name}`} /></td>
                   {visibleColumns.name ? <td className="px-2.5 py-2 text-[11px] font-medium text-slate-900">{item.name}</td> : null}
                   {visibleColumns.sku ? <td className="px-2.5 py-2 text-[11px] text-slate-600">{item.sku}</td> : null}

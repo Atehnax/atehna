@@ -23,7 +23,7 @@ export function AdminSearchInput({ className = '', showIcon = true, ...props }: 
       ) : null}
       <input
         type="search"
-        className={`${ADMIN_CONTROL_HEIGHT} min-w-[260px] w-full rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} ${showIcon ? 'pl-9' : ''} text-xs text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] ${className}`}
+        className={`${ADMIN_CONTROL_HEIGHT} min-w-[260px] w-full rounded-xl border border-slate-200 bg-white ${ADMIN_CONTROL_PADDING_X} ${showIcon ? 'pl-9' : ''} text-xs text-slate-700 outline-none transition focus:border-[#3e67d6] focus:ring-0 ${className}`}
         {...props}
       />
     </div>

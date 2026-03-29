@@ -339,7 +339,7 @@ export default function AdminDeletedArchiveTable({
             value={typeFilter}
             onChange={(next) => setTypeFilter(next as TypeFilterValue)}
             options={TYPE_FILTER_OPTIONS}
-            className="h-7 min-w-[130px] px-2.5 py-0 text-[11px] font-semibold"
+            className="h-9 min-w-[130px] rounded-xl border-slate-200 px-3 py-0 text-[11px] font-semibold"
           />
         </div>
       }
@@ -425,7 +425,7 @@ export default function AdminDeletedArchiveTable({
                     })();
 
               return (
-                <TR key={entry.id} className={`border-b border-slate-100 transition-colors ${getAdminStripedRowToneClass(index)} ${adminTableRowToneClasses.hover}`}>
+                <TR key={entry.id} className={`border-b border-slate-200/70 ${getAdminStripedRowToneClass(index)} ${adminTableRowToneClasses.hover}`}>
                   <TD className="px-0 py-2 text-center">
                     <input
                       type="checkbox"

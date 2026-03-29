@@ -1,9 +1,9 @@
-import type { SVGProps } from 'react';
+import { useId, type SVGProps } from 'react';
 
 type ActionIconProps = SVGProps<SVGSVGElement>;
 
 const classNames = (...parts: Array<string | null | undefined | false>) => parts.filter(Boolean).join(' ');
-const defaultIconSizeClassName = 'h-3.5 w-3.5';
+const defaultIconSizeClassName = 'h-[18px] w-[18px] shrink-0';
 
 function iconClassName(className?: string) {
   return classNames(defaultIconSizeClassName, className);
@@ -67,25 +67,43 @@ export function SaveIcon({ className, ...props }: ActionIconProps) {
   );
 }
 
-export function ActionFilterIcon({ className = 'h-5 w-5', ...props }: ActionIconProps) {
+export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
+  const iconId = useId().replace(/:/g, '');
+  const cutMaskId = `filter-cut-${iconId}`;
+
   return (
     <svg
       viewBox="0 0 20 20"
-      className={className}
+      className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.9"
+      strokeWidth={1.8}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
       {...props}
     >
-      <path d="M3.4 5.2h13.2" />
-      <path d="M3.4 10h13.2" />
-      <path d="M3.4 14.8h13.2" />
-      <circle cx="7.2" cy="5.2" r="1.55" fill="currentColor" stroke="none" />
-      <circle cx="12.2" cy="10" r="1.55" fill="currentColor" stroke="none" />
-      <circle cx="9.1" cy="14.8" r="1.55" fill="currentColor" stroke="none" />
+      <defs>
+        <mask id={cutMaskId}>
+          <rect fill="white" x="0" y="0" width="20" height="20" />
+          {/* hide front funnel + gap */}
+          <path
+            fill="black"
+            stroke="black"
+            strokeWidth={4.0}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            d="M 8.0,2.0 L 18.5,2.0 L 14.5,8.5 L 14.5,14.0 L 11.8,11.3 L 11.8,8.5 Z"
+          />
+        </mask>
+      </defs>
+      {/* back/left funnel */}
+      <path
+        mask={`url(#${cutMaskId})`}
+        d="M 2.5,5.5 L 13.0,5.5 L 9.0,12.0 L 9.0,17.5 L 6.3,14.8 L 6.3,12.0 Z"
+      />
+      {/* front/right funnel */}
+      <path d="M 8.0,2.0 L 18.5,2.0 L 14.5,8.5 L 14.5,14.0 L 11.8,11.3 L 11.8,8.5 Z" />
     </svg>
   );
 }

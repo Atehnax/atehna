@@ -3149,7 +3149,7 @@ export default function AdminCategoriesMainTable({
                     {
                       key: 'delete',
                       label: 'Izbriši',
-                      icon: <TrashCanIcon className="h-[18px] w-[18px]" />,
+                      icon: <TrashCanIcon />,
                       className: 'text-[rgb(192,64,46)]',
                       onSelect: () => {
                         if (kind === 'root') {

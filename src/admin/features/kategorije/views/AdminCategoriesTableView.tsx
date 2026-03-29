@@ -113,7 +113,7 @@ export function AdminCategoriesTableView({
                 onClick={onUndo}
                 disabled={!canUndoStagedChanges}
               >
-                <ActionUndoIcon className="h-[18px] w-[18px]" />
+                <ActionUndoIcon />
               </IconButton>
               <IconButton
                 type="button"
@@ -124,7 +124,7 @@ export function AdminCategoriesTableView({
                 onClick={onRestore}
                 disabled={!canUseRestore}
               >
-                <ActionRestoreIcon className="h-[18px] w-[18px]" />
+                <ActionRestoreIcon />
               </IconButton>
               <IconButton
                 type="button"
@@ -135,7 +135,7 @@ export function AdminCategoriesTableView({
                 onClick={onBulkDelete}
                 disabled={!hasSelectedRows || isBulkDeleting}
               >
-                {isBulkDeleting ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : <TrashCanIcon className="h-[18px] w-[18px]" />}
+                {isBulkDeleting ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : <TrashCanIcon />}
               </IconButton>
               <Button variant="primary" size="toolbar" onClick={onRequestSave} disabled={!tableDirty || saving}>Shrani</Button>
             </>

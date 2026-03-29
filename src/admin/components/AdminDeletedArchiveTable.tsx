@@ -356,7 +356,7 @@ export default function AdminDeletedArchiveTable({
             {isRestoring ? (
               <Spinner size="sm" className="text-slate-500" />
             ) : (
-              <ActionRestoreIcon className="h-[18px] w-[18px]" />
+              <ActionRestoreIcon />
             )}
           </Button>
           <Button
@@ -370,7 +370,7 @@ export default function AdminDeletedArchiveTable({
             {isDeleting ? (
               <Spinner size="sm" className="text-rose-700" />
             ) : (
-              <TrashCanIcon className="h-[18px] w-[18px]" />
+              <TrashCanIcon />
             )}
           </Button>
         </>

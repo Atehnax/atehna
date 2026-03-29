@@ -90,7 +90,7 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
           <path
             fill="black"
             stroke="black"
-            strokeWidth={3.2}
+            strokeWidth={4.5}
             strokeLinejoin="round"
             strokeLinecap="round"
             d="M 8.0,2.0 L 18.5,2.0 L 14.5,8.5 L 14.5,14.0 L 11.8,11.3 L 11.8,8.5 Z"

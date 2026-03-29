@@ -81,9 +81,9 @@ export default function RowActionsDropdown({
                 item.onSelect();
               }}
             >
-              <span className={`inline-flex items-center gap-1.5 ${item.className ?? ''}`.trim()}>
-                {item.icon}
-                {item.label}
+              <span className={`inline-flex items-center gap-1.5 leading-none ${item.className ?? ''}`.trim()}>
+                {item.icon ? <span className="inline-flex h-4 w-4 items-center justify-center">{item.icon}</span> : null}
+                <span className="inline-flex items-center">{item.label}</span>
               </span>
             </MenuItem>
           ))}

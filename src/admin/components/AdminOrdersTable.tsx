@@ -40,8 +40,6 @@ import {
   type DocumentType,
   type OrderRow,
   type PdfDoc,
-  type SortDirection,
-  type SortKey,
   type StatusTab,
   type UnifiedDocument,
   columnWidths,
@@ -86,10 +84,12 @@ type AttachmentTuple = readonly [id: number, orderId: number, type: Attachment['
 
 type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
 type OrdersColumnKey = 'order' | 'date' | 'customer' | 'address' | 'type' | 'status' | 'payment' | 'total' | 'documents';
+type SortableColumnKey = 'order' | 'date' | 'customer' | 'address' | 'status' | 'payment' | 'total' | 'type';
+type TypePriority = 'school' | 'company' | 'individual';
+type SortCycleState = { column: SortableColumnKey; index: number } | null;
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
 const ORDER_COLUMN_OPTIONS: Array<{ key: OrdersColumnKey; label: string }> = [
-  { key: 'order', label: 'Naročilo' },
   { key: 'date', label: 'Datum' },
   { key: 'customer', label: 'Naročnik' },
   { key: 'address', label: 'Naslov' },
@@ -99,6 +99,20 @@ const ORDER_COLUMN_OPTIONS: Array<{ key: OrdersColumnKey; label: string }> = [
   { key: 'total', label: 'Skupaj' },
   { key: 'documents', label: 'PDF datoteke' }
 ];
+const STATUS_SORT_PRIORITY: Record<string, number> = {
+  finished: 0,
+  sent: 1,
+  partially_sent: 2,
+  in_progress: 3,
+  cancelled: 4,
+  received: 5
+};
+const PAYMENT_SORT_PRIORITY: Record<string, number> = {
+  paid: 0,
+  refunded: 1,
+  unpaid: 2
+};
+const TYPE_SORT_CYCLE: TypePriority[] = ['school', 'company', 'individual'];
 const AdminOrdersPreviewChart = dynamic(() => import('@/admin/components/AdminOrdersPreviewChart'), { ssr: false });
 const LazyAdminOrdersPdfCell = dynamic(() => import('@/admin/components/AdminOrdersPdfCell'), {
   ssr: false,
@@ -208,8 +222,7 @@ export default function AdminOrdersTable({
   const [statusFilter, setStatusFilter] = useState<StatusTab>((initialStatusFilter as StatusTab) ?? 'all');
   const [query, setQuery] = useState(initialQuery);
 
-  const [sortKey, setSortKey] = useState<SortKey>('order_number');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [sortState, setSortState] = useState<SortCycleState>(null);
 
   const [fromDate, setFromDate] = useState(initialFrom);
   const [toDate, setToDate] = useState(initialTo);
@@ -221,6 +234,12 @@ export default function AdminOrdersTable({
   const [isChartReady, setIsChartReady] = useState(false);
 
   const [documentType, setDocumentType] = useState<DocumentType>((initialDocumentType as DocumentType) ?? 'all');
+  const [columnStatusFilter, setColumnStatusFilter] = useState<StatusTab>('all');
+  const [columnPaymentFilter, setColumnPaymentFilter] = useState<'all' | 'paid' | 'refunded' | 'unpaid'>('all');
+  const [columnTypeFilter, setColumnTypeFilter] = useState<'all' | TypePriority>('all');
+  const [totalRange, setTotalRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
+  const [orderNumberRange, setOrderNumberRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
+  const [openHeaderFilter, setOpenHeaderFilter] = useState<null | 'order' | 'date' | 'type' | 'status' | 'payment' | 'total' | 'documents'>(null);
   const { toast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -243,6 +262,11 @@ export default function AdminOrdersTable({
     total: true,
     documents: true
   });
+
+  useEffect(() => {
+    if (visibleColumns.order) return;
+    setVisibleColumns((currentColumns) => ({ ...currentColumns, order: true }));
+  }, [visibleColumns.order]);
 
   useEffect(() => {
     if (typeof globalThis.window === 'undefined') return;
@@ -300,6 +324,29 @@ export default function AdminOrdersTable({
       document.removeEventListener('keydown', handleEscape);
     };
   }, [isPaymentHeaderMenuOpen, isStatusHeaderMenuOpen]);
+
+  useEffect(() => {
+    if (!openHeaderFilter) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('[data-header-filter-root="true"]')) return;
+      setOpenHeaderFilter(null);
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpenHeaderFilter(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [openHeaderFilter]);
 
   const latestOrderDate = useMemo(() => {
     const timestamps = orders
@@ -489,9 +536,11 @@ export default function AdminOrdersTable({
 
   const orderRuntimeById = useMemo(() => {
     const runtime = new Map<number, {
+      originalIndex: number;
       createdAtTimestamp: number;
       createdAtDayTimestamp: number;
       numericOrderNumber: number;
+      customerType: TypePriority | null;
       customerLabel: string;
       addressLabel: string;
       typeLabel: string;
@@ -500,7 +549,7 @@ export default function AdminOrdersTable({
       searchBlob: string;
     }>();
 
-    orders.forEach((order) => {
+    orders.forEach((order, index) => {
       const createdAtTimestamp = new Date(order.created_at).getTime();
       const createdAtDate = new Date(order.created_at);
       createdAtDate.setHours(0, 0, 0, 0);
@@ -510,9 +559,13 @@ export default function AdminOrdersTable({
       const statusLabel = getOrderStatusLabelForUi(order.status);
       const paymentLabel = getPaymentLabel(order.payment_status);
       runtime.set(order.id, {
+        originalIndex: index,
         createdAtTimestamp,
         createdAtDayTimestamp: createdAtDate.getTime(),
         numericOrderNumber: getNumericOrderNumber(order.order_number),
+        customerType: order.customer_type === 'school' || order.customer_type === 'company' || order.customer_type === 'individual'
+          ? (order.customer_type as TypePriority)
+          : null,
         customerLabel,
         addressLabel,
         typeLabel,
@@ -530,15 +583,15 @@ export default function AdminOrdersTable({
   }, [orders]);
 
   const filteredAndSortedOrders = useMemo(() => {
-    if (isServerFilteredMode) {
-      return orders;
-    }
     const normalizedQuery = normalizeForSearch(debouncedQuery);
 
     const filteredOrders = orders.filter((order) => {
       const mergedStatusValue = getMergedOrderStatusValue(order.status);
 
       if (statusFilter !== 'all' && mergedStatusValue !== statusFilter) {
+        return false;
+      }
+      if (columnStatusFilter !== 'all' && mergedStatusValue !== columnStatusFilter) {
         return false;
       }
 
@@ -558,6 +611,25 @@ export default function AdminOrdersTable({
           return false;
         }
       }
+      if (columnPaymentFilter !== 'all' && (order.payment_status ?? '') !== columnPaymentFilter) {
+        return false;
+      }
+
+      if (columnTypeFilter !== 'all' && orderRuntime?.customerType !== columnTypeFilter) {
+        return false;
+      }
+
+      const totalValue = toAmount(order.total);
+      const minTotal = totalRange.min.trim() ? Number(totalRange.min) : null;
+      const maxTotal = totalRange.max.trim() ? Number(totalRange.max) : null;
+      if (minTotal !== null && Number.isFinite(minTotal) && totalValue < minTotal) return false;
+      if (maxTotal !== null && Number.isFinite(maxTotal) && totalValue > maxTotal) return false;
+
+      const orderNumberNumeric = orderRuntime?.numericOrderNumber ?? getNumericOrderNumber(order.order_number);
+      const minOrderNumber = orderNumberRange.min.trim() ? Number(orderNumberRange.min) : null;
+      const maxOrderNumber = orderNumberRange.max.trim() ? Number(orderNumberRange.max) : null;
+      if (minOrderNumber !== null && Number.isFinite(minOrderNumber) && orderNumberNumeric < minOrderNumber) return false;
+      if (maxOrderNumber !== null && Number.isFinite(maxOrderNumber) && orderNumberNumeric > maxOrderNumber) return false;
 
       const orderSearchBlob = orderRuntime?.searchBlob ?? '';
 
@@ -589,17 +661,35 @@ export default function AdminOrdersTable({
     });
 
     const sortedOrders = [...filteredOrders].sort((leftOrder, rightOrder) => {
-      const sortMultiplier = sortDirection === 'asc' ? 1 : -1;
       const leftRuntime = orderRuntimeById.get(leftOrder.id);
       const rightRuntime = orderRuntimeById.get(rightOrder.id);
       const leftOrderNumberNumeric = leftRuntime?.numericOrderNumber ?? getNumericOrderNumber(leftOrder.order_number);
       const rightOrderNumberNumeric = rightRuntime?.numericOrderNumber ?? getNumericOrderNumber(rightOrder.order_number);
+      const fallbackStable = (leftRuntime?.originalIndex ?? 0) - (rightRuntime?.originalIndex ?? 0);
+
+      if (!sortState) {
+        return fallbackStable;
+      }
+
+      const isDescendingStep = sortState.index === 1;
+      const sortMultiplier = isDescendingStep ? -1 : 1;
+      if (sortState.column === 'type') {
+        const firstType = TYPE_SORT_CYCLE[sortState.index];
+        const deterministicTypeOrder = [firstType, ...TYPE_SORT_CYCLE.filter((type) => type !== firstType)];
+        const priorityByType = new Map<TypePriority, number>(deterministicTypeOrder.map((type, index) => [type, index]));
+        const leftTypePriority = priorityByType.get(leftRuntime?.customerType ?? 'individual') ?? Number.MAX_SAFE_INTEGER;
+        const rightTypePriority = priorityByType.get(rightRuntime?.customerType ?? 'individual') ?? Number.MAX_SAFE_INTEGER;
+        if (leftTypePriority !== rightTypePriority) {
+          return leftTypePriority - rightTypePriority;
+        }
+        return fallbackStable;
+      }
 
       let leftValue: string | number;
       let rightValue: string | number;
 
-      switch (sortKey) {
-        case 'order_number':
+      switch (sortState.column) {
+        case 'order':
           if (
             Number.isFinite(leftOrderNumberNumeric) &&
             Number.isFinite(rightOrderNumberNumeric) &&
@@ -624,23 +714,19 @@ export default function AdminOrdersTable({
           leftValue = leftRuntime?.addressLabel ?? formatOrderAddress(leftOrder);
           rightValue = rightRuntime?.addressLabel ?? formatOrderAddress(rightOrder);
           break;
-        case 'type':
-          leftValue = leftRuntime?.typeLabel ?? getCustomerTypeLabel(leftOrder.customer_type);
-          rightValue = rightRuntime?.typeLabel ?? getCustomerTypeLabel(rightOrder.customer_type);
-          break;
         case 'status':
-          leftValue = leftRuntime?.statusLabel ?? getOrderStatusLabelForUi(leftOrder.status);
-          rightValue = rightRuntime?.statusLabel ?? getOrderStatusLabelForUi(rightOrder.status);
+          leftValue = STATUS_SORT_PRIORITY[leftOrder.status] ?? Number.MAX_SAFE_INTEGER;
+          rightValue = STATUS_SORT_PRIORITY[rightOrder.status] ?? Number.MAX_SAFE_INTEGER;
           break;
         case 'payment':
-          leftValue = leftRuntime?.paymentLabel ?? getPaymentLabel(leftOrder.payment_status);
-          rightValue = rightRuntime?.paymentLabel ?? getPaymentLabel(rightOrder.payment_status);
+          leftValue = PAYMENT_SORT_PRIORITY[leftOrder.payment_status ?? ''] ?? Number.MAX_SAFE_INTEGER;
+          rightValue = PAYMENT_SORT_PRIORITY[rightOrder.payment_status ?? ''] ?? Number.MAX_SAFE_INTEGER;
           break;
         case 'total':
           leftValue = toAmount(leftOrder.total);
           rightValue = toAmount(rightOrder.total);
           break;
-        case 'created_at':
+        case 'date':
         default: {
           leftValue = leftRuntime?.createdAtDayTimestamp ?? 0;
           rightValue = rightRuntime?.createdAtDayTimestamp ?? 0;
@@ -651,22 +737,12 @@ export default function AdminOrdersTable({
       if (typeof leftValue === 'number' && typeof rightValue === 'number') {
         const primaryResult = (leftValue - rightValue) * sortMultiplier;
         if (primaryResult !== 0) return primaryResult;
-
-        if (sortKey === 'created_at') {
-          return rightOrderNumberNumeric - leftOrderNumberNumeric;
-        }
-
-        return 0;
+        return fallbackStable;
       }
 
       const textResult = textCollator.compare(String(leftValue), String(rightValue)) * sortMultiplier;
       if (textResult !== 0) return textResult;
-
-      if (sortKey === 'created_at') {
-        return rightOrderNumberNumeric - leftOrderNumberNumeric;
-      }
-
-      return leftOrder.id - rightOrder.id;
+      return fallbackStable;
     });
 
     return sortedOrders;
@@ -677,11 +753,14 @@ export default function AdminOrdersTable({
     debouncedFromDate,
     debouncedToDate,
     documentType,
+    columnStatusFilter,
+    columnPaymentFilter,
+    columnTypeFilter,
+    totalRange,
+    orderNumberRange,
     latestDocumentsByOrder,
     orderRuntimeById,
-    sortKey,
-    sortDirection,
-    isServerFilteredMode
+    sortState
   ]);
 
   const { page: clientPage, pageSize: clientPageSize, pageCount: clientPageCount, setPage, setPageSize } = useTablePagination({
@@ -801,7 +880,22 @@ export default function AdminOrdersTable({
       return;
     }
     setPage(1);
-  }, [debouncedFromDate, debouncedQuery, debouncedToDate, documentType, isServerFilteredMode, setPage, sortDirection, sortKey, statusFilter, updateServerFilters]);
+  }, [
+    debouncedFromDate,
+    debouncedQuery,
+    debouncedToDate,
+    documentType,
+    isServerFilteredMode,
+    setPage,
+    sortState,
+    statusFilter,
+    columnStatusFilter,
+    columnPaymentFilter,
+    columnTypeFilter,
+    totalRange,
+    orderNumberRange,
+    updateServerFilters
+  ]);
 
   const toggleSelected = (orderId: number) => {
     setSelected((previousSelected) =>
@@ -940,26 +1034,22 @@ export default function AdminOrdersTable({
     }
   };
 
-  const onSort = (nextSortKey: SortKey) => {
-    const isSameKey = sortKey === nextSortKey;
+  const getSortCycleLength = (column: SortableColumnKey) => (column === 'type' ? 3 : 2);
 
-    if (isSameKey) {
-      setSortDirection((previousDirection) => (previousDirection === 'asc' ? 'desc' : 'asc'));
-      return;
-    }
+  const onSort = (column: SortableColumnKey) => {
+    setSortState((currentState) => {
+      if (!currentState || currentState.column !== column) {
+        return { column, index: 0 };
+      }
 
-    setSortKey(nextSortKey);
-    if (nextSortKey === 'order_number' || nextSortKey === 'created_at' || nextSortKey === 'total') {
-      setSortDirection('desc');
-      return;
-    }
-
-    setSortDirection('asc');
+      const nextIndex = currentState.index + 1;
+      if (nextIndex >= getSortCycleLength(column)) return null;
+      return { column, index: nextIndex };
+    });
   };
 
-  const sortIndicator = (nextSortKey: SortKey) => {
-    if (sortKey !== nextSortKey) return <span className="ml-1 text-slate-300">↕</span>;
-    return <span className="ml-1 text-slate-500">{sortDirection === 'asc' ? '↑' : '↓'}</span>;
+  const toggleHeaderFilter = (filterKey: NonNullable<typeof openHeaderFilter>) => {
+    setOpenHeaderFilter((currentOpenFilter) => (currentOpenFilter === filterKey ? null : filterKey));
   };
 
   const defaultDateRangeLabel = useMemo(() => {
@@ -988,6 +1078,12 @@ export default function AdminOrdersTable({
     setFromDate('');
     setToDate('');
     setDocumentType('all');
+    setColumnStatusFilter('all');
+    setColumnPaymentFilter('all');
+    setColumnTypeFilter('all');
+    setTotalRange({ min: '', max: '' });
+    setOrderNumberRange({ min: '', max: '' });
+    setSortState(null);
   };
 
   const hasActiveFilters =
@@ -995,7 +1091,15 @@ export default function AdminOrdersTable({
     query.trim().length > 0 ||
     fromDate.length > 0 ||
     toDate.length > 0 ||
-    documentType !== 'all';
+    documentType !== 'all' ||
+    columnStatusFilter !== 'all' ||
+    columnPaymentFilter !== 'all' ||
+    columnTypeFilter !== 'all' ||
+    totalRange.min.trim().length > 0 ||
+    totalRange.max.trim().length > 0 ||
+    orderNumberRange.min.trim().length > 0 ||
+    orderNumberRange.max.trim().length > 0 ||
+    sortState !== null;
 
   useEffect(() => {
     if (hasAutoResetFiltersRef.current) return;
@@ -1240,11 +1344,14 @@ export default function AdminOrdersTable({
                 <ColumnVisibilityControl
                   options={ORDER_COLUMN_OPTIONS}
                   visibleMap={visibleColumns}
-                  onToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }))}
+                  onToggle={(key) => {
+                    if (key === 'order') return;
+                    setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }));
+                  }}
                   showLabel={false}
                   className="[&>button]:!h-7 [&>button]:!w-7 [&>button]:!rounded-md [&>button]:!border-slate-200 [&>button]:!bg-transparent [&>button]:!px-0 [&>button]:!text-slate-600 [&>button]:hover:!border-slate-300 [&>button]:hover:!bg-[color:var(--hover-neutral)] [&>button]:hover:!text-slate-700"
                   icon={<FilterIcon />}
-                  menuClassName="!w-28"
+                  menuClassName="!w-44"
                 />
                 <IconButton
                   type="button"
@@ -1309,53 +1416,80 @@ export default function AdminOrdersTable({
                 </TH>
 
                 {visibleColumns.order ? <TH className="h-11 text-center">
-                  <button
-                    type="button"
-                    onClick={() => onSort('order_number')}
-                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
-                  >
-                    Naročilo {sortIndicator('order_number')}
-                  </button>
+                  <div className="relative inline-flex items-center gap-1" data-header-filter-root="true">
+                    <button type="button" onClick={() => onSort('order')} className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700">Naročilo</button>
+                    <button type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('order'); }} className="inline-flex h-4 w-4 items-center justify-center text-slate-400 hover:text-slate-600" aria-label="Filtriraj Naročilo">
+                      <FunnelIcon />
+                    </button>
+                    {openHeaderFilter === 'order' ? (
+                      <div className="absolute left-1/2 top-7 z-30 w-48 -translate-x-1/2 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+                        <div className="space-y-2">
+                          <div>
+                            <label className="text-[11px] text-slate-500">Od</label>
+                            <input type="number" value={orderNumberRange.min} onChange={(event) => setOrderNumberRange((current) => ({ ...current, min: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1 text-[11px]" />
+                          </div>
+                          <div>
+                            <label className="text-[11px] text-slate-500">Do</label>
+                            <input type="number" value={orderNumberRange.max} onChange={(event) => setOrderNumberRange((current) => ({ ...current, max: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1 text-[11px]" />
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
                 </TH> : null}
 
                 {visibleColumns.date ? <TH className="h-11 text-center text-[11px]">
-                  <button
-                    type="button"
-                    onClick={() => onSort('created_at')}
-                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
-                  >
-                    Datum {sortIndicator('created_at')}
-                  </button>
+                  <div className="relative inline-flex items-center gap-1" data-header-filter-root="true">
+                    <button type="button" onClick={() => onSort('date')} className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700">Datum</button>
+                    <button type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('date'); }} className="inline-flex h-4 w-4 items-center justify-center text-slate-400 hover:text-slate-600" aria-label="Filtriraj Datum">
+                      <FunnelIcon />
+                    </button>
+                    {openHeaderFilter === 'date' ? (
+                      <div lang="sl-SI" className="absolute right-0 top-7 z-30 w-[380px] rounded-xl border border-slate-200 bg-white p-3 text-left shadow-lg">
+                        <div className="grid grid-cols-[170px_1fr] gap-3">
+                          <div className="space-y-1 border-r border-slate-200 pr-2">
+                            {[
+                              { key: 'today', label: 'Danes' },
+                              { key: 'yesterday', label: 'Včeraj' },
+                              { key: '7d', label: 'Zadnjih 7 dni' },
+                              { key: '30d', label: 'Zadnjih 30 dni' },
+                              { key: '3m', label: 'Zadnje 3 mesece' },
+                              { key: '6m', label: 'Zadnjih 6 mesecev' },
+                              { key: '1y', label: 'Zadnje leto' },
+                              { key: 'allYears', label: 'Vsa Leta' }
+                            ].map((item) => (
+                              <button key={item.key} type="button" onClick={() => applyQuickDateRange(item.key as any)} className="w-full rounded-lg px-2 py-1 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)]">{item.label}</button>
+                            ))}
+                          </div>
+                          <div className="space-y-2">
+                            <div><label className="text-xs font-semibold text-slate-500">Od</label><input type="date" lang="sl-SI" value={fromDate} onChange={(event) => { setFromDate(event.target.value); setRangePreset('custom'); }} className={`mt-1 ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`} /></div>
+                            <div><label className="text-xs font-semibold text-slate-500">Do</label><input type="date" lang="sl-SI" value={toDate} onChange={(event) => { setToDate(event.target.value); setRangePreset('custom'); }} className={`mt-1 ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`} /></div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
                 </TH> : null}
 
-                {visibleColumns.customer ? <TH className="text-[11px]">
-                  <button
-                    type="button"
-                    onClick={() => onSort('customer')}
-                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
-                  >
-                    Naročnik {sortIndicator('customer')}
-                  </button>
-                </TH> : null}
+                {visibleColumns.customer ? <TH className="text-[11px]"><button type="button" onClick={() => onSort('customer')} className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700">Naročnik</button></TH> : null}
 
-                {visibleColumns.address ? <TH className="text-[11px]">
-                  <button
-                    type="button"
-                    onClick={() => onSort('address')}
-                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
-                  >
-                    Naslov {sortIndicator('address')}
-                  </button>
-                </TH> : null}
+                {visibleColumns.address ? <TH className="text-[11px]"><button type="button" onClick={() => onSort('address')} className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700">Naslov</button></TH> : null}
 
                 {visibleColumns.type ? <TH className="h-11 text-center text-[11px]">
-                  <button
-                    type="button"
-                    onClick={() => onSort('type')}
-                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
-                  >
-                    Tip {sortIndicator('type')}
-                  </button>
+                  <div className="relative inline-flex items-center gap-1" data-header-filter-root="true">
+                    <button type="button" onClick={() => onSort('type')} className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700">Tip</button>
+                    <button type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('type'); }} className="inline-flex h-4 w-4 items-center justify-center text-slate-400 hover:text-slate-600" aria-label="Filtriraj Tip"><FunnelIcon /></button>
+                    {openHeaderFilter === 'type' ? (
+                      <MenuPanel className="absolute left-1/2 top-7 z-30 w-36 -translate-x-1/2">
+                        {[
+                          { value: 'all', label: 'Vsa' },
+                          { value: 'school', label: 'Šola' },
+                          { value: 'company', label: 'Podjetje' },
+                          { value: 'individual', label: 'Fiz. oseba' }
+                        ].map((option) => <MenuItem key={option.value} onClick={() => { setColumnTypeFilter(option.value as any); setOpenHeaderFilter(null); }}>{option.label}</MenuItem>)}
+                      </MenuPanel>
+                    ) : null}
+                  </div>
                 </TH> : null}
 
                 {visibleColumns.status ? <TH className="h-11 text-center text-[11px]">
@@ -1390,13 +1524,15 @@ export default function AdminOrdersTable({
                         )}
                       </>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={() => onSort('status')}
-                        className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
-                      >
-                        Status {sortIndicator('status')}
-                      </button>
+                      <div className="relative inline-flex items-center gap-1" data-header-filter-root="true">
+                        <button type="button" onClick={() => onSort('status')} className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700">Status</button>
+                        <button type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('status'); }} className="inline-flex h-4 w-4 items-center justify-center text-slate-400 hover:text-slate-600" aria-label="Filtriraj Status"><FunnelIcon /></button>
+                        {openHeaderFilter === 'status' ? (
+                          <MenuPanel className="absolute left-1/2 top-7 z-30 w-40 -translate-x-1/2">
+                            {statusTabs.map((option) => <MenuItem key={option.value} onClick={() => { setColumnStatusFilter(option.value); setOpenHeaderFilter(null); }}>{option.label}</MenuItem>)}
+                          </MenuPanel>
+                        ) : null}
+                      </div>
                     )}
                   </div>
                 </TH> : null}
@@ -1433,28 +1569,52 @@ export default function AdminOrdersTable({
                         )}
                       </>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={() => onSort('payment')}
-                        className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
-                      >
-                        Plačilo {sortIndicator('payment')}
-                      </button>
+                      <div className="relative inline-flex items-center gap-1" data-header-filter-root="true">
+                        <button type="button" onClick={() => onSort('payment')} className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700">Plačilo</button>
+                        <button type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('payment'); }} className="inline-flex h-4 w-4 items-center justify-center text-slate-400 hover:text-slate-600" aria-label="Filtriraj Plačilo"><FunnelIcon /></button>
+                        {openHeaderFilter === 'payment' ? (
+                          <MenuPanel className="absolute left-1/2 top-7 z-30 w-40 -translate-x-1/2">
+                            {[{ value: 'all', label: 'Vsa' }, ...PAYMENT_STATUS_OPTIONS].map((option) => (
+                              <MenuItem key={option.value} onClick={() => { setColumnPaymentFilter(option.value as any); setOpenHeaderFilter(null); }}>{option.label}</MenuItem>
+                            ))}
+                          </MenuPanel>
+                        ) : null}
+                      </div>
                     )}
                   </div>
                 </TH> : null}
 
                 {visibleColumns.total ? <TH className="h-11 text-center text-[11px]">
-                  <button
-                    type="button"
-                    onClick={() => onSort('total')}
-                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
-                  >
-                    Skupaj {sortIndicator('total')}
-                  </button>
+                  <div className="relative inline-flex items-center gap-1" data-header-filter-root="true">
+                    <button type="button" onClick={() => onSort('total')} className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700">Skupaj</button>
+                    <button type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('total'); }} className="inline-flex h-4 w-4 items-center justify-center text-slate-400 hover:text-slate-600" aria-label="Filtriraj Skupaj"><FunnelIcon /></button>
+                    {openHeaderFilter === 'total' ? (
+                      <div className="absolute left-1/2 top-7 z-30 w-48 -translate-x-1/2 rounded-xl border border-slate-200 bg-white p-2 text-left shadow-lg">
+                        <div className="mb-2 grid grid-cols-2 gap-1">
+                          {['20', '50', '100', '200', '500', '1000'].map((maxValue) => (
+                            <button key={maxValue} type="button" onClick={() => setTotalRange({ min: '0', max: maxValue })} className="rounded-md border border-slate-200 px-2 py-1 text-[11px] hover:bg-[color:var(--hover-neutral)]">{`0-${maxValue === '1000' ? '1k' : maxValue}`}</button>
+                          ))}
+                        </div>
+                        <div className="space-y-2">
+                          <div><label className="text-[11px] text-slate-500">Od</label><input type="number" value={totalRange.min} onChange={(event) => setTotalRange((current) => ({ ...current, min: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1 text-[11px]" /></div>
+                          <div><label className="text-[11px] text-slate-500">Do</label><input type="number" value={totalRange.max} onChange={(event) => setTotalRange((current) => ({ ...current, max: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1 text-[11px]" /></div>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
                 </TH> : null}
 
-                {visibleColumns.documents ? <TH className="h-11 min-w-[100px] text-center text-[11px]">PDF datoteke</TH> : null}
+                {visibleColumns.documents ? <TH className="h-11 min-w-[100px] text-center text-[11px]">
+                  <div className="relative inline-flex items-center gap-1" data-header-filter-root="true">
+                    <span className="inline-flex items-center text-[11px] font-semibold">PDF datoteke</span>
+                    <button type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('documents'); }} className="inline-flex h-4 w-4 items-center justify-center text-slate-400 hover:text-slate-600" aria-label="Filtriraj PDF datoteke"><FunnelIcon /></button>
+                    {openHeaderFilter === 'documents' ? (
+                      <MenuPanel className="absolute left-1/2 top-7 z-30 w-40 -translate-x-1/2">
+                        {documentTypeOptions.map((option) => <MenuItem key={option.value} onClick={() => { setDocumentType(option.value); setOpenHeaderFilter(null); }}>{option.label}</MenuItem>)}
+                      </MenuPanel>
+                    ) : null}
+                  </div>
+                </TH> : null}
                 <TH className="h-11 text-center text-[11px]">Uredi</TH>
               </TR>
             </THead>
@@ -1659,4 +1819,12 @@ function formatCompactDateFromDateInput(value: string) {
   if (!value) return '—';
   const parsedDate = new Date(`${value}T00:00:00`);
   return formatCompactDate(parsedDate);
+}
+
+function FunnelIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M 8.0,2.0 L 18.5,2.0 L 14.5,8.5 L 14.5,14.0 L 11.8,11.3 L 11.8,8.5 Z" />
+    </svg>
+  );
 }

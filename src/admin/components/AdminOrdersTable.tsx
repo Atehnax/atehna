@@ -118,7 +118,7 @@ const formatDateForRangeChip = (value: string) => {
   if (!trimmed) return '—';
   const [year, month, day] = trimmed.split('-');
   if (!year || !month || !day) return trimmed;
-  return `${day}-${month}-${year}`;
+  return `${day}.${month}.${year}`;
 };
 const AdminOrdersPreviewChart = dynamic(() => import('@/admin/components/AdminOrdersPreviewChart'), { ssr: false });
 const LazyAdminOrdersPdfCell = dynamic(() => import('@/admin/components/AdminOrdersPdfCell'), {
@@ -1778,6 +1778,10 @@ export default function AdminOrdersTable({
                         const quickRange = applyQuickDateRange(item.key as '7d' | '30d' | '90d' | '180d' | '365d' | 'ytd');
                         setDraftFromDate(quickRange.from);
                         setDraftToDate(quickRange.to);
+                        setFromDate(quickRange.from);
+                        setToDate(quickRange.to);
+                        setHasExplicitDateFilter(true);
+                        setOpenHeaderFilter(null);
                       }}
                       className="rounded-full border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-[color:var(--hover-neutral)]"
                     >
@@ -1834,7 +1838,7 @@ export default function AdminOrdersTable({
                 <h4 className="mb-2 text-[11px] font-semibold text-slate-800">Nastavi razpon zneskov (€)</h4>
                 <div className="mb-3 grid grid-cols-3 gap-1">
                   {['20', '50', '100', '200', '500', '1000'].map((maxValue) => (
-                    <button key={maxValue} type="button" onClick={() => setDraftTotalRange({ min: '0', max: maxValue })} className="rounded-full border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-[color:var(--hover-neutral)]">{`0-${maxValue === '1000' ? '1k' : maxValue}`}</button>
+                    <button key={maxValue} type="button" onClick={() => { const nextRange = { min: '0', max: maxValue }; setDraftTotalRange(nextRange); setTotalRange(nextRange); setOpenHeaderFilter(null); }} className="rounded-full border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-[color:var(--hover-neutral)]">{`0-${maxValue === '1000' ? '1k' : maxValue}`}</button>
                   ))}
                 </div>
                 <div className="mb-3 border-t border-slate-200 pt-3">

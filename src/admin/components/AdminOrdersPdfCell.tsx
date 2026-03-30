@@ -290,7 +290,7 @@ export default function AdminOrdersPdfCell({
                 setOpenType((previousType) => (previousType === button.key ? null : button.key))
               }
               disabled={interactionsDisabled}
-              className={`relative inline-flex h-6 items-center rounded-md px-1.5 py-1 text-[11px] font-medium transition disabled:cursor-default disabled:text-slate-300 ${
+              className={`relative inline-flex h-6 min-w-[30px] items-center justify-center rounded-md px-1.5 py-1 text-[11px] font-medium leading-none transition disabled:cursor-default disabled:text-slate-300 ${
                 hasExistingDocument
                   ? PDF_BUTTON_TONE_CLASSNAMES.generated
                   : PDF_BUTTON_TONE_CLASSNAMES.pending

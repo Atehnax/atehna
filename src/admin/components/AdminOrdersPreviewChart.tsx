@@ -28,10 +28,7 @@ type HoverCard = { xLabel: string; rows: TooltipRow[]; left: number; top: number
 type ChartCard = {
   key: string;
   focusKey: string;
-  title: string;
-  value: string;
-  delta: string;
-  deltaClassName: string;
+  headerLine: string;
   traces: Data[];
   layout: Partial<Layout>;
   tooltipRowsAt: (index: number) => TooltipRow[];
@@ -133,20 +130,14 @@ const periodChange = (series: Array<number | null>, lookbackDays: number) => {
   return null;
 };
 
-const formatDeltaPair = (sevenDay: number | null, thirtyDay: number | null) => {
-  const fmt = (label: string, value: number | null) => {
-    if (value === null || !Number.isFinite(value)) return `${label}: —`;
-    const sign = value > 0 ? '+' : '';
-    return `${label}: ${sign}${value.toFixed(1)}%`;
-  };
+const formatDeltaValue = (value: number | null) =>
+  value === null || !Number.isFinite(value) ? '—' : `${value.toFixed(1)}%`;
 
-  if ((sevenDay === null || !Number.isFinite(sevenDay)) && (thirtyDay === null || !Number.isFinite(thirtyDay))) {
-    return { text: `${fmt('7d', sevenDay)}   ${fmt('30d', thirtyDay)}`, className: 'text-slate-500' };
-  }
-
-  const reference = sevenDay ?? thirtyDay ?? 0;
-  const className = reference >= 0 ? 'text-emerald-700' : 'text-rose-700';
-  return { text: `${fmt('7d', sevenDay)}   ${fmt('30d', thirtyDay)}`, className };
+const getNaročiloPlural = (count: number) => {
+  if (count === 1) return 'naročilo';
+  if (count === 2) return 'naročili';
+  if (count === 3 || count === 4) return 'naročila';
+  return 'naročil';
 };
 
 
@@ -356,11 +347,13 @@ function AdminOrdersPreviewChart({
     {
       key: 'orders-ma',
       focusKey: 'narocila-orders-ma',
-      title: 'Število naročil',
-      value: formatCompactK(data.totalOrders),
       ...(() => {
-        const delta = formatDeltaPair(periodChange(data.ordersSeries, 7), periodChange(data.ordersSeries, 30));
-        return { delta: delta.text, deltaClassName: delta.className };
+        const sevenDay = periodChange(data.ordersSeries, 7);
+        const thirtyDay = periodChange(data.ordersSeries, 30);
+        const count = data.totalOrders;
+        return {
+          headerLine: `${formatInt(count)} ${getNaročiloPlural(count)}* – 7d: ${formatDeltaValue(sevenDay)} – 30d: ${formatDeltaValue(thirtyDay)}`
+        };
       })(),
       traces: [
         {
@@ -391,11 +384,12 @@ function AdminOrdersPreviewChart({
     {
       key: 'revenue-ma',
       focusKey: 'narocila-revenue-ma',
-      title: 'Prihodki',
-      value: `${formatCompactK(data.totalRevenue)} €`,
       ...(() => {
-        const delta = formatDeltaPair(periodChange(data.revenueSeries, 7), periodChange(data.revenueSeries, 30));
-        return { delta: delta.text, deltaClassName: delta.className };
+        const sevenDay = periodChange(data.revenueSeries, 7);
+        const thirtyDay = periodChange(data.revenueSeries, 30);
+        return {
+          headerLine: `${formatCompactK(data.totalRevenue)} € prihodkov – 7d: ${formatDeltaValue(sevenDay)} – 30d: ${formatDeltaValue(thirtyDay)}`
+        };
       })(),
       traces: [
         {
@@ -426,11 +420,12 @@ function AdminOrdersPreviewChart({
     {
       key: 'aov-ma',
       focusKey: 'narocila-aov-median',
-      title: 'Povprečje',
-      value: `${formatCompactK(data.rangeAov)} €`,
       ...(() => {
-        const delta = formatDeltaPair(periodChange(data.dailyAov, 7), periodChange(data.dailyAov, 30));
-        return { delta: delta.text, deltaClassName: delta.className };
+        const sevenDay = periodChange(data.dailyAov, 7);
+        const thirtyDay = periodChange(data.dailyAov, 30);
+        return {
+          headerLine: `Povprečje: ${formatCompactK(data.rangeAov)}€ – 7d: ${formatDeltaValue(sevenDay)} – 30d: ${formatDeltaValue(thirtyDay)}`
+        };
       })(),
       traces: [
         {
@@ -463,12 +458,16 @@ function AdminOrdersPreviewChart({
     {
       key: 'customer-type-cumulative',
       focusKey: 'narocila-status-mix',
-      title: 'F | P | Š',
-      value: `${data.individualDaily.reduce((sum, value) => sum + value, 0)}  |  ${data.companyDaily.reduce((sum, value) => sum + value, 0)}  |  ${data.schoolDaily.reduce((sum, value) => sum + value, 0)}`,
       ...(() => {
         const totalsSeries = data.companyDaily.map((value, index) => value + data.schoolDaily[index] + data.individualDaily[index]);
-        const delta = formatDeltaPair(periodChange(totalsSeries, 7), periodChange(totalsSeries, 30));
-        return { delta: delta.text, deltaClassName: delta.className };
+        const sevenDay = periodChange(totalsSeries, 7);
+        const thirtyDay = periodChange(totalsSeries, 30);
+        const individualTotal = data.individualDaily.reduce((sum, value) => sum + value, 0);
+        const companyTotal = data.companyDaily.reduce((sum, value) => sum + value, 0);
+        const schoolTotal = data.schoolDaily.reduce((sum, value) => sum + value, 0);
+        return {
+          headerLine: `F: ${individualTotal} – P: ${companyTotal} – Š: ${schoolTotal} – 7d: ${formatDeltaValue(sevenDay)} – 30d: ${formatDeltaValue(thirtyDay)}`
+        };
       })(),
       traces: [
         {
@@ -574,38 +573,19 @@ function AdminOrdersPreviewChart({
               key={chart.key}
               type="button"
               onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(chart.focusKey)}`)}
-              className="flex min-h-[124px] flex-col overflow-visible rounded-xl border px-3 py-2 text-left shadow-sm transition hover:border-[color:var(--blue-500)] hover:bg-[color:var(--hover-neutral)] md:flex-row md:items-center md:justify-between"
+              className="flex min-h-[124px] flex-col overflow-visible rounded-xl border px-3 py-2 text-left shadow-sm transition hover:border-[color:var(--blue-500)] hover:bg-[color:var(--hover-neutral)]"
               style={{
                 background: `linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,248,251,0.96) 100%)`,
                 borderColor: appearance.gridColor
               }}
             >
-              <div className="relative flex h-full min-w-0 flex-1 items-center justify-center pr-0 text-center md:pr-2">
-                {chart.key === 'customer-type-cumulative' ? (
-                  <div className="w-full min-w-0 overflow-hidden">
-                    <p className="absolute left-0 top-0 min-w-0 max-w-full truncate text-[clamp(0.75rem,1.2vw,0.875rem)] font-semibold tracking-wide text-slate-700">
-                      {chart.title}
-                    </p>
-                    <p className="min-w-0 overflow-hidden text-[clamp(0.95rem,3.1vw,1.5rem)] font-bold leading-none text-slate-700">
-                      <span>{data.individualDaily.reduce((sum, value) => sum + value, 0)}</span>
-                      <span className="mx-2 font-thin text-slate-300">|</span>
-                      <span>{data.companyDaily.reduce((sum, value) => sum + value, 0)}</span>
-                      <span className="mx-2 font-thin text-slate-300">|</span>
-                      <span>{data.schoolDaily.reduce((sum, value) => sum + value, 0)}</span>
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <p className="absolute left-0 top-0 min-w-0 max-w-full truncate text-[clamp(0.75rem,1.2vw,0.875rem)] font-semibold tracking-wide text-slate-700">
-                      {chart.title}
-                    </p>
-                    <p className="min-w-0 max-w-full truncate text-[clamp(0.95rem,3vw,1.55rem)] font-bold leading-none text-slate-700">{chart.value}</p>
-                  </>
-                )}
-                <p className={`absolute bottom-[8px] left-0 text-[11px] font-medium leading-none ${chart.deltaClassName}`}>{chart.delta}</p>
+              <div className="mb-2 w-full min-w-0">
+                <p className="w-full whitespace-nowrap text-[9px] font-semibold leading-4 text-slate-700 lg:text-[10px]">
+                  {chart.headerLine}
+                </p>
               </div>
 
-              <div className="relative mt-2 w-full min-w-0 rounded-md md:mt-0 md:w-[190px] md:shrink-0" style={{ backgroundColor: 'transparent' }}>
+              <div className="relative w-full min-w-0 rounded-md" style={{ backgroundColor: 'transparent' }}>
                 <PlotlyClient
                   data={chart.traces}
                   layout={chart.layout}

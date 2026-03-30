@@ -181,3 +181,25 @@ body {
   -webkit-text-fill-color: currentColor !important;
   caret-color: currentColor !important;
 }
+
+
+.admin-orders-theme {
+  --bg: #fafbfc;
+  --surface: #ffffff;
+  --surface-1: #ffffff;
+  --surface-2: #f7f7f7;
+  --blue-500: #1982bf;
+  --blue-600: #1982bf;
+  --blue-700: #1982bf;
+  --primary: #1982bf;
+  --primary-hover: #1982bf;
+  --primary-active: #1982bf;
+  --hover-neutral: #f7f7f7;
+  --admin-table-row-hover: #f7f7f7;
+  --admin-table-row-selected: #f7f7f7;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.admin-orders-theme * {
+  font-family: "Inter", system-ui, sans-serif;
+}

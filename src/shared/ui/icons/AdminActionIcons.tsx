@@ -114,7 +114,7 @@ export function PanelAddRemoveIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg
       viewBox="0 0 20 20"
-      className={iconClassName(className)}
+      className={iconClassName(classNames('scale-90', className))}
       fill="none"
       stroke="currentColor"
       strokeWidth="1.8"

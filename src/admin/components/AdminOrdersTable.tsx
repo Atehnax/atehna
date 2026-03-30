@@ -12,7 +12,7 @@ import { Spinner } from '@/shared/ui/loading';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
 import {
   DownloadIcon,
-  PdfFilterActionIcon,
+  PanelAddRemoveIcon,
   PencilIcon,
   TrashCanIcon
 } from '@/shared/ui/icons/AdminActionIcons';
@@ -1358,7 +1358,7 @@ export default function AdminOrdersTable({
                   }}
                   showLabel={false}
                   className="[&>button]:group [&>button]:!h-7 [&>button]:!w-7 [&>button]:!rounded-md [&>button]:!border-slate-200 [&>button]:!bg-transparent [&>button]:!px-0 [&>button]:!text-slate-400 [&>button]:transition-colors [&>button]:hover:!border-slate-300 [&>button]:hover:!bg-[color:var(--hover-neutral)] [&>button]:hover:!text-slate-700 [&>button[aria-expanded=true]]:!border-slate-300 [&>button[aria-expanded=true]]:!bg-[color:var(--hover-neutral)] [&>button[aria-expanded=true]]:!text-slate-700"
-                  icon={<PdfFilterActionIcon />}
+                  icon={<PanelAddRemoveIcon />}
                   menuClassName="!w-44"
                 />
                 <IconButton

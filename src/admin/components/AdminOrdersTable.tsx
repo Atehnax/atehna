@@ -1357,7 +1357,7 @@ export default function AdminOrdersTable({
                     setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }));
                   }}
                   showLabel={false}
-                  className="[&>button]:!h-7 [&>button]:!w-7 [&>button]:!rounded-md [&>button]:!border-slate-200 [&>button]:!bg-transparent [&>button]:!px-0 [&>button]:!text-slate-600 [&>button]:hover:!border-slate-300 [&>button]:hover:!bg-[color:var(--hover-neutral)] [&>button]:hover:!text-slate-700"
+                  className="[&>button]:group [&>button]:!h-7 [&>button]:!w-7 [&>button]:!rounded-md [&>button]:!border-slate-200 [&>button]:!bg-transparent [&>button]:!px-0 [&>button]:!text-slate-400 [&>button]:transition-colors [&>button]:hover:!border-slate-300 [&>button]:hover:!bg-[color:var(--hover-neutral)] [&>button]:hover:!text-slate-700 [&>button[aria-expanded=true]]:!border-slate-300 [&>button[aria-expanded=true]]:!bg-[color:var(--hover-neutral)] [&>button[aria-expanded=true]]:!text-slate-700"
                   icon={<PdfFilterActionIcon />}
                   menuClassName="!w-44"
                 />

@@ -114,7 +114,12 @@ export function PdfFilterActionIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg
       viewBox="0 0 20 20"
-      className={iconClassName(className)}
+      className={iconClassName(
+        classNames(
+          'opacity-65 transition-opacity duration-150 group-hover:opacity-100 group-[aria-expanded=true]:opacity-100',
+          className
+        )
+      )}
       fill="none"
       stroke="currentColor"
       strokeWidth="1.8"
@@ -123,12 +128,12 @@ export function PdfFilterActionIcon({ className, ...props }: ActionIconProps) {
       aria-hidden="true"
       {...props}
     >
-      <path d="M10 2 L4.5 2 Q2 2 2 4.5 L2 15.5 Q2 18 4.5 18 L15.5 18 Q18 18 18 15.5 L18 15" />
-      <path d="M10 2 L15.5 2 Q18 2 18 4.5 L18 5" />
+      <path d="M10 2 L4.5 2 Q2 2 2 4.5 L2 15.5 Q2 18 4.5 18 L15.5 18 Q18 18 18 15.5 L18 14.4" />
+      <path d="M10 2 L15.5 2 Q18 2 18 4.5 L18 5.4" />
       <line x1="10" y1="2" x2="10" y2="18" />
-      <line x1="16" y1="8" x2="20" y2="8" stroke="var(--danger-600)" />
-      <line x1="18" y1="10" x2="18" y2="14" stroke="var(--semantic-success)" />
-      <line x1="16" y1="12" x2="20" y2="12" stroke="var(--semantic-success)" />
+      <line x1="15.6" y1="7.6" x2="19.2" y2="7.6" stroke="var(--danger-600)" />
+      <line x1="17.4" y1="10.9" x2="17.4" y2="14.1" stroke="var(--semantic-success)" />
+      <line x1="15.8" y1="12.5" x2="19" y2="12.5" stroke="var(--semantic-success)" />
     </svg>
   );
 }

@@ -74,11 +74,11 @@ export type UnifiedDocument = {
 
 export const documentTypeOptions: Array<{ value: DocumentType; label: string }> = [
   { value: 'all', label: 'Vsi dokumenti' },
-  { value: 'order_summary', label: 'Povzetek' },
-  { value: 'purchase_order', label: 'Naročilnica' },
-  { value: 'dobavnica', label: 'Dobavnica' },
-  { value: 'predracun', label: 'Predračun' },
-  { value: 'invoice', label: 'Račun' }
+  { value: 'order_summary', label: 'Povzetek (PN)' },
+  { value: 'purchase_order', label: 'Naročilnica (N)' },
+  { value: 'dobavnica', label: 'Dobavnica (D)' },
+  { value: 'predracun', label: 'Predračun (P)' },
+  { value: 'invoice', label: 'Račun (R)' }
 ];
 
 export const documentTypeLabelMap: Map<string, string> = new Map(

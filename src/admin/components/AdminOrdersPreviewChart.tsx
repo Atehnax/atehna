@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useMemo, useState } from 'react';
+import { memo, useMemo, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import type { Data, Layout } from 'plotly.js';
@@ -28,7 +28,7 @@ type HoverCard = { xLabel: string; rows: TooltipRow[]; left: number; top: number
 type ChartCard = {
   key: string;
   focusKey: string;
-  headerLine: string;
+  headerLine: ReactNode;
   traces: Data[];
   layout: Partial<Layout>;
   tooltipRowsAt: (index: number) => TooltipRow[];
@@ -132,6 +132,10 @@ const periodChange = (series: Array<number | null>, lookbackDays: number) => {
 
 const formatDeltaValue = (value: number | null) =>
   value === null || !Number.isFinite(value) ? '—' : `${value.toFixed(1)}%`;
+const getTrendClass = (value: number | null) => {
+  if (value === null || !Number.isFinite(value)) return 'text-slate-500';
+  return value >= 0 ? 'text-emerald-700' : 'text-rose-700';
+};
 
 const getNaročiloPlural = (count: number) => {
   if (count === 1) return 'naročilo';
@@ -139,6 +143,11 @@ const getNaročiloPlural = (count: number) => {
   if (count === 3 || count === 4) return 'naročila';
   return 'naročil';
 };
+
+const formatCurrencyWhole = (value: number | null | undefined) =>
+  value === null || value === undefined || !Number.isFinite(value)
+    ? '—'
+    : `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 0 }).format(value)}€`;
 
 
 const formatTooltipDate = (value: string) => formatLjubljanaDate(value);
@@ -351,8 +360,15 @@ function AdminOrdersPreviewChart({
         const sevenDay = periodChange(data.ordersSeries, 7);
         const thirtyDay = periodChange(data.ordersSeries, 30);
         const count = data.totalOrders;
+        const metricClassName = getTrendClass(thirtyDay);
         return {
-          headerLine: `${formatInt(count)} ${getNaročiloPlural(count)}* – 7d: ${formatDeltaValue(sevenDay)} – 30d: ${formatDeltaValue(thirtyDay)}`
+          headerLine: (
+            <>
+              <span className={metricClassName}>{formatInt(count)} {getNaročiloPlural(count)}*</span>
+              {' – '}7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span>
+              {' – '}30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span>
+            </>
+          )
         };
       })(),
       traces: [
@@ -387,8 +403,15 @@ function AdminOrdersPreviewChart({
       ...(() => {
         const sevenDay = periodChange(data.revenueSeries, 7);
         const thirtyDay = periodChange(data.revenueSeries, 30);
+        const metricClassName = getTrendClass(thirtyDay);
         return {
-          headerLine: `${formatCompactK(data.totalRevenue)} € prihodkov – 7d: ${formatDeltaValue(sevenDay)} – 30d: ${formatDeltaValue(thirtyDay)}`
+          headerLine: (
+            <>
+              <span className={metricClassName}>{formatCurrencyWhole(data.totalRevenue)} prihodkov</span>
+              {' – '}7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span>
+              {' – '}30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span>
+            </>
+          )
         };
       })(),
       traces: [
@@ -423,8 +446,15 @@ function AdminOrdersPreviewChart({
       ...(() => {
         const sevenDay = periodChange(data.dailyAov, 7);
         const thirtyDay = periodChange(data.dailyAov, 30);
+        const metricClassName = getTrendClass(thirtyDay);
         return {
-          headerLine: `Povprečje: ${formatCompactK(data.rangeAov)}€ – 7d: ${formatDeltaValue(sevenDay)} – 30d: ${formatDeltaValue(thirtyDay)}`
+          headerLine: (
+            <>
+              <span className={metricClassName}>Povprečje: {formatCurrencyWhole(data.rangeAov)}</span>
+              {' – '}7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span>
+              {' – '}30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span>
+            </>
+          )
         };
       })(),
       traces: [
@@ -465,8 +495,15 @@ function AdminOrdersPreviewChart({
         const individualTotal = data.individualDaily.reduce((sum, value) => sum + value, 0);
         const companyTotal = data.companyDaily.reduce((sum, value) => sum + value, 0);
         const schoolTotal = data.schoolDaily.reduce((sum, value) => sum + value, 0);
+        const metricClassName = getTrendClass(thirtyDay);
         return {
-          headerLine: `F: ${individualTotal} – P: ${companyTotal} – Š: ${schoolTotal} – 7d: ${formatDeltaValue(sevenDay)} – 30d: ${formatDeltaValue(thirtyDay)}`
+          headerLine: (
+            <>
+              <span className={metricClassName}>F: {individualTotal} – P: {companyTotal} – Š: {schoolTotal}</span>
+              {' – '}7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span>
+              {' – '}30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span>
+            </>
+          )
         };
       })(),
       traces: [
@@ -580,7 +617,7 @@ function AdminOrdersPreviewChart({
               }}
             >
               <div className="mb-2 w-full min-w-0">
-                <p className="w-full whitespace-nowrap text-[9px] font-semibold leading-4 text-slate-700 lg:text-[10px]">
+                <p className="w-full whitespace-nowrap text-[11px] font-semibold leading-4 text-slate-700">
                   {chart.headerLine}
                 </p>
               </div>

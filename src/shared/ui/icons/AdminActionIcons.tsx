@@ -208,6 +208,25 @@ export function PlusIcon({ className, ...props }: ActionIconProps) {
   );
 }
 
+export function CheckCircleIcon({ className, ...props }: ActionIconProps) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className={iconClassName(className)}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <circle cx="10" cy="10" r="7" />
+      <path d="m6.8 10.2 2.2 2.2 4.2-4.3" />
+    </svg>
+  );
+}
+
 export function MoreActionsIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg

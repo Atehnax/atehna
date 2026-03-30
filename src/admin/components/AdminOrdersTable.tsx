@@ -1364,7 +1364,7 @@ export default function AdminOrdersTable({
                     setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }));
                   }}
                   showLabel={false}
-                  className="[&>button]:group [&>button]:!h-7 [&>button]:!w-7 [&>button]:!rounded-md [&>button]:!border-slate-200 [&>button]:!bg-transparent [&>button]:!px-0 [&>button]:!text-slate-400 [&>button]:transition-colors [&>button]:hover:!border-slate-300 [&>button]:hover:!bg-[color:var(--hover-neutral)] [&>button]:hover:!text-slate-700 [&>button[aria-expanded=true]]:!border-slate-300 [&>button[aria-expanded=true]]:!bg-[color:var(--hover-neutral)] [&>button[aria-expanded=true]]:!text-slate-700"
+                  className="[&>button]:group [&>button]:!h-7 [&>button]:!w-7 [&>button]:!rounded-md [&>button]:!border-slate-200 [&>button]:!bg-transparent [&>button]:!px-0 [&>button]:!text-slate-400 [&>button]:transition-colors [&>button]:hover:!border-slate-300 [&>button]:hover:!bg-[color:var(--hover-neutral)] [&>button]:hover:!text-[color:var(--blue-500)] [&>button[aria-expanded=true]]:!border-slate-300 [&>button[aria-expanded=true]]:!bg-[color:var(--hover-neutral)] [&>button[aria-expanded=true]]:!text-[color:var(--blue-500)]"
                   icon={<PanelAddRemoveIcon />}
                   menuClassName="!w-44"
                 />
@@ -1410,7 +1410,7 @@ export default function AdminOrdersTable({
           }
           footerRight={null}
         >
-          <Table className="min-w-[1060px] w-full text-[11px]">
+          <Table className="min-w-[1060px] w-full table-fixed text-[11px]">
             <colgroup>
               <col style={{ width: columnWidths.selectAndDelete }} />
               {visibleColumns.order ? <col style={{ width: columnWidths.order }} /> : null}

@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useMemo, useRef, useState } from 'react';
 import { IconButton } from '@/shared/ui/icon-button';
 import {
+  CheckCircleIcon,
   GeneratePdfIcon,
   PencilIcon,
   SaveIcon,
@@ -385,14 +386,10 @@ export default function AdminOrderPdfManager({
                           >
                             <div className="grid min-w-0 grid-cols-[14px_minmax(0,1fr)_130px_24px] items-center gap-2">
                               <span
-                                className="inline-flex h-3.5 w-3.5 items-center justify-center text-emerald-600"
+                                className="inline-flex h-3.5 w-3.5 items-center justify-center text-emerald-700"
                                 aria-hidden="true"
                               >
-                                {isNewest ? (
-                                  <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="currentColor">
-                                    <path d="M8 1.5a6.5 6.5 0 1 0 0 13a6.5 6.5 0 0 0 0-13Zm3.03 4.72a.75.75 0 0 1 0 1.06L7.66 10.65a.75.75 0 0 1-1.06 0L4.97 9.03a.75.75 0 1 1 1.06-1.06l1.1 1.1l2.84-2.85a.75.75 0 0 1 1.06 0Z" />
-                                  </svg>
-                                ) : null}
+                                {isNewest ? <CheckCircleIcon className="h-3.5 w-3.5" /> : null}
                               </span>
 
                               <div className="min-w-0 flex items-center gap-2">

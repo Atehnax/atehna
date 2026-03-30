@@ -8,7 +8,6 @@ import dynamic from 'next/dynamic';
 import { IconButton } from '@/shared/ui/icon-button';
 import AdminOrderStatusSelect from '@/admin/components/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
-import { CustomSelect } from '@/shared/ui/select';
 import { Spinner } from '@/shared/ui/loading';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
 import { FloatingInput } from '@/shared/ui/floating-field';
@@ -21,7 +20,6 @@ import {
 import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, RowActionsDropdown, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
-import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
 import {
   adminTableRowToneClasses,
   dateInputTokenClasses,
@@ -116,7 +114,7 @@ const PAYMENT_SORT_PRIORITY: Record<string, number> = {
 };
 const TYPE_SORT_CYCLE: TypePriority[] = ['school', 'company', 'individual'];
 const HEADER_TITLE_BUTTON_CLASS = 'inline-flex items-center text-[11px] font-semibold leading-none hover:text-slate-700';
-const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[14px] w-[14px] shrink-0 self-center items-center justify-center text-slate-500 transition-colors hover:text-[color:var(--blue-500)] data-[active=true]:text-[color:var(--blue-500)]';
+const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[13px] w-[13px] shrink-0 self-center items-center justify-center text-slate-500 transition-colors hover:text-[color:var(--blue-500)] data-[active=true]:text-[color:var(--blue-500)]';
 const NON_RESET_SORT_COLUMNS: SortableColumnKey[] = ['order', 'date'];
 const AdminOrdersPreviewChart = dynamic(() => import('@/admin/components/AdminOrdersPreviewChart'), { ssr: false });
 const LazyAdminOrdersPdfCell = dynamic(() => import('@/admin/components/AdminOrdersPdfCell'), {
@@ -235,7 +233,6 @@ export default function AdminOrdersTable({
   const debouncedQuery = useDebouncedValue(query, 200);
   const debouncedFromDate = useDebouncedValue(fromDate, 200);
   const debouncedToDate = useDebouncedValue(toDate, 200);
-  const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
   const [isChartReady, setIsChartReady] = useState(false);
 
   const [documentType, setDocumentType] = useState<DocumentType>((initialDocumentType as DocumentType) ?? 'all');
@@ -256,7 +253,6 @@ export default function AdminOrdersTable({
   const paymentFilterButtonRef = useRef<HTMLButtonElement>(null);
   const totalFilterButtonRef = useRef<HTMLButtonElement>(null);
   const documentsFilterButtonRef = useRef<HTMLButtonElement>(null);
-  const datePopoverRef = useRef<HTMLDivElement>(null);
   const statusHeaderMenuRef = useRef<HTMLDivElement>(null);
   const paymentHeaderMenuRef = useRef<HTMLDivElement>(null);
   const hasAutoResetFiltersRef = useRef(false);
@@ -290,23 +286,6 @@ export default function AdminOrdersTable({
     const timeoutId = globalThis.setTimeout(() => setIsChartReady(true), 0);
     return () => globalThis.clearTimeout(timeoutId);
   }, []);
-
-  useEffect(() => {
-    const closeOnOutsideClick = (mouseEvent: MouseEvent) => {
-      if (!datePopoverRef.current) return;
-      if (!datePopoverRef.current.contains(mouseEvent.target as Node)) {
-        setIsDatePopoverOpen(false);
-      }
-    };
-
-    if (isDatePopoverOpen) {
-      document.addEventListener('mousedown', closeOnOutsideClick);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', closeOnOutsideClick);
-    };
-  }, [isDatePopoverOpen]);
 
   useEffect(() => {
     if (!isStatusHeaderMenuOpen && !isPaymentHeaderMenuOpen) return;
@@ -683,7 +662,7 @@ export default function AdminOrdersTable({
         return fallbackStable;
       }
 
-      const descendingFirstColumns: SortableColumnKey[] = ['order', 'date', 'total'];
+      const descendingFirstColumns: SortableColumnKey[] = ['total'];
       const isDescending = descendingFirstColumns.includes(sortState.column) ? sortState.index === 0 : sortState.index === 1;
       const sortMultiplier = isDescending ? -1 : 1;
       if (sortState.column === 'type') {
@@ -1087,26 +1066,6 @@ export default function AdminOrdersTable({
     };
   }, []);
 
-  const defaultDateRangeLabel = useMemo(() => {
-    if (orders.length === 0) return '—';
-
-    const timestamps = orders
-      .map((order) => new Date(order.created_at).getTime())
-      .filter((timestamp) => !Number.isNaN(timestamp));
-
-    if (timestamps.length === 0) return '—';
-
-    const minTimestamp = Math.min(...timestamps);
-    const maxTimestamp = Math.max(...timestamps);
-
-    return `${formatCompactDate(new Date(minTimestamp))} - ${formatCompactDate(new Date(maxTimestamp))}`;
-  }, [orders]);
-
-  const dateRangeLabel =
-    fromDate || toDate
-      ? `${formatCompactDateFromDateInput(fromDate)} - ${formatCompactDateFromDateInput(toDate)}`
-      : defaultDateRangeLabel;
-
   const resetAllFilters = () => {
     setStatusFilter('all');
     setQuery('');
@@ -1285,82 +1244,6 @@ export default function AdminOrdersTable({
           headerRight={
             <>
               <div className="flex items-center gap-2 pb-1">
-                <div className="relative" ref={datePopoverRef}>
-                  <button
-                    type="button"
-                    onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-                    className={`${ADMIN_CONTROL_HEIGHT} rounded-xl border border-slate-300 bg-white px-2.5 py-0 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none`}
-                  >
-                    <span className="inline-flex h-full w-full items-center gap-1.5 leading-none">
-                      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5 text-slate-600" fill="none" stroke="currentColor" strokeWidth="1.8">
-                        <rect x="3" y="5" width="18" height="16" rx="2" />
-                        <path d="M16 3v4M8 3v4M3 10h18" />
-                      </svg>
-                      <span className="whitespace-nowrap">{dateRangeLabel}</span>
-                    </span>
-                  </button>
-                  {isDatePopoverOpen && (
-                    <div lang="sl-SI" className="absolute right-0 top-9 z-20 w-[420px] rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
-                      <div className="grid grid-cols-[180px_1fr] gap-4">
-                        <div className="space-y-1 border-r border-slate-200 pr-3">
-                          {[
-                            { key: 'today', label: 'Danes' },
-                            { key: 'yesterday', label: 'Včeraj' },
-                            { key: '7d', label: 'Zadnjih 7 dni' },
-                            { key: '30d', label: 'Zadnjih 30 dni' },
-                            { key: '3m', label: 'Zadnje 3 mesece' },
-                            { key: '6m', label: 'Zadnjih 6 mesecev' },
-                            { key: '1y', label: 'Zadnje leto' },
-                            { key: 'allYears', label: 'Vsa leta' }
-                          ].map((item) => (
-                            <button
-                              key={item.key}
-                              type="button"
-                              onClick={() => applyQuickDateRange(item.key as any)}
-                              className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)] focus:bg-[color:var(--hover-neutral)] focus:text-[color:var(--blue-500)] focus:outline-none"
-                            >
-                              {item.label}
-                            </button>
-                          ))}
-                        </div>
-                        <div className="space-y-3">
-                          <div>
-                            <label className="text-xs font-semibold text-slate-500">Od</label>
-                            <input
-                              type="date"
-                              lang="sl-SI"
-                              value={fromDate}
-                              onChange={(event) => {
-                                setFromDate(event.target.value);
-                                setRangePreset('custom');
-                              }}
-                              className={`mt-1 ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`}
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs font-semibold text-slate-500">Do</label>
-                            <input
-                              type="date"
-                              lang="sl-SI"
-                              value={toDate}
-                              onChange={(event) => {
-                                setToDate(event.target.value);
-                                setRangePreset('custom');
-                              }}
-                              className={`mt-1 ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <CustomSelect
-                  value={documentType}
-                  onChange={(next) => setDocumentType(next as DocumentType)}
-                  options={documentTypeOptions}
-                  triggerClassName={`${ADMIN_CONTROL_HEIGHT} w-[126px] rounded-xl border border-slate-300 bg-white ${ADMIN_CONTROL_PADDING_X} py-0 text-xs font-semibold text-slate-700 shadow-none hover:bg-[color:var(--hover-neutral)]`}
-                />
                 <IconButton
                   type="button"
                   onClick={handleDownloadAllDocuments}
@@ -1755,10 +1638,10 @@ export default function AdminOrdersTable({
           <div data-header-filter-root="true">
             {openHeaderFilter === 'order' ? (
               <div style={getHeaderPopoverStyle(orderFilterButtonRef.current, 192)} className="rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
-                <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
                   <FloatingInput
                     id="orders-order-number-min"
-                    label="od"
+                    label="Od"
                     tone="admin"
                     type="number"
                     value={orderNumberRange.min}
@@ -1767,7 +1650,7 @@ export default function AdminOrdersTable({
                   />
                   <FloatingInput
                     id="orders-order-number-max"
-                    label="do"
+                    label="Do"
                     tone="admin"
                     type="number"
                     value={orderNumberRange.max}
@@ -1835,7 +1718,7 @@ export default function AdminOrdersTable({
             ) : null}
             {openHeaderFilter === 'total' ? (
               <div style={getHeaderPopoverStyle(totalFilterButtonRef.current, 192)} className="rounded-xl border border-slate-200 bg-white p-2 text-left shadow-lg">
-                <div className="mb-2 grid grid-cols-2 gap-1">
+                <div className="mb-2 grid grid-cols-3 gap-1">
                   {['20', '50', '100', '200', '500', '1000'].map((maxValue) => (
                     <button key={maxValue} type="button" onClick={() => setTotalRange({ min: '0', max: maxValue })} className="rounded-md border border-slate-200 px-2 py-1 text-[11px] hover:bg-[color:var(--hover-neutral)]">{`0-${maxValue === '1000' ? '1k' : maxValue}`}</button>
                   ))}
@@ -1843,7 +1726,7 @@ export default function AdminOrdersTable({
                 <div className="grid grid-cols-2 gap-2">
                   <FloatingInput
                     id="orders-total-min"
-                    label="od"
+                    label="Od"
                     tone="admin"
                     type="number"
                     value={totalRange.min}
@@ -1852,7 +1735,7 @@ export default function AdminOrdersTable({
                   />
                   <FloatingInput
                     id="orders-total-max"
-                    label="do"
+                    label="Do"
                     tone="admin"
                     type="number"
                     value={totalRange.max}
@@ -1888,22 +1771,11 @@ function useDebouncedValue<T>(value: T, delayMs: number) {
   return debounced;
 }
 
-function formatCompactDate(dateValue: Date) {
-  if (Number.isNaN(dateValue.getTime())) return '—';
-  return `${String(dateValue.getDate()).padStart(2, '0')}.${String(dateValue.getMonth() + 1).padStart(2, '0')}`;
-}
-
-function formatCompactDateFromDateInput(value: string) {
-  if (!value) return '—';
-  const parsedDate = new Date(`${value}T00:00:00`);
-  return formatCompactDate(parsedDate);
-}
-
 function FunnelIcon() {
   return (
     <svg
       viewBox="0 0 20 20"
-      className="block h-[14px] w-[14px]"
+      className="block h-[13px] w-[13px]"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"

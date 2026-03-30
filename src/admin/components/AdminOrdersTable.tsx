@@ -434,30 +434,20 @@ export default function AdminOrdersTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const applyQuickDateRange = (range: 'today' | 'yesterday' | '7d' | '30d' | '3m' | '6m' | '1y' | 'allYears') => {
+  const applyQuickDateRange = (range: '7d' | '30d' | '90d' | '180d' | '365d' | 'ytd') => {
     const anchorDate = new Date(latestOrderDate);
 
-    if (range === 'today') {
-      return { from: toDateInputValue(anchorDate), to: toDateInputValue(anchorDate) };
+    if (range === 'ytd') {
+      const ytdStart = new Date(anchorDate.getFullYear(), 0, 1);
+      return { from: toDateInputValue(ytdStart), to: toDateInputValue(anchorDate) };
     }
 
-    if (range === 'yesterday') {
-      const yesterdayDate = shiftDateByDays(anchorDate, -1);
-      return { from: toDateInputValue(yesterdayDate), to: toDateInputValue(yesterdayDate) };
-    }
-
-    if (range === 'allYears') {
-      const todayDate = new Date();
-      todayDate.setHours(0, 0, 0, 0);
-      return { from: toDateInputValue(earliestOrderDate), to: toDateInputValue(todayDate) };
-    }
-
-    const dayCountByRange: Record<'7d' | '30d' | '3m' | '6m' | '1y', number> = {
+    const dayCountByRange: Record<'7d' | '30d' | '90d' | '180d' | '365d', number> = {
       '7d': 6,
       '30d': 29,
-      '3m': 89,
-      '6m': 179,
-      '1y': 364
+      '90d': 89,
+      '180d': 179,
+      '365d': 364
     };
 
     const fromDateValue = shiftDateByDays(anchorDate, -dayCountByRange[range]);
@@ -1109,49 +1099,89 @@ export default function AdminOrdersTable({
     orderNumberRange.max.trim().length > 0 ||
     sortState !== null;
 
+  const [filterChipOrder, setFilterChipOrder] = useState<Array<'date' | 'status' | 'payment' | 'documents' | 'total' | 'orderNumber'>>([]);
+
+  const hasDateChip = Boolean(hasExplicitDateFilter && (fromDate || toDate));
+  const hasStatusChip = columnStatusFilter !== 'all';
+  const hasPaymentChip = columnPaymentFilter !== 'all';
+  const hasDocumentsChip = documentType !== 'all';
+  const hasTotalChip = Boolean(totalRange.min || totalRange.max);
+  const hasOrderNumberChip = Boolean(orderNumberRange.min || orderNumberRange.max);
+
+  useEffect(() => {
+    setFilterChipOrder((currentOrder) => {
+      let nextOrder = [...currentOrder];
+      const states: Array<{ key: 'date' | 'status' | 'payment' | 'documents' | 'total' | 'orderNumber'; active: boolean }> = [
+        { key: 'date', active: hasDateChip },
+        { key: 'status', active: hasStatusChip },
+        { key: 'payment', active: hasPaymentChip },
+        { key: 'documents', active: hasDocumentsChip },
+        { key: 'total', active: hasTotalChip },
+        { key: 'orderNumber', active: hasOrderNumberChip }
+      ];
+      states.forEach(({ key, active }) => {
+        const index = nextOrder.indexOf(key);
+        if (active && index === -1) nextOrder.push(key);
+        if (!active && index !== -1) nextOrder = nextOrder.filter((entry) => entry !== key);
+      });
+      return nextOrder;
+    });
+  }, [hasDateChip, hasStatusChip, hasPaymentChip, hasDocumentsChip, hasTotalChip, hasOrderNumberChip]);
+
   const activeFilterChips = useMemo(() => {
-    const chips: Array<{ key: string; label: string; clear: () => void }> = [];
-    if (hasExplicitDateFilter && (fromDate || toDate)) {
-      chips.push({
-        key: 'date',
-        label: `Datum: ${fromDate || '—'} - ${toDate || '—'}`,
-        clear: () => {
-          setFromDate('');
-          setToDate('');
-        }
-      });
-    }
-    if (columnStatusFilter !== 'all') {
-      const statusLabel = ORDER_STATUS_OPTIONS.find((option) => option.value === columnStatusFilter)?.label ?? columnStatusFilter;
-      chips.push({ key: 'status', label: `Status: ${statusLabel}`, clear: () => setColumnStatusFilter('all') });
-    }
-    if (columnPaymentFilter !== 'all') {
-      const paymentLabel = PAYMENT_STATUS_OPTIONS.find((option) => option.value === columnPaymentFilter)?.label ?? columnPaymentFilter;
-      chips.push({ key: 'payment', label: `Plačilo: ${paymentLabel}`, clear: () => setColumnPaymentFilter('all') });
-    }
-    if (documentType !== 'all') {
-      chips.push({
-        key: 'documents',
-        label: `Dokumenti: ${documentTypeOptions.find((option) => option.value === documentType)?.label ?? documentType}`,
-        clear: () => setDocumentType('all')
-      });
-    }
-    if (totalRange.min || totalRange.max) {
-      chips.push({
-        key: 'total',
-        label: `Skupaj: ${totalRange.min || '0'} - ${totalRange.max || '∞'}`,
-        clear: () => setTotalRange({ min: '', max: '' })
-      });
-    }
-    if (orderNumberRange.min || orderNumberRange.max) {
-      chips.push({
-        key: 'orderNumber',
-        label: `Naročilo: ${orderNumberRange.min || '0'} - ${orderNumberRange.max || '∞'}`,
-        clear: () => setOrderNumberRange({ min: '', max: '' })
-      });
-    }
-    return chips;
-  }, [hasExplicitDateFilter, fromDate, toDate, columnStatusFilter, columnPaymentFilter, documentType, totalRange, orderNumberRange]);
+    const chipByKey: Record<string, { key: string; label: string; clear: () => void } | null> = {
+      date: hasDateChip
+        ? {
+            key: 'date',
+            label: `Datum: ${fromDate || '—'} - ${toDate || '—'}`,
+            clear: () => {
+              setFromDate('');
+              setToDate('');
+            }
+          }
+        : null,
+      status: hasStatusChip
+        ? {
+            key: 'status',
+            label: `Status: ${ORDER_STATUS_OPTIONS.find((option) => option.value === columnStatusFilter)?.label ?? columnStatusFilter}`,
+            clear: () => setColumnStatusFilter('all')
+          }
+        : null,
+      payment: hasPaymentChip
+        ? {
+            key: 'payment',
+            label: `Plačilo: ${PAYMENT_STATUS_OPTIONS.find((option) => option.value === columnPaymentFilter)?.label ?? columnPaymentFilter}`,
+            clear: () => setColumnPaymentFilter('all')
+          }
+        : null,
+      documents: hasDocumentsChip
+        ? {
+            key: 'documents',
+            label: `Dokumenti: ${documentTypeOptions.find((option) => option.value === documentType)?.label ?? documentType}`,
+            clear: () => setDocumentType('all')
+          }
+        : null,
+      total: hasTotalChip
+        ? {
+            key: 'total',
+            label: `Skupaj: ${totalRange.min || '0'} - ${totalRange.max || '∞'}`,
+            clear: () => setTotalRange({ min: '', max: '' })
+          }
+        : null,
+      orderNumber: hasOrderNumberChip
+        ? {
+            key: 'orderNumber',
+            label: `Naročila: #${orderNumberRange.min || '0'} – #${orderNumberRange.max || '∞'}`,
+            clear: () => setOrderNumberRange({ min: '', max: '' })
+          }
+        : null
+    };
+
+    return filterChipOrder.map((key) => chipByKey[key]).filter((chip): chip is { key: string; label: string; clear: () => void } => Boolean(chip));
+  }, [hasDateChip, hasStatusChip, hasPaymentChip, hasDocumentsChip, hasTotalChip, hasOrderNumberChip, fromDate, toDate, columnStatusFilter, columnPaymentFilter, documentType, totalRange.min, totalRange.max, orderNumberRange.min, orderNumberRange.max, filterChipOrder]);
+
+  const getHeaderTitleClass = (column: SortableColumnKey) =>
+    `${HEADER_TITLE_BUTTON_CLASS} ${sortState?.column === column ? 'underline underline-offset-2' : ''}`;
 
   useEffect(() => {
     if (hasAutoResetFiltersRef.current) return;
@@ -1277,6 +1307,7 @@ export default function AdminOrdersTable({
           }}
           contentClassName="overflow-x-auto bg-white"
           headerClassName="bg-white"
+          showDivider={false}
           headerLeft={
             <AdminSearchInput
               value={query}
@@ -1383,7 +1414,7 @@ export default function AdminOrdersTable({
 
                 {visibleColumns.order ? <TH className="h-11 text-center">
                   <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
-                    <button type="button" onClick={() => onSort('order')} className={HEADER_TITLE_BUTTON_CLASS}>Naročilo</button>
+                    <button type="button" onClick={() => onSort('order')} className={getHeaderTitleClass('order')}>Naročilo</button>
                     <button ref={orderFilterButtonRef} data-active={openHeaderFilter === 'order'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('order'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Naročilo">
                       <FunnelIcon />
                     </button>
@@ -1392,20 +1423,20 @@ export default function AdminOrdersTable({
 
                 {visibleColumns.date ? <TH className="h-11 text-center text-[11px]">
                   <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
-                    <button type="button" onClick={() => onSort('date')} className={HEADER_TITLE_BUTTON_CLASS}>Datum</button>
+                    <button type="button" onClick={() => onSort('date')} className={getHeaderTitleClass('date')}>Datum</button>
                     <button ref={dateFilterButtonRef} data-active={openHeaderFilter === 'date'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('date'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Datum">
                       <FunnelIcon />
                     </button>
                   </div>
                 </TH> : null}
 
-                {visibleColumns.customer ? <TH className="text-[11px]"><button type="button" onClick={() => onSort('customer')} className={HEADER_TITLE_BUTTON_CLASS}>Naročnik</button></TH> : null}
+                {visibleColumns.customer ? <TH className="text-[11px]"><button type="button" onClick={() => onSort('customer')} className={getHeaderTitleClass('customer')}>Naročnik</button></TH> : null}
 
-                {visibleColumns.address ? <TH className="text-[11px]"><button type="button" onClick={() => onSort('address')} className={HEADER_TITLE_BUTTON_CLASS}>Naslov</button></TH> : null}
+                {visibleColumns.address ? <TH className="text-[11px]"><button type="button" onClick={() => onSort('address')} className={getHeaderTitleClass('address')}>Naslov</button></TH> : null}
 
                 {visibleColumns.type ? <TH className="h-11 text-center text-[11px]">
                   <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
-                    <button type="button" onClick={() => onSort('type')} className={HEADER_TITLE_BUTTON_CLASS}>Tip</button>
+                    <button type="button" onClick={() => onSort('type')} className={getHeaderTitleClass('type')}>Tip</button>
                     <button ref={typeFilterButtonRef} data-active={openHeaderFilter === 'type'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('type'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Tip"><FunnelIcon /></button>
                   </div>
                 </TH> : null}
@@ -1443,7 +1474,7 @@ export default function AdminOrdersTable({
                       </>
                     ) : (
                       <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
-                        <button type="button" onClick={() => onSort('status')} className={HEADER_TITLE_BUTTON_CLASS}>Status</button>
+                        <button type="button" onClick={() => onSort('status')} className={getHeaderTitleClass('status')}>Status</button>
                         <button ref={statusFilterButtonRef} data-active={openHeaderFilter === 'status'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('status'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Status"><FunnelIcon /></button>
                       </div>
                     )}
@@ -1483,7 +1514,7 @@ export default function AdminOrdersTable({
                       </>
                     ) : (
                       <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
-                        <button type="button" onClick={() => onSort('payment')} className={HEADER_TITLE_BUTTON_CLASS}>Plačilo</button>
+                        <button type="button" onClick={() => onSort('payment')} className={getHeaderTitleClass('payment')}>Plačilo</button>
                         <button ref={paymentFilterButtonRef} data-active={openHeaderFilter === 'payment'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('payment'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Plačilo"><FunnelIcon /></button>
                       </div>
                     )}
@@ -1492,7 +1523,7 @@ export default function AdminOrdersTable({
 
                 {visibleColumns.total ? <TH className="h-11 text-center text-[11px]">
                   <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
-                    <button type="button" onClick={() => onSort('total')} className={HEADER_TITLE_BUTTON_CLASS}>Skupaj</button>
+                    <button type="button" onClick={() => onSort('total')} className={getHeaderTitleClass('total')}>Skupaj</button>
                     <button ref={totalFilterButtonRef} data-active={openHeaderFilter === 'total'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('total'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Skupaj"><FunnelIcon /></button>
                   </div>
                 </TH> : null}
@@ -1703,25 +1734,25 @@ export default function AdminOrdersTable({
               <div lang="sl-SI" style={getHeaderPopoverStyle(dateFilterButtonRef.current, 380)} className="rounded-xl border border-slate-200 bg-white p-3 text-left shadow-lg">
                 <h4 className="mb-2 text-[11px] font-semibold text-slate-800">Nastavi obdobje</h4>
                 <div className="mb-3 grid grid-cols-3 gap-2">
-                  {[
-                    { key: 'today', label: 'Zadnja 1 h' },
-                    { key: 'yesterday', label: 'Zadnjih 24 h' },
-                    { key: '7d', label: 'Zadnjih 7 dni' },
-                    { key: '30d', label: 'Zadnjih 30 dni' },
-                    { key: '3m', label: 'Zadnjih 90 dni' },
-                    { key: '6m', label: 'Zadnjih 180 dni' }
+                    {[
+                    { key: '7d', label: 'Zadnjih 7d' },
+                    { key: '30d', label: 'Zadnjih 30d' },
+                    { key: '90d', label: 'Zadnjih 90d' },
+                    { key: '180d', label: 'Zadnjih 180d' },
+                    { key: '365d', label: 'Zadnjih 365d' },
+                    { key: 'ytd', label: 'Letos' }
                   ].map((item) => (
                     <button
                       key={item.key}
                       type="button"
                       onClick={() => {
-                        const quickRange = applyQuickDateRange(item.key as any);
+                        const quickRange = applyQuickDateRange(item.key as '7d' | '30d' | '90d' | '180d' | '365d' | 'ytd');
                         setDraftFromDate(quickRange.from);
                         setDraftToDate(quickRange.to);
                       }}
                       className="rounded-full border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-[color:var(--hover-neutral)]"
                     >
-                      {item.label.toUpperCase()}
+                      {item.label}
                     </button>
                   ))}
                 </div>
@@ -1741,7 +1772,7 @@ export default function AdminOrdersTable({
               <div style={getHeaderPopoverStyle(typeFilterButtonRef.current, 144)}>
                 <MenuPanel className="shadow-lg">
                   {[
-                    { value: 'all', label: 'Vsa' },
+                    { value: 'all', label: 'Vsi' },
                     { value: 'school', label: 'Šola' },
                     { value: 'company', label: 'Podjetje' },
                     { value: 'individual', label: 'Fiz. oseba' }

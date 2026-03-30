@@ -12,6 +12,7 @@ type AdminTableLayoutProps = {
   style?: CSSProperties;
   contentClassName?: string;
   headerClassName?: string;
+  showDivider?: boolean;
 };
 
 const classNames = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ');
@@ -26,7 +27,8 @@ export default function AdminTableLayout({
   className,
   style,
   contentClassName,
-  headerClassName
+  headerClassName,
+  showDivider = true
 }: AdminTableLayoutProps) {
   const hasHeaderRow = Boolean(headerLeft || headerRight);
   const hasFilterRow = Boolean(filterRowLeft || filterRowRight);
@@ -48,7 +50,7 @@ export default function AdminTableLayout({
           </div>
         ) : null}
 
-        {hasFilterRow ? <hr className="mt-2 border-slate-200" /> : null}
+        {hasFilterRow && showDivider ? <hr className="mt-2 border-slate-200" /> : null}
       </div>
 
       <div className={contentClassName}>{children}</div>

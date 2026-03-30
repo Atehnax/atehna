@@ -22,8 +22,7 @@ import { EmptyState, RowActions, RowActionsDropdown, Table, TBody, TD, THead, TH
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import {
   adminTableRowToneClasses,
-  dateInputTokenClasses,
-  getAdminStripedRowToneClass
+  dateInputTokenClasses
 } from '@/shared/ui/theme/tokens';
 import { AdminTableLayout, ColumnVisibilityControl } from '@/shared/ui/admin-table';
 import AdminOrderPaymentSelect from '@/admin/components/AdminOrderPaymentSelect';
@@ -239,7 +238,10 @@ export default function AdminOrdersTable({
   const [columnPaymentFilter, setColumnPaymentFilter] = useState<'all' | 'paid' | 'refunded' | 'unpaid'>('all');
   const [columnTypeFilter, setColumnTypeFilter] = useState<'all' | TypePriority>('all');
   const [totalRange, setTotalRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
+  const [draftTotalRange, setDraftTotalRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [orderNumberRange, setOrderNumberRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
+  const [draftFromDate, setDraftFromDate] = useState(initialFrom);
+  const [draftToDate, setDraftToDate] = useState(initialTo);
   const [openHeaderFilter, setOpenHeaderFilter] = useState<null | 'order' | 'date' | 'type' | 'status' | 'payment' | 'total' | 'documents'>(null);
   const { toast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
@@ -337,6 +339,16 @@ export default function AdminOrdersTable({
       document.removeEventListener('keydown', handleEscape);
     };
   }, [openHeaderFilter]);
+
+  useEffect(() => {
+    if (openHeaderFilter === 'total') {
+      setDraftTotalRange(totalRange);
+    }
+    if (openHeaderFilter === 'date') {
+      setDraftFromDate(fromDate);
+      setDraftToDate(toDate);
+    }
+  }, [openHeaderFilter, totalRange, fromDate, toDate]);
 
   const latestOrderDate = useMemo(() => {
     const timestamps = orders
@@ -1094,6 +1106,50 @@ export default function AdminOrdersTable({
     orderNumberRange.max.trim().length > 0 ||
     sortState !== null;
 
+  const activeFilterChips = useMemo(() => {
+    const chips: Array<{ key: string; label: string; clear: () => void }> = [];
+    if (fromDate || toDate) {
+      chips.push({
+        key: 'date',
+        label: `Datum: ${fromDate || '—'} - ${toDate || '—'}`,
+        clear: () => {
+          setFromDate('');
+          setToDate('');
+        }
+      });
+    }
+    if (columnStatusFilter !== 'all') {
+      const statusLabel = ORDER_STATUS_OPTIONS.find((option) => option.value === columnStatusFilter)?.label ?? columnStatusFilter;
+      chips.push({ key: 'status', label: `Status: ${statusLabel}`, clear: () => setColumnStatusFilter('all') });
+    }
+    if (columnPaymentFilter !== 'all') {
+      const paymentLabel = PAYMENT_STATUS_OPTIONS.find((option) => option.value === columnPaymentFilter)?.label ?? columnPaymentFilter;
+      chips.push({ key: 'payment', label: `Plačilo: ${paymentLabel}`, clear: () => setColumnPaymentFilter('all') });
+    }
+    if (documentType !== 'all') {
+      chips.push({
+        key: 'documents',
+        label: `Dokumenti: ${documentTypeOptions.find((option) => option.value === documentType)?.label ?? documentType}`,
+        clear: () => setDocumentType('all')
+      });
+    }
+    if (totalRange.min || totalRange.max) {
+      chips.push({
+        key: 'total',
+        label: `Skupaj: ${totalRange.min || '0'} - ${totalRange.max || '∞'}`,
+        clear: () => setTotalRange({ min: '', max: '' })
+      });
+    }
+    if (orderNumberRange.min || orderNumberRange.max) {
+      chips.push({
+        key: 'orderNumber',
+        label: `Naročilo: ${orderNumberRange.min || '0'} - ${orderNumberRange.max || '∞'}`,
+        clear: () => setOrderNumberRange({ min: '', max: '' })
+      });
+    }
+    return chips;
+  }, [fromDate, toDate, columnStatusFilter, columnPaymentFilter, documentType, totalRange, orderNumberRange]);
+
   useEffect(() => {
     if (hasAutoResetFiltersRef.current) return;
     if (orders.length === 0) return;
@@ -1274,7 +1330,18 @@ export default function AdminOrdersTable({
               </div>
             </>
           }
-          filterRowLeft={null}
+          filterRowLeft={
+            activeFilterChips.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-2">
+                {activeFilterChips.map((chip) => (
+                  <span key={chip.key} className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1 text-xs text-slate-700">
+                    {chip.label}
+                    <button type="button" onClick={chip.clear} className="text-slate-500 hover:text-slate-800" aria-label={`Odstrani filter ${chip.label}`}>×</button>
+                  </span>
+                ))}
+              </div>
+            ) : null
+          }
           filterRowRight={
             <div className="flex items-center gap-2">
               <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={handlePageSizeChange} />
@@ -1283,7 +1350,7 @@ export default function AdminOrdersTable({
           }
           footerRight={null}
         >
-          <Table className="min-w-[1060px] w-full text-[11px] [&_th]:!bg-white">
+          <Table className="min-w-[1060px] w-full text-[11px] [&_th]:!bg-[#eaf1ff]">
             <colgroup>
               <col style={{ width: columnWidths.selectAndDelete }} />
               {visibleColumns.order ? <col style={{ width: columnWidths.order }} /> : null}
@@ -1472,8 +1539,8 @@ export default function AdminOrdersTable({
                   return (
                     <TR
                       key={order.id}
-                      className={`border-t border-slate-100 text-[11px] transition-colors duration-200 ${
-                        isRowSelected ? adminTableRowToneClasses.selected : getAdminStripedRowToneClass(orderIndex)
+                      className={`border-t border-slate-100 bg-white text-[11px] transition-colors duration-200 ${
+                        isRowSelected ? adminTableRowToneClasses.selected : ''
                       } ${adminTableRowToneClasses.hover}`}
                     >
                       <TD>
@@ -1641,25 +1708,40 @@ export default function AdminOrdersTable({
             ) : null}
             {openHeaderFilter === 'date' ? (
               <div lang="sl-SI" style={getHeaderPopoverStyle(dateFilterButtonRef.current, 380)} className="rounded-xl border border-slate-200 bg-white p-3 text-left shadow-lg">
-                <div className="grid grid-cols-[170px_1fr] gap-3">
-                  <div className="space-y-1 border-r border-slate-200 pr-2">
-                    {[
-                      { key: 'today', label: 'Danes' },
-                      { key: 'yesterday', label: 'Včeraj' },
-                      { key: '7d', label: 'Zadnjih 7 dni' },
-                      { key: '30d', label: 'Zadnjih 30 dni' },
-                      { key: '3m', label: 'Zadnje 3 mesece' },
-                      { key: '6m', label: 'Zadnjih 6 mesecev' },
-                      { key: '1y', label: 'Zadnje leto' },
-                      { key: 'allYears', label: 'Vsa leta' }
-                    ].map((item) => (
-                      <button key={item.key} type="button" onClick={() => applyQuickDateRange(item.key as any)} className="w-full rounded-lg px-2 py-1 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)] focus:text-[color:var(--blue-500)]">{item.label}</button>
-                    ))}
-                  </div>
+                <h4 className="mb-2 text-base font-semibold text-slate-800">Nastavi obdobje</h4>
+                <div className="mb-3 grid grid-cols-3 gap-2">
+                  {[
+                    { key: 'today', label: 'Zadnja 1 h' },
+                    { key: 'yesterday', label: 'Zadnjih 24 h' },
+                    { key: '7d', label: 'Zadnjih 7 dni' },
+                    { key: '30d', label: 'Zadnjih 30 dni' },
+                    { key: '3m', label: 'Zadnjih 90 dni' },
+                    { key: '6m', label: 'Zadnjih 180 dni' }
+                  ].map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => {
+                        applyQuickDateRange(item.key as any);
+                        setDraftFromDate(fromDate);
+                        setDraftToDate(toDate);
+                      }}
+                      className="rounded-full border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-800 hover:bg-slate-50"
+                    >
+                      {item.label.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+                <div className="mb-3 border-t border-slate-200 pt-3">
+                  <p className="mb-2 text-base font-semibold text-slate-800">Po meri</p>
                   <div className="space-y-2">
-                    <div><label className="text-xs font-semibold text-slate-500">Od</label><input type="date" lang="sl-SI" value={fromDate} onChange={(event) => { setFromDate(event.target.value); setRangePreset('custom'); }} className={`mt-1 ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`} /></div>
-                    <div><label className="text-xs font-semibold text-slate-500">Do</label><input type="date" lang="sl-SI" value={toDate} onChange={(event) => { setToDate(event.target.value); setRangePreset('custom'); }} className={`mt-1 ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`} /></div>
+                    <div><label className="mb-1 block text-sm text-slate-700">Od</label><input type="date" lang="sl-SI" value={draftFromDate} onChange={(event) => setDraftFromDate(event.target.value)} className={`w-full ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`} /></div>
+                    <div><label className="mb-1 block text-sm text-slate-700">Do</label><input type="date" lang="sl-SI" value={draftToDate} onChange={(event) => setDraftToDate(event.target.value)} className={`w-full ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`} /></div>
                   </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" className="rounded-xl bg-[color:var(--blue-500)] py-2 text-sm font-semibold text-white" onClick={() => { setFromDate(draftFromDate); setToDate(draftToDate); setOpenHeaderFilter(null); }}>Uporabi</button>
+                  <button type="button" className="rounded-xl py-2 text-sm font-medium text-slate-500 hover:bg-slate-50" onClick={() => { setDraftFromDate(''); setDraftToDate(''); setFromDate(''); setToDate(''); setOpenHeaderFilter(null); }}>Počisti</button>
                 </div>
               </div>
             ) : null}
@@ -1697,19 +1779,22 @@ export default function AdminOrdersTable({
             ) : null}
             {openHeaderFilter === 'total' ? (
               <div style={getHeaderPopoverStyle(totalFilterButtonRef.current, 192)} className="rounded-xl border border-slate-200 bg-white p-2 text-left shadow-lg">
-                <div className="mb-2 grid grid-cols-3 gap-1">
+                <h4 className="mb-2 text-base font-semibold text-slate-800">Nastavi zneske</h4>
+                <div className="mb-3 grid grid-cols-3 gap-1">
                   {['20', '50', '100', '200', '500', '1000'].map((maxValue) => (
-                    <button key={maxValue} type="button" onClick={() => setTotalRange({ min: '0', max: maxValue })} className="rounded-md border border-slate-200 px-2 py-1 text-[11px] hover:bg-[color:var(--hover-neutral)]">{`0-${maxValue === '1000' ? '1k' : maxValue}`}</button>
+                    <button key={maxValue} type="button" onClick={() => setDraftTotalRange({ min: '0', max: maxValue })} className="rounded-full border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-slate-50">{`0-${maxValue === '1000' ? '1k' : maxValue}`}</button>
                   ))}
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="mb-3 border-t border-slate-200 pt-3">
+                  <p className="mb-2 text-base font-semibold text-slate-800">Po meri</p>
+                  <div className="grid grid-cols-2 gap-2">
                   <FloatingInput
                     id="orders-total-min"
                     label="Od"
                     tone="admin"
                     type="number"
-                    value={totalRange.min}
-                    onChange={(event) => setTotalRange((current) => ({ ...current, min: event.target.value }))}
+                    value={draftTotalRange.min}
+                    onChange={(event) => setDraftTotalRange((current) => ({ ...current, min: event.target.value }))}
                     className="text-[11px]"
                   />
                   <FloatingInput
@@ -1717,10 +1802,15 @@ export default function AdminOrdersTable({
                     label="Do"
                     tone="admin"
                     type="number"
-                    value={totalRange.max}
-                    onChange={(event) => setTotalRange((current) => ({ ...current, max: event.target.value }))}
+                    value={draftTotalRange.max}
+                    onChange={(event) => setDraftTotalRange((current) => ({ ...current, max: event.target.value }))}
                     className="text-[11px]"
                   />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" className="rounded-xl bg-[color:var(--blue-500)] py-2 text-sm font-semibold text-white" onClick={() => { setTotalRange(draftTotalRange); setOpenHeaderFilter(null); }}>Uporabi</button>
+                  <button type="button" className="rounded-xl py-2 text-sm font-medium text-slate-500 hover:bg-slate-50" onClick={() => { setDraftTotalRange({ min: '', max: '' }); setTotalRange({ min: '', max: '' }); setOpenHeaderFilter(null); }}>Počisti</button>
                 </div>
               </div>
             ) : null}

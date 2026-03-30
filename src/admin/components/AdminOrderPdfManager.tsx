@@ -13,6 +13,7 @@ import {
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 import { surfaceTokenClasses } from '@/shared/ui/theme/tokens';
+import { ADMIN_TABLE_BG } from '@/shared/ui/table';
 
 type PdfDocument = {
   id: number;
@@ -67,7 +68,7 @@ const LazyConfirmDialog = dynamic(
   { ssr: false }
 );
 
-const notesBoxClass = 'mt-2 h-[44px] overflow-y-auto whitespace-pre-wrap rounded-xl border border-slate-300 px-3 py-1.5 text-[12px] leading-5 text-slate-900 shadow-sm';
+const notesBoxClass = `mt-2 h-[44px] overflow-y-auto whitespace-pre-wrap rounded-xl border border-slate-300 px-3 py-1.5 text-[12px] leading-5 text-slate-900 shadow-sm ${ADMIN_TABLE_BG}`;
 
 export default function AdminOrderPdfManager({
   orderId,
@@ -293,7 +294,7 @@ export default function AdminOrderPdfManager({
             value={draftNotes}
             onChange={(event) => setDraftNotes(event.target.value)}
             rows={2}
-            className={`${notesBoxClass} w-full resize-y bg-white outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
+            className={`${notesBoxClass} w-full resize-y outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
           />
         ) : (
           <p className={`${notesBoxClass} ${surfaceTokenClasses.disabled} text-slate-600`}>
@@ -305,6 +306,8 @@ export default function AdminOrderPdfManager({
       <div className="mt-4 space-y-4">
         {PDF_TYPES.map((pdfType) => {
           const docs = grouped[pdfType.key];
+          const hasGeneratedDocument = docs.length > 0;
+          const pdfTone = hasGeneratedDocument ? 'success' : 'neutralStatus';
           const hasMultipleVersions = docs.length > 1;
           const isExpanded = Boolean(expandedByType[pdfType.key]);
           const visibleDocs = isExpanded ? docs : docs.slice(0, 1);
@@ -321,7 +324,7 @@ export default function AdminOrderPdfManager({
                     onClick={() => void handleGenerate(pdfType.key)}
                     disabled={loadingType === pdfType.key}
                     title="Ustvari"
-                    tone="neutral"
+                    tone={pdfTone}
                     aria-label={`Ustvari ${pdfType.label}`}
                   >
                     {loadingType === pdfType.key ? <Spinner size="sm" className="text-slate-500" /> : <GeneratePdfIcon />}
@@ -348,7 +351,7 @@ export default function AdminOrderPdfManager({
                     onClick={() => uploadInputRefs.current[pdfType.key]?.click()}
                     disabled={uploadingType === pdfType.key}
                     title="Naloži"
-                    tone="neutral"
+                    tone={pdfTone}
                     aria-label={`Naloži ${pdfType.label}`}
                   >
                     {uploadingType === pdfType.key ? <Spinner size="sm" className="text-slate-500" /> : <UploadIcon />}
@@ -358,7 +361,7 @@ export default function AdminOrderPdfManager({
                     type="button"
                     onClick={() => downloadLatestByType(pdfType.key)}
                     title="Shrani"
-                    tone="neutral"
+                    tone={pdfTone}
                     aria-label={`Shrani ${pdfType.label}`}
                   >
                     <SaveIcon />
@@ -370,7 +373,7 @@ export default function AdminOrderPdfManager({
                 {docs.length > 0 ? (
                   <div
                     id={`pdf-versions-${pdfType.key}`}
-                    className="rounded-xl border border-slate-200 bg-white p-2 text-[11px] leading-4 text-slate-600 shadow-inner"
+                    className={`rounded-xl border border-slate-200 p-2 text-[11px] leading-4 text-slate-600 shadow-inner ${ADMIN_TABLE_BG}`}
                   >
                     <ul className="space-y-1">
                       {visibleDocs.map((doc, index) => {

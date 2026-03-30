@@ -113,7 +113,6 @@ const TYPE_SORT_CYCLE: TypePriority[] = ['school', 'company', 'individual'];
 const HEADER_TITLE_BUTTON_CLASS = 'inline-flex items-center text-[11px] font-semibold leading-none hover:text-slate-700';
 const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500';
 const COMPACT_FILTER_INPUT_CLASS = `h-7 rounded-md px-2 text-[11px] ${dateInputTokenClasses.base}`;
-const NON_RESET_SORT_COLUMNS: SortableColumnKey[] = ['order', 'date'];
 const AdminOrdersPreviewChart = dynamic(() => import('@/admin/components/AdminOrdersPreviewChart'), { ssr: false });
 const LazyAdminOrdersPdfCell = dynamic(() => import('@/admin/components/AdminOrdersPdfCell'), {
   ssr: false,
@@ -228,7 +227,7 @@ export default function AdminOrdersTable({
   const [fromDate, setFromDate] = useState(initialFrom);
   const [toDate, setToDate] = useState(initialTo);
   const [hasExplicitDateFilter, setHasExplicitDateFilter] = useState(Boolean(initialFrom || initialTo));
-  const [rangePreset, setRangePreset] = useState<OrdersRangePreset>('1m');
+  const [rangePreset, setRangePreset] = useState<OrdersRangePreset>('max');
   const debouncedQuery = useDebouncedValue(query, 200);
   const debouncedFromDate = useDebouncedValue(fromDate, 200);
   const debouncedToDate = useDebouncedValue(toDate, 200);
@@ -427,9 +426,8 @@ export default function AdminOrdersTable({
 
   useEffect(() => {
     if (!initialFrom && !initialTo) {
-      const todayDate = new Date();
-      todayDate.setHours(0, 0, 0, 0);
-      applyDateRange(earliestOrderDate, todayDate, 'custom');
+      const anchorDate = new Date(latestOrderDate);
+      applyDateRange(earliestOrderDate, anchorDate, 'max');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1029,7 +1027,11 @@ export default function AdminOrdersTable({
     }
   };
 
-  const getSortCycleLength = (column: SortableColumnKey) => (column === 'type' ? 3 : 2);
+  const getSortCycleLength = (column: SortableColumnKey) => {
+    if (column === 'order' || column === 'date') return 1;
+    if (column === 'type') return 3;
+    return 2;
+  };
 
   const onSort = (column: SortableColumnKey) => {
     setSortState((currentState) => {
@@ -1039,9 +1041,6 @@ export default function AdminOrdersTable({
 
       const nextIndex = currentState.index + 1;
       if (nextIndex >= getSortCycleLength(column)) {
-        if (NON_RESET_SORT_COLUMNS.includes(column)) {
-          return { column, index: 0 };
-        }
         return null;
       }
       return { column, index: nextIndex };
@@ -1099,9 +1098,10 @@ export default function AdminOrdersTable({
     orderNumberRange.max.trim().length > 0 ||
     sortState !== null;
 
-  const [filterChipOrder, setFilterChipOrder] = useState<Array<'date' | 'status' | 'payment' | 'documents' | 'total' | 'orderNumber'>>([]);
+  const [filterChipOrder, setFilterChipOrder] = useState<Array<'date' | 'type' | 'status' | 'payment' | 'documents' | 'total' | 'orderNumber'>>([]);
 
   const hasDateChip = Boolean(hasExplicitDateFilter && (fromDate || toDate));
+  const hasTypeChip = columnTypeFilter !== 'all';
   const hasStatusChip = columnStatusFilter !== 'all';
   const hasPaymentChip = columnPaymentFilter !== 'all';
   const hasDocumentsChip = documentType !== 'all';
@@ -1111,8 +1111,9 @@ export default function AdminOrdersTable({
   useEffect(() => {
     setFilterChipOrder((currentOrder) => {
       let nextOrder = [...currentOrder];
-      const states: Array<{ key: 'date' | 'status' | 'payment' | 'documents' | 'total' | 'orderNumber'; active: boolean }> = [
+      const states: Array<{ key: 'date' | 'type' | 'status' | 'payment' | 'documents' | 'total' | 'orderNumber'; active: boolean }> = [
         { key: 'date', active: hasDateChip },
+        { key: 'type', active: hasTypeChip },
         { key: 'status', active: hasStatusChip },
         { key: 'payment', active: hasPaymentChip },
         { key: 'documents', active: hasDocumentsChip },
@@ -1126,7 +1127,7 @@ export default function AdminOrdersTable({
       });
       return nextOrder;
     });
-  }, [hasDateChip, hasStatusChip, hasPaymentChip, hasDocumentsChip, hasTotalChip, hasOrderNumberChip]);
+  }, [hasDateChip, hasTypeChip, hasStatusChip, hasPaymentChip, hasDocumentsChip, hasTotalChip, hasOrderNumberChip]);
 
   const activeFilterChips = useMemo(() => {
     const chipByKey: Record<string, { key: string; label: string; clear: () => void } | null> = {
@@ -1138,6 +1139,13 @@ export default function AdminOrdersTable({
               setFromDate('');
               setToDate('');
             }
+          }
+        : null,
+      type: hasTypeChip
+        ? {
+            key: 'type',
+            label: `Tip: ${getCustomerTypeLabel(columnTypeFilter)}`,
+            clear: () => setColumnTypeFilter('all')
           }
         : null,
       status: hasStatusChip
@@ -1178,7 +1186,7 @@ export default function AdminOrdersTable({
     };
 
     return filterChipOrder.map((key) => chipByKey[key]).filter((chip): chip is { key: string; label: string; clear: () => void } => Boolean(chip));
-  }, [hasDateChip, hasStatusChip, hasPaymentChip, hasDocumentsChip, hasTotalChip, hasOrderNumberChip, fromDate, toDate, columnStatusFilter, columnPaymentFilter, documentType, totalRange.min, totalRange.max, orderNumberRange.min, orderNumberRange.max, filterChipOrder]);
+  }, [hasDateChip, hasTypeChip, hasStatusChip, hasPaymentChip, hasDocumentsChip, hasTotalChip, hasOrderNumberChip, fromDate, toDate, columnTypeFilter, columnStatusFilter, columnPaymentFilter, documentType, totalRange.min, totalRange.max, orderNumberRange.min, orderNumberRange.max, filterChipOrder]);
 
   const getHeaderTitleClass = (column: SortableColumnKey) =>
     `${HEADER_TITLE_BUTTON_CLASS} ${sortState?.column === column ? 'underline underline-offset-2' : ''}`;
@@ -1403,13 +1411,15 @@ export default function AdminOrdersTable({
             <THead>
               <TR>
                 <TH className="h-11 text-center text-[11px]">
-                  <input
-                    type="checkbox"
-                    ref={selectAllRef}
-                    checked={allSelected}
-                    onChange={toggleAll}
-                    aria-label="Izberi vse"
-                  />
+                  <div className="flex h-full items-center justify-center">
+                    <input
+                      type="checkbox"
+                      ref={selectAllRef}
+                      checked={allSelected}
+                      onChange={toggleAll}
+                      aria-label="Izberi vse"
+                    />
+                  </div>
                 </TH>
 
                 {visibleColumns.order ? <TH className="h-11 text-center">

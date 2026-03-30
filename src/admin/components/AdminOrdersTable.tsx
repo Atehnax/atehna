@@ -113,6 +113,13 @@ const TYPE_SORT_CYCLE: TypePriority[] = ['school', 'company', 'individual'];
 const HEADER_TITLE_BUTTON_CLASS = 'inline-flex items-center text-[11px] font-semibold leading-none hover:text-slate-700';
 const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500';
 const COMPACT_FILTER_INPUT_CLASS = `h-7 rounded-md px-2 text-[11px] ${dateInputTokenClasses.base}`;
+const formatDateForRangeChip = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return '—';
+  const [year, month, day] = trimmed.split('-');
+  if (!year || !month || !day) return trimmed;
+  return `${day}-${month}-${year}`;
+};
 const AdminOrdersPreviewChart = dynamic(() => import('@/admin/components/AdminOrdersPreviewChart'), { ssr: false });
 const LazyAdminOrdersPdfCell = dynamic(() => import('@/admin/components/AdminOrdersPdfCell'), {
   ssr: false,
@@ -1134,7 +1141,7 @@ export default function AdminOrdersTable({
       date: hasDateChip
         ? {
             key: 'date',
-            label: `Datum: ${fromDate || '—'} - ${toDate || '—'}`,
+            label: `Datum: ${formatDateForRangeChip(fromDate)} – ${formatDateForRangeChip(toDate)}`,
             clear: () => {
               setFromDate('');
               setToDate('');
@@ -1172,7 +1179,7 @@ export default function AdminOrdersTable({
       total: hasTotalChip
         ? {
             key: 'total',
-            label: `Skupaj: ${totalRange.min || '0'} - ${totalRange.max || '∞'}`,
+            label: `Skupaj: ${totalRange.min || '0'} – ${totalRange.max || '∞'}`,
             clear: () => setTotalRange({ min: '', max: '' })
           }
         : null,
@@ -1411,13 +1418,14 @@ export default function AdminOrdersTable({
             <THead>
               <TR>
                 <TH className="h-11 text-center text-[11px]">
-                  <div className="flex h-full items-center justify-center">
+                  <div className="inline-flex h-full items-center justify-center align-middle leading-none">
                     <input
                       type="checkbox"
                       ref={selectAllRef}
                       checked={allSelected}
                       onChange={toggleAll}
                       aria-label="Izberi vse"
+                      className="h-3.5 w-3.5 align-middle"
                     />
                   </div>
                 </TH>

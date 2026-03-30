@@ -12,7 +12,6 @@ import {
 } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
-import { surfaceTokenClasses } from '@/shared/ui/theme/tokens';
 import { ADMIN_TABLE_BG } from '@/shared/ui/table';
 
 type PdfDocument = {
@@ -297,7 +296,7 @@ export default function AdminOrderPdfManager({
             className={`${notesBoxClass} w-full resize-y outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
           />
         ) : (
-          <p className={`${notesBoxClass} ${surfaceTokenClasses.disabled} text-slate-600`}>
+          <p className={`${notesBoxClass} text-slate-600`}>
             {persistedNotes.trim()}
           </p>
         )}

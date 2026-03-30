@@ -110,6 +110,29 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
 
 export const FilterIcon = ActionFilterIcon;
 
+export function PdfFilterActionIcon({ className, ...props }: ActionIconProps) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className={iconClassName(className)}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M10 2 L4.5 2 Q2 2 2 4.5 L2 15.5 Q2 18 4.5 18 L15.5 18 Q18 18 18 15.5 L18 15" />
+      <path d="M10 2 L15.5 2 Q18 2 18 4.5 L18 5" />
+      <line x1="10" y1="2" x2="10" y2="18" />
+      <line x1="16" y1="8" x2="20" y2="8" stroke="var(--danger-600)" />
+      <line x1="18" y1="10" x2="18" y2="14" stroke="var(--semantic-success)" />
+      <line x1="16" y1="12" x2="20" y2="12" stroke="var(--semantic-success)" />
+    </svg>
+  );
+}
+
 export function OrdersTrashIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg

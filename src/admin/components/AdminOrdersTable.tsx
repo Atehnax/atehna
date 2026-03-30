@@ -12,7 +12,7 @@ import { Spinner } from '@/shared/ui/loading';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
 import {
   DownloadIcon,
-  FilterIcon,
+  PdfFilterActionIcon,
   PencilIcon,
   TrashCanIcon
 } from '@/shared/ui/icons/AdminActionIcons';
@@ -1179,7 +1179,7 @@ export default function AdminOrdersTable({
       total: hasTotalChip
         ? {
             key: 'total',
-            label: `Skupaj: ${totalRange.min || '0'} – ${totalRange.max || '∞'}`,
+            label: `Skupaj ${totalRange.min || '0'} – ${totalRange.max || '∞'}€`,
             clear: () => setTotalRange({ min: '', max: '' })
           }
         : null,
@@ -1358,7 +1358,7 @@ export default function AdminOrdersTable({
                   }}
                   showLabel={false}
                   className="[&>button]:!h-7 [&>button]:!w-7 [&>button]:!rounded-md [&>button]:!border-slate-200 [&>button]:!bg-transparent [&>button]:!px-0 [&>button]:!text-slate-600 [&>button]:hover:!border-slate-300 [&>button]:hover:!bg-[color:var(--hover-neutral)] [&>button]:hover:!text-slate-700"
-                  icon={<FilterIcon />}
+                  icon={<PdfFilterActionIcon />}
                   menuClassName="!w-44"
                 />
                 <IconButton
@@ -1597,13 +1597,14 @@ export default function AdminOrdersTable({
                       } ${adminTableRowToneClasses.hover}`}
                     >
                       <TD>
-                        <div className="flex justify-center">
+                        <div className="flex h-full items-center justify-center">
                           <input
                             data-no-row-nav
                             type="checkbox"
                             checked={selected.includes(order.id)}
                             onChange={() => toggleSelected(order.id)}
                             aria-label={`Izberi naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                            className="h-3.5 w-3.5 align-middle"
                           />
                         </div>
                       </TD>

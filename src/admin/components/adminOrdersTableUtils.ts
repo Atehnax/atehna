@@ -103,10 +103,10 @@ export const columnWidths = {
   type: '105px',
   status: '110px',
   payment: '110px',
-  total: '95px',
+  total: '110px',
   date: '104px',
-  documents: '100px',
-  edit: '72px'
+  documents: '90px',
+  edit: '84px'
 };
 
 const currencyFormatter = new Intl.NumberFormat('sl-SI', {

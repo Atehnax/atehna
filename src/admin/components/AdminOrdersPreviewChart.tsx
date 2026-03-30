@@ -364,7 +364,7 @@ function AdminOrdersPreviewChart({
         return {
           headerLine: (
             <>
-              <span className={metricClassName}>{formatInt(count)} {getNaročiloPlural(count)}*</span>
+              <span className={metricClassName}>{formatInt(count)} {getNaročiloPlural(count)}</span>
               {' – '}7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span>
               {' – '}30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span>
             </>
@@ -617,7 +617,7 @@ function AdminOrdersPreviewChart({
               }}
             >
               <div className="mb-2 w-full min-w-0">
-                <p className="w-full whitespace-nowrap text-[11px] font-semibold leading-4 text-slate-700">
+                <p className="w-full whitespace-nowrap text-[12px] font-semibold leading-4 text-slate-700">
                   {chart.headerLine}
                 </p>
               </div>

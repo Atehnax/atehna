@@ -253,6 +253,7 @@ export default function AdminOrdersTable({
   const [openHeaderFilter, setOpenHeaderFilter] = useState<null | 'order' | 'date' | 'type' | 'status' | 'payment' | 'total' | 'documents'>(null);
   const { toast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
+  const [hoveredCellMatch, setHoveredCellMatch] = useState<{ column: OrdersColumnKey; value: string } | null>(null);
 
   const selectAllRef = useRef<HTMLInputElement>(null);
   const orderFilterButtonRef = useRef<HTMLButtonElement>(null);
@@ -1204,6 +1205,10 @@ export default function AdminOrdersTable({
 
   const getHeaderTitleClass = (column: SortableColumnKey) =>
     `${HEADER_TITLE_BUTTON_CLASS} ${sortState?.column === column ? 'underline underline-offset-2' : ''}`;
+  const getComparableCellValue = (value: string) => normalizeForSearch(value || '—');
+  const isMatchingHoveredCell = (column: OrdersColumnKey, value: string) =>
+    hoveredCellMatch?.column === column && hoveredCellMatch.value === getComparableCellValue(value);
+  const matchingValueHighlightClass = 'rounded-[4px] border border-dashed border-amber-500/80 bg-amber-100/70 px-1';
 
   useEffect(() => {
     if (hasAutoResetFiltersRef.current) return;
@@ -1335,12 +1340,12 @@ export default function AdminOrdersTable({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Poišči naročila"
-              className="h-7 min-w-[280px] flex-1 rounded-xl border-slate-200 bg-white pl-10 pr-3 text-sm"
+              className="h-7 min-w-[280px] flex-1 rounded-xl border-slate-200 bg-white pl-10 pr-3 text-xs"
             />
           }
           headerRight={
             <>
-              <div className="flex items-center gap-2 pb-1">
+              <div className="flex items-center gap-2">
                 <IconButton
                   type="button"
                   onClick={handleDownloadAllDocuments}
@@ -1391,7 +1396,7 @@ export default function AdminOrdersTable({
             activeFilterChips.length > 0 ? (
               <div className="flex flex-wrap items-center gap-2">
                 {activeFilterChips.map((chip) => (
-                  <span key={chip.key} className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-[color:var(--ui-neutral-bg)] px-3 py-1 text-xs text-slate-700 transition-colors hover:bg-[color:var(--ui-neutral-bg-hover)]">
+                  <span key={chip.key} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-[color:var(--ui-neutral-bg)] px-3 py-1 text-xs text-slate-700 transition-colors hover:bg-[color:var(--ui-neutral-bg-hover)]">
                     <span>
                       {chip.title}{' '}
                       <span className="font-semibold">{chip.value}</span>
@@ -1623,8 +1628,14 @@ export default function AdminOrdersTable({
                         <Link
                           href={`/admin/orders/${order.id}`}
                           prefetch={false}
-                          className="inline-flex rounded-sm px-1 text-[11px] font-semibold text-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
+                          className={`inline-flex rounded-sm text-[11px] font-semibold text-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6] ${isMatchingHoveredCell('order', toDisplayOrderNumber(order.order_number)) ? matchingValueHighlightClass : 'px-1'}`}
                           aria-label={`Odpri naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                          onMouseEnter={() =>
+                            setHoveredCellMatch({
+                              column: 'order',
+                              value: getComparableCellValue(toDisplayOrderNumber(order.order_number))
+                            })}
+                          onMouseLeave={() => setHoveredCellMatch(null)}
                         >
                           {toDisplayOrderNumber(order.order_number)}
                         </Link>
@@ -1632,28 +1643,52 @@ export default function AdminOrdersTable({
 
                       {visibleColumns.date ? <TD className="text-center whitespace-nowrap text-slate-700">
                         <span
-                          className="inline-block rounded-sm px-1 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
+                          className={`inline-block rounded-sm focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6] ${isMatchingHoveredCell('date', rowDisplay?.dateLabel ?? formatSlDate(order.created_at)) ? matchingValueHighlightClass : 'px-1'}`}
                           title={rowDisplay?.dateTimeLabel ?? formatSlDateTime(order.created_at)}
                           aria-label={`Datum naročila ${rowDisplay?.dateTimeLabel ?? formatSlDateTime(order.created_at)}`}
                           tabIndex={0}
+                          onMouseEnter={() =>
+                            setHoveredCellMatch({
+                              column: 'date',
+                              value: getComparableCellValue(rowDisplay?.dateLabel ?? formatSlDate(order.created_at))
+                            })}
+                          onMouseLeave={() => setHoveredCellMatch(null)}
                         >
                           {rowDisplay?.dateLabel ?? formatSlDate(order.created_at)}
                         </span>
                       </TD> : null}
 
                       {visibleColumns.customer ? <TD className="text-slate-700">
-                        <span className="block truncate" title={order.organization_name || order.contact_name}>
+                        <span
+                          className={`block truncate ${isMatchingHoveredCell('customer', order.organization_name || order.contact_name) ? matchingValueHighlightClass : ''}`}
+                          title={order.organization_name || order.contact_name}
+                          onMouseEnter={() => setHoveredCellMatch({ column: 'customer', value: getComparableCellValue(order.organization_name || order.contact_name) })}
+                          onMouseLeave={() => setHoveredCellMatch(null)}
+                        >
                           {order.organization_name || order.contact_name}
                         </span>
                       </TD> : null}
 
                       {visibleColumns.address ? <TD className="text-slate-700">
-                        <span className="block truncate" title={orderAddress || '—'}>
+                        <span
+                          className={`block truncate ${isMatchingHoveredCell('address', orderAddress || '—') ? matchingValueHighlightClass : ''}`}
+                          title={orderAddress || '—'}
+                          onMouseEnter={() => setHoveredCellMatch({ column: 'address', value: getComparableCellValue(orderAddress || '—') })}
+                          onMouseLeave={() => setHoveredCellMatch(null)}
+                        >
                           {orderAddress || '—'}
                         </span>
                       </TD> : null}
 
-                      {visibleColumns.type ? <TD className="text-center text-slate-700">{typeLabel}</TD> : null}
+                      {visibleColumns.type ? <TD className="text-center text-slate-700">
+                        <span
+                          className={isMatchingHoveredCell('type', typeLabel) ? matchingValueHighlightClass : ''}
+                          onMouseEnter={() => setHoveredCellMatch({ column: 'type', value: getComparableCellValue(typeLabel) })}
+                          onMouseLeave={() => setHoveredCellMatch(null)}
+                        >
+                          {typeLabel}
+                        </span>
+                      </TD> : null}
 
                       {visibleColumns.status ? <TD className="text-center text-slate-700">
                         {selectedCount > 1 ? (
@@ -1697,7 +1732,15 @@ export default function AdminOrdersTable({
                         )}
                       </TD> : null}
 
-                      {visibleColumns.total ? <TD className="text-center text-slate-700">{rowDisplay?.totalLabel ?? formatCurrency(order.total)}</TD> : null}
+                      {visibleColumns.total ? <TD className="text-center text-slate-700">
+                        <span
+                          className={isMatchingHoveredCell('total', rowDisplay?.totalLabel ?? formatCurrency(order.total)) ? matchingValueHighlightClass : ''}
+                          onMouseEnter={() => setHoveredCellMatch({ column: 'total', value: getComparableCellValue(rowDisplay?.totalLabel ?? formatCurrency(order.total)) })}
+                          onMouseLeave={() => setHoveredCellMatch(null)}
+                        >
+                          {rowDisplay?.totalLabel ?? formatCurrency(order.total)}
+                        </span>
+                      </TD> : null}
 
                       {visibleColumns.documents ? <TD className="min-w-[100px] pl-0 pr-0 text-center" data-no-row-nav>
                         <div className="flex justify-center">
@@ -1783,7 +1826,7 @@ export default function AdminOrdersTable({
                         setHasExplicitDateFilter(true);
                         setOpenHeaderFilter(null);
                       }}
-                      className="rounded-full border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-[color:var(--hover-neutral)]"
+                      className="rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-[color:var(--hover-neutral)]"
                     >
                       {item.label}
                     </button>
@@ -1838,7 +1881,7 @@ export default function AdminOrdersTable({
                 <h4 className="mb-2 text-[11px] font-semibold text-slate-800">Nastavi razpon zneskov (€)</h4>
                 <div className="mb-3 grid grid-cols-3 gap-1">
                   {['20', '50', '100', '200', '500', '1000'].map((maxValue) => (
-                    <button key={maxValue} type="button" onClick={() => { const nextRange = { min: '0', max: maxValue }; setDraftTotalRange(nextRange); setTotalRange(nextRange); setOpenHeaderFilter(null); }} className="rounded-full border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-[color:var(--hover-neutral)]">{`0-${maxValue === '1000' ? '1k' : maxValue}`}</button>
+                    <button key={maxValue} type="button" onClick={() => { const nextRange = { min: '0', max: maxValue }; setDraftTotalRange(nextRange); setTotalRange(nextRange); setOpenHeaderFilter(null); }} className="rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-[color:var(--hover-neutral)]">{`0-${maxValue === '1000' ? '1k' : maxValue}`}</button>
                   ))}
                 </div>
                 <div className="mb-3 border-t border-slate-200 pt-3">

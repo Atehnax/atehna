@@ -1,15 +1,16 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { IconButton } from '@/shared/ui/icon-button';
 import AdminOrderStatusSelect from '@/admin/components/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
-import { CustomSelect } from '@/shared/ui/select';
 import { Spinner } from '@/shared/ui/loading';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
+import { FloatingInput } from '@/shared/ui/floating-field';
 import {
   DownloadIcon,
   FilterIcon,
@@ -19,11 +20,9 @@ import {
 import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, RowActionsDropdown, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
-import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
 import {
   adminTableRowToneClasses,
-  dateInputTokenClasses,
-  getAdminStripedRowToneClass
+  dateInputTokenClasses
 } from '@/shared/ui/theme/tokens';
 import { AdminTableLayout, ColumnVisibilityControl } from '@/shared/ui/admin-table';
 import AdminOrderPaymentSelect from '@/admin/components/AdminOrderPaymentSelect';
@@ -40,8 +39,6 @@ import {
   type DocumentType,
   type OrderRow,
   type PdfDoc,
-  type SortDirection,
-  type SortKey,
   type StatusTab,
   type UnifiedDocument,
   columnWidths,
@@ -54,7 +51,6 @@ import {
   getNumericOrderNumber,
   normalizeForSearch,
   shiftDateByDays,
-  statusTabs,
   textCollator,
   toAmount,
   toDateInputValue,
@@ -86,10 +82,12 @@ type AttachmentTuple = readonly [id: number, orderId: number, type: Attachment['
 
 type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
 type OrdersColumnKey = 'order' | 'date' | 'customer' | 'address' | 'type' | 'status' | 'payment' | 'total' | 'documents';
+type SortableColumnKey = 'order' | 'date' | 'customer' | 'address' | 'status' | 'payment' | 'total' | 'type';
+type TypePriority = 'school' | 'company' | 'individual';
+type SortCycleState = { column: SortableColumnKey; index: number } | null;
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
 const ORDER_COLUMN_OPTIONS: Array<{ key: OrdersColumnKey; label: string }> = [
-  { key: 'order', label: 'Naročilo' },
   { key: 'date', label: 'Datum' },
   { key: 'customer', label: 'Naročnik' },
   { key: 'address', label: 'Naslov' },
@@ -99,6 +97,23 @@ const ORDER_COLUMN_OPTIONS: Array<{ key: OrdersColumnKey; label: string }> = [
   { key: 'total', label: 'Skupaj' },
   { key: 'documents', label: 'PDF datoteke' }
 ];
+const STATUS_SORT_PRIORITY: Record<string, number> = {
+  finished: 0,
+  sent: 1,
+  partially_sent: 2,
+  in_progress: 3,
+  cancelled: 4,
+  received: 5
+};
+const PAYMENT_SORT_PRIORITY: Record<string, number> = {
+  paid: 0,
+  refunded: 1,
+  unpaid: 2
+};
+const TYPE_SORT_CYCLE: TypePriority[] = ['school', 'company', 'individual'];
+const HEADER_TITLE_BUTTON_CLASS = 'inline-flex items-center text-[11px] font-semibold leading-none hover:text-slate-700';
+const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500';
+const NON_RESET_SORT_COLUMNS: SortableColumnKey[] = ['order', 'date'];
 const AdminOrdersPreviewChart = dynamic(() => import('@/admin/components/AdminOrdersPreviewChart'), { ssr: false });
 const LazyAdminOrdersPdfCell = dynamic(() => import('@/admin/components/AdminOrdersPdfCell'), {
   ssr: false,
@@ -208,24 +223,38 @@ export default function AdminOrdersTable({
   const [statusFilter, setStatusFilter] = useState<StatusTab>((initialStatusFilter as StatusTab) ?? 'all');
   const [query, setQuery] = useState(initialQuery);
 
-  const [sortKey, setSortKey] = useState<SortKey>('order_number');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [sortState, setSortState] = useState<SortCycleState>(null);
 
   const [fromDate, setFromDate] = useState(initialFrom);
   const [toDate, setToDate] = useState(initialTo);
+  const [hasExplicitDateFilter, setHasExplicitDateFilter] = useState(Boolean(initialFrom || initialTo));
   const [rangePreset, setRangePreset] = useState<OrdersRangePreset>('1m');
   const debouncedQuery = useDebouncedValue(query, 200);
   const debouncedFromDate = useDebouncedValue(fromDate, 200);
   const debouncedToDate = useDebouncedValue(toDate, 200);
-  const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
   const [isChartReady, setIsChartReady] = useState(false);
 
   const [documentType, setDocumentType] = useState<DocumentType>((initialDocumentType as DocumentType) ?? 'all');
+  const [columnStatusFilter, setColumnStatusFilter] = useState<StatusTab>('all');
+  const [columnPaymentFilter, setColumnPaymentFilter] = useState<'all' | 'paid' | 'refunded' | 'unpaid'>('all');
+  const [columnTypeFilter, setColumnTypeFilter] = useState<'all' | TypePriority>('all');
+  const [totalRange, setTotalRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
+  const [draftTotalRange, setDraftTotalRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
+  const [orderNumberRange, setOrderNumberRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
+  const [draftFromDate, setDraftFromDate] = useState(initialFrom);
+  const [draftToDate, setDraftToDate] = useState(initialTo);
+  const [openHeaderFilter, setOpenHeaderFilter] = useState<null | 'order' | 'date' | 'type' | 'status' | 'payment' | 'total' | 'documents'>(null);
   const { toast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
 
   const selectAllRef = useRef<HTMLInputElement>(null);
-  const datePopoverRef = useRef<HTMLDivElement>(null);
+  const orderFilterButtonRef = useRef<HTMLButtonElement>(null);
+  const dateFilterButtonRef = useRef<HTMLButtonElement>(null);
+  const typeFilterButtonRef = useRef<HTMLButtonElement>(null);
+  const statusFilterButtonRef = useRef<HTMLButtonElement>(null);
+  const paymentFilterButtonRef = useRef<HTMLButtonElement>(null);
+  const totalFilterButtonRef = useRef<HTMLButtonElement>(null);
+  const documentsFilterButtonRef = useRef<HTMLButtonElement>(null);
   const statusHeaderMenuRef = useRef<HTMLDivElement>(null);
   const paymentHeaderMenuRef = useRef<HTMLDivElement>(null);
   const hasAutoResetFiltersRef = useRef(false);
@@ -245,6 +274,11 @@ export default function AdminOrdersTable({
   });
 
   useEffect(() => {
+    if (visibleColumns.order) return;
+    setVisibleColumns((currentColumns) => ({ ...currentColumns, order: true }));
+  }, [visibleColumns.order]);
+
+  useEffect(() => {
     if (typeof globalThis.window === 'undefined') return;
     if ('requestIdleCallback' in globalThis.window) {
       const idleId = globalThis.window.requestIdleCallback(() => setIsChartReady(true), { timeout: 1200 });
@@ -254,23 +288,6 @@ export default function AdminOrdersTable({
     const timeoutId = globalThis.setTimeout(() => setIsChartReady(true), 0);
     return () => globalThis.clearTimeout(timeoutId);
   }, []);
-
-  useEffect(() => {
-    const closeOnOutsideClick = (mouseEvent: MouseEvent) => {
-      if (!datePopoverRef.current) return;
-      if (!datePopoverRef.current.contains(mouseEvent.target as Node)) {
-        setIsDatePopoverOpen(false);
-      }
-    };
-
-    if (isDatePopoverOpen) {
-      document.addEventListener('mousedown', closeOnOutsideClick);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', closeOnOutsideClick);
-    };
-  }, [isDatePopoverOpen]);
 
   useEffect(() => {
     if (!isStatusHeaderMenuOpen && !isPaymentHeaderMenuOpen) return;
@@ -300,6 +317,39 @@ export default function AdminOrdersTable({
       document.removeEventListener('keydown', handleEscape);
     };
   }, [isPaymentHeaderMenuOpen, isStatusHeaderMenuOpen]);
+
+  useEffect(() => {
+    if (!openHeaderFilter) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('[data-header-filter-root="true"]')) return;
+      setOpenHeaderFilter(null);
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpenHeaderFilter(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [openHeaderFilter]);
+
+  useEffect(() => {
+    if (openHeaderFilter === 'total') {
+      setDraftTotalRange(totalRange);
+    }
+    if (openHeaderFilter === 'date') {
+      setDraftFromDate(fromDate);
+      setDraftToDate(toDate);
+    }
+  }, [openHeaderFilter, totalRange, fromDate, toDate]);
 
   const latestOrderDate = useMemo(() => {
     const timestamps = orders
@@ -381,6 +431,7 @@ export default function AdminOrdersTable({
   }, []);
 
   const applyQuickDateRange = (range: 'today' | 'yesterday' | '7d' | '30d' | '3m' | '6m' | '1y' | 'allYears') => {
+    setHasExplicitDateFilter(true);
     const anchorDate = new Date(latestOrderDate);
 
     if (range === 'today') {
@@ -489,9 +540,11 @@ export default function AdminOrdersTable({
 
   const orderRuntimeById = useMemo(() => {
     const runtime = new Map<number, {
+      originalIndex: number;
       createdAtTimestamp: number;
       createdAtDayTimestamp: number;
       numericOrderNumber: number;
+      customerType: TypePriority | null;
       customerLabel: string;
       addressLabel: string;
       typeLabel: string;
@@ -500,7 +553,7 @@ export default function AdminOrdersTable({
       searchBlob: string;
     }>();
 
-    orders.forEach((order) => {
+    orders.forEach((order, index) => {
       const createdAtTimestamp = new Date(order.created_at).getTime();
       const createdAtDate = new Date(order.created_at);
       createdAtDate.setHours(0, 0, 0, 0);
@@ -510,9 +563,13 @@ export default function AdminOrdersTable({
       const statusLabel = getOrderStatusLabelForUi(order.status);
       const paymentLabel = getPaymentLabel(order.payment_status);
       runtime.set(order.id, {
+        originalIndex: index,
         createdAtTimestamp,
         createdAtDayTimestamp: createdAtDate.getTime(),
         numericOrderNumber: getNumericOrderNumber(order.order_number),
+        customerType: order.customer_type === 'school' || order.customer_type === 'company' || order.customer_type === 'individual'
+          ? (order.customer_type as TypePriority)
+          : null,
         customerLabel,
         addressLabel,
         typeLabel,
@@ -530,15 +587,15 @@ export default function AdminOrdersTable({
   }, [orders]);
 
   const filteredAndSortedOrders = useMemo(() => {
-    if (isServerFilteredMode) {
-      return orders;
-    }
     const normalizedQuery = normalizeForSearch(debouncedQuery);
 
     const filteredOrders = orders.filter((order) => {
       const mergedStatusValue = getMergedOrderStatusValue(order.status);
 
       if (statusFilter !== 'all' && mergedStatusValue !== statusFilter) {
+        return false;
+      }
+      if (columnStatusFilter !== 'all' && mergedStatusValue !== columnStatusFilter) {
         return false;
       }
 
@@ -558,6 +615,25 @@ export default function AdminOrdersTable({
           return false;
         }
       }
+      if (columnPaymentFilter !== 'all' && (order.payment_status ?? '') !== columnPaymentFilter) {
+        return false;
+      }
+
+      if (columnTypeFilter !== 'all' && orderRuntime?.customerType !== columnTypeFilter) {
+        return false;
+      }
+
+      const totalValue = toAmount(order.total);
+      const minTotal = totalRange.min.trim() ? Number(totalRange.min) : null;
+      const maxTotal = totalRange.max.trim() ? Number(totalRange.max) : null;
+      if (minTotal !== null && Number.isFinite(minTotal) && totalValue < minTotal) return false;
+      if (maxTotal !== null && Number.isFinite(maxTotal) && totalValue > maxTotal) return false;
+
+      const orderNumberNumeric = orderRuntime?.numericOrderNumber ?? getNumericOrderNumber(order.order_number);
+      const minOrderNumber = orderNumberRange.min.trim() ? Number(orderNumberRange.min) : null;
+      const maxOrderNumber = orderNumberRange.max.trim() ? Number(orderNumberRange.max) : null;
+      if (minOrderNumber !== null && Number.isFinite(minOrderNumber) && orderNumberNumeric < minOrderNumber) return false;
+      if (maxOrderNumber !== null && Number.isFinite(maxOrderNumber) && orderNumberNumeric > maxOrderNumber) return false;
 
       const orderSearchBlob = orderRuntime?.searchBlob ?? '';
 
@@ -589,17 +665,36 @@ export default function AdminOrdersTable({
     });
 
     const sortedOrders = [...filteredOrders].sort((leftOrder, rightOrder) => {
-      const sortMultiplier = sortDirection === 'asc' ? 1 : -1;
       const leftRuntime = orderRuntimeById.get(leftOrder.id);
       const rightRuntime = orderRuntimeById.get(rightOrder.id);
       const leftOrderNumberNumeric = leftRuntime?.numericOrderNumber ?? getNumericOrderNumber(leftOrder.order_number);
       const rightOrderNumberNumeric = rightRuntime?.numericOrderNumber ?? getNumericOrderNumber(rightOrder.order_number);
+      const fallbackStable = (leftRuntime?.originalIndex ?? 0) - (rightRuntime?.originalIndex ?? 0);
+
+      if (!sortState) {
+        return fallbackStable;
+      }
+
+      const descendingFirstColumns: SortableColumnKey[] = ['total'];
+      const isDescending = descendingFirstColumns.includes(sortState.column) ? sortState.index === 0 : sortState.index === 1;
+      const sortMultiplier = isDescending ? -1 : 1;
+      if (sortState.column === 'type') {
+        const firstType = TYPE_SORT_CYCLE[sortState.index];
+        const deterministicTypeOrder = [firstType, ...TYPE_SORT_CYCLE.filter((type) => type !== firstType)];
+        const priorityByType = new Map<TypePriority, number>(deterministicTypeOrder.map((type, index) => [type, index]));
+        const leftTypePriority = priorityByType.get(leftRuntime?.customerType ?? 'individual') ?? Number.MAX_SAFE_INTEGER;
+        const rightTypePriority = priorityByType.get(rightRuntime?.customerType ?? 'individual') ?? Number.MAX_SAFE_INTEGER;
+        if (leftTypePriority !== rightTypePriority) {
+          return leftTypePriority - rightTypePriority;
+        }
+        return fallbackStable;
+      }
 
       let leftValue: string | number;
       let rightValue: string | number;
 
-      switch (sortKey) {
-        case 'order_number':
+      switch (sortState.column) {
+        case 'order':
           if (
             Number.isFinite(leftOrderNumberNumeric) &&
             Number.isFinite(rightOrderNumberNumeric) &&
@@ -624,23 +719,19 @@ export default function AdminOrdersTable({
           leftValue = leftRuntime?.addressLabel ?? formatOrderAddress(leftOrder);
           rightValue = rightRuntime?.addressLabel ?? formatOrderAddress(rightOrder);
           break;
-        case 'type':
-          leftValue = leftRuntime?.typeLabel ?? getCustomerTypeLabel(leftOrder.customer_type);
-          rightValue = rightRuntime?.typeLabel ?? getCustomerTypeLabel(rightOrder.customer_type);
-          break;
         case 'status':
-          leftValue = leftRuntime?.statusLabel ?? getOrderStatusLabelForUi(leftOrder.status);
-          rightValue = rightRuntime?.statusLabel ?? getOrderStatusLabelForUi(rightOrder.status);
+          leftValue = STATUS_SORT_PRIORITY[leftOrder.status] ?? Number.MAX_SAFE_INTEGER;
+          rightValue = STATUS_SORT_PRIORITY[rightOrder.status] ?? Number.MAX_SAFE_INTEGER;
           break;
         case 'payment':
-          leftValue = leftRuntime?.paymentLabel ?? getPaymentLabel(leftOrder.payment_status);
-          rightValue = rightRuntime?.paymentLabel ?? getPaymentLabel(rightOrder.payment_status);
+          leftValue = PAYMENT_SORT_PRIORITY[leftOrder.payment_status ?? ''] ?? Number.MAX_SAFE_INTEGER;
+          rightValue = PAYMENT_SORT_PRIORITY[rightOrder.payment_status ?? ''] ?? Number.MAX_SAFE_INTEGER;
           break;
         case 'total':
           leftValue = toAmount(leftOrder.total);
           rightValue = toAmount(rightOrder.total);
           break;
-        case 'created_at':
+        case 'date':
         default: {
           leftValue = leftRuntime?.createdAtDayTimestamp ?? 0;
           rightValue = rightRuntime?.createdAtDayTimestamp ?? 0;
@@ -651,22 +742,12 @@ export default function AdminOrdersTable({
       if (typeof leftValue === 'number' && typeof rightValue === 'number') {
         const primaryResult = (leftValue - rightValue) * sortMultiplier;
         if (primaryResult !== 0) return primaryResult;
-
-        if (sortKey === 'created_at') {
-          return rightOrderNumberNumeric - leftOrderNumberNumeric;
-        }
-
-        return 0;
+        return fallbackStable;
       }
 
       const textResult = textCollator.compare(String(leftValue), String(rightValue)) * sortMultiplier;
       if (textResult !== 0) return textResult;
-
-      if (sortKey === 'created_at') {
-        return rightOrderNumberNumeric - leftOrderNumberNumeric;
-      }
-
-      return leftOrder.id - rightOrder.id;
+      return fallbackStable;
     });
 
     return sortedOrders;
@@ -677,11 +758,14 @@ export default function AdminOrdersTable({
     debouncedFromDate,
     debouncedToDate,
     documentType,
+    columnStatusFilter,
+    columnPaymentFilter,
+    columnTypeFilter,
+    totalRange,
+    orderNumberRange,
     latestDocumentsByOrder,
     orderRuntimeById,
-    sortKey,
-    sortDirection,
-    isServerFilteredMode
+    sortState
   ]);
 
   const { page: clientPage, pageSize: clientPageSize, pageCount: clientPageCount, setPage, setPageSize } = useTablePagination({
@@ -801,7 +885,22 @@ export default function AdminOrdersTable({
       return;
     }
     setPage(1);
-  }, [debouncedFromDate, debouncedQuery, debouncedToDate, documentType, isServerFilteredMode, setPage, sortDirection, sortKey, statusFilter, updateServerFilters]);
+  }, [
+    debouncedFromDate,
+    debouncedQuery,
+    debouncedToDate,
+    documentType,
+    isServerFilteredMode,
+    setPage,
+    sortState,
+    statusFilter,
+    columnStatusFilter,
+    columnPaymentFilter,
+    columnTypeFilter,
+    totalRange,
+    orderNumberRange,
+    updateServerFilters
+  ]);
 
   const toggleSelected = (orderId: number) => {
     setSelected((previousSelected) =>
@@ -940,47 +1039,45 @@ export default function AdminOrdersTable({
     }
   };
 
-  const onSort = (nextSortKey: SortKey) => {
-    const isSameKey = sortKey === nextSortKey;
+  const getSortCycleLength = (column: SortableColumnKey) => (column === 'type' ? 3 : 2);
 
-    if (isSameKey) {
-      setSortDirection((previousDirection) => (previousDirection === 'asc' ? 'desc' : 'asc'));
-      return;
-    }
+  const onSort = (column: SortableColumnKey) => {
+    setSortState((currentState) => {
+      if (!currentState || currentState.column !== column) {
+        return { column, index: 0 };
+      }
 
-    setSortKey(nextSortKey);
-    if (nextSortKey === 'order_number' || nextSortKey === 'created_at' || nextSortKey === 'total') {
-      setSortDirection('desc');
-      return;
-    }
-
-    setSortDirection('asc');
+      const nextIndex = currentState.index + 1;
+      if (nextIndex >= getSortCycleLength(column)) {
+        if (NON_RESET_SORT_COLUMNS.includes(column)) {
+          return { column, index: 0 };
+        }
+        return null;
+      }
+      return { column, index: nextIndex };
+    });
   };
 
-  const sortIndicator = (nextSortKey: SortKey) => {
-    if (sortKey !== nextSortKey) return <span className="ml-1 text-slate-300">↕</span>;
-    return <span className="ml-1 text-slate-500">{sortDirection === 'asc' ? '↑' : '↓'}</span>;
+  const toggleHeaderFilter = (filterKey: NonNullable<typeof openHeaderFilter>) => {
+    setOpenHeaderFilter((currentOpenFilter) => (currentOpenFilter === filterKey ? null : filterKey));
   };
 
-  const defaultDateRangeLabel = useMemo(() => {
-    if (orders.length === 0) return '—';
+  const getHeaderPopoverStyle = useCallback((anchorElement: HTMLButtonElement | null, width: number): CSSProperties => {
+    if (!anchorElement || typeof window === 'undefined') return { visibility: 'hidden' };
+    const anchorRect = anchorElement.getBoundingClientRect();
+    const left = Math.min(
+      Math.max(8, anchorRect.left + anchorRect.width / 2 - width / 2),
+      window.innerWidth - width - 8
+    );
 
-    const timestamps = orders
-      .map((order) => new Date(order.created_at).getTime())
-      .filter((timestamp) => !Number.isNaN(timestamp));
-
-    if (timestamps.length === 0) return '—';
-
-    const minTimestamp = Math.min(...timestamps);
-    const maxTimestamp = Math.max(...timestamps);
-
-    return `${formatCompactDate(new Date(minTimestamp))} - ${formatCompactDate(new Date(maxTimestamp))}`;
-  }, [orders]);
-
-  const dateRangeLabel =
-    fromDate || toDate
-      ? `${formatCompactDateFromDateInput(fromDate)} - ${formatCompactDateFromDateInput(toDate)}`
-      : defaultDateRangeLabel;
+    return {
+      position: 'fixed',
+      top: anchorRect.bottom + 6,
+      left,
+      width,
+      zIndex: 60
+    };
+  }, []);
 
   const resetAllFilters = () => {
     setStatusFilter('all');
@@ -988,6 +1085,13 @@ export default function AdminOrdersTable({
     setFromDate('');
     setToDate('');
     setDocumentType('all');
+    setColumnStatusFilter('all');
+    setColumnPaymentFilter('all');
+    setColumnTypeFilter('all');
+    setTotalRange({ min: '', max: '' });
+    setOrderNumberRange({ min: '', max: '' });
+    setSortState(null);
+    setHasExplicitDateFilter(false);
   };
 
   const hasActiveFilters =
@@ -995,7 +1099,59 @@ export default function AdminOrdersTable({
     query.trim().length > 0 ||
     fromDate.length > 0 ||
     toDate.length > 0 ||
-    documentType !== 'all';
+    documentType !== 'all' ||
+    columnStatusFilter !== 'all' ||
+    columnPaymentFilter !== 'all' ||
+    columnTypeFilter !== 'all' ||
+    totalRange.min.trim().length > 0 ||
+    totalRange.max.trim().length > 0 ||
+    orderNumberRange.min.trim().length > 0 ||
+    orderNumberRange.max.trim().length > 0 ||
+    sortState !== null;
+
+  const activeFilterChips = useMemo(() => {
+    const chips: Array<{ key: string; label: string; clear: () => void }> = [];
+    if (hasExplicitDateFilter && (fromDate || toDate)) {
+      chips.push({
+        key: 'date',
+        label: `Datum: ${fromDate || '—'} - ${toDate || '—'}`,
+        clear: () => {
+          setFromDate('');
+          setToDate('');
+        }
+      });
+    }
+    if (columnStatusFilter !== 'all') {
+      const statusLabel = ORDER_STATUS_OPTIONS.find((option) => option.value === columnStatusFilter)?.label ?? columnStatusFilter;
+      chips.push({ key: 'status', label: `Status: ${statusLabel}`, clear: () => setColumnStatusFilter('all') });
+    }
+    if (columnPaymentFilter !== 'all') {
+      const paymentLabel = PAYMENT_STATUS_OPTIONS.find((option) => option.value === columnPaymentFilter)?.label ?? columnPaymentFilter;
+      chips.push({ key: 'payment', label: `Plačilo: ${paymentLabel}`, clear: () => setColumnPaymentFilter('all') });
+    }
+    if (documentType !== 'all') {
+      chips.push({
+        key: 'documents',
+        label: `Dokumenti: ${documentTypeOptions.find((option) => option.value === documentType)?.label ?? documentType}`,
+        clear: () => setDocumentType('all')
+      });
+    }
+    if (totalRange.min || totalRange.max) {
+      chips.push({
+        key: 'total',
+        label: `Skupaj: ${totalRange.min || '0'} - ${totalRange.max || '∞'}`,
+        clear: () => setTotalRange({ min: '', max: '' })
+      });
+    }
+    if (orderNumberRange.min || orderNumberRange.max) {
+      chips.push({
+        key: 'orderNumber',
+        label: `Naročilo: ${orderNumberRange.min || '0'} - ${orderNumberRange.max || '∞'}`,
+        clear: () => setOrderNumberRange({ min: '', max: '' })
+      });
+    }
+    return chips;
+  }, [hasExplicitDateFilter, fromDate, toDate, columnStatusFilter, columnPaymentFilter, documentType, totalRange, orderNumberRange]);
 
   useEffect(() => {
     if (hasAutoResetFiltersRef.current) return;
@@ -1121,107 +1277,16 @@ export default function AdminOrdersTable({
           }}
           contentClassName="overflow-x-auto bg-white"
           headerLeft={
-            <>
-              <div className="inline-flex items-center gap-0.5 border-b border-slate-200 pb-1">
-                {statusTabs.map((tab) => {
-                  const isActive = statusFilter === tab.value;
-                  return (
-                    <button
-                      key={tab.value}
-                      type="button"
-                      onClick={() => setStatusFilter(tab.value)}
-                      className={`relative px-3 py-1.5 text-[11px] font-medium transition ${
-                        isActive
-                          ? 'text-slate-900 after:absolute after:inset-x-0 after:bottom-[-5px] after:h-[2px] after:rounded-full after:bg-slate-800'
-                          : 'text-slate-500 hover:text-slate-700'
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </>
+            <AdminSearchInput
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Poišči naročila"
+              className="h-7 min-w-[280px] flex-1 rounded-xl border-slate-200 bg-white pl-10 pr-3 text-sm"
+            />
           }
           headerRight={
             <>
               <div className="flex items-center gap-2 pb-1">
-                <div className="relative" ref={datePopoverRef}>
-                  <button
-                    type="button"
-                    onClick={() => setIsDatePopoverOpen((previousState) => !previousState)}
-                    className={`${ADMIN_CONTROL_HEIGHT} rounded-xl border border-slate-300 bg-white px-2.5 py-0 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:ring-1 focus:ring-inset focus:ring-blue-500 focus:outline-none`}
-                  >
-                    <span className="inline-flex h-full w-full items-center gap-1.5 leading-none">
-                      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5 text-slate-600" fill="none" stroke="currentColor" strokeWidth="1.8">
-                        <rect x="3" y="5" width="18" height="16" rx="2" />
-                        <path d="M16 3v4M8 3v4M3 10h18" />
-                      </svg>
-                      <span className="whitespace-nowrap">{dateRangeLabel}</span>
-                    </span>
-                  </button>
-                  {isDatePopoverOpen && (
-                    <div lang="sl-SI" className="absolute right-0 top-9 z-20 w-[420px] rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
-                      <div className="grid grid-cols-[180px_1fr] gap-4">
-                        <div className="space-y-1 border-r border-slate-200 pr-3">
-                          {[
-                            { key: 'today', label: 'Danes' },
-                            { key: 'yesterday', label: 'Včeraj' },
-                            { key: '7d', label: 'Zadnjih 7 dni' },
-                            { key: '30d', label: 'Zadnjih 30 dni' },
-                            { key: '3m', label: 'Zadnje 3 mesece' },
-                            { key: '6m', label: 'Zadnjih 6 mesecev' },
-                            { key: '1y', label: 'Zadnje leto' },
-                            { key: 'allYears', label: 'Vsa Leta' }
-                          ].map((item) => (
-                            <button
-                              key={item.key}
-                              type="button"
-                              onClick={() => applyQuickDateRange(item.key as any)}
-                              className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:outline-none"
-                            >
-                              {item.label}
-                            </button>
-                          ))}
-                        </div>
-                        <div className="space-y-3">
-                          <div>
-                            <label className="text-xs font-semibold text-slate-500">Od</label>
-                            <input
-                              type="date"
-                              lang="sl-SI"
-                              value={fromDate}
-                              onChange={(event) => {
-                                setFromDate(event.target.value);
-                                setRangePreset('custom');
-                              }}
-                              className={`mt-1 ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`}
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs font-semibold text-slate-500">Do</label>
-                            <input
-                              type="date"
-                              lang="sl-SI"
-                              value={toDate}
-                              onChange={(event) => {
-                                setToDate(event.target.value);
-                                setRangePreset('custom');
-                              }}
-                              className={`mt-1 ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <CustomSelect
-                  value={documentType}
-                  onChange={(next) => setDocumentType(next as DocumentType)}
-                  options={documentTypeOptions}
-                  triggerClassName={`${ADMIN_CONTROL_HEIGHT} w-[126px] rounded-xl border border-slate-300 bg-white ${ADMIN_CONTROL_PADDING_X} py-0 text-xs font-semibold text-slate-700 shadow-none hover:bg-[color:var(--hover-neutral)]`}
-                />
                 <IconButton
                   type="button"
                   onClick={handleDownloadAllDocuments}
@@ -1240,11 +1305,14 @@ export default function AdminOrdersTable({
                 <ColumnVisibilityControl
                   options={ORDER_COLUMN_OPTIONS}
                   visibleMap={visibleColumns}
-                  onToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }))}
+                  onToggle={(key) => {
+                    if (key === 'order') return;
+                    setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }));
+                  }}
                   showLabel={false}
                   className="[&>button]:!h-7 [&>button]:!w-7 [&>button]:!rounded-md [&>button]:!border-slate-200 [&>button]:!bg-transparent [&>button]:!px-0 [&>button]:!text-slate-600 [&>button]:hover:!border-slate-300 [&>button]:hover:!bg-[color:var(--hover-neutral)] [&>button]:hover:!text-slate-700"
                   icon={<FilterIcon />}
-                  menuClassName="!w-28"
+                  menuClassName="!w-44"
                 />
                 <IconButton
                   type="button"
@@ -1261,17 +1329,21 @@ export default function AdminOrdersTable({
                     <TrashCanIcon />
                   )}
                 </IconButton>
-                {topAction ? <div className="flex items-center [&_button]:!rounded-xl">{topAction}</div> : null}
+                {topAction ? <div className="flex items-center [&_button]:!h-7 [&_button]:!rounded-xl">{topAction}</div> : null}
               </div>
             </>
           }
           filterRowLeft={
-            <AdminSearchInput
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Poišči naročila"
-              className="h-10 min-w-[280px] flex-1 rounded-xl border-slate-200 bg-slate-100 pl-10 pr-3 text-sm"
-            />
+            activeFilterChips.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-2">
+                {activeFilterChips.map((chip) => (
+                  <span key={chip.key} className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1 text-xs text-slate-700">
+                    {chip.label}
+                    <button type="button" onClick={chip.clear} className="text-slate-500 hover:text-slate-800" aria-label={`Odstrani filter ${chip.label}`}>×</button>
+                  </span>
+                ))}
+              </div>
+            ) : null
           }
           filterRowRight={
             <div className="flex items-center gap-2">
@@ -1281,7 +1353,7 @@ export default function AdminOrdersTable({
           }
           footerRight={null}
         >
-          <Table className="min-w-[1060px] w-full text-[11px] [&_th]:!bg-white">
+          <Table className="min-w-[1060px] w-full text-[11px] [&_th]:!bg-[#eaf1ff]">
             <colgroup>
               <col style={{ width: columnWidths.selectAndDelete }} />
               {visibleColumns.order ? <col style={{ width: columnWidths.order }} /> : null}
@@ -1309,57 +1381,36 @@ export default function AdminOrdersTable({
                 </TH>
 
                 {visibleColumns.order ? <TH className="h-11 text-center">
-                  <button
-                    type="button"
-                    onClick={() => onSort('order_number')}
-                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
-                  >
-                    Naročilo {sortIndicator('order_number')}
-                  </button>
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
+                    <button type="button" onClick={() => onSort('order')} className={HEADER_TITLE_BUTTON_CLASS}>Naročilo</button>
+                    <button ref={orderFilterButtonRef} data-active={openHeaderFilter === 'order'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('order'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Naročilo">
+                      <FunnelIcon />
+                    </button>
+                  </div>
                 </TH> : null}
 
                 {visibleColumns.date ? <TH className="h-11 text-center text-[11px]">
-                  <button
-                    type="button"
-                    onClick={() => onSort('created_at')}
-                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
-                  >
-                    Datum {sortIndicator('created_at')}
-                  </button>
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
+                    <button type="button" onClick={() => onSort('date')} className={HEADER_TITLE_BUTTON_CLASS}>Datum</button>
+                    <button ref={dateFilterButtonRef} data-active={openHeaderFilter === 'date'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('date'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Datum">
+                      <FunnelIcon />
+                    </button>
+                  </div>
                 </TH> : null}
 
-                {visibleColumns.customer ? <TH className="text-[11px]">
-                  <button
-                    type="button"
-                    onClick={() => onSort('customer')}
-                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
-                  >
-                    Naročnik {sortIndicator('customer')}
-                  </button>
-                </TH> : null}
+                {visibleColumns.customer ? <TH className="text-[11px]"><button type="button" onClick={() => onSort('customer')} className={HEADER_TITLE_BUTTON_CLASS}>Naročnik</button></TH> : null}
 
-                {visibleColumns.address ? <TH className="text-[11px]">
-                  <button
-                    type="button"
-                    onClick={() => onSort('address')}
-                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
-                  >
-                    Naslov {sortIndicator('address')}
-                  </button>
-                </TH> : null}
+                {visibleColumns.address ? <TH className="text-[11px]"><button type="button" onClick={() => onSort('address')} className={HEADER_TITLE_BUTTON_CLASS}>Naslov</button></TH> : null}
 
                 {visibleColumns.type ? <TH className="h-11 text-center text-[11px]">
-                  <button
-                    type="button"
-                    onClick={() => onSort('type')}
-                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
-                  >
-                    Tip {sortIndicator('type')}
-                  </button>
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
+                    <button type="button" onClick={() => onSort('type')} className={HEADER_TITLE_BUTTON_CLASS}>Tip</button>
+                    <button ref={typeFilterButtonRef} data-active={openHeaderFilter === 'type'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('type'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Tip"><FunnelIcon /></button>
+                  </div>
                 </TH> : null}
 
                 {visibleColumns.status ? <TH className="h-11 text-center text-[11px]">
-                  <div className="relative inline-flex" ref={statusHeaderMenuRef}>
+                  <div className="relative inline-flex items-center" ref={statusHeaderMenuRef}>
                     {selectedCount > 0 ? (
                       <>
                         <button
@@ -1390,19 +1441,16 @@ export default function AdminOrdersTable({
                         )}
                       </>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={() => onSort('status')}
-                        className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
-                      >
-                        Status {sortIndicator('status')}
-                      </button>
+                      <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
+                        <button type="button" onClick={() => onSort('status')} className={HEADER_TITLE_BUTTON_CLASS}>Status</button>
+                        <button ref={statusFilterButtonRef} data-active={openHeaderFilter === 'status'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('status'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Status"><FunnelIcon /></button>
+                      </div>
                     )}
                   </div>
                 </TH> : null}
 
                 {visibleColumns.payment ? <TH className="h-11 text-center text-[11px]">
-                  <div className="relative inline-flex" ref={paymentHeaderMenuRef}>
+                  <div className="relative inline-flex items-center" ref={paymentHeaderMenuRef}>
                     {selectedCount > 0 ? (
                       <>
                         <button
@@ -1433,29 +1481,30 @@ export default function AdminOrdersTable({
                         )}
                       </>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={() => onSort('payment')}
-                        className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
-                      >
-                        Plačilo {sortIndicator('payment')}
-                      </button>
+                      <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
+                        <button type="button" onClick={() => onSort('payment')} className={HEADER_TITLE_BUTTON_CLASS}>Plačilo</button>
+                        <button ref={paymentFilterButtonRef} data-active={openHeaderFilter === 'payment'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('payment'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Plačilo"><FunnelIcon /></button>
+                      </div>
                     )}
                   </div>
                 </TH> : null}
 
                 {visibleColumns.total ? <TH className="h-11 text-center text-[11px]">
-                  <button
-                    type="button"
-                    onClick={() => onSort('total')}
-                    className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700"
-                  >
-                    Skupaj {sortIndicator('total')}
-                  </button>
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
+                    <button type="button" onClick={() => onSort('total')} className={HEADER_TITLE_BUTTON_CLASS}>Skupaj</button>
+                    <button ref={totalFilterButtonRef} data-active={openHeaderFilter === 'total'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('total'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Skupaj"><FunnelIcon /></button>
+                  </div>
                 </TH> : null}
 
-                {visibleColumns.documents ? <TH className="h-11 min-w-[100px] text-center text-[11px]">PDF datoteke</TH> : null}
-                <TH className="h-11 text-center text-[11px]">Uredi</TH>
+                {visibleColumns.documents ? <TH className="h-11 min-w-[100px] text-center text-[11px]">
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
+                    <span className="inline-flex items-center text-[11px] font-semibold leading-none">PDF datoteke</span>
+                    <button ref={documentsFilterButtonRef} data-active={openHeaderFilter === 'documents'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('documents'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj PDF datoteke"><FunnelIcon /></button>
+                  </div>
+                </TH> : null}
+                <TH className="h-11 text-center text-[11px]">
+                  <span className="inline-flex items-center text-[11px] font-semibold leading-none text-slate-700">Uredi</span>
+                </TH>
               </TR>
             </THead>
 
@@ -1493,8 +1542,8 @@ export default function AdminOrdersTable({
                   return (
                     <TR
                       key={order.id}
-                      className={`border-t border-slate-100 text-[11px] transition-colors duration-200 ${
-                        isRowSelected ? adminTableRowToneClasses.selected : getAdminStripedRowToneClass(orderIndex)
+                      className={`border-t border-slate-100 bg-white text-[11px] transition-colors duration-200 ${
+                        isRowSelected ? adminTableRowToneClasses.selected : ''
                       } ${adminTableRowToneClasses.hover}`}
                     >
                       <TD>
@@ -1634,6 +1683,148 @@ export default function AdminOrdersTable({
             </TBody>
           </Table>
         </AdminTableLayout>
+        {typeof window !== 'undefined' && openHeaderFilter ? createPortal(
+          <div data-header-filter-root="true">
+            {openHeaderFilter === 'order' ? (
+              <div style={getHeaderPopoverStyle(orderFilterButtonRef.current, 192)} className="rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+                <div className="grid grid-cols-2 gap-2">
+                  <FloatingInput
+                    id="orders-order-number-min"
+                    label="Od"
+                    tone="admin"
+                    type="number"
+                    value={orderNumberRange.min}
+                    onChange={(event) => setOrderNumberRange((current) => ({ ...current, min: event.target.value }))}
+                    className="text-[11px]"
+                  />
+                  <FloatingInput
+                    id="orders-order-number-max"
+                    label="Do"
+                    tone="admin"
+                    type="number"
+                    value={orderNumberRange.max}
+                    onChange={(event) => setOrderNumberRange((current) => ({ ...current, max: event.target.value }))}
+                    className="text-[11px]"
+                  />
+                </div>
+              </div>
+            ) : null}
+            {openHeaderFilter === 'date' ? (
+              <div lang="sl-SI" style={getHeaderPopoverStyle(dateFilterButtonRef.current, 380)} className="rounded-xl border border-slate-200 bg-white p-3 text-left shadow-lg">
+                <h4 className="mb-2 text-[11px] font-semibold text-slate-800">Nastavi obdobje</h4>
+                <div className="mb-3 grid grid-cols-3 gap-2">
+                  {[
+                    { key: 'today', label: 'Zadnja 1 h' },
+                    { key: 'yesterday', label: 'Zadnjih 24 h' },
+                    { key: '7d', label: 'Zadnjih 7 dni' },
+                    { key: '30d', label: 'Zadnjih 30 dni' },
+                    { key: '3m', label: 'Zadnjih 90 dni' },
+                    { key: '6m', label: 'Zadnjih 180 dni' }
+                  ].map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => {
+                        applyQuickDateRange(item.key as any);
+                        setDraftFromDate(fromDate);
+                        setDraftToDate(toDate);
+                      }}
+                      className="rounded-full border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-slate-50"
+                    >
+                      {item.label.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+                <div className="mb-3 border-t border-slate-200 pt-3">
+                  <div className="space-y-2">
+                    <div><label className="mb-1 block text-[11px] font-medium text-slate-700">Od</label><input type="date" lang="sl-SI" value={draftFromDate} onChange={(event) => setDraftFromDate(event.target.value)} className={`w-full text-[11px] ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`} /></div>
+                    <div><label className="mb-1 block text-[11px] font-medium text-slate-700">Do</label><input type="date" lang="sl-SI" value={draftToDate} onChange={(event) => setDraftToDate(event.target.value)} className={`w-full text-[11px] ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`} /></div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" className="rounded-xl bg-[color:var(--blue-500)] py-2 text-[11px] font-semibold text-white" onClick={() => { setFromDate(draftFromDate); setToDate(draftToDate); setHasExplicitDateFilter(Boolean(draftFromDate || draftToDate)); setOpenHeaderFilter(null); }}>Potrdi</button>
+                  <button type="button" className="rounded-xl border border-slate-300 bg-slate-100 py-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-200" onClick={() => { setDraftFromDate(''); setDraftToDate(''); setFromDate(''); setToDate(''); setHasExplicitDateFilter(false); setOpenHeaderFilter(null); }}>Ponastavi</button>
+                </div>
+              </div>
+            ) : null}
+            {openHeaderFilter === 'type' ? (
+              <div style={getHeaderPopoverStyle(typeFilterButtonRef.current, 144)}>
+                <MenuPanel className="shadow-lg">
+                  {[
+                    { value: 'all', label: 'Vsa' },
+                    { value: 'school', label: 'Šola' },
+                    { value: 'company', label: 'Podjetje' },
+                    { value: 'individual', label: 'Fiz. oseba' }
+                  ].map((option) => <MenuItem key={option.value} onClick={() => { setColumnTypeFilter(option.value as any); setOpenHeaderFilter(null); }}>{option.label}</MenuItem>)}
+                </MenuPanel>
+              </div>
+            ) : null}
+            {openHeaderFilter === 'status' ? (
+              <div style={getHeaderPopoverStyle(statusFilterButtonRef.current, 160)}>
+                <MenuPanel className="shadow-lg">
+                  {[{ value: 'all', label: 'Vsi' } as const, ...ORDER_STATUS_OPTIONS].map((option) => (
+                    <MenuItem key={option.value} onClick={() => { setColumnStatusFilter(option.value as StatusTab); setOpenHeaderFilter(null); }}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </MenuPanel>
+              </div>
+            ) : null}
+            {openHeaderFilter === 'payment' ? (
+              <div style={getHeaderPopoverStyle(paymentFilterButtonRef.current, 160)}>
+                <MenuPanel className="shadow-lg">
+                  {[{ value: 'all', label: 'Vsa' }, ...PAYMENT_STATUS_OPTIONS].map((option) => (
+                    <MenuItem key={option.value} onClick={() => { setColumnPaymentFilter(option.value as any); setOpenHeaderFilter(null); }}>{option.label}</MenuItem>
+                  ))}
+                </MenuPanel>
+              </div>
+            ) : null}
+            {openHeaderFilter === 'total' ? (
+              <div style={getHeaderPopoverStyle(totalFilterButtonRef.current, 192)} className="rounded-xl border border-slate-200 bg-white p-2 text-left shadow-lg">
+                <h4 className="mb-2 text-[11px] font-semibold text-slate-800">Nastavi razpon zneskov</h4>
+                <div className="mb-3 grid grid-cols-3 gap-1">
+                  {['20', '50', '100', '200', '500', '1000'].map((maxValue) => (
+                    <button key={maxValue} type="button" onClick={() => setDraftTotalRange({ min: '0', max: maxValue })} className="rounded-full border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-slate-50">{`0-${maxValue === '1000' ? '1k' : maxValue}`}</button>
+                  ))}
+                </div>
+                <div className="mb-3 border-t border-slate-200 pt-3">
+                  <div className="grid grid-cols-2 gap-2">
+                  <FloatingInput
+                    id="orders-total-min"
+                    label="Od"
+                    tone="admin"
+                    type="number"
+                    value={draftTotalRange.min}
+                    onChange={(event) => setDraftTotalRange((current) => ({ ...current, min: event.target.value }))}
+                    className="text-[11px]"
+                  />
+                  <FloatingInput
+                    id="orders-total-max"
+                    label="Do"
+                    tone="admin"
+                    type="number"
+                    value={draftTotalRange.max}
+                    onChange={(event) => setDraftTotalRange((current) => ({ ...current, max: event.target.value }))}
+                    className="text-[11px]"
+                  />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" className="rounded-xl bg-[color:var(--blue-500)] py-2 text-[11px] font-semibold text-white" onClick={() => { setTotalRange(draftTotalRange); setOpenHeaderFilter(null); }}>Potrdi</button>
+                  <button type="button" className="rounded-xl border border-slate-300 bg-slate-100 py-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-200" onClick={() => { setDraftTotalRange({ min: '', max: '' }); setTotalRange({ min: '', max: '' }); setOpenHeaderFilter(null); }}>Ponastavi</button>
+                </div>
+              </div>
+            ) : null}
+            {openHeaderFilter === 'documents' ? (
+              <div style={getHeaderPopoverStyle(documentsFilterButtonRef.current, 160)}>
+                <MenuPanel className="shadow-lg">
+                  {documentTypeOptions.map((option) => <MenuItem key={option.value} onClick={() => { setDocumentType(option.value); setOpenHeaderFilter(null); }}>{option.label}</MenuItem>)}
+                </MenuPanel>
+              </div>
+            ) : null}
+          </div>,
+          document.body
+        ) : null}
       </div>
     </div>
   );
@@ -1650,13 +1841,20 @@ function useDebouncedValue<T>(value: T, delayMs: number) {
   return debounced;
 }
 
-function formatCompactDate(dateValue: Date) {
-  if (Number.isNaN(dateValue.getTime())) return '—';
-  return `${String(dateValue.getDate()).padStart(2, '0')}.${String(dateValue.getMonth() + 1).padStart(2, '0')}`;
-}
-
-function formatCompactDateFromDateInput(value: string) {
-  if (!value) return '—';
-  const parsedDate = new Date(`${value}T00:00:00`);
-  return formatCompactDate(parsedDate);
+function FunnelIcon() {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className="block h-[12px] w-[12px]"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path className="fill-transparent transition-colors duration-150 group-hover:fill-current group-data-[active=true]:fill-current" d="M3 4h14l-5.5 6.2V16L8.5 13v-2.8L3 4Z" />
+    </svg>
+  );
 }

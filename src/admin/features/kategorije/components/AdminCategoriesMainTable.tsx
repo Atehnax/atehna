@@ -84,6 +84,7 @@ import {
 import { Input } from '@/shared/ui/input';
 import { useToast } from '@/shared/ui/toast';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
+import { adminSectionTabsListClass, adminSectionTabsTriggerClass } from '@/admin/components/adminSectionTabStyles';
 
 const AdminCategoriesPreview = dynamic(
   () => import('./AdminCategoriesPreview').then((module) => module.AdminCategoriesPreview)
@@ -3366,12 +3367,11 @@ export default function AdminCategoriesMainTable({
                 : '/admin/kategorije/miller-view'
           );
         }}
-        variant="motion"
       >
-        <TabsList>
-          <TabsTrigger value="table">Osnovno</TabsTrigger>
-          <TabsTrigger value="preview">Predogled</TabsTrigger>
-          <TabsTrigger value="miller">Po stolpcih</TabsTrigger>
+        <TabsList className={adminSectionTabsListClass}>
+          <TabsTrigger value="table" className={adminSectionTabsTriggerClass}>Osnovno</TabsTrigger>
+          <TabsTrigger value="preview" className={adminSectionTabsTriggerClass}>Predogled</TabsTrigger>
+          <TabsTrigger value="miller" className={adminSectionTabsTriggerClass}>Po stolpcih</TabsTrigger>
         </TabsList>
       </Tabs>
 

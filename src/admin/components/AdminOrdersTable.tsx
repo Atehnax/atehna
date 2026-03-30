@@ -1363,7 +1363,7 @@ export default function AdminOrdersTable({
                 </TH> : null}
 
                 {visibleColumns.status ? <TH className="h-11 text-center text-[11px]">
-                  <div className="relative inline-flex" ref={statusHeaderMenuRef}>
+                  <div className="relative inline-flex items-center" ref={statusHeaderMenuRef}>
                     {selectedCount > 0 ? (
                       <>
                         <button
@@ -1403,7 +1403,7 @@ export default function AdminOrdersTable({
                 </TH> : null}
 
                 {visibleColumns.payment ? <TH className="h-11 text-center text-[11px]">
-                  <div className="relative inline-flex" ref={paymentHeaderMenuRef}>
+                  <div className="relative inline-flex items-center" ref={paymentHeaderMenuRef}>
                     {selectedCount > 0 ? (
                       <>
                         <button
@@ -1455,7 +1455,7 @@ export default function AdminOrdersTable({
                     <button ref={documentsFilterButtonRef} data-active={openHeaderFilter === 'documents'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('documents'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj PDF datoteke"><FunnelIcon /></button>
                   </div>
                 </TH> : null}
-                <TH className="h-11 text-center text-[11px]">Uredi</TH>
+                <TH className="h-11 text-center text-[11px] font-semibold">Uredi</TH>
               </TR>
             </THead>
 

@@ -3367,6 +3367,7 @@ export default function AdminCategoriesMainTable({
                 : '/admin/kategorije/miller-view'
           );
         }}
+        variant="motion"
       >
         <TabsList className={adminSectionTabsListClass}>
           <TabsTrigger value="table" className={adminSectionTabsTriggerClass}>Osnovno</TabsTrigger>

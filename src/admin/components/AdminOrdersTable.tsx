@@ -52,7 +52,6 @@ import {
   getNumericOrderNumber,
   normalizeForSearch,
   shiftDateByDays,
-  statusTabs,
   textCollator,
   toAmount,
   toDateInputValue,
@@ -1219,27 +1218,12 @@ export default function AdminOrdersTable({
           }}
           contentClassName="overflow-x-auto bg-white"
           headerLeft={
-            <>
-              <div className="inline-flex items-center gap-0.5 border-b border-slate-200 pb-1">
-                {statusTabs.map((tab) => {
-                  const isActive = statusFilter === tab.value;
-                  return (
-                    <button
-                      key={tab.value}
-                      type="button"
-                      onClick={() => setStatusFilter(tab.value)}
-                      className={`relative px-3 py-1.5 text-[11px] font-medium transition ${
-                        isActive
-                          ? 'text-slate-900 after:absolute after:inset-x-0 after:bottom-[-5px] after:h-[2px] after:rounded-full after:bg-slate-800'
-                          : 'text-slate-500 hover:text-slate-700'
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </>
+            <AdminSearchInput
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Poišči naročila"
+              className="h-10 min-w-[280px] flex-1 rounded-xl border-slate-200 bg-white pl-10 pr-3 text-sm"
+            />
           }
           headerRight={
             <>
@@ -1290,14 +1274,7 @@ export default function AdminOrdersTable({
               </div>
             </>
           }
-          filterRowLeft={
-            <AdminSearchInput
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Poišči naročila"
-              className="h-10 min-w-[280px] flex-1 rounded-xl border-slate-200 bg-white pl-10 pr-3 text-sm"
-            />
-          }
+          filterRowLeft={null}
           filterRowRight={
             <div className="flex items-center gap-2">
               <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={handlePageSizeChange} />
@@ -1455,7 +1432,9 @@ export default function AdminOrdersTable({
                     <button ref={documentsFilterButtonRef} data-active={openHeaderFilter === 'documents'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('documents'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj PDF datoteke"><FunnelIcon /></button>
                   </div>
                 </TH> : null}
-                <TH className="h-11 text-center text-[11px] font-semibold">Uredi</TH>
+                <TH className="h-11 text-center text-[11px]">
+                  <span className="inline-flex items-center text-[11px] font-semibold leading-none text-slate-700">Uredi</span>
+                </TH>
               </TR>
             </THead>
 
@@ -1699,9 +1678,9 @@ export default function AdminOrdersTable({
             {openHeaderFilter === 'status' ? (
               <div style={getHeaderPopoverStyle(statusFilterButtonRef.current, 160)}>
                 <MenuPanel className="shadow-lg">
-                  {statusTabs.map((option) => (
-                    <MenuItem key={option.value} onClick={() => { setColumnStatusFilter(option.value); setOpenHeaderFilter(null); }}>
-                      {option.value === 'all' ? 'Vsi' : option.label}
+                  {[{ value: 'all', label: 'Vsi' } as const, ...ORDER_STATUS_OPTIONS].map((option) => (
+                    <MenuItem key={option.value} onClick={() => { setColumnStatusFilter(option.value as StatusTab); setOpenHeaderFilter(null); }}>
+                      {option.label}
                     </MenuItem>
                   ))}
                 </MenuPanel>

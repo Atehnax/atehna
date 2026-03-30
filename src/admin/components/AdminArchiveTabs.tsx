@@ -24,7 +24,7 @@ export default function AdminArchiveTabs() {
   }, [pathname, router]);
 
   return (
-    <Tabs value={value} onValueChange={(next) => router.push(next)} variant="motion">
+    <Tabs value={value} onValueChange={(next) => router.push(next)}>
       <TabsList className={adminSectionTabsListClass}>
         {tabs.map((tab) => (
           <TabsTrigger key={tab.value} value={tab.value} className={adminSectionTabsTriggerClass}>

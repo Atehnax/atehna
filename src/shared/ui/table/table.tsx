@@ -8,7 +8,7 @@ type BaseProps = {
 const classNames = (...parts: Array<string | false | null | undefined>) =>
   parts.filter(Boolean).join(' ');
 
-const ADMIN_TABLE_BG = 'bg-slate-50/90';
+const ADMIN_TABLE_BG = 'bg-[color:var(--ui-neutral-bg)]';
 
 export function Table({ children, className, ...props }: BaseProps & TableHTMLAttributes<HTMLTableElement>) {
   return (

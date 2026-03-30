@@ -8,15 +8,14 @@ import AdminSidebar from '@/admin/components/AdminSidebar';
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isLoginPage = pathname === '/admin';
-  const isOrdersPage = pathname.startsWith('/admin/orders');
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
 
   if (isLoginPage) {
-    return <div className={`admin-scope flex w-full flex-1 bg-slate-50 ${isOrdersPage ? 'admin-orders-theme bg-[#fafbfc] font-[\"Inter\",system-ui,sans-serif]' : ''}`}>{children}</div>;
+    return <div className="admin-scope flex w-full flex-1 bg-slate-50">{children}</div>;
   }
 
   return (
-    <div className={`admin-scope flex min-h-screen w-full flex-1 bg-slate-50 ${isOrdersPage ? 'admin-orders-theme bg-[#fafbfc] font-[\"Inter\",system-ui,sans-serif]' : ''}`}>
+    <div className="admin-scope flex min-h-screen w-full flex-1 bg-slate-50">
       <div className="flex min-h-screen w-full flex-1 items-stretch">
         <AdminSidebar onExpandedChange={setIsSidebarExpanded} />
         <main

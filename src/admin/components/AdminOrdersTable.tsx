@@ -10,7 +10,6 @@ import AdminOrderStatusSelect from '@/admin/components/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { Spinner } from '@/shared/ui/loading';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
-import { FloatingInput } from '@/shared/ui/floating-field';
 import {
   DownloadIcon,
   FilterIcon,
@@ -113,6 +112,7 @@ const PAYMENT_SORT_PRIORITY: Record<string, number> = {
 const TYPE_SORT_CYCLE: TypePriority[] = ['school', 'company', 'individual'];
 const HEADER_TITLE_BUTTON_CLASS = 'inline-flex items-center text-[11px] font-semibold leading-none hover:text-slate-700';
 const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500';
+const COMPACT_FILTER_INPUT_CLASS = `h-7 rounded-md px-2 text-[11px] ${dateInputTokenClasses.base}`;
 const NON_RESET_SORT_COLUMNS: SortableColumnKey[] = ['order', 'date'];
 const AdminOrdersPreviewChart = dynamic(() => import('@/admin/components/AdminOrdersPreviewChart'), { ssr: false });
 const LazyAdminOrdersPdfCell = dynamic(() => import('@/admin/components/AdminOrdersPdfCell'), {
@@ -241,6 +241,7 @@ export default function AdminOrdersTable({
   const [totalRange, setTotalRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [draftTotalRange, setDraftTotalRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [orderNumberRange, setOrderNumberRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
+  const [draftOrderNumberRange, setDraftOrderNumberRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [draftFromDate, setDraftFromDate] = useState(initialFrom);
   const [draftToDate, setDraftToDate] = useState(initialTo);
   const [openHeaderFilter, setOpenHeaderFilter] = useState<null | 'order' | 'date' | 'type' | 'status' | 'payment' | 'total' | 'documents'>(null);
@@ -345,11 +346,14 @@ export default function AdminOrdersTable({
     if (openHeaderFilter === 'total') {
       setDraftTotalRange(totalRange);
     }
+    if (openHeaderFilter === 'order') {
+      setDraftOrderNumberRange(orderNumberRange);
+    }
     if (openHeaderFilter === 'date') {
       setDraftFromDate(fromDate);
       setDraftToDate(toDate);
     }
-  }, [openHeaderFilter, totalRange, fromDate, toDate]);
+  }, [openHeaderFilter, totalRange, orderNumberRange, fromDate, toDate]);
 
   const latestOrderDate = useMemo(() => {
     const timestamps = orders
@@ -431,25 +435,21 @@ export default function AdminOrdersTable({
   }, []);
 
   const applyQuickDateRange = (range: 'today' | 'yesterday' | '7d' | '30d' | '3m' | '6m' | '1y' | 'allYears') => {
-    setHasExplicitDateFilter(true);
     const anchorDate = new Date(latestOrderDate);
 
     if (range === 'today') {
-      applyDateRange(anchorDate, anchorDate, 'custom');
-      return;
+      return { from: toDateInputValue(anchorDate), to: toDateInputValue(anchorDate) };
     }
 
     if (range === 'yesterday') {
       const yesterdayDate = shiftDateByDays(anchorDate, -1);
-      applyDateRange(yesterdayDate, yesterdayDate, 'custom');
-      return;
+      return { from: toDateInputValue(yesterdayDate), to: toDateInputValue(yesterdayDate) };
     }
 
     if (range === 'allYears') {
       const todayDate = new Date();
       todayDate.setHours(0, 0, 0, 0);
-      applyDateRange(earliestOrderDate, todayDate, 'custom');
-      return;
+      return { from: toDateInputValue(earliestOrderDate), to: toDateInputValue(todayDate) };
     }
 
     const dayCountByRange: Record<'7d' | '30d' | '3m' | '6m' | '1y', number> = {
@@ -461,7 +461,7 @@ export default function AdminOrdersTable({
     };
 
     const fromDateValue = shiftDateByDays(anchorDate, -dayCountByRange[range]);
-    applyDateRange(fromDateValue, anchorDate, 'custom');
+    return { from: toDateInputValue(fromDateValue), to: toDateInputValue(anchorDate) };
   };
 
   const documentsByOrder = useMemo(() => {
@@ -1276,6 +1276,7 @@ export default function AdminOrdersTable({
             boxShadow: '0 10px 24px rgba(15,23,42,0.06)'
           }}
           contentClassName="overflow-x-auto bg-white"
+          headerClassName="bg-white"
           headerLeft={
             <AdminSearchInput
               value={query}
@@ -1337,7 +1338,7 @@ export default function AdminOrdersTable({
             activeFilterChips.length > 0 ? (
               <div className="flex flex-wrap items-center gap-2">
                 {activeFilterChips.map((chip) => (
-                  <span key={chip.key} className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-[#f7f7f7] px-3 py-1 text-xs text-slate-700">
+                  <span key={chip.key} className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-[color:var(--ui-neutral-bg)] px-3 py-1 text-xs text-slate-700">
                     {chip.label}
                     <button type="button" onClick={chip.clear} className="text-slate-500 hover:text-slate-800" aria-label={`Odstrani filter ${chip.label}`}>×</button>
                   </span>
@@ -1353,7 +1354,7 @@ export default function AdminOrdersTable({
           }
           footerRight={null}
         >
-          <Table className="min-w-[1060px] w-full text-[11px] [&_th]:!bg-white">
+          <Table className="min-w-[1060px] w-full text-[11px]">
             <colgroup>
               <col style={{ width: columnWidths.selectAndDelete }} />
               {visibleColumns.order ? <col style={{ width: columnWidths.order }} /> : null}
@@ -1410,14 +1411,14 @@ export default function AdminOrdersTable({
                 </TH> : null}
 
                 {visibleColumns.status ? <TH className="h-11 text-center text-[11px]">
-                  <div className="relative inline-flex items-center" ref={statusHeaderMenuRef}>
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" ref={statusHeaderMenuRef}>
                     {selectedCount > 0 ? (
                       <>
                         <button
                           type="button"
                           onClick={() => setIsStatusHeaderMenuOpen((previousOpen) => !previousOpen)}
                           disabled={isBulkUpdatingStatus}
-                        className="inline-flex items-center rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
+                        className="inline-flex items-center rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold leading-none text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
                           aria-haspopup="menu"
                           aria-expanded={isStatusHeaderMenuOpen}
                         >
@@ -1450,14 +1451,14 @@ export default function AdminOrdersTable({
                 </TH> : null}
 
                 {visibleColumns.payment ? <TH className="h-11 text-center text-[11px]">
-                  <div className="relative inline-flex items-center" ref={paymentHeaderMenuRef}>
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" ref={paymentHeaderMenuRef}>
                     {selectedCount > 0 ? (
                       <>
                         <button
                           type="button"
                           onClick={() => setIsPaymentHeaderMenuOpen((previousOpen) => !previousOpen)}
                           disabled={isBulkUpdatingStatus}
-                        className="inline-flex items-center rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
+                        className="inline-flex items-center rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold leading-none text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
                           aria-haspopup="menu"
                           aria-expanded={isPaymentHeaderMenuOpen}
                         >
@@ -1687,25 +1688,14 @@ export default function AdminOrdersTable({
           <div data-header-filter-root="true">
             {openHeaderFilter === 'order' ? (
               <div style={getHeaderPopoverStyle(orderFilterButtonRef.current, 192)} className="rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+                <h4 className="mb-2 text-[11px] font-semibold text-slate-800">Nastavi razpon naročil</h4>
                 <div className="grid grid-cols-2 gap-2">
-                  <FloatingInput
-                    id="orders-order-number-min"
-                    label="Od"
-                    tone="admin"
-                    type="number"
-                    value={orderNumberRange.min}
-                    onChange={(event) => setOrderNumberRange((current) => ({ ...current, min: event.target.value }))}
-                    className="text-[11px]"
-                  />
-                  <FloatingInput
-                    id="orders-order-number-max"
-                    label="Do"
-                    tone="admin"
-                    type="number"
-                    value={orderNumberRange.max}
-                    onChange={(event) => setOrderNumberRange((current) => ({ ...current, max: event.target.value }))}
-                    className="text-[11px]"
-                  />
+                  <input type="number" placeholder="Od" value={draftOrderNumberRange.min} onChange={(event) => setDraftOrderNumberRange((current) => ({ ...current, min: event.target.value }))} className={COMPACT_FILTER_INPUT_CLASS} />
+                  <input type="number" placeholder="Do" value={draftOrderNumberRange.max} onChange={(event) => setDraftOrderNumberRange((current) => ({ ...current, max: event.target.value }))} className={COMPACT_FILTER_INPUT_CLASS} />
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <button type="button" className="rounded-xl bg-[color:var(--blue-500)] py-2 text-[11px] font-semibold text-white" onClick={() => { setOrderNumberRange(draftOrderNumberRange); setOpenHeaderFilter(null); }}>Potrdi</button>
+                  <button type="button" className="rounded-xl border border-slate-300 bg-[color:var(--ui-neutral-bg)] py-2 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--ui-neutral-bg-hover)]" onClick={() => { const emptyRange = { min: '', max: '' }; setDraftOrderNumberRange(emptyRange); setOrderNumberRange(emptyRange); setOpenHeaderFilter(null); }}>Ponastavi</button>
                 </div>
               </div>
             ) : null}
@@ -1725,9 +1715,9 @@ export default function AdminOrdersTable({
                       key={item.key}
                       type="button"
                       onClick={() => {
-                        applyQuickDateRange(item.key as any);
-                        setDraftFromDate(fromDate);
-                        setDraftToDate(toDate);
+                        const quickRange = applyQuickDateRange(item.key as any);
+                        setDraftFromDate(quickRange.from);
+                        setDraftToDate(quickRange.to);
                       }}
                       className="rounded-full border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-[color:var(--hover-neutral)]"
                     >
@@ -1736,14 +1726,14 @@ export default function AdminOrdersTable({
                   ))}
                 </div>
                 <div className="mb-3 border-t border-slate-200 pt-3">
-                  <div className="space-y-2">
-                    <div><label className="mb-1 block text-[11px] font-medium text-slate-700">Od</label><input type="date" lang="sl-SI" value={draftFromDate} onChange={(event) => setDraftFromDate(event.target.value)} className={`w-full text-[11px] ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`} /></div>
-                    <div><label className="mb-1 block text-[11px] font-medium text-slate-700">Do</label><input type="date" lang="sl-SI" value={draftToDate} onChange={(event) => setDraftToDate(event.target.value)} className={`w-full text-[11px] ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`} /></div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input type="date" lang="sl-SI" value={draftFromDate} onChange={(event) => setDraftFromDate(event.target.value)} className={COMPACT_FILTER_INPUT_CLASS} aria-label="Od" />
+                    <input type="date" lang="sl-SI" value={draftToDate} onChange={(event) => setDraftToDate(event.target.value)} className={COMPACT_FILTER_INPUT_CLASS} aria-label="Do" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <button type="button" className="rounded-xl bg-[color:var(--blue-500)] py-2 text-[11px] font-semibold text-white" onClick={() => { setFromDate(draftFromDate); setToDate(draftToDate); setHasExplicitDateFilter(Boolean(draftFromDate || draftToDate)); setOpenHeaderFilter(null); }}>Potrdi</button>
-                  <button type="button" className="rounded-xl border border-slate-300 bg-slate-100 py-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-200" onClick={() => { setDraftFromDate(''); setDraftToDate(''); setFromDate(''); setToDate(''); setHasExplicitDateFilter(false); setOpenHeaderFilter(null); }}>Ponastavi</button>
+                  <button type="button" className="rounded-xl border border-slate-300 bg-[color:var(--ui-neutral-bg)] py-2 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--ui-neutral-bg-hover)]" onClick={() => { setDraftFromDate(''); setDraftToDate(''); setFromDate(''); setToDate(''); setHasExplicitDateFilter(false); setOpenHeaderFilter(null); }}>Ponastavi</button>
                 </div>
               </div>
             ) : null}
@@ -1789,29 +1779,13 @@ export default function AdminOrdersTable({
                 </div>
                 <div className="mb-3 border-t border-slate-200 pt-3">
                   <div className="grid grid-cols-2 gap-2">
-                  <FloatingInput
-                    id="orders-total-min"
-                    label="Od"
-                    tone="admin"
-                    type="number"
-                    value={draftTotalRange.min}
-                    onChange={(event) => setDraftTotalRange((current) => ({ ...current, min: event.target.value }))}
-                    className="text-[11px]"
-                  />
-                  <FloatingInput
-                    id="orders-total-max"
-                    label="Do"
-                    tone="admin"
-                    type="number"
-                    value={draftTotalRange.max}
-                    onChange={(event) => setDraftTotalRange((current) => ({ ...current, max: event.target.value }))}
-                    className="text-[11px]"
-                  />
+                    <input type="number" placeholder="Od" value={draftTotalRange.min} onChange={(event) => setDraftTotalRange((current) => ({ ...current, min: event.target.value }))} className={COMPACT_FILTER_INPUT_CLASS} />
+                    <input type="number" placeholder="Do" value={draftTotalRange.max} onChange={(event) => setDraftTotalRange((current) => ({ ...current, max: event.target.value }))} className={COMPACT_FILTER_INPUT_CLASS} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <button type="button" className="rounded-xl bg-[color:var(--blue-500)] py-2 text-[11px] font-semibold text-white" onClick={() => { setTotalRange(draftTotalRange); setOpenHeaderFilter(null); }}>Potrdi</button>
-                  <button type="button" className="rounded-xl border border-slate-300 bg-slate-100 py-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-200" onClick={() => { setDraftTotalRange({ min: '', max: '' }); setTotalRange({ min: '', max: '' }); setOpenHeaderFilter(null); }}>Ponastavi</button>
+                  <button type="button" className="rounded-xl border border-slate-300 bg-[color:var(--ui-neutral-bg)] py-2 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--ui-neutral-bg-hover)]" onClick={() => { setDraftTotalRange({ min: '', max: '' }); setTotalRange({ min: '', max: '' }); setOpenHeaderFilter(null); }}>Ponastavi</button>
                 </div>
               </div>
             ) : null}

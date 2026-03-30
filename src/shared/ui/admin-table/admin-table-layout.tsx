@@ -11,6 +11,7 @@ type AdminTableLayoutProps = {
   className?: string;
   style?: CSSProperties;
   contentClassName?: string;
+  headerClassName?: string;
 };
 
 const classNames = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ');
@@ -24,14 +25,15 @@ export default function AdminTableLayout({
   footerRight,
   className,
   style,
-  contentClassName
+  contentClassName,
+  headerClassName
 }: AdminTableLayoutProps) {
   const hasHeaderRow = Boolean(headerLeft || headerRight);
   const hasFilterRow = Boolean(filterRowLeft || filterRowRight);
 
   return (
     <TableShell className={classNames('overflow-hidden border-slate-200 bg-white', className)} style={style}>
-      <div className={classNames(ADMIN_TABLE_BG, 'px-3 py-3')}>
+      <div className={classNames(ADMIN_TABLE_BG, 'px-3 py-3', headerClassName)}>
         {hasHeaderRow ? (
           <div className="flex flex-wrap items-end justify-between gap-2">
             <div className="flex min-w-0 flex-1 flex-wrap items-end gap-2">{headerLeft}</div>

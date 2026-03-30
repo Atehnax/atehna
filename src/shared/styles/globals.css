@@ -12,11 +12,11 @@
   --text-muted: #4b5563;
 
   /* Minimal blue palette (single hue family) */
-  --blue-50: #f2f6fe;
-  --blue-100: #dfeafe;
-  --blue-500: #6495ed;
-  --blue-600: #4f7fd8;
-  --blue-700: #3f6ac0;
+  --blue-50: #e8f4fb;
+  --blue-100: #cce8f6;
+  --blue-500: #1982bf;
+  --blue-600: #1982bf;
+  --blue-700: #1982bf;
 
   /* Semantic tokens */
   --semantic-info: var(--blue-500);
@@ -31,7 +31,7 @@
   --semantic-warning-soft: #fefce8;
   --semantic-warning-border: #fde68a;
 
-  --bg: #f6f5f2;
+  --bg: #fafbfc;
   --surface-1: var(--surface);
   --surface-2: var(--surface-subtle);
 
@@ -52,7 +52,9 @@
   --admin-bg: var(--blue-50);
   --admin-accent: var(--blue-500);
   --admin-hover: var(--blue-100);
-  --hover-neutral: var(--bg);
+  --ui-neutral-bg: var(--surface-2);
+  --ui-neutral-bg-hover: color-mix(in srgb, var(--ui-neutral-bg) 82%, #cbd5e1);
+  --hover-neutral: var(--ui-neutral-bg);
 
   --admin-table-row-hover: var(--blue-50); /* #e3e9f0; */
   --admin-table-row-selected: #e3e9f0;
@@ -84,6 +86,12 @@
 
 body {
   @apply bg-[color:var(--bg)] text-[color:var(--text)];
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--blue-500);
 }
 
 .prose h1,
@@ -182,24 +190,3 @@ body {
   caret-color: currentColor !important;
 }
 
-
-.admin-orders-theme {
-  --bg: #fafbfc;
-  --surface: #ffffff;
-  --surface-1: #ffffff;
-  --surface-2: #f7f7f7;
-  --blue-500: #1982bf;
-  --blue-600: #1982bf;
-  --blue-700: #1982bf;
-  --primary: #1982bf;
-  --primary-hover: #1982bf;
-  --primary-active: #1982bf;
-  --hover-neutral: #f7f7f7;
-  --admin-table-row-hover: #f7f7f7;
-  --admin-table-row-selected: #f7f7f7;
-  font-family: "Inter", system-ui, sans-serif;
-}
-
-.admin-orders-theme * {
-  font-family: "Inter", system-ui, sans-serif;
-}

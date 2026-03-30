@@ -286,7 +286,7 @@ export default function AdminOrdersPdfCell({
               disabled={interactionsDisabled}
               className={`relative inline-flex h-6 items-center rounded-md px-1.5 py-1 text-[11px] font-medium transition disabled:cursor-default disabled:text-slate-300 ${
                 hasExistingDocument
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                  ? 'border-emerald-700/35 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
                   : 'border-slate-300 bg-white text-slate-700 hover:bg-[color:var(--hover-neutral)]'
               }`}
             >

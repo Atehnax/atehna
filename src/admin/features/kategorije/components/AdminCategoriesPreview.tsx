@@ -658,7 +658,7 @@ function CreateCategoryCard({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-[225px] flex-col items-center justify-center rounded-[18px] border border-dashed border-slate-300 bg-slate-50/40 px-6 text-center transition hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/40"
+      className="flex min-h-[225px] flex-col items-center justify-center rounded-[18px] border border-dashed border-slate-300 bg-[color:var(--ui-neutral-bg)] px-6 text-center transition hover:border-slate-400 hover:bg-[color:var(--ui-neutral-bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/40"
       aria-label="Ustvari novo kategorijo"
     >
       <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-slate-600 shadow-sm">

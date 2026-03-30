@@ -11,6 +11,7 @@ import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { CustomSelect } from '@/shared/ui/select';
 import { Spinner } from '@/shared/ui/loading';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
+import { FloatingInput } from '@/shared/ui/floating-field';
 import {
   DownloadIcon,
   FilterIcon,
@@ -114,6 +115,8 @@ const PAYMENT_SORT_PRIORITY: Record<string, number> = {
   unpaid: 2
 };
 const TYPE_SORT_CYCLE: TypePriority[] = ['school', 'company', 'individual'];
+const HEADER_TITLE_BUTTON_CLASS = 'inline-flex items-center text-[11px] font-semibold leading-none hover:text-slate-700';
+const HEADER_FILTER_BUTTON_CLASS = 'inline-flex h-4 w-4 items-center justify-center text-slate-400 transition-colors hover:text-slate-600';
 const AdminOrdersPreviewChart = dynamic(() => import('@/admin/components/AdminOrdersPreviewChart'), { ssr: false });
 const LazyAdminOrdersPdfCell = dynamic(() => import('@/admin/components/AdminOrdersPdfCell'), {
   ssr: false,
@@ -1301,7 +1304,7 @@ export default function AdminOrdersTable({
                             { key: '3m', label: 'Zadnje 3 mesece' },
                             { key: '6m', label: 'Zadnjih 6 mesecev' },
                             { key: '1y', label: 'Zadnje leto' },
-                            { key: 'allYears', label: 'Vsa Leta' }
+                            { key: 'allYears', label: 'Vsa leta' }
                           ].map((item) => (
                             <button
                               key={item.key}
@@ -1441,31 +1444,31 @@ export default function AdminOrdersTable({
                 </TH>
 
                 {visibleColumns.order ? <TH className="h-11 text-center">
-                  <div className="relative inline-flex items-center gap-1" data-header-filter-root="true">
-                    <button type="button" onClick={() => onSort('order')} className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700">Naročilo</button>
-                    <button ref={orderFilterButtonRef} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('order'); }} className="inline-flex h-[11px] w-[11px] items-center justify-center text-slate-400 hover:text-slate-600" aria-label="Filtriraj Naročilo">
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
+                    <button type="button" onClick={() => onSort('order')} className={HEADER_TITLE_BUTTON_CLASS}>Naročilo</button>
+                    <button ref={orderFilterButtonRef} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('order'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Naročilo">
                       <FunnelIcon />
                     </button>
                   </div>
                 </TH> : null}
 
                 {visibleColumns.date ? <TH className="h-11 text-center text-[11px]">
-                  <div className="relative inline-flex items-center gap-1" data-header-filter-root="true">
-                    <button type="button" onClick={() => onSort('date')} className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700">Datum</button>
-                    <button ref={dateFilterButtonRef} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('date'); }} className="inline-flex h-[11px] w-[11px] items-center justify-center text-slate-400 hover:text-slate-600" aria-label="Filtriraj Datum">
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
+                    <button type="button" onClick={() => onSort('date')} className={HEADER_TITLE_BUTTON_CLASS}>Datum</button>
+                    <button ref={dateFilterButtonRef} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('date'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Datum">
                       <FunnelIcon />
                     </button>
                   </div>
                 </TH> : null}
 
-                {visibleColumns.customer ? <TH className="text-[11px]"><button type="button" onClick={() => onSort('customer')} className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700">Naročnik</button></TH> : null}
+                {visibleColumns.customer ? <TH className="text-[11px]"><button type="button" onClick={() => onSort('customer')} className={HEADER_TITLE_BUTTON_CLASS}>Naročnik</button></TH> : null}
 
-                {visibleColumns.address ? <TH className="text-[11px]"><button type="button" onClick={() => onSort('address')} className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700">Naslov</button></TH> : null}
+                {visibleColumns.address ? <TH className="text-[11px]"><button type="button" onClick={() => onSort('address')} className={HEADER_TITLE_BUTTON_CLASS}>Naslov</button></TH> : null}
 
                 {visibleColumns.type ? <TH className="h-11 text-center text-[11px]">
-                  <div className="relative inline-flex items-center gap-1" data-header-filter-root="true">
-                    <button type="button" onClick={() => onSort('type')} className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700">Tip</button>
-                    <button ref={typeFilterButtonRef} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('type'); }} className="inline-flex h-[11px] w-[11px] items-center justify-center text-slate-400 hover:text-slate-600" aria-label="Filtriraj Tip"><FunnelIcon /></button>
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
+                    <button type="button" onClick={() => onSort('type')} className={HEADER_TITLE_BUTTON_CLASS}>Tip</button>
+                    <button ref={typeFilterButtonRef} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('type'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Tip"><FunnelIcon /></button>
                   </div>
                 </TH> : null}
 
@@ -1501,9 +1504,9 @@ export default function AdminOrdersTable({
                         )}
                       </>
                     ) : (
-                      <div className="relative inline-flex items-center gap-1" data-header-filter-root="true">
-                        <button type="button" onClick={() => onSort('status')} className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700">Status</button>
-                        <button ref={statusFilterButtonRef} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('status'); }} className="inline-flex h-[11px] w-[11px] items-center justify-center text-slate-400 hover:text-slate-600" aria-label="Filtriraj Status"><FunnelIcon /></button>
+                      <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
+                        <button type="button" onClick={() => onSort('status')} className={HEADER_TITLE_BUTTON_CLASS}>Status</button>
+                        <button ref={statusFilterButtonRef} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('status'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Status"><FunnelIcon /></button>
                       </div>
                     )}
                   </div>
@@ -1541,25 +1544,25 @@ export default function AdminOrdersTable({
                         )}
                       </>
                     ) : (
-                      <div className="relative inline-flex items-center gap-1" data-header-filter-root="true">
-                        <button type="button" onClick={() => onSort('payment')} className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700">Plačilo</button>
-                        <button ref={paymentFilterButtonRef} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('payment'); }} className="inline-flex h-[11px] w-[11px] items-center justify-center text-slate-400 hover:text-slate-600" aria-label="Filtriraj Plačilo"><FunnelIcon /></button>
+                      <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
+                        <button type="button" onClick={() => onSort('payment')} className={HEADER_TITLE_BUTTON_CLASS}>Plačilo</button>
+                        <button ref={paymentFilterButtonRef} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('payment'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Plačilo"><FunnelIcon /></button>
                       </div>
                     )}
                   </div>
                 </TH> : null}
 
                 {visibleColumns.total ? <TH className="h-11 text-center text-[11px]">
-                  <div className="relative inline-flex items-center gap-1" data-header-filter-root="true">
-                    <button type="button" onClick={() => onSort('total')} className="inline-flex items-center text-[11px] font-semibold hover:text-slate-700">Skupaj</button>
-                    <button ref={totalFilterButtonRef} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('total'); }} className="inline-flex h-[11px] w-[11px] items-center justify-center text-slate-400 hover:text-slate-600" aria-label="Filtriraj Skupaj"><FunnelIcon /></button>
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
+                    <button type="button" onClick={() => onSort('total')} className={HEADER_TITLE_BUTTON_CLASS}>Skupaj</button>
+                    <button ref={totalFilterButtonRef} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('total'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Skupaj"><FunnelIcon /></button>
                   </div>
                 </TH> : null}
 
                 {visibleColumns.documents ? <TH className="h-11 min-w-[100px] text-center text-[11px]">
-                  <div className="relative inline-flex items-center gap-1" data-header-filter-root="true">
-                    <span className="inline-flex items-center text-[11px] font-semibold">PDF datoteke</span>
-                    <button ref={documentsFilterButtonRef} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('documents'); }} className="inline-flex h-[11px] w-[11px] items-center justify-center text-slate-400 hover:text-slate-600" aria-label="Filtriraj PDF datoteke"><FunnelIcon /></button>
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
+                    <span className="inline-flex items-center text-[11px] font-semibold leading-none">PDF datoteke</span>
+                    <button ref={documentsFilterButtonRef} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('documents'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj PDF datoteke"><FunnelIcon /></button>
                   </div>
                 </TH> : null}
                 <TH className="h-11 text-center text-[11px]">Uredi</TH>
@@ -1769,7 +1772,7 @@ export default function AdminOrdersTable({
                       { key: '3m', label: 'Zadnje 3 mesece' },
                       { key: '6m', label: 'Zadnjih 6 mesecev' },
                       { key: '1y', label: 'Zadnje leto' },
-                      { key: 'allYears', label: 'Vsa Leta' }
+                      { key: 'allYears', label: 'Vsa leta' }
                     ].map((item) => (
                       <button key={item.key} type="button" onClick={() => applyQuickDateRange(item.key as any)} className="w-full rounded-lg px-2 py-1 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)]">{item.label}</button>
                     ))}
@@ -1796,7 +1799,11 @@ export default function AdminOrdersTable({
             {openHeaderFilter === 'status' ? (
               <div style={getHeaderPopoverStyle(statusFilterButtonRef.current, 160)}>
                 <MenuPanel className="shadow-lg">
-                  {statusTabs.map((option) => <MenuItem key={option.value} onClick={() => { setColumnStatusFilter(option.value); setOpenHeaderFilter(null); }}>{option.label}</MenuItem>)}
+                  {statusTabs.map((option) => (
+                    <MenuItem key={option.value} onClick={() => { setColumnStatusFilter(option.value); setOpenHeaderFilter(null); }}>
+                      {option.value === 'all' ? 'Vsi' : option.label}
+                    </MenuItem>
+                  ))}
                 </MenuPanel>
               </div>
             ) : null}
@@ -1816,9 +1823,25 @@ export default function AdminOrdersTable({
                     <button key={maxValue} type="button" onClick={() => setTotalRange({ min: '0', max: maxValue })} className="rounded-md border border-slate-200 px-2 py-1 text-[11px] hover:bg-[color:var(--hover-neutral)]">{`0-${maxValue === '1000' ? '1k' : maxValue}`}</button>
                   ))}
                 </div>
-                <div className="space-y-2">
-                  <div><label className="text-[11px] text-slate-500">Od</label><input type="number" value={totalRange.min} onChange={(event) => setTotalRange((current) => ({ ...current, min: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1 text-[11px]" /></div>
-                  <div><label className="text-[11px] text-slate-500">Do</label><input type="number" value={totalRange.max} onChange={(event) => setTotalRange((current) => ({ ...current, max: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1 text-[11px]" /></div>
+                <div className="grid grid-cols-2 gap-2">
+                  <FloatingInput
+                    id="orders-total-min"
+                    label="od"
+                    tone="admin"
+                    type="number"
+                    value={totalRange.min}
+                    onChange={(event) => setTotalRange((current) => ({ ...current, min: event.target.value }))}
+                    className="text-[11px]"
+                  />
+                  <FloatingInput
+                    id="orders-total-max"
+                    label="do"
+                    tone="admin"
+                    type="number"
+                    value={totalRange.max}
+                    onChange={(event) => setTotalRange((current) => ({ ...current, max: event.target.value }))}
+                    className="text-[11px]"
+                  />
                 </div>
               </div>
             ) : null}
@@ -1861,8 +1884,8 @@ function formatCompactDateFromDateInput(value: string) {
 
 function FunnelIcon() {
   return (
-    <svg viewBox="0 0 20 20" className="h-[11px] w-[11px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path d="M 8.0,2.0 L 18.5,2.0 L 14.5,8.5 L 14.5,14.0 L 11.8,11.3 L 11.8,8.5 Z" />
+    <svg viewBox="0 0 20 20" className="block h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M3.5 4.5h13L12 9.8v5.5l-2.2-2.2V9.8L3.5 4.5Z" />
     </svg>
   );
 }

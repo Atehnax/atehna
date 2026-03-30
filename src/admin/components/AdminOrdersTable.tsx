@@ -1137,11 +1137,12 @@ export default function AdminOrdersTable({
   }, [hasDateChip, hasTypeChip, hasStatusChip, hasPaymentChip, hasDocumentsChip, hasTotalChip, hasOrderNumberChip]);
 
   const activeFilterChips = useMemo(() => {
-    const chipByKey: Record<string, { key: string; label: string; clear: () => void } | null> = {
+    const chipByKey: Record<string, { key: string; title: string; value: string; clear: () => void } | null> = {
       date: hasDateChip
         ? {
             key: 'date',
-            label: `Datum: ${formatDateForRangeChip(fromDate)} – ${formatDateForRangeChip(toDate)}`,
+            title: 'Datum:',
+            value: `${formatDateForRangeChip(fromDate)} – ${formatDateForRangeChip(toDate)}`,
             clear: () => {
               setFromDate('');
               setToDate('');
@@ -1151,48 +1152,54 @@ export default function AdminOrdersTable({
       type: hasTypeChip
         ? {
             key: 'type',
-            label: `Tip: ${getCustomerTypeLabel(columnTypeFilter)}`,
+            title: 'Tip:',
+            value: getCustomerTypeLabel(columnTypeFilter),
             clear: () => setColumnTypeFilter('all')
           }
         : null,
       status: hasStatusChip
         ? {
             key: 'status',
-            label: `Status: ${ORDER_STATUS_OPTIONS.find((option) => option.value === columnStatusFilter)?.label ?? columnStatusFilter}`,
+            title: 'Status:',
+            value: ORDER_STATUS_OPTIONS.find((option) => option.value === columnStatusFilter)?.label ?? columnStatusFilter,
             clear: () => setColumnStatusFilter('all')
           }
         : null,
       payment: hasPaymentChip
         ? {
             key: 'payment',
-            label: `Plačilo: ${PAYMENT_STATUS_OPTIONS.find((option) => option.value === columnPaymentFilter)?.label ?? columnPaymentFilter}`,
+            title: 'Plačilo:',
+            value: PAYMENT_STATUS_OPTIONS.find((option) => option.value === columnPaymentFilter)?.label ?? columnPaymentFilter,
             clear: () => setColumnPaymentFilter('all')
           }
         : null,
       documents: hasDocumentsChip
         ? {
             key: 'documents',
-            label: `Dokumenti: ${documentTypeOptions.find((option) => option.value === documentType)?.label ?? documentType}`,
+            title: 'Dokumenti:',
+            value: documentTypeOptions.find((option) => option.value === documentType)?.label ?? documentType,
             clear: () => setDocumentType('all')
           }
         : null,
       total: hasTotalChip
         ? {
             key: 'total',
-            label: `Skupaj ${totalRange.min || '0'} – ${totalRange.max || '∞'}€`,
+            title: 'Skupaj:',
+            value: `${totalRange.min || '0'} – ${totalRange.max || '∞'}€`,
             clear: () => setTotalRange({ min: '', max: '' })
           }
         : null,
       orderNumber: hasOrderNumberChip
         ? {
             key: 'orderNumber',
-            label: `Naročila: #${orderNumberRange.min || '0'} – #${orderNumberRange.max || '∞'}`,
+            title: 'Naročila:',
+            value: `#${orderNumberRange.min || '0'} – #${orderNumberRange.max || '∞'}`,
             clear: () => setOrderNumberRange({ min: '', max: '' })
           }
         : null
     };
 
-    return filterChipOrder.map((key) => chipByKey[key]).filter((chip): chip is { key: string; label: string; clear: () => void } => Boolean(chip));
+    return filterChipOrder.map((key) => chipByKey[key]).filter((chip): chip is { key: string; title: string; value: string; clear: () => void } => Boolean(chip));
   }, [hasDateChip, hasTypeChip, hasStatusChip, hasPaymentChip, hasDocumentsChip, hasTotalChip, hasOrderNumberChip, fromDate, toDate, columnTypeFilter, columnStatusFilter, columnPaymentFilter, documentType, totalRange.min, totalRange.max, orderNumberRange.min, orderNumberRange.max, filterChipOrder]);
 
   const getHeaderTitleClass = (column: SortableColumnKey) =>
@@ -1384,9 +1391,12 @@ export default function AdminOrdersTable({
             activeFilterChips.length > 0 ? (
               <div className="flex flex-wrap items-center gap-2">
                 {activeFilterChips.map((chip) => (
-                  <span key={chip.key} className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-[color:var(--ui-neutral-bg)] px-3 py-1 text-xs text-slate-700">
-                    {chip.label}
-                    <button type="button" onClick={chip.clear} className="text-slate-500 hover:text-slate-800" aria-label={`Odstrani filter ${chip.label}`}>×</button>
+                  <span key={chip.key} className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-[color:var(--ui-neutral-bg)] px-3 py-1 text-xs text-slate-700 transition-colors hover:bg-[color:var(--ui-neutral-bg-hover)]">
+                    <span>
+                      {chip.title}{' '}
+                      <span className="font-semibold">{chip.value}</span>
+                    </span>
+                    <button type="button" onClick={chip.clear} className="text-slate-500 transition-colors hover:text-[color:var(--danger-600)]" aria-label={`Odstrani filter ${chip.title} ${chip.value}`}>×</button>
                   </span>
                 ))}
               </div>
@@ -1821,7 +1831,7 @@ export default function AdminOrdersTable({
             ) : null}
             {openHeaderFilter === 'total' ? (
               <div style={getHeaderPopoverStyle(totalFilterButtonRef.current, 192)} className="rounded-xl border border-slate-200 bg-white p-2 text-left shadow-lg">
-                <h4 className="mb-2 text-[11px] font-semibold text-slate-800">Nastavi razpon zneskov</h4>
+                <h4 className="mb-2 text-[11px] font-semibold text-slate-800">Nastavi razpon zneskov (€)</h4>
                 <div className="mb-3 grid grid-cols-3 gap-1">
                   {['20', '50', '100', '200', '500', '1000'].map((maxValue) => (
                     <button key={maxValue} type="button" onClick={() => setDraftTotalRange({ min: '0', max: maxValue })} className="rounded-full border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-[color:var(--hover-neutral)]">{`0-${maxValue === '1000' ? '1k' : maxValue}`}</button>

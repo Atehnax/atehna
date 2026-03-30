@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
+import { adminSectionTabsListClass, adminSectionTabsTriggerClass } from '@/admin/components/adminSectionTabStyles';
 
 const tabs = [
   { value: '/admin/arhiv', label: 'Arhiv naročil' },
@@ -24,9 +25,9 @@ export default function AdminArchiveTabs() {
 
   return (
     <Tabs value={value} onValueChange={(next) => router.push(next)}>
-      <TabsList className="mb-4">
+      <TabsList className={`mb-4 ${adminSectionTabsListClass}`}>
         {tabs.map((tab) => (
-          <TabsTrigger key={tab.value} value={tab.value}>
+          <TabsTrigger key={tab.value} value={tab.value} className={adminSectionTabsTriggerClass}>
             {tab.label}
           </TabsTrigger>
         ))}

@@ -114,7 +114,7 @@ const PAYMENT_SORT_PRIORITY: Record<string, number> = {
 };
 const TYPE_SORT_CYCLE: TypePriority[] = ['school', 'company', 'individual'];
 const HEADER_TITLE_BUTTON_CLASS = 'inline-flex items-center text-[11px] font-semibold leading-none hover:text-slate-700';
-const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[13px] w-[13px] shrink-0 self-center items-center justify-center text-slate-500 transition-colors hover:text-[color:var(--blue-500)] data-[active=true]:text-[color:var(--blue-500)]';
+const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500';
 const NON_RESET_SORT_COLUMNS: SortableColumnKey[] = ['order', 'date'];
 const AdminOrdersPreviewChart = dynamic(() => import('@/admin/components/AdminOrdersPreviewChart'), { ssr: false });
 const LazyAdminOrdersPdfCell = dynamic(() => import('@/admin/components/AdminOrdersPdfCell'), {
@@ -1295,7 +1295,7 @@ export default function AdminOrdersTable({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Poišči naročila"
-              className="h-10 min-w-[280px] flex-1 rounded-xl border-slate-200 bg-slate-100 pl-10 pr-3 text-sm"
+              className="h-10 min-w-[280px] flex-1 rounded-xl border-slate-200 bg-white pl-10 pr-3 text-sm"
             />
           }
           filterRowRight={
@@ -1775,7 +1775,7 @@ function FunnelIcon() {
   return (
     <svg
       viewBox="0 0 20 20"
-      className="block h-[13px] w-[13px]"
+      className="block h-[12px] w-[12px]"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"

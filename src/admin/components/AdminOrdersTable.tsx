@@ -227,6 +227,7 @@ export default function AdminOrdersTable({
 
   const [fromDate, setFromDate] = useState(initialFrom);
   const [toDate, setToDate] = useState(initialTo);
+  const [hasExplicitDateFilter, setHasExplicitDateFilter] = useState(Boolean(initialFrom || initialTo));
   const [rangePreset, setRangePreset] = useState<OrdersRangePreset>('1m');
   const debouncedQuery = useDebouncedValue(query, 200);
   const debouncedFromDate = useDebouncedValue(fromDate, 200);
@@ -430,6 +431,7 @@ export default function AdminOrdersTable({
   }, []);
 
   const applyQuickDateRange = (range: 'today' | 'yesterday' | '7d' | '30d' | '3m' | '6m' | '1y' | 'allYears') => {
+    setHasExplicitDateFilter(true);
     const anchorDate = new Date(latestOrderDate);
 
     if (range === 'today') {
@@ -1089,6 +1091,7 @@ export default function AdminOrdersTable({
     setTotalRange({ min: '', max: '' });
     setOrderNumberRange({ min: '', max: '' });
     setSortState(null);
+    setHasExplicitDateFilter(false);
   };
 
   const hasActiveFilters =
@@ -1108,7 +1111,7 @@ export default function AdminOrdersTable({
 
   const activeFilterChips = useMemo(() => {
     const chips: Array<{ key: string; label: string; clear: () => void }> = [];
-    if (fromDate || toDate) {
+    if (hasExplicitDateFilter && (fromDate || toDate)) {
       chips.push({
         key: 'date',
         label: `Datum: ${fromDate || '—'} - ${toDate || '—'}`,
@@ -1148,7 +1151,7 @@ export default function AdminOrdersTable({
       });
     }
     return chips;
-  }, [fromDate, toDate, columnStatusFilter, columnPaymentFilter, documentType, totalRange, orderNumberRange]);
+  }, [hasExplicitDateFilter, fromDate, toDate, columnStatusFilter, columnPaymentFilter, documentType, totalRange, orderNumberRange]);
 
   useEffect(() => {
     if (hasAutoResetFiltersRef.current) return;
@@ -1278,7 +1281,7 @@ export default function AdminOrdersTable({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Poišči naročila"
-              className="h-10 min-w-[280px] flex-1 rounded-xl border-slate-200 bg-white pl-10 pr-3 text-sm"
+              className="h-7 min-w-[280px] flex-1 rounded-xl border-slate-200 bg-white pl-10 pr-3 text-sm"
             />
           }
           headerRight={
@@ -1326,7 +1329,7 @@ export default function AdminOrdersTable({
                     <TrashCanIcon />
                   )}
                 </IconButton>
-                {topAction ? <div className="flex items-center [&_button]:!rounded-xl">{topAction}</div> : null}
+                {topAction ? <div className="flex items-center [&_button]:!h-7 [&_button]:!rounded-xl">{topAction}</div> : null}
               </div>
             </>
           }
@@ -1708,7 +1711,7 @@ export default function AdminOrdersTable({
             ) : null}
             {openHeaderFilter === 'date' ? (
               <div lang="sl-SI" style={getHeaderPopoverStyle(dateFilterButtonRef.current, 380)} className="rounded-xl border border-slate-200 bg-white p-3 text-left shadow-lg">
-                <h4 className="mb-2 text-base font-semibold text-slate-800">Nastavi obdobje</h4>
+                <h4 className="mb-2 text-[11px] font-semibold text-slate-800">Nastavi obdobje</h4>
                 <div className="mb-3 grid grid-cols-3 gap-2">
                   {[
                     { key: 'today', label: 'Zadnja 1 h' },
@@ -1726,22 +1729,21 @@ export default function AdminOrdersTable({
                         setDraftFromDate(fromDate);
                         setDraftToDate(toDate);
                       }}
-                      className="rounded-full border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-800 hover:bg-slate-50"
+                      className="rounded-full border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-slate-50"
                     >
                       {item.label.toUpperCase()}
                     </button>
                   ))}
                 </div>
                 <div className="mb-3 border-t border-slate-200 pt-3">
-                  <p className="mb-2 text-base font-semibold text-slate-800">Po meri</p>
                   <div className="space-y-2">
-                    <div><label className="mb-1 block text-sm text-slate-700">Od</label><input type="date" lang="sl-SI" value={draftFromDate} onChange={(event) => setDraftFromDate(event.target.value)} className={`w-full ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`} /></div>
-                    <div><label className="mb-1 block text-sm text-slate-700">Do</label><input type="date" lang="sl-SI" value={draftToDate} onChange={(event) => setDraftToDate(event.target.value)} className={`w-full ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`} /></div>
+                    <div><label className="mb-1 block text-[11px] font-medium text-slate-700">Od</label><input type="date" lang="sl-SI" value={draftFromDate} onChange={(event) => setDraftFromDate(event.target.value)} className={`w-full text-[11px] ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`} /></div>
+                    <div><label className="mb-1 block text-[11px] font-medium text-slate-700">Do</label><input type="date" lang="sl-SI" value={draftToDate} onChange={(event) => setDraftToDate(event.target.value)} className={`w-full text-[11px] ${dateInputTokenClasses.base} ${dateInputTokenClasses.compact}`} /></div>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <button type="button" className="rounded-xl bg-[color:var(--blue-500)] py-2 text-sm font-semibold text-white" onClick={() => { setFromDate(draftFromDate); setToDate(draftToDate); setOpenHeaderFilter(null); }}>Uporabi</button>
-                  <button type="button" className="rounded-xl py-2 text-sm font-medium text-slate-500 hover:bg-slate-50" onClick={() => { setDraftFromDate(''); setDraftToDate(''); setFromDate(''); setToDate(''); setOpenHeaderFilter(null); }}>Počisti</button>
+                  <button type="button" className="rounded-xl bg-[color:var(--blue-500)] py-2 text-[11px] font-semibold text-white" onClick={() => { setFromDate(draftFromDate); setToDate(draftToDate); setHasExplicitDateFilter(Boolean(draftFromDate || draftToDate)); setOpenHeaderFilter(null); }}>Potrdi</button>
+                  <button type="button" className="rounded-xl border border-slate-300 bg-slate-100 py-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-200" onClick={() => { setDraftFromDate(''); setDraftToDate(''); setFromDate(''); setToDate(''); setHasExplicitDateFilter(false); setOpenHeaderFilter(null); }}>Ponastavi</button>
                 </div>
               </div>
             ) : null}
@@ -1779,14 +1781,13 @@ export default function AdminOrdersTable({
             ) : null}
             {openHeaderFilter === 'total' ? (
               <div style={getHeaderPopoverStyle(totalFilterButtonRef.current, 192)} className="rounded-xl border border-slate-200 bg-white p-2 text-left shadow-lg">
-                <h4 className="mb-2 text-base font-semibold text-slate-800">Nastavi zneske</h4>
+                <h4 className="mb-2 text-[11px] font-semibold text-slate-800">Nastavi razpon zneskov</h4>
                 <div className="mb-3 grid grid-cols-3 gap-1">
                   {['20', '50', '100', '200', '500', '1000'].map((maxValue) => (
                     <button key={maxValue} type="button" onClick={() => setDraftTotalRange({ min: '0', max: maxValue })} className="rounded-full border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-slate-50">{`0-${maxValue === '1000' ? '1k' : maxValue}`}</button>
                   ))}
                 </div>
                 <div className="mb-3 border-t border-slate-200 pt-3">
-                  <p className="mb-2 text-base font-semibold text-slate-800">Po meri</p>
                   <div className="grid grid-cols-2 gap-2">
                   <FloatingInput
                     id="orders-total-min"
@@ -1809,8 +1810,8 @@ export default function AdminOrdersTable({
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <button type="button" className="rounded-xl bg-[color:var(--blue-500)] py-2 text-sm font-semibold text-white" onClick={() => { setTotalRange(draftTotalRange); setOpenHeaderFilter(null); }}>Uporabi</button>
-                  <button type="button" className="rounded-xl py-2 text-sm font-medium text-slate-500 hover:bg-slate-50" onClick={() => { setDraftTotalRange({ min: '', max: '' }); setTotalRange({ min: '', max: '' }); setOpenHeaderFilter(null); }}>Počisti</button>
+                  <button type="button" className="rounded-xl bg-[color:var(--blue-500)] py-2 text-[11px] font-semibold text-white" onClick={() => { setTotalRange(draftTotalRange); setOpenHeaderFilter(null); }}>Potrdi</button>
+                  <button type="button" className="rounded-xl border border-slate-300 bg-slate-100 py-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-200" onClick={() => { setDraftTotalRange({ min: '', max: '' }); setTotalRange({ min: '', max: '' }); setOpenHeaderFilter(null); }}>Ponastavi</button>
                 </div>
               </div>
             ) : null}

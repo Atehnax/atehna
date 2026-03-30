@@ -1425,7 +1425,7 @@ export default function AdminOrdersTable({
                       checked={allSelected}
                       onChange={toggleAll}
                       aria-label="Izberi vse"
-                      className="block h-3.5 w-3.5"
+                      className="block h-3.5 w-3.5 translate-y-px"
                     />
                   </div>
                 </TH>

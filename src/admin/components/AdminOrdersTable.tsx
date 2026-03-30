@@ -1417,15 +1417,15 @@ export default function AdminOrdersTable({
 
             <THead>
               <TR>
-                <TH className="h-11 text-center text-[11px]">
-                  <div className="inline-flex h-full items-center justify-center align-middle leading-none">
+                <TH className="h-11 px-2 text-center text-[11px]">
+                  <div className="flex h-full items-center justify-center">
                     <input
                       type="checkbox"
                       ref={selectAllRef}
                       checked={allSelected}
                       onChange={toggleAll}
                       aria-label="Izberi vse"
-                      className="h-3.5 w-3.5 align-middle"
+                      className="block h-3.5 w-3.5"
                     />
                   </div>
                 </TH>

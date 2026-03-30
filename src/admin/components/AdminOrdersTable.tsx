@@ -116,7 +116,7 @@ const PAYMENT_SORT_PRIORITY: Record<string, number> = {
 };
 const TYPE_SORT_CYCLE: TypePriority[] = ['school', 'company', 'individual'];
 const HEADER_TITLE_BUTTON_CLASS = 'inline-flex items-center text-[11px] font-semibold leading-none hover:text-slate-700';
-const HEADER_FILTER_BUTTON_CLASS = 'inline-flex h-4 w-4 items-center justify-center text-slate-400 transition-colors hover:text-slate-600';
+const HEADER_FILTER_BUTTON_CLASS = 'inline-flex h-[14px] w-[14px] shrink-0 self-center items-center justify-center text-slate-500 transition-colors hover:text-slate-700';
 const AdminOrdersPreviewChart = dynamic(() => import('@/admin/components/AdminOrdersPreviewChart'), { ssr: false });
 const LazyAdminOrdersPdfCell = dynamic(() => import('@/admin/components/AdminOrdersPdfCell'), {
   ssr: false,
@@ -1884,8 +1884,18 @@ function formatCompactDateFromDateInput(value: string) {
 
 function FunnelIcon() {
   return (
-    <svg viewBox="0 0 20 20" className="block h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path d="M3.5 4.5h13L12 9.8v5.5l-2.2-2.2V9.8L3.5 4.5Z" />
+    <svg
+      viewBox="0 0 20 20"
+      className="block h-[14px] w-[14px]"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path d="M3 4h14l-5.5 6.2V16L8.5 13v-2.8L3 4Z" />
     </svg>
   );
 }

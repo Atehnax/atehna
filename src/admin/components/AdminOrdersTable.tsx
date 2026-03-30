@@ -116,7 +116,8 @@ const PAYMENT_SORT_PRIORITY: Record<string, number> = {
 };
 const TYPE_SORT_CYCLE: TypePriority[] = ['school', 'company', 'individual'];
 const HEADER_TITLE_BUTTON_CLASS = 'inline-flex items-center text-[11px] font-semibold leading-none hover:text-slate-700';
-const HEADER_FILTER_BUTTON_CLASS = 'inline-flex h-[14px] w-[14px] shrink-0 self-center items-center justify-center text-slate-500 transition-colors hover:text-slate-700';
+const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[14px] w-[14px] shrink-0 self-center items-center justify-center text-slate-500 transition-colors hover:text-[color:var(--blue-500)] data-[active=true]:text-[color:var(--blue-500)]';
+const NON_RESET_SORT_COLUMNS: SortableColumnKey[] = ['order', 'date'];
 const AdminOrdersPreviewChart = dynamic(() => import('@/admin/components/AdminOrdersPreviewChart'), { ssr: false });
 const LazyAdminOrdersPdfCell = dynamic(() => import('@/admin/components/AdminOrdersPdfCell'), {
   ssr: false,
@@ -682,8 +683,9 @@ export default function AdminOrdersTable({
         return fallbackStable;
       }
 
-      const isDescendingStep = sortState.index === 1;
-      const sortMultiplier = isDescendingStep ? -1 : 1;
+      const descendingFirstColumns: SortableColumnKey[] = ['order', 'date', 'total'];
+      const isDescending = descendingFirstColumns.includes(sortState.column) ? sortState.index === 0 : sortState.index === 1;
+      const sortMultiplier = isDescending ? -1 : 1;
       if (sortState.column === 'type') {
         const firstType = TYPE_SORT_CYCLE[sortState.index];
         const deterministicTypeOrder = [firstType, ...TYPE_SORT_CYCLE.filter((type) => type !== firstType)];
@@ -1054,7 +1056,12 @@ export default function AdminOrdersTable({
       }
 
       const nextIndex = currentState.index + 1;
-      if (nextIndex >= getSortCycleLength(column)) return null;
+      if (nextIndex >= getSortCycleLength(column)) {
+        if (NON_RESET_SORT_COLUMNS.includes(column)) {
+          return { column, index: 0 };
+        }
+        return null;
+      }
       return { column, index: nextIndex };
     });
   };
@@ -1310,7 +1317,7 @@ export default function AdminOrdersTable({
                               key={item.key}
                               type="button"
                               onClick={() => applyQuickDateRange(item.key as any)}
-                              className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:outline-none"
+                              className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)] focus:bg-[color:var(--hover-neutral)] focus:text-[color:var(--blue-500)] focus:outline-none"
                             >
                               {item.label}
                             </button>
@@ -1446,7 +1453,7 @@ export default function AdminOrdersTable({
                 {visibleColumns.order ? <TH className="h-11 text-center">
                   <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
                     <button type="button" onClick={() => onSort('order')} className={HEADER_TITLE_BUTTON_CLASS}>Naročilo</button>
-                    <button ref={orderFilterButtonRef} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('order'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Naročilo">
+                    <button ref={orderFilterButtonRef} data-active={openHeaderFilter === 'order'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('order'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Naročilo">
                       <FunnelIcon />
                     </button>
                   </div>
@@ -1455,7 +1462,7 @@ export default function AdminOrdersTable({
                 {visibleColumns.date ? <TH className="h-11 text-center text-[11px]">
                   <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
                     <button type="button" onClick={() => onSort('date')} className={HEADER_TITLE_BUTTON_CLASS}>Datum</button>
-                    <button ref={dateFilterButtonRef} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('date'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Datum">
+                    <button ref={dateFilterButtonRef} data-active={openHeaderFilter === 'date'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('date'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Datum">
                       <FunnelIcon />
                     </button>
                   </div>
@@ -1468,7 +1475,7 @@ export default function AdminOrdersTable({
                 {visibleColumns.type ? <TH className="h-11 text-center text-[11px]">
                   <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
                     <button type="button" onClick={() => onSort('type')} className={HEADER_TITLE_BUTTON_CLASS}>Tip</button>
-                    <button ref={typeFilterButtonRef} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('type'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Tip"><FunnelIcon /></button>
+                    <button ref={typeFilterButtonRef} data-active={openHeaderFilter === 'type'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('type'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Tip"><FunnelIcon /></button>
                   </div>
                 </TH> : null}
 
@@ -1506,7 +1513,7 @@ export default function AdminOrdersTable({
                     ) : (
                       <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
                         <button type="button" onClick={() => onSort('status')} className={HEADER_TITLE_BUTTON_CLASS}>Status</button>
-                        <button ref={statusFilterButtonRef} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('status'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Status"><FunnelIcon /></button>
+                        <button ref={statusFilterButtonRef} data-active={openHeaderFilter === 'status'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('status'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Status"><FunnelIcon /></button>
                       </div>
                     )}
                   </div>
@@ -1546,7 +1553,7 @@ export default function AdminOrdersTable({
                     ) : (
                       <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
                         <button type="button" onClick={() => onSort('payment')} className={HEADER_TITLE_BUTTON_CLASS}>Plačilo</button>
-                        <button ref={paymentFilterButtonRef} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('payment'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Plačilo"><FunnelIcon /></button>
+                        <button ref={paymentFilterButtonRef} data-active={openHeaderFilter === 'payment'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('payment'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Plačilo"><FunnelIcon /></button>
                       </div>
                     )}
                   </div>
@@ -1555,14 +1562,14 @@ export default function AdminOrdersTable({
                 {visibleColumns.total ? <TH className="h-11 text-center text-[11px]">
                   <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
                     <button type="button" onClick={() => onSort('total')} className={HEADER_TITLE_BUTTON_CLASS}>Skupaj</button>
-                    <button ref={totalFilterButtonRef} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('total'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Skupaj"><FunnelIcon /></button>
+                    <button ref={totalFilterButtonRef} data-active={openHeaderFilter === 'total'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('total'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Skupaj"><FunnelIcon /></button>
                   </div>
                 </TH> : null}
 
                 {visibleColumns.documents ? <TH className="h-11 min-w-[100px] text-center text-[11px]">
                   <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
                     <span className="inline-flex items-center text-[11px] font-semibold leading-none">PDF datoteke</span>
-                    <button ref={documentsFilterButtonRef} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('documents'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj PDF datoteke"><FunnelIcon /></button>
+                    <button ref={documentsFilterButtonRef} data-active={openHeaderFilter === 'documents'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('documents'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj PDF datoteke"><FunnelIcon /></button>
                   </div>
                 </TH> : null}
                 <TH className="h-11 text-center text-[11px]">Uredi</TH>
@@ -1749,14 +1756,24 @@ export default function AdminOrdersTable({
             {openHeaderFilter === 'order' ? (
               <div style={getHeaderPopoverStyle(orderFilterButtonRef.current, 192)} className="rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
                 <div className="space-y-2">
-                  <div>
-                    <label className="text-[11px] text-slate-500">Od</label>
-                    <input type="number" value={orderNumberRange.min} onChange={(event) => setOrderNumberRange((current) => ({ ...current, min: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1 text-[11px]" />
-                  </div>
-                  <div>
-                    <label className="text-[11px] text-slate-500">Do</label>
-                    <input type="number" value={orderNumberRange.max} onChange={(event) => setOrderNumberRange((current) => ({ ...current, max: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1 text-[11px]" />
-                  </div>
+                  <FloatingInput
+                    id="orders-order-number-min"
+                    label="od"
+                    tone="admin"
+                    type="number"
+                    value={orderNumberRange.min}
+                    onChange={(event) => setOrderNumberRange((current) => ({ ...current, min: event.target.value }))}
+                    className="text-[11px]"
+                  />
+                  <FloatingInput
+                    id="orders-order-number-max"
+                    label="do"
+                    tone="admin"
+                    type="number"
+                    value={orderNumberRange.max}
+                    onChange={(event) => setOrderNumberRange((current) => ({ ...current, max: event.target.value }))}
+                    className="text-[11px]"
+                  />
                 </div>
               </div>
             ) : null}
@@ -1774,7 +1791,7 @@ export default function AdminOrdersTable({
                       { key: '1y', label: 'Zadnje leto' },
                       { key: 'allYears', label: 'Vsa leta' }
                     ].map((item) => (
-                      <button key={item.key} type="button" onClick={() => applyQuickDateRange(item.key as any)} className="w-full rounded-lg px-2 py-1 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)]">{item.label}</button>
+                      <button key={item.key} type="button" onClick={() => applyQuickDateRange(item.key as any)} className="w-full rounded-lg px-2 py-1 text-left text-xs font-medium text-slate-700 hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)] focus:text-[color:var(--blue-500)]">{item.label}</button>
                     ))}
                   </div>
                   <div className="space-y-2">
@@ -1895,7 +1912,7 @@ function FunnelIcon() {
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
     >
-      <path d="M3 4h14l-5.5 6.2V16L8.5 13v-2.8L3 4Z" />
+      <path className="fill-transparent transition-colors duration-150 group-hover:fill-current group-data-[active=true]:fill-current" d="M3 4h14l-5.5 6.2V16L8.5 13v-2.8L3 4Z" />
     </svg>
   );
 }

@@ -36,7 +36,8 @@ type ChartCard = {
   title: string;
   subtitleNode?: ReactNode;
   metricColor: string;
-  metricNode: ReactNode;
+  metricText: string;
+  metricFullText?: string;
   lowestNode: ReactNode;
   highestNode: ReactNode;
   sevenDayNode: ReactNode;
@@ -204,6 +205,17 @@ const formatCurrencyWhole = (value: number | null | undefined) =>
   value === null || value === undefined || !Number.isFinite(value)
     ? '—'
     : `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 0 }).format(value)} €`;
+
+const formatMetricCompact = (value: number | null | undefined, suffix = '') => {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '—';
+  const abs = Math.abs(value);
+  if (abs >= 1000 && abs <= 999999) {
+    const compact = Intl.NumberFormat('sl-SI', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value / 1000);
+    return `${compact}k${suffix ? ` ${suffix}` : ''}`;
+  }
+  const base = Intl.NumberFormat('sl-SI', { maximumFractionDigits: 0 }).format(value);
+  return `${base}${suffix ? ` ${suffix}` : ''}`;
+};
 
 
 const formatTooltipDate = (value: string) => formatLjubljanaDate(value);
@@ -534,9 +546,10 @@ function AdminOrdersPreviewChart({
         return {
           subtitleNode: <span className="text-[11px] text-slate-600">Šole {formatInt(schoolTotal)} · Podjetja {formatInt(companyTotal)} · Fizične osebe {formatInt(individualTotal)}</span>,
           metricColor: semanticChartColors.orders.line,
-          metricNode: <>{formatInt(count)}</>,
-          lowestNode: <>Najnižje: <span className="text-slate-900">{formatInt(lowestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 align-middle" /></>,
-          highestNode: <>Najvišje: <span className="text-slate-900">{formatInt(highestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle" /></>,
+          metricText: formatMetricCompact(count),
+          metricFullText: formatInt(count),
+          lowestNode: <>Najnižje: <span className="text-slate-900">{formatInt(lowestValue)}</span></>,
+          highestNode: <>Najvišje: <span className="text-slate-900">{formatInt(highestValue)}</span></>,
           sevenDayNode: <>7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span></>,
           thirtyDayNode: <>30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span></>,
           traces: [
@@ -619,9 +632,10 @@ function AdminOrdersPreviewChart({
         const lowestIndex = revenueSeries.findIndex((value) => value === lowestValue);
         return {
           metricColor: semanticChartColors.revenue.line,
-          metricNode: <>{formatCurrencyWhole(data.totalRevenue)}</>,
-          lowestNode: <>Najnižje: <span className="text-slate-900">{formatCurrencyWhole(lowestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 align-middle" /></>,
-          highestNode: <>Najvišje: <span className="text-slate-900">{formatCurrencyWhole(highestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle" /></>,
+          metricText: formatMetricCompact(data.totalRevenue, '€'),
+          metricFullText: formatCurrencyWhole(data.totalRevenue),
+          lowestNode: <>Najnižje: <span className="text-slate-900">{formatCurrencyWhole(lowestValue)}</span></>,
+          highestNode: <>Najvišje: <span className="text-slate-900">{formatCurrencyWhole(highestValue)}</span></>,
           sevenDayNode: <>7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span></>,
           thirtyDayNode: <>30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span></>,
           traces: [
@@ -686,9 +700,10 @@ function AdminOrdersPreviewChart({
         const lowestIndex = dailyAovSeries.findIndex((value) => value === lowestValue);
         return {
           metricColor: semanticChartColors.avgOrderValue.line,
-          metricNode: <>{formatCurrencyWhole(data.rangeAov)}</>,
-          lowestNode: <>Najnižje: <span className="text-slate-900">{formatCurrencyWhole(lowestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 align-middle" /></>,
-          highestNode: <>Najvišje: <span className="text-slate-900">{formatCurrencyWhole(highestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle" /></>,
+          metricText: formatMetricCompact(data.rangeAov, '€'),
+          metricFullText: formatCurrencyWhole(data.rangeAov),
+          lowestNode: <>Najnižje: <span className="text-slate-900">{formatCurrencyWhole(lowestValue)}</span></>,
+          highestNode: <>Najvišje: <span className="text-slate-900">{formatCurrencyWhole(highestValue)}</span></>,
           sevenDayNode: <>7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span></>,
           thirtyDayNode: <>30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span></>,
           traces: [
@@ -771,7 +786,8 @@ function AdminOrdersPreviewChart({
         const lowestValue = Math.min(...totalsDaily, 0);
         return {
           metricColor: semanticChartColors.orders.line,
-          metricNode: <>{formatInt(activeTotal)}</>,
+          metricText: formatMetricCompact(activeTotal),
+          metricFullText: formatInt(activeTotal),
           lowestNode: <>Najnižje: <span className="text-slate-900">{sortedStatuses[sortedStatuses.length - 1]?.[0] ?? '—'} ({formatInt(sortedStatuses[sortedStatuses.length - 1]?.[1] ?? 0)})</span></>,
           highestNode: <>Najvišje: <span className="text-slate-900">{sortedStatuses[0]?.[0] ?? '—'} ({formatInt(sortedStatuses[0]?.[1] ?? 0)})</span></>,
           sevenDayNode: <>7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span></>,
@@ -900,11 +916,23 @@ function AdminOrdersPreviewChart({
             >
               <div className="mb-0.5 h-[96px] w-full min-w-0">
                 <div className="space-y-1 text-[color:var(--text-strong)]">
+                  {(() => {
+                    const metricLength = chart.metricText.length;
+                    const isShortMetric = metricLength <= 3;
+                    const isLongMetric = metricLength >= 6;
+                    return (
+                      <>
                   <p className="truncate text-left text-[13px] font-semibold leading-4 tracking-[0.005em] text-slate-600">{chart.title}</p>
                   <p className="min-h-[16px] truncate text-left leading-4">{chart.subtitleNode ?? ''}</p>
-                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(174px,44%)] gap-0.5">
-                    <div className="flex h-[38px] items-center pl-2">
-                      <p className="whitespace-nowrap text-left text-[38px] font-normal leading-[1] tracking-[-0.02em]" style={{ color: chart.metricColor }}>{chart.metricNode}</p>
+                  <div className={`grid ${isLongMetric ? 'grid-cols-[minmax(0,1fr)_minmax(162px,41%)]' : 'grid-cols-[minmax(0,1fr)_minmax(174px,44%)]'} gap-0.5`}>
+                    <div className={`flex h-[38px] items-center ${isShortMetric ? 'justify-center' : 'pl-2'}`}>
+                      <p
+                        className="whitespace-nowrap text-left text-[38px] font-normal leading-[1] tracking-[-0.02em]"
+                        style={{ color: chart.metricColor }}
+                        title={chart.metricFullText ?? chart.metricText}
+                      >
+                        {chart.metricText}
+                      </p>
                     </div>
                     <div className="grid h-[38px] grid-cols-2 grid-rows-2 gap-x-0.5 gap-y-0 text-[10px] leading-[1] text-slate-600">
                       <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.highestNode}</p>
@@ -913,6 +941,9 @@ function AdminOrdersPreviewChart({
                       <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.thirtyDayNode}</p>
                     </div>
                   </div>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 

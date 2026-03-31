@@ -79,7 +79,7 @@ export default function RowActionsDropdown({
         <IconButton
           type="button"
           tone="neutral"
-          className={`h-8 w-8 border-0 bg-transparent text-slate-600 shadow-none hover:text-slate-800 active:bg-transparent ${triggerClassName ?? ''}`.trim()}
+          className={`h-8 w-8 border-0 bg-transparent text-slate-600 shadow-none hover:border-transparent hover:bg-transparent hover:text-slate-600 active:bg-transparent ${triggerClassName ?? ''}`.trim()}
           aria-label={label}
           title={label}
           onClick={() => setIsOpen((previousOpen) => !previousOpen)}

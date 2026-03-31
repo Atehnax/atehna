@@ -1403,7 +1403,7 @@ export default function AdminOrdersTable({
                       {chip.title}{' '}
                       <span className="font-semibold">{chip.value}</span>
                     </span>
-                    <button type="button" onClick={chip.clear} className="text-slate-500 transition-colors hover:text-[color:var(--danger-600)]" aria-label={`Odstrani filter ${chip.title} ${chip.value}`}>×</button>
+                    <button type="button" onClick={chip.clear} className="text-[10px] leading-none text-slate-500 transition-colors hover:text-[color:var(--danger-600)]" aria-label={`Odstrani filter ${chip.title} ${chip.value}`}>×</button>
                   </span>
                 ))}
               </div>
@@ -1413,9 +1413,9 @@ export default function AdminOrdersTable({
             <button
               type="button"
               onClick={resetAllFilters}
-              className="inline-flex h-7 items-center gap-1 rounded-lg border border-slate-300 bg-[color:var(--ui-neutral-bg)] px-2 text-[9px] font-semibold text-slate-700 transition hover:bg-[color:var(--ui-neutral-bg-hover)]"
+              className="inline-flex h-[30px] items-center gap-1 rounded-lg border border-slate-300 bg-[color:var(--ui-neutral-bg)] px-2.5 text-[10px] font-medium leading-none text-slate-700 transition hover:bg-[color:var(--ui-neutral-bg-hover)]"
             >
-              <ActionUndoIcon className="h-2.5 w-2.5" />
+              <ActionUndoIcon className="h-[10px] w-[10px]" />
               <span>Resetiraj filtre</span>
             </button>
           }

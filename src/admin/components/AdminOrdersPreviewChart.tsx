@@ -323,7 +323,7 @@ function AdminOrdersPreviewChart({
 
   const miniLayout = (isAreaStacked = false): Partial<Layout> => ({
     ...layoutBase,
-    margin: { l: 8, r: 8, t: 8, b: 8 },
+    margin: { l: 8, r: 8, t: 10, b: 4 },
     showlegend: false,
     hovermode: 'x unified',
     paper_bgcolor: 'rgba(0,0,0,0)',
@@ -334,14 +334,7 @@ function AdminOrdersPreviewChart({
       zeroline: false,
       showline: false,
       fixedrange: true,
-      hoverformat: '%Y-%m-%d',
-      rangeslider: {
-        visible: true,
-        thickness: 0.18,
-        bgcolor: 'rgba(148,163,184,0.18)',
-        bordercolor: 'rgba(148,163,184,0.35)',
-        borderwidth: 1
-      }
+      hoverformat: '%Y-%m-%d'
     },
     yaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, rangemode: 'tozero', fixedrange: true },
     barmode: isAreaStacked ? 'stack' : undefined
@@ -589,26 +582,28 @@ function AdminOrdersPreviewChart({
               key={chart.key}
               type="button"
               onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(chart.focusKey)}`)}
-              className="flex min-h-[124px] flex-col overflow-visible rounded-xl border px-3 py-2 text-left shadow-sm transition hover:border-[color:var(--blue-500)] hover:bg-[color:var(--hover-neutral)]"
+              className="flex min-h-[124px] flex-col overflow-visible rounded-xl border px-3 py-3 text-left shadow-sm transition hover:border-[color:var(--blue-500)] hover:bg-[color:var(--hover-neutral)]"
               style={{
                 background: `linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,248,251,0.96) 100%)`,
                 borderColor: appearance.gridColor
               }}
             >
-              <div className="mb-2 w-full min-w-0">
-                <div className="grid w-full grid-cols-[1fr_auto_auto] items-center gap-4 text-[13px] font-semibold leading-4 text-black">
-                  <p className="truncate text-left">{chart.metricNode}</p>
-                  <p className="text-center">{chart.sevenDayNode}</p>
-                  <p className="text-right">{chart.thirtyDayNode}</p>
+              <div className="mb-3 w-full min-w-0">
+                <div className="space-y-1.5 text-black">
+                  <p className="truncate text-left text-[23px] leading-[1.05] [&_span]:font-semibold">{chart.metricNode}</p>
+                  <div className="grid w-full grid-cols-2 items-center gap-2 text-[12px] leading-4">
+                    <p className="text-left [&_span]:font-semibold">{chart.sevenDayNode}</p>
+                    <p className="text-right [&_span]:font-semibold">{chart.thirtyDayNode}</p>
+                  </div>
                 </div>
               </div>
 
-              <div className="relative w-full min-w-0 rounded-md" style={{ backgroundColor: 'transparent' }}>
+              <div className="relative mt-1 w-full min-w-0 rounded-md" style={{ backgroundColor: 'transparent' }}>
                 <PlotlyClient
                   data={chart.traces}
                   layout={chart.layout}
                   config={{ responsive: true, displayModeBar: false }}
-                  style={{ width: '100%', height: 118, maxWidth: '100%' }}
+                  style={{ width: '100%', height: 104, maxWidth: '100%' }}
                   useResizeHandler
                   onHover={(eventData: any) => handleHover(chart, eventData)}
                   onUnhover={() => hideHover(chart.key)}

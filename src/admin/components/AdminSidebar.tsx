@@ -93,8 +93,8 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
                   onFocus={() => router.prefetch(link.href)}
                   className={`flex rounded-xl py-1.5 text-sm transition-colors duration-200 ${expandedRowClass} ${
                     isActive
-                      ? 'bg-white/75 font-semibold text-[color:var(--blue-500)]'
-                      : 'text-slate-900 hover:bg-white/75 hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]'
+                      ? 'bg-[color:var(--hover-neutral)] font-semibold text-[color:var(--blue-500)]'
+                      : 'text-slate-900 hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]'
                   }`}
                 >
                   <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
@@ -121,8 +121,8 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
                   onFocus={() => router.prefetch(link.href)}
                   className={`flex rounded-xl py-1.5 text-sm transition-colors duration-200 ${expandedRowClass} ${
                     isActive
-                      ? 'bg-white/75 font-semibold text-[color:var(--blue-500)]'
-                      : 'text-slate-900 hover:bg-white/75 hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]'
+                      ? 'bg-[color:var(--hover-neutral)] font-semibold text-[color:var(--blue-500)]'
+                      : 'text-slate-900 hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]'
                   }`}
                 >
                   <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
@@ -140,7 +140,7 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
               type="button"
               onClick={() => void handleLogout()}
               disabled={isLoggingOut}
-              className={`flex rounded-xl py-1.5 text-sm transition-colors duration-200 disabled:opacity-60 ${expandedRowClass} text-slate-900 hover:bg-white/75 hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]`}
+              className={`flex rounded-xl py-1.5 text-sm transition-colors duration-200 disabled:opacity-60 ${expandedRowClass} text-slate-900 hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]`}
             >
               <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
                 <SidebarIcon type="logout" />

@@ -74,11 +74,11 @@ export type UnifiedDocument = {
 
 export const documentTypeOptions: Array<{ value: DocumentType; label: string }> = [
   { value: 'all', label: 'Vsi dokumenti' },
-  { value: 'order_summary', label: 'Povzetek' },
-  { value: 'purchase_order', label: 'Naročilnica' },
-  { value: 'dobavnica', label: 'Dobavnica' },
-  { value: 'predracun', label: 'Predračun' },
-  { value: 'invoice', label: 'Račun' }
+  { value: 'order_summary', label: 'Povzetek (PN)' },
+  { value: 'purchase_order', label: 'Naročilnica (N)' },
+  { value: 'dobavnica', label: 'Dobavnica (D)' },
+  { value: 'predracun', label: 'Predračun (P)' },
+  { value: 'invoice', label: 'Račun (R)' }
 ];
 
 export const documentTypeLabelMap: Map<string, string> = new Map(
@@ -103,10 +103,10 @@ export const columnWidths = {
   type: '105px',
   status: '110px',
   payment: '110px',
-  total: '95px',
+  total: '110px',
   date: '104px',
-  documents: '100px',
-  edit: '72px'
+  documents: '90px',
+  edit: '84px'
 };
 
 const currencyFormatter = new Intl.NumberFormat('sl-SI', {

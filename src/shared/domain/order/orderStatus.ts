@@ -14,7 +14,7 @@ const STATUS_LABELS = new Map<OrderStatus, string>(
 );
 
 const STATUS_CHIP_CLASSNAMES: Record<OrderStatus, string> = {
-  received: 'border-slate-200 bg-slate-50 text-slate-700',
+  received: 'border-slate-300 bg-[color:var(--ui-neutral-bg)] text-slate-700',
   in_progress: 'border-yellow-200 bg-yellow-50 text-yellow-800',
   partially_sent: 'border-sky-200 bg-sky-50 text-sky-700',
   sent: 'border-blue-200 bg-blue-50 text-blue-700',
@@ -31,7 +31,7 @@ export const getStatusLabel = (value: string) =>
 export const getStatusChipClassName = (value: string) =>
   isOrderStatus(value)
     ? STATUS_CHIP_CLASSNAMES[value]
-    : 'border-slate-200 bg-slate-50 text-slate-400';
+    : 'border-slate-300 bg-[color:var(--ui-neutral-bg)] text-slate-400';
 
 export const getStatusChipVariant = (value: string) => {
   if (!isOrderStatus(value)) return 'neutral' as const;

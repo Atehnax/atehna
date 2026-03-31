@@ -26,6 +26,12 @@ const PDF_BUTTONS: PdfButton[] = [
 
 const MENU_GAP = 6;
 const MENU_PADDING = 8;
+const PDF_BUTTON_TONE_CLASSNAMES = {
+  generated:
+    'border border-emerald-700/35 bg-emerald-50 text-emerald-700 hover:bg-emerald-100',
+  pending:
+    'border border-slate-300 bg-[color:var(--ui-neutral-bg)] text-slate-700 hover:bg-[color:var(--ui-neutral-bg-hover)]'
+} as const;
 
 type MenuPosition = {
   top: number;
@@ -242,7 +248,7 @@ export default function AdminOrdersPdfCell({
                   role="menuitem"
                   data-no-row-nav
                   onClick={() => setOpenType(null)}
-                  className="flex items-center justify-between rounded-md border border-transparent bg-white px-2 py-1 text-[10px] text-slate-700 transition hover:border-[color:var(--blue-500)] hover:bg-[#dbe7fb]"
+                  className="flex items-center justify-between rounded-md border border-transparent bg-white px-2 py-1 text-[10px] text-slate-700 transition hover:border-[color:var(--blue-500)] hover:bg-[color:var(--hover-neutral)]"
                   title={documentOption.filename}
                 >
                   <span className="truncate font-medium">{documentOption.filename}</span>
@@ -263,13 +269,17 @@ export default function AdminOrdersPdfCell({
   };
 
   return (
-    <div className="relative inline-flex items-center gap-[6px]" data-no-row-nav>
-      {PDF_BUTTONS.map((button) => {
+    <div className="relative isolate inline-flex items-center" data-no-row-nav>
+      {PDF_BUTTONS.map((button, index) => {
         const isOpen = openType === button.key;
         const hasExistingDocument = (groupedDocuments[button.key] ?? []).length > 0;
 
         return (
-          <div key={button.key} className="relative" data-no-row-nav>
+          <div
+            key={button.key}
+            className={`relative ${index === 0 ? '' : '-ml-px'}`}
+            data-no-row-nav
+          >
             <button
               ref={(element) => {
                 buttonRefs.current[button.key] = element;
@@ -284,11 +294,11 @@ export default function AdminOrdersPdfCell({
                 setOpenType((previousType) => (previousType === button.key ? null : button.key))
               }
               disabled={interactionsDisabled}
-              className={`relative inline-flex h-6 items-center rounded-md px-1.5 py-1 text-[11px] font-medium transition disabled:cursor-default disabled:text-slate-300 ${
+              className={`relative z-10 inline-flex h-6 min-w-[30px] items-center justify-center px-1.5 py-1 text-[10px] font-medium leading-none transition hover:z-20 focus-visible:z-20 disabled:cursor-default disabled:text-slate-300 ${
                 hasExistingDocument
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                  : 'border-slate-300 bg-white text-slate-700 hover:bg-[color:var(--hover-neutral)]'
-              }`}
+                  ? PDF_BUTTON_TONE_CLASSNAMES.generated
+                  : PDF_BUTTON_TONE_CLASSNAMES.pending
+              } ${index === 0 ? 'rounded-l-md' : ''} ${index === PDF_BUTTONS.length - 1 ? 'rounded-r-md' : ''} ${index > 0 && index < PDF_BUTTONS.length - 1 ? 'rounded-none' : ''}`}
             >
               <span>{button.short}</span>
             </button>

@@ -12,8 +12,8 @@ const classNames = (...parts: Array<string | false | null | undefined>) =>
   parts.filter(Boolean).join(' ');
 
 const variantClassMap: Record<BadgeVariant, string> = {
-  neutral: 'border-slate-200 bg-slate-50 text-slate-700',
-  success: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  neutral: 'border-slate-300 bg-[color:var(--ui-neutral-bg)] text-slate-700',
+  success: 'border-emerald-700/35 bg-emerald-50 text-emerald-700',
   warning: 'border-yellow-200 bg-yellow-50 text-yellow-800',
   danger: 'border-orange-300 bg-orange-100 text-orange-900',
   info: 'border-blue-200 bg-blue-50 text-blue-700',

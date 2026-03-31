@@ -1,6 +1,6 @@
 export const PAYMENT_STATUS_OPTIONS = [
-  { value: 'unpaid', label: 'Neplačano', badgeClassName: 'border-slate-200 bg-slate-50 text-slate-700' },
-  { value: 'paid', label: 'Plačano', badgeClassName: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
+  { value: 'unpaid', label: 'Neplačano', badgeClassName: 'border-slate-300 bg-[color:var(--ui-neutral-bg)] text-slate-700' },
+  { value: 'paid', label: 'Plačano', badgeClassName: 'border-emerald-700/35 bg-emerald-50 text-emerald-700' },
   { value: 'refunded', label: 'Povrnjeno', badgeClassName: 'border-violet-200 bg-violet-50 text-violet-700' }
 ] as const;
 
@@ -22,10 +22,10 @@ export const getPaymentLabel = (status?: string | null) => {
 };
 
 export const getPaymentBadgeClassName = (status?: string | null) => {
-  if (!status || !isPaymentStatus(status)) return 'border-slate-200 bg-slate-50 text-slate-400';
+  if (!status || !isPaymentStatus(status)) return 'border-slate-300 bg-[color:var(--ui-neutral-bg)] text-slate-400';
   return (
     PAYMENT_STATUS_META.get(status)?.badgeClassName ??
-    'border-slate-200 bg-slate-50 text-slate-400'
+    'border-slate-300 bg-[color:var(--ui-neutral-bg)] text-slate-400'
   );
 };
 

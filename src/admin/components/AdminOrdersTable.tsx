@@ -1639,8 +1639,14 @@ export default function AdminOrdersTable({
                         <Link
                           href={`/admin/orders/${order.id}`}
                           prefetch={false}
-                          className="inline-flex rounded-sm px-1 text-[11px] font-semibold text-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
+                          className={`inline-flex rounded-sm text-[11px] font-semibold text-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6] ${isMatchingHoveredCell('order', toDisplayOrderNumber(order.order_number)) ? matchingValueHighlightClass : 'px-1'}`}
                           aria-label={`Odpri naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                          onMouseEnter={() =>
+                            setHoveredCellMatch({
+                              column: 'order',
+                              value: getComparableCellValue(toDisplayOrderNumber(order.order_number))
+                            })}
+                          onMouseLeave={() => setHoveredCellMatch(null)}
                         >
                           {toDisplayOrderNumber(order.order_number)}
                         </Link>

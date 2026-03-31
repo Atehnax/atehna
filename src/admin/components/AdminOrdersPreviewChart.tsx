@@ -589,16 +589,16 @@ function AdminOrdersPreviewChart({
               }}
             >
               <div className="mb-3 w-full min-w-0">
-                <div className="space-y-1.5 text-black">
-                  <p className="truncate text-left text-[23px] leading-[1.05] [&_span]:font-semibold">{chart.metricNode}</p>
-                  <div className="grid w-full grid-cols-2 items-center gap-2 text-[12px] leading-4">
+                <div className="space-y-2 text-[color:var(--text-strong)]">
+                  <p className="truncate text-left text-[34px] font-medium leading-[1.04] tracking-[-0.02em] [&_span]:font-semibold">{chart.metricNode}</p>
+                  <div className="grid w-full grid-cols-2 items-center gap-2 text-[13px] leading-4 text-slate-700">
                     <p className="text-left [&_span]:font-semibold">{chart.sevenDayNode}</p>
                     <p className="text-right [&_span]:font-semibold">{chart.thirtyDayNode}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="relative mt-1 w-full min-w-0 rounded-md" style={{ backgroundColor: 'transparent' }}>
+              <div className="relative mt-1.5 w-full min-w-0 rounded-md" style={{ backgroundColor: 'transparent' }}>
                 <PlotlyClient
                   data={chart.traces}
                   layout={chart.layout}

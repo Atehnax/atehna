@@ -269,7 +269,7 @@ export default function AdminOrdersPdfCell({
   };
 
   return (
-    <div className="relative inline-flex items-center" data-no-row-nav>
+    <div className="relative isolate inline-flex items-center" data-no-row-nav>
       {PDF_BUTTONS.map((button, index) => {
         const isOpen = openType === button.key;
         const hasExistingDocument = (groupedDocuments[button.key] ?? []).length > 0;
@@ -294,7 +294,7 @@ export default function AdminOrdersPdfCell({
                 setOpenType((previousType) => (previousType === button.key ? null : button.key))
               }
               disabled={interactionsDisabled}
-              className={`relative inline-flex h-6 min-w-[30px] items-center justify-center px-1.5 py-1 text-[10px] font-medium leading-none transition disabled:cursor-default disabled:text-slate-300 ${
+              className={`relative z-10 inline-flex h-6 min-w-[30px] items-center justify-center px-1.5 py-1 text-[10px] font-medium leading-none transition hover:z-20 focus-visible:z-20 disabled:cursor-default disabled:text-slate-300 ${
                 hasExistingDocument
                   ? PDF_BUTTON_TONE_CLASSNAMES.generated
                   : PDF_BUTTON_TONE_CLASSNAMES.pending

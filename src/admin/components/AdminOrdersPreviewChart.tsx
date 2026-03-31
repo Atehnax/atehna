@@ -28,7 +28,9 @@ type HoverCard = { xLabel: string; rows: TooltipRow[]; left: number; top: number
 type ChartCard = {
   key: string;
   focusKey: string;
-  headerLine: ReactNode;
+  metricNode: ReactNode;
+  sevenDayNode: ReactNode;
+  thirtyDayNode: ReactNode;
   traces: Data[];
   layout: Partial<Layout>;
   tooltipRowsAt: (index: number) => TooltipRow[];
@@ -355,13 +357,9 @@ function AdminOrdersPreviewChart({
         const count = data.totalOrders;
         const metricClassName = getTrendClass(thirtyDay);
         return {
-          headerLine: (
-            <>
-              <span className={metricClassName}>{formatInt(count)}</span> naročil
-              {' – '}7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span>
-              {' – '}30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span>
-            </>
-          )
+          metricNode: <><span className={metricClassName}>{formatInt(count)}</span> naročil</>,
+          sevenDayNode: <>7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span></>,
+          thirtyDayNode: <>30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span></>
         };
       })(),
       traces: [
@@ -398,13 +396,9 @@ function AdminOrdersPreviewChart({
         const thirtyDay = periodChange(data.revenueSeries, 30);
         const metricClassName = getTrendClass(thirtyDay);
         return {
-          headerLine: (
-            <>
-              <span className={metricClassName}>{formatCurrencyWhole(data.totalRevenue)}</span> prihodkov
-              {' – '}7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span>
-              {' – '}30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span>
-            </>
-          )
+          metricNode: <><span className={metricClassName}>{formatCurrencyWhole(data.totalRevenue)}</span> prihodkov</>,
+          sevenDayNode: <>7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span></>,
+          thirtyDayNode: <>30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span></>
         };
       })(),
       traces: [
@@ -441,13 +435,9 @@ function AdminOrdersPreviewChart({
         const thirtyDay = periodChange(data.dailyAov, 30);
         const metricClassName = getTrendClass(thirtyDay);
         return {
-          headerLine: (
-            <>
-              Povprečje: <span className={metricClassName}>{formatCurrencyWhole(data.rangeAov)}</span>
-              {' – '}7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span>
-              {' – '}30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span>
-            </>
-          )
+          metricNode: <>Povprečje: <span className={metricClassName}>{formatCurrencyWhole(data.rangeAov)}</span></>,
+          sevenDayNode: <>7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span></>,
+          thirtyDayNode: <>30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span></>
         };
       })(),
       traces: [
@@ -490,13 +480,9 @@ function AdminOrdersPreviewChart({
         const schoolTotal = data.schoolDaily.reduce((sum, value) => sum + value, 0);
         const metricClassName = getTrendClass(thirtyDay);
         return {
-          headerLine: (
-            <>
-              F: <span className={metricClassName}>{individualTotal}</span> – P: <span className={metricClassName}>{companyTotal}</span> – Š: <span className={metricClassName}>{schoolTotal}</span>
-              {' – '}7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span>
-              {' – '}30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span>
-            </>
-          )
+          metricNode: <>F: <span className={metricClassName}>{individualTotal}</span> – P: <span className={metricClassName}>{companyTotal}</span> – Š: <span className={metricClassName}>{schoolTotal}</span></>,
+          sevenDayNode: <>7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span></>,
+          thirtyDayNode: <>30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span></>
         };
       })(),
       traces: [
@@ -610,9 +596,11 @@ function AdminOrdersPreviewChart({
               }}
             >
               <div className="mb-2 w-full min-w-0">
-                <p className="w-full whitespace-nowrap text-[12px] font-semibold leading-4 text-slate-700">
-                  {chart.headerLine}
-                </p>
+                <div className="grid w-full grid-cols-[1fr_auto_auto] items-center gap-4 text-[13px] font-semibold leading-4 text-black">
+                  <p className="truncate text-left">{chart.metricNode}</p>
+                  <p className="text-center">{chart.sevenDayNode}</p>
+                  <p className="text-right">{chart.thirtyDayNode}</p>
+                </div>
               </div>
 
               <div className="relative w-full min-w-0 rounded-md" style={{ backgroundColor: 'transparent' }}>

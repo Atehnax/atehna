@@ -306,8 +306,7 @@ export default function AdminOrderPdfManager({
       <div className="mt-4 space-y-4">
         {PDF_TYPES.map((pdfType) => {
           const docs = grouped[pdfType.key];
-          const hasGeneratedDocument = docs.length > 0;
-          const pdfTone = hasGeneratedDocument ? 'success' : 'neutralStatus';
+          const pdfTone = 'neutral';
           const hasMultipleVersions = docs.length > 1;
           const isExpanded = Boolean(expandedByType[pdfType.key]);
           const visibleDocs = isExpanded ? docs : docs.slice(0, 1);

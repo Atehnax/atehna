@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { IconButton } from '@/shared/ui/icon-button';
-import { HorizontalDotsIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { MoreActionsIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 
 type RowActionItem = {
@@ -84,7 +84,7 @@ export default function RowActionsDropdown({
           title={label}
           onClick={() => setIsOpen((previousOpen) => !previousOpen)}
         >
-          <HorizontalDotsIcon />
+          <MoreActionsIcon />
         </IconButton>
       </div>
 

@@ -11,6 +11,7 @@ import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { Spinner } from '@/shared/ui/loading';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
 import {
+  ActionUndoIcon,
   DownloadIcon,
   PanelAddRemoveIcon,
   PencilIcon,
@@ -1186,7 +1187,7 @@ export default function AdminOrdersTable({
         ? {
             key: 'total',
             title: 'Skupaj:',
-            value: `${totalRange.min || '0'} – ${totalRange.max || '∞'}€`,
+            value: `${totalRange.min || '0'} – ${totalRange.max || '∞'} €`,
             clear: () => setTotalRange({ min: '', max: '' })
           }
         : null,
@@ -1209,6 +1210,7 @@ export default function AdminOrdersTable({
   const isMatchingHoveredCell = (column: OrdersColumnKey, value: string) =>
     hoveredCellMatch?.column === column && hoveredCellMatch.value === getComparableCellValue(value);
   const matchingValueHighlightClass = 'rounded-[4px] border border-dashed border-amber-500/80 bg-amber-100/70 px-1';
+  const matchingValueHighlightNoShiftClass = 'rounded-[4px] bg-amber-100/70 outline outline-1 outline-dashed outline-amber-500/80';
 
   useEffect(() => {
     if (hasAutoResetFiltersRef.current) return;
@@ -1408,12 +1410,21 @@ export default function AdminOrdersTable({
             ) : null
           }
           filterRowRight={
+            <button
+              type="button"
+              onClick={resetAllFilters}
+              className="inline-flex h-7 items-center gap-1 rounded-lg border border-slate-300 bg-[color:var(--ui-neutral-bg)] px-2 text-[9px] font-semibold text-slate-700 transition hover:bg-[color:var(--ui-neutral-bg-hover)]"
+            >
+              <ActionUndoIcon className="h-2.5 w-2.5" />
+              <span>Resetiraj filtre</span>
+            </button>
+          }
+          footerRight={
             <div className="flex items-center gap-2">
               <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={handlePageSizeChange} />
               <Pagination page={page} pageCount={pageCount} onPageChange={handlePageChange} variant="topPills" size="sm" showNumbers={false} />
             </div>
           }
-          footerRight={null}
         >
           <Table className="min-w-[1060px] w-full table-fixed text-[11px]">
             <colgroup>
@@ -1660,7 +1671,7 @@ export default function AdminOrdersTable({
 
                       {visibleColumns.customer ? <TD className="text-slate-700">
                         <span
-                          className={`block truncate ${isMatchingHoveredCell('customer', order.organization_name || order.contact_name) ? matchingValueHighlightClass : ''}`}
+                          className={`inline-block max-w-full truncate ${isMatchingHoveredCell('customer', order.organization_name || order.contact_name) ? matchingValueHighlightNoShiftClass : ''}`}
                           title={order.organization_name || order.contact_name}
                           onMouseEnter={() => setHoveredCellMatch({ column: 'customer', value: getComparableCellValue(order.organization_name || order.contact_name) })}
                           onMouseLeave={() => setHoveredCellMatch(null)}
@@ -1671,7 +1682,7 @@ export default function AdminOrdersTable({
 
                       {visibleColumns.address ? <TD className="text-slate-700">
                         <span
-                          className={`block truncate ${isMatchingHoveredCell('address', orderAddress || '—') ? matchingValueHighlightClass : ''}`}
+                          className={`inline-block max-w-full truncate ${isMatchingHoveredCell('address', orderAddress || '—') ? matchingValueHighlightNoShiftClass : ''}`}
                           title={orderAddress || '—'}
                           onMouseEnter={() => setHoveredCellMatch({ column: 'address', value: getComparableCellValue(orderAddress || '—') })}
                           onMouseLeave={() => setHoveredCellMatch(null)}
@@ -1742,7 +1753,7 @@ export default function AdminOrdersTable({
                         </span>
                       </TD> : null}
 
-                      {visibleColumns.documents ? <TD className="min-w-[100px] pl-0 pr-0 text-center" data-no-row-nav>
+                      {visibleColumns.documents ? <TD className="relative z-10 min-w-[100px] pl-0 pr-0 text-center" data-no-row-nav>
                         <div className="flex justify-center">
                           <LazyAdminOrdersPdfCell
                             orderId={order.id}
@@ -1753,7 +1764,7 @@ export default function AdminOrdersTable({
                         </div>
                       </TD> : null}
 
-                      <TD className="pl-0 pr-0 text-center" data-no-row-nav>
+                      <TD className="relative z-0 pl-0 pr-0 text-center" data-no-row-nav>
                         <RowActions className="relative">
                           <RowActionsDropdown
                             label={`Možnosti za naročilo ${toDisplayOrderNumber(order.order_number)}`}

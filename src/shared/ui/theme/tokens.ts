@@ -67,8 +67,8 @@ const BTN_BASE =
   'inline-flex items-center justify-center font-semibold transition disabled:pointer-events-none disabled:opacity-45';
 const BTN_FOCUS =
   'focus:border-[color:var(--blue-500)] focus:outline-none focus:ring-0 focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0';
-const BTN_SIZE_MD = 'h-8 px-3 rounded-xl text-xs';
-const BTN_SIZE_PILL = 'h-8 px-3 rounded-xl text-sm';
+const BTN_SIZE_MD = 'h-8 px-3 rounded-lg text-xs';
+const BTN_SIZE_PILL = 'h-8 px-3 rounded-lg text-sm';
 
 export const semanticButtonColors = {
   neutral: {

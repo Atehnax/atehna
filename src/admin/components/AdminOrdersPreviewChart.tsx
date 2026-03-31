@@ -38,7 +38,7 @@ type ChartCard = {
   metricColor: string;
   metricText: string;
   metricFullText?: string;
-  typeSummaryRows?: string[];
+  typeSummaryRows?: ReactNode[];
   lowestNode: ReactNode;
   highestNode: ReactNode;
   sevenDayNode: ReactNode;
@@ -475,7 +475,7 @@ function AdminOrdersPreviewChart({
     const axisLabels = getAxisLabels(axisX, chartBucketMode);
     return {
       ...layoutBase,
-      margin: { l: 5, r: 5, t: 8, b: 5 },
+      margin: { l: 5, r: 5, t: 8, b: 14 },
       showlegend: false,
       hovermode: 'x unified',
       paper_bgcolor: 'rgba(0,0,0,0)',
@@ -541,9 +541,9 @@ function AdminOrdersPreviewChart({
         const lowestIndex = ordersSeries.findIndex((value) => value === lowestValue);
         return {
           typeSummaryRows: [
-            `Šole: ${formatInt(schoolTotal)}`,
-            `Podjetja: ${formatInt(companyTotal)}`,
-            `Fizične osebe: ${formatInt(individualTotal)}`
+            <>Šole: <span className="text-[#3b82f6]">{formatInt(schoolTotal)}</span></>,
+            <>Podjetja: <span className="text-[#8b5cf6]">{formatInt(companyTotal)}</span></>,
+            <>Fizične osebe: <span className="text-[#f59e0b]">{formatInt(individualTotal)}</span></>
           ],
           metricColor: semanticChartColors.orders.line,
           metricText: formatMetricCompact(count),
@@ -943,8 +943,8 @@ function AdminOrdersPreviewChart({
                       <>
                   <p className="truncate text-left text-[13px] leading-4 tracking-[0.005em] text-slate-600"><span className="font-semibold">{baseTitle}</span><span className="font-normal">{rangeTitle}</span></p>
                   <p className="min-h-[16px] truncate text-left leading-4">{chart.subtitleNode ?? ''}</p>
-                  <div className={`grid ${chart.typeSummaryRows?.length ? (isLongMetric ? 'grid-cols-[minmax(120px,1fr)_minmax(172px,45%)]' : 'grid-cols-[minmax(120px,1fr)_minmax(176px,45%)]') : 'grid-cols-[minmax(120px,1fr)_auto]'} gap-1`}>
-                    <div className={`flex h-[30px] items-center ${isShortMetric ? 'justify-center' : 'pl-2'}`}>
+                  <div className={`mx-auto grid ${chart.typeSummaryRows?.length ? (isLongMetric ? 'grid-cols-[minmax(118px,1fr)_minmax(168px,44%)]' : 'grid-cols-[minmax(118px,1fr)_minmax(172px,44%)]') : 'grid-cols-[minmax(118px,1fr)_auto]'} gap-1`}>
+                    <div className={`flex h-[30px] items-center ${isShortMetric ? 'justify-center' : 'justify-center'}`}>
                       <p
                         className="whitespace-nowrap text-left text-[34px] font-normal leading-[1] tracking-[-0.02em]"
                         style={{ color: chart.metricColor }}
@@ -956,8 +956,8 @@ function AdminOrdersPreviewChart({
                     <div className={`grid h-[30px] ${chart.typeSummaryRows?.length ? 'grid-cols-2 gap-x-1.5' : 'grid-cols-1 justify-items-center'} text-[10px] leading-[1] text-slate-600`}>
                       {chart.typeSummaryRows?.length ? (
                         <div className="grid grid-rows-3 gap-y-0">
-                          {chart.typeSummaryRows.slice(0, 3).map((row) => (
-                            <p key={row} className="self-center whitespace-nowrap">{row}</p>
+                          {chart.typeSummaryRows.slice(0, 3).map((row, index) => (
+                            <p key={index} className="self-center whitespace-nowrap">{row}</p>
                           ))}
                         </div>
                       ) : null}
@@ -978,7 +978,7 @@ function AdminOrdersPreviewChart({
                   data={chart.traces}
                   layout={chart.layout}
                   config={{ responsive: true, displayModeBar: false }}
-                  style={{ width: '100%', height: 90, maxWidth: '100%' }}
+                  style={{ width: '100%', height: 96, maxWidth: '100%' }}
                   useResizeHandler
                   onHover={(eventData: any) => handleHover(chart, eventData)}
                   onUnhover={() => hideHover(chart.key)}

@@ -11,6 +11,7 @@ import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { Spinner } from '@/shared/ui/loading';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
 import {
+  ActionUndoIcon,
   DownloadIcon,
   PanelAddRemoveIcon,
   PencilIcon,
@@ -1186,7 +1187,7 @@ export default function AdminOrdersTable({
         ? {
             key: 'total',
             title: 'Skupaj:',
-            value: `${totalRange.min || '0'} – ${totalRange.max || '∞'}€`,
+            value: `${totalRange.min || '0'} – ${totalRange.max || '∞'} €`,
             clear: () => setTotalRange({ min: '', max: '' })
           }
         : null,
@@ -1408,12 +1409,21 @@ export default function AdminOrdersTable({
             ) : null
           }
           filterRowRight={
+            <button
+              type="button"
+              onClick={resetAllFilters}
+              className="inline-flex h-7 items-center gap-1 rounded-lg border border-slate-300 bg-[color:var(--ui-neutral-bg)] px-2.5 text-[11px] font-semibold text-slate-700 transition hover:bg-[color:var(--ui-neutral-bg-hover)]"
+            >
+              <ActionUndoIcon className="h-3.5 w-3.5" />
+              <span>Resetiraj filtre</span>
+            </button>
+          }
+          footerRight={
             <div className="flex items-center gap-2">
               <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={handlePageSizeChange} />
               <Pagination page={page} pageCount={pageCount} onPageChange={handlePageChange} variant="topPills" size="sm" showNumbers={false} />
             </div>
           }
-          footerRight={null}
         >
           <Table className="min-w-[1060px] w-full table-fixed text-[11px]">
             <colgroup>
@@ -1660,7 +1670,7 @@ export default function AdminOrdersTable({
 
                       {visibleColumns.customer ? <TD className="text-slate-700">
                         <span
-                          className={`block truncate ${isMatchingHoveredCell('customer', order.organization_name || order.contact_name) ? matchingValueHighlightClass : ''}`}
+                          className={`inline-block max-w-full truncate ${isMatchingHoveredCell('customer', order.organization_name || order.contact_name) ? matchingValueHighlightClass : ''}`}
                           title={order.organization_name || order.contact_name}
                           onMouseEnter={() => setHoveredCellMatch({ column: 'customer', value: getComparableCellValue(order.organization_name || order.contact_name) })}
                           onMouseLeave={() => setHoveredCellMatch(null)}
@@ -1671,7 +1681,7 @@ export default function AdminOrdersTable({
 
                       {visibleColumns.address ? <TD className="text-slate-700">
                         <span
-                          className={`block truncate ${isMatchingHoveredCell('address', orderAddress || '—') ? matchingValueHighlightClass : ''}`}
+                          className={`inline-block max-w-full truncate ${isMatchingHoveredCell('address', orderAddress || '—') ? matchingValueHighlightClass : ''}`}
                           title={orderAddress || '—'}
                           onMouseEnter={() => setHoveredCellMatch({ column: 'address', value: getComparableCellValue(orderAddress || '—') })}
                           onMouseLeave={() => setHoveredCellMatch(null)}

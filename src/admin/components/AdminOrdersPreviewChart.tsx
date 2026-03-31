@@ -29,7 +29,6 @@ type ChartCard = {
   key: string;
   focusKey: string;
   title: string;
-  subtitle: string;
   metricColor: string;
   metricNode: ReactNode;
   extremaNode: ReactNode;
@@ -201,6 +200,39 @@ const formatCurrencyWhole = (value: number | null | undefined) =>
 
 
 const formatTooltipDate = (value: string) => formatLjubljanaDate(value);
+
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Avg', 'Sep', 'Okt', 'Nov', 'Dec'];
+
+const formatAxisDayLabel = (dateIso: string) => {
+  const date = new Date(`${dateIso}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return '';
+  const month = MONTH_LABELS[date.getUTCMonth()] ?? '';
+  const day = date.getUTCDate();
+  if (day === 1) return `${month} 1`;
+  return String(day);
+};
+
+const getAxisLabels = (x: string[], mode: BucketMode) => {
+  if (mode === 'month') {
+    return x.map((value) => {
+      const date = new Date(`${value}T00:00:00Z`);
+      if (Number.isNaN(date.getTime())) return '';
+      return MONTH_LABELS[date.getUTCMonth()] ?? '';
+    });
+  }
+  if (mode === 'week') {
+    return x.map((value, index) => {
+      const date = new Date(`${value}T00:00:00Z`);
+      if (Number.isNaN(date.getTime())) return '';
+      if (index === 0) return formatAxisDayLabel(value);
+      const previous = new Date(`${x[index - 1]}T00:00:00Z`);
+      if (Number.isNaN(previous.getTime())) return formatAxisDayLabel(value);
+      if (previous.getUTCMonth() !== date.getUTCMonth()) return `${MONTH_LABELS[date.getUTCMonth()]} 1`;
+      return String(date.getUTCDate());
+    });
+  }
+  return x.map((value) => formatAxisDayLabel(value));
+};
 
 
 const readCssVarColor = (name: string, fallback: string) => {
@@ -376,51 +408,57 @@ function AdminOrdersPreviewChart({
     };
   }, [orders, fromDate, toDate]);
 
-  const miniLayout = (isAreaStacked = false): Partial<Layout> => ({
-    ...layoutBase,
-    margin: { l: 36, r: 8, t: 10, b: 28 },
-    showlegend: false,
-    hovermode: 'x unified',
-    paper_bgcolor: 'rgba(0,0,0,0)',
-    plot_bgcolor: 'rgba(0,0,0,0)',
-    xaxis: {
-      showgrid: false,
-      showticklabels: true,
-      zeroline: false,
-      showline: true,
-      linecolor: 'rgba(100,116,139,0.35)',
-      tickfont: { family: '"SF Pro Display","Helvetica Neue","Neue Haas Grotesk","Inter",system-ui,sans-serif', size: 10, color: '#6b7280' },
-      tickformat: '%d.%m',
-      fixedrange: true,
-      hoverformat: '%Y-%m-%d'
-    },
-    yaxis: {
-      showgrid: true,
-      gridcolor: 'rgba(148,163,184,0.17)',
-      gridwidth: 1,
-      showticklabels: true,
-      tickfont: { family: '"SF Pro Display","Helvetica Neue","Neue Haas Grotesk","Inter",system-ui,sans-serif', size: 10, color: '#6b7280' },
-      zeroline: false,
-      showline: true,
-      linecolor: 'rgba(100,116,139,0.35)',
-      rangemode: 'tozero',
-      fixedrange: true
-    },
-    barmode: isAreaStacked ? 'stack' : undefined
-  });
+  const chartBucketMode = getBucketMode(data.x.length);
+
+  const miniLayout = (isAreaStacked = false, axisX: string[] = data.x): Partial<Layout> => {
+    const axisLabels = getAxisLabels(axisX, chartBucketMode);
+    return {
+      ...layoutBase,
+      margin: { l: 36, r: 8, t: 10, b: 28 },
+      showlegend: false,
+      hovermode: 'x unified',
+      paper_bgcolor: 'rgba(0,0,0,0)',
+      plot_bgcolor: 'rgba(0,0,0,0)',
+      xaxis: {
+        showgrid: false,
+        showticklabels: true,
+        zeroline: false,
+        showline: true,
+        linecolor: 'rgba(100,116,139,0.35)',
+        tickfont: { family: '"SF Pro Display","Helvetica Neue","Neue Haas Grotesk","Inter",system-ui,sans-serif', size: 10, color: '#6b7280' },
+        tickmode: 'array',
+        tickvals: axisX,
+        ticktext: axisLabels,
+        fixedrange: true,
+        hoverformat: '%Y-%m-%d'
+      },
+      yaxis: {
+        showgrid: true,
+        gridcolor: 'rgba(148,163,184,0.17)',
+        gridwidth: 1,
+        showticklabels: true,
+        tickfont: { family: '"SF Pro Display","Helvetica Neue","Neue Haas Grotesk","Inter",system-ui,sans-serif', size: 10, color: '#6b7280' },
+        tickformat: '~s',
+        zeroline: false,
+        showline: true,
+        linecolor: 'rgba(100,116,139,0.35)',
+        rangemode: 'tozero',
+        fixedrange: true
+      },
+      barmode: isAreaStacked ? 'stack' : undefined
+    };
+  };
 
   const charts: ChartCard[] = [
     {
       key: 'orders-ma',
       focusKey: 'narocila-orders-ma',
       title: 'Naročila',
-      subtitle: `Posodobljeno ${data.x.length ? formatTooltipDate(data.x[data.x.length - 1]) : '—'}`,
       ...(() => {
         const sevenDay = periodChange(data.ordersSeries, 7);
         const thirtyDay = periodChange(data.ordersSeries, 30);
         const count = data.totalOrders;
-        const mode = getBucketMode(data.x.length);
-        const aggregated = aggregateSeries(data.x, [data.ordersSeries, data.ordersMa], mode);
+        const aggregated = aggregateSeries(data.x, [data.ordersSeries, data.ordersMa], chartBucketMode);
         const ordersSeries = aggregated.series[0].map((value) => (value ?? 0) as number);
         const ordersMa = movingAverage(ordersSeries, 7);
         const highestValue = Math.max(...ordersSeries, 0);
@@ -429,7 +467,7 @@ function AdminOrdersPreviewChart({
         const lowestIndex = ordersSeries.findIndex((value) => value === lowestValue);
         return {
           metricColor: semanticChartColors.orders.line,
-          metricNode: <>{formatInt(count)} naročil</>,
+          metricNode: <>{formatInt(count)}</>,
           extremaNode: (
             <>
               Najnižje <span className="text-slate-900">{formatInt(lowestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 align-middle" />
@@ -479,22 +517,20 @@ function AdminOrdersPreviewChart({
           tooltipRowsAt: (i: number) => [
             { label: 'Število naročil', value: formatInt(ordersSeries[i]), color: semanticChartColors.orders.fill, numericValue: ordersSeries[i] ?? null },
             { label: '7d MA', value: formatInt(ordersMa[i]), color: semanticChartColors.orders.line, numericValue: ordersMa[i] ?? null }
-          ]
+          ],
+          layout: miniLayout(false, aggregated.x)
         };
       })(),
-      enforceTopDownTooltipOrder: true,
-      layout: miniLayout(false)
+      enforceTopDownTooltipOrder: true
     },
     {
       key: 'revenue-ma',
       focusKey: 'narocila-revenue-ma',
       title: 'Prihodki',
-      subtitle: `Posodobljeno ${data.x.length ? formatTooltipDate(data.x[data.x.length - 1]) : '—'}`,
       ...(() => {
         const sevenDay = periodChange(data.revenueSeries, 7);
         const thirtyDay = periodChange(data.revenueSeries, 30);
-        const mode = getBucketMode(data.x.length);
-        const aggregated = aggregateSeries(data.x, [data.revenueSeries, data.revenueMa], mode);
+        const aggregated = aggregateSeries(data.x, [data.revenueSeries, data.revenueMa], chartBucketMode);
         const revenueSeries = aggregated.series[0].map((value) => (value ?? 0) as number);
         const revenueMa = movingAverage(revenueSeries, 7);
         const highestValue = Math.max(...revenueSeries, 0);
@@ -503,7 +539,7 @@ function AdminOrdersPreviewChart({
         const lowestIndex = revenueSeries.findIndex((value) => value === lowestValue);
         return {
           metricColor: semanticChartColors.revenue.line,
-          metricNode: <>{formatCurrencyWhole(data.totalRevenue)} prihodkov</>,
+          metricNode: <>{formatCurrencyWhole(data.totalRevenue)}</>,
           extremaNode: (
             <>
               Najnižje <span className="text-slate-900">{formatCurrencyWhole(lowestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 align-middle" />
@@ -553,22 +589,20 @@ function AdminOrdersPreviewChart({
           tooltipRowsAt: (i: number) => [
             { label: 'Prihodki', value: formatCurrency(revenueSeries[i]), color: semanticChartColors.revenue.fill, numericValue: revenueSeries[i] ?? null },
             { label: '7d MA', value: formatCurrency(revenueMa[i]), color: semanticChartColors.revenue.line, numericValue: revenueMa[i] ?? null }
-          ]
+          ],
+          layout: miniLayout(false, aggregated.x)
         };
       })(),
-      enforceTopDownTooltipOrder: true,
-      layout: miniLayout(false)
+      enforceTopDownTooltipOrder: true
     },
     {
       key: 'aov-ma',
       focusKey: 'narocila-aov-median',
       title: 'Povprečna vrednost',
-      subtitle: `Posodobljeno ${data.x.length ? formatTooltipDate(data.x[data.x.length - 1]) : '—'}`,
       ...(() => {
         const sevenDay = periodChange(data.dailyAov, 7);
         const thirtyDay = periodChange(data.dailyAov, 30);
-        const mode = getBucketMode(data.x.length);
-        const aggregated = aggregateSeries(data.x, [data.dailyAov, data.dailyAovMa], mode);
+        const aggregated = aggregateSeries(data.x, [data.dailyAov, data.dailyAovMa], chartBucketMode);
         const dailyAovSeries = aggregated.series[0].map((value) => value ?? 0);
         const dailyAovMa = movingAverage(dailyAovSeries, 7);
         const highestValue = Math.max(...dailyAovSeries, 0);
@@ -577,7 +611,7 @@ function AdminOrdersPreviewChart({
         const lowestIndex = dailyAovSeries.findIndex((value) => value === lowestValue);
         return {
           metricColor: semanticChartColors.avgOrderValue.line,
-          metricNode: <>{formatCurrencyWhole(data.rangeAov)} povprečno</>,
+          metricNode: <>{formatCurrencyWhole(data.rangeAov)}</>,
           extremaNode: (
             <>
               Najnižje <span className="text-slate-900">{formatCurrencyWhole(lowestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 align-middle" />
@@ -629,17 +663,16 @@ function AdminOrdersPreviewChart({
           tooltipRowsAt: (i: number) => [
             { label: 'Povprečje', value: formatCurrency(dailyAovSeries[i]), color: semanticChartColors.avgOrderValue.fill, numericValue: dailyAovSeries[i] ?? null },
             { label: '7d MA', value: formatCurrency(dailyAovMa[i]), color: semanticChartColors.avgOrderValue.line, numericValue: dailyAovMa[i] ?? null }
-          ]
+          ],
+          layout: miniLayout(false, aggregated.x)
         };
       })(),
-      enforceTopDownTooltipOrder: true,
-      layout: miniLayout(false)
+      enforceTopDownTooltipOrder: true
     },
     {
       key: 'customer-type-cumulative',
       focusKey: 'narocila-status-mix',
       title: 'Tip naročnika',
-      subtitle: `Posodobljeno ${data.x.length ? formatTooltipDate(data.x[data.x.length - 1]) : '—'}`,
       ...(() => {
         const totalsSeries = data.companyDaily.map((value, index) => value + data.schoolDaily[index] + data.individualDaily[index]);
         const sevenDay = periodChange(totalsSeries, 7);
@@ -647,8 +680,7 @@ function AdminOrdersPreviewChart({
         const individualTotal = data.individualDaily.reduce((sum, value) => sum + value, 0);
         const companyTotal = data.companyDaily.reduce((sum, value) => sum + value, 0);
         const schoolTotal = data.schoolDaily.reduce((sum, value) => sum + value, 0);
-        const mode = getBucketMode(data.x.length);
-        const aggregated = aggregateSeries(data.x, [data.schoolDaily, data.companyDaily, data.individualDaily], mode);
+        const aggregated = aggregateSeries(data.x, [data.schoolDaily, data.companyDaily, data.individualDaily], chartBucketMode);
         const schoolDaily = aggregated.series[0].map((value) => (value ?? 0) as number);
         const companyDaily = aggregated.series[1].map((value) => (value ?? 0) as number);
         const individualDaily = aggregated.series[2].map((value) => (value ?? 0) as number);
@@ -659,8 +691,8 @@ function AdminOrdersPreviewChart({
         const lowestIndex = totalsDaily.findIndex((value) => value === lowestValue);
         return {
           metricColor: semanticChartColors.customerStack.line,
-          metricNode: <>F: {individualTotal} · P: {companyTotal} · Š: {schoolTotal}</>,
-          extremaNode: <>Najnižje <span className="text-slate-900">{formatInt(lowestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 align-middle" /> · Najvišje <span className="text-slate-900">{formatInt(highestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle" /></>,
+          metricNode: <>{formatInt(individualTotal + companyTotal + schoolTotal)}</>,
+          extremaNode: <>F {formatInt(individualTotal)} · P {formatInt(companyTotal)} · Š {formatInt(schoolTotal)} · Najnižje <span className="text-slate-900">{formatInt(lowestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 align-middle" /> · Najvišje <span className="text-slate-900">{formatInt(highestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle" /></>,
           sevenDayNode: <>7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span></>,
           thirtyDayNode: <>30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span></>,
           traces: [
@@ -711,11 +743,11 @@ function AdminOrdersPreviewChart({
             { label: 'Fizična oseba', value: formatInt(individualDaily[i]), color: semanticChartColors.customerStack.top, numericValue: individualDaily[i] ?? null },
             { label: 'Podjetje', value: formatInt(companyDaily[i]), color: semanticChartColors.customerStack.middle, numericValue: companyDaily[i] ?? null },
             { label: 'Šola', value: formatInt(schoolDaily[i]), color: semanticChartColors.customerStack.bottom, numericValue: schoolDaily[i] ?? null }
-          ]
+          ],
+          layout: miniLayout(true, aggregated.x)
         };
       })(),
-      enforceTopDownTooltipOrder: false,
-      layout: miniLayout(true)
+      enforceTopDownTooltipOrder: false
     }
   ];
 
@@ -796,8 +828,8 @@ function AdminOrdersPreviewChart({
             >
               <div className="mb-3.5 w-full min-w-0">
                 <div className="space-y-2 text-[color:var(--text-strong)]">
-                  <p className="truncate text-left text-[13px] font-normal leading-4 tracking-[0.005em] text-slate-500">{chart.title} · {chart.subtitle}</p>
-                  <p className="truncate text-left text-[50px] font-normal leading-[1.02] tracking-[-0.025em]" style={{ color: chart.metricColor }}>{chart.metricNode}</p>
+                  <p className="truncate text-left text-[13px] font-normal leading-4 tracking-[0.005em] text-slate-500">{chart.title}</p>
+                  <p className="truncate text-left text-[32px] font-normal leading-[1.02] tracking-[-0.02em]" style={{ color: chart.metricColor }}>{chart.metricNode}</p>
                   <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 text-[12px] leading-4 text-slate-600">
                     <p className="truncate">{chart.extremaNode}</p>
                     <p className="whitespace-nowrap [&_span]:font-medium">{chart.sevenDayNode}</p>

@@ -2,8 +2,7 @@
 
 import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
-import { adminSectionTabsListClass, adminSectionTabsTriggerClass } from '@/admin/components/adminSectionTabStyles';
+import EuiTabs from '@/shared/ui/eui-tabs';
 
 const tabs = [
   { value: '/admin/arhiv', label: 'Arhiv naročil' },
@@ -24,14 +23,6 @@ export default function AdminArchiveTabs() {
   }, [pathname, router]);
 
   return (
-    <Tabs value={value} onValueChange={(next) => router.push(next)}>
-      <TabsList className={adminSectionTabsListClass}>
-        {tabs.map((tab) => (
-          <TabsTrigger key={tab.value} value={tab.value} className={adminSectionTabsTriggerClass}>
-            {tab.label}
-          </TabsTrigger>
-        ))}
-      </TabsList>
-    </Tabs>
+    <EuiTabs value={value} onChange={(next) => router.push(next)} tabs={tabs} />
   );
 }

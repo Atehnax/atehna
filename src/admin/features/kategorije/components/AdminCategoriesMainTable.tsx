@@ -83,8 +83,7 @@ import {
 } from '@/shared/ui/theme/tokens';
 import { Input } from '@/shared/ui/input';
 import { useToast } from '@/shared/ui/toast';
-import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
-import { adminSectionTabsListClass, adminSectionTabsTriggerClass } from '@/admin/components/adminSectionTabStyles';
+import EuiTabs from '@/shared/ui/eui-tabs';
 
 const AdminCategoriesPreview = dynamic(
   () => import('./AdminCategoriesPreview').then((module) => module.AdminCategoriesPreview)
@@ -3354,9 +3353,9 @@ export default function AdminCategoriesMainTable({
         </p>
       </header>
 
-      <Tabs
+      <EuiTabs
         value={activeView}
-        onValueChange={(next) => {
+        onChange={(next) => {
           const nextView = next as CategoriesView;
           setActiveView(nextView);
           guardedNavigate(
@@ -3367,13 +3366,12 @@ export default function AdminCategoriesMainTable({
                 : '/admin/kategorije/miller-view'
           );
         }}
-      >
-        <TabsList className={adminSectionTabsListClass}>
-          <TabsTrigger value="table" className={adminSectionTabsTriggerClass}>Osnovno</TabsTrigger>
-          <TabsTrigger value="preview" className={adminSectionTabsTriggerClass}>Predogled</TabsTrigger>
-          <TabsTrigger value="miller" className={adminSectionTabsTriggerClass}>Po stolpcih</TabsTrigger>
-        </TabsList>
-      </Tabs>
+        tabs={[
+          { value: 'table', label: 'Osnovno' },
+          { value: 'preview', label: 'Predogled' },
+          { value: 'miller', label: 'Po stolpcih' }
+        ]}
+      />
 
       {isBulkDeleteDialogOpen ? <LazyConfirmDialog
         open={isBulkDeleteDialogOpen}

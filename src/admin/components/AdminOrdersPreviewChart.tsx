@@ -907,34 +907,37 @@ function AdminOrdersPreviewChart({
               key={chart.key}
               type="button"
               onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(chart.focusKey)}`)}
-              className="flex min-h-[196px] flex-col overflow-visible rounded-xl border px-3 py-2.5 text-left shadow-sm transition hover:border-[color:var(--blue-500)] hover:bg-[color:var(--hover-neutral)]"
+              className="flex min-h-[166px] flex-col overflow-visible rounded-xl border px-3 py-2 text-left shadow-sm transition hover:border-[color:var(--blue-500)] hover:bg-[color:var(--hover-neutral)]"
               style={{
                 fontFamily: '"SF Pro Display","Helvetica Neue","Neue Haas Grotesk","Inter",system-ui,sans-serif',
                 background: `linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,248,251,0.96) 100%)`,
                 borderColor: appearance.gridColor
               }}
             >
-              <div className="mb-0.5 h-[96px] w-full min-w-0">
+              <div className="mb-0 h-[78px] w-full min-w-0">
                 <div className="space-y-1 text-[color:var(--text-strong)]">
                   {(() => {
                     const metricLength = chart.metricText.length;
                     const isShortMetric = metricLength <= 3;
                     const isLongMetric = metricLength >= 6;
+                    const rangeStart = chart.title.lastIndexOf(' (');
+                    const baseTitle = rangeStart > 0 ? chart.title.slice(0, rangeStart) : chart.title;
+                    const rangeTitle = rangeStart > 0 ? chart.title.slice(rangeStart) : '';
                     return (
                       <>
-                  <p className="truncate text-left text-[13px] font-semibold leading-4 tracking-[0.005em] text-slate-600">{chart.title}</p>
+                  <p className="truncate text-left text-[13px] leading-4 tracking-[0.005em] text-slate-600"><span className="font-semibold">{baseTitle}</span><span className="font-normal">{rangeTitle}</span></p>
                   <p className="min-h-[16px] truncate text-left leading-4">{chart.subtitleNode ?? ''}</p>
-                  <div className={`grid ${isLongMetric ? 'grid-cols-[minmax(0,1fr)_minmax(162px,41%)]' : 'grid-cols-[minmax(0,1fr)_minmax(174px,44%)]'} gap-0.5`}>
-                    <div className={`flex h-[38px] items-center ${isShortMetric ? 'justify-center' : 'pl-2'}`}>
+                  <div className={`grid ${isLongMetric ? 'grid-cols-[minmax(120px,1fr)_minmax(172px,45%)]' : 'grid-cols-[minmax(120px,1fr)_minmax(176px,45%)]'} gap-2`}>
+                    <div className={`flex h-[30px] items-center ${isShortMetric ? 'justify-center' : 'pl-2'}`}>
                       <p
-                        className="whitespace-nowrap text-left text-[38px] font-normal leading-[1] tracking-[-0.02em]"
+                        className="whitespace-nowrap text-left text-[34px] font-normal leading-[1] tracking-[-0.02em]"
                         style={{ color: chart.metricColor }}
                         title={chart.metricFullText ?? chart.metricText}
                       >
                         {chart.metricText}
                       </p>
                     </div>
-                    <div className="grid h-[38px] grid-cols-2 grid-rows-2 gap-x-0.5 gap-y-0 text-[10px] leading-[1] text-slate-600">
+                    <div className="grid h-[30px] grid-cols-2 grid-rows-2 gap-x-1.5 gap-y-0 text-[10px] leading-[1] text-slate-600">
                       <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.highestNode}</p>
                       <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.sevenDayNode}</p>
                       <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.lowestNode}</p>
@@ -952,7 +955,7 @@ function AdminOrdersPreviewChart({
                   data={chart.traces}
                   layout={chart.layout}
                   config={{ responsive: true, displayModeBar: false }}
-                  style={{ width: '100%', height: 120, maxWidth: '100%' }}
+                  style={{ width: '100%', height: 100, maxWidth: '100%' }}
                   useResizeHandler
                   onHover={(eventData: any) => handleHover(chart, eventData)}
                   onUnhover={() => hideHover(chart.key)}

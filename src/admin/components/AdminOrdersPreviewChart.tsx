@@ -28,7 +28,11 @@ type HoverCard = { xLabel: string; rows: TooltipRow[]; left: number; top: number
 type ChartCard = {
   key: string;
   focusKey: string;
+  title: string;
+  subtitle: string;
+  metricColor: string;
   metricNode: ReactNode;
+  extremaNode: ReactNode;
   sevenDayNode: ReactNode;
   thirtyDayNode: ReactNode;
   traces: Data[];
@@ -83,6 +87,57 @@ const cumulative = (values: number[]) => {
     running += value;
     return running;
   });
+};
+
+type BucketMode = 'day' | 'day-2' | 'week' | 'month';
+
+const getBucketMode = (pointCount: number): BucketMode => {
+  if (pointCount < 20) return 'day';
+  if (pointCount <= 30) return 'day-2';
+  if (pointCount > 183) return 'month';
+  return 'week';
+};
+
+type PointRow = { date: string; values: Array<number | null> };
+
+const aggregateSeries = (x: string[], seriesList: Array<Array<number | null>>, mode: BucketMode) => {
+  if (mode === 'day') return { x, series: seriesList };
+  if (mode === 'day-2') {
+    const keepIndexes = x.map((_, index) => index).filter((index) => index % 2 === 0 || index === x.length - 1);
+    return {
+      x: keepIndexes.map((index) => x[index]),
+      series: seriesList.map((series) => keepIndexes.map((index) => series[index] ?? null))
+    };
+  }
+
+  const grouped = new Map<string, PointRow>();
+  x.forEach((date, index) => {
+    const sourceDate = new Date(`${date}T00:00:00Z`);
+    if (Number.isNaN(sourceDate.getTime())) return;
+    let key = date;
+    if (mode === 'week') {
+      const day = sourceDate.getUTCDay();
+      const diffToMonday = (day + 6) % 7;
+      sourceDate.setUTCDate(sourceDate.getUTCDate() - diffToMonday);
+      key = sourceDate.toISOString().slice(0, 10);
+    }
+    if (mode === 'month') {
+      key = `${sourceDate.getUTCFullYear()}-${String(sourceDate.getUTCMonth() + 1).padStart(2, '0')}-01`;
+    }
+
+    const row = grouped.get(key) ?? { date: key, values: seriesList.map(() => 0) };
+    row.values = row.values.map((value, seriesIndex) => {
+      const next = seriesList[seriesIndex][index];
+      return (value ?? 0) + (next ?? 0);
+    });
+    grouped.set(key, row);
+  });
+
+  const rows = Array.from(grouped.values()).sort((a, b) => a.date.localeCompare(b.date));
+  return {
+    x: rows.map((row) => row.date),
+    series: seriesList.map((_, seriesIndex) => rows.map((row) => row.values[seriesIndex]))
+  };
 };
 
 const toCustomerBucket = (customerType: string): CustomerBucketKey => {
@@ -323,20 +378,34 @@ function AdminOrdersPreviewChart({
 
   const miniLayout = (isAreaStacked = false): Partial<Layout> => ({
     ...layoutBase,
-    margin: { l: 8, r: 8, t: 10, b: 4 },
+    margin: { l: 36, r: 8, t: 10, b: 28 },
     showlegend: false,
     hovermode: 'x unified',
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
     xaxis: {
       showgrid: false,
-      showticklabels: false,
+      showticklabels: true,
       zeroline: false,
-      showline: false,
+      showline: true,
+      linecolor: 'rgba(100,116,139,0.35)',
+      tickfont: { family: '"SF Pro Display","Helvetica Neue","Neue Haas Grotesk","Inter",system-ui,sans-serif', size: 10, color: '#6b7280' },
+      tickformat: '%d.%m',
       fixedrange: true,
       hoverformat: '%Y-%m-%d'
     },
-    yaxis: { showgrid: false, showticklabels: false, zeroline: false, showline: false, rangemode: 'tozero', fixedrange: true },
+    yaxis: {
+      showgrid: true,
+      gridcolor: 'rgba(148,163,184,0.17)',
+      gridwidth: 1,
+      showticklabels: true,
+      tickfont: { family: '"SF Pro Display","Helvetica Neue","Neue Haas Grotesk","Inter",system-ui,sans-serif', size: 10, color: '#6b7280' },
+      zeroline: false,
+      showline: true,
+      linecolor: 'rgba(100,116,139,0.35)',
+      rangemode: 'tozero',
+      fixedrange: true
+    },
     barmode: isAreaStacked ? 'stack' : undefined
   });
 
@@ -344,126 +413,233 @@ function AdminOrdersPreviewChart({
     {
       key: 'orders-ma',
       focusKey: 'narocila-orders-ma',
+      title: 'Naročila',
+      subtitle: `Posodobljeno ${data.x.length ? formatTooltipDate(data.x[data.x.length - 1]) : '—'}`,
       ...(() => {
         const sevenDay = periodChange(data.ordersSeries, 7);
         const thirtyDay = periodChange(data.ordersSeries, 30);
         const count = data.totalOrders;
-        const metricClassName = getTrendClass(thirtyDay);
+        const mode = getBucketMode(data.x.length);
+        const aggregated = aggregateSeries(data.x, [data.ordersSeries, data.ordersMa], mode);
+        const ordersSeries = aggregated.series[0].map((value) => (value ?? 0) as number);
+        const ordersMa = movingAverage(ordersSeries, 7);
+        const highestValue = Math.max(...ordersSeries, 0);
+        const lowestValue = Math.min(...ordersSeries, 0);
+        const highestIndex = ordersSeries.findIndex((value) => value === highestValue);
+        const lowestIndex = ordersSeries.findIndex((value) => value === lowestValue);
         return {
-          metricNode: <><span className={metricClassName}>{formatInt(count)}</span> naročil</>,
+          metricColor: semanticChartColors.orders.line,
+          metricNode: <>{formatInt(count)} naročil</>,
+          extremaNode: (
+            <>
+              Najnižje <span className="text-slate-900">{formatInt(lowestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 align-middle" />
+              {' · '}
+              Najvišje <span className="text-slate-900">{formatInt(highestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle" />
+            </>
+          ),
           sevenDayNode: <>7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span></>,
-          thirtyDayNode: <>30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span></>
+          thirtyDayNode: <>30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span></>,
+          traces: [
+            {
+              type: 'bar',
+              name: 'Število naročil',
+              x: aggregated.x,
+              y: ordersSeries,
+              marker: { color: semanticChartColors.orders.fill },
+              hoverinfo: 'none'
+            },
+            {
+              type: 'scatter',
+              mode: 'lines',
+              name: '7d MA',
+              x: aggregated.x,
+              y: ordersMa,
+              line: { color: semanticChartColors.orders.line, width: 2.1 },
+              hoverinfo: 'none'
+            },
+            {
+              type: 'scatter',
+              mode: 'markers',
+              name: 'Najvišje',
+              x: highestIndex >= 0 ? [aggregated.x[highestIndex]] : [],
+              y: highestIndex >= 0 ? [ordersSeries[highestIndex] + Math.max(highestValue * 0.06, 0.8)] : [],
+              marker: { color: '#059669', size: 8 },
+              hoverinfo: 'none'
+            },
+            {
+              type: 'scatter',
+              mode: 'markers',
+              name: 'Najnižje',
+              x: lowestIndex >= 0 ? [aggregated.x[lowestIndex]] : [],
+              y: lowestIndex >= 0 ? [ordersSeries[lowestIndex] + Math.max(highestValue * 0.03, 0.4)] : [],
+              marker: { color: '#e11d48', size: 8 },
+              hoverinfo: 'none'
+            }
+          ],
+          tooltipRowsAt: (i: number) => [
+            { label: 'Število naročil', value: formatInt(ordersSeries[i]), color: semanticChartColors.orders.fill, numericValue: ordersSeries[i] ?? null },
+            { label: '7d MA', value: formatInt(ordersMa[i]), color: semanticChartColors.orders.line, numericValue: ordersMa[i] ?? null }
+          ]
         };
       })(),
-      traces: [
-        {
-          type: 'bar',
-          name: 'Število naročil',
-          x: data.x,
-          y: data.ordersSeries,
-          marker: { color: semanticChartColors.orders.fill },
-          hoverinfo: 'none'
-        },
-        {
-          type: 'scatter',
-          mode: 'lines',
-          name: '7d MA',
-          x: data.x,
-          y: data.ordersMa,
-          line: { color: semanticChartColors.orders.line, width: 2.1 },
-          hoverinfo: 'none'
-        }
-      ],
-      tooltipRowsAt: (i) => [
-        { label: 'Število naročil', value: formatInt(data.ordersSeries[i]), color: semanticChartColors.orders.fill, numericValue: data.ordersSeries[i] ?? null },
-        { label: '7d MA', value: formatInt(data.ordersMa[i]), color: semanticChartColors.orders.line, numericValue: data.ordersMa[i] ?? null }
-      ],
       enforceTopDownTooltipOrder: true,
       layout: miniLayout(false)
     },
     {
       key: 'revenue-ma',
       focusKey: 'narocila-revenue-ma',
+      title: 'Prihodki',
+      subtitle: `Posodobljeno ${data.x.length ? formatTooltipDate(data.x[data.x.length - 1]) : '—'}`,
       ...(() => {
         const sevenDay = periodChange(data.revenueSeries, 7);
         const thirtyDay = periodChange(data.revenueSeries, 30);
-        const metricClassName = getTrendClass(thirtyDay);
+        const mode = getBucketMode(data.x.length);
+        const aggregated = aggregateSeries(data.x, [data.revenueSeries, data.revenueMa], mode);
+        const revenueSeries = aggregated.series[0].map((value) => (value ?? 0) as number);
+        const revenueMa = movingAverage(revenueSeries, 7);
+        const highestValue = Math.max(...revenueSeries, 0);
+        const lowestValue = Math.min(...revenueSeries, 0);
+        const highestIndex = revenueSeries.findIndex((value) => value === highestValue);
+        const lowestIndex = revenueSeries.findIndex((value) => value === lowestValue);
         return {
-          metricNode: <><span className={metricClassName}>{formatCurrencyWhole(data.totalRevenue)}</span> prihodkov</>,
+          metricColor: semanticChartColors.revenue.line,
+          metricNode: <>{formatCurrencyWhole(data.totalRevenue)} prihodkov</>,
+          extremaNode: (
+            <>
+              Najnižje <span className="text-slate-900">{formatCurrencyWhole(lowestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 align-middle" />
+              {' · '}
+              Najvišje <span className="text-slate-900">{formatCurrencyWhole(highestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle" />
+            </>
+          ),
           sevenDayNode: <>7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span></>,
-          thirtyDayNode: <>30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span></>
+          thirtyDayNode: <>30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span></>,
+          traces: [
+            {
+              type: 'bar',
+              name: 'Prihodki',
+              x: aggregated.x,
+              y: revenueSeries,
+              marker: { color: semanticChartColors.revenue.fill },
+              hoverinfo: 'none'
+            },
+            {
+              type: 'scatter',
+              mode: 'lines',
+              name: '7d MA',
+              x: aggregated.x,
+              y: revenueMa,
+              line: { color: semanticChartColors.revenue.line, width: 2.1 },
+              hoverinfo: 'none'
+            },
+            {
+              type: 'scatter',
+              mode: 'markers',
+              name: 'Najvišje',
+              x: highestIndex >= 0 ? [aggregated.x[highestIndex]] : [],
+              y: highestIndex >= 0 ? [revenueSeries[highestIndex] + Math.max(highestValue * 0.06, 1)] : [],
+              marker: { color: '#059669', size: 8 },
+              hoverinfo: 'none'
+            },
+            {
+              type: 'scatter',
+              mode: 'markers',
+              name: 'Najnižje',
+              x: lowestIndex >= 0 ? [aggregated.x[lowestIndex]] : [],
+              y: lowestIndex >= 0 ? [revenueSeries[lowestIndex] + Math.max(highestValue * 0.03, 0.5)] : [],
+              marker: { color: '#e11d48', size: 8 },
+              hoverinfo: 'none'
+            }
+          ],
+          tooltipRowsAt: (i: number) => [
+            { label: 'Prihodki', value: formatCurrency(revenueSeries[i]), color: semanticChartColors.revenue.fill, numericValue: revenueSeries[i] ?? null },
+            { label: '7d MA', value: formatCurrency(revenueMa[i]), color: semanticChartColors.revenue.line, numericValue: revenueMa[i] ?? null }
+          ]
         };
       })(),
-      traces: [
-        {
-          type: 'bar',
-          name: 'Prihodki',
-          x: data.x,
-          y: data.revenueSeries,
-          marker: { color: semanticChartColors.revenue.fill },
-          hoverinfo: 'none'
-        },
-        {
-          type: 'scatter',
-          mode: 'lines',
-          name: '7d MA',
-          x: data.x,
-          y: data.revenueMa,
-          line: { color: semanticChartColors.revenue.line, width: 2.1 },
-          hoverinfo: 'none'
-        }
-      ],
-      tooltipRowsAt: (i) => [
-        { label: 'Prihodki', value: formatCurrency(data.revenueSeries[i]), color: semanticChartColors.revenue.fill, numericValue: data.revenueSeries[i] ?? null },
-        { label: '7d MA', value: formatCurrency(data.revenueMa[i]), color: semanticChartColors.revenue.line, numericValue: data.revenueMa[i] ?? null }
-      ],
       enforceTopDownTooltipOrder: true,
       layout: miniLayout(false)
     },
     {
       key: 'aov-ma',
       focusKey: 'narocila-aov-median',
+      title: 'Povprečna vrednost',
+      subtitle: `Posodobljeno ${data.x.length ? formatTooltipDate(data.x[data.x.length - 1]) : '—'}`,
       ...(() => {
         const sevenDay = periodChange(data.dailyAov, 7);
         const thirtyDay = periodChange(data.dailyAov, 30);
-        const metricClassName = getTrendClass(thirtyDay);
+        const mode = getBucketMode(data.x.length);
+        const aggregated = aggregateSeries(data.x, [data.dailyAov, data.dailyAovMa], mode);
+        const dailyAovSeries = aggregated.series[0].map((value) => value ?? 0);
+        const dailyAovMa = movingAverage(dailyAovSeries, 7);
+        const highestValue = Math.max(...dailyAovSeries, 0);
+        const lowestValue = Math.min(...dailyAovSeries, 0);
+        const highestIndex = dailyAovSeries.findIndex((value) => value === highestValue);
+        const lowestIndex = dailyAovSeries.findIndex((value) => value === lowestValue);
         return {
-          metricNode: <>Povprečje: <span className={metricClassName}>{formatCurrencyWhole(data.rangeAov)}</span></>,
+          metricColor: semanticChartColors.avgOrderValue.line,
+          metricNode: <>{formatCurrencyWhole(data.rangeAov)} povprečno</>,
+          extremaNode: (
+            <>
+              Najnižje <span className="text-slate-900">{formatCurrencyWhole(lowestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 align-middle" />
+              {' · '}
+              Najvišje <span className="text-slate-900">{formatCurrencyWhole(highestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle" />
+            </>
+          ),
           sevenDayNode: <>7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span></>,
-          thirtyDayNode: <>30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span></>
+          thirtyDayNode: <>30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span></>,
+          traces: [
+            {
+              type: 'bar',
+              name: 'Povprečje',
+              x: aggregated.x,
+              y: dailyAovSeries,
+              marker: { color: semanticChartColors.avgOrderValue.fill },
+              connectgaps: false,
+              hoverinfo: 'none'
+            },
+            {
+              type: 'scatter',
+              mode: 'lines',
+              name: '7d MA',
+              x: aggregated.x,
+              y: dailyAovMa,
+              line: { color: semanticChartColors.avgOrderValue.line, width: 2.1 },
+              connectgaps: false,
+              hoverinfo: 'none'
+            },
+            {
+              type: 'scatter',
+              mode: 'markers',
+              name: 'Najvišje',
+              x: highestIndex >= 0 ? [aggregated.x[highestIndex]] : [],
+              y: highestIndex >= 0 ? [dailyAovSeries[highestIndex] + Math.max(highestValue * 0.06, 0.8)] : [],
+              marker: { color: '#059669', size: 8 },
+              hoverinfo: 'none'
+            },
+            {
+              type: 'scatter',
+              mode: 'markers',
+              name: 'Najnižje',
+              x: lowestIndex >= 0 ? [aggregated.x[lowestIndex]] : [],
+              y: lowestIndex >= 0 ? [dailyAovSeries[lowestIndex] + Math.max(highestValue * 0.03, 0.4)] : [],
+              marker: { color: '#e11d48', size: 8 },
+              hoverinfo: 'none'
+            }
+          ],
+          tooltipRowsAt: (i: number) => [
+            { label: 'Povprečje', value: formatCurrency(dailyAovSeries[i]), color: semanticChartColors.avgOrderValue.fill, numericValue: dailyAovSeries[i] ?? null },
+            { label: '7d MA', value: formatCurrency(dailyAovMa[i]), color: semanticChartColors.avgOrderValue.line, numericValue: dailyAovMa[i] ?? null }
+          ]
         };
       })(),
-      traces: [
-        {
-          type: 'bar',
-          name: 'Povprečje',
-          x: data.x,
-          y: data.dailyAov,
-          marker: { color: semanticChartColors.avgOrderValue.fill },
-          connectgaps: false,
-          hoverinfo: 'none'
-        },
-        {
-          type: 'scatter',
-          mode: 'lines',
-          name: '7d MA',
-          x: data.x,
-          y: data.dailyAovMa,
-          line: { color: semanticChartColors.avgOrderValue.line, width: 2.1 },
-          connectgaps: false,
-          hoverinfo: 'none'
-        }
-      ],
-      tooltipRowsAt: (i) => [
-        { label: 'Povprečje', value: formatCurrency(data.dailyAov[i]), color: semanticChartColors.avgOrderValue.fill, numericValue: data.dailyAov[i] ?? null },
-        { label: '7d MA', value: formatCurrency(data.dailyAovMa[i]), color: semanticChartColors.avgOrderValue.line, numericValue: data.dailyAovMa[i] ?? null }
-      ],
       enforceTopDownTooltipOrder: true,
       layout: miniLayout(false)
     },
     {
       key: 'customer-type-cumulative',
       focusKey: 'narocila-status-mix',
+      title: 'Tip naročnika',
+      subtitle: `Posodobljeno ${data.x.length ? formatTooltipDate(data.x[data.x.length - 1]) : '—'}`,
       ...(() => {
         const totalsSeries = data.companyDaily.map((value, index) => value + data.schoolDaily[index] + data.individualDaily[index]);
         const sevenDay = periodChange(totalsSeries, 7);
@@ -471,44 +647,73 @@ function AdminOrdersPreviewChart({
         const individualTotal = data.individualDaily.reduce((sum, value) => sum + value, 0);
         const companyTotal = data.companyDaily.reduce((sum, value) => sum + value, 0);
         const schoolTotal = data.schoolDaily.reduce((sum, value) => sum + value, 0);
-        const metricClassName = getTrendClass(thirtyDay);
+        const mode = getBucketMode(data.x.length);
+        const aggregated = aggregateSeries(data.x, [data.schoolDaily, data.companyDaily, data.individualDaily], mode);
+        const schoolDaily = aggregated.series[0].map((value) => (value ?? 0) as number);
+        const companyDaily = aggregated.series[1].map((value) => (value ?? 0) as number);
+        const individualDaily = aggregated.series[2].map((value) => (value ?? 0) as number);
+        const totalsDaily = schoolDaily.map((value, index) => value + companyDaily[index] + individualDaily[index]);
+        const highestValue = Math.max(...totalsDaily, 0);
+        const lowestValue = Math.min(...totalsDaily, 0);
+        const highestIndex = totalsDaily.findIndex((value) => value === highestValue);
+        const lowestIndex = totalsDaily.findIndex((value) => value === lowestValue);
         return {
-          metricNode: <>F: <span className={metricClassName}>{individualTotal}</span> – P: <span className={metricClassName}>{companyTotal}</span> – Š: <span className={metricClassName}>{schoolTotal}</span></>,
+          metricColor: semanticChartColors.customerStack.line,
+          metricNode: <>F: {individualTotal} · P: {companyTotal} · Š: {schoolTotal}</>,
+          extremaNode: <>Najnižje <span className="text-slate-900">{formatInt(lowestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 align-middle" /> · Najvišje <span className="text-slate-900">{formatInt(highestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle" /></>,
           sevenDayNode: <>7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span></>,
-          thirtyDayNode: <>30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span></>
+          thirtyDayNode: <>30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span></>,
+          traces: [
+            {
+              type: 'bar',
+              name: 'Šola',
+              x: aggregated.x,
+              y: schoolDaily,
+              marker: { color: semanticChartColors.customerStack.bottom },
+              hoverinfo: 'none'
+            },
+            {
+              type: 'bar',
+              name: 'Podjetje',
+              x: aggregated.x,
+              y: companyDaily,
+              marker: { color: semanticChartColors.customerStack.middle },
+              hoverinfo: 'none'
+            },
+            {
+              type: 'bar',
+              name: 'Fizična oseba',
+              x: aggregated.x,
+              y: individualDaily,
+              marker: { color: semanticChartColors.customerStack.top },
+              hoverinfo: 'none'
+            },
+            {
+              type: 'scatter',
+              mode: 'markers',
+              name: 'Najvišje',
+              x: highestIndex >= 0 ? [aggregated.x[highestIndex]] : [],
+              y: highestIndex >= 0 ? [totalsDaily[highestIndex] + Math.max(highestValue * 0.06, 0.8)] : [],
+              marker: { color: '#059669', size: 8 },
+              hoverinfo: 'none'
+            },
+            {
+              type: 'scatter',
+              mode: 'markers',
+              name: 'Najnižje',
+              x: lowestIndex >= 0 ? [aggregated.x[lowestIndex]] : [],
+              y: lowestIndex >= 0 ? [totalsDaily[lowestIndex] + Math.max(highestValue * 0.03, 0.4)] : [],
+              marker: { color: '#e11d48', size: 8 },
+              hoverinfo: 'none'
+            }
+          ],
+          tooltipRowsAt: (i: number) => [
+            { label: 'Fizična oseba', value: formatInt(individualDaily[i]), color: semanticChartColors.customerStack.top, numericValue: individualDaily[i] ?? null },
+            { label: 'Podjetje', value: formatInt(companyDaily[i]), color: semanticChartColors.customerStack.middle, numericValue: companyDaily[i] ?? null },
+            { label: 'Šola', value: formatInt(schoolDaily[i]), color: semanticChartColors.customerStack.bottom, numericValue: schoolDaily[i] ?? null }
+          ]
         };
       })(),
-      traces: [
-        {
-          type: 'bar',
-          name: 'Šola',
-          x: data.x,
-          y: data.schoolDaily,
-          marker: { color: semanticChartColors.customerStack.bottom },
-          hoverinfo: 'none'
-        },
-        {
-          type: 'bar',
-          name: 'Podjetje',
-          x: data.x,
-          y: data.companyDaily,
-          marker: { color: semanticChartColors.customerStack.middle },
-          hoverinfo: 'none'
-        },
-        {
-          type: 'bar',
-          name: 'Fizična oseba',
-          x: data.x,
-          y: data.individualDaily,
-          marker: { color: semanticChartColors.customerStack.top },
-          hoverinfo: 'none'
-        }
-      ],
-      tooltipRowsAt: (i) => [
-        { label: 'Fizična oseba', value: formatInt(data.individualDaily[i]), color: semanticChartColors.customerStack.top, numericValue: data.individualDaily[i] ?? null },
-        { label: 'Podjetje', value: formatInt(data.companyDaily[i]), color: semanticChartColors.customerStack.middle, numericValue: data.companyDaily[i] ?? null },
-        { label: 'Šola', value: formatInt(data.schoolDaily[i]), color: semanticChartColors.customerStack.bottom, numericValue: data.schoolDaily[i] ?? null }
-      ],
       enforceTopDownTooltipOrder: false,
       layout: miniLayout(true)
     }
@@ -582,28 +787,31 @@ function AdminOrdersPreviewChart({
               key={chart.key}
               type="button"
               onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(chart.focusKey)}`)}
-              className="flex min-h-[124px] flex-col overflow-visible rounded-xl border px-3 py-3 text-left shadow-sm transition hover:border-[color:var(--blue-500)] hover:bg-[color:var(--hover-neutral)]"
+              className="flex min-h-[246px] flex-col overflow-visible rounded-xl border px-4 py-3.5 text-left shadow-sm transition hover:border-[color:var(--blue-500)] hover:bg-[color:var(--hover-neutral)]"
               style={{
+                fontFamily: '"SF Pro Display","Helvetica Neue","Neue Haas Grotesk","Inter",system-ui,sans-serif',
                 background: `linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,248,251,0.96) 100%)`,
                 borderColor: appearance.gridColor
               }}
             >
-              <div className="mb-3 w-full min-w-0">
+              <div className="mb-3.5 w-full min-w-0">
                 <div className="space-y-2 text-[color:var(--text-strong)]">
-                  <p className="truncate text-left text-[34px] font-medium leading-[1.04] tracking-[-0.02em] [&_span]:font-semibold">{chart.metricNode}</p>
-                  <div className="grid w-full grid-cols-2 items-center gap-2 text-[13px] leading-4 text-slate-700">
-                    <p className="text-left [&_span]:font-semibold">{chart.sevenDayNode}</p>
-                    <p className="text-right [&_span]:font-semibold">{chart.thirtyDayNode}</p>
+                  <p className="truncate text-left text-[13px] font-normal leading-4 tracking-[0.005em] text-slate-500">{chart.title} · {chart.subtitle}</p>
+                  <p className="truncate text-left text-[50px] font-normal leading-[1.02] tracking-[-0.025em]" style={{ color: chart.metricColor }}>{chart.metricNode}</p>
+                  <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 text-[12px] leading-4 text-slate-600">
+                    <p className="truncate">{chart.extremaNode}</p>
+                    <p className="whitespace-nowrap [&_span]:font-medium">{chart.sevenDayNode}</p>
+                    <p className="whitespace-nowrap [&_span]:font-medium">{chart.thirtyDayNode}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="relative mt-1.5 w-full min-w-0 rounded-md" style={{ backgroundColor: 'transparent' }}>
+              <div className="relative mt-2.5 w-full min-w-0 rounded-md" style={{ backgroundColor: 'transparent' }}>
                 <PlotlyClient
                   data={chart.traces}
                   layout={chart.layout}
                   config={{ responsive: true, displayModeBar: false }}
-                  style={{ width: '100%', height: 104, maxWidth: '100%' }}
+                  style={{ width: '100%', height: 150, maxWidth: '100%' }}
                   useResizeHandler
                   onHover={(eventData: any) => handleHover(chart, eventData)}
                   onUnhover={() => hideHover(chart.key)}

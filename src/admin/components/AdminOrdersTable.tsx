@@ -11,7 +11,6 @@ import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { Spinner } from '@/shared/ui/loading';
 import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
 import {
-  ActionUndoIcon,
   DownloadIcon,
   PanelAddRemoveIcon,
   PencilIcon,
@@ -1410,14 +1409,10 @@ export default function AdminOrdersTable({
             ) : null
           }
           filterRowRight={
-            <button
-              type="button"
-              onClick={resetAllFilters}
-              className="inline-flex h-[30px] items-center gap-1 rounded-lg border border-slate-300 bg-[color:var(--ui-neutral-bg)] px-2.5 text-[10px] font-medium leading-none text-slate-700 transition hover:bg-[color:var(--ui-neutral-bg-hover)]"
-            >
-              <ActionUndoIcon className="h-[10px] w-[10px]" />
-              <span>Resetiraj filtre</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={handlePageSizeChange} />
+              <Pagination page={page} pageCount={pageCount} onPageChange={handlePageChange} variant="topPills" size="sm" showNumbers={false} />
+            </div>
           }
           footerRight={
             <div className="flex items-center gap-2">

@@ -38,6 +38,7 @@ type ChartCard = {
   metricColor: string;
   metricText: string;
   metricFullText?: string;
+  typeSummaryRows?: string[];
   lowestNode: ReactNode;
   highestNode: ReactNode;
   sevenDayNode: ReactNode;
@@ -544,7 +545,11 @@ function AdminOrdersPreviewChart({
         const highestIndex = ordersSeries.findIndex((value) => value === highestValue);
         const lowestIndex = ordersSeries.findIndex((value) => value === lowestValue);
         return {
-          subtitleNode: <span className="text-[11px] text-slate-600">Šole {formatInt(schoolTotal)} · Podjetja {formatInt(companyTotal)} · Fizične osebe {formatInt(individualTotal)}</span>,
+          typeSummaryRows: [
+            `Šole: ${formatInt(schoolTotal)}`,
+            `Podjetja: ${formatInt(companyTotal)}`,
+            `Fizične osebe: ${formatInt(individualTotal)}`
+          ],
           metricColor: semanticChartColors.orders.line,
           metricText: formatMetricCompact(count),
           metricFullText: formatInt(count),
@@ -593,6 +598,7 @@ function AdminOrdersPreviewChart({
               x: highestIndex >= 0 ? [aggregated.x[highestIndex]] : [],
               y: highestIndex >= 0 ? [ordersSeries[highestIndex] + Math.max(highestValue * 0.06, 0.8)] : [],
               marker: { color: '#059669', size: 8 },
+              cliponaxis: false,
               hoverinfo: 'none'
             },
             {
@@ -602,6 +608,7 @@ function AdminOrdersPreviewChart({
               x: lowestIndex >= 0 ? [aggregated.x[lowestIndex]] : [],
               y: lowestIndex >= 0 ? [ordersSeries[lowestIndex] + Math.max(highestValue * 0.03, 0.4)] : [],
               marker: { color: '#e11d48', size: 8 },
+              cliponaxis: false,
               hoverinfo: 'none'
             }
           ],
@@ -609,7 +616,9 @@ function AdminOrdersPreviewChart({
             { label: 'Vsi tipi', value: formatInt(ordersSeries[i]), color: semanticChartColors.orders.line, numericValue: ordersSeries[i] ?? null },
             { label: 'Šole', value: formatInt(schoolDaily[i]), color: semanticChartColors.customerStack.bottom, numericValue: schoolDaily[i] ?? null },
             { label: 'Podjetja', value: formatInt(companyDaily[i]), color: semanticChartColors.customerStack.middle, numericValue: companyDaily[i] ?? null },
-            { label: 'Fizične osebe', value: formatInt(individualDaily[i]), color: semanticChartColors.customerStack.top, numericValue: individualDaily[i] ?? null }
+            { label: 'Fizične osebe', value: formatInt(individualDaily[i]), color: semanticChartColors.customerStack.top, numericValue: individualDaily[i] ?? null },
+            { label: 'Najvišje (obdobje)', value: formatInt(highestValue), color: '#059669', numericValue: highestValue },
+            { label: 'Najnižje (obdobje)', value: formatInt(lowestValue), color: '#e11d48', numericValue: lowestValue }
           ],
           layout: miniLayout(false, aggregated.x)
         };
@@ -663,6 +672,7 @@ function AdminOrdersPreviewChart({
               x: highestIndex >= 0 ? [aggregated.x[highestIndex]] : [],
               y: highestIndex >= 0 ? [revenueSeries[highestIndex] + Math.max(highestValue * 0.06, 1)] : [],
               marker: { color: '#059669', size: 8 },
+              cliponaxis: false,
               hoverinfo: 'none'
             },
             {
@@ -672,12 +682,15 @@ function AdminOrdersPreviewChart({
               x: lowestIndex >= 0 ? [aggregated.x[lowestIndex]] : [],
               y: lowestIndex >= 0 ? [revenueSeries[lowestIndex] + Math.max(highestValue * 0.03, 0.5)] : [],
               marker: { color: '#e11d48', size: 8 },
+              cliponaxis: false,
               hoverinfo: 'none'
             }
           ],
           tooltipRowsAt: (i: number) => [
             { label: 'Prihodki', value: formatCurrency(revenueSeries[i]), color: semanticChartColors.revenue.fill, numericValue: revenueSeries[i] ?? null },
-            { label: '7d MA', value: formatCurrency(revenueMa[i]), color: semanticChartColors.revenue.line, numericValue: revenueMa[i] ?? null }
+            { label: '7d MA', value: formatCurrency(revenueMa[i]), color: semanticChartColors.revenue.line, numericValue: revenueMa[i] ?? null },
+            { label: 'Najvišje (obdobje)', value: formatCurrencyWhole(highestValue), color: '#059669', numericValue: highestValue },
+            { label: 'Najnižje (obdobje)', value: formatCurrencyWhole(lowestValue), color: '#e11d48', numericValue: lowestValue }
           ],
           layout: miniLayout(false, aggregated.x)
         };
@@ -733,6 +746,7 @@ function AdminOrdersPreviewChart({
               x: highestIndex >= 0 ? [aggregated.x[highestIndex]] : [],
               y: highestIndex >= 0 ? [dailyAovSeries[highestIndex] + Math.max(highestValue * 0.06, 0.8)] : [],
               marker: { color: '#059669', size: 8 },
+              cliponaxis: false,
               hoverinfo: 'none'
             },
             {
@@ -742,12 +756,15 @@ function AdminOrdersPreviewChart({
               x: lowestIndex >= 0 ? [aggregated.x[lowestIndex]] : [],
               y: lowestIndex >= 0 ? [dailyAovSeries[lowestIndex] + Math.max(highestValue * 0.03, 0.4)] : [],
               marker: { color: '#e11d48', size: 8 },
+              cliponaxis: false,
               hoverinfo: 'none'
             }
           ],
           tooltipRowsAt: (i: number) => [
             { label: 'Povprečje', value: formatCurrency(dailyAovSeries[i]), color: semanticChartColors.avgOrderValue.fill, numericValue: dailyAovSeries[i] ?? null },
-            { label: '7d MA', value: formatCurrency(dailyAovMa[i]), color: semanticChartColors.avgOrderValue.line, numericValue: dailyAovMa[i] ?? null }
+            { label: '7d MA', value: formatCurrency(dailyAovMa[i]), color: semanticChartColors.avgOrderValue.line, numericValue: dailyAovMa[i] ?? null },
+            { label: 'Najvišje (obdobje)', value: formatCurrencyWhole(highestValue), color: '#059669', numericValue: highestValue },
+            { label: 'Najnižje (obdobje)', value: formatCurrencyWhole(lowestValue), color: '#e11d48', numericValue: lowestValue }
           ],
           layout: miniLayout(false, aggregated.x)
         };
@@ -814,6 +831,7 @@ function AdminOrdersPreviewChart({
               x: [aggregated.x[totalsDaily.findIndex((value) => value === highestValue)]],
               y: [highestValue + Math.max(highestValue * 0.06, 0.8)],
               marker: { color: '#059669', size: 8 },
+              cliponaxis: false,
               hoverinfo: 'none'
             },
             {
@@ -823,6 +841,7 @@ function AdminOrdersPreviewChart({
               x: [aggregated.x[totalsDaily.findIndex((value) => value === lowestValue)]],
               y: [lowestValue + Math.max(highestValue * 0.03, 0.4)],
               marker: { color: '#e11d48', size: 8 },
+              cliponaxis: false,
               hoverinfo: 'none'
             }
           ],
@@ -830,7 +849,9 @@ function AdminOrdersPreviewChart({
             { label: 'Prejeto', value: formatInt(receivedDaily[i]), color: '#93c5fd', numericValue: receivedDaily[i] ?? null },
             { label: 'V obdelavi', value: formatInt(inProgressDaily[i]), color: '#60a5fa', numericValue: inProgressDaily[i] ?? null },
             { label: 'Poslano', value: formatInt(sentDaily[i]), color: '#38bdf8', numericValue: sentDaily[i] ?? null },
-            { label: 'Zaključeno', value: formatInt(finishedDaily[i]), color: '#0284c7', numericValue: finishedDaily[i] ?? null }
+            { label: 'Zaključeno', value: formatInt(finishedDaily[i]), color: '#0284c7', numericValue: finishedDaily[i] ?? null },
+            { label: 'Najvišje (obdobje)', value: formatInt(highestValue), color: '#059669', numericValue: highestValue },
+            { label: 'Najnižje (obdobje)', value: formatInt(lowestValue), color: '#e11d48', numericValue: lowestValue }
           ],
           layout: miniLayout(true, aggregated.x)
         };
@@ -937,11 +958,16 @@ function AdminOrdersPreviewChart({
                         {chart.metricText}
                       </p>
                     </div>
-                    <div className="grid h-[30px] grid-cols-2 grid-rows-2 gap-x-1.5 gap-y-0 text-[10px] leading-[1] text-slate-600">
-                      <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.highestNode}</p>
-                      <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.sevenDayNode}</p>
-                      <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.lowestNode}</p>
-                      <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.thirtyDayNode}</p>
+                    <div className="grid h-[30px] grid-cols-2 gap-x-1.5 text-[10px] leading-[1] text-slate-600">
+                      <div className="grid grid-rows-3 gap-y-0">
+                        {(chart.typeSummaryRows ?? []).slice(0, 3).map((row) => (
+                          <p key={row} className="self-center whitespace-nowrap">{row}</p>
+                        ))}
+                      </div>
+                      <div className="grid grid-rows-2 gap-y-0">
+                        <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.sevenDayNode}</p>
+                        <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.thirtyDayNode}</p>
+                      </div>
                     </div>
                   </div>
                       </>

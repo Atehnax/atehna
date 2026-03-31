@@ -67,8 +67,8 @@ const BTN_BASE =
   'inline-flex items-center justify-center font-semibold transition disabled:pointer-events-none disabled:opacity-45';
 const BTN_FOCUS =
   'focus:border-[color:var(--blue-500)] focus:outline-none focus:ring-0 focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0';
-const BTN_SIZE_MD = 'h-8 px-3 rounded-xl text-xs';
-const BTN_SIZE_PILL = 'h-8 px-3 rounded-xl text-sm';
+const BTN_SIZE_MD = 'h-8 px-3 rounded-lg text-xs';
+const BTN_SIZE_PILL = 'h-8 px-3 rounded-lg text-sm';
 
 export const semanticButtonColors = {
   neutral: {
@@ -131,7 +131,11 @@ export const buttonTokenClasses = {
 export const iconButtonTokenClasses = {
   base: 'inline-flex items-center justify-center',
   neutral:
-    'border border-slate-200 bg-transparent text-slate-600 shadow-none transition hover:border-slate-300 hover:bg-[color:var(--hover-neutral)] active:bg-[color:var(--hover-neutral)] hover:text-slate-700 disabled:cursor-default disabled:pointer-events-none disabled:opacity-60 disabled:bg-transparent disabled:text-slate-400 disabled:hover:border-slate-200 disabled:hover:bg-transparent disabled:hover:text-slate-400',
+    'border border-slate-200 bg-transparent text-slate-600 shadow-none transition hover:border-slate-300 hover:bg-[color:var(--hover-neutral)] active:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)] active:text-[color:var(--blue-500)] disabled:cursor-default disabled:pointer-events-none disabled:opacity-60 disabled:bg-transparent disabled:text-slate-400 disabled:hover:border-slate-200 disabled:hover:bg-transparent disabled:hover:text-slate-400',
+  neutralStatus:
+    'border border-slate-300 bg-[color:var(--ui-neutral-bg)] text-slate-700 shadow-none transition hover:border-slate-300 hover:bg-[color:var(--ui-neutral-bg-hover)] active:bg-[color:var(--ui-neutral-bg-hover)] hover:text-[color:var(--blue-500)] active:text-[color:var(--blue-500)] disabled:cursor-default disabled:pointer-events-none disabled:opacity-60 disabled:bg-transparent disabled:text-slate-400',
+  success:
+    'border border-emerald-700/35 bg-emerald-50 text-emerald-700 shadow-none transition hover:bg-emerald-100 active:bg-emerald-100 disabled:cursor-default disabled:pointer-events-none disabled:opacity-60 disabled:bg-emerald-50/60 disabled:text-emerald-500',
   warning: 'border border-amber-300 text-amber-700 hover:bg-amber-100',
   danger: 'border border-rose-300 text-xs font-semibold leading-none text-rose-600 hover:bg-rose-50'
 } as const;

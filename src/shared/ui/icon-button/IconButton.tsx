@@ -8,7 +8,7 @@ type SharedIconButtonProps = {
   className?: string;
   shape?: 'rounded' | 'square';
   size?: 'sm' | 'md';
-  tone?: 'neutral' | 'warning' | 'danger';
+  tone?: 'neutral' | 'neutralStatus' | 'success' | 'warning' | 'danger';
 };
 
 type IconButtonAsButtonProps = SharedIconButtonProps &
@@ -39,6 +39,8 @@ const sizeClassMap = {
 
 const toneClassMap = {
   neutral: iconButtonTokenClasses.neutral,
+  neutralStatus: iconButtonTokenClasses.neutralStatus,
+  success: iconButtonTokenClasses.success,
   warning: iconButtonTokenClasses.warning,
   danger: iconButtonTokenClasses.danger
 } as const;

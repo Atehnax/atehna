@@ -110,6 +110,28 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
 
 export const FilterIcon = ActionFilterIcon;
 
+export function PanelAddRemoveIcon({ className, ...props }: ActionIconProps) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className={iconClassName(classNames('scale-[0.81]', className))}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <rect x="1.5" y="1.5" width="17" height="17" rx="3" />
+      <line x1="1.5" y1="6.5" x2="18.5" y2="6.5" />
+      <line x1="10" y1="6.5" x2="10" y2="18.5" />
+    </svg>
+  );
+}
+
+export const PdfFilterActionIcon = PanelAddRemoveIcon;
+
 export function OrdersTrashIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg
@@ -182,6 +204,25 @@ export function PlusIcon({ className, ...props }: ActionIconProps) {
       {...props}
     >
       <path d="M10 4v12M4 10h12" />
+    </svg>
+  );
+}
+
+export function CheckCircleIcon({ className, ...props }: ActionIconProps) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className={iconClassName(className)}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <circle cx="10" cy="10" r="7" />
+      <path d="m6.8 10.2 2.2 2.2 4.2-4.3" />
     </svg>
   );
 }

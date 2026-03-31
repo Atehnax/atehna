@@ -19,6 +19,13 @@ import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 
 type TopSectionMode = 'read' | 'edit';
 
+const toEditableOrderNumber = (value: string) => value.trim().replace(/^#/, '');
+const toDisplayOrderNumberValue = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return '#';
+  return trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
+};
+
 type TopData = {
   orderDate: string;
   customerType: string;
@@ -173,13 +180,13 @@ function CompactDropdown({
 
 export default function AdminOrderHeaderChips(props: Props) {
   const { orderId, orderNumber } = props;
-  const [displayOrderNumber, setDisplayOrderNumber] = useState(orderNumber);
+  const [displayOrderNumber, setDisplayOrderNumber] = useState(toDisplayOrderNumberValue(orderNumber));
   const router = useRouter();
 
   const [topSectionMode, setTopSectionMode] = useState<TopSectionMode>('read');
   const [persistedTopData, setPersistedTopData] = useState<TopData>(() => asTopData(props));
   const [draftTopData, setDraftTopData] = useState<TopData>(() => asTopData(props));
-  const [draftOrderNumber, setDraftOrderNumber] = useState(orderNumber);
+  const [draftOrderNumber, setDraftOrderNumber] = useState(toEditableOrderNumber(orderNumber));
   const [isTopSaving, setIsTopSaving] = useState(false);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -189,7 +196,7 @@ export default function AdminOrderHeaderChips(props: Props) {
   const isTopDirty = useMemo(
     () =>
       JSON.stringify(draftTopData) !== JSON.stringify(persistedTopData) ||
-      draftOrderNumber.trim() !== displayOrderNumber.trim(),
+      draftOrderNumber.trim() !== toEditableOrderNumber(displayOrderNumber),
     [draftTopData, persistedTopData, draftOrderNumber, displayOrderNumber]
   );
 
@@ -199,13 +206,13 @@ export default function AdminOrderHeaderChips(props: Props) {
   const startEdit = () => {
     if (topSectionMode === 'edit') {
       setDraftTopData({ ...persistedTopData });
-      setDraftOrderNumber(displayOrderNumber);
+      setDraftOrderNumber(toEditableOrderNumber(displayOrderNumber));
       setTopSectionMode('read');
       return;
     }
 
     setDraftTopData({ ...persistedTopData });
-    setDraftOrderNumber(displayOrderNumber);
+    setDraftOrderNumber(toEditableOrderNumber(displayOrderNumber));
     setTopSectionMode('edit');
   };
 
@@ -234,7 +241,7 @@ export default function AdminOrderHeaderChips(props: Props) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            orderNumber: draftOrderNumber,
+            orderNumber: toDisplayOrderNumberValue(draftOrderNumber),
             customerType: draftTopData.customerType,
             organizationName: draftTopData.organizationName,
             contactName: draftTopData.organizationName.trim() || draftTopData.contactName.trim(),
@@ -251,7 +258,9 @@ export default function AdminOrderHeaderChips(props: Props) {
         throw new Error(error.message || 'Shranjevanje ni uspelo.');
       }
 
-      const resolvedOrderNumber = draftOrderNumber.trim() || displayOrderNumber;
+      const resolvedOrderNumber = draftOrderNumber.trim()
+        ? toDisplayOrderNumberValue(draftOrderNumber)
+        : displayOrderNumber;
       setPersistedTopData({ ...draftTopData });
       setDisplayOrderNumber(resolvedOrderNumber);
       setTopSectionMode('read');
@@ -302,14 +311,18 @@ export default function AdminOrderHeaderChips(props: Props) {
     <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-4 py-3 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
         {topInputsEditable ? (
-          <input
-            value={draftOrderNumber}
-            onChange={(event) => setDraftOrderNumber(event.target.value)}
-            className="h-9 w-full max-w-none rounded-md border border-slate-300 bg-white px-1 text-2xl font-bold tracking-tight text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0 sm:max-w-[5ch]"
-            aria-label="Številka naročila"
-          />
+          <div className="flex h-9 w-full max-w-none items-center gap-1 rounded-md border border-slate-300 bg-white px-1 text-2xl font-bold tracking-tight text-slate-900 transition focus-within:border-[#3e67d6] sm:max-w-[15ch]">
+            <span className="shrink-0">Naročilo #</span>
+            <input
+              value={draftOrderNumber}
+              onChange={(event) => setDraftOrderNumber(event.target.value.replace(/[^\d]/g, ''))}
+              className="w-full min-w-[4ch] bg-transparent text-2xl font-bold tracking-tight text-slate-900 outline-none focus:ring-0"
+              aria-label="Številka naročila"
+              inputMode="numeric"
+            />
+          </div>
         ) : (
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{displayOrderNumber}</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{`Naročilo ${displayOrderNumber}`}</h1>
         )}
 
         <div className="ml-auto flex items-center gap-1.5">

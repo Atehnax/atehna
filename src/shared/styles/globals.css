@@ -173,6 +173,55 @@ input[type='radio'] {
   filter: drop-shadow(0 6px 18px rgba(2, 6, 23, 0.35));
 }
 
+.admin-eui-tabs.euiTabs {
+  border-bottom: 0;
+  gap: 6px;
+}
+
+.admin-eui-tab.euiTab {
+  border-bottom: 0 !important;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: color-mix(in srgb, var(--text) 74%, white);
+}
+
+.admin-eui-tab.euiTab.euiTab-isSelected {
+  background: #e9efff;
+  color: #3659d6;
+  font-weight: 600;
+}
+
+.admin-eui-tab.euiTab:focus,
+.admin-eui-tab.euiTab:focus-visible {
+  box-shadow: none;
+}
+
+.euiTablePagination {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  gap: 8px;
+}
+
+.euiTablePagination .euiTablePagination__perPage {
+  margin-bottom: 0 !important;
+}
+
+.euiTablePagination .euiFormRow {
+  margin-bottom: 0 !important;
+}
+
+.euiTablePagination .euiFormRow__labelWrapper {
+  margin-bottom: 2px !important;
+}
+
+.euiTablePagination .euiFormControlLayout,
+.euiTablePagination .euiFormControlLayout__childrenWrapper {
+  min-height: 28px !important;
+}
+
 
 [data-floating-field] input:-webkit-autofill,
 [data-floating-field] textarea:-webkit-autofill,
@@ -189,4 +238,3 @@ input[type='radio'] {
   -webkit-text-fill-color: currentColor !important;
   caret-color: currentColor !important;
 }
-

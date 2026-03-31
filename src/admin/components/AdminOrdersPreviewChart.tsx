@@ -178,7 +178,7 @@ const formatInt = (value: number | null | undefined) =>
 const formatCurrency = (value: number | null | undefined) =>
   value === null || value === undefined || !Number.isFinite(value)
     ? '—'
-    : `${Intl.NumberFormat('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)} EUR`;
+    : `${Intl.NumberFormat('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)} €`;
 
 const periodChange = (series: Array<number | null>, lookbackDays: number) => {
   if (series.length === 0) return null;
@@ -939,26 +939,22 @@ function AdminOrdersPreviewChart({
                 borderColor: appearance.gridColor
               }}
             >
-              <div className="mb-0 h-[68px] w-full min-w-0">
-                <div className="space-y-1 text-[color:var(--text-strong)]">
+              <div className="mb-0 w-full min-w-0">
+                <div className="space-y-0.5 text-[color:var(--text-strong)]">
                   {(() => {
                     const metricLength = chart.metricText.length;
                     const isLongMetric = metricLength >= 6;
                     const rangeStart = chart.title.lastIndexOf(' (');
                     const baseTitle = rangeStart > 0 ? chart.title.slice(0, rangeStart) : chart.title;
                     const rangeTitle = rangeStart > 0 ? chart.title.slice(rangeStart) : '';
+                    const hasDetailRow = Boolean(chart.detailRowNode);
                     return (
                       <>
-                  <p className="truncate text-left text-[13px] leading-4 tracking-[0.005em] text-slate-600"><span className="font-semibold">{baseTitle}</span><span className="font-normal">{rangeTitle}</span></p>
-                  <div className={`mx-auto grid ${isLongMetric ? 'grid-cols-[minmax(168px,1fr)_auto]' : 'grid-cols-[minmax(168px,1fr)_auto]'} grid-rows-3 gap-x-2 gap-y-0.5`}>
-                    <div className="row-start-2 text-[10px] leading-[1] text-slate-600">
-                      <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.detailRowNode ?? ''}</p>
-                    </div>
-                    <div className="row-start-3 grid grid-cols-2 items-center gap-x-1.5 text-[10px] leading-[1] text-slate-600">
-                      <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.sevenDayNode}</p>
-                      <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.thirtyDayNode}</p>
-                    </div>
-                    <div className="row-span-3 flex h-[30px] items-start justify-center pr-4">
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-1">
+                    <p className="truncate pt-0.5 text-left text-[13px] leading-4 tracking-[0.005em] text-slate-600">
+                      <span className="font-semibold">{baseTitle}</span><span className="font-normal">{rangeTitle}</span>
+                    </p>
+                    <div className="flex -translate-x-1 -translate-y-0.5 items-start justify-start">
                       <p
                         className="whitespace-nowrap text-left text-[34px] font-normal leading-[1] tracking-[-0.02em]"
                         style={{ color: chart.metricColor }}
@@ -966,6 +962,17 @@ function AdminOrdersPreviewChart({
                       >
                         {chart.metricText}
                       </p>
+                    </div>
+                  </div>
+                  <div className={`grid ${isLongMetric ? 'grid-cols-[minmax(168px,1fr)]' : 'grid-cols-[minmax(168px,1fr)]'} gap-y-0.5 text-[10px] leading-[1] text-slate-600`}>
+                    {hasDetailRow ? (
+                      <div>
+                        <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.detailRowNode}</p>
+                      </div>
+                    ) : null}
+                    <div className="grid grid-cols-2 items-center gap-x-1 text-[10px] leading-[1] text-slate-600">
+                      <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.sevenDayNode}</p>
+                      <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.thirtyDayNode}</p>
                     </div>
                   </div>
                       </>
@@ -988,7 +995,7 @@ function AdminOrdersPreviewChart({
 
                 {hoverCard ? createPortal(
                   <div
-                    className="pointer-events-none fixed z-[120] min-w-[180px] max-w-[230px] rounded-xl border border-[color:var(--semantic-info-border)] bg-[color:var(--surface-muted)] px-[12px] py-2 text-left shadow-[0_10px_24px_rgba(15,23,42,0.15)]"
+                    className="pointer-events-none fixed z-[120] w-[200px] max-w-[calc(100vw-24px)] rounded-xl border border-[color:var(--semantic-info-border)] bg-[color:var(--surface-muted)] px-[10px] py-2 text-left shadow-[0_10px_24px_rgba(15,23,42,0.15)]"
                     style={{ left: hoverCard.left, top: hoverCard.top }}
                   >
                     <div className="mb-2 flex items-center justify-between">
@@ -997,10 +1004,7 @@ function AdminOrdersPreviewChart({
                     <div className="mb-2 h-px w-full bg-black/15" />
                     <div className="space-y-0.5">
                       {hoverCard.rows.map((row, index) => (
-                        <div
-                          key={`${row.label}-${index}`}
-                          className="grid grid-cols-[minmax(180px,1fr)_auto] items-center gap-5 px-1 py-0.5"
-                        >
+                        <div key={`${row.label}-${index}`} className="grid grid-cols-[minmax(0,1fr)_max-content] items-center gap-2 px-1 py-0.5">
                           <div className="flex items-center gap-2 text-slate-700">
                             <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: row.color }} />
                             <span className="text-[13px] font-semibold">{row.label}</span>

@@ -269,13 +269,17 @@ export default function AdminOrdersPdfCell({
   };
 
   return (
-    <div className="relative inline-flex items-center gap-[6px]" data-no-row-nav>
-      {PDF_BUTTONS.map((button) => {
+    <div className="relative inline-flex items-center" data-no-row-nav>
+      {PDF_BUTTONS.map((button, index) => {
         const isOpen = openType === button.key;
         const hasExistingDocument = (groupedDocuments[button.key] ?? []).length > 0;
 
         return (
-          <div key={button.key} className="relative" data-no-row-nav>
+          <div
+            key={button.key}
+            className={`relative ${index === 0 ? '' : '-ml-px'}`}
+            data-no-row-nav
+          >
             <button
               ref={(element) => {
                 buttonRefs.current[button.key] = element;
@@ -290,11 +294,11 @@ export default function AdminOrdersPdfCell({
                 setOpenType((previousType) => (previousType === button.key ? null : button.key))
               }
               disabled={interactionsDisabled}
-              className={`relative inline-flex h-6 min-w-[30px] items-center justify-center rounded-md px-1.5 py-1 text-[10px] font-medium leading-none transition disabled:cursor-default disabled:text-slate-300 ${
+              className={`relative inline-flex h-6 min-w-[30px] items-center justify-center px-1.5 py-1 text-[10px] font-medium leading-none transition disabled:cursor-default disabled:text-slate-300 ${
                 hasExistingDocument
                   ? PDF_BUTTON_TONE_CLASSNAMES.generated
                   : PDF_BUTTON_TONE_CLASSNAMES.pending
-              }`}
+              } ${index === 0 ? 'rounded-l-md' : ''} ${index === PDF_BUTTONS.length - 1 ? 'rounded-r-md' : ''} ${index > 0 && index < PDF_BUTTONS.length - 1 ? 'rounded-none' : ''}`}
             >
               <span>{button.short}</span>
             </button>

@@ -137,17 +137,10 @@ const getTrendClass = (value: number | null) => {
   return value >= 0 ? 'text-emerald-700' : 'text-rose-700';
 };
 
-const getNaročiloPlural = (count: number) => {
-  if (count === 1) return 'naročilo';
-  if (count === 2) return 'naročili';
-  if (count === 3 || count === 4) return 'naročila';
-  return 'naročil';
-};
-
 const formatCurrencyWhole = (value: number | null | undefined) =>
   value === null || value === undefined || !Number.isFinite(value)
     ? '—'
-    : `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 0 }).format(value)}€`;
+    : `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 0 }).format(value)} €`;
 
 
 const formatTooltipDate = (value: string) => formatLjubljanaDate(value);
@@ -364,7 +357,7 @@ function AdminOrdersPreviewChart({
         return {
           headerLine: (
             <>
-              <span className={metricClassName}>{formatInt(count)} {getNaročiloPlural(count)}</span>
+              <span className={metricClassName}>{formatInt(count)}</span> naročil
               {' – '}7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span>
               {' – '}30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span>
             </>
@@ -407,7 +400,7 @@ function AdminOrdersPreviewChart({
         return {
           headerLine: (
             <>
-              <span className={metricClassName}>{formatCurrencyWhole(data.totalRevenue)} prihodkov</span>
+              <span className={metricClassName}>{formatCurrencyWhole(data.totalRevenue)}</span> prihodkov
               {' – '}7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span>
               {' – '}30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span>
             </>
@@ -450,7 +443,7 @@ function AdminOrdersPreviewChart({
         return {
           headerLine: (
             <>
-              <span className={metricClassName}>Povprečje: {formatCurrencyWhole(data.rangeAov)}</span>
+              Povprečje: <span className={metricClassName}>{formatCurrencyWhole(data.rangeAov)}</span>
               {' – '}7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span>
               {' – '}30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span>
             </>
@@ -499,7 +492,7 @@ function AdminOrdersPreviewChart({
         return {
           headerLine: (
             <>
-              <span className={metricClassName}>F: {individualTotal} – P: {companyTotal} – Š: {schoolTotal}</span>
+              F: <span className={metricClassName}>{individualTotal}</span> – P: <span className={metricClassName}>{companyTotal}</span> – Š: <span className={metricClassName}>{schoolTotal}</span>
               {' – '}7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span>
               {' – '}30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span>
             </>

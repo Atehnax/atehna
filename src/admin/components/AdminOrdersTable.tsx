@@ -1561,9 +1561,9 @@ export default function AdminOrdersTable({
                   </div>
                 </TH> : null}
 
-                {visibleColumns.documents ? <TH className="h-11 min-w-[100px] text-center text-[11px]">
-                  <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
-                    <span className="inline-flex items-center text-[11px] font-semibold leading-none">PDF datoteke</span>
+                {visibleColumns.documents ? <TH className="h-11 min-w-[100px] whitespace-nowrap text-center text-[11px]">
+                  <div className="relative inline-flex items-center gap-1.5 whitespace-nowrap align-middle" data-header-filter-root="true">
+                    <span className="inline-flex items-center whitespace-nowrap text-[11px] font-semibold leading-none">PDF datoteke</span>
                     <button ref={documentsFilterButtonRef} data-active={openHeaderFilter === 'documents'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('documents'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj PDF datoteke"><FunnelIcon /></button>
                   </div>
                 </TH> : null}

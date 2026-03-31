@@ -9,7 +9,7 @@ import { IconButton } from '@/shared/ui/icon-button';
 import AdminOrderStatusSelect from '@/admin/components/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { Spinner } from '@/shared/ui/loading';
-import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
+import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
 import {
   DownloadIcon,
   PanelAddRemoveIcon,
@@ -1409,16 +1409,24 @@ export default function AdminOrdersTable({
             ) : null
           }
           filterRowRight={
-            <div className="flex items-center gap-2">
-              <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={handlePageSizeChange} />
-              <Pagination page={page} pageCount={pageCount} onPageChange={handlePageChange} variant="topPills" size="sm" showNumbers={false} />
-            </div>
+            <EuiTablePagination
+              page={page}
+              pageCount={pageCount}
+              onPageChange={handlePageChange}
+              itemsPerPage={pageSize}
+              onChangeItemsPerPage={handlePageSizeChange}
+              itemsPerPageOptions={PAGE_SIZE_OPTIONS}
+            />
           }
           footerRight={
-            <div className="flex items-center gap-2">
-              <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={handlePageSizeChange} />
-              <Pagination page={page} pageCount={pageCount} onPageChange={handlePageChange} variant="topPills" size="sm" showNumbers={false} />
-            </div>
+            <EuiTablePagination
+              page={page}
+              pageCount={pageCount}
+              onPageChange={handlePageChange}
+              itemsPerPage={pageSize}
+              onChangeItemsPerPage={handlePageSizeChange}
+              itemsPerPageOptions={PAGE_SIZE_OPTIONS}
+            />
           }
         >
           <Table className="min-w-[1060px] w-full table-fixed text-[11px]">

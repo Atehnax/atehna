@@ -951,14 +951,14 @@ function AdminOrdersPreviewChart({
                       <>
                   <p className="truncate text-left text-[13px] leading-4 tracking-[0.005em] text-slate-600"><span className="font-semibold">{baseTitle}</span><span className="font-normal">{rangeTitle}</span></p>
                   <div className={`mx-auto grid ${isLongMetric ? 'grid-cols-[minmax(168px,1fr)_auto]' : 'grid-cols-[minmax(168px,1fr)_auto]'} grid-rows-3 gap-x-2 gap-y-0.5`}>
-                    <div className="row-start-2 grid grid-cols-2 items-center gap-x-1.5 text-[10px] leading-[1] text-slate-600">
+                    <div className="row-start-2 text-[10px] leading-[1] text-slate-600">
+                      <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.detailRowNode ?? ''}</p>
+                    </div>
+                    <div className="row-start-3 grid grid-cols-2 items-center gap-x-1.5 text-[10px] leading-[1] text-slate-600">
                       <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.sevenDayNode}</p>
                       <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.thirtyDayNode}</p>
                     </div>
-                    <div className="row-start-3 text-[10px] leading-[1] text-slate-600">
-                      <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.detailRowNode ?? ''}</p>
-                    </div>
-                    <div className="row-span-3 flex h-[30px] items-start justify-center">
+                    <div className="row-span-3 flex h-[30px] items-start justify-center pr-4">
                       <p
                         className="whitespace-nowrap text-left text-[34px] font-normal leading-[1] tracking-[-0.02em]"
                         style={{ color: chart.metricColor }}

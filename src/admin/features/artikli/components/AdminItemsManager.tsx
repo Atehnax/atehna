@@ -17,7 +17,7 @@ import { CustomSelect } from '@/shared/ui/select';
 import { RowActionsDropdown, Table, THead, TH, TR } from '@/shared/ui/table';
 import { Chip } from '@/shared/ui/badge';
 import { useToast } from '@/shared/ui/toast';
-import { Pagination, PageSizeSelect, useTablePagination } from '@/shared/ui/pagination';
+import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
 import { AdminTableLayout, ColumnVisibilityControl } from '@/shared/ui/admin-table';
 import { adminTableRowToneClasses, buttonTokenClasses, getAdminStripedRowToneClass } from '@/shared/ui/theme/tokens';
 
@@ -611,13 +611,26 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
           </>
         }
         filterRowRight={
-          <>
-            <PageSizeSelect value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={setPageSize} />
-            <Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="topPills" size="sm" showNumbers={false} />
-          </>
+          <EuiTablePagination
+            page={page}
+            pageCount={pageCount}
+            onPageChange={setPage}
+            itemsPerPage={pageSize}
+            onChangeItemsPerPage={setPageSize}
+            itemsPerPageOptions={PAGE_SIZE_OPTIONS}
+          />
         }
         contentClassName="overflow-x-auto"
-        footerRight={<Pagination page={page} pageCount={pageCount} onPageChange={setPage} variant="bottomBar" size="sm" showNumbers={false} />}
+        footerRight={
+          <EuiTablePagination
+            page={page}
+            pageCount={pageCount}
+            onPageChange={setPage}
+            itemsPerPage={pageSize}
+            onChangeItemsPerPage={setPageSize}
+            itemsPerPageOptions={PAGE_SIZE_OPTIONS}
+          />
+        }
       >
         <div className="w-full overflow-x-auto">
           <Table className="min-w-[860px] text-[11px]">

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
+import EuiTabs from '@/shared/ui/eui-tabs';
 
 export default function AdminAnalyticsTopTabs() {
   const pathname = usePathname();
@@ -22,19 +22,19 @@ export default function AdminAnalyticsTopTabs() {
   }, [pathname, router]);
 
   return (
-    <Tabs
+    <EuiTabs
+      className="mb-4"
       value={value}
-      onValueChange={(next) =>
+      onChange={(next) =>
         router.push(
           next === 'web' ? '/admin/analitika/splet' : next === 'diagnostics' ? '/admin/analitika/diagnostika' : '/admin/analitika'
         )
       }
-    >
-      <TabsList className="mb-4">
-        <TabsTrigger value="orders">Naročila</TabsTrigger>
-        <TabsTrigger value="web">Splet</TabsTrigger>
-        <TabsTrigger value="diagnostics">Diagnostika</TabsTrigger>
-      </TabsList>
-    </Tabs>
+      tabs={[
+        { value: 'orders', label: 'Naročila' },
+        { value: 'web', label: 'Splet' },
+        { value: 'diagnostics', label: 'Diagnostika' }
+      ]}
+    />
   );
 }

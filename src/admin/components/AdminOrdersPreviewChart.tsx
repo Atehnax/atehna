@@ -467,7 +467,7 @@ function AdminOrdersPreviewChart({
     const axisLabels = getAxisLabels(axisX, chartBucketMode);
     return {
       ...layoutBase,
-      margin: { l: 10, r: 10, t: 8, b: 10 },
+      margin: { l: 5, r: 5, t: 8, b: 5 },
       showlegend: false,
       hovermode: 'x unified',
       paper_bgcolor: 'rgba(0,0,0,0)',
@@ -900,15 +900,15 @@ function AdminOrdersPreviewChart({
                 <div className="space-y-2 text-[color:var(--text-strong)]">
                   <p className="truncate text-left text-[13px] font-normal leading-4 tracking-[0.005em] text-slate-500">{chart.title}</p>
                   {chart.subtitleNode ? <p className="truncate text-left leading-4">{chart.subtitleNode}</p> : null}
-                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(160px,42%)] gap-3">
+                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(180px,44%)] gap-3">
                     <div className="flex min-h-[96px] items-center">
                       <p className="truncate text-left text-[36px] font-normal leading-[1] tracking-[-0.02em]" style={{ color: chart.metricColor }}>{chart.metricNode}</p>
                     </div>
-                    <div className="grid min-h-[96px] grid-rows-4 items-center text-[11px] leading-[1.15] text-slate-600">
-                      <p className="[&_span]:font-medium">{chart.lowestNode}</p>
-                      <p className="[&_span]:font-medium">{chart.highestNode}</p>
-                      <p className="[&_span]:font-medium">{chart.sevenDayNode}</p>
-                      <p className="[&_span]:font-medium">{chart.thirtyDayNode}</p>
+                    <div className="grid min-h-[96px] grid-cols-2 grid-rows-2 gap-x-2 gap-y-1 text-[11px] leading-[1.1] text-slate-600">
+                      <p className="self-center [&_span]:font-medium">{chart.highestNode}</p>
+                      <p className="self-center [&_span]:font-medium">{chart.sevenDayNode}</p>
+                      <p className="self-center [&_span]:font-medium">{chart.lowestNode}</p>
+                      <p className="self-center [&_span]:font-medium">{chart.thirtyDayNode}</p>
                     </div>
                   </div>
                 </div>

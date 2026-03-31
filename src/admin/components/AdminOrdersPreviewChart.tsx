@@ -467,7 +467,7 @@ function AdminOrdersPreviewChart({
     const axisLabels = getAxisLabels(axisX, chartBucketMode);
     return {
       ...layoutBase,
-      margin: { l: 36, r: 8, t: 10, b: 28 },
+      margin: { l: 10, r: 10, t: 8, b: 10 },
       showlegend: false,
       hovermode: 'x unified',
       paper_bgcolor: 'rgba(0,0,0,0)',
@@ -494,6 +494,7 @@ function AdminOrdersPreviewChart({
         showticklabels: true,
         tickfont: { family: '"SF Pro Display","Helvetica Neue","Neue Haas Grotesk","Inter",system-ui,sans-serif', size: 10, color: '#6b7280' },
         tickformat: '~s',
+        automargin: true,
         zeroline: false,
         showline: true,
         linecolor: 'rgba(100,116,139,0.35)',
@@ -531,7 +532,7 @@ function AdminOrdersPreviewChart({
         const highestIndex = ordersSeries.findIndex((value) => value === highestValue);
         const lowestIndex = ordersSeries.findIndex((value) => value === lowestValue);
         return {
-          subtitleNode: <span className="text-[11px] text-slate-600">F {formatInt(individualTotal)} · P {formatInt(companyTotal)} · Š {formatInt(schoolTotal)}</span>,
+          subtitleNode: <span className="text-[11px] text-slate-600">Šole {formatInt(schoolTotal)} · Podjetja {formatInt(companyTotal)} · Fizične osebe {formatInt(individualTotal)}</span>,
           metricColor: semanticChartColors.orders.line,
           metricNode: <>{formatInt(count)}</>,
           lowestNode: <>Najnižje <span className="text-slate-900">{formatInt(lowestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 align-middle" /></>,
@@ -895,15 +896,15 @@ function AdminOrdersPreviewChart({
                 borderColor: appearance.gridColor
               }}
             >
-              <div className="mb-3.5 w-full min-w-0">
+              <div className="mb-2 w-full min-w-0">
                 <div className="space-y-2 text-[color:var(--text-strong)]">
                   <p className="truncate text-left text-[13px] font-normal leading-4 tracking-[0.005em] text-slate-500">{chart.title}</p>
                   {chart.subtitleNode ? <p className="truncate text-left leading-4">{chart.subtitleNode}</p> : null}
                   <div className="grid grid-cols-[minmax(0,1fr)_minmax(160px,42%)] gap-3">
-                    <div className="flex min-h-[88px] items-center">
-                      <p className="truncate text-left text-[32px] font-normal leading-[1.02] tracking-[-0.02em]" style={{ color: chart.metricColor }}>{chart.metricNode}</p>
+                    <div className="flex min-h-[96px] items-center">
+                      <p className="truncate text-left text-[36px] font-normal leading-[1] tracking-[-0.02em]" style={{ color: chart.metricColor }}>{chart.metricNode}</p>
                     </div>
-                    <div className="grid min-h-[88px] grid-rows-4 items-center text-[12px] leading-4 text-slate-600">
+                    <div className="grid min-h-[96px] grid-rows-4 items-center text-[11px] leading-[1.15] text-slate-600">
                       <p className="[&_span]:font-medium">{chart.lowestNode}</p>
                       <p className="[&_span]:font-medium">{chart.highestNode}</p>
                       <p className="[&_span]:font-medium">{chart.sevenDayNode}</p>
@@ -913,7 +914,7 @@ function AdminOrdersPreviewChart({
                 </div>
               </div>
 
-              <div className="relative mt-2.5 w-full min-w-0 rounded-md" style={{ backgroundColor: 'transparent' }}>
+              <div className="relative mt-0.5 w-full min-w-0 rounded-md" style={{ backgroundColor: 'transparent' }}>
                 <PlotlyClient
                   data={chart.traces}
                   layout={chart.layout}

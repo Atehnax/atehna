@@ -535,8 +535,8 @@ function AdminOrdersPreviewChart({
           subtitleNode: <span className="text-[11px] text-slate-600">Šole {formatInt(schoolTotal)} · Podjetja {formatInt(companyTotal)} · Fizične osebe {formatInt(individualTotal)}</span>,
           metricColor: semanticChartColors.orders.line,
           metricNode: <>{formatInt(count)}</>,
-          lowestNode: <>Najnižje <span className="text-slate-900">{formatInt(lowestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 align-middle" /></>,
-          highestNode: <>Najvišje <span className="text-slate-900">{formatInt(highestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle" /></>,
+          lowestNode: <>Najnižje: <span className="text-slate-900">{formatInt(lowestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 align-middle" /></>,
+          highestNode: <>Najvišje: <span className="text-slate-900">{formatInt(highestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle" /></>,
           sevenDayNode: <>7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span></>,
           thirtyDayNode: <>30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span></>,
           traces: [
@@ -593,8 +593,10 @@ function AdminOrdersPreviewChart({
             }
           ],
           tooltipRowsAt: (i: number) => [
-            { label: 'Število naročil', value: formatInt(ordersSeries[i]), color: semanticChartColors.orders.fill, numericValue: ordersSeries[i] ?? null },
-            { label: '7d MA', value: formatInt(ordersMa[i]), color: semanticChartColors.orders.line, numericValue: ordersMa[i] ?? null }
+            { label: 'Vsi tipi', value: formatInt(ordersSeries[i]), color: semanticChartColors.orders.line, numericValue: ordersSeries[i] ?? null },
+            { label: 'Šole', value: formatInt(schoolDaily[i]), color: semanticChartColors.customerStack.bottom, numericValue: schoolDaily[i] ?? null },
+            { label: 'Podjetja', value: formatInt(companyDaily[i]), color: semanticChartColors.customerStack.middle, numericValue: companyDaily[i] ?? null },
+            { label: 'Fizične osebe', value: formatInt(individualDaily[i]), color: semanticChartColors.customerStack.top, numericValue: individualDaily[i] ?? null }
           ],
           layout: miniLayout(false, aggregated.x)
         };
@@ -618,8 +620,8 @@ function AdminOrdersPreviewChart({
         return {
           metricColor: semanticChartColors.revenue.line,
           metricNode: <>{formatCurrencyWhole(data.totalRevenue)}</>,
-          lowestNode: <>Najnižje <span className="text-slate-900">{formatCurrencyWhole(lowestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 align-middle" /></>,
-          highestNode: <>Najvišje <span className="text-slate-900">{formatCurrencyWhole(highestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle" /></>,
+          lowestNode: <>Najnižje: <span className="text-slate-900">{formatCurrencyWhole(lowestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 align-middle" /></>,
+          highestNode: <>Najvišje: <span className="text-slate-900">{formatCurrencyWhole(highestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle" /></>,
           sevenDayNode: <>7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span></>,
           thirtyDayNode: <>30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span></>,
           traces: [
@@ -685,8 +687,8 @@ function AdminOrdersPreviewChart({
         return {
           metricColor: semanticChartColors.avgOrderValue.line,
           metricNode: <>{formatCurrencyWhole(data.rangeAov)}</>,
-          lowestNode: <>Najnižje <span className="text-slate-900">{formatCurrencyWhole(lowestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 align-middle" /></>,
-          highestNode: <>Najvišje <span className="text-slate-900">{formatCurrencyWhole(highestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle" /></>,
+          lowestNode: <>Najnižje: <span className="text-slate-900">{formatCurrencyWhole(lowestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 align-middle" /></>,
+          highestNode: <>Najvišje: <span className="text-slate-900">{formatCurrencyWhole(highestValue)}</span> <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle" /></>,
           sevenDayNode: <>7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span></>,
           thirtyDayNode: <>30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span></>,
           traces: [
@@ -770,8 +772,8 @@ function AdminOrdersPreviewChart({
         return {
           metricColor: semanticChartColors.orders.line,
           metricNode: <>{formatInt(activeTotal)}</>,
-          lowestNode: <>Najmanj: <span className="text-slate-900">{sortedStatuses[sortedStatuses.length - 1]?.[0] ?? '—'} ({formatInt(sortedStatuses[sortedStatuses.length - 1]?.[1] ?? 0)})</span></>,
-          highestNode: <>Največ: <span className="text-slate-900">{sortedStatuses[0]?.[0] ?? '—'} ({formatInt(sortedStatuses[0]?.[1] ?? 0)})</span></>,
+          lowestNode: <>Najnižje: <span className="text-slate-900">{sortedStatuses[sortedStatuses.length - 1]?.[0] ?? '—'} ({formatInt(sortedStatuses[sortedStatuses.length - 1]?.[1] ?? 0)})</span></>,
+          highestNode: <>Najvišje: <span className="text-slate-900">{sortedStatuses[0]?.[0] ?? '—'} ({formatInt(sortedStatuses[0]?.[1] ?? 0)})</span></>,
           sevenDayNode: <>7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span></>,
           thirtyDayNode: <>30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span></>,
           traces: [
@@ -889,22 +891,22 @@ function AdminOrdersPreviewChart({
               key={chart.key}
               type="button"
               onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(chart.focusKey)}`)}
-              className="flex min-h-[246px] flex-col overflow-visible rounded-xl border px-3 py-3 text-left shadow-sm transition hover:border-[color:var(--blue-500)] hover:bg-[color:var(--hover-neutral)]"
+              className="flex min-h-[196px] flex-col overflow-visible rounded-xl border px-3 py-2.5 text-left shadow-sm transition hover:border-[color:var(--blue-500)] hover:bg-[color:var(--hover-neutral)]"
               style={{
                 fontFamily: '"SF Pro Display","Helvetica Neue","Neue Haas Grotesk","Inter",system-ui,sans-serif',
                 background: `linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,248,251,0.96) 100%)`,
                 borderColor: appearance.gridColor
               }}
             >
-              <div className="mb-1.5 h-[126px] w-full min-w-0">
+              <div className="mb-0.5 h-[96px] w-full min-w-0">
                 <div className="space-y-1 text-[color:var(--text-strong)]">
-                  <p className="truncate text-left text-[13px] font-normal leading-4 tracking-[0.005em] text-slate-500">{chart.title}</p>
+                  <p className="truncate text-left text-[13px] font-semibold leading-4 tracking-[0.005em] text-slate-600">{chart.title}</p>
                   <p className="min-h-[16px] truncate text-left leading-4">{chart.subtitleNode ?? ''}</p>
-                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(168px,42%)] gap-1">
-                    <div className="flex h-[40px] items-center pl-1">
-                      <p className="text-left text-[40px] font-normal leading-[1] tracking-[-0.02em]" style={{ color: chart.metricColor }}>{chart.metricNode}</p>
+                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(174px,44%)] gap-0.5">
+                    <div className="flex h-[38px] items-center pl-2">
+                      <p className="whitespace-nowrap text-left text-[38px] font-normal leading-[1] tracking-[-0.02em]" style={{ color: chart.metricColor }}>{chart.metricNode}</p>
                     </div>
-                    <div className="grid h-[40px] grid-cols-2 grid-rows-2 gap-x-1 gap-y-0 text-[10px] leading-[1] text-slate-600">
+                    <div className="grid h-[38px] grid-cols-2 grid-rows-2 gap-x-0.5 gap-y-0 text-[10px] leading-[1] text-slate-600">
                       <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.highestNode}</p>
                       <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.sevenDayNode}</p>
                       <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.lowestNode}</p>
@@ -914,12 +916,12 @@ function AdminOrdersPreviewChart({
                 </div>
               </div>
 
-              <div className="relative mt-0.5 w-full min-w-0 rounded-md" style={{ backgroundColor: 'transparent' }}>
+              <div className="relative mt-0 w-full min-w-0 rounded-md" style={{ backgroundColor: 'transparent' }}>
                 <PlotlyClient
                   data={chart.traces}
                   layout={chart.layout}
                   config={{ responsive: true, displayModeBar: false }}
-                  style={{ width: '100%', height: 150, maxWidth: '100%' }}
+                  style={{ width: '100%', height: 120, maxWidth: '100%' }}
                   useResizeHandler
                   onHover={(eventData: any) => handleHover(chart, eventData)}
                   onUnhover={() => hideHover(chart.key)}

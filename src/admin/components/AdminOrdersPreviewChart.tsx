@@ -483,7 +483,7 @@ function AdminOrdersPreviewChart({
         tickvals: axisX,
         ticktext: axisLabels,
         tickangle: 0,
-        automargin: true,
+        automargin: false,
         fixedrange: true,
         hoverformat: '%Y-%m-%d'
       },
@@ -889,26 +889,26 @@ function AdminOrdersPreviewChart({
               key={chart.key}
               type="button"
               onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(chart.focusKey)}`)}
-              className="flex min-h-[246px] flex-col overflow-visible rounded-xl border px-4 py-3.5 text-left shadow-sm transition hover:border-[color:var(--blue-500)] hover:bg-[color:var(--hover-neutral)]"
+              className="flex min-h-[246px] flex-col overflow-visible rounded-xl border px-3 py-3 text-left shadow-sm transition hover:border-[color:var(--blue-500)] hover:bg-[color:var(--hover-neutral)]"
               style={{
                 fontFamily: '"SF Pro Display","Helvetica Neue","Neue Haas Grotesk","Inter",system-ui,sans-serif',
                 background: `linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,248,251,0.96) 100%)`,
                 borderColor: appearance.gridColor
               }}
             >
-              <div className="mb-2 w-full min-w-0">
-                <div className="space-y-2 text-[color:var(--text-strong)]">
+              <div className="mb-1.5 h-[126px] w-full min-w-0">
+                <div className="space-y-1 text-[color:var(--text-strong)]">
                   <p className="truncate text-left text-[13px] font-normal leading-4 tracking-[0.005em] text-slate-500">{chart.title}</p>
-                  {chart.subtitleNode ? <p className="truncate text-left leading-4">{chart.subtitleNode}</p> : null}
-                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(180px,44%)] gap-3">
-                    <div className="flex min-h-[96px] items-center">
-                      <p className="truncate text-left text-[36px] font-normal leading-[1] tracking-[-0.02em]" style={{ color: chart.metricColor }}>{chart.metricNode}</p>
+                  <p className="min-h-[16px] truncate text-left leading-4">{chart.subtitleNode ?? ''}</p>
+                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(168px,42%)] gap-1">
+                    <div className="flex h-[40px] items-center pl-1">
+                      <p className="text-left text-[40px] font-normal leading-[1] tracking-[-0.02em]" style={{ color: chart.metricColor }}>{chart.metricNode}</p>
                     </div>
-                    <div className="grid min-h-[96px] grid-cols-2 grid-rows-2 gap-x-2 gap-y-1 text-[11px] leading-[1.1] text-slate-600">
-                      <p className="self-center [&_span]:font-medium">{chart.highestNode}</p>
-                      <p className="self-center [&_span]:font-medium">{chart.sevenDayNode}</p>
-                      <p className="self-center [&_span]:font-medium">{chart.lowestNode}</p>
-                      <p className="self-center [&_span]:font-medium">{chart.thirtyDayNode}</p>
+                    <div className="grid h-[40px] grid-cols-2 grid-rows-2 gap-x-1 gap-y-0 text-[10px] leading-[1] text-slate-600">
+                      <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.highestNode}</p>
+                      <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.sevenDayNode}</p>
+                      <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.lowestNode}</p>
+                      <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.thirtyDayNode}</p>
                     </div>
                   </div>
                 </div>

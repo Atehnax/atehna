@@ -37,6 +37,7 @@ type Item = {
   updatedAt: string;
   archivedAt?: string | null;
   displayOrder: number | null;
+  searchIndex: string;
 };
 
 type SeedItemTuple = [
@@ -64,6 +65,8 @@ const formatCurrency = (value: number) =>
   new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }).format(value);
 
 const nowIso = () => new Date().toISOString();
+const buildItemSearchIndex = (name: string, sku: string, category: string) =>
+  `${name} ${sku} ${category}`.toLowerCase();
 
 const emptyItem = (): Item => ({
   id: crypto.randomUUID(),
@@ -80,7 +83,8 @@ const emptyItem = (): Item => ({
   images: [],
   updatedAt: nowIso(),
   archivedAt: null,
-  displayOrder: null
+  displayOrder: null,
+  searchIndex: ''
 });
 
 const discountedPrice = (price: number, discountPct: number) =>
@@ -203,19 +207,12 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
         discountPct: itemTuple[9],
         displayOrder: itemTuple[10] ?? null,
         updatedAt: nowIso(),
-        archivedAt: null
+        archivedAt: null,
+        searchIndex: buildItemSearchIndex(itemTuple[1], itemTuple[7], itemTuple[3])
       })),
     [seedItems]
   );
-  const [items, setItems] = useState<Item[]>(
-    normalizedSeedItems.map((item) => ({
-      ...item,
-      categoryId: item.categoryId ?? null,
-      subcategoryId: item.subcategoryId ?? null,
-      archivedAt: item.archivedAt ?? null,
-      displayOrder: item.displayOrder ?? null
-    }))
-  );
+  const [items, setItems] = useState<Item[]>(() => normalizedSeedItems);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusTab, setStatusTab] = useState<StatusTab>('active');
@@ -257,7 +254,8 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                 categoryId: canonical?.categoryId ?? item.categoryId ?? null,
                 subcategoryId: canonical?.subcategoryId ?? item.subcategoryId ?? null,
                 archivedAt: item.archivedAt ?? null,
-                displayOrder: item.displayOrder ?? null
+                displayOrder: item.displayOrder ?? null,
+                searchIndex: buildItemSearchIndex(item.name, item.sku, canonical?.category ?? item.category)
               };
             })
           );
@@ -346,8 +344,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
       const resolvedCategory = getResolvedCategoryLabel(item);
       const matchesSearch =
         !q ||
-        item.name.toLowerCase().includes(q) ||
-        item.sku.toLowerCase().includes(q) ||
+        item.searchIndex.includes(q) ||
         resolvedCategory.toLowerCase().includes(q);
       const matchesCategory = categoryFilter === 'all' || resolvedCategory === categoryFilter;
       const matchesStatus = statusTab === 'active' ? item.active : !item.active;
@@ -457,7 +454,8 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
       subcategoryId: newCategoryEnabled ? null : draft.subcategoryId ?? null,
       discountPct: Math.max(0, Math.min(100, draft.discountPct)),
       updatedAt: nowIso(),
-      archivedAt: null
+      archivedAt: null,
+      searchIndex: buildItemSearchIndex(draft.name.trim(), draft.sku.trim(), resolvedCategory)
     };
 
     setItems((prev) => {
@@ -477,7 +475,8 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
       name: `${item.name} (kopija)`,
       updatedAt: nowIso(),
       archivedAt: null,
-      displayOrder: null
+      displayOrder: null,
+      searchIndex: buildItemSearchIndex(`${item.name} (kopija)`, `${item.sku}-copy`, item.category)
     };
     setItems((prev) => [copy, ...prev]);
     toast.success('Dodano');

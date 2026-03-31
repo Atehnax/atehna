@@ -43,9 +43,37 @@ export default function AdminAnalyticsDashboardViewer({ initialData, initialChar
   const [builderComment, setBuilderComment] = useState('');
   const [builderChartType, setBuilderChartType] = useState<AnalyticsChartType>('combo');
   const [confirmDeleteChartId, setConfirmDeleteChartId] = useState<number | null>(null);
+  const [visibleChartCount, setVisibleChartCount] = useState(() => Math.min(4, initialCharts.length));
   const { toast } = useToast();
 
-  const chartRenderModels = useMemo(() => charts.map((chart) => buildChartModel(chart, data, chartTheme, previewAppearance)), [charts, data, chartTheme, previewAppearance]);
+  useEffect(() => {
+    setVisibleChartCount((current) => Math.min(Math.max(current, 4), charts.length));
+  }, [charts.length]);
+
+  useEffect(() => {
+    if (reorderMode || charts.length <= visibleChartCount) return;
+
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      const idleId = window.requestIdleCallback(
+        () => setVisibleChartCount(charts.length),
+        { timeout: 1200 }
+      );
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = globalThis.setTimeout(() => setVisibleChartCount(charts.length), 180);
+    return () => globalThis.clearTimeout(timeoutId);
+  }, [charts.length, reorderMode, visibleChartCount]);
+
+  const chartsForInitialRender = useMemo(
+    () => (reorderMode ? charts : charts.slice(0, visibleChartCount)),
+    [charts, reorderMode, visibleChartCount]
+  );
+
+  const chartRenderModels = useMemo(
+    () => chartsForInitialRender.map((chart) => buildChartModel(chart, data, chartTheme, previewAppearance)),
+    [chartsForInitialRender, data, chartTheme, previewAppearance]
+  );
   const modelById = useMemo(() => new Map(chartRenderModels.map((model) => [model.chart.id, model])), [chartRenderModels]);
   const shouldRenderAdminTools =
     showAppearance || reorderMode || builderOpen || confirmDeleteChartId !== null;
@@ -173,6 +201,9 @@ export default function AdminAnalyticsDashboardViewer({ initialData, initialChar
           ))}
         </div>
       ) : null}
+      {!reorderMode && visibleChartCount < charts.length ? (
+        <p className="mt-3 text-xs text-slate-500">Nalagam dodatne grafikone …</p>
+      ) : null}
 
       {shouldRenderAdminTools ? (
         <LazyAdminTools
@@ -211,7 +242,7 @@ export default function AdminAnalyticsDashboardViewer({ initialData, initialChar
           data={data}
           chartTheme={chartTheme}
           sortable={reorderMode ? {
-            ids: chartRenderModels.map((model) => model.chart.id),
+            ids: charts.map((chart) => chart.id),
             onDragEnd: (event) => void onDragEnd(event),
             renderItem: (id) => {
               const model = modelById.get(id);

@@ -1,7 +1,6 @@
 import AdminDeletedArchiveTableLoader from '@/admin/components/AdminDeletedArchiveTableLoader';
 import AdminArchiveTabs from '@/admin/components/AdminArchiveTabs';
 import { fetchArchiveEntries } from '@/shared/server/deletedArchive';
-import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';
 
 export const metadata = {
@@ -11,9 +10,8 @@ export const metadata = {
 export const dynamic = 'force-dynamic';
 
 async function AdminArchiveTableSection() {
-  return instrumentAdminRouteRender('/admin/arhiv', async () => {
-    const entries = getDatabaseUrl()
-    ? await profileRoutePhase('db', 'AdminArchiveTableSection:fetchArchiveEntries', () => fetchArchiveEntries('all'))
+  const entries = getDatabaseUrl()
+    ? await fetchArchiveEntries('all')
     : [
         {
           id: 1,
@@ -44,11 +42,7 @@ async function AdminArchiveTableSection() {
       entry.expires_at
     ] as const);
 
-    await profileRoutePhase('payload', 'AdminArchiveTableSection:entries', async () => {
-      profilePayloadEstimate('AdminArchiveTableSection:entries', compactEntries);
-    });
-    return <AdminDeletedArchiveTableLoader initialEntries={compactEntries} />;
-  });
+  return <AdminDeletedArchiveTableLoader initialEntries={compactEntries} />;
 }
 
 export default async function AdminArchivePage() {

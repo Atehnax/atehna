@@ -4,7 +4,6 @@ import {
   type OrderRow,
   fetchOrdersListPage
 } from '@/shared/server/orders';
-import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';
 import { fetchGlobalAnalyticsAppearance, type AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
 
@@ -59,8 +58,7 @@ async function AdminOrdersTableSection({
     pageSize?: string | string[];
   };
 }) {
-  return instrumentAdminRouteRender('/admin/orders', async () => {
-    const from = normalizeDateInput(normalizeSearchParam(searchParams?.from));
+  const from = normalizeDateInput(normalizeSearchParam(searchParams?.from));
     const to = normalizeDateInput(normalizeSearchParam(searchParams?.to));
     const query = normalizeSearchParam(searchParams?.q).trim();
     const status = normalizeSearchParam(searchParams?.status).trim() || 'all';
@@ -167,12 +165,6 @@ async function AdminOrdersTableSection({
     }
   }
 
-    await profileRoutePhase('payload', 'AdminOrdersTableSection:props', async () => {
-      profilePayloadEstimate('AdminOrdersTableSection:orders', orders);
-      profilePayloadEstimate('AdminOrdersTableSection:documents', documents);
-      profilePayloadEstimate('AdminOrdersTableSection:totalCount', totalCount);
-    });
-
     const compactOrders = orders.map((order) => [
       order.id,
       order.order_number,
@@ -202,32 +194,31 @@ async function AdminOrdersTableSection({
       document.blob_url,
       document.created_at
     ] as const);
-    return (
-      <>
-        {warningMessage ? (
-          <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-6 text-sm text-amber-700">
-            {warningMessage}
-          </div>
-        ) : null}
+  return (
+    <>
+      {warningMessage ? (
+        <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-6 text-sm text-amber-700">
+          {warningMessage}
+        </div>
+      ) : null}
 
-        <AdminOrdersTableLoader
-          orders={compactOrders}
-          documents={compactDocuments}
-          attachments={[]}
-          initialFrom={from}
-          initialTo={to}
-          initialQuery={query}
-          initialStatusFilter={status}
-          initialDocumentType={documentType}
-          initialPage={page}
-          initialPageSize={pageSize}
-          totalCount={totalCount}
-          topAction={<AdminCreateDraftOrderButton />}
-          analyticsAppearance={analyticsAppearance}
-        />
-      </>
-    );
-  });
+      <AdminOrdersTableLoader
+        orders={compactOrders}
+        documents={compactDocuments}
+        attachments={[]}
+        initialFrom={from}
+        initialTo={to}
+        initialQuery={query}
+        initialStatusFilter={status}
+        initialDocumentType={documentType}
+        initialPage={page}
+        initialPageSize={pageSize}
+        totalCount={totalCount}
+        topAction={<AdminCreateDraftOrderButton />}
+        analyticsAppearance={analyticsAppearance}
+      />
+    </>
+  );
 }
 
 export default async function AdminOrdersPage({

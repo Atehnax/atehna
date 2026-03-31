@@ -209,11 +209,6 @@ const formatCurrencyWhole = (value: number | null | undefined) =>
 
 const formatMetricCompact = (value: number | null | undefined, suffix = '') => {
   if (value === null || value === undefined || !Number.isFinite(value)) return '—';
-  const abs = Math.abs(value);
-  if (abs >= 1000 && abs <= 999999) {
-    const compact = Intl.NumberFormat('sl-SI', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value / 1000);
-    return `${compact}k${suffix ? ` ${suffix}` : ''}`;
-  }
   const base = Intl.NumberFormat('sl-SI', { maximumFractionDigits: 0 }).format(value);
   return `${base}${suffix ? ` ${suffix}` : ''}`;
 };
@@ -563,7 +558,7 @@ function AdminOrdersPreviewChart({
               name: 'Šola',
               x: aggregated.x,
               y: schoolDaily,
-              marker: { color: semanticChartColors.customerStack.bottom },
+              marker: { color: '#3b82f6' },
               hoverinfo: 'none'
             },
             {
@@ -571,7 +566,7 @@ function AdminOrdersPreviewChart({
               name: 'Podjetje',
               x: aggregated.x,
               y: companyDaily,
-              marker: { color: semanticChartColors.customerStack.middle },
+              marker: { color: '#8b5cf6' },
               hoverinfo: 'none'
             },
             {
@@ -579,7 +574,7 @@ function AdminOrdersPreviewChart({
               name: 'Fizična oseba',
               x: aggregated.x,
               y: individualDaily,
-              marker: { color: semanticChartColors.customerStack.top },
+              marker: { color: '#f59e0b' },
               hoverinfo: 'none'
             },
             {
@@ -614,13 +609,13 @@ function AdminOrdersPreviewChart({
           ],
           tooltipRowsAt: (i: number) => [
             { label: 'Vsi tipi', value: formatInt(ordersSeries[i]), color: semanticChartColors.orders.line, numericValue: ordersSeries[i] ?? null },
-            { label: 'Šole', value: formatInt(schoolDaily[i]), color: semanticChartColors.customerStack.bottom, numericValue: schoolDaily[i] ?? null },
-            { label: 'Podjetja', value: formatInt(companyDaily[i]), color: semanticChartColors.customerStack.middle, numericValue: companyDaily[i] ?? null },
-            { label: 'Fizične osebe', value: formatInt(individualDaily[i]), color: semanticChartColors.customerStack.top, numericValue: individualDaily[i] ?? null },
+            { label: 'Šole', value: formatInt(schoolDaily[i]), color: '#3b82f6', numericValue: schoolDaily[i] ?? null },
+            { label: 'Podjetja', value: formatInt(companyDaily[i]), color: '#8b5cf6', numericValue: companyDaily[i] ?? null },
+            { label: 'Fizične osebe', value: formatInt(individualDaily[i]), color: '#f59e0b', numericValue: individualDaily[i] ?? null },
             { label: 'Najvišje (obdobje)', value: formatInt(highestValue), color: '#059669', numericValue: highestValue },
             { label: 'Najnižje (obdobje)', value: formatInt(lowestValue), color: '#e11d48', numericValue: lowestValue }
           ],
-          layout: miniLayout(false, aggregated.x)
+          layout: miniLayout(true, aggregated.x)
         };
       })(),
       enforceTopDownTooltipOrder: true
@@ -928,14 +923,14 @@ function AdminOrdersPreviewChart({
               key={chart.key}
               type="button"
               onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(chart.focusKey)}`)}
-              className="flex min-h-[166px] flex-col overflow-visible rounded-xl border px-3 py-2 text-left shadow-sm transition hover:border-[color:var(--blue-500)] hover:bg-[color:var(--hover-neutral)]"
+              className="flex min-h-[150px] flex-col overflow-visible rounded-xl border px-3 py-2 text-left shadow-sm transition hover:border-[color:var(--blue-500)] hover:bg-[color:var(--hover-neutral)]"
               style={{
                 fontFamily: '"SF Pro Display","Helvetica Neue","Neue Haas Grotesk","Inter",system-ui,sans-serif',
                 background: `linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,248,251,0.96) 100%)`,
                 borderColor: appearance.gridColor
               }}
             >
-              <div className="mb-0 h-[78px] w-full min-w-0">
+              <div className="mb-0 h-[68px] w-full min-w-0">
                 <div className="space-y-1 text-[color:var(--text-strong)]">
                   {(() => {
                     const metricLength = chart.metricText.length;
@@ -948,7 +943,7 @@ function AdminOrdersPreviewChart({
                       <>
                   <p className="truncate text-left text-[13px] leading-4 tracking-[0.005em] text-slate-600"><span className="font-semibold">{baseTitle}</span><span className="font-normal">{rangeTitle}</span></p>
                   <p className="min-h-[16px] truncate text-left leading-4">{chart.subtitleNode ?? ''}</p>
-                  <div className={`grid ${isLongMetric ? 'grid-cols-[minmax(120px,1fr)_minmax(172px,45%)]' : 'grid-cols-[minmax(120px,1fr)_minmax(176px,45%)]'} gap-2`}>
+                  <div className={`grid ${chart.typeSummaryRows?.length ? (isLongMetric ? 'grid-cols-[minmax(120px,1fr)_minmax(172px,45%)]' : 'grid-cols-[minmax(120px,1fr)_minmax(176px,45%)]') : 'grid-cols-[minmax(120px,1fr)_auto]'} gap-1`}>
                     <div className={`flex h-[30px] items-center ${isShortMetric ? 'justify-center' : 'pl-2'}`}>
                       <p
                         className="whitespace-nowrap text-left text-[34px] font-normal leading-[1] tracking-[-0.02em]"
@@ -958,12 +953,14 @@ function AdminOrdersPreviewChart({
                         {chart.metricText}
                       </p>
                     </div>
-                    <div className="grid h-[30px] grid-cols-2 gap-x-1.5 text-[10px] leading-[1] text-slate-600">
-                      <div className="grid grid-rows-3 gap-y-0">
-                        {(chart.typeSummaryRows ?? []).slice(0, 3).map((row) => (
-                          <p key={row} className="self-center whitespace-nowrap">{row}</p>
-                        ))}
-                      </div>
+                    <div className={`grid h-[30px] ${chart.typeSummaryRows?.length ? 'grid-cols-2 gap-x-1.5' : 'grid-cols-1 justify-items-center'} text-[10px] leading-[1] text-slate-600`}>
+                      {chart.typeSummaryRows?.length ? (
+                        <div className="grid grid-rows-3 gap-y-0">
+                          {chart.typeSummaryRows.slice(0, 3).map((row) => (
+                            <p key={row} className="self-center whitespace-nowrap">{row}</p>
+                          ))}
+                        </div>
+                      ) : null}
                       <div className="grid grid-rows-2 gap-y-0">
                         <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.sevenDayNode}</p>
                         <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.thirtyDayNode}</p>
@@ -981,7 +978,7 @@ function AdminOrdersPreviewChart({
                   data={chart.traces}
                   layout={chart.layout}
                   config={{ responsive: true, displayModeBar: false }}
-                  style={{ width: '100%', height: 100, maxWidth: '100%' }}
+                  style={{ width: '100%', height: 90, maxWidth: '100%' }}
                   useResizeHandler
                   onHover={(eventData: any) => handleHover(chart, eventData)}
                   onUnhover={() => hideHover(chart.key)}
@@ -997,11 +994,11 @@ function AdminOrdersPreviewChart({
                       <p className="pr-3 text-[15px] font-semibold leading-none text-black">{formatTooltipDate(hoverCard.xLabel)}</p>
                     </div>
                     <div className="mb-2 h-px w-full bg-black/15" />
-                    <div className="space-y-1">
+                    <div className="space-y-0.5">
                       {hoverCard.rows.map((row, index) => (
                         <div
                           key={`${row.label}-${index}`}
-                          className="grid grid-cols-[minmax(180px,1fr)_auto] items-center gap-5 px-1 py-1"
+                          className="grid grid-cols-[minmax(180px,1fr)_auto] items-center gap-5 px-1 py-0.5"
                         >
                           <div className="flex items-center gap-2 text-slate-700">
                             <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: row.color }} />

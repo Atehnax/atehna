@@ -140,6 +140,7 @@ const LazyConfirmDialog = dynamic(
 
 export default function AdminOrdersTable({
   orders: serializedOrders,
+  analyticsOrders: serializedAnalyticsOrders,
   documents: serializedDocuments,
   attachments: serializedAttachments,
   initialFrom = '',
@@ -154,6 +155,7 @@ export default function AdminOrdersTable({
   analyticsAppearance
 }: {
   orders: ReadonlyArray<Readonly<OrderRowTuple>>;
+  analyticsOrders?: ReadonlyArray<Readonly<OrderRowTuple>>;
   documents: ReadonlyArray<PdfDocTuple>;
   attachments: ReadonlyArray<AttachmentTuple>;
   initialFrom?: string;
@@ -191,6 +193,31 @@ export default function AdminOrdersTable({
         deleted_at: row[18] ?? null
       })),
     [serializedOrders]
+  );
+  const analyticsOrders = useMemo<OrderRow[]>(
+    () =>
+      (serializedAnalyticsOrders ?? serializedOrders).map((row) => ({
+        id: row[0],
+        order_number: row[1],
+        customer_type: row[2],
+        organization_name: row[3] ?? '',
+        contact_name: row[4],
+        email: row[5],
+        phone: row[6] ?? '',
+        delivery_address: row[7] ?? '',
+        reference: row[8] ?? '',
+        notes: row[9],
+        status: row[10],
+        payment_status: row[11],
+        payment_notes: row[12],
+        subtotal: row[13] ?? 0,
+        tax: row[14] ?? 0,
+        total: row[15] ?? 0,
+        created_at: row[16],
+        is_draft: row[17],
+        deleted_at: row[18] ?? null
+      })),
+    [serializedAnalyticsOrders, serializedOrders]
   );
   const documents = useMemo<PdfDoc[]>(
     () =>
@@ -1308,7 +1335,7 @@ export default function AdminOrdersTable({
       <div className="w-full">
         {isChartReady ? (
           <AdminOrdersPreviewChart
-            orders={orders}
+            orders={analyticsOrders}
             appearance={analyticsAppearance}
             fromDate={debouncedFromDate}
             toDate={debouncedToDate}

@@ -210,7 +210,12 @@ const formatCurrencyWhole = (value: number | null | undefined) =>
 const formatMetricCompact = (value: number | null | undefined, suffix = '') => {
   if (value === null || value === undefined || !Number.isFinite(value)) return '—';
   const base = Intl.NumberFormat('sl-SI', { maximumFractionDigits: 0 }).format(value);
-  return `${base}${suffix ? ` ${suffix}` : ''}`;
+  const full = `${base}${suffix ? ` ${suffix}` : ''}`;
+  if (full.length >= 7 && full.length <= 8 && Math.abs(value) >= 1000) {
+    const short = Intl.NumberFormat('sl-SI', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value / 1000);
+    return `${short}k${suffix ? ` ${suffix}` : ''}`;
+  }
+  return full;
 };
 
 
@@ -964,15 +969,13 @@ function AdminOrdersPreviewChart({
                       </p>
                     </div>
                   </div>
-                  <div className={`grid ${isLongMetric ? 'grid-cols-[minmax(168px,1fr)]' : 'grid-cols-[minmax(168px,1fr)]'} gap-y-0.5 text-[10px] leading-[1] text-slate-600`}>
-                    {hasDetailRow ? (
-                      <div>
-                        <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.detailRowNode}</p>
-                      </div>
-                    ) : null}
-                    <div className="grid grid-cols-2 items-center gap-x-1 text-[10px] leading-[1] text-slate-600">
-                      <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.sevenDayNode}</p>
-                      <p className="self-center whitespace-nowrap [&_span]:font-medium">{chart.thirtyDayNode}</p>
+                  <div className={`grid ${isLongMetric ? 'grid-cols-[minmax(168px,1fr)]' : 'grid-cols-[minmax(168px,1fr)]'} gap-y-0 text-[10px] leading-[1] text-slate-600`}>
+                    <div className="flex min-h-[14px] flex-wrap items-center gap-1 [&_span]:font-medium">
+                      {hasDetailRow ? <span className="whitespace-nowrap">{chart.detailRowNode}</span> : null}
+                      {hasDetailRow ? <span aria-hidden="true">·</span> : null}
+                      <span className="whitespace-nowrap">{chart.sevenDayNode}</span>
+                      <span aria-hidden="true">·</span>
+                      <span className="whitespace-nowrap">{chart.thirtyDayNode}</span>
                     </div>
                   </div>
                       </>
@@ -981,7 +984,7 @@ function AdminOrdersPreviewChart({
                 </div>
               </div>
 
-              <div className="relative mt-0 w-full min-w-0 rounded-md" style={{ backgroundColor: 'transparent' }}>
+              <div className="relative mt-auto w-full min-w-0 rounded-md" style={{ backgroundColor: 'transparent' }}>
                 <PlotlyClient
                   data={chart.traces}
                   layout={chart.layout}

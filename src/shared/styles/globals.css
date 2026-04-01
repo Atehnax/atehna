@@ -222,6 +222,30 @@ input[type='radio'] {
   min-height: 28px !important;
 }
 
+.euiTablePagination .euiButtonEmpty {
+  background: transparent !important;
+  font-family: "Inter", system-ui, sans-serif !important;
+  font-size: 12px !important;
+  color: color-mix(in srgb, var(--text) 74%, white) !important;
+}
+
+.euiTablePagination .euiButtonEmpty:hover {
+  background: transparent !important;
+}
+
+.euiTablePagination .euiPagination__itemButton {
+  font-family: "Inter", system-ui, sans-serif !important;
+  font-size: 12px !important;
+  text-decoration: none !important;
+  color: color-mix(in srgb, var(--text) 74%, white) !important;
+}
+
+.euiTablePagination .euiPagination__itemButton-isSelected {
+  color: #1982bf !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+}
+
 
 [data-floating-field] input:-webkit-autofill,
 [data-floating-field] textarea:-webkit-autofill,

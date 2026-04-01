@@ -282,6 +282,31 @@ export default function AdminOrdersTable({
   });
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const refreshOrders = () => {
+      if (document.visibilityState === 'visible') {
+        router.refresh();
+      }
+    };
+
+    const handlePageShow = () => refreshOrders();
+    const handleWindowFocus = () => refreshOrders();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') refreshOrders();
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('focus', handleWindowFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [router, pathname]);
+
+  useEffect(() => {
     if (visibleColumns.order) return;
     setVisibleColumns((currentColumns) => ({ ...currentColumns, order: true }));
   }, [visibleColumns.order]);

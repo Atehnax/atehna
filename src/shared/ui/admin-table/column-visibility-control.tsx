@@ -57,7 +57,7 @@ export function ColumnVisibilityControl({
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className={`${selectTokenClasses.trigger} justify-center ${showLabel ? 'min-w-[92px] gap-2 px-2.5 pr-5' : 'w-8 px-0 pr-0'} ${isOpen ? 'bg-[color:var(--hover-neutral)]' : ''}`}
+        className={`${selectTokenClasses.trigger} justify-center ${showLabel ? 'min-w-[92px] gap-2 px-2.5 pr-5' : 'w-8 !p-0'} ${isOpen ? 'bg-[color:var(--hover-neutral)]' : ''}`}
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-label="Filtriraj stolpce"

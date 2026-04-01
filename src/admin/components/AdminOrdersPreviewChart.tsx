@@ -311,6 +311,16 @@ const fallbackAppearance: AnalyticsGlobalAppearance = {
   gridOpacity: 0.35
 };
 
+type OrdersAnalyticsPalette = {
+  axisLine: string;
+  axisText: string;
+  grid: string;
+  markerHigh: string;
+  markerLow: string;
+  customer: { school: string; company: string; individual: string };
+  status: { received: string; inProgress: string; sent: string; finished: string; other: string };
+};
+
 function AdminOrdersPreviewChart({
   orders,
   appearance = fallbackAppearance,
@@ -357,6 +367,28 @@ function AdminOrdersPreviewChart({
       }
     };
   }, []);
+  const ordersAnalyticsPalette = useMemo<OrdersAnalyticsPalette>(
+    () => ({
+      axisLine: readCssVarColor('--orders-analytics-axis-line', 'rgba(100,116,139,0.35)'),
+      axisText: readCssVarColor('--orders-analytics-axis-text', '#6b7280'),
+      grid: readCssVarColor('--orders-analytics-grid', 'rgba(148,163,184,0.17)'),
+      markerHigh: readCssVarColor('--orders-analytics-marker-high', '#059669'),
+      markerLow: readCssVarColor('--orders-analytics-marker-low', '#e11d48'),
+      customer: {
+        school: readCssVarColor('--orders-analytics-customer-school', '#3d85c6'),
+        company: readCssVarColor('--orders-analytics-customer-company', '#c63d85'),
+        individual: readCssVarColor('--orders-analytics-customer-individual', '#85c63d')
+      },
+      status: {
+        received: readCssVarColor('--orders-analytics-status-received', '#3d85c6'),
+        inProgress: readCssVarColor('--orders-analytics-status-progress', '#60a5fa'),
+        sent: readCssVarColor('--orders-analytics-status-sent', '#38bdf8'),
+        finished: readCssVarColor('--orders-analytics-status-finished', '#0284c7'),
+        other: readCssVarColor('--orders-analytics-status-other', '#cbd5e1')
+      }
+    }),
+    []
+  );
 
   const data = useMemo(() => {
     const selectedOrders = orders.filter((order) => {
@@ -490,8 +522,8 @@ function AdminOrdersPreviewChart({
         showticklabels: true,
         zeroline: false,
         showline: true,
-        linecolor: 'rgba(100,116,139,0.35)',
-        tickfont: { family: '"SF Pro Display","Helvetica Neue","Neue Haas Grotesk","Inter",system-ui,sans-serif', size: chartBucketMode === 'day' ? 9 : 10, color: '#6b7280' },
+        linecolor: ordersAnalyticsPalette.axisLine,
+        tickfont: { family: '"SF Pro Display","Helvetica Neue","Neue Haas Grotesk","Inter",system-ui,sans-serif', size: chartBucketMode === 'day' ? 9 : 10, color: ordersAnalyticsPalette.axisText },
         tickmode: 'array',
         tickvals: axisX,
         ticktext: axisLabels,
@@ -502,15 +534,15 @@ function AdminOrdersPreviewChart({
       },
       yaxis: {
         showgrid: true,
-        gridcolor: 'rgba(148,163,184,0.17)',
+        gridcolor: ordersAnalyticsPalette.grid,
         gridwidth: 1,
         showticklabels: true,
-        tickfont: { family: '"SF Pro Display","Helvetica Neue","Neue Haas Grotesk","Inter",system-ui,sans-serif', size: 10, color: '#6b7280' },
+        tickfont: { family: '"SF Pro Display","Helvetica Neue","Neue Haas Grotesk","Inter",system-ui,sans-serif', size: 10, color: ordersAnalyticsPalette.axisText },
         tickformat: '~s',
         automargin: true,
         zeroline: false,
         showline: true,
-        linecolor: 'rgba(100,116,139,0.35)',
+        linecolor: ordersAnalyticsPalette.axisLine,
         rangemode: 'tozero',
         fixedrange: true
       },
@@ -547,11 +579,11 @@ function AdminOrdersPreviewChart({
         return {
           detailRowNode: (
             <>
-              Šole: <span className="text-[#3d85c6]">{formatInt(schoolTotal)}</span>
+              Šole: <span style={{ color: ordersAnalyticsPalette.customer.school }}>{formatInt(schoolTotal)}</span>
               {' · '}
-              Podjetja: <span className="text-[#c63d85]">{formatInt(companyTotal)}</span>
+              Podjetja: <span style={{ color: ordersAnalyticsPalette.customer.company }}>{formatInt(companyTotal)}</span>
               {' · '}
-              Fizične osebe: <span className="text-[#85c63d]">{formatInt(individualTotal)}</span>
+              Fizične osebe: <span style={{ color: ordersAnalyticsPalette.customer.individual }}>{formatInt(individualTotal)}</span>
             </>
           ),
           metricColor: semanticChartColors.orders.line,
@@ -567,7 +599,7 @@ function AdminOrdersPreviewChart({
               name: 'Šola',
               x: aggregated.x,
               y: schoolDaily,
-              marker: { color: '#3d85c6' },
+              marker: { color: ordersAnalyticsPalette.customer.school },
               hoverinfo: 'none'
             },
             {
@@ -575,7 +607,7 @@ function AdminOrdersPreviewChart({
               name: 'Podjetje',
               x: aggregated.x,
               y: companyDaily,
-              marker: { color: '#c63d85' },
+              marker: { color: ordersAnalyticsPalette.customer.company },
               hoverinfo: 'none'
             },
             {
@@ -583,7 +615,7 @@ function AdminOrdersPreviewChart({
               name: 'Fizična oseba',
               x: aggregated.x,
               y: individualDaily,
-              marker: { color: '#85c63d' },
+              marker: { color: ordersAnalyticsPalette.customer.individual },
               hoverinfo: 'none'
             },
             {
@@ -601,7 +633,7 @@ function AdminOrdersPreviewChart({
               name: 'Najvišje',
               x: highestIndex >= 0 ? [aggregated.x[highestIndex]] : [],
               y: highestIndex >= 0 ? [ordersSeries[highestIndex] + Math.max(highestValue * 0.06, 0.8)] : [],
-              marker: { color: '#059669', size: 8 },
+              marker: { color: ordersAnalyticsPalette.markerHigh, size: 8 },
               cliponaxis: false,
               hoverinfo: 'none'
             },
@@ -611,18 +643,18 @@ function AdminOrdersPreviewChart({
               name: 'Najnižje',
               x: lowestIndex >= 0 ? [aggregated.x[lowestIndex]] : [],
               y: lowestIndex >= 0 ? [ordersSeries[lowestIndex] + Math.max(highestValue * 0.03, 0.4)] : [],
-              marker: { color: '#e11d48', size: 8 },
+              marker: { color: ordersAnalyticsPalette.markerLow, size: 8 },
               cliponaxis: false,
               hoverinfo: 'none'
             }
           ],
           tooltipRowsAt: (i: number) => [
             { label: 'Vsi tipi', value: formatInt(ordersSeries[i]), color: semanticChartColors.orders.line, numericValue: ordersSeries[i] ?? null },
-            { label: 'Šole', value: formatInt(schoolDaily[i]), color: '#3d85c6', numericValue: schoolDaily[i] ?? null },
-            { label: 'Podjetja', value: formatInt(companyDaily[i]), color: '#c63d85', numericValue: companyDaily[i] ?? null },
-            { label: 'Fizične osebe', value: formatInt(individualDaily[i]), color: '#85c63d', numericValue: individualDaily[i] ?? null },
-            { label: 'Najvišje', value: formatInt(highestValue), color: '#059669', numericValue: highestValue },
-            { label: 'Najnižje', value: formatInt(lowestValue), color: '#e11d48', numericValue: lowestValue }
+            { label: 'Šole', value: formatInt(schoolDaily[i]), color: ordersAnalyticsPalette.customer.school, numericValue: schoolDaily[i] ?? null },
+            { label: 'Podjetja', value: formatInt(companyDaily[i]), color: ordersAnalyticsPalette.customer.company, numericValue: companyDaily[i] ?? null },
+            { label: 'Fizične osebe', value: formatInt(individualDaily[i]), color: ordersAnalyticsPalette.customer.individual, numericValue: individualDaily[i] ?? null },
+            { label: 'Najvišje', value: formatInt(highestValue), color: ordersAnalyticsPalette.markerHigh, numericValue: highestValue },
+            { label: 'Najnižje', value: formatInt(lowestValue), color: ordersAnalyticsPalette.markerLow, numericValue: lowestValue }
           ],
           layout: miniLayout(true, aggregated.x)
         };
@@ -675,7 +707,7 @@ function AdminOrdersPreviewChart({
               name: 'Najvišje',
               x: highestIndex >= 0 ? [aggregated.x[highestIndex]] : [],
               y: highestIndex >= 0 ? [revenueSeries[highestIndex] + Math.max(highestValue * 0.06, 1)] : [],
-              marker: { color: '#059669', size: 8 },
+              marker: { color: ordersAnalyticsPalette.markerHigh, size: 8 },
               cliponaxis: false,
               hoverinfo: 'none'
             },
@@ -685,7 +717,7 @@ function AdminOrdersPreviewChart({
               name: 'Najnižje',
               x: lowestIndex >= 0 ? [aggregated.x[lowestIndex]] : [],
               y: lowestIndex >= 0 ? [revenueSeries[lowestIndex] + Math.max(highestValue * 0.03, 0.5)] : [],
-              marker: { color: '#e11d48', size: 8 },
+              marker: { color: ordersAnalyticsPalette.markerLow, size: 8 },
               cliponaxis: false,
               hoverinfo: 'none'
             }
@@ -693,8 +725,8 @@ function AdminOrdersPreviewChart({
           tooltipRowsAt: (i: number) => [
             { label: 'Prihodki', value: formatCurrency(revenueSeries[i]), color: semanticChartColors.revenue.fill, numericValue: revenueSeries[i] ?? null },
             { label: '7d MA', value: formatCurrency(revenueMa[i]), color: semanticChartColors.revenue.line, numericValue: revenueMa[i] ?? null },
-            { label: 'Najvišje', value: formatCurrencyWhole(highestValue), color: '#059669', numericValue: highestValue },
-            { label: 'Najnižje', value: formatCurrencyWhole(lowestValue), color: '#e11d48', numericValue: lowestValue }
+            { label: 'Najvišje', value: formatCurrencyWhole(highestValue), color: ordersAnalyticsPalette.markerHigh, numericValue: highestValue },
+            { label: 'Najnižje', value: formatCurrencyWhole(lowestValue), color: ordersAnalyticsPalette.markerLow, numericValue: lowestValue }
           ],
           layout: miniLayout(false, aggregated.x)
         };
@@ -754,7 +786,7 @@ function AdminOrdersPreviewChart({
               name: 'Najvišje',
               x: highestIndex >= 0 ? [aggregated.x[highestIndex]] : [],
               y: highestIndex >= 0 ? [dailyAovSeries[highestIndex] + Math.max(highestValue * 0.06, 0.8)] : [],
-              marker: { color: '#059669', size: 8 },
+              marker: { color: ordersAnalyticsPalette.markerHigh, size: 8 },
               cliponaxis: false,
               hoverinfo: 'none'
             },
@@ -764,7 +796,7 @@ function AdminOrdersPreviewChart({
               name: 'Najnižje',
               x: lowestIndex >= 0 ? [aggregated.x[lowestIndex]] : [],
               y: lowestIndex >= 0 ? [dailyAovSeries[lowestIndex] + Math.max(highestValue * 0.03, 0.4)] : [],
-              marker: { color: '#e11d48', size: 8 },
+              marker: { color: ordersAnalyticsPalette.markerLow, size: 8 },
               cliponaxis: false,
               hoverinfo: 'none'
             }
@@ -772,8 +804,8 @@ function AdminOrdersPreviewChart({
           tooltipRowsAt: (i: number) => [
             { label: 'Povprečje', value: formatCurrency(dailyAovSeries[i]), color: semanticChartColors.avgOrderValue.fill, numericValue: dailyAovSeries[i] ?? null },
             { label: '7d MA', value: formatCurrency(dailyAovMa[i]), color: semanticChartColors.avgOrderValue.line, numericValue: dailyAovMa[i] ?? null },
-            { label: 'Najvišje', value: formatCurrencyWhole(highestValue), color: '#059669', numericValue: highestValue },
-            { label: 'Najnižje', value: formatCurrencyWhole(lowestValue), color: '#e11d48', numericValue: lowestValue }
+            { label: 'Najvišje', value: formatCurrencyWhole(highestValue), color: ordersAnalyticsPalette.markerHigh, numericValue: highestValue },
+            { label: 'Najnižje', value: formatCurrencyWhole(lowestValue), color: ordersAnalyticsPalette.markerLow, numericValue: lowestValue }
           ],
           layout: miniLayout(false, aggregated.x)
         };
@@ -819,11 +851,11 @@ function AdminOrdersPreviewChart({
           sevenDayNode: <>7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span></>,
           thirtyDayNode: <>30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span></>,
           traces: [
-            { type: 'bar', name: 'Prejeto', x: aggregated.x, y: receivedDaily, marker: { color: '#3d85c6' }, hoverinfo: 'none' },
-            { type: 'bar', name: 'V obdelavi', x: aggregated.x, y: inProgressDaily, marker: { color: '#60a5fa' }, hoverinfo: 'none' },
-            { type: 'bar', name: 'Poslano', x: aggregated.x, y: sentDaily, marker: { color: '#38bdf8' }, hoverinfo: 'none' },
-            { type: 'bar', name: 'Zaključeno', x: aggregated.x, y: finishedDaily, marker: { color: '#0284c7' }, hoverinfo: 'none' },
-            { type: 'bar', name: 'Ostalo', x: aggregated.x, y: otherDaily, marker: { color: '#cbd5e1' }, hoverinfo: 'none' },
+            { type: 'bar', name: 'Prejeto', x: aggregated.x, y: receivedDaily, marker: { color: ordersAnalyticsPalette.status.received }, hoverinfo: 'none' },
+            { type: 'bar', name: 'V obdelavi', x: aggregated.x, y: inProgressDaily, marker: { color: ordersAnalyticsPalette.status.inProgress }, hoverinfo: 'none' },
+            { type: 'bar', name: 'Poslano', x: aggregated.x, y: sentDaily, marker: { color: ordersAnalyticsPalette.status.sent }, hoverinfo: 'none' },
+            { type: 'bar', name: 'Zaključeno', x: aggregated.x, y: finishedDaily, marker: { color: ordersAnalyticsPalette.status.finished }, hoverinfo: 'none' },
+            { type: 'bar', name: 'Ostalo', x: aggregated.x, y: otherDaily, marker: { color: ordersAnalyticsPalette.status.other }, hoverinfo: 'none' },
             {
               type: 'scatter',
               mode: 'lines',
@@ -839,7 +871,7 @@ function AdminOrdersPreviewChart({
               name: 'Najvišje',
               x: [aggregated.x[totalsDaily.findIndex((value) => value === highestValue)]],
               y: [highestValue + Math.max(highestValue * 0.06, 0.8)],
-              marker: { color: '#059669', size: 8 },
+              marker: { color: ordersAnalyticsPalette.markerHigh, size: 8 },
               cliponaxis: false,
               hoverinfo: 'none'
             },
@@ -849,18 +881,18 @@ function AdminOrdersPreviewChart({
               name: 'Najnižje',
               x: [aggregated.x[totalsDaily.findIndex((value) => value === lowestValue)]],
               y: [lowestValue + Math.max(highestValue * 0.03, 0.4)],
-              marker: { color: '#e11d48', size: 8 },
+              marker: { color: ordersAnalyticsPalette.markerLow, size: 8 },
               cliponaxis: false,
               hoverinfo: 'none'
             }
           ],
           tooltipRowsAt: (i: number) => [
-            { label: 'Prejeto', value: formatInt(receivedDaily[i]), color: '#3d85c6', numericValue: receivedDaily[i] ?? null },
-            { label: 'V obdelavi', value: formatInt(inProgressDaily[i]), color: '#60a5fa', numericValue: inProgressDaily[i] ?? null },
-            { label: 'Poslano', value: formatInt(sentDaily[i]), color: '#38bdf8', numericValue: sentDaily[i] ?? null },
-            { label: 'Zaključeno', value: formatInt(finishedDaily[i]), color: '#0284c7', numericValue: finishedDaily[i] ?? null },
-            { label: 'Najvišje', value: formatInt(highestValue), color: '#059669', numericValue: highestValue },
-            { label: 'Najnižje', value: formatInt(lowestValue), color: '#e11d48', numericValue: lowestValue }
+            { label: 'Prejeto', value: formatInt(receivedDaily[i]), color: ordersAnalyticsPalette.status.received, numericValue: receivedDaily[i] ?? null },
+            { label: 'V obdelavi', value: formatInt(inProgressDaily[i]), color: ordersAnalyticsPalette.status.inProgress, numericValue: inProgressDaily[i] ?? null },
+            { label: 'Poslano', value: formatInt(sentDaily[i]), color: ordersAnalyticsPalette.status.sent, numericValue: sentDaily[i] ?? null },
+            { label: 'Zaključeno', value: formatInt(finishedDaily[i]), color: ordersAnalyticsPalette.status.finished, numericValue: finishedDaily[i] ?? null },
+            { label: 'Najvišje', value: formatInt(highestValue), color: ordersAnalyticsPalette.markerHigh, numericValue: highestValue },
+            { label: 'Najnižje', value: formatInt(lowestValue), color: ordersAnalyticsPalette.markerLow, numericValue: lowestValue }
           ],
           layout: miniLayout(true, aggregated.x)
         };

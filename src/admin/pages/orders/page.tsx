@@ -150,9 +150,6 @@ async function AdminOrdersTableSection({
           includeDrafts: true,
           fromDate: toIsoOrNull(from),
           toDate: getToDateIsoOrNull(to),
-          query,
-          status,
-          documentType,
           page: 1,
           pageSize: 5000
         }),

@@ -82,6 +82,21 @@
   --chart-series-quaternary: #b08968;
   --chart-series-danger: #a24a45;
   --chart-series-neutral: #375a7a;
+
+  /* Orders analytics preview tokens */
+  --orders-analytics-axis-line: rgba(100, 116, 139, 0.35);
+  --orders-analytics-axis-text: #6b7280;
+  --orders-analytics-grid: rgba(148, 163, 184, 0.17);
+  --orders-analytics-marker-high: var(--semantic-success);
+  --orders-analytics-marker-low: var(--danger-600);
+  --orders-analytics-customer-school: #3d85c6;
+  --orders-analytics-customer-company: #c63d85;
+  --orders-analytics-customer-individual: #85c63d;
+  --orders-analytics-status-received: #3d85c6;
+  --orders-analytics-status-progress: #60a5fa;
+  --orders-analytics-status-sent: #38bdf8;
+  --orders-analytics-status-finished: #0284c7;
+  --orders-analytics-status-other: #cbd5e1;
 }
 
 body {

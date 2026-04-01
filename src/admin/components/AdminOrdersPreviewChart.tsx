@@ -969,7 +969,7 @@ function AdminOrdersPreviewChart({
                       </p>
                     </div>
                   </div>
-                  <div className={`grid ${isLongMetric ? 'grid-cols-[minmax(168px,1fr)]' : 'grid-cols-[minmax(168px,1fr)]'} -mt-3 gap-y-0.5 text-[10px] leading-[1] text-slate-600`}>
+                  <div className={`grid ${isLongMetric ? 'grid-cols-[minmax(168px,1fr)]' : 'grid-cols-[minmax(168px,1fr)]'} -mt-5 gap-y-0.5 text-[10px] leading-[1] text-slate-600`}>
                     {hasDetailRow ? (
                       <div className="flex min-h-[12px] items-center [&_span]:font-medium">
                         <span className="whitespace-nowrap">{chart.detailRowNode}</span>

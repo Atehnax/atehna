@@ -419,7 +419,7 @@ export default function AdminOrdersTable({
   }, [openHeaderFilter, totalRange, orderNumberRange, fromDate, toDate]);
 
   const latestOrderDate = useMemo(() => {
-    const timestamps = orders
+    const timestamps = analyticsOrders
       .map((order) => new Date(order.created_at).getTime())
       .filter((value) => Number.isFinite(value));
     if (timestamps.length === 0) {
@@ -430,10 +430,10 @@ export default function AdminOrdersTable({
     const latest = new Date(Math.max(...timestamps));
     latest.setHours(0, 0, 0, 0);
     return latest;
-  }, [orders]);
+  }, [analyticsOrders]);
 
   const earliestOrderDate = useMemo(() => {
-    const timestamps = orders
+    const timestamps = analyticsOrders
       .map((order) => new Date(order.created_at).getTime())
       .filter((value) => Number.isFinite(value));
     if (timestamps.length === 0) {
@@ -444,7 +444,7 @@ export default function AdminOrdersTable({
     const earliest = new Date(Math.min(...timestamps));
     earliest.setHours(0, 0, 0, 0);
     return earliest;
-  }, [latestOrderDate, orders]);
+  }, [latestOrderDate, analyticsOrders]);
 
   const toSafeDateRange = (from: Date, to: Date) => {
     const start = Number.isFinite(from.getTime()) ? from : new Date(to);
@@ -1426,7 +1426,7 @@ export default function AdminOrdersTable({
                     setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }));
                   }}
                   showLabel={false}
-                  className="[&>button]:group [&>button]:!h-7 [&>button]:!w-7 [&>button]:!rounded-md [&>button]:!border-slate-200 [&>button]:!bg-transparent [&>button]:!px-0 [&>button]:!text-slate-400 [&>button]:transition-colors [&>button]:hover:!border-slate-300 [&>button]:hover:!bg-[color:var(--hover-neutral)] [&>button]:hover:!text-[color:var(--blue-500)] [&>button[aria-expanded=true]]:!border-slate-300 [&>button[aria-expanded=true]]:!bg-[color:var(--hover-neutral)] [&>button[aria-expanded=true]]:!text-[color:var(--blue-500)]"
+                  className="[&>button]:!h-7 [&>button]:!w-7"
                   icon={<PanelAddRemoveIcon />}
                   menuClassName="!w-44"
                 />

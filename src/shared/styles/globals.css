@@ -211,6 +211,13 @@ input[type='radio'] {
   border-bottom: 0 !important;
 }
 
+.admin-orders-pagination .euiPagination__compressedText,
+.admin-orders-pagination .euiPagination__compressedText span {
+  font-family: "Inter", system-ui, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
 .admin-orders-pagination .euiPagination__itemButton:hover {
   background: transparent !important;
 }

@@ -301,7 +301,7 @@ const toRgba = (hex: string, alpha: number) => {
 };
 
 const fallbackAppearance: AnalyticsGlobalAppearance = {
-  sectionBg: '#f1f0ec',
+  sectionBg: '#4d4a3e',
   canvasBg: '#ffffff',
   cardBg: '#ffffff',
   plotBg: '#ffffff',
@@ -547,11 +547,11 @@ function AdminOrdersPreviewChart({
         return {
           detailRowNode: (
             <>
-              Šole: <span className="text-[#93c5fd]">{formatInt(schoolTotal)}</span>
+              Šole: <span className="text-[#3d85c6]">{formatInt(schoolTotal)}</span>
               {' · '}
-              Podjetja: <span className="text-[#c4b5fd]">{formatInt(companyTotal)}</span>
+              Podjetja: <span className="text-[#c63d85]">{formatInt(companyTotal)}</span>
               {' · '}
-              Fizične osebe: <span className="text-[#fcd34d]">{formatInt(individualTotal)}</span>
+              Fizične osebe: <span className="text-[#85c63d]">{formatInt(individualTotal)}</span>
             </>
           ),
           metricColor: semanticChartColors.orders.line,
@@ -567,7 +567,7 @@ function AdminOrdersPreviewChart({
               name: 'Šola',
               x: aggregated.x,
               y: schoolDaily,
-              marker: { color: '#93c5fd' },
+              marker: { color: '#3d85c6' },
               hoverinfo: 'none'
             },
             {
@@ -575,7 +575,7 @@ function AdminOrdersPreviewChart({
               name: 'Podjetje',
               x: aggregated.x,
               y: companyDaily,
-              marker: { color: '#c4b5fd' },
+              marker: { color: '#c63d85' },
               hoverinfo: 'none'
             },
             {
@@ -583,7 +583,7 @@ function AdminOrdersPreviewChart({
               name: 'Fizična oseba',
               x: aggregated.x,
               y: individualDaily,
-              marker: { color: '#fcd34d' },
+              marker: { color: '#85c63d' },
               hoverinfo: 'none'
             },
             {
@@ -618,9 +618,9 @@ function AdminOrdersPreviewChart({
           ],
           tooltipRowsAt: (i: number) => [
             { label: 'Vsi tipi', value: formatInt(ordersSeries[i]), color: semanticChartColors.orders.line, numericValue: ordersSeries[i] ?? null },
-            { label: 'Šole', value: formatInt(schoolDaily[i]), color: '#93c5fd', numericValue: schoolDaily[i] ?? null },
-            { label: 'Podjetja', value: formatInt(companyDaily[i]), color: '#c4b5fd', numericValue: companyDaily[i] ?? null },
-            { label: 'Fizične osebe', value: formatInt(individualDaily[i]), color: '#fcd34d', numericValue: individualDaily[i] ?? null },
+            { label: 'Šole', value: formatInt(schoolDaily[i]), color: '#3d85c6', numericValue: schoolDaily[i] ?? null },
+            { label: 'Podjetja', value: formatInt(companyDaily[i]), color: '#c63d85', numericValue: companyDaily[i] ?? null },
+            { label: 'Fizične osebe', value: formatInt(individualDaily[i]), color: '#85c63d', numericValue: individualDaily[i] ?? null },
             { label: 'Najvišje', value: formatInt(highestValue), color: '#059669', numericValue: highestValue },
             { label: 'Najnižje', value: formatInt(lowestValue), color: '#e11d48', numericValue: lowestValue }
           ],
@@ -819,7 +819,7 @@ function AdminOrdersPreviewChart({
           sevenDayNode: <>7d: <span className={getTrendClass(sevenDay)}>{formatDeltaValue(sevenDay)}</span></>,
           thirtyDayNode: <>30d: <span className={getTrendClass(thirtyDay)}>{formatDeltaValue(thirtyDay)}</span></>,
           traces: [
-            { type: 'bar', name: 'Prejeto', x: aggregated.x, y: receivedDaily, marker: { color: '#93c5fd' }, hoverinfo: 'none' },
+            { type: 'bar', name: 'Prejeto', x: aggregated.x, y: receivedDaily, marker: { color: '#3d85c6' }, hoverinfo: 'none' },
             { type: 'bar', name: 'V obdelavi', x: aggregated.x, y: inProgressDaily, marker: { color: '#60a5fa' }, hoverinfo: 'none' },
             { type: 'bar', name: 'Poslano', x: aggregated.x, y: sentDaily, marker: { color: '#38bdf8' }, hoverinfo: 'none' },
             { type: 'bar', name: 'Zaključeno', x: aggregated.x, y: finishedDaily, marker: { color: '#0284c7' }, hoverinfo: 'none' },
@@ -855,7 +855,7 @@ function AdminOrdersPreviewChart({
             }
           ],
           tooltipRowsAt: (i: number) => [
-            { label: 'Prejeto', value: formatInt(receivedDaily[i]), color: '#93c5fd', numericValue: receivedDaily[i] ?? null },
+            { label: 'Prejeto', value: formatInt(receivedDaily[i]), color: '#3d85c6', numericValue: receivedDaily[i] ?? null },
             { label: 'V obdelavi', value: formatInt(inProgressDaily[i]), color: '#60a5fa', numericValue: inProgressDaily[i] ?? null },
             { label: 'Poslano', value: formatInt(sentDaily[i]), color: '#38bdf8', numericValue: sentDaily[i] ?? null },
             { label: 'Zaključeno', value: formatInt(finishedDaily[i]), color: '#0284c7', numericValue: finishedDaily[i] ?? null },
@@ -945,10 +945,8 @@ function AdminOrdersPreviewChart({
               }}
             >
               <div className="mb-0 w-full min-w-0">
-                <div className="space-y-0.5 text-[color:var(--text-strong)]">
+                <div className="space-y-0 text-[color:var(--text-strong)]">
                   {(() => {
-                    const metricLength = chart.metricText.length;
-                    const isLongMetric = metricLength >= 6;
                     const rangeStart = chart.title.lastIndexOf(' (');
                     const baseTitle = rangeStart > 0 ? chart.title.slice(0, rangeStart) : chart.title;
                     const rangeTitle = rangeStart > 0 ? chart.title.slice(rangeStart) : '';
@@ -969,17 +967,30 @@ function AdminOrdersPreviewChart({
                       </p>
                     </div>
                   </div>
-                  <div className={`grid ${isLongMetric ? 'grid-cols-[minmax(168px,1fr)]' : 'grid-cols-[minmax(168px,1fr)]'} -mt-5 gap-y-0.5 text-[10px] leading-[1] text-slate-600`}>
+                  <div className="relative -top-2.5 grid gap-y-0.5 text-[10px] leading-[1] text-slate-600">
                     {hasDetailRow ? (
-                      <div className="flex min-h-[12px] items-center [&_span]:font-medium">
-                        <span className="whitespace-nowrap">{chart.detailRowNode}</span>
-                      </div>
-                    ) : null}
-                    <div className={`flex min-h-[12px] items-center gap-1 [&_span]:font-medium ${hasDetailRow ? 'mt-0.5' : ''}`}>
-                      <span className="whitespace-nowrap">{chart.sevenDayNode}</span>
-                      <span aria-hidden="true">·</span>
-                      <span className="whitespace-nowrap">{chart.thirtyDayNode}</span>
-                    </div>
+                      <>
+                        <div className="flex min-h-[12px] items-center [&_span]:font-medium">
+                          <span className="whitespace-nowrap">{chart.detailRowNode}</span>
+                        </div>
+                        <div className="flex min-h-[12px] items-center gap-1 [&_span]:font-medium">
+                          <span className="whitespace-nowrap">{chart.sevenDayNode}</span>
+                          <span aria-hidden="true">·</span>
+                          <span className="whitespace-nowrap">{chart.thirtyDayNode}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex min-h-[12px] items-center gap-1 [&_span]:font-medium">
+                          <span className="whitespace-nowrap">{chart.sevenDayNode}</span>
+                          <span aria-hidden="true">·</span>
+                          <span className="whitespace-nowrap">{chart.thirtyDayNode}</span>
+                        </div>
+                        <div aria-hidden="true" className="invisible flex min-h-[12px] items-center">
+                          <span>&nbsp;</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                       </>
                     );
@@ -987,8 +998,7 @@ function AdminOrdersPreviewChart({
                 </div>
               </div>
 
-              <div className="relative mt-auto w-full min-w-0 rounded-md" style={{ backgroundColor: 'transparent' }}>
-                <PlotlyClient
+                <div className="relative mt-0 w-full min-w-0 rounded-md" style={{ backgroundColor: 'transparent' }}>                <PlotlyClient
                   data={chart.traces}
                   layout={chart.layout}
                   config={{ responsive: true, displayModeBar: false }}

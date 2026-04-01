@@ -204,8 +204,11 @@ input[type='radio'] {
 .admin-orders-pagination .euiPagination__itemButton {
   font-family: "Inter", system-ui, sans-serif !important;
   font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
   text-decoration: none !important;
   color: color-mix(in srgb, var(--text) 74%, white) !important;
+  border-bottom: 0 !important;
 }
 
 .admin-orders-pagination .euiPagination__itemButton:hover {
@@ -214,8 +217,10 @@ input[type='radio'] {
 
 .admin-orders-pagination .euiPagination__itemButton-isSelected {
   color: #1982bf !important;
+  font-weight: 500 !important;
   text-decoration: none !important;
   box-shadow: none !important;
+  border-bottom: 0 !important;
 }
 
 .admin-orders-pagination [role="option"]:hover {

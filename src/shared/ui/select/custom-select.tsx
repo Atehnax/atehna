@@ -89,7 +89,7 @@ export default function CustomSelect({
       </button>
 
       {isOpen && (
-        <div role="listbox" className="absolute left-0 top-11 z-30 w-full">
+        <div role="listbox" className="absolute left-0 top-full z-30 mt-1 w-full">
           <MenuPanel className={classNames(selectTokenClasses.menu, menuClassName)}>
             {options.map((option) => (
               <MenuItem

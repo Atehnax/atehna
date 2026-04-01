@@ -106,6 +106,7 @@ async function AdminOrdersTableSection({
   ];
 
   let orders: OrderRow[] = demoOrders;
+  let analyticsOrders: OrderRow[] = demoOrders;
   let documents: Array<{
     id: number;
     order_id: number;
@@ -134,7 +135,7 @@ async function AdminOrdersTableSection({
     warningMessage = 'Povezava z bazo ni nastavljena — prikazan je demo pogled.';
   } else {
     try {
-      const [ordersPageResult, analyticsAppearanceResult] = await Promise.all([
+      const [ordersPageResult, analyticsOrdersResult, analyticsAppearanceResult] = await Promise.all([
         fetchOrdersListPage({
           includeDrafts: true,
           fromDate: toIsoOrNull(from),
@@ -145,9 +146,20 @@ async function AdminOrdersTableSection({
           page,
           pageSize
         }),
+        fetchOrdersListPage({
+          includeDrafts: true,
+          fromDate: toIsoOrNull(from),
+          toDate: getToDateIsoOrNull(to),
+          query,
+          status,
+          documentType,
+          page: 1,
+          pageSize: 5000
+        }),
         fetchGlobalAnalyticsAppearance('narocila', '/admin/orders').catch(() => fallbackAppearance)
       ]);
       orders = ordersPageResult.orders;
+      analyticsOrders = analyticsOrdersResult.orders;
       documents = ordersPageResult.documentSummaries.map((documentSummary, index) => ({
         id: index + 1,
         order_id: documentSummary.order_id,
@@ -169,11 +181,33 @@ async function AdminOrdersTableSection({
 
     await profileRoutePhase('payload', 'AdminOrdersTableSection:props', async () => {
       profilePayloadEstimate('AdminOrdersTableSection:orders', orders);
+      profilePayloadEstimate('AdminOrdersTableSection:analyticsOrders', analyticsOrders);
       profilePayloadEstimate('AdminOrdersTableSection:documents', documents);
       profilePayloadEstimate('AdminOrdersTableSection:totalCount', totalCount);
     });
 
     const compactOrders = orders.map((order) => [
+      order.id,
+      order.order_number,
+      order.customer_type,
+      order.organization_name,
+      order.contact_name,
+      order.email,
+      order.phone ?? null,
+      order.delivery_address ?? null,
+      order.reference ?? null,
+      order.notes ?? null,
+      order.status,
+      order.payment_status ?? null,
+      order.payment_notes ?? null,
+      order.subtotal,
+      order.tax,
+      order.total,
+      order.created_at,
+      order.is_draft ?? false,
+      order.deleted_at ?? null
+    ] as const);
+    const compactAnalyticsOrders = analyticsOrders.map((order) => [
       order.id,
       order.order_number,
       order.customer_type,
@@ -212,6 +246,7 @@ async function AdminOrdersTableSection({
 
         <AdminOrdersTableLoader
           orders={compactOrders}
+          analyticsOrders={compactAnalyticsOrders}
           documents={compactDocuments}
           attachments={[]}
           initialFrom={from}
@@ -250,9 +285,9 @@ export default async function AdminOrdersPage({
           <div>
             <h1 className="text-2xl font-semibold text-slate-900">Naročila</h1>
             <p className="mt-1 text-sm text-slate-500">Pregled in urejanje naročil.</p>
-            <details className="mt-2 max-w-3xl rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-600">
+            <details className="mt-2 max-w-3xl rounded-xl bg-white/80 px-3 py-2 text-sm text-slate-600">
               <summary className="cursor-pointer select-none font-semibold text-slate-700">Navodila</summary>
-              <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+              <div className="mt-2 rounded-lg bg-slate-50 px-3 py-2">
                 <p className="leading-relaxed">
                 Uporabite filtre v glavi tabele za hitro omejitev rezultatov po datumu, znesku, tipu dokumenta in statusih.
                 Pri serijskih opravilih najprej izberite vrstice s potrditvenimi polji, nato uporabite dejanja v zgornji vrstici.

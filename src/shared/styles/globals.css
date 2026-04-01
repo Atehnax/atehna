@@ -173,6 +173,67 @@ input[type='radio'] {
   filter: drop-shadow(0 6px 18px rgba(2, 6, 23, 0.35));
 }
 
+.admin-eui-tabs.euiTabs {
+  border-bottom: 0;
+  gap: 6px;
+}
+
+.admin-eui-tab.euiTab {
+  border-bottom: 0 !important;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: color-mix(in srgb, var(--text) 74%, white);
+}
+
+.admin-eui-tab.euiTab.euiTab-isSelected {
+  background: #e9efff;
+  color: #3659d6;
+  font-weight: 600;
+}
+
+.admin-eui-tab.euiTab:focus,
+.admin-eui-tab.euiTab:focus-visible {
+  box-shadow: none;
+}
+
+.admin-orders-pagination .euiPagination {
+  gap: 2px;
+}
+
+.admin-orders-pagination .euiPagination__itemButton {
+  font-family: "Inter", system-ui, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+  color: color-mix(in srgb, var(--text) 74%, white) !important;
+  border-bottom: 0 !important;
+}
+
+.admin-orders-pagination .euiPagination__compressedText,
+.admin-orders-pagination .euiPagination__compressedText span {
+  font-family: "Inter", system-ui, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+.admin-orders-pagination .euiPagination__itemButton:hover {
+  background: transparent !important;
+}
+
+.admin-orders-pagination .euiPagination__itemButton-isSelected {
+  color: #1982bf !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+  border-bottom: 0 !important;
+}
+
+.admin-orders-pagination [role="option"]:hover {
+  background: transparent !important;
+}
+
 
 [data-floating-field] input:-webkit-autofill,
 [data-floating-field] textarea:-webkit-autofill,
@@ -189,4 +250,3 @@ input[type='radio'] {
   -webkit-text-fill-color: currentColor !important;
   caret-color: currentColor !important;
 }
-

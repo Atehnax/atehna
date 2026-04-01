@@ -27,6 +27,7 @@ type AttachmentTuple = readonly [id: number, orderId: number, type: string, file
 
 export default function AdminOrdersTableLoader(props: {
   orders: ReadonlyArray<Readonly<OrderRowTuple>>;
+  analyticsOrders?: ReadonlyArray<Readonly<OrderRowTuple>>;
   documents: ReadonlyArray<PdfDocTuple>;
   attachments: ReadonlyArray<AttachmentTuple>;
   initialFrom?: string;

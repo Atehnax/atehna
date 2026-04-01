@@ -140,6 +140,7 @@ const LazyConfirmDialog = dynamic(
 
 export default function AdminOrdersTable({
   orders: serializedOrders,
+  analyticsOrders: serializedAnalyticsOrders,
   documents: serializedDocuments,
   attachments: serializedAttachments,
   initialFrom = '',
@@ -154,6 +155,7 @@ export default function AdminOrdersTable({
   analyticsAppearance
 }: {
   orders: ReadonlyArray<Readonly<OrderRowTuple>>;
+  analyticsOrders?: ReadonlyArray<Readonly<OrderRowTuple>>;
   documents: ReadonlyArray<PdfDocTuple>;
   attachments: ReadonlyArray<AttachmentTuple>;
   initialFrom?: string;
@@ -191,6 +193,31 @@ export default function AdminOrdersTable({
         deleted_at: row[18] ?? null
       })),
     [serializedOrders]
+  );
+  const analyticsOrders = useMemo<OrderRow[]>(
+    () =>
+      (serializedAnalyticsOrders ?? serializedOrders).map((row) => ({
+        id: row[0],
+        order_number: row[1],
+        customer_type: row[2],
+        organization_name: row[3] ?? '',
+        contact_name: row[4],
+        email: row[5],
+        phone: row[6] ?? '',
+        delivery_address: row[7] ?? '',
+        reference: row[8] ?? '',
+        notes: row[9],
+        status: row[10],
+        payment_status: row[11],
+        payment_notes: row[12],
+        subtotal: row[13] ?? 0,
+        tax: row[14] ?? 0,
+        total: row[15] ?? 0,
+        created_at: row[16],
+        is_draft: row[17],
+        deleted_at: row[18] ?? null
+      })),
+    [serializedAnalyticsOrders, serializedOrders]
   );
   const documents = useMemo<PdfDoc[]>(
     () =>
@@ -280,6 +307,35 @@ export default function AdminOrdersTable({
     total: true,
     documents: true
   });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const refreshOrders = () => {
+      const hasPendingRefresh = window.sessionStorage.getItem('admin-orders-needs-refresh') === '1';
+      if (hasPendingRefresh) {
+        window.sessionStorage.removeItem('admin-orders-needs-refresh');
+      }
+      if (document.visibilityState === 'visible') {
+        router.refresh();
+      }
+    };
+
+    const handlePageShow = () => refreshOrders();
+    const handleWindowFocus = () => refreshOrders();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') refreshOrders();
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('focus', handleWindowFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [router, pathname]);
 
   useEffect(() => {
     if (visibleColumns.order) return;
@@ -1283,7 +1339,7 @@ export default function AdminOrdersTable({
       <div className="w-full">
         {isChartReady ? (
           <AdminOrdersPreviewChart
-            orders={orders}
+            orders={analyticsOrders}
             appearance={analyticsAppearance}
             fromDate={debouncedFromDate}
             toDate={debouncedToDate}

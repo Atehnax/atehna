@@ -78,14 +78,14 @@ export default function CustomSelect({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         className={classNames(
-          'relative pr-8',
+          'relative pr-5',
           selectTokenClasses.trigger,
           className,
           triggerClassName
         )}
       >
         <span className={classNames('min-w-0 flex-1 truncate text-left leading-none', valueClassName)}>{selectedLabel}</span>
-        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500">▾</span>
+        <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500">▾</span>
       </button>
 
       {isOpen && (

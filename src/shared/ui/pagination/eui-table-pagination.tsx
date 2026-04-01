@@ -4,8 +4,7 @@ import dynamic from 'next/dynamic';
 import Pagination from './pagination';
 import PageSizeSelect from './page-size-select';
 
-const ElasticContext = dynamic(() => import('@elastic/eui').then((module) => module.EuiContext), { ssr: false });
-const ElasticTablePagination = dynamic(() => import('@elastic/eui').then((module) => module.EuiTablePagination), { ssr: false });
+const ElasticPagination = dynamic(() => import('@elastic/eui').then((module) => module.EuiPagination), { ssr: false });
 
 type EuiTablePaginationProps = {
   page: number;
@@ -37,28 +36,20 @@ export default function EuiTablePagination({
   }
 
   return (
-    <div aria-label="Paginacija tabele" className={`inline-flex items-center ${className ?? ''}`.trim()}>
-      <ElasticContext
-        i18n={{
-          mapping: {
-            'euiTablePagination.rowsPerPage': 'Vrstic na stran',
-            'euiTablePagination.allRows': 'Prikazane so vse vrstice',
-            'euiTablePagination.rowsPerPageOptionShowAllRows': 'Prikaži vse vrstice',
-            'euiTablePagination.rowsPerPageOption': '{rowsPerPage} vrstic'
-          }
-        }}
-      >
-        <ElasticTablePagination
-          activePage={page}
-          itemsPerPage={itemsPerPage}
-          itemsPerPageOptions={itemsPerPageOptions}
-          pageCount={pageCount}
-          onChangePage={onPageChange}
-          onChangeItemsPerPage={onChangeItemsPerPage}
-          showPerPageOptions
-          aria-label="Paginacija tabele"
-        />
-      </ElasticContext>
+    <div aria-label="Paginacija tabele" className={`admin-orders-pagination inline-flex items-center gap-2 ${className ?? ''}`.trim()}>
+      <span className="text-xs font-normal text-slate-600" style={{ fontFamily: '"Inter",system-ui,sans-serif' }}>Vrstic na stran</span>
+      <PageSizeSelect
+        value={itemsPerPage}
+        options={itemsPerPageOptions}
+        onChange={onChangeItemsPerPage}
+        className="[&_button]:!h-7 [&_button]:!w-[72px]"
+      />
+      <ElasticPagination
+        pageCount={Math.max(pageCount, 1)}
+        activePage={Math.min(Math.max(page, 1), Math.max(pageCount, 1)) - 1}
+        onPageClick={(nextPageIndex) => onPageChange(nextPageIndex + 1)}
+        compressed
+      />
     </div>
   );
 }

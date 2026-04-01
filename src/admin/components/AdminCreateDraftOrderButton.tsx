@@ -27,6 +27,9 @@ export default function AdminCreateDraftOrderButton({ className, buttonClassName
         throw new Error(body.message || 'Ustvarjanje osnutka ni uspelo.');
       }
       const payload = (await response.json()) as { orderId: number };
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem('admin-orders-needs-refresh', '1');
+      }
       toast.success('Dodano');
       router.push(`/admin/orders/${payload.orderId}`);
     } catch (err) {

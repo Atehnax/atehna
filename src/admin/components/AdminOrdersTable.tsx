@@ -312,6 +312,10 @@ export default function AdminOrdersTable({
     if (typeof window === 'undefined') return;
 
     const refreshOrders = () => {
+      const hasPendingRefresh = window.sessionStorage.getItem('admin-orders-needs-refresh') === '1';
+      if (hasPendingRefresh) {
+        window.sessionStorage.removeItem('admin-orders-needs-refresh');
+      }
       if (document.visibilityState === 'visible') {
         router.refresh();
       }

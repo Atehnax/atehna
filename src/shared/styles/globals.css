@@ -197,53 +197,29 @@ input[type='radio'] {
   box-shadow: none;
 }
 
-.euiTablePagination {
-  border: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-  gap: 8px;
+.admin-orders-pagination .euiPagination {
+  gap: 2px;
 }
 
-.euiTablePagination .euiTablePagination__perPage {
-  margin-bottom: 0 !important;
-}
-
-.euiTablePagination .euiFormRow {
-  margin-bottom: 0 !important;
-}
-
-.euiTablePagination .euiFormRow__labelWrapper {
-  margin-bottom: 2px !important;
-}
-
-.euiTablePagination .euiFormControlLayout,
-.euiTablePagination .euiFormControlLayout__childrenWrapper {
-  min-height: 28px !important;
-}
-
-.euiTablePagination .euiButtonEmpty {
-  background: transparent !important;
-  font-family: "Inter", system-ui, sans-serif !important;
-  font-size: 12px !important;
-  color: color-mix(in srgb, var(--text) 74%, white) !important;
-}
-
-.euiTablePagination .euiButtonEmpty:hover {
-  background: transparent !important;
-}
-
-.euiTablePagination .euiPagination__itemButton {
+.admin-orders-pagination .euiPagination__itemButton {
   font-family: "Inter", system-ui, sans-serif !important;
   font-size: 12px !important;
   text-decoration: none !important;
   color: color-mix(in srgb, var(--text) 74%, white) !important;
 }
 
-.euiTablePagination .euiPagination__itemButton-isSelected {
+.admin-orders-pagination .euiPagination__itemButton:hover {
+  background: transparent !important;
+}
+
+.admin-orders-pagination .euiPagination__itemButton-isSelected {
   color: #1982bf !important;
   text-decoration: none !important;
   box-shadow: none !important;
+}
+
+.admin-orders-pagination [role="option"]:hover {
+  background: transparent !important;
 }
 
 

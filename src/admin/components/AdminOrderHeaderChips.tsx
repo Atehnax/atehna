@@ -317,7 +317,8 @@ export default function AdminOrderHeaderChips(props: Props) {
             <EuiFieldText
               value={draftOrderNumber}
               onChange={(event) => setDraftOrderNumber(event.target.value.replace(/[^\d]/g, ''))}
-              className="w-full min-w-[4ch] bg-transparent text-2xl font-bold tracking-tight text-slate-900 outline-none focus:ring-0"
+              fullWidth
+              className="w-full min-w-[4ch] border-0 bg-transparent p-0 font-['Inter',system-ui,sans-serif] text-2xl font-bold tracking-tight text-slate-900 outline-none focus:ring-0"
               aria-label="Številka naročila"
               inputMode="numeric"
             />
@@ -390,7 +391,7 @@ export default function AdminOrderHeaderChips(props: Props) {
       </div>
 
       {topInputsEditable ? (
-        <div className="mt-4 grid min-h-[132px] gap-3 text-[12px] md:grid-cols-2">
+        <div className="mt-4 grid min-h-[132px] items-start gap-3 text-[12px] md:grid-cols-2">
           <AdminHeaderField
             id="orderDate"
             label="Datum"
@@ -400,17 +401,12 @@ export default function AdminOrderHeaderChips(props: Props) {
           />
 
           <div className="group relative rounded-xl border border-slate-300 bg-white transition-colors focus-within:border-[#3e67d6] focus-within:ring-2 focus-within:ring-brand-100">
-            <label
-              htmlFor="customerType"
-              className="pointer-events-none absolute left-2.5 top-1.5 z-10 bg-white px-1 text-[10px] text-slate-600"
-            >
-              Tip naročnika
-            </label>
             <CustomSelect
               value={activeTopData.customerType}
               onChange={(value) => setDraftTopData((prev) => ({ ...prev, customerType: value }))}
               options={CUSTOMER_TYPE_FORM_OPTIONS}
-              className="!pb-0 !pt-4 pr-7"
+              placeholder="Tip naročnika"
+              className="!h-10 !pb-0 !pt-0 pr-7 font-['Inter',system-ui,sans-serif] text-[11px]"
               menuClassName="max-w-[280px]"
               disabled={isTopSaving}
             />

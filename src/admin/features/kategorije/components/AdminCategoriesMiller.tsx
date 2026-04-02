@@ -183,7 +183,7 @@ export function AdminCategoriesMiller({
             value={searchQuery}
             onChange={(event) => onSearchQueryChange(event.target.value)}
             placeholder="Išči po kategorijah"
-            className="w-[250px]"
+            className="h-7 w-[320px] max-w-[36vw] text-[11px]"
             aria-label="Išči v Miller stolpcih"
           />
           <IconButton type="button" size="sm" tone="neutral" aria-label="Dodaj" onClick={() => onAddNode(activeColumnKind)}>

@@ -294,10 +294,11 @@ export default function AdminOrderPdfManager({
           <EuiTextArea
             value={draftNotes}
             onChange={(event) => setDraftNotes(event.target.value)}
-            rows={2}
+            rows={1}
+            fullWidth
             placeholder="Opombe"
             aria-label="Opombe"
-            className={`${notesBoxClass} w-full resize-y outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
+            className={`${notesBoxClass} !w-full resize-y font-['Inter',system-ui,sans-serif] outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
           />
         ) : (
           <p className={`${notesBoxClass} text-slate-600`}>

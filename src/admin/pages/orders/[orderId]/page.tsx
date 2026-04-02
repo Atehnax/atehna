@@ -81,7 +81,7 @@ function AdminOrderDetailShell({
   showDemoBanner?: boolean;
 }) {
   return (
-    <div className="w-full">
+    <div className="w-full font-['Inter',system-ui,sans-serif]">
       <div className="mx-auto max-w-7xl">
         {showDemoBanner ? (
           <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-6 text-sm text-amber-700">

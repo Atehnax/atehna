@@ -21,6 +21,7 @@ import { useToast } from '@/shared/ui/toast';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
 import { AdminTableLayout, ColumnVisibilityControl } from '@/shared/ui/admin-table';
 import { adminTableRowToneClasses, buttonTokenClasses, getAdminStripedRowToneClass } from '@/shared/ui/theme/tokens';
+import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 
 type Item = {
   id: string;
@@ -583,12 +584,12 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
         }
         filterRowLeft={
           <>
-            <EuiFieldText
+            <AdminSearchInput
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Poišči po nazivu, SKU ali kategoriji …"
               aria-label="Iskanje artiklov"
-              className={`${ADMIN_CONTROL_HEIGHT} min-w-[240px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} text-[11px] focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
+              className={`h-7 min-w-[340px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
             />
             <div className="relative min-w-[220px]">
               <CustomSelect

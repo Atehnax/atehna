@@ -1398,7 +1398,7 @@ export default function AdminOrdersTable({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Poišči naročila"
-              className="h-7 min-w-[280px] flex-1 rounded-xl border-slate-200 bg-white pl-10 pr-3 text-xs"
+              className="h-7 min-w-[420px] w-full flex-1 rounded-xl border-slate-200 bg-white pl-10 pr-3 font-['Inter',system-ui,sans-serif] text-[11px]"
             />
           }
           headerRight={

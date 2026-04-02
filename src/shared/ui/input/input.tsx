@@ -8,9 +8,10 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ classNam
     <EuiFieldText
       inputRef={ref}
       {...props}
+      fullWidth
       aria-label={props['aria-label'] ?? props.placeholder ?? 'Vnosno polje'}
       className={[
-        'rounded-md border border-slate-300 bg-white text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0 disabled:cursor-default disabled:opacity-60',
+        'rounded-md border border-slate-300 bg-white font-[\'Inter\',system-ui,sans-serif] text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0 disabled:cursor-default disabled:opacity-60',
         className
       ]
         .filter(Boolean)

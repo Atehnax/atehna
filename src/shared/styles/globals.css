@@ -249,6 +249,13 @@ input[type='radio'] {
   background: transparent !important;
 }
 
+.euiFieldText,
+.euiTextArea,
+.euiSelect,
+.euiSelect__button {
+  font-family: "Inter", system-ui, sans-serif !important;
+}
+
 
 [data-floating-field] input:-webkit-autofill,
 [data-floating-field] textarea:-webkit-autofill,

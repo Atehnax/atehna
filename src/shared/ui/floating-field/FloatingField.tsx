@@ -114,7 +114,8 @@ export function FloatingInput({
     <EuiFieldText
       {...props}
       id={id}
-      className={classNames((isStatic ? classes.staticInput : classes.input), isStatic && 'mt-1', className)}
+      fullWidth
+      className={classNames((isStatic ? classes.staticInput : classes.input), isStatic && 'mt-1', "font-['Inter',system-ui,sans-serif]", className)}
       placeholder={placeholder ?? label}
       aria-label={ariaLabel ?? label}
     />
@@ -138,7 +139,8 @@ export function FloatingTextarea({
     <EuiTextArea
       {...props}
       id={id}
-      className={classNames((isStatic ? classes.staticTextarea : classes.textarea), isStatic && 'mt-1', className)}
+      fullWidth
+      className={classNames((isStatic ? classes.staticTextarea : classes.textarea), isStatic && 'mt-1', "font-['Inter',system-ui,sans-serif]", className)}
       placeholder={placeholder ?? label}
       aria-label={ariaLabel ?? label}
     />

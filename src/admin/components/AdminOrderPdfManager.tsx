@@ -69,7 +69,8 @@ const LazyConfirmDialog = dynamic(
   { ssr: false }
 );
 
-const notesBoxClass = `mt-2 h-[44px] overflow-y-auto whitespace-pre-wrap rounded-xl border border-slate-300 px-3 py-1.5 text-[12px] leading-5 text-slate-900 shadow-sm ${ADMIN_TABLE_BG}`;
+const notesReadClass = `mt-2 h-[44px] overflow-y-auto whitespace-pre-wrap rounded-xl border border-slate-300 px-3 py-1.5 text-[11px] leading-5 text-slate-900 shadow-sm font-['Inter',system-ui,sans-serif] ${ADMIN_TABLE_BG}`;
+const notesEditClass = `mt-2 !h-10 min-h-0 !w-full resize-y rounded-xl border border-slate-300 px-3 py-2 text-[11px] leading-5 text-slate-900 shadow-sm font-['Inter',system-ui,sans-serif] ${ADMIN_TABLE_BG}`;
 
 export default function AdminOrderPdfManager({
   orderId,
@@ -298,10 +299,10 @@ export default function AdminOrderPdfManager({
             fullWidth
             placeholder="Opombe"
             aria-label="Opombe"
-            className={`${notesBoxClass} !w-full resize-y font-['Inter',system-ui,sans-serif] outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
+            className={`${notesEditClass} outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
           />
         ) : (
-          <p className={`${notesBoxClass} text-slate-600`}>
+          <p className={`${notesReadClass} text-slate-600`}>
             {persistedNotes.trim()}
           </p>
         )}

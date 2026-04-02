@@ -19,7 +19,6 @@ import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 
 type TopSectionMode = 'read' | 'edit';
 
-const toEditableOrderNumber = (value: string) => value.trim().replace(/^#/, '');
 const toDisplayOrderNumberValue = (value: string) => {
   const trimmed = value.trim();
   if (!trimmed) return '#';
@@ -180,13 +179,12 @@ function CompactDropdown({
 
 export default function AdminOrderHeaderChips(props: Props) {
   const { orderId, orderNumber } = props;
-  const [displayOrderNumber, setDisplayOrderNumber] = useState(toDisplayOrderNumberValue(orderNumber));
+  const [displayOrderNumber] = useState(toDisplayOrderNumberValue(orderNumber));
   const router = useRouter();
 
   const [topSectionMode, setTopSectionMode] = useState<TopSectionMode>('read');
   const [persistedTopData, setPersistedTopData] = useState<TopData>(() => asTopData(props));
   const [draftTopData, setDraftTopData] = useState<TopData>(() => asTopData(props));
-  const [draftOrderNumber, setDraftOrderNumber] = useState(toEditableOrderNumber(orderNumber));
   const [isTopSaving, setIsTopSaving] = useState(false);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -194,10 +192,8 @@ export default function AdminOrderHeaderChips(props: Props) {
   const { toast } = useToast();
 
   const isTopDirty = useMemo(
-    () =>
-      JSON.stringify(draftTopData) !== JSON.stringify(persistedTopData) ||
-      draftOrderNumber.trim() !== toEditableOrderNumber(displayOrderNumber),
-    [draftTopData, persistedTopData, draftOrderNumber, displayOrderNumber]
+    () => JSON.stringify(draftTopData) !== JSON.stringify(persistedTopData),
+    [draftTopData, persistedTopData]
   );
 
   const topInputsEditable = topSectionMode === 'edit';
@@ -206,13 +202,11 @@ export default function AdminOrderHeaderChips(props: Props) {
   const startEdit = () => {
     if (topSectionMode === 'edit') {
       setDraftTopData({ ...persistedTopData });
-      setDraftOrderNumber(toEditableOrderNumber(displayOrderNumber));
       setTopSectionMode('read');
       return;
     }
 
     setDraftTopData({ ...persistedTopData });
-    setDraftOrderNumber(toEditableOrderNumber(displayOrderNumber));
     setTopSectionMode('edit');
   };
 
@@ -241,7 +235,6 @@ export default function AdminOrderHeaderChips(props: Props) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            orderNumber: toDisplayOrderNumberValue(draftOrderNumber),
             customerType: draftTopData.customerType,
             organizationName: draftTopData.organizationName,
             contactName: draftTopData.organizationName.trim() || draftTopData.contactName.trim(),
@@ -258,11 +251,7 @@ export default function AdminOrderHeaderChips(props: Props) {
         throw new Error(error.message || 'Shranjevanje ni uspelo.');
       }
 
-      const resolvedOrderNumber = draftOrderNumber.trim()
-        ? toDisplayOrderNumberValue(draftOrderNumber)
-        : displayOrderNumber;
       setPersistedTopData({ ...draftTopData });
-      setDisplayOrderNumber(resolvedOrderNumber);
       setTopSectionMode('read');
       toast.success('Shranjeno');
       window.dispatchEvent(
@@ -274,7 +263,7 @@ export default function AdminOrderHeaderChips(props: Props) {
             email: draftTopData.email,
             deliveryAddress: draftTopData.deliveryAddress,
             notes: draftTopData.notes,
-            orderNumber: resolvedOrderNumber
+            orderNumber: displayOrderNumber
           }
         })
       );

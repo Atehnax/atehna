@@ -36,13 +36,13 @@ const shellClassName =
   'group relative rounded-xl border border-slate-300 bg-white transition-colors focus-within:border-[#3e67d6] focus-within:ring-2 focus-within:ring-brand-100';
 
 const fieldBaseClassName =
-  'h-10 w-full overflow-visible rounded-xl border-0 bg-transparent px-2.5 pb-1.5 pt-5 font-[\'Inter\',system-ui,sans-serif] text-[11px] leading-6 text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0';
+  'h-10 w-full overflow-visible rounded-xl border-0 bg-transparent px-2.5 py-2 font-[\'Inter\',system-ui,sans-serif] text-[11px] leading-5 text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0';
 
 const textareaFieldClassName =
-  'min-h-10 w-full resize-y overflow-y-auto rounded-xl border-0 bg-transparent px-2.5 py-2 font-[\'Inter\',system-ui,sans-serif] text-[11px] leading-5 text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0';
+  'h-10 min-h-10 w-full resize-y overflow-y-auto rounded-xl border-0 bg-transparent px-2.5 py-2 font-[\'Inter\',system-ui,sans-serif] text-[11px] leading-5 text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0';
 
 const selectFieldClassName =
-  'h-10 w-full appearance-none overflow-visible rounded-xl border-0 bg-transparent px-2.5 pb-0 pt-4 font-[\'Inter\',system-ui,sans-serif] text-[11px] leading-6 text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0';
+  'h-10 w-full appearance-none overflow-visible rounded-xl border-0 bg-transparent px-2.5 py-2 font-[\'Inter\',system-ui,sans-serif] text-[11px] leading-5 text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0';
 
 export default function AdminHeaderField(props: AdminHeaderFieldProps) {
   const { id, label, className = '' } = props;

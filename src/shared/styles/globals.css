@@ -256,6 +256,17 @@ input[type='radio'] {
   font-family: "Inter", system-ui, sans-serif !important;
 }
 
+.admin-scope .euiFieldText,
+.admin-scope .euiTextArea,
+.admin-scope .euiSelect,
+.admin-scope .euiSelect__button,
+.admin-scope input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='color']):not([type='submit']):not([type='button']):not([type='reset']),
+.admin-scope select,
+.admin-scope textarea {
+  font-family: "Inter", system-ui, sans-serif !important;
+  font-size: 11px !important;
+}
+
 
 [data-floating-field] input:-webkit-autofill,
 [data-floating-field] textarea:-webkit-autofill,

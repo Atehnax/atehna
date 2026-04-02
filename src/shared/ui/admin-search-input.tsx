@@ -8,7 +8,7 @@ type AdminSearchInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>
 
 export function AdminSearchInput({ className = '', showIcon = true, ...props }: AdminSearchInputProps) {
   return (
-    <div className="relative min-w-[260px] w-full flex-1">
+    <div className="relative min-w-0 w-full flex-1">
       {showIcon ? (
         <svg
           viewBox="0 0 20 20"
@@ -25,7 +25,7 @@ export function AdminSearchInput({ className = '', showIcon = true, ...props }: 
       <EuiFieldText
         type="search"
         fullWidth
-        className={`!h-7 min-w-[260px] w-full rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} ${showIcon ? 'pl-9' : ''} font-['Inter',system-ui,sans-serif] !text-[11px] text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] ${className}`}
+        className={`!h-7 min-w-0 w-full rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} ${showIcon ? 'pl-9' : ''} font-['Inter',system-ui,sans-serif] !text-[11px] text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] ${className}`}
         aria-label={props['aria-label'] ?? props.placeholder ?? 'Iskanje'}
         {...props}
       />

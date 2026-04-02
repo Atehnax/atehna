@@ -33,7 +33,7 @@ type TextareaFieldProps = BaseProps & {
 type AdminHeaderFieldProps = InputFieldProps | SelectFieldProps | TextareaFieldProps;
 
 const shellClassName =
-  'group relative rounded-xl border border-slate-300 bg-white transition-colors focus-within:border-[#3e67d6] focus-within:ring-2 focus-within:ring-brand-100';
+  'group relative rounded-xl border border-slate-300 bg-white transition-colors focus-within:border-slate-300 focus-within:ring-0';
 
 const fieldBaseClassName =
   'h-10 w-full overflow-visible rounded-xl border-0 bg-transparent px-2.5 py-2 font-[\'Inter\',system-ui,sans-serif] text-[11px] leading-5 text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0';

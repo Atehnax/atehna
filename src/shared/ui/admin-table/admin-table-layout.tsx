@@ -37,8 +37,8 @@ export default function AdminTableLayout({
     <TableShell className={classNames('overflow-hidden border-slate-200 bg-white', className)} style={style}>
       <div className={classNames(ADMIN_TABLE_BG, 'px-3 py-3', headerClassName)}>
         {hasHeaderRow ? (
-          <div className="flex flex-wrap items-end justify-between gap-2">
-            <div className="flex min-w-0 flex-1 flex-wrap items-end gap-2">{headerLeft}</div>
+          <div className="flex flex-nowrap items-end justify-between gap-1.5">
+            <div className="flex min-w-0 flex-1 items-end gap-2">{headerLeft}</div>
             <div className="ml-auto flex flex-wrap items-center justify-end gap-2">{headerRight}</div>
           </div>
         ) : null}

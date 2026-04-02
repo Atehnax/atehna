@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { EuiFieldText } from '@elastic/eui';
 import PaymentChip from '@/admin/components/PaymentChip';
 import StatusChip from '@/admin/components/StatusChip';
 import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/shared/domain/order/customerType';
@@ -24,6 +25,7 @@ const toDisplayOrderNumberValue = (value: string) => {
   if (!trimmed) return '#';
   return trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
 };
+const toEditableOrderNumber = (value: string) => value.trim().replace(/^#/, '');
 
 type TopData = {
   orderDate: string;
@@ -78,7 +80,7 @@ const asTopData = ({
   contactName,
   email,
   deliveryAddress: deliveryAddress ?? '',
-  notes: notes?.trim() ? notes : '/',
+  notes: notes?.trim() ? notes : '',
   status,
   paymentStatus: isPaymentStatus(paymentStatus ?? '') ? paymentStatus ?? 'unpaid' : 'unpaid'
 });
@@ -145,7 +147,7 @@ function CompactDropdown({
         disabled={disabled}
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        className={`inline-flex h-8 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-left text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] disabled:cursor-default disabled:opacity-60 ${buttonClassName}`}
+        className={`inline-flex h-8 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-left text-xs font-semibold leading-[1.2] text-slate-700 shadow-sm transition hover:border-slate-400 focus:border-slate-300 focus:outline-none focus:ring-0 focus-visible:border-slate-300 disabled:cursor-default disabled:opacity-60 ${buttonClassName}`}
       >
         <span className="block min-w-0 flex-1 truncate text-left">{selectedLabel}</span>
         <span className="ml-2 shrink-0 text-slate-500">▾</span>
@@ -179,12 +181,13 @@ function CompactDropdown({
 
 export default function AdminOrderHeaderChips(props: Props) {
   const { orderId, orderNumber } = props;
-  const [displayOrderNumber] = useState(toDisplayOrderNumberValue(orderNumber));
+  const [displayOrderNumber, setDisplayOrderNumber] = useState(toDisplayOrderNumberValue(orderNumber));
   const router = useRouter();
 
   const [topSectionMode, setTopSectionMode] = useState<TopSectionMode>('read');
   const [persistedTopData, setPersistedTopData] = useState<TopData>(() => asTopData(props));
   const [draftTopData, setDraftTopData] = useState<TopData>(() => asTopData(props));
+  const [draftOrderNumber, setDraftOrderNumber] = useState(toEditableOrderNumber(orderNumber));
   const [isTopSaving, setIsTopSaving] = useState(false);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -192,8 +195,10 @@ export default function AdminOrderHeaderChips(props: Props) {
   const { toast } = useToast();
 
   const isTopDirty = useMemo(
-    () => JSON.stringify(draftTopData) !== JSON.stringify(persistedTopData),
-    [draftTopData, persistedTopData]
+    () =>
+      JSON.stringify(draftTopData) !== JSON.stringify(persistedTopData) ||
+      draftOrderNumber.trim() !== toEditableOrderNumber(displayOrderNumber),
+    [draftTopData, persistedTopData, draftOrderNumber, displayOrderNumber]
   );
 
   const topInputsEditable = topSectionMode === 'edit';
@@ -202,11 +207,13 @@ export default function AdminOrderHeaderChips(props: Props) {
   const startEdit = () => {
     if (topSectionMode === 'edit') {
       setDraftTopData({ ...persistedTopData });
+      setDraftOrderNumber(toEditableOrderNumber(displayOrderNumber));
       setTopSectionMode('read');
       return;
     }
 
     setDraftTopData({ ...persistedTopData });
+    setDraftOrderNumber(toEditableOrderNumber(displayOrderNumber));
     setTopSectionMode('edit');
   };
 
@@ -235,6 +242,7 @@ export default function AdminOrderHeaderChips(props: Props) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            orderNumber: toDisplayOrderNumberValue(draftOrderNumber),
             customerType: draftTopData.customerType,
             organizationName: draftTopData.organizationName,
             contactName: draftTopData.organizationName.trim() || draftTopData.contactName.trim(),
@@ -251,7 +259,11 @@ export default function AdminOrderHeaderChips(props: Props) {
         throw new Error(error.message || 'Shranjevanje ni uspelo.');
       }
 
+      const resolvedOrderNumber = draftOrderNumber.trim()
+        ? toDisplayOrderNumberValue(draftOrderNumber)
+        : displayOrderNumber;
       setPersistedTopData({ ...draftTopData });
+      setDisplayOrderNumber(resolvedOrderNumber);
       setTopSectionMode('read');
       toast.success('Shranjeno');
       window.dispatchEvent(
@@ -263,7 +275,7 @@ export default function AdminOrderHeaderChips(props: Props) {
             email: draftTopData.email,
             deliveryAddress: draftTopData.deliveryAddress,
             notes: draftTopData.notes,
-            orderNumber: displayOrderNumber
+            orderNumber: resolvedOrderNumber
           }
         })
       );
@@ -294,12 +306,27 @@ export default function AdminOrderHeaderChips(props: Props) {
   };
 
   const activeTopData = topInputsEditable ? draftTopData : persistedTopData;
-  const displayValue = (value: string) => (value?.trim() ? value : '/');
+  const displayValue = (value: string) => (value?.trim() ? value : '');
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-4 py-3 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">{`Naročilo ${displayOrderNumber}`}</h1>
+        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-900">
+          <span>Naročilo #</span>
+          {topInputsEditable ? (
+            <EuiFieldText
+              value={draftOrderNumber}
+              onChange={(event) =>
+                setDraftOrderNumber(event.target.value.replace(/[^\d]/g, ''))
+              }
+              inputMode="numeric"
+              aria-label="Številka naročila"
+              className="!h-auto !w-24 border-0 bg-transparent p-0 text-2xl font-bold leading-none tracking-tight text-slate-900 shadow-none focus:border-0 focus:shadow-none focus:outline-none focus:ring-0"
+            />
+          ) : (
+            <span>{toEditableOrderNumber(displayOrderNumber)}</span>
+          )}
+        </h1>
 
         <div className="ml-auto flex items-center gap-1.5">
           {topInputsEditable ? (

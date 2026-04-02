@@ -70,7 +70,7 @@ const LazyConfirmDialog = dynamic(
 );
 
 const notesReadClass = `mt-2 h-[44px] overflow-y-auto whitespace-pre-wrap rounded-xl border border-slate-300 px-3 py-1.5 text-[11px] leading-5 text-slate-900 shadow-sm font-['Inter',system-ui,sans-serif] ${ADMIN_TABLE_BG}`;
-const notesEditClass = `mt-2 !h-10 min-h-0 !w-full resize-y rounded-xl border border-slate-300 px-3 py-2 text-[11px] leading-5 text-slate-900 shadow-sm font-['Inter',system-ui,sans-serif] ${ADMIN_TABLE_BG}`;
+const notesEditClass = `mt-2 min-h-0 !w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-[11px] leading-5 text-slate-900 shadow-sm font-['Inter',system-ui,sans-serif] ${ADMIN_TABLE_BG}`;
 
 export default function AdminOrderPdfManager({
   orderId,
@@ -295,7 +295,7 @@ export default function AdminOrderPdfManager({
           <EuiTextArea
             value={draftNotes}
             onChange={(event) => setDraftNotes(event.target.value)}
-            rows={1}
+            rows={3}
             fullWidth
             placeholder="Opombe"
             aria-label="Opombe"

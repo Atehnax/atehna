@@ -29,7 +29,7 @@ export default function EuiTablePagination({
     return (
       <div aria-label="Paginacija tabele" className={`inline-flex items-center gap-2 ${className ?? ''}`.trim()}>
         <span className="text-[11px] text-slate-600">Vrstic na stran</span>
-        <PageSizeSelect value={itemsPerPage} options={itemsPerPageOptions} onChange={onChangeItemsPerPage} className="[&_button]:!h-7 [&_button]:!w-[56px]" />
+        <PageSizeSelect value={itemsPerPage} options={itemsPerPageOptions} onChange={onChangeItemsPerPage} className="w-[55px]" />
         <Pagination page={page} pageCount={pageCount} onPageChange={onPageChange} variant="topPills" size="sm" showNumbers={false} />
       </div>
     );
@@ -42,7 +42,7 @@ export default function EuiTablePagination({
         value={itemsPerPage}
         options={itemsPerPageOptions}
         onChange={onChangeItemsPerPage}
-        className="[&_button]:!h-7 [&_button]:!w-[56px]"
+        className="w-[55px]"
       />
       <ElasticPagination
         pageCount={Math.max(pageCount, 1)}

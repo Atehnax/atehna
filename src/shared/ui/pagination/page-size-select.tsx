@@ -24,8 +24,9 @@ export default function PageSizeSelect({
         value={String(value)}
         onChange={(next) => onChange(Number(next))}
         options={options.map((option) => ({ value: String(option), label: String(option) }))}
-        className="!pb-0 !pt-0 flex h-8 w-[56px] items-center justify-center rounded-md border border-slate-300 bg-transparent px-2 text-xs font-semibold leading-none text-slate-700 shadow-none"
-        valueClassName="inline-flex h-full w-full items-center justify-center text-center leading-none"
+        className="!w-full !px-[5px] !py-0"
+        triggerClassName="!pr-4"
+        valueClassName="inline-flex h-full w-full items-center justify-center text-center leading-none tabular-nums"
         menuClassName="w-full"
       />
     </div>

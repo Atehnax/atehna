@@ -29,7 +29,11 @@ export default function MenuItem({
       aria-selected={role === 'option' ? ariaSelected : undefined}
       onClick={onClick}
       disabled={disabled}
-      className={classNames(selectTokenClasses.menuItem, isActive && 'text-slate-700', className)}
+      className={classNames(
+        selectTokenClasses.menuItem,
+        isActive && 'text-slate-700',
+        className
+      )}
     >
       {children}
     </button>

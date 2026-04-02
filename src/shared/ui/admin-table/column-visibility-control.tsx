@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { MenuPanel } from '@/shared/ui/menu';
+import { selectTokenClasses } from '@/shared/ui/theme/tokens';
 
 type ColumnOption = {
   key: string;
@@ -55,7 +57,7 @@ export function ColumnVisibilityControl({
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className={`inline-flex h-8 items-center justify-center rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 ${showLabel ? 'min-w-[92px] gap-2 px-2.5' : 'w-8 px-0'}`}
+        className={`${selectTokenClasses.trigger} justify-center ${showLabel ? 'min-w-[92px] gap-2 px-2.5 pr-5' : 'w-8 !p-0'} ${isOpen ? 'bg-[color:var(--hover-neutral)]' : ''}`}
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-label="Filtriraj stolpce"
@@ -74,13 +76,14 @@ export function ColumnVisibilityControl({
         )}
       </button>
       {isOpen ? (
-        <div className={`absolute right-0 top-9 z-30 w-52 rounded-xl border border-slate-200 bg-white p-2 shadow-lg ${menuClassName ?? ''}`} role="menu">
+        <div className="absolute right-0 top-9 z-30" role="menu">
+          <MenuPanel className={`w-52 ${selectTokenClasses.menu} ${menuClassName ?? ''}`}>
           {options.map((option) => {
             const isChecked = visibleMap[option.key] ?? false;
             return (
               <label
                 key={option.key}
-                className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-[11px] text-slate-700 hover:bg-slate-50"
+                className={`${selectTokenClasses.menuItem} cursor-pointer gap-2`}
               >
                 <input
                   type="checkbox"
@@ -93,6 +96,7 @@ export function ColumnVisibilityControl({
               </label>
             );
           })}
+          </MenuPanel>
         </div>
       ) : null}
     </div>

@@ -2,6 +2,7 @@ import AdminOrdersTableLoader from '@/admin/components/AdminOrdersTableLoader';
 import AdminCreateDraftOrderButton from '@/admin/components/AdminCreateDraftOrderButton';
 import {
   type OrderRow,
+  fetchOrders,
   fetchOrdersListPage
 } from '@/shared/server/orders';
 import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
@@ -146,20 +147,15 @@ async function AdminOrdersTableSection({
           page,
           pageSize
         }),
-        fetchOrdersListPage({
+        fetchOrders({
           includeDrafts: true,
           fromDate: toIsoOrNull(from),
-          toDate: getToDateIsoOrNull(to),
-          query,
-          status,
-          documentType,
-          page: 1,
-          pageSize: 5000
+          toDate: getToDateIsoOrNull(to)
         }),
         fetchGlobalAnalyticsAppearance('narocila', '/admin/orders').catch(() => fallbackAppearance)
       ]);
       orders = ordersPageResult.orders;
-      analyticsOrders = analyticsOrdersResult.orders;
+      analyticsOrders = analyticsOrdersResult;
       documents = ordersPageResult.documentSummaries.map((documentSummary, index) => ({
         id: index + 1,
         order_id: documentSummary.order_id,

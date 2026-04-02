@@ -32,7 +32,6 @@ export default function MenuItem({
       className={classNames(
         selectTokenClasses.menuItem,
         isActive && 'text-slate-700',
-        ariaSelected && role === 'option' && 'bg-[color:var(--hover-neutral)]',
         className
       )}
     >

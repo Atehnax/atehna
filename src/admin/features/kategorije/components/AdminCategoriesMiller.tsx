@@ -1,5 +1,6 @@
 import { useMemo, type RefObject, type ReactNode } from 'react';
 import Selecto from 'react-selecto';
+import { EuiFieldText } from '@elastic/eui';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { ActionRestoreIcon, ActionUndoIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
@@ -299,7 +300,7 @@ export function AdminCategoriesMiller({
                   {renderDropMarker(column.key, 0)}
                   {column.rows.map((row, rowIndex) => (
                     millerRename?.id === row.id && row.kind !== 'item' ? (
-                      <input
+                      <EuiFieldText
                         id={`miller-rename-${row.id}`}
                         name={`millerRename-${row.id}`}
                         key={row.id}
@@ -311,6 +312,8 @@ export function AdminCategoriesMiller({
                           if (event.key === 'Escape') setMillerRename(null);
                         }}
                         className="block w-full rounded-md border border-[#3e67d6]/40 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 outline-none"
+                        placeholder="Ime"
+                        aria-label="Preimenuj"
                         autoFocus
                       />
                     ) : (

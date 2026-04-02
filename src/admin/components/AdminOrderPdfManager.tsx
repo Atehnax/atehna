@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useMemo, useRef, useState } from 'react';
+import { EuiTextArea } from '@elastic/eui';
 import { IconButton } from '@/shared/ui/icon-button';
 import {
   CheckCircleIcon,
@@ -290,10 +291,12 @@ export default function AdminOrderPdfManager({
         </div>
 
         {notesSectionMode === 'edit' ? (
-          <textarea
+          <EuiTextArea
             value={draftNotes}
             onChange={(event) => setDraftNotes(event.target.value)}
             rows={2}
+            placeholder="Opombe"
+            aria-label="Opombe"
             className={`${notesBoxClass} w-full resize-y outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
           />
         ) : (

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { EuiFieldText } from '@elastic/eui';
 import type { CatalogSearchItem } from '@/commercial/catalog/catalog';
 
 type ItemSearchProps = {
@@ -42,7 +43,7 @@ export default function ItemSearch({
 
   return (
     <div className="relative">
-      <input
+      <EuiFieldText
         type="search"
         value={query}
         onChange={(event) => {
@@ -51,6 +52,7 @@ export default function ItemSearch({
         }}
         onFocus={() => onOpen?.()}
         placeholder={placeholder}
+        aria-label={placeholder}
         className="w-full rounded-full border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
       />
       {normalizedQuery && (

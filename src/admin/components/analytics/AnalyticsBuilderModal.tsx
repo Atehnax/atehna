@@ -1,6 +1,7 @@
 'use client';
 
 import PlotlyClient from '@/admin/components/charts/PlotlyClient';
+import { EuiFieldText } from '@elastic/eui';
 import { buildChartModel, chartTypeOptions, metricOptions, newSeries, transformOptions, updateSeries } from '@/admin/components/analytics/adminAnalyticsShared';
 import type { ChartTheme } from '@/admin/components/charts/chartTheme';
 import type { OrdersAnalyticsResponse } from '@/shared/server/orderAnalytics';
@@ -38,7 +39,7 @@ export default function AnalyticsBuilderModal({ title, description, comment, cha
                   <td className="px-2 py-1"><select value={series.transform} className="rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { transform: event.target.value as AnalyticsChartSeries['transform'] }))}>{transformOptions.map((transformOption) => <option key={transformOption} value={transformOption}>{transformOption}</option>)}</select></td>
                   <td className="px-2 py-1"><select value={series.chart_type} className="rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { chart_type: event.target.value as AnalyticsChartType }))}>{chartTypeOptions.map((typeOption) => <option key={typeOption} value={typeOption}>{typeOption}</option>)}</select></td>
                   <td className="px-2 py-1"><select value={series.axis_side} className="rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { axis_side: event.target.value as 'left' | 'right' }))}><option value="left">left</option><option value="right">right</option></select></td>
-                  <td className="px-2 py-1"><input value={series.axis_label} className="w-24 rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { axis_label: event.target.value }))} /></td>
+                  <td className="px-2 py-1"><EuiFieldText value={series.axis_label} className="w-24 rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { axis_label: event.target.value }))} aria-label="Axis label" /></td>
                   <td className="px-2 py-1"><input type="color" value={series.color} onChange={(event) => onChangeConfig(updateSeries(config, index, { color: event.target.value }))} /></td>
                   <td className="px-2 py-1"><button className="rounded border border-rose-500 px-2 py-0.5 text-[11px] text-rose-300" onClick={() => onChangeConfig({ ...config, series: config.series.filter((_, seriesIndex) => seriesIndex !== index) })}>x</button></td>
                 </tr>
@@ -54,5 +55,5 @@ export default function AnalyticsBuilderModal({ title, description, comment, cha
 }
 
 function LabeledInput({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  return <label className="text-xs text-slate-300">{label}<input className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1" value={value} onChange={(event) => onChange(event.target.value)} /></label>;
+  return <label className="text-xs text-slate-300">{label}<EuiFieldText className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1" value={value} onChange={(event) => onChange(event.target.value)} aria-label={label} /></label>;
 }

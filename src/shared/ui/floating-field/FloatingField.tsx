@@ -5,6 +5,7 @@ import type {
   SelectHTMLAttributes,
   TextareaHTMLAttributes
 } from 'react';
+import { EuiFieldText, EuiTextArea } from '@elastic/eui';
 
 import './floating-field.css';
 
@@ -21,8 +22,8 @@ type BaseProps = {
 
 type FieldBackground = 'default' | 'muted';
 
-type FloatingInputProps = BaseProps & Omit<InputHTMLAttributes<HTMLInputElement>, 'id' | 'placeholder'>;
-type FloatingTextareaProps = BaseProps & Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'id' | 'placeholder'>;
+type FloatingInputProps = BaseProps & Omit<InputHTMLAttributes<HTMLInputElement>, 'id'>;
+type FloatingTextareaProps = BaseProps & Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'id'>;
 type FloatingSelectProps = BaseProps &
   Omit<SelectHTMLAttributes<HTMLSelectElement>, 'id'> & {
     children: ReactNode;
@@ -30,11 +31,6 @@ type FloatingSelectProps = BaseProps &
 
 const classNames = (...parts: Array<string | false | null | undefined>) =>
   parts.filter(Boolean).join(' ');
-
-const isFilled = (value: unknown) => {
-  if (value === null || value === undefined) return false;
-  return String(value).length > 0;
-};
 
 const getFieldBackground = (disabled?: boolean, readOnly?: boolean): FieldBackground => {
   if (disabled || readOnly) return 'muted';
@@ -107,40 +103,22 @@ export function FloatingInput({
   className = '',
   tone = 'order',
   labelMode = 'floating',
+  placeholder,
+  'aria-label': ariaLabel,
   ...props
 }: FloatingInputProps) {
-  const filled = isFilled(props.value ?? props.defaultValue);
   const classes = toneClasses[tone];
-  const fieldBackground = getFieldBackground(props.disabled, props.readOnly);
-  const fieldBackgroundVariable =
-    ({ '--field-bg': fieldBackground === 'muted' ? 'rgb(248 250 252)' : 'rgb(255 255 255)' } as CSSProperties);
-
   const isStatic = labelMode === 'static';
-
-  return (
-    <div
-      className={classNames(classes.shell, isStatic && classes.staticShell)}
-      data-floating-field
-      data-filled={filled ? 'true' : 'false'}
-      style={{ ...fieldBackgroundVariable, backgroundColor: 'var(--field-bg)' }}
-    >
-      {isStatic ? (
-        <>
-          <label htmlFor={id} className={classes.inputLabelStatic}>
-            {label}
-          </label>
-          <input {...props} id={id} className={classNames(classes.staticInput, 'mt-1', className)} />
-        </>
-      ) : (
-        <>
-          <input {...props} id={id} placeholder=" " className={classNames(classes.input, className)} />
-          <label htmlFor={id} className={classes.inputLabel}>
-            {label}
-          </label>
-        </>
-      )}
-    </div>
-  );
+  const muted = getFieldBackground(props.disabled, props.readOnly) === 'muted';
+  return <div className={classNames(classes.shell, isStatic && classes.staticShell, muted && 'bg-slate-50')} data-floating-field>
+    <EuiFieldText
+      {...props}
+      id={id}
+      className={classNames((isStatic ? classes.staticInput : classes.input), isStatic && 'mt-1', className)}
+      placeholder={placeholder ?? label}
+      aria-label={ariaLabel ?? label}
+    />
+  </div>;
 }
 
 export function FloatingTextarea({
@@ -149,40 +127,22 @@ export function FloatingTextarea({
   className = '',
   tone = 'order',
   labelMode = 'floating',
+  placeholder,
+  'aria-label': ariaLabel,
   ...props
 }: FloatingTextareaProps) {
-  const filled = isFilled(props.value ?? props.defaultValue);
   const classes = toneClasses[tone];
-  const fieldBackground = getFieldBackground(props.disabled, props.readOnly);
-  const fieldBackgroundVariable =
-    ({ '--field-bg': fieldBackground === 'muted' ? 'rgb(248 250 252)' : 'rgb(255 255 255)' } as CSSProperties);
-
   const isStatic = labelMode === 'static';
-
-  return (
-    <div
-      className={classNames(classes.shell, isStatic && classes.staticShell)}
-      data-floating-field
-      data-filled={filled ? 'true' : 'false'}
-      style={{ ...fieldBackgroundVariable, backgroundColor: 'var(--field-bg)' }}
-    >
-      {isStatic ? (
-        <>
-          <label htmlFor={id} className={classes.textareaLabelStatic}>
-            {label}
-          </label>
-          <textarea {...props} id={id} className={classNames(classes.staticTextarea, 'mt-1', className)} />
-        </>
-      ) : (
-        <>
-          <textarea {...props} id={id} placeholder=" " className={classNames(classes.textarea, className)} />
-          <label htmlFor={id} className={classes.textareaLabel}>
-            {label}
-          </label>
-        </>
-      )}
-    </div>
-  );
+  const muted = getFieldBackground(props.disabled, props.readOnly) === 'muted';
+  return <div className={classNames(classes.shell, isStatic && classes.staticShell, muted && 'bg-slate-50')} data-floating-field>
+    <EuiTextArea
+      {...props}
+      id={id}
+      className={classNames((isStatic ? classes.staticTextarea : classes.textarea), isStatic && 'mt-1', className)}
+      placeholder={placeholder ?? label}
+      aria-label={ariaLabel ?? label}
+    />
+  </div>;
 }
 
 export function FloatingSelect({

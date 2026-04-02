@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { EuiFieldText } from '@elastic/eui';
 import PaymentChip from '@/admin/components/PaymentChip';
 import StatusChip from '@/admin/components/StatusChip';
 import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/shared/domain/order/customerType';
@@ -313,7 +314,7 @@ export default function AdminOrderHeaderChips(props: Props) {
         {topInputsEditable ? (
           <div className="flex h-9 w-full max-w-none items-center gap-1 rounded-md border border-slate-300 bg-white px-1 text-2xl font-bold tracking-tight text-slate-900 transition focus-within:border-[#3e67d6] sm:max-w-[15ch]">
             <span className="shrink-0">Naročilo #</span>
-            <input
+            <EuiFieldText
               value={draftOrderNumber}
               onChange={(event) => setDraftOrderNumber(event.target.value.replace(/[^\d]/g, ''))}
               className="w-full min-w-[4ch] bg-transparent text-2xl font-bold tracking-tight text-slate-900 outline-none focus:ring-0"

@@ -1,6 +1,7 @@
 import type { RefObject, ReactNode } from 'react';
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { EuiFieldText } from '@elastic/eui';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
@@ -93,12 +94,13 @@ export function AdminCategoriesTableView({
           className="border"
           contentClassName="overflow-x-auto"
           headerLeft={
-            <input
+            <EuiFieldText
               id="categories-table-search"
               name="categoriesTableSearch"
               value={query}
               onChange={(event) => onQueryChange(event.target.value)}
               placeholder="Išči po kategoriji ali opisu ..."
+              aria-label="Iskanje kategorij"
               className={`${ADMIN_CONTROL_HEIGHT} min-w-[240px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} text-[11px] text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
             />
           }

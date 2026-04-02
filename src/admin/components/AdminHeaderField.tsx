@@ -1,6 +1,7 @@
 'use client';
 
 import type { ChangeEventHandler, ReactNode } from 'react';
+import { EuiFieldText, EuiTextArea } from '@elastic/eui';
 import { dateInputTokenClasses } from '@/shared/ui/theme/tokens';
 
 type BaseProps = {
@@ -45,13 +46,6 @@ export default function AdminHeaderField(props: AdminHeaderFieldProps) {
 
   return (
     <div className={shellClassName}>
-      <label
-        htmlFor={id}
-        className="pointer-events-none absolute left-2.5 top-1.5 z-10 bg-white px-1 text-[10px] text-slate-600"
-      >
-        {label}
-      </label>
-
       {props.kind === 'select' ? (
         <>
           <select
@@ -65,18 +59,22 @@ export default function AdminHeaderField(props: AdminHeaderFieldProps) {
           <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500">▾</span>
         </>
       ) : props.kind === 'textarea' ? (
-        <textarea
+        <EuiTextArea
           id={id}
           value={props.value}
           onChange={props.onChange}
+          placeholder={label}
+          aria-label={label}
           className={`${fieldBaseClassName} resize-y overflow-y-hidden ${className}`}
         />
       ) : (
-        <input
+        <EuiFieldText
           id={id}
           type={props.type ?? 'text'}
           value={props.value}
           onChange={props.onChange}
+          placeholder={label}
+          aria-label={label}
           className={`${props.type === 'date' ? `${dateInputTokenClasses.base} ${dateInputTokenClasses.floating}` : fieldBaseClassName} ${className}`}
         />
       )}

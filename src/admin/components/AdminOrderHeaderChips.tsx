@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { EuiFieldText } from '@elastic/eui';
 import PaymentChip from '@/admin/components/PaymentChip';
 import StatusChip from '@/admin/components/StatusChip';
 import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/shared/domain/order/customerType';
@@ -311,21 +310,7 @@ export default function AdminOrderHeaderChips(props: Props) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-4 py-3 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        {topInputsEditable ? (
-          <div className="flex h-9 w-full max-w-none items-center gap-1 rounded-md border border-slate-300 bg-white px-1 text-2xl font-bold tracking-tight text-slate-900 transition focus-within:border-[#3e67d6] sm:max-w-[15ch]">
-            <span className="shrink-0">Naročilo #</span>
-            <EuiFieldText
-              value={draftOrderNumber}
-              onChange={(event) => setDraftOrderNumber(event.target.value.replace(/[^\d]/g, ''))}
-              fullWidth
-              className="w-full min-w-[4ch] border-0 bg-transparent p-0 font-['Inter',system-ui,sans-serif] text-2xl font-bold tracking-tight text-slate-900 outline-none focus:ring-0"
-              aria-label="Številka naročila"
-              inputMode="numeric"
-            />
-          </div>
-        ) : (
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{`Naročilo ${displayOrderNumber}`}</h1>
-        )}
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">{`Naročilo ${displayOrderNumber}`}</h1>
 
         <div className="ml-auto flex items-center gap-1.5">
           {topInputsEditable ? (
@@ -435,7 +420,6 @@ export default function AdminOrderHeaderChips(props: Props) {
           />
 
           <AdminHeaderField
-            kind="textarea"
             id="notes"
             label="Opombe"
             value={activeTopData.notes}

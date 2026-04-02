@@ -12,7 +12,7 @@ export function AdminSearchInput({ className = '', showIcon = true, ...props }: 
       {showIcon ? (
         <svg
           viewBox="0 0 20 20"
-          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+          className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-500"
           fill="none"
           stroke="currentColor"
           strokeWidth="1.8"

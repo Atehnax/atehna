@@ -1403,7 +1403,7 @@ export default function AdminOrdersTable({
           }
           headerRight={
             <>
-              <div className="flex items-center gap-2">
+              <div className="flex h-7 items-center gap-2 self-center">
                 <IconButton
                   type="button"
                   onClick={handleDownloadAllDocuments}

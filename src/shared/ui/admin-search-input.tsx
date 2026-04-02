@@ -12,7 +12,7 @@ export function AdminSearchInput({ className = '', showIcon = true, ...props }: 
       {showIcon ? (
         <svg
           viewBox="0 0 20 20"
-          className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-500"
+          className="pointer-events-none absolute left-2.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-500"
           fill="none"
           stroke="currentColor"
           strokeWidth="1.8"
@@ -25,7 +25,7 @@ export function AdminSearchInput({ className = '', showIcon = true, ...props }: 
       <EuiFieldText
         type="search"
         fullWidth
-        className={`!h-7 min-w-0 w-full rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} ${showIcon ? 'pl-9' : ''} font-['Inter',system-ui,sans-serif] !text-[11px] text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] ${className}`}
+        className={`!h-7 min-w-0 w-full rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} ${showIcon ? '!pl-9' : ''} font-['Inter',system-ui,sans-serif] !text-[11px] text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] ${className}`}
         aria-label={props['aria-label'] ?? props.placeholder ?? 'Iskanje'}
         {...props}
       />

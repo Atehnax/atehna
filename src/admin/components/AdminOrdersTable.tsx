@@ -1394,13 +1394,14 @@ export default function AdminOrdersTable({
           showDivider={false}
           headerLeft={
             <div className="flex h-7 w-full items-stretch">
-              <input
+              <EuiFieldText
                 type="text"
+                fullWidth
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Poišči naročila"
                 aria-label="Poišči naročila"
-                className="h-7 min-w-0 w-full flex-1 rounded-xl border border-slate-300 bg-white px-3 font-['Inter',system-ui,sans-serif] text-[11px] text-slate-700 shadow-none outline-none ring-0 transition-colors placeholder:text-slate-400 focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0"
+                className="!m-0 !h-7 min-w-0 w-full flex-1 !rounded-xl !border !border-slate-300 !bg-white px-3 font-['Inter',system-ui,sans-serif] !text-[11px] text-slate-700 !shadow-none ring-0 transition-colors placeholder:text-slate-400 focus:!border-[#3e67d6] focus:!outline-none focus:!ring-0 focus:!shadow-none"
               />
             </div>
           }

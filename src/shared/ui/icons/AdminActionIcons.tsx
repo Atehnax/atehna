@@ -16,7 +16,7 @@ export function DownloadIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -36,7 +36,7 @@ export function UploadIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -316,7 +316,7 @@ export function GeneratePdfIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.7"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"

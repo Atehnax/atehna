@@ -1,16 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { EuiFieldText } from '@elastic/eui';
 import PaymentChip from '@/admin/components/PaymentChip';
 import StatusChip from '@/admin/components/StatusChip';
 import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/shared/domain/order/customerType';
 import { ORDER_STATUS_OPTIONS } from '@/shared/domain/order/orderStatus';
 import { toDateInputValue } from '@/shared/domain/order/dateTime';
 import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/shared/domain/order/paymentStatus';
-import AdminHeaderField from '@/admin/components/AdminHeaderField';
-import { CustomSelect } from '@/shared/ui/select';
+import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { IconButton } from '@/shared/ui/icon-button';
 import { PencilIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
@@ -51,6 +49,77 @@ type Props = {
   notes: string | null;
   createdAt: string;
 };
+
+function ChipDropdown({
+  value,
+  options,
+  onChange,
+  renderChip,
+  disabled = false
+}: {
+  value: string;
+  options: readonly Array<{ value: string; label: string }>;
+  onChange: (value: string) => void;
+  renderChip: (value: string) => ReactNode;
+  disabled?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onDocClick = (event: MouseEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) setIsOpen(false);
+    };
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onEscape);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onEscape);
+    };
+  }, [isOpen]);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => {
+          if (disabled) return;
+          setIsOpen((prev) => !prev);
+        }}
+        disabled={disabled}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        className="relative block rounded-full focus:outline-none disabled:cursor-default disabled:opacity-60"
+      >
+        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span>
+        <span className="block pr-4">{renderChip(value)}</span>
+      </button>
+
+      {isOpen ? (
+        <div role="menu">
+          <MenuPanel className="absolute left-0 top-9 z-30 min-w-[150px]">
+            {options.map((option) => (
+              <MenuItem
+                key={option.value}
+                isActive={option.value === value}
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+              >
+                {option.label}
+              </MenuItem>
+            ))}
+          </MenuPanel>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 const asTopData = ({
   createdAt,
@@ -113,8 +182,6 @@ export default function AdminOrderHeaderChips(props: Props) {
 
   const topInputsEditable = topSectionMode === 'edit';
   const topSaveDisabled = topSectionMode !== 'edit' || isTopSaving;
-  const topSelectClassName = "w-[120px] !h-8 !rounded-xl !px-3 text-xs hover:!bg-white active:!bg-white";
-
   const startEdit = () => {
     if (topSectionMode === 'edit') {
       setDraftTopData({ ...persistedTopData });
@@ -227,14 +294,15 @@ export default function AdminOrderHeaderChips(props: Props) {
           <span className="inline-flex h-10 items-center gap-0">
             <span>#</span>
           {topInputsEditable ? (
-            <EuiFieldText
+            <input
+              type="text"
               value={draftOrderNumber}
               onChange={(event) =>
                 setDraftOrderNumber(event.target.value.replace(/[^\d]/g, ''))
               }
               inputMode="numeric"
               aria-label="Številka naročila"
-              className="!m-0 !h-10 !w-24 rounded-xl border border-slate-300 bg-white px-2.5 !text-inherit !font-inherit leading-none tracking-tight text-slate-900 shadow-none focus:border-[#3e67d6] focus:outline-none focus:ring-0"
+              className="m-0 h-10 w-24 rounded-xl border border-slate-300 bg-white px-2.5 text-inherit font-inherit leading-none tracking-tight text-slate-900 shadow-none outline-none focus:border-[#3e67d6]"
             />
           ) : (
             <span>{toEditableOrderNumber(displayOrderNumber)}</span>
@@ -245,22 +313,20 @@ export default function AdminOrderHeaderChips(props: Props) {
         <div className="ml-auto flex items-center gap-1.5">
           {topInputsEditable ? (
             <>
-              <CustomSelect
+              <ChipDropdown
                 value={draftTopData.status}
-                onChange={(value) => setDraftTopData((prev) => ({ ...prev, status: value }))}
                 options={ORDER_STATUS_OPTIONS}
                 disabled={isTopSaving}
-                className={topSelectClassName}
-                menuClassName="max-w-[280px]"
+                onChange={(value) => setDraftTopData((prev) => ({ ...prev, status: value }))}
+                renderChip={(value) => <StatusChip status={value} />}
               />
 
-              <CustomSelect
+              <ChipDropdown
                 value={draftTopData.paymentStatus}
-                onChange={(value) => setDraftTopData((prev) => ({ ...prev, paymentStatus: value }))}
                 options={PAYMENT_STATUS_OPTIONS}
                 disabled={isTopSaving}
-                className={topSelectClassName}
-                menuClassName="max-w-[280px]"
+                onChange={(value) => setDraftTopData((prev) => ({ ...prev, paymentStatus: value }))}
+                renderChip={(value) => <PaymentChip status={value} />}
               />
             </>
           ) : (
@@ -306,56 +372,66 @@ export default function AdminOrderHeaderChips(props: Props) {
       </div>
 
       {topInputsEditable ? (
-        <div className="mt-4 grid min-h-[132px] items-start gap-3 text-[12px] md:grid-cols-2">
-          <AdminHeaderField
-            id="orderDate"
-            label="Datum"
-            type="date"
-            value={activeTopData.orderDate}
-            onChange={(event) => setDraftTopData((prev) => ({ ...prev, orderDate: event.target.value }))}
-            className="border-0 bg-transparent px-2.5 py-2 font-['Inter',system-ui,sans-serif] text-[11px] leading-5 text-slate-900 focus:border-0 focus:ring-0"
-          />
-
-          <div className="group relative rounded-xl border border-slate-300 bg-white transition-colors focus-within:border-[#3e67d6] focus-within:ring-2 focus-within:ring-brand-100">
-            <CustomSelect
-              value={activeTopData.customerType}
-              onChange={(value) => setDraftTopData((prev) => ({ ...prev, customerType: value }))}
-              options={CUSTOMER_TYPE_FORM_OPTIONS}
-              placeholder="Tip naročnika"
-              className="!h-10 !pb-0 !pt-0 pr-7 font-['Inter',system-ui,sans-serif] text-[11px]"
-              menuClassName="max-w-[280px]"
-              disabled={isTopSaving}
+        <div className="mt-4 grid min-h-[132px] gap-3 text-[12px] md:grid-cols-2">
+          <div className="min-h-10 px-2.5">
+            <p className="text-sm font-semibold text-slate-700">Datum</p>
+            <input
+              type="date"
+              value={activeTopData.orderDate}
+              onChange={(event) => setDraftTopData((prev) => ({ ...prev, orderDate: event.target.value }))}
+              className="mt-0.5 h-5 w-full border-0 bg-transparent px-0 text-xs leading-5 text-slate-900 outline-none"
             />
           </div>
-
-          <AdminHeaderField
-            id="organizationName"
-            label="Naročnik"
-            value={activeTopData.organizationName}
-            onChange={(event) => setDraftTopData((prev) => ({ ...prev, organizationName: event.target.value }))}
-          />
-
-          <AdminHeaderField
-            id="email"
-            label="Email"
-            type="email"
-            value={activeTopData.email}
-            onChange={(event) => setDraftTopData((prev) => ({ ...prev, email: event.target.value }))}
-          />
-
-          <AdminHeaderField
-            id="deliveryAddress"
-            label="Naslov"
-            value={activeTopData.deliveryAddress}
-            onChange={(event) => setDraftTopData((prev) => ({ ...prev, deliveryAddress: event.target.value }))}
-          />
-
-          <AdminHeaderField
-            id="notes"
-            label="Opombe"
-            value={activeTopData.notes}
-            onChange={(event) => setDraftTopData((prev) => ({ ...prev, notes: event.target.value }))}
-          />
+          <div className="min-h-10 px-2.5">
+            <p className="text-sm font-semibold text-slate-700">Tip naročnika</p>
+            <select
+              value={activeTopData.customerType}
+              onChange={(event) => setDraftTopData((prev) => ({ ...prev, customerType: event.target.value }))}
+              className="mt-0.5 h-5 w-full appearance-none border-0 bg-transparent px-0 text-xs leading-5 text-slate-900 outline-none"
+            >
+              {CUSTOMER_TYPE_FORM_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="min-h-10 px-2.5">
+            <p className="text-sm font-semibold text-slate-700">Naročnik</p>
+            <input
+              type="text"
+              value={activeTopData.organizationName}
+              onChange={(event) => setDraftTopData((prev) => ({ ...prev, organizationName: event.target.value }))}
+              className="mt-0.5 h-5 w-full border-0 bg-transparent px-0 text-xs leading-5 text-slate-900 outline-none"
+            />
+          </div>
+          <div className="min-h-10 px-2.5">
+            <p className="text-sm font-semibold text-slate-700">Email</p>
+            <input
+              type="email"
+              value={activeTopData.email}
+              onChange={(event) => setDraftTopData((prev) => ({ ...prev, email: event.target.value }))}
+              className="mt-0.5 h-5 w-full border-0 bg-transparent px-0 text-xs leading-5 text-slate-900 outline-none"
+            />
+          </div>
+          <div className="min-h-10 px-2.5">
+            <p className="text-sm font-semibold text-slate-700">Naslov</p>
+            <input
+              type="text"
+              value={activeTopData.deliveryAddress}
+              onChange={(event) => setDraftTopData((prev) => ({ ...prev, deliveryAddress: event.target.value }))}
+              className="mt-0.5 h-5 w-full border-0 bg-transparent px-0 text-xs leading-5 text-slate-900 outline-none"
+            />
+          </div>
+          <div className="min-h-10 px-2.5">
+            <p className="text-sm font-semibold text-slate-700">Opombe</p>
+            <input
+              type="text"
+              value={activeTopData.notes}
+              onChange={(event) => setDraftTopData((prev) => ({ ...prev, notes: event.target.value }))}
+              className="mt-0.5 h-5 w-full border-0 bg-transparent px-0 text-xs leading-5 text-slate-900 outline-none"
+            />
+          </div>
         </div>
       ) : (
         <div className="mt-4 grid min-h-[132px] gap-3 text-[12px] md:grid-cols-2">

@@ -1432,7 +1432,7 @@ export default function AdminOrdersTable({
                   }}
                   showLabel={false}
                   className="[&>button]:!h-7 [&>button]:!w-7"
-                  icon={<PanelAddRemoveIcon className="!scale-100" />}
+                  icon={<PanelAddRemoveIcon className="!scale-[0.8]" />}
                   menuClassName="!w-32"
                 />
                 <IconButton

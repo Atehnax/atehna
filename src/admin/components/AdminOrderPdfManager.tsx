@@ -69,7 +69,7 @@ const LazyConfirmDialog = dynamic(
   { ssr: false }
 );
 
-const notesSharedClass = `mt-2 !h-[88px] min-h-0 !w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-[11px] leading-5 text-slate-900 shadow-sm font-['Inter',system-ui,sans-serif] ${ADMIN_TABLE_BG}`;
+const notesSharedClass = `mt-2 !h-[68px] min-h-0 !w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-[11px] leading-5 text-slate-900 shadow-sm font-['Inter',system-ui,sans-serif] ${ADMIN_TABLE_BG}`;
 
 export default function AdminOrderPdfManager({
   orderId,
@@ -262,7 +262,7 @@ export default function AdminOrderPdfManager({
   };
 
   return (
-    <section className="w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm font-['Inter',system-ui,sans-serif]">
       <h2 className="text-base font-semibold text-slate-900">PDF dokumenti</h2>
       <div className="mt-4 rounded-2xl border border-slate-200/80 p-3.5">
         <div className="flex items-center justify-between gap-2">
@@ -293,9 +293,9 @@ export default function AdminOrderPdfManager({
         <EuiTextArea
           value={notesSectionMode === 'edit' ? draftNotes : persistedNotes}
           onChange={(event) => setDraftNotes(event.target.value)}
-          rows={3}
+          rows={2}
           fullWidth
-          placeholder="Opombe"
+          placeholder=""
           aria-label="Opombe"
           readOnly={notesSectionMode !== 'edit'}
           className={`${notesSharedClass} outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] ${notesSectionMode === 'edit' ? 'text-slate-900' : 'text-slate-600'}`}

@@ -10,7 +10,6 @@ import { ORDER_STATUS_OPTIONS } from '@/shared/domain/order/orderStatus';
 import { toDateInputValue } from '@/shared/domain/order/dateTime';
 import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/shared/domain/order/paymentStatus';
 import AdminHeaderField from '@/admin/components/AdminHeaderField';
-import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { CustomSelect } from '@/shared/ui/select';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { IconButton } from '@/shared/ui/icon-button';
@@ -220,7 +219,7 @@ export default function AdminOrderHeaderChips(props: Props) {
   const displayValue = (value: string) => (value?.trim() ? value : '');
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-4 py-3 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-4 py-3 shadow-sm font-['Inter',system-ui,sans-serif]">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="flex flex-nowrap items-center gap-1 text-2xl font-bold tracking-tight text-slate-900 whitespace-nowrap">
           <span>Naročilo</span>
@@ -234,7 +233,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               }
               inputMode="numeric"
               aria-label="Številka naročila"
-              className="!m-0 !h-10 !w-24 rounded-xl border border-slate-300 bg-white px-2.5 text-2xl font-bold leading-none tracking-tight text-slate-900 shadow-none focus:border-[#3e67d6] focus:outline-none focus:ring-0"
+              className="!m-0 !h-10 !w-24 rounded-xl border border-slate-300 bg-white px-2.5 !text-2xl !font-bold leading-none tracking-tight text-slate-900 shadow-none focus:border-[#3e67d6] focus:outline-none focus:ring-0"
             />
           ) : (
             <span>{toEditableOrderNumber(displayOrderNumber)}</span>
@@ -313,6 +312,7 @@ export default function AdminOrderHeaderChips(props: Props) {
             type="date"
             value={activeTopData.orderDate}
             onChange={(event) => setDraftTopData((prev) => ({ ...prev, orderDate: event.target.value }))}
+            className="border-0 bg-transparent px-2.5 py-2 font-['Inter',system-ui,sans-serif] text-[11px] leading-5 text-slate-900 focus:border-0 focus:ring-0"
           />
 
           <div className="group relative rounded-xl border border-slate-300 bg-white transition-colors focus-within:border-[#3e67d6] focus-within:ring-2 focus-within:ring-brand-100">
@@ -358,26 +358,34 @@ export default function AdminOrderHeaderChips(props: Props) {
         </div>
       ) : (
         <div className="mt-4 grid min-h-[132px] gap-3 text-[12px] md:grid-cols-2">
-          <div className="flex h-10 items-center rounded-xl border border-slate-300 bg-white px-2.5 text-[11px] text-slate-900">
-            {displayValue(activeTopData.orderDate)}
+          <div className="min-h-10">
+            <p className="text-sm font-semibold text-slate-700">Datum</p>
+            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.orderDate)}</p>
           </div>
-          <div className="flex h-10 items-center rounded-xl border border-slate-300 bg-white px-2.5 text-[11px] text-slate-900">
-            {displayValue(
-              CUSTOMER_TYPE_FORM_OPTIONS.find((option) => option.value === activeTopData.customerType)?.label ??
-                activeTopData.customerType
-            )}
+          <div className="min-h-10">
+            <p className="text-sm font-semibold text-slate-700">Tip naročnika</p>
+            <p className="mt-0.5 text-xs leading-5 text-slate-900">
+              {displayValue(
+                CUSTOMER_TYPE_FORM_OPTIONS.find((option) => option.value === activeTopData.customerType)?.label ??
+                  activeTopData.customerType
+              )}
+            </p>
           </div>
-          <div className="flex h-10 items-center rounded-xl border border-slate-300 bg-white px-2.5 text-[11px] text-slate-900">
-            {displayValue(activeTopData.organizationName)}
+          <div className="min-h-10">
+            <p className="text-sm font-semibold text-slate-700">Naročnik</p>
+            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.organizationName)}</p>
           </div>
-          <div className="flex h-10 items-center rounded-xl border border-slate-300 bg-white px-2.5 text-[11px] text-slate-900">
-            {displayValue(activeTopData.email)}
+          <div className="min-h-10">
+            <p className="text-sm font-semibold text-slate-700">Email</p>
+            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.email)}</p>
           </div>
-          <div className="flex h-10 items-center rounded-xl border border-slate-300 bg-white px-2.5 text-[11px] text-slate-900">
-            {displayValue(activeTopData.deliveryAddress)}
+          <div className="min-h-10">
+            <p className="text-sm font-semibold text-slate-700">Naslov</p>
+            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.deliveryAddress)}</p>
           </div>
-          <div className="flex h-10 items-center rounded-xl border border-slate-300 bg-white px-2.5 text-[11px] text-slate-900">
-            {displayValue(activeTopData.notes)}
+          <div className="min-h-10">
+            <p className="text-sm font-semibold text-slate-700">Opombe</p>
+            <p className="mt-0.5 whitespace-pre-wrap text-xs leading-5 text-slate-900">{displayValue(activeTopData.notes)}</p>
           </div>
         </div>
       )}

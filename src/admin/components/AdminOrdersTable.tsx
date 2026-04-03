@@ -20,7 +20,6 @@ import {
 import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, RowActionsDropdown, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import {
-  adminInputFocusTokenClasses,
   adminTableRowToneClasses,
   dateInputTokenClasses
 } from '@/shared/ui/theme/tokens';
@@ -1402,7 +1401,7 @@ export default function AdminOrdersTable({
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Poišči naročila"
                 aria-label="Poišči naročila"
-                className={`!m-0 !h-7 min-w-0 w-full flex-1 rounded-xl border border-slate-300 bg-white px-3 font-['Inter',system-ui,sans-serif] !text-[11px] text-slate-700 !shadow-none outline-none ring-0 transition-colors placeholder:text-slate-400 ${adminInputFocusTokenClasses} focus:!shadow-none`}
+                className="!m-0 !h-7 min-w-0 w-full flex-1 rounded-xl border border-slate-300 bg-white px-3 font-['Inter',system-ui,sans-serif] !text-[11px] text-slate-700 !shadow-none ring-0 transition-colors placeholder:text-slate-400 focus:!border-slate-300 focus:!shadow-none focus:ring-0"
               />
             </div>
           }

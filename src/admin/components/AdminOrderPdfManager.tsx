@@ -263,7 +263,7 @@ export default function AdminOrderPdfManager({
 
   return (
     <section className="w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm font-['Inter',system-ui,sans-serif]">
-      <h2 className="text-base font-semibold text-slate-900">PDF dokumenti</h2>
+      <h2 className="text-base font-semibold text-slate-900">Opombe</h2>
       <div className="mt-4 rounded-2xl border border-slate-200/80 p-3.5">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-semibold text-slate-900">Opombe</p>
@@ -302,6 +302,7 @@ export default function AdminOrderPdfManager({
         />
       </div>
 
+      <h2 className="mt-5 text-base font-semibold text-slate-900">PDF dokumenti</h2>
       <div className="mt-4 space-y-4">
         {PDF_TYPES.map((pdfType) => {
           const docs = grouped[pdfType.key];
@@ -371,7 +372,7 @@ export default function AdminOrderPdfManager({
                 {docs.length > 0 ? (
                   <div
                     id={`pdf-versions-${pdfType.key}`}
-                    className={`rounded-xl border border-slate-200 p-2 text-[11px] leading-4 text-slate-600 shadow-inner ${ADMIN_TABLE_BG}`}
+                    className={`rounded-xl p-2 text-[11px] leading-4 text-slate-600 ${ADMIN_TABLE_BG}`}
                   >
                     <ul className="space-y-1">
                       {visibleDocs.map((doc, index) => {

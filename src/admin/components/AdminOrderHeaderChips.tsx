@@ -302,7 +302,7 @@ export default function AdminOrderHeaderChips(props: Props) {
   const displayValue = (value: string) => (value?.trim() ? value : '');
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-4 py-3 shadow-sm font-['Inter',system-ui,sans-serif]">
+    <div className="min-h-[258px] rounded-2xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-4 py-3 shadow-sm font-['Inter',system-ui,sans-serif]">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="flex h-10 flex-nowrap items-center gap-1 whitespace-nowrap text-2xl font-bold tracking-tight text-slate-900">
           <span>Naročilo</span>
@@ -403,7 +403,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               type="date"
               value={activeTopData.orderDate}
               onChange={(event) => setDraftTopData((prev) => ({ ...prev, orderDate: event.target.value }))}
-              className="mt-0.5 h-6 w-full rounded-md border border-slate-300 bg-white px-2 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+              className="mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
             />
           </div>
           <div className="min-h-10 px-2.5">
@@ -412,7 +412,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               value={activeTopData.customerType}
               onChange={(value) => setDraftTopData((prev) => ({ ...prev, customerType: value }))}
               options={CUSTOMER_TYPE_FORM_OPTIONS}
-              className="mt-0.5 !h-6 w-full !rounded-md border border-slate-300 bg-white px-2 font-['Inter',system-ui,sans-serif] text-xs leading-5 text-slate-900 hover:bg-white focus:border-[#3e67d6]"
+              className="mt-0.5 !h-5 w-full !rounded-md border border-slate-300 bg-white px-1.5 font-['Inter',system-ui,sans-serif] text-xs leading-5 text-slate-900 hover:bg-white focus:border-[#3e67d6]"
               valueClassName="font-['Inter',system-ui,sans-serif]"
               menuClassName="max-w-[280px]"
               disabled={isTopSaving}
@@ -424,7 +424,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               type="text"
               value={activeTopData.organizationName}
               onChange={(event) => setDraftTopData((prev) => ({ ...prev, organizationName: event.target.value }))}
-              className="mt-0.5 h-6 w-full rounded-md border border-slate-300 bg-white px-2 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+              className="mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
             />
           </div>
           <div className="min-h-10 px-2.5">
@@ -433,7 +433,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               type="email"
               value={activeTopData.email}
               onChange={(event) => setDraftTopData((prev) => ({ ...prev, email: event.target.value }))}
-              className="mt-0.5 h-6 w-full rounded-md border border-slate-300 bg-white px-2 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+              className="mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
             />
           </div>
           <div className="min-h-10 px-2.5">
@@ -449,7 +449,7 @@ export default function AdminOrderHeaderChips(props: Props) {
                   postalCode: event.target.value.replace(/[^\d]/g, '').slice(0, 4)
                 }))
               }
-              className="mt-0.5 h-6 w-full rounded-md border border-slate-300 bg-white px-2 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+              className="mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
             />
           </div>
           <div className="min-h-10 px-2.5">
@@ -458,7 +458,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               type="text"
               value={activeTopData.deliveryAddress}
               onChange={(event) => setDraftTopData((prev) => ({ ...prev, deliveryAddress: event.target.value }))}
-              className="mt-0.5 h-6 w-full rounded-md border border-slate-300 bg-white px-2 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+              className="mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
             />
           </div>
         </div>

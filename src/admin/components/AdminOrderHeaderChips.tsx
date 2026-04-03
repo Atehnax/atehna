@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { EuiFieldText } from '@elastic/eui';
+import PaymentChip from '@/admin/components/PaymentChip';
+import StatusChip from '@/admin/components/StatusChip';
 import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/shared/domain/order/customerType';
 import { ORDER_STATUS_OPTIONS } from '@/shared/domain/order/orderStatus';
 import { toDateInputValue } from '@/shared/domain/order/dateTime';
@@ -232,7 +234,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               }
               inputMode="numeric"
               aria-label="Številka naročila"
-              className="!m-0 !h-10 !w-24 rounded-xl border border-slate-300 bg-white px-2.5 !text-2xl !font-bold leading-none tracking-tight text-slate-900 shadow-none focus:border-[#3e67d6] focus:outline-none focus:ring-0"
+              className="!m-0 !h-10 !w-24 rounded-xl border border-slate-300 bg-white px-2.5 !text-inherit !font-inherit leading-none tracking-tight text-slate-900 shadow-none focus:border-[#3e67d6] focus:outline-none focus:ring-0"
             />
           ) : (
             <span>{toEditableOrderNumber(displayOrderNumber)}</span>
@@ -241,29 +243,32 @@ export default function AdminOrderHeaderChips(props: Props) {
         </h1>
 
         <div className="ml-auto flex items-center gap-1.5">
-          <CustomSelect
-            value={topInputsEditable ? draftTopData.status : persistedTopData.status}
-            onChange={(value) => {
-              if (!topInputsEditable) return;
-              setDraftTopData((prev) => ({ ...prev, status: value }));
-            }}
-            options={ORDER_STATUS_OPTIONS}
-            disabled={!topInputsEditable || isTopSaving}
-            className={topSelectClassName}
-            menuClassName="max-w-[280px]"
-          />
+          {topInputsEditable ? (
+            <>
+              <CustomSelect
+                value={draftTopData.status}
+                onChange={(value) => setDraftTopData((prev) => ({ ...prev, status: value }))}
+                options={ORDER_STATUS_OPTIONS}
+                disabled={isTopSaving}
+                className={topSelectClassName}
+                menuClassName="max-w-[280px]"
+              />
 
-          <CustomSelect
-            value={topInputsEditable ? draftTopData.paymentStatus : persistedTopData.paymentStatus}
-            onChange={(value) => {
-              if (!topInputsEditable) return;
-              setDraftTopData((prev) => ({ ...prev, paymentStatus: value }));
-            }}
-            options={PAYMENT_STATUS_OPTIONS}
-            disabled={!topInputsEditable || isTopSaving}
-            className={topSelectClassName}
-            menuClassName="max-w-[280px]"
-          />
+              <CustomSelect
+                value={draftTopData.paymentStatus}
+                onChange={(value) => setDraftTopData((prev) => ({ ...prev, paymentStatus: value }))}
+                options={PAYMENT_STATUS_OPTIONS}
+                disabled={isTopSaving}
+                className={topSelectClassName}
+                menuClassName="max-w-[280px]"
+              />
+            </>
+          ) : (
+            <>
+              <StatusChip status={persistedTopData.status} />
+              <PaymentChip status={persistedTopData.paymentStatus} />
+            </>
+          )}
 
           <IconButton
             type="button"
@@ -354,26 +359,34 @@ export default function AdminOrderHeaderChips(props: Props) {
         </div>
       ) : (
         <div className="mt-4 grid min-h-[132px] gap-3 text-[12px] md:grid-cols-2">
-          <div className="flex h-10 items-center px-2.5 font-['Inter',system-ui,sans-serif] text-[11px] leading-5 text-slate-900">
-            {displayValue(activeTopData.orderDate)}
+          <div className="min-h-10 px-2.5">
+            <p className="text-sm font-semibold text-slate-700">Datum</p>
+            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.orderDate)}</p>
           </div>
-          <div className="flex h-10 items-center px-2.5 font-['Inter',system-ui,sans-serif] text-[11px] leading-5 text-slate-900">
-            {displayValue(
-              CUSTOMER_TYPE_FORM_OPTIONS.find((option) => option.value === activeTopData.customerType)?.label ??
-                activeTopData.customerType
-            )}
+          <div className="min-h-10 px-2.5">
+            <p className="text-sm font-semibold text-slate-700">Tip naročnika</p>
+            <p className="mt-0.5 text-xs leading-5 text-slate-900">
+              {displayValue(
+                CUSTOMER_TYPE_FORM_OPTIONS.find((option) => option.value === activeTopData.customerType)?.label ??
+                  activeTopData.customerType
+              )}
+            </p>
           </div>
-          <div className="flex h-10 items-center px-2.5 font-['Inter',system-ui,sans-serif] text-[11px] leading-5 text-slate-900">
-            {displayValue(activeTopData.organizationName)}
+          <div className="min-h-10 px-2.5">
+            <p className="text-sm font-semibold text-slate-700">Naročnik</p>
+            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.organizationName)}</p>
           </div>
-          <div className="flex h-10 items-center px-2.5 font-['Inter',system-ui,sans-serif] text-[11px] leading-5 text-slate-900">
-            {displayValue(activeTopData.email)}
+          <div className="min-h-10 px-2.5">
+            <p className="text-sm font-semibold text-slate-700">Email</p>
+            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.email)}</p>
           </div>
-          <div className="flex h-10 items-center px-2.5 font-['Inter',system-ui,sans-serif] text-[11px] leading-5 text-slate-900">
-            {displayValue(activeTopData.deliveryAddress)}
+          <div className="min-h-10 px-2.5">
+            <p className="text-sm font-semibold text-slate-700">Naslov</p>
+            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.deliveryAddress)}</p>
           </div>
-          <div className="flex h-10 items-center px-2.5 font-['Inter',system-ui,sans-serif] text-[11px] leading-5 text-slate-900">
-            {displayValue(activeTopData.notes)}
+          <div className="min-h-10 px-2.5">
+            <p className="text-sm font-semibold text-slate-700">Opombe</p>
+            <p className="mt-0.5 whitespace-pre-wrap text-xs leading-5 text-slate-900">{displayValue(activeTopData.notes)}</p>
           </div>
         </div>
       )}

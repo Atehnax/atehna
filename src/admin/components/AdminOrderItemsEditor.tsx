@@ -330,10 +330,10 @@ export default function AdminOrderItemsEditor({
                 const lineTotal = toMoney(item.quantity * item.unitPrice * (1 - item.discountPercentage / 100));
                 return (
                   <tr key={item.id} className="border-t border-slate-200/80 bg-white/80 align-middle">
-                    <td className="px-3 py-2 align-middle">
+                    <td className="px-3 py-1.5 align-middle">
                       <p className="text-[11px] leading-4 font-medium text-slate-900">{item.name}</p>
                     </td>
-                    <td className="px-2 py-2 align-middle text-center">
+                    <td className="px-2 py-1.5 align-middle text-center">
                       {itemsEditable ? (
                         <EuiFieldText
                           type="number"
@@ -341,13 +341,13 @@ export default function AdminOrderItemsEditor({
                           value={item.quantity}
                           onChange={(event) => updateItem(item.id, { quantity: Number(event.target.value) || 1 })}
                           aria-label="Količina"
-                          className="h-6 w-12 rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
+                          className="!h-5 !w-10 rounded-md border border-slate-300 bg-white !px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
                         />
                       ) : (
                         <span className="inline-flex h-6 items-center text-[11px] leading-4 text-slate-900">{item.quantity}</span>
                       )}
                     </td>
-                    <td className="px-2 py-2 align-middle text-center">
+                    <td className="px-2 py-1.5 align-middle text-center">
                       {itemsEditable ? (
                         <EuiFieldText
                           type="text"
@@ -355,13 +355,13 @@ export default function AdminOrderItemsEditor({
                           value={formatDecimalInput(item.unitPrice)}
                           onChange={(event) => updateItem(item.id, { unitPrice: parseLocaleNumber(event.target.value) })}
                           aria-label="Cena"
-                          className="h-6 w-[4.5rem] rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
+                          className="!h-5 !w-16 rounded-md border border-slate-300 bg-white !px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
                         />
                       ) : (
                         <span className="inline-flex h-6 items-center text-[11px] leading-4 text-slate-900">{formatCurrency(item.unitPrice)}</span>
                       )}
                     </td>
-                    <td className="px-2 py-2 align-middle text-center">
+                    <td className="px-2 py-1.5 align-middle text-center">
                       {itemsEditable ? (
                         <EuiFieldText
                           type="text"
@@ -371,14 +371,14 @@ export default function AdminOrderItemsEditor({
                             updateItem(item.id, { discountPercentage: parseLocaleNumber(event.target.value) })
                           }
                           aria-label="Popust"
-                          className="h-6 w-14 rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
+                          className="!h-5 !w-12 rounded-md border border-slate-300 bg-white !px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
                         />
                       ) : (
                         <span className="inline-flex h-6 items-center text-[11px] leading-4 text-slate-900">{formatDecimalInput(item.discountPercentage)} %</span>
                       )}
                     </td>
-                    <td className="px-2 py-2 align-middle text-right font-semibold text-slate-900">{formatCurrency(lineTotal)}</td>
-                    <td className="px-2 py-2 align-middle text-right">
+                    <td className="px-2 py-1.5 align-middle text-right font-semibold text-slate-900">{formatCurrency(lineTotal)}</td>
+                    <td className="px-2 py-1.5 align-middle text-right">
                       {itemsEditable ? (
                         <button
                           type="button"
@@ -412,7 +412,7 @@ export default function AdminOrderItemsEditor({
                 value={formatDecimalInput(draftShipping)}
                 onChange={(event) => setDraftShipping(Math.max(0, parseLocaleNumber(event.target.value)))}
                 aria-label="Poštnina"
-                className="h-6 w-full max-w-none rounded-md border border-slate-300 bg-white px-1 text-right text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] sm:max-w-[60px]"
+                className="!h-5 w-full max-w-none rounded-md border border-slate-300 bg-white !px-0.5 text-right text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] sm:max-w-[56px]"
               />
             ) : (
               <span className="font-semibold">{formatCurrency(totals.shipping)}</span>

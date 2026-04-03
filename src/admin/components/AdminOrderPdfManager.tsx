@@ -264,9 +264,8 @@ export default function AdminOrderPdfManager({
   return (
     <section className="w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm font-['Inter',system-ui,sans-serif]">
       <h2 className="text-base font-semibold text-slate-900">Opombe</h2>
-      <div className="mt-4 rounded-2xl border border-slate-200/80 p-3.5">
+      <div className="mt-3 p-0">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-semibold text-slate-900">Opombe</p>
           <div className="flex items-center gap-1.5">
             <IconButton
               type="button"
@@ -381,7 +380,7 @@ export default function AdminOrderPdfManager({
                         return (
                           <li
                             key={`${doc.id}-${doc.created_at}`}
-                            className="rounded-lg border border-transparent px-2 py-1 transition hover:border-slate-200 hover:bg-[color:var(--hover-neutral)]"
+                            className="px-2 py-1 transition hover:bg-[color:var(--hover-neutral)]"
                           >
                             <div className="grid min-w-0 grid-cols-[14px_minmax(0,1fr)_130px_24px] items-center gap-2">
                               <span

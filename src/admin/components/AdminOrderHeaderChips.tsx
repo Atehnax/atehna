@@ -323,7 +323,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               onBlur={(event) => {
                 event.currentTarget.textContent = draftOrderNumber;
               }}
-              className="inline-flex h-[1.45em] min-w-20 items-center rounded-xl border border-slate-300 bg-white px-2 py-0 font-inherit text-inherit leading-none tracking-tight text-slate-900 shadow-none outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+              className="inline-flex h-[1.45em] min-w-20 items-center rounded-md border border-slate-300 bg-white px-2 py-0 font-inherit text-inherit leading-none tracking-tight text-slate-900 shadow-none outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
             >
               {draftOrderNumber}
             </span>

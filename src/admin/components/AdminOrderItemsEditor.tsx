@@ -458,11 +458,11 @@ export default function AdminOrderItemsEditor({
             <span>Vmesni seštevek</span>
             <span className="inline-flex w-[13%] justify-end font-semibold">{formatCurrency(totals.subtotal)}</span>
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex h-5 items-center justify-between">
             <span>Poštnina</span>
             <span className="inline-flex w-[13%] justify-end">
               {itemsEditable ? (
-                <span className="inline-flex items-center justify-end gap-1">
+                <span className="inline-flex h-5 items-center justify-end gap-1">
                   <input
                     type="text"
                     inputMode="decimal"
@@ -477,7 +477,7 @@ export default function AdminOrderItemsEditor({
                   <span className="text-[11px] leading-4 text-slate-900">€</span>
                 </span>
               ) : (
-                <span className="font-semibold">{formatCurrency(totals.shipping)}</span>
+                <span className="inline-flex h-5 items-center font-semibold">{formatCurrency(totals.shipping)}</span>
               )}
             </span>
           </div>

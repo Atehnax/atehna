@@ -30,7 +30,7 @@ export default function Badge({ variant = 'neutral', size = 'sm', className, chi
     <span
       {...props}
       className={classNames(
-        'inline-flex items-center justify-center rounded-lg border font-semibold leading-none',
+        "inline-flex items-center justify-center rounded-lg border font-['Inter',system-ui,sans-serif] font-semibold leading-none",
         sizeClassMap[size],
         variantClassMap[variant],
         className

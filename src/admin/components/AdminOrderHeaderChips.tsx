@@ -412,7 +412,8 @@ export default function AdminOrderHeaderChips(props: Props) {
               value={activeTopData.customerType}
               onChange={(value) => setDraftTopData((prev) => ({ ...prev, customerType: value }))}
               options={CUSTOMER_TYPE_FORM_OPTIONS}
-              className="mt-0.5 !h-6 w-full !rounded-md border border-slate-300 bg-white px-2 text-xs leading-5 text-slate-900 hover:bg-white focus:border-[#3e67d6]"
+              className="mt-0.5 !h-6 w-full !rounded-md border border-slate-300 bg-white px-2 font-['Inter',system-ui,sans-serif] text-xs leading-5 text-slate-900 hover:bg-white focus:border-[#3e67d6]"
+              valueClassName="font-['Inter',system-ui,sans-serif]"
               menuClassName="max-w-[280px]"
               disabled={isTopSaving}
             />

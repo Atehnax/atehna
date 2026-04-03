@@ -317,13 +317,17 @@ export function GeneratePdfIcon({ className, ...props }: ActionIconProps) {
       fill="none"
       stroke="currentColor"
       strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-hidden="true"
       {...props}
     >
-      <path d="M6 2.8h6.2l3 3V17H6z" />
-      <path d="M12.2 2.8v3h3" />
-      <path d="M8 10h4" />
-      <path d="M10 8v4" />
+      <path d="M5.2 2.5h7.1l3.5 3.5v10.3a1.7 1.7 0 0 1-1.7 1.7H5.2a1.7 1.7 0 0 1-1.7-1.7V4.2a1.7 1.7 0 0 1 1.7-1.7z" />
+      <path d="M12.3 2.5V6h3.5" />
+      <path d="M6.9 12.7v-4h1.5a1.3 1.3 0 1 1 0 2.6H6.9" />
+      <path d="M10.2 12.7v-4h1.2a2 2 0 1 1 0 4h-1.2z" />
+      <path d="M14 8.7h-1.7v4" />
+      <path d="M14 10.7h-1.4" />
     </svg>
   );
 }

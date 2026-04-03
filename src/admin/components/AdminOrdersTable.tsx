@@ -1431,7 +1431,7 @@ export default function AdminOrdersTable({
                     setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }));
                   }}
                   showLabel={false}
-                  className="[&>button]:!h-7 [&>button]:!w-7"
+                  className="[&>button]:!h-7 [&>button]:!w-7 [&>button:hover]:text-[color:var(--blue-500)] [&>button[aria-expanded='true']]:text-[color:var(--blue-500)]"
                   icon={<PanelAddRemoveIcon className="!scale-[0.8]" />}
                   menuClassName="!w-32"
                 />

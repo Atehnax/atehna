@@ -6,7 +6,7 @@ import PaymentChip from '@/admin/components/PaymentChip';
 import StatusChip from '@/admin/components/StatusChip';
 import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/shared/domain/order/customerType';
 import { ORDER_STATUS_OPTIONS } from '@/shared/domain/order/orderStatus';
-import { toDateInputValue } from '@/shared/domain/order/dateTime';
+import { toIsoDateFromSlDateValue, toSlDateValue } from '@/shared/domain/order/dateTime';
 import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/shared/domain/order/paymentStatus';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { CustomSelect } from '@/shared/ui/select';
@@ -37,6 +37,8 @@ type TopData = {
   status: string;
   paymentStatus: string;
 };
+
+const SL_DATE_PATTERN = /^\d{2}\/\d{2}\/\d{4}$/;
 
 type Props = {
   orderId: number;
@@ -156,7 +158,7 @@ const asTopData = ({
   postalCode:
     (typeof postalCode === 'string' && postalCode.trim()) ||
     (deliveryAddress?.match(/\b\d{4}\b/)?.[0] ?? ''),
-  orderDate: toDateInputValue(createdAt),
+  orderDate: toSlDateValue(createdAt),
   customerType,
   organizationName: organizationName?.trim() ? organizationName : contactName,
   contactName,
@@ -242,7 +244,7 @@ export default function AdminOrderHeaderChips(props: Props) {
             deliveryAddress: draftTopData.deliveryAddress,
             postalCode: draftTopData.postalCode,
             notes: draftTopData.notes,
-            orderDate: draftTopData.orderDate
+            orderDate: toIsoDateFromSlDateValue(draftTopData.orderDate)
           })
         })
       ]);
@@ -402,9 +404,19 @@ export default function AdminOrderHeaderChips(props: Props) {
           <div className="min-h-10 px-2.5">
             <p className="text-sm font-semibold text-slate-700">Datum</p>
             <input
-              type="date"
+              type="text"
               value={activeTopData.orderDate}
-              onChange={(event) => setDraftTopData((prev) => ({ ...prev, orderDate: event.target.value }))}
+              inputMode="numeric"
+              placeholder="dd/mm/yyyy"
+              onChange={(event) => {
+                const nextValue = event.target.value.replace(/[^\d/]/g, '').slice(0, 10);
+                setDraftTopData((prev) => ({ ...prev, orderDate: nextValue }));
+              }}
+              onBlur={(event) => {
+                const trimmed = event.target.value.trim();
+                if (!trimmed || SL_DATE_PATTERN.test(trimmed)) return;
+                setDraftTopData((prev) => ({ ...prev, orderDate: persistedTopData.orderDate }));
+              }}
               className={editableInputClassName}
             />
           </div>

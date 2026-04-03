@@ -397,13 +397,13 @@ export default function AdminOrderItemsEditor({
                     </td>
                     <td className="px-2 py-1.5 align-middle text-center">
                       {itemsEditable ? (
-                        <EuiFieldText
+                        <input
                           type="number"
                           min={1}
                           value={item.quantity}
                           onChange={(event) => updateItem(item.id, { quantity: Number(event.target.value) || 1 })}
                           aria-label="Količina"
-                          className="!h-5 !w-10 rounded-md border border-slate-300 bg-white !px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
+                          className="h-5 w-10 rounded-md border border-slate-300 bg-white px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                         />
                       ) : (
                         <span className="inline-flex h-5 w-10 items-center justify-center text-[11px] leading-4 text-slate-900">{item.quantity}</span>
@@ -411,13 +411,13 @@ export default function AdminOrderItemsEditor({
                     </td>
                     <td className="px-2 py-1.5 align-middle text-center">
                       {itemsEditable ? (
-                        <EuiFieldText
+                        <input
                           type="text"
                           inputMode="decimal"
                           value={formatDecimalInput(item.unitPrice)}
                           onChange={(event) => updateItem(item.id, { unitPrice: parseLocaleNumber(event.target.value) })}
                           aria-label="Cena"
-                          className="!h-5 !w-16 rounded-md border border-slate-300 bg-white !px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
+                          className="h-5 w-16 rounded-md border border-slate-300 bg-white px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                         />
                       ) : (
                         <span className="inline-flex h-5 w-16 items-center justify-center text-[11px] leading-4 text-slate-900">{formatCurrency(item.unitPrice)}</span>
@@ -425,7 +425,7 @@ export default function AdminOrderItemsEditor({
                     </td>
                     <td className="px-2 py-1.5 align-middle text-center">
                       {itemsEditable ? (
-                        <EuiFieldText
+                        <input
                           type="text"
                           inputMode="decimal"
                           value={formatDecimalInput(item.discountPercentage)}
@@ -433,7 +433,7 @@ export default function AdminOrderItemsEditor({
                             updateItem(item.id, { discountPercentage: parseLocaleNumber(event.target.value) })
                           }
                           aria-label="Popust"
-                          className="!h-5 !w-12 rounded-md border border-slate-300 bg-white !px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
+                          className="h-5 w-12 rounded-md border border-slate-300 bg-white px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                         />
                       ) : (
                         <span className="inline-flex h-5 w-12 items-center justify-center text-[11px] leading-4 text-slate-900">{formatDecimalInput(item.discountPercentage)} %</span>
@@ -447,7 +447,7 @@ export default function AdminOrderItemsEditor({
           </table>
         </div>
 
-        <div className="space-y-1 border-t border-slate-200 bg-white px-4 py-3 text-[11px] text-slate-700">
+        <div className="space-y-1 border-t border-slate-200 px-4 py-3 text-[11px] text-slate-700">
           <div className="flex items-center justify-between">
             <span>Vmesni seštevek</span>
             <span className="font-semibold">{formatCurrency(totals.subtotal)}</span>
@@ -455,7 +455,7 @@ export default function AdminOrderItemsEditor({
           <div className="flex items-center justify-between">
             <span>Poštnina</span>
             {itemsEditable ? (
-              <EuiFieldText
+              <input
                 type="text"
                 inputMode="decimal"
                 value={formatDecimalInput(draftShipping)}
@@ -464,7 +464,7 @@ export default function AdminOrderItemsEditor({
                   setDraftShipping(Math.max(0, parseLocaleNumber(sanitized)));
                 }}
                 aria-label="Poštnina"
-                className="!h-5 w-full max-w-none rounded-md border border-slate-300 bg-white !px-0.5 text-right text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] sm:max-w-[44px]"
+                className="h-5 w-[38px] rounded-md border border-slate-300 bg-white px-0.5 text-right text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0"
               />
             ) : (
               <span className="font-semibold">{formatCurrency(totals.shipping)}</span>

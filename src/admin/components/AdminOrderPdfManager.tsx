@@ -263,10 +263,9 @@ export default function AdminOrderPdfManager({
 
   return (
     <section className="w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm font-['Inter',system-ui,sans-serif]">
-      <h2 className="text-base font-semibold text-slate-900">Opombe</h2>
-      <div className="mt-3 p-0">
-        <div className="flex items-center justify-end gap-2">
-          <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-semibold text-slate-900">Opombe</h2>
+        <div className="flex items-center gap-1.5">
             <IconButton
               type="button"
               onClick={toggleNotesEdit}
@@ -286,9 +285,9 @@ export default function AdminOrderPdfManager({
             >
               <SaveIcon />
             </IconButton>
-          </div>
         </div>
-
+      </div>
+      <div className="mt-3 p-0">
         <EuiTextArea
           value={notesSectionMode === 'edit' ? draftNotes : persistedNotes}
           onChange={(event) => setDraftNotes(event.target.value)}

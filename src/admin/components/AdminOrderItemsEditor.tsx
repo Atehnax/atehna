@@ -450,34 +450,36 @@ export default function AdminOrderItemsEditor({
         <div className="space-y-1 border-t border-slate-200 px-4 py-3 text-[11px] text-slate-700">
           <div className="flex items-center justify-between">
             <span>Vmesni seštevek</span>
-            <span className="font-semibold">{formatCurrency(totals.subtotal)}</span>
+            <span className="inline-flex w-[13%] justify-end pr-2 font-semibold">{formatCurrency(totals.subtotal)}</span>
           </div>
           <div className="flex items-center justify-between">
             <span>Poštnina</span>
-            {itemsEditable ? (
-              <input
-                type="text"
-                inputMode="decimal"
-                value={formatDecimalInput(draftShipping)}
-                onChange={(event) => {
-                  const sanitized = event.target.value.replace(/[^0-9,]/g, '').slice(0, 5);
-                  setDraftShipping(Math.max(0, parseLocaleNumber(sanitized)));
-                }}
-                aria-label="Poštnina"
-                className="h-5 w-[38px] rounded-md border border-slate-300 bg-white px-0.5 text-right text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0"
-              />
-            ) : (
-              <span className="font-semibold">{formatCurrency(totals.shipping)}</span>
-            )}
+            <span className="inline-flex w-[13%] justify-end pr-2">
+              {itemsEditable ? (
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={formatDecimalInput(draftShipping)}
+                  onChange={(event) => {
+                    const sanitized = event.target.value.replace(/[^0-9,]/g, '').slice(0, 5);
+                    setDraftShipping(Math.max(0, parseLocaleNumber(sanitized)));
+                  }}
+                  aria-label="Poštnina"
+                  className="h-5 w-[38px] rounded-md border border-slate-300 bg-white px-0.5 text-right text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                />
+              ) : (
+                <span className="font-semibold">{formatCurrency(totals.shipping)}</span>
+              )}
+            </span>
           </div>
           <div className="flex items-center justify-between text-slate-500">
             <span>DDV (22 %)</span>
-            <span className="font-semibold">{formatCurrency(totals.taxIncludedInfo)}</span>
+            <span className="inline-flex w-[13%] justify-end pr-2 font-semibold">{formatCurrency(totals.taxIncludedInfo)}</span>
           </div>
           <hr className="border-slate-200" />
           <div className="flex items-center justify-between text-sm font-semibold text-slate-900">
             <span>Skupaj</span>
-            <span>{formatCurrency(totals.total)}</span>
+            <span className="inline-flex w-[13%] justify-end pr-2">{formatCurrency(totals.total)}</span>
           </div>
         </div>
       </div>

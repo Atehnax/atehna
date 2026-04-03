@@ -16,15 +16,15 @@ export function DownloadIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.5"
+      strokeWidth="1.8"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
       {...props}
     >
-      <path d="M10 3.2v8.1" />
-      <path d="m6.6 8.8 3.4 3.4 3.4-3.4" />
-      <path d="M4 12.3v2A1.7 1.7 0 0 0 5.7 16h8.6a1.7 1.7 0 0 0 1.7-1.7v-2" />
+      <path d="M10 2.9v9.6" />
+      <path d="m6.5 9.2 3.5 3.6 3.5-3.6" />
+      <path d="M2.8 12.2v2.2c0 1.5 1 2.6 2.4 2.6h9.6c1.4 0 2.4-1.1 2.4-2.6v-2.2" />
     </svg>
   );
 }
@@ -36,15 +36,15 @@ export function UploadIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.5"
+      strokeWidth="1.8"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
       {...props}
     >
-      <path d="M4 12.8v2A1.7 1.7 0 0 0 5.7 16h8.6a1.7 1.7 0 0 0 1.7-1.7v-2" />
-      <path d="M10 4v8.3" />
-      <path d="m6.6 7.3 3.4-3.3 3.4 3.3" />
+      <path d="M2.8 12.2v2.2c0 1.5 1 2.6 2.4 2.6h9.6c1.4 0 2.4-1.1 2.4-2.6v-2.2" />
+      <path d="M10 12.5V2.9" />
+      <path d="m6.5 6.4 3.5-3.5 3.5 3.5" />
     </svg>
   );
 }

@@ -70,7 +70,7 @@ const LazyConfirmDialog = dynamic(
   { ssr: false }
 );
 
-const notesSharedClass = `mt-2 !h-[68px] min-h-0 !w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-[11px] leading-5 text-slate-900 shadow-sm font-['Inter',system-ui,sans-serif] ${ADMIN_TABLE_BG}`;
+const notesSharedClass = `mt-2 !h-[68px] min-h-0 !w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-[11px] leading-5 text-slate-900 shadow-none font-['Inter',system-ui,sans-serif] ${ADMIN_TABLE_BG}`;
 
 export default function AdminOrderPdfManager({
   orderId,
@@ -297,7 +297,7 @@ export default function AdminOrderPdfManager({
           placeholder=""
           aria-label="Opombe"
           readOnly={notesSectionMode !== 'edit'}
-          className={`${notesSharedClass} outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] ${notesSectionMode === 'edit' ? 'bg-white text-slate-900' : '!bg-[color:var(--ui-neutral-bg)] text-slate-600'}`}
+          className={`${notesSharedClass} outline-none transition hover:border-slate-300 focus:!border-[#3e67d6] focus:!ring-0 focus-visible:!border-[#3e67d6] focus-visible:!ring-0 ${notesSectionMode === 'edit' ? 'bg-white text-slate-900' : '!bg-[color:var(--ui-neutral-bg)] text-slate-600'}`}
         />
       </div>
 

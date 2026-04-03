@@ -150,7 +150,7 @@ export const pillTokenClasses = {
 
 export const selectTokenClasses = {
   trigger:
-    "inline-flex h-7 w-full items-center overflow-visible rounded-md border border-slate-300 bg-white px-2 py-0.5 text-left text-[11px] font-normal leading-[1.2] text-slate-700 font-['Inter',system-ui,sans-serif] outline-none ring-0 transition hover:bg-[color:var(--hover-neutral)] focus:border-slate-300 focus:outline-none focus:ring-0 focus-visible:border-slate-300 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:text-slate-300",
+    "inline-flex h-7 w-full items-center overflow-visible rounded-md border border-slate-300 bg-white px-2 py-0.5 text-left text-[11px] font-normal leading-[1.2] text-slate-700 font-['Inter',system-ui,sans-serif] outline-none ring-0 transition hover:bg-[color:var(--hover-neutral)] focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:text-slate-300",
   menu: 'w-full rounded-md border border-slate-300 bg-white p-1 shadow-sm',
   menuItem:
     `flex h-7 w-full items-center rounded-md px-2 text-left text-[11px] font-normal leading-[1.2] text-slate-700 font-['Inter',system-ui,sans-serif] transition ${hoverTokenClasses.neutral} hover:text-[color:var(--blue-500)] disabled:cursor-default disabled:text-slate-300`

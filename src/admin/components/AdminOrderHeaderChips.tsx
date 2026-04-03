@@ -56,7 +56,8 @@ function ChipDropdown({
   onChange,
   renderChip,
   disabled = false,
-  showArrow = true
+  showArrow = true,
+  interactive = true
 }: {
   value: string;
   options: ReadonlyArray<{ value: string; label: string }>;
@@ -64,6 +65,7 @@ function ChipDropdown({
   renderChip: (value: string) => ReactNode;
   disabled?: boolean;
   showArrow?: boolean;
+  interactive?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -89,12 +91,12 @@ function ChipDropdown({
       <button
         type="button"
         onClick={() => {
-          if (disabled) return;
+          if (disabled || !interactive) return;
           setIsOpen((prev) => !prev);
         }}
         disabled={disabled}
         aria-haspopup="menu"
-        aria-expanded={isOpen}
+        aria-expanded={interactive ? isOpen : false}
         className="relative block rounded-full focus:outline-none disabled:cursor-default disabled:opacity-60"
       >
         {showArrow ? (
@@ -306,7 +308,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               }
               inputMode="numeric"
               aria-label="Številka naročila"
-              className="m-0 h-10 w-24 rounded-xl border border-slate-300 bg-white px-2.5 font-['Inter',system-ui,sans-serif] text-[26px] font-bold leading-none tracking-tight text-slate-900 shadow-none outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+              className="m-0 h-10 w-24 appearance-none rounded-xl border border-slate-300 bg-white px-2.5 font-['Inter',system-ui,sans-serif] !text-[26px] !font-bold leading-none tracking-tight text-slate-900 shadow-none outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
             />
           ) : (
             <span>{toEditableOrderNumber(displayOrderNumber)}</span>
@@ -318,8 +320,9 @@ export default function AdminOrderHeaderChips(props: Props) {
           <ChipDropdown
             value={topInputsEditable ? draftTopData.status : persistedTopData.status}
             options={ORDER_STATUS_OPTIONS}
-            disabled={!topInputsEditable || isTopSaving}
+            disabled={isTopSaving}
             showArrow={topInputsEditable}
+            interactive={topInputsEditable}
             onChange={(value) => {
               if (!topInputsEditable) return;
               setDraftTopData((prev) => ({ ...prev, status: value }));
@@ -330,8 +333,9 @@ export default function AdminOrderHeaderChips(props: Props) {
           <ChipDropdown
             value={topInputsEditable ? draftTopData.paymentStatus : persistedTopData.paymentStatus}
             options={PAYMENT_STATUS_OPTIONS}
-            disabled={!topInputsEditable || isTopSaving}
+            disabled={isTopSaving}
             showArrow={topInputsEditable}
+            interactive={topInputsEditable}
             onChange={(value) => {
               if (!topInputsEditable) return;
               setDraftTopData((prev) => ({ ...prev, paymentStatus: value }));
@@ -382,7 +386,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               type="date"
               value={activeTopData.orderDate}
               onChange={(event) => setDraftTopData((prev) => ({ ...prev, orderDate: event.target.value }))}
-              className="mt-0.5 h-6 w-full rounded-md border border-slate-300 bg-white px-2 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6]"
+              className="mt-0.5 h-6 w-full rounded-md border border-slate-300 bg-white px-2 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
             />
           </div>
           <div className="min-h-10 px-2.5">
@@ -390,7 +394,7 @@ export default function AdminOrderHeaderChips(props: Props) {
             <select
               value={activeTopData.customerType}
               onChange={(event) => setDraftTopData((prev) => ({ ...prev, customerType: event.target.value }))}
-              className="mt-0.5 h-6 w-full appearance-none rounded-md border border-slate-300 bg-white px-2 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6]"
+              className="mt-0.5 h-6 w-full appearance-none rounded-md border border-slate-300 bg-white px-2 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
             >
               {CUSTOMER_TYPE_FORM_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -405,7 +409,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               type="text"
               value={activeTopData.organizationName}
               onChange={(event) => setDraftTopData((prev) => ({ ...prev, organizationName: event.target.value }))}
-              className="mt-0.5 h-6 w-full rounded-md border border-slate-300 bg-white px-2 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6]"
+              className="mt-0.5 h-6 w-full rounded-md border border-slate-300 bg-white px-2 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
             />
           </div>
           <div className="min-h-10 px-2.5">
@@ -414,7 +418,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               type="email"
               value={activeTopData.email}
               onChange={(event) => setDraftTopData((prev) => ({ ...prev, email: event.target.value }))}
-              className="mt-0.5 h-6 w-full rounded-md border border-slate-300 bg-white px-2 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6]"
+              className="mt-0.5 h-6 w-full rounded-md border border-slate-300 bg-white px-2 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
             />
           </div>
           <div className="min-h-10 px-2.5">
@@ -423,7 +427,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               type="text"
               value={activeTopData.deliveryAddress}
               onChange={(event) => setDraftTopData((prev) => ({ ...prev, deliveryAddress: event.target.value }))}
-              className="mt-0.5 h-6 w-full rounded-md border border-slate-300 bg-white px-2 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6]"
+              className="mt-0.5 h-6 w-full rounded-md border border-slate-300 bg-white px-2 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
             />
           </div>
           <div className="min-h-10 px-2.5">
@@ -432,7 +436,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               type="text"
               value={activeTopData.notes}
               onChange={(event) => setDraftTopData((prev) => ({ ...prev, notes: event.target.value }))}
-              className="mt-0.5 h-6 w-full rounded-md border border-slate-300 bg-white px-2 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6]"
+              className="mt-0.5 h-6 w-full rounded-md border border-slate-300 bg-white px-2 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
             />
           </div>
         </div>

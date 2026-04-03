@@ -322,12 +322,12 @@ export function GeneratePdfIcon({ className, ...props }: ActionIconProps) {
       aria-hidden="true"
       {...props}
     >
-      <path d="M5.2 2.3h7.4l3.2 3.2v10.3a1.9 1.9 0 0 1-1.9 1.9H5.2a1.9 1.9 0 0 1-1.9-1.9V4.2a1.9 1.9 0 0 1 1.9-1.9z" />
-      <path d="M12.6 2.3V5.5a1 1 0 0 0 1 1h2.2" />
-      <rect x="2.9" y="10.7" width="14.2" height="5.5" rx="1.1" fill="currentColor" stroke="currentColor" />
-      <path d="M5.3 14.7v-2.5h1.1a.85.85 0 1 1 0 1.7H5.3" fill="none" stroke="white" strokeWidth="1" />
-      <path d="M8.3 14.7v-2.5h.8a1.25 1.25 0 1 1 0 2.5h-.8z" fill="none" stroke="white" strokeWidth="1" />
-      <path d="M11.8 14.7v-2.5h1.9M11.8 13.5h1.5" fill="none" stroke="white" strokeWidth="1" />
+      <path d="M4.8 2.2h7.3l3.1 3.1v10.5a2 2 0 0 1-2 2H4.8a2 2 0 0 1-2-2V4.2a2 2 0 0 1 2-2z" />
+      <path d="M12.1 2.2v2.9a1 1 0 0 0 1 1H16" />
+      <rect x="2.2" y="9.3" width="15.6" height="5.4" rx="1.2" fill="currentColor" stroke="currentColor" />
+      <path d="M5 13v-2h1.1a.7.7 0 1 1 0 1.4H5" fill="none" stroke="white" strokeWidth="1" />
+      <path d="M8 13v-2h.8a1 1 0 1 1 0 2H8z" fill="none" stroke="white" strokeWidth="1" />
+      <path d="M11 13v-2h1.8M11 12h1.4" fill="none" stroke="white" strokeWidth="1" />
     </svg>
   );
 }

@@ -6,6 +6,7 @@ import { EuiTextArea } from '@elastic/eui';
 import { IconButton } from '@/shared/ui/icon-button';
 import {
   CheckCircleIcon,
+  DownloadIcon,
   GeneratePdfIcon,
   PencilIcon,
   SaveIcon,
@@ -361,7 +362,7 @@ export default function AdminOrderPdfManager({
                     tone={pdfTone}
                     aria-label={`Shrani ${pdfType.label}`}
                   >
-                    <SaveIcon />
+                    <DownloadIcon />
                   </IconButton>
                 </div>
               </div>

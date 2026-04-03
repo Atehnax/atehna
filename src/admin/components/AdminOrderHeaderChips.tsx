@@ -306,7 +306,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               }
               inputMode="numeric"
               aria-label="Številka naročila"
-              className="m-0 h-10 w-24 rounded-xl border border-slate-300 bg-white px-2.5 text-[24px] font-bold leading-none tracking-tight text-slate-900 shadow-none outline-none focus:border-[#3e67d6]"
+              className="m-0 h-10 w-24 rounded-xl border border-slate-300 bg-white px-2.5 font-['Inter',system-ui,sans-serif] text-[26px] font-bold leading-none tracking-tight text-slate-900 shadow-none outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
             />
           ) : (
             <span>{toEditableOrderNumber(displayOrderNumber)}</span>

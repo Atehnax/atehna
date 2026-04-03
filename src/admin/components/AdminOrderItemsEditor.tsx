@@ -411,30 +411,36 @@ export default function AdminOrderItemsEditor({
                     </td>
                     <td className="px-2 py-1.5 align-middle text-center">
                       {itemsEditable ? (
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={formatDecimalInput(item.unitPrice)}
-                          onChange={(event) => updateItem(item.id, { unitPrice: parseLocaleNumber(event.target.value) })}
-                          aria-label="Cena"
-                          className="h-5 w-16 rounded-md border border-slate-300 bg-white px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0"
-                        />
+                        <span className="inline-flex items-center justify-center gap-1">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={formatDecimalInput(item.unitPrice)}
+                            onChange={(event) => updateItem(item.id, { unitPrice: parseLocaleNumber(event.target.value) })}
+                            aria-label="Cena"
+                            className="h-5 w-14 rounded-md border border-slate-300 bg-white px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                          />
+                          <span className="text-[11px] leading-4 text-slate-900">€</span>
+                        </span>
                       ) : (
                         <span className="inline-flex h-5 w-16 items-center justify-center text-[11px] leading-4 text-slate-900">{formatCurrency(item.unitPrice)}</span>
                       )}
                     </td>
                     <td className="px-2 py-1.5 align-middle text-center">
                       {itemsEditable ? (
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={formatDecimalInput(item.discountPercentage)}
-                          onChange={(event) =>
-                            updateItem(item.id, { discountPercentage: parseLocaleNumber(event.target.value) })
-                          }
-                          aria-label="Popust"
-                          className="h-5 w-12 rounded-md border border-slate-300 bg-white px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0"
-                        />
+                        <span className="inline-flex items-center justify-center gap-1">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={formatDecimalInput(item.discountPercentage)}
+                            onChange={(event) =>
+                              updateItem(item.id, { discountPercentage: parseLocaleNumber(event.target.value) })
+                            }
+                            aria-label="Popust"
+                            className="h-5 w-10 rounded-md border border-slate-300 bg-white px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                          />
+                          <span className="text-[11px] leading-4 text-slate-900">%</span>
+                        </span>
                       ) : (
                         <span className="inline-flex h-5 w-12 items-center justify-center text-[11px] leading-4 text-slate-900">{formatDecimalInput(item.discountPercentage)} %</span>
                       )}
@@ -456,17 +462,20 @@ export default function AdminOrderItemsEditor({
             <span>Poštnina</span>
             <span className="inline-flex w-[13%] justify-end">
               {itemsEditable ? (
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={formatDecimalInput(draftShipping)}
-                  onChange={(event) => {
-                    const sanitized = event.target.value.replace(/[^0-9,]/g, '').slice(0, 5);
-                    setDraftShipping(Math.max(0, parseLocaleNumber(sanitized)));
-                  }}
-                  aria-label="Poštnina"
-                  className="h-5 w-[38px] rounded-md border border-slate-300 bg-white px-0.5 text-right text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0"
-                />
+                <span className="inline-flex items-center justify-end gap-1">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={formatDecimalInput(draftShipping)}
+                    onChange={(event) => {
+                      const sanitized = event.target.value.replace(/[^0-9,]/g, '').slice(0, 5);
+                      setDraftShipping(Math.max(0, parseLocaleNumber(sanitized)));
+                    }}
+                    aria-label="Poštnina"
+                    className="h-5 w-[38px] rounded-md border border-slate-300 bg-white px-0.5 text-right text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                  />
+                  <span className="text-[11px] leading-4 text-slate-900">€</span>
+                </span>
               ) : (
                 <span className="font-semibold">{formatCurrency(totals.shipping)}</span>
               )}

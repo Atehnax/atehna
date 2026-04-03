@@ -461,6 +461,15 @@ export default function AdminOrderHeaderChips(props: Props) {
               className="mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
             />
           </div>
+          <div className="min-h-10 px-2.5 md:col-span-1">
+            <p className="text-sm font-semibold text-slate-700">Opombe stranke</p>
+            <textarea
+              rows={1}
+              value={activeTopData.notes}
+              onChange={(event) => setDraftTopData((prev) => ({ ...prev, notes: event.target.value }))}
+              className="mt-0.5 min-h-5 w-full resize-y rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+            />
+          </div>
         </div>
       ) : (
         <div className="mt-4 grid min-h-[132px] gap-3 text-[12px] md:grid-cols-2">
@@ -492,6 +501,10 @@ export default function AdminOrderHeaderChips(props: Props) {
           <div className="min-h-10 px-2.5">
             <p className="text-sm font-semibold text-slate-700">Naslov</p>
             <p className="mt-0.5 whitespace-pre-wrap text-xs leading-5 text-slate-900">{displayValue(activeTopData.deliveryAddress)}</p>
+          </div>
+          <div className="min-h-10 px-2.5">
+            <p className="text-sm font-semibold text-slate-700">Opombe stranke</p>
+            <p className="mt-0.5 whitespace-pre-wrap text-xs leading-5 text-slate-900">{displayValue(activeTopData.notes)}</p>
           </div>
         </div>
       )}

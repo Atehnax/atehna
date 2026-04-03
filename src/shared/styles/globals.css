@@ -266,7 +266,6 @@ input[type='radio'] {
   font-size: 11px !important;
 }
 
-
 [data-floating-field] input:-webkit-autofill,
 [data-floating-field] textarea:-webkit-autofill,
 [data-floating-field] select:-webkit-autofill,

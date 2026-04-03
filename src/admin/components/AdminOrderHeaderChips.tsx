@@ -14,7 +14,7 @@ import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { IconButton } from '@/shared/ui/icon-button';
 import { PencilIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
-import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
+import { adminInputFocusTokenClasses, buttonTokenClasses } from '@/shared/ui/theme/tokens';
 
 type TopSectionMode = 'read' | 'edit';
 
@@ -300,6 +300,8 @@ export default function AdminOrderHeaderChips(props: Props) {
 
   const activeTopData = topInputsEditable ? draftTopData : persistedTopData;
   const displayValue = (value: string) => (value?.trim() ? value : '');
+  const editableInputClassName = `mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 ${adminInputFocusTokenClasses}`;
+  const editableTextareaClassName = `mt-0.5 min-h-5 w-full resize-y rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 ${adminInputFocusTokenClasses}`;
 
   return (
     <div className="min-h-[258px] rounded-2xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-4 py-3 shadow-sm font-['Inter',system-ui,sans-serif]">
@@ -403,7 +405,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               type="date"
               value={activeTopData.orderDate}
               onChange={(event) => setDraftTopData((prev) => ({ ...prev, orderDate: event.target.value }))}
-              className="mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+              className={editableInputClassName}
             />
           </div>
           <div className="min-h-10 px-2.5">
@@ -424,7 +426,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               type="text"
               value={activeTopData.organizationName}
               onChange={(event) => setDraftTopData((prev) => ({ ...prev, organizationName: event.target.value }))}
-              className="mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+              className={editableInputClassName}
             />
           </div>
           <div className="min-h-10 px-2.5">
@@ -433,7 +435,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               type="email"
               value={activeTopData.email}
               onChange={(event) => setDraftTopData((prev) => ({ ...prev, email: event.target.value }))}
-              className="mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+              className={editableInputClassName}
             />
           </div>
           <div className="min-h-10 px-2.5">
@@ -449,7 +451,7 @@ export default function AdminOrderHeaderChips(props: Props) {
                   postalCode: event.target.value.replace(/[^\d]/g, '').slice(0, 4)
                 }))
               }
-              className="mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+              className={editableInputClassName}
             />
           </div>
           <div className="min-h-10 px-2.5">
@@ -458,7 +460,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               type="text"
               value={activeTopData.deliveryAddress}
               onChange={(event) => setDraftTopData((prev) => ({ ...prev, deliveryAddress: event.target.value }))}
-              className="mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+              className={editableInputClassName}
             />
           </div>
           <div className="min-h-10 px-2.5 md:col-span-1">
@@ -467,7 +469,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               rows={1}
               value={activeTopData.notes}
               onChange={(event) => setDraftTopData((prev) => ({ ...prev, notes: event.target.value }))}
-              className="mt-0.5 min-h-5 w-full resize-y rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+              className={editableTextareaClassName}
             />
           </div>
         </div>

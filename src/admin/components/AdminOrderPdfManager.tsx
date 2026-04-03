@@ -2,7 +2,6 @@
 
 import dynamic from 'next/dynamic';
 import { useMemo, useRef, useState } from 'react';
-import { EuiTextArea } from '@elastic/eui';
 import { IconButton } from '@/shared/ui/icon-button';
 import {
   CheckCircleIcon,
@@ -16,6 +15,7 @@ import {
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 import { ADMIN_TABLE_BG } from '@/shared/ui/table';
+import { adminInputFocusTokenClasses } from '@/shared/ui/theme/tokens';
 
 type PdfDocument = {
   id: number;
@@ -70,7 +70,7 @@ const LazyConfirmDialog = dynamic(
   { ssr: false }
 );
 
-const notesSharedClass = `mt-2 !h-[68px] min-h-0 !w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-[11px] leading-5 text-slate-900 shadow-sm font-['Inter',system-ui,sans-serif] ${ADMIN_TABLE_BG}`;
+const notesSharedClass = `mt-0.5 min-h-[68px] w-full resize-y rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 font-['Inter',system-ui,sans-serif] ${ADMIN_TABLE_BG}`;
 
 export default function AdminOrderPdfManager({
   orderId,
@@ -289,15 +289,14 @@ export default function AdminOrderPdfManager({
         </div>
       </div>
       <div className="mt-3 p-0">
-        <EuiTextArea
+        <textarea
           value={notesSectionMode === 'edit' ? draftNotes : persistedNotes}
           onChange={(event) => setDraftNotes(event.target.value)}
           rows={2}
-          fullWidth
           placeholder=""
           aria-label="Opombe"
           readOnly={notesSectionMode !== 'edit'}
-          className={`${notesSharedClass} outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] ${notesSectionMode === 'edit' ? 'bg-white text-slate-900' : '!bg-[color:var(--ui-neutral-bg)] text-slate-600'}`}
+          className={`${notesSharedClass} ${adminInputFocusTokenClasses} transition ${notesSectionMode === 'edit' ? 'bg-white text-slate-900' : '!bg-[color:var(--ui-neutral-bg)] text-slate-600'}`}
         />
       </div>
 

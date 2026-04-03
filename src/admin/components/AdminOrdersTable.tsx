@@ -1401,7 +1401,7 @@ export default function AdminOrdersTable({
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Poišči naročila"
                 aria-label="Poišči naročila"
-                className="!m-0 !h-7 min-w-0 w-full flex-1 rounded-xl border border-slate-200 bg-white px-3 font-['Inter',system-ui,sans-serif] !text-[11px] text-slate-700 outline-none ring-0 transition-colors placeholder:text-slate-400 focus:border-[#3e67d6] focus:ring-0"
+                className="!m-0 !h-7 min-w-0 w-full flex-1 rounded-xl border border-slate-300 bg-white px-3 font-['Inter',system-ui,sans-serif] !text-[11px] text-slate-700 !shadow-none outline-none ring-0 transition-colors placeholder:text-slate-400 focus:border-[#3e67d6] focus:ring-0 focus:!shadow-none"
               />
             </div>
           }
@@ -1703,14 +1703,8 @@ export default function AdminOrdersTable({
                         <Link
                           href={`/admin/orders/${order.id}`}
                           prefetch={false}
-                          className={`inline-flex rounded-sm text-[11px] font-semibold text-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6] ${isMatchingHoveredCell('order', toDisplayOrderNumber(order.order_number)) ? matchingValueHighlightClass : 'px-1'}`}
+                          className="inline-flex rounded-sm px-1 text-[11px] font-semibold text-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
                           aria-label={`Odpri naročilo ${toDisplayOrderNumber(order.order_number)}`}
-                          onMouseEnter={() =>
-                            setHoveredCellMatch({
-                              column: 'order',
-                              value: getComparableCellValue(toDisplayOrderNumber(order.order_number))
-                            })}
-                          onMouseLeave={() => setHoveredCellMatch(null)}
                         >
                           {toDisplayOrderNumber(order.order_number)}
                         </Link>

@@ -447,14 +447,14 @@ export default function AdminOrderItemsEditor({
           </table>
         </div>
 
-        <div className="space-y-1 border-t border-slate-200 px-4 py-3 text-[11px] text-slate-700">
+        <div className="space-y-1 border-t border-slate-200 px-2 py-3 text-[11px] text-slate-700">
           <div className="flex items-center justify-between">
             <span>Vmesni seštevek</span>
-            <span className="inline-flex w-[13%] justify-end pr-2 font-semibold">{formatCurrency(totals.subtotal)}</span>
+            <span className="inline-flex w-[13%] justify-end font-semibold">{formatCurrency(totals.subtotal)}</span>
           </div>
           <div className="flex items-center justify-between">
             <span>Poštnina</span>
-            <span className="inline-flex w-[13%] justify-end pr-2">
+            <span className="inline-flex w-[13%] justify-end">
               {itemsEditable ? (
                 <input
                   type="text"
@@ -474,12 +474,12 @@ export default function AdminOrderItemsEditor({
           </div>
           <div className="flex items-center justify-between text-slate-500">
             <span>DDV (22 %)</span>
-            <span className="inline-flex w-[13%] justify-end pr-2 font-semibold">{formatCurrency(totals.taxIncludedInfo)}</span>
+            <span className="inline-flex w-[13%] justify-end font-semibold">{formatCurrency(totals.taxIncludedInfo)}</span>
           </div>
           <hr className="border-slate-200" />
           <div className="flex items-center justify-between text-sm font-semibold text-slate-900">
             <span>Skupaj</span>
-            <span className="inline-flex w-[13%] justify-end pr-2">{formatCurrency(totals.total)}</span>
+            <span className="inline-flex w-[13%] justify-end">{formatCurrency(totals.total)}</span>
           </div>
         </div>
       </div>

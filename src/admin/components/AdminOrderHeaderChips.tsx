@@ -304,7 +304,7 @@ export default function AdminOrderHeaderChips(props: Props) {
   return (
     <div className="min-h-[258px] rounded-2xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-4 py-3 shadow-sm font-['Inter',system-ui,sans-serif]">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="flex h-10 flex-nowrap items-center gap-1 whitespace-nowrap text-2xl font-bold tracking-tight text-slate-900">
+        <h1 className="flex h-10 flex-nowrap items-center gap-1 whitespace-nowrap text-lg font-semibold tracking-tight text-slate-900">
           <span>Naročilo</span>
           <span className="inline-flex h-10 items-center gap-0">
             <span>#</span>

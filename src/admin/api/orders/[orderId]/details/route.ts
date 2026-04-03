@@ -89,8 +89,7 @@ export async function POST(
             reference = $7,
             notes = $8,
             order_number = coalesce(nullif($9::text, ''), order_number),
-            created_at = coalesce($10::timestamptz, created_at),
-            is_draft = false
+            created_at = coalesce($10::timestamptz, created_at)
         WHERE id = $11
         `,
         [

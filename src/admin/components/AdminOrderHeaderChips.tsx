@@ -90,95 +90,6 @@ type CompactDropdownOption = {
   label: string;
 };
 
-function CompactDropdown({
-  value,
-  options,
-  onChange,
-  disabled = false,
-  buttonClassName = '',
-  menuClassName = ''
-}: {
-  value: string;
-  options: readonly CompactDropdownOption[];
-  onChange: (value: string) => void;
-  disabled?: boolean;
-  buttonClassName?: string;
-  menuClassName?: string;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement | null>(null);
-
-  const selectedLabel =
-    options.find((option) => option.value === value)?.label ?? options[0]?.label ?? '';
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleOutsideClick = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (!wrapperRef.current?.contains(target)) {
-        setIsOpen(false);
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleOutsideClick);
-    document.addEventListener('keydown', handleEscape);
-
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isOpen]);
-
-  return (
-    <div className="relative" ref={wrapperRef}>
-      <button
-        type="button"
-        onClick={() => {
-          if (disabled) return;
-          setIsOpen((previousOpen) => !previousOpen);
-        }}
-        disabled={disabled}
-        aria-haspopup="menu"
-        aria-expanded={isOpen}
-        className={`inline-flex h-8 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-left text-xs font-semibold leading-[1.2] text-slate-700 shadow-sm transition hover:border-slate-400 focus:border-slate-300 focus:outline-none focus:ring-0 focus-visible:border-slate-300 disabled:cursor-default disabled:opacity-60 ${buttonClassName}`}
-      >
-        <span className="block min-w-0 flex-1 truncate text-left">{selectedLabel}</span>
-        <span className="ml-2 shrink-0 text-slate-500">▾</span>
-      </button>
-
-      {isOpen ? (
-        <div role="menu">
-          <MenuPanel className={`absolute left-0 top-9 z-30 min-w-full w-max max-w-[260px] ${menuClassName}`}>
-            {options.map((option) => {
-              const isSelected = option.value === value;
-
-              return (
-                <MenuItem
-                  key={option.value}
-                  onClick={() => {
-                    onChange(option.value);
-                    setIsOpen(false);
-                  }}
-                  isActive={isSelected}
-                >
-                  <span className="block w-full whitespace-nowrap text-left">{option.label}</span>
-                </MenuItem>
-              );
-            })}
-          </MenuPanel>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 export default function AdminOrderHeaderChips(props: Props) {
   const { orderId, orderNumber } = props;
   const [displayOrderNumber, setDisplayOrderNumber] = useState(toDisplayOrderNumberValue(orderNumber));
@@ -311,8 +222,10 @@ export default function AdminOrderHeaderChips(props: Props) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-4 py-3 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-900">
-          <span>Naročilo #</span>
+        <h1 className="flex flex-nowrap items-center gap-1 text-2xl font-bold tracking-tight text-slate-900 whitespace-nowrap">
+          <span>Naročilo</span>
+          <span className="inline-flex items-center gap-0">
+            <span>#</span>
           {topInputsEditable ? (
             <EuiFieldText
               value={draftOrderNumber}
@@ -321,31 +234,32 @@ export default function AdminOrderHeaderChips(props: Props) {
               }
               inputMode="numeric"
               aria-label="Številka naročila"
-              className="!h-auto !w-24 border-0 bg-transparent p-0 text-2xl font-bold leading-none tracking-tight text-slate-900 shadow-none focus:border-0 focus:shadow-none focus:outline-none focus:ring-0"
+              className="!m-0 !h-10 !w-24 rounded-xl border border-slate-300 bg-white px-2.5 text-2xl font-bold leading-none tracking-tight text-slate-900 shadow-none focus:border-[#3e67d6] focus:outline-none focus:ring-0"
             />
           ) : (
             <span>{toEditableOrderNumber(displayOrderNumber)}</span>
           )}
+          </span>
         </h1>
 
         <div className="ml-auto flex items-center gap-1.5">
           {topInputsEditable ? (
             <>
-              <CompactDropdown
+              <CustomSelect
                 value={draftTopData.status}
                 onChange={(value) => setDraftTopData((prev) => ({ ...prev, status: value }))}
                 options={ORDER_STATUS_OPTIONS}
                 disabled={isTopSaving}
-                buttonClassName="w-[120px]"
+                className="w-[120px] !h-8 !rounded-xl !px-3 text-xs hover:!bg-white active:!bg-white"
                 menuClassName="max-w-[280px]"
               />
 
-              <CompactDropdown
+              <CustomSelect
                 value={draftTopData.paymentStatus}
                 onChange={(value) => setDraftTopData((prev) => ({ ...prev, paymentStatus: value }))}
                 options={PAYMENT_STATUS_OPTIONS}
                 disabled={isTopSaving}
-                buttonClassName="w-[120px]"
+                className="w-[120px] !h-8 !rounded-xl !px-3 text-xs hover:!bg-white active:!bg-white"
                 menuClassName="max-w-[280px]"
               />
             </>
@@ -444,34 +358,26 @@ export default function AdminOrderHeaderChips(props: Props) {
         </div>
       ) : (
         <div className="mt-4 grid min-h-[132px] gap-3 text-[12px] md:grid-cols-2">
-          <div className="min-h-10">
-            <p className="text-sm font-semibold text-slate-700">Datum</p>
-            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.orderDate)}</p>
+          <div className="flex h-10 items-center rounded-xl border border-slate-300 bg-white px-2.5 text-[11px] text-slate-900">
+            {displayValue(activeTopData.orderDate)}
           </div>
-          <div className="min-h-10">
-            <p className="text-sm font-semibold text-slate-700">Tip naročnika</p>
-            <p className="mt-0.5 text-xs leading-5 text-slate-900">
-              {displayValue(
-                CUSTOMER_TYPE_FORM_OPTIONS.find((option) => option.value === activeTopData.customerType)?.label ??
-                  activeTopData.customerType
-              )}
-            </p>
+          <div className="flex h-10 items-center rounded-xl border border-slate-300 bg-white px-2.5 text-[11px] text-slate-900">
+            {displayValue(
+              CUSTOMER_TYPE_FORM_OPTIONS.find((option) => option.value === activeTopData.customerType)?.label ??
+                activeTopData.customerType
+            )}
           </div>
-          <div className="min-h-10">
-            <p className="text-sm font-semibold text-slate-700">Naročnik</p>
-            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.organizationName)}</p>
+          <div className="flex h-10 items-center rounded-xl border border-slate-300 bg-white px-2.5 text-[11px] text-slate-900">
+            {displayValue(activeTopData.organizationName)}
           </div>
-          <div className="min-h-10">
-            <p className="text-sm font-semibold text-slate-700">Email</p>
-            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.email)}</p>
+          <div className="flex h-10 items-center rounded-xl border border-slate-300 bg-white px-2.5 text-[11px] text-slate-900">
+            {displayValue(activeTopData.email)}
           </div>
-          <div className="min-h-10">
-            <p className="text-sm font-semibold text-slate-700">Naslov</p>
-            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.deliveryAddress)}</p>
+          <div className="flex h-10 items-center rounded-xl border border-slate-300 bg-white px-2.5 text-[11px] text-slate-900">
+            {displayValue(activeTopData.deliveryAddress)}
           </div>
-          <div className="min-h-10">
-            <p className="text-sm font-semibold text-slate-700">Opombe</p>
-            <p className="mt-0.5 whitespace-pre-wrap text-xs leading-5 text-slate-900">{displayValue(activeTopData.notes)}</p>
+          <div className="flex h-10 items-center rounded-xl border border-slate-300 bg-white px-2.5 text-[11px] text-slate-900">
+            {displayValue(activeTopData.notes)}
           </div>
         </div>
       )}

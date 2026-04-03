@@ -69,8 +69,7 @@ const LazyConfirmDialog = dynamic(
   { ssr: false }
 );
 
-const notesReadClass = `mt-2 h-[44px] overflow-y-auto whitespace-pre-wrap rounded-xl border border-slate-300 px-3 py-1.5 text-[11px] leading-5 text-slate-900 shadow-sm font-['Inter',system-ui,sans-serif] ${ADMIN_TABLE_BG}`;
-const notesEditClass = `mt-2 min-h-0 !w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-[11px] leading-5 text-slate-900 shadow-sm font-['Inter',system-ui,sans-serif] ${ADMIN_TABLE_BG}`;
+const notesSharedClass = `mt-2 !h-[88px] min-h-0 !w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-[11px] leading-5 text-slate-900 shadow-sm font-['Inter',system-ui,sans-serif] ${ADMIN_TABLE_BG}`;
 
 export default function AdminOrderPdfManager({
   orderId,
@@ -291,21 +290,16 @@ export default function AdminOrderPdfManager({
           </div>
         </div>
 
-        {notesSectionMode === 'edit' ? (
-          <EuiTextArea
-            value={draftNotes}
-            onChange={(event) => setDraftNotes(event.target.value)}
-            rows={3}
-            fullWidth
-            placeholder="Opombe"
-            aria-label="Opombe"
-            className={`${notesEditClass} outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
-          />
-        ) : (
-          <p className={`${notesReadClass} text-slate-600`}>
-            {persistedNotes.trim()}
-          </p>
-        )}
+        <EuiTextArea
+          value={notesSectionMode === 'edit' ? draftNotes : persistedNotes}
+          onChange={(event) => setDraftNotes(event.target.value)}
+          rows={3}
+          fullWidth
+          placeholder="Opombe"
+          aria-label="Opombe"
+          readOnly={notesSectionMode !== 'edit'}
+          className={`${notesSharedClass} outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] ${notesSectionMode === 'edit' ? 'text-slate-900' : 'text-slate-600'}`}
+        />
       </div>
 
       <div className="mt-4 space-y-4">

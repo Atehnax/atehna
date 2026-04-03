@@ -21,7 +21,6 @@ type CustomSelectProps = {
   menuClassName?: string;
   valueClassName?: string;
   onOpenChange?: (isOpen: boolean) => void;
-  forceWhiteBackground?: boolean;
 };
 
 const classNames = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ');
@@ -36,8 +35,7 @@ export default function CustomSelect({
   triggerClassName,
   menuClassName,
   valueClassName,
-  onOpenChange,
-  forceWhiteBackground = false
+  onOpenChange
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -105,7 +103,6 @@ export default function CustomSelect({
           className,
           triggerClassName
         )}
-        style={forceWhiteBackground ? { backgroundColor: '#ffffff' } : undefined}
       >
         <span className={classNames('min-w-0 flex-1 truncate pb-px text-left leading-[1.3]', valueClassName)}>{selectedLabel}</span>
         <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500">▾</span>

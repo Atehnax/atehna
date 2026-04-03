@@ -1394,12 +1394,15 @@ export default function AdminOrdersTable({
           headerClassName="bg-white"
           showDivider={false}
           headerLeft={
-            <AdminSearchInput
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Poišči naročila"
-              className="h-7 min-w-0 w-full flex-1 rounded-xl border-slate-200 bg-white pl-10 pr-3 font-['Inter',system-ui,sans-serif] text-[11px]"
-            />
+            <div className="flex h-7 w-full items-center">
+              <AdminSearchInput
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Poišči naročila"
+                showIcon={false}
+                className="!h-7 min-w-0 w-full flex-1 rounded-xl border-slate-200 bg-white !pl-3 pr-3 font-['Inter',system-ui,sans-serif] text-[11px]"
+              />
+            </div>
           }
           headerRight={
             <>

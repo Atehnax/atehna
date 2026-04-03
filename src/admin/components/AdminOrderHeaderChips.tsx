@@ -58,7 +58,7 @@ function ChipDropdown({
   disabled = false
 }: {
   value: string;
-  options: readonly Array<{ value: string; label: string }>;
+  options: ReadonlyArray<{ value: string; label: string }>;
   onChange: (value: string) => void;
   renderChip: (value: string) => ReactNode;
   disabled?: boolean;

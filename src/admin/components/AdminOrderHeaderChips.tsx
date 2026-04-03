@@ -9,6 +9,7 @@ import { ORDER_STATUS_OPTIONS } from '@/shared/domain/order/orderStatus';
 import { toDateInputValue } from '@/shared/domain/order/dateTime';
 import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/shared/domain/order/paymentStatus';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import { CustomSelect } from '@/shared/ui/select';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { IconButton } from '@/shared/ui/icon-button';
 import { PencilIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
@@ -27,6 +28,7 @@ const toEditableOrderNumber = (value: string) => value.trim().replace(/^#/, '');
 type TopData = {
   orderDate: string;
   customerType: string;
+  postalCode: string;
   organizationName: string;
   contactName: string;
   email: string;
@@ -46,6 +48,7 @@ type Props = {
   contactName: string;
   email: string;
   deliveryAddress: string | null;
+  postalCode?: string | null;
   notes: string | null;
   createdAt: string;
 };
@@ -134,6 +137,7 @@ const asTopData = ({
   contactName,
   email,
   deliveryAddress,
+  postalCode,
   notes,
   status,
   paymentStatus
@@ -144,16 +148,20 @@ const asTopData = ({
   contactName: string;
   email: string;
   deliveryAddress: string | null;
+  postalCode?: string | null;
   notes: string | null;
   status: string;
   paymentStatus?: string | null;
 }): TopData => ({
+  postalCode:
+    (typeof postalCode === 'string' && postalCode.trim()) ||
+    (deliveryAddress?.match(/\b\d{4}\b/)?.[0] ?? ''),
   orderDate: toDateInputValue(createdAt),
   customerType,
   organizationName: organizationName?.trim() ? organizationName : contactName,
   contactName,
   email,
-  deliveryAddress: deliveryAddress ?? '',
+  deliveryAddress: (deliveryAddress ?? '').replace(/\b\d{4}\b/g, '').replace(/\s{2,}/g, ' ').trim(),
   notes: notes?.trim() ? notes : '',
   status,
   paymentStatus: isPaymentStatus(paymentStatus ?? '') ? paymentStatus ?? 'unpaid' : 'unpaid'
@@ -232,6 +240,7 @@ export default function AdminOrderHeaderChips(props: Props) {
             contactName: draftTopData.organizationName.trim() || draftTopData.contactName.trim(),
             email: draftTopData.email,
             deliveryAddress: draftTopData.deliveryAddress,
+            postalCode: draftTopData.postalCode,
             notes: draftTopData.notes,
             orderDate: draftTopData.orderDate
           })
@@ -314,7 +323,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               onBlur={(event) => {
                 event.currentTarget.textContent = draftOrderNumber;
               }}
-              className="inline-flex h-10 min-w-24 items-center rounded-xl border border-slate-300 bg-white px-2.5 font-inherit text-inherit leading-none tracking-tight text-slate-900 shadow-none outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+              className="inline-flex h-10 min-w-20 items-center rounded-xl border border-slate-300 bg-white px-2.5 font-inherit text-inherit leading-none tracking-tight text-slate-900 shadow-none outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
             >
               {draftOrderNumber}
             </span>
@@ -399,17 +408,14 @@ export default function AdminOrderHeaderChips(props: Props) {
           </div>
           <div className="min-h-10 px-2.5">
             <p className="text-sm font-semibold text-slate-700">Tip naročnika</p>
-            <select
+            <CustomSelect
               value={activeTopData.customerType}
-              onChange={(event) => setDraftTopData((prev) => ({ ...prev, customerType: event.target.value }))}
-              className="mt-0.5 h-6 w-full appearance-none rounded-md border border-slate-300 bg-white px-2 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
-            >
-              {CUSTOMER_TYPE_FORM_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setDraftTopData((prev) => ({ ...prev, customerType: value }))}
+              options={CUSTOMER_TYPE_FORM_OPTIONS}
+              className="mt-0.5 !h-6 w-full !rounded-md border border-slate-300 bg-white px-2 text-xs leading-5 text-slate-900 hover:bg-white focus:border-[#3e67d6]"
+              menuClassName="max-w-[280px]"
+              disabled={isTopSaving}
+            />
           </div>
           <div className="min-h-10 px-2.5">
             <p className="text-sm font-semibold text-slate-700">Naročnik</p>
@@ -430,20 +436,27 @@ export default function AdminOrderHeaderChips(props: Props) {
             />
           </div>
           <div className="min-h-10 px-2.5">
+            <p className="text-sm font-semibold text-slate-700">Poštna številka</p>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={4}
+              value={activeTopData.postalCode}
+              onChange={(event) =>
+                setDraftTopData((prev) => ({
+                  ...prev,
+                  postalCode: event.target.value.replace(/[^\d]/g, '').slice(0, 4)
+                }))
+              }
+              className="mt-0.5 h-6 w-full rounded-md border border-slate-300 bg-white px-2 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+            />
+          </div>
+          <div className="min-h-10 px-2.5">
             <p className="text-sm font-semibold text-slate-700">Naslov</p>
             <input
               type="text"
               value={activeTopData.deliveryAddress}
               onChange={(event) => setDraftTopData((prev) => ({ ...prev, deliveryAddress: event.target.value }))}
-              className="mt-0.5 h-6 w-full rounded-md border border-slate-300 bg-white px-2 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
-            />
-          </div>
-          <div className="min-h-10 px-2.5">
-            <p className="text-sm font-semibold text-slate-700">Opombe</p>
-            <input
-              type="text"
-              value={activeTopData.notes}
-              onChange={(event) => setDraftTopData((prev) => ({ ...prev, notes: event.target.value }))}
               className="mt-0.5 h-6 w-full rounded-md border border-slate-300 bg-white px-2 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
             />
           </div>
@@ -472,12 +485,12 @@ export default function AdminOrderHeaderChips(props: Props) {
             <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.email)}</p>
           </div>
           <div className="min-h-10 px-2.5">
-            <p className="text-sm font-semibold text-slate-700">Naslov</p>
-            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.deliveryAddress)}</p>
+            <p className="text-sm font-semibold text-slate-700">Poštna številka</p>
+            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.postalCode)}</p>
           </div>
           <div className="min-h-10 px-2.5">
-            <p className="text-sm font-semibold text-slate-700">Opombe</p>
-            <p className="mt-0.5 whitespace-pre-wrap text-xs leading-5 text-slate-900">{displayValue(activeTopData.notes)}</p>
+            <p className="text-sm font-semibold text-slate-700">Naslov</p>
+            <p className="mt-0.5 whitespace-pre-wrap text-xs leading-5 text-slate-900">{displayValue(activeTopData.deliveryAddress)}</p>
           </div>
         </div>
       )}

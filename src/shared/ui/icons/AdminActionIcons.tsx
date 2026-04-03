@@ -322,12 +322,12 @@ export function GeneratePdfIcon({ className, ...props }: ActionIconProps) {
       aria-hidden="true"
       {...props}
     >
-      <path d="M5.2 2.5h7.1l3.5 3.5v10.3a1.7 1.7 0 0 1-1.7 1.7H5.2a1.7 1.7 0 0 1-1.7-1.7V4.2a1.7 1.7 0 0 1 1.7-1.7z" />
-      <path d="M12.3 2.5V6h3.5" />
-      <path d="M6.9 12.7v-4h1.5a1.3 1.3 0 1 1 0 2.6H6.9" />
-      <path d="M10.2 12.7v-4h1.2a2 2 0 1 1 0 4h-1.2z" />
-      <path d="M14 8.7h-1.7v4" />
-      <path d="M14 10.7h-1.4" />
+      <path d="M5.2 2.3h7.4l3.2 3.2v10.3a1.9 1.9 0 0 1-1.9 1.9H5.2a1.9 1.9 0 0 1-1.9-1.9V4.2a1.9 1.9 0 0 1 1.9-1.9z" />
+      <path d="M12.6 2.3V5.5a1 1 0 0 0 1 1h2.2" />
+      <rect x="2.9" y="10.7" width="14.2" height="5.5" rx="1.1" fill="currentColor" stroke="currentColor" />
+      <path d="M5.3 14.7v-2.5h1.1a.85.85 0 1 1 0 1.7H5.3" fill="none" stroke="white" strokeWidth="1" />
+      <path d="M8.3 14.7v-2.5h.8a1.25 1.25 0 1 1 0 2.5h-.8z" fill="none" stroke="white" strokeWidth="1" />
+      <path d="M11.8 14.7v-2.5h1.9M11.8 13.5h1.5" fill="none" stroke="white" strokeWidth="1" />
     </svg>
   );
 }

@@ -62,6 +62,25 @@ export const toDateInputValue = (value: string) => {
   return parsedDate.toISOString().slice(0, 10);
 };
 
+export const toSlDateValue = (value: string) => {
+  const isoDate = toDateInputValue(value);
+  const [year, month, day] = isoDate.split('-');
+  if (!year || !month || !day) return '';
+  return `${day}/${month}/${year}`;
+};
+
+export const toIsoDateFromSlDateValue = (value: string) => {
+  const trimmed = value.trim();
+  const match = trimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return '';
+
+  const [, day, month, year] = match;
+  const parsedDate = new Date(`${year}-${month}-${day}T00:00:00`);
+  if (Number.isNaN(parsedDate.getTime())) return '';
+
+  return `${year}-${month}-${day}`;
+};
+
 
 
 const ljubljanaDateFormatter = new Intl.DateTimeFormat('sl-SI', {

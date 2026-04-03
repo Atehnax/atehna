@@ -316,18 +316,18 @@ export function GeneratePdfIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.5"
+      strokeWidth="1.7"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
       {...props}
     >
-      <path d="M4.8 2.2h7.3l3.1 3.1v10.5a2 2 0 0 1-2 2H4.8a2 2 0 0 1-2-2V4.2a2 2 0 0 1 2-2z" />
-      <path d="M12.1 2.2v2.9a1 1 0 0 0 1 1H16" />
-      <rect x="2.2" y="9.3" width="15.6" height="5.4" rx="1.2" fill="currentColor" stroke="currentColor" />
-      <path d="M5 13v-2h1.1a.7.7 0 1 1 0 1.4H5" fill="none" stroke="white" strokeWidth="1" />
-      <path d="M8 13v-2h.8a1 1 0 1 1 0 2H8z" fill="none" stroke="white" strokeWidth="1" />
-      <path d="M11 13v-2h1.8M11 12h1.4" fill="none" stroke="white" strokeWidth="1" />
+      <path d="M5 2.5h7.2L15.8 6v10.3c0 .9-.7 1.7-1.7 1.7H5c-.9 0-1.7-.7-1.7-1.7V4.2c0-.9.7-1.7 1.7-1.7z" />
+      <path d="M12.2 2.5V5c0 .6.5 1 1 1h2.6" />
+      <path d="M6.2 9.3h7.6" />
+      <path d="M6.2 11.4h7.6" />
+      <path d="M6.2 13.5h7.6" />
+      <path d="M6.2 15.6h3.6" />
     </svg>
   );
 }

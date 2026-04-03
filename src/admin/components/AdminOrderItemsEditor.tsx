@@ -126,6 +126,8 @@ export default function AdminOrderItemsEditor({
 
   const activeItems = itemsEditable ? draftItems : persistedItems;
   const hasSelectedDraftItems = selectedDraftItemIds.length > 0;
+  const areAllActiveItemsSelected =
+    activeItems.length > 0 && activeItems.every((item) => selectedDraftItemIds.includes(item.id));
 
   const totals = useMemo(() => {
     const subtotal = toMoney(
@@ -271,9 +273,19 @@ export default function AdminOrderItemsEditor({
   };
 
   const toggleSelectedDraftItem = (itemId: string) => {
+    if (!itemsEditable) return;
     setSelectedDraftItemIds((previous) =>
       previous.includes(itemId) ? previous.filter((id) => id !== itemId) : [...previous, itemId]
     );
+  };
+
+  const toggleAllDraftItems = () => {
+    if (!itemsEditable) return;
+    if (areAllActiveItemsSelected) {
+      setSelectedDraftItemIds([]);
+      return;
+    }
+    setSelectedDraftItemIds(activeItems.map((item) => item.id));
   };
 
   const deleteSelectedDraftItems = () => {
@@ -339,8 +351,8 @@ export default function AdminOrderItemsEditor({
         <div className="overflow-x-auto">
           <table className="min-w-full text-[11px] leading-4">
             <colgroup>
-              {itemsEditable ? <col style={{ width: '4%' }} /> : null}
-              <col style={{ width: itemsEditable ? '53%' : '57%' }} />
+              <col style={{ width: '4%' }} />
+              <col style={{ width: '53%' }} />
               <col style={{ width: '10%' }} />
               <col style={{ width: '10%' }} />
               <col style={{ width: '10%' }} />
@@ -348,7 +360,16 @@ export default function AdminOrderItemsEditor({
             </colgroup>
             <thead className="bg-white text-slate-600">
               <tr>
-                {itemsEditable ? <th className="px-1 py-2" aria-label="Izbira" /> : null}
+                <th className="px-1 py-2 text-center" aria-label="Izbira">
+                  <input
+                    type="checkbox"
+                    checked={itemsEditable ? areAllActiveItemsSelected : false}
+                    disabled={!itemsEditable}
+                    onChange={toggleAllDraftItems}
+                    className="h-3.5 w-3.5 rounded border-slate-300 text-[color:var(--blue-500)] focus:ring-0 disabled:cursor-default disabled:opacity-45"
+                    aria-label="Izberi vse postavke"
+                  />
+                </th>
                 <th className="px-3 py-2 text-left">Artikel</th>
                 <th className="px-2 py-2 text-center">Količina</th>
                 <th className="px-2 py-2 text-center">Cena</th>
@@ -361,17 +382,16 @@ export default function AdminOrderItemsEditor({
                 const lineTotal = toMoney(item.quantity * item.unitPrice * (1 - item.discountPercentage / 100));
                 return (
                   <tr key={item.id} className="border-t border-slate-200/80 bg-white/80 align-middle">
-                    {itemsEditable ? (
-                      <td className="px-1 py-1.5 align-middle text-center">
-                        <input
-                          type="checkbox"
-                          checked={selectedDraftItemIds.includes(item.id)}
-                          onChange={() => toggleSelectedDraftItem(item.id)}
-                          className="h-3.5 w-3.5 rounded border-slate-300 text-[color:var(--blue-500)] focus:ring-0"
-                          aria-label={`Izberi postavko ${item.name}`}
-                        />
-                      </td>
-                    ) : null}
+                    <td className="px-1 py-1.5 align-middle text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedDraftItemIds.includes(item.id)}
+                        disabled={!itemsEditable}
+                        onChange={() => toggleSelectedDraftItem(item.id)}
+                        className="h-3.5 w-3.5 rounded border-slate-300 text-[color:var(--blue-500)] focus:ring-0 disabled:cursor-default disabled:opacity-45"
+                        aria-label={`Izberi postavko ${item.name}`}
+                      />
+                    </td>
                     <td className="px-3 py-1.5 align-middle">
                       <p className="text-[11px] leading-4 font-medium text-slate-900">{item.name}</p>
                     </td>
@@ -386,7 +406,7 @@ export default function AdminOrderItemsEditor({
                           className="!h-5 !w-10 rounded-md border border-slate-300 bg-white !px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
                         />
                       ) : (
-                        <span className="inline-flex h-6 items-center text-[11px] leading-4 text-slate-900">{item.quantity}</span>
+                        <span className="inline-flex h-5 w-10 items-center justify-center text-[11px] leading-4 text-slate-900">{item.quantity}</span>
                       )}
                     </td>
                     <td className="px-2 py-1.5 align-middle text-center">
@@ -400,7 +420,7 @@ export default function AdminOrderItemsEditor({
                           className="!h-5 !w-16 rounded-md border border-slate-300 bg-white !px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
                         />
                       ) : (
-                        <span className="inline-flex h-6 items-center text-[11px] leading-4 text-slate-900">{formatCurrency(item.unitPrice)}</span>
+                        <span className="inline-flex h-5 w-16 items-center justify-center text-[11px] leading-4 text-slate-900">{formatCurrency(item.unitPrice)}</span>
                       )}
                     </td>
                     <td className="px-2 py-1.5 align-middle text-center">
@@ -416,7 +436,7 @@ export default function AdminOrderItemsEditor({
                           className="!h-5 !w-12 rounded-md border border-slate-300 bg-white !px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
                         />
                       ) : (
-                        <span className="inline-flex h-6 items-center text-[11px] leading-4 text-slate-900">{formatDecimalInput(item.discountPercentage)} %</span>
+                        <span className="inline-flex h-5 w-12 items-center justify-center text-[11px] leading-4 text-slate-900">{formatDecimalInput(item.discountPercentage)} %</span>
                       )}
                     </td>
                     <td className="px-2 py-1.5 align-middle text-right font-semibold text-slate-900">{formatCurrency(lineTotal)}</td>

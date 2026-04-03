@@ -19,7 +19,6 @@ import {
 } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, RowActionsDropdown, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
-import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import {
   adminTableRowToneClasses,
   dateInputTokenClasses
@@ -1394,13 +1393,14 @@ export default function AdminOrdersTable({
           headerClassName="bg-white"
           showDivider={false}
           headerLeft={
-            <div className="flex h-7 w-full items-center">
-              <AdminSearchInput
+            <div className="flex h-7 w-full items-stretch">
+              <input
+                type="text"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Poišči naročila"
-                showIcon={false}
-                className="!h-7 min-w-0 w-full flex-1 rounded-xl border-slate-200 bg-white !pl-3 pr-3 font-['Inter',system-ui,sans-serif] text-[11px]"
+                aria-label="Poišči naročila"
+                className="h-7 min-w-0 w-full flex-1 rounded-xl border border-slate-200 bg-white px-3 font-['Inter',system-ui,sans-serif] text-[11px] text-slate-700 outline-none ring-0 transition-colors placeholder:text-slate-400 focus:border-[#3e67d6]"
               />
             </div>
           }

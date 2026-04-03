@@ -3,8 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { EuiFieldText } from '@elastic/eui';
-import PaymentChip from '@/admin/components/PaymentChip';
-import StatusChip from '@/admin/components/StatusChip';
 import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/shared/domain/order/customerType';
 import { ORDER_STATUS_OPTIONS } from '@/shared/domain/order/orderStatus';
 import { toDateInputValue } from '@/shared/domain/order/dateTime';
@@ -113,6 +111,7 @@ export default function AdminOrderHeaderChips(props: Props) {
 
   const topInputsEditable = topSectionMode === 'edit';
   const topSaveDisabled = topSectionMode !== 'edit' || isTopSaving;
+  const topSelectClassName = "w-[120px] !h-8 !rounded-xl !px-3 text-xs hover:!bg-white active:!bg-white";
 
   const startEdit = () => {
     if (topSectionMode === 'edit') {
@@ -221,9 +220,9 @@ export default function AdminOrderHeaderChips(props: Props) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-4 py-3 shadow-sm font-['Inter',system-ui,sans-serif]">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="flex flex-nowrap items-center gap-1 text-2xl font-bold tracking-tight text-slate-900 whitespace-nowrap">
+        <h1 className="flex h-10 flex-nowrap items-center gap-1 whitespace-nowrap text-2xl font-bold tracking-tight text-slate-900">
           <span>Naročilo</span>
-          <span className="inline-flex items-center gap-0">
+          <span className="inline-flex h-10 items-center gap-0">
             <span>#</span>
           {topInputsEditable ? (
             <EuiFieldText
@@ -242,32 +241,29 @@ export default function AdminOrderHeaderChips(props: Props) {
         </h1>
 
         <div className="ml-auto flex items-center gap-1.5">
-          {topInputsEditable ? (
-            <>
-              <CustomSelect
-                value={draftTopData.status}
-                onChange={(value) => setDraftTopData((prev) => ({ ...prev, status: value }))}
-                options={ORDER_STATUS_OPTIONS}
-                disabled={isTopSaving}
-                className="w-[120px] !h-8 !rounded-xl !px-3 text-xs hover:!bg-white active:!bg-white"
-                menuClassName="max-w-[280px]"
-              />
+          <CustomSelect
+            value={topInputsEditable ? draftTopData.status : persistedTopData.status}
+            onChange={(value) => {
+              if (!topInputsEditable) return;
+              setDraftTopData((prev) => ({ ...prev, status: value }));
+            }}
+            options={ORDER_STATUS_OPTIONS}
+            disabled={!topInputsEditable || isTopSaving}
+            className={topSelectClassName}
+            menuClassName="max-w-[280px]"
+          />
 
-              <CustomSelect
-                value={draftTopData.paymentStatus}
-                onChange={(value) => setDraftTopData((prev) => ({ ...prev, paymentStatus: value }))}
-                options={PAYMENT_STATUS_OPTIONS}
-                disabled={isTopSaving}
-                className="w-[120px] !h-8 !rounded-xl !px-3 text-xs hover:!bg-white active:!bg-white"
-                menuClassName="max-w-[280px]"
-              />
-            </>
-          ) : (
-            <>
-              <StatusChip status={persistedTopData.status} />
-              <PaymentChip status={persistedTopData.paymentStatus} />
-            </>
-          )}
+          <CustomSelect
+            value={topInputsEditable ? draftTopData.paymentStatus : persistedTopData.paymentStatus}
+            onChange={(value) => {
+              if (!topInputsEditable) return;
+              setDraftTopData((prev) => ({ ...prev, paymentStatus: value }));
+            }}
+            options={PAYMENT_STATUS_OPTIONS}
+            disabled={!topInputsEditable || isTopSaving}
+            className={topSelectClassName}
+            menuClassName="max-w-[280px]"
+          />
 
           <IconButton
             type="button"
@@ -358,34 +354,26 @@ export default function AdminOrderHeaderChips(props: Props) {
         </div>
       ) : (
         <div className="mt-4 grid min-h-[132px] gap-3 text-[12px] md:grid-cols-2">
-          <div className="min-h-10">
-            <p className="text-sm font-semibold text-slate-700">Datum</p>
-            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.orderDate)}</p>
+          <div className="flex h-10 items-center px-2.5 font-['Inter',system-ui,sans-serif] text-[11px] leading-5 text-slate-900">
+            {displayValue(activeTopData.orderDate)}
           </div>
-          <div className="min-h-10">
-            <p className="text-sm font-semibold text-slate-700">Tip naročnika</p>
-            <p className="mt-0.5 text-xs leading-5 text-slate-900">
-              {displayValue(
-                CUSTOMER_TYPE_FORM_OPTIONS.find((option) => option.value === activeTopData.customerType)?.label ??
-                  activeTopData.customerType
-              )}
-            </p>
+          <div className="flex h-10 items-center px-2.5 font-['Inter',system-ui,sans-serif] text-[11px] leading-5 text-slate-900">
+            {displayValue(
+              CUSTOMER_TYPE_FORM_OPTIONS.find((option) => option.value === activeTopData.customerType)?.label ??
+                activeTopData.customerType
+            )}
           </div>
-          <div className="min-h-10">
-            <p className="text-sm font-semibold text-slate-700">Naročnik</p>
-            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.organizationName)}</p>
+          <div className="flex h-10 items-center px-2.5 font-['Inter',system-ui,sans-serif] text-[11px] leading-5 text-slate-900">
+            {displayValue(activeTopData.organizationName)}
           </div>
-          <div className="min-h-10">
-            <p className="text-sm font-semibold text-slate-700">Email</p>
-            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.email)}</p>
+          <div className="flex h-10 items-center px-2.5 font-['Inter',system-ui,sans-serif] text-[11px] leading-5 text-slate-900">
+            {displayValue(activeTopData.email)}
           </div>
-          <div className="min-h-10">
-            <p className="text-sm font-semibold text-slate-700">Naslov</p>
-            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.deliveryAddress)}</p>
+          <div className="flex h-10 items-center px-2.5 font-['Inter',system-ui,sans-serif] text-[11px] leading-5 text-slate-900">
+            {displayValue(activeTopData.deliveryAddress)}
           </div>
-          <div className="min-h-10">
-            <p className="text-sm font-semibold text-slate-700">Opombe</p>
-            <p className="mt-0.5 whitespace-pre-wrap text-xs leading-5 text-slate-900">{displayValue(activeTopData.notes)}</p>
+          <div className="flex h-10 items-center px-2.5 font-['Inter',system-ui,sans-serif] text-[11px] leading-5 text-slate-900">
+            {displayValue(activeTopData.notes)}
           </div>
         </div>
       )}

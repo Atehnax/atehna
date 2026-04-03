@@ -300,16 +300,24 @@ export default function AdminOrderHeaderChips(props: Props) {
           <span className="inline-flex h-10 items-center gap-0">
             <span>#</span>
           {topInputsEditable ? (
-            <input
-              type="text"
-              value={draftOrderNumber}
-              onChange={(event) =>
-                setDraftOrderNumber(event.target.value.replace(/[^\d]/g, ''))
-              }
-              inputMode="numeric"
+            <span
+              role="textbox"
+              contentEditable
+              suppressContentEditableWarning
               aria-label="Številka naročila"
-              className="m-0 h-10 w-24 appearance-none rounded-xl border border-slate-300 bg-white px-2.5 font-['Inter',system-ui,sans-serif] !text-[26px] !font-bold leading-none tracking-tight text-slate-900 shadow-none outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
-            />
+              onInput={(event) => {
+                const raw = event.currentTarget.textContent ?? '';
+                const digitsOnly = raw.replace(/[^\d]/g, '');
+                if (raw !== digitsOnly) event.currentTarget.textContent = digitsOnly;
+                setDraftOrderNumber(digitsOnly);
+              }}
+              onBlur={(event) => {
+                event.currentTarget.textContent = draftOrderNumber;
+              }}
+              className="inline-flex h-10 min-w-24 items-center rounded-xl border border-slate-300 bg-white px-2.5 font-inherit text-inherit leading-none tracking-tight text-slate-900 shadow-none outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+            >
+              {draftOrderNumber}
+            </span>
           ) : (
             <span>{toEditableOrderNumber(displayOrderNumber)}</span>
           )}

@@ -213,7 +213,7 @@ export function FloatingSelect({
           className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
           fill="none"
           stroke="currentColor"
-          strokeWidth="1.8"
+          strokeWidth="1.5"
         >
           <path d="M5 7.5l5 5 5-5" />
         </svg>

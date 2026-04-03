@@ -24,15 +24,15 @@ const COLLAPSED_WIDTH = 'w-16';
 const EXPANDED_WIDTH = 'w-[14.5rem]';
 
 function SidebarIcon({ type }: { type: SidebarIconType }) {
-  if (type === 'home') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3.5 9.5 10 4l6.5 5.5"/><path d="M5.5 8.5V16h9V8.5"/></svg>;
-  if (type === 'orders') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="4" y="3" width="12" height="14" rx="2.2"/><path d="M7 7h6"/><path d="M7 10.5h4.5"/><path d="M13 10.5h.01"/><path d="M7 14h4.5"/><path d="M13 14h.01"/></svg>;
-  if (type === 'products') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3.3 15.8 6.2 10 9.1 4.2 6.2 10 3.3Z"/><path d="M4.2 6.2v7L10 16.7v-7.6"/><path d="M15.8 6.2v7L10 16.7"/></svg>;
-  if (type === 'categories') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3.5 4.5h5v4h-5z"/><path d="M11.5 4.5H16v4h-4.5z"/><path d="M7 8.5v2h6"/><path d="M10 10.5v5"/><path d="M7.5 13.5h5v3h-5z"/></svg>;
-  if (type === 'analytics') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3 16h14"/><path d="M5.5 13V9.5"/><path d="M10 13V6"/><path d="M14.5 13V4"/></svg>;
-  if (type === 'customers') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="7" cy="7" r="2.3"/><circle cx="13.2" cy="8" r="1.8"/><path d="M3.2 15c.9-2 2.2-3 3.8-3s2.9 1 3.8 3"/><path d="M11.4 14.3c.5-1.3 1.4-2 2.6-2"/></svg>;
-  if (type === 'visual') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M10 3a7 7 0 1 0 0 14h1.3a2 2 0 0 0 2-2 1.8 1.8 0 0 1 1.8-1.8h1A3.2 3.2 0 0 0 10 3z"/><circle cx="6.4" cy="8.1" r=".7" fill="currentColor"/><circle cx="9" cy="6.2" r=".7" fill="currentColor"/><circle cx="11.8" cy="6.2" r=".7" fill="currentColor"/></svg>;
-  if (type === 'archive') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3.5 5h13v3h-13z"/><path d="M5 8v8h10V8"/><path d="M8 11h4"/></svg>;
-  return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 4h4v12h-4"/><path d="M8 6L4 10l4 4"/><path d="M4 10h9"/></svg>;
+  if (type === 'home') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3.5 9.5 10 4l6.5 5.5"/><path d="M5.5 8.5V16h9V8.5"/></svg>;
+  if (type === 'orders') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="4" y="3" width="12" height="14" rx="2.2"/><path d="M7 7h6"/><path d="M7 10.5h4.5"/><path d="M13 10.5h.01"/><path d="M7 14h4.5"/><path d="M13 14h.01"/></svg>;
+  if (type === 'products') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3.3 15.8 6.2 10 9.1 4.2 6.2 10 3.3Z"/><path d="M4.2 6.2v7L10 16.7v-7.6"/><path d="M15.8 6.2v7L10 16.7"/></svg>;
+  if (type === 'categories') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3.5 4.5h5v4h-5z"/><path d="M11.5 4.5H16v4h-4.5z"/><path d="M7 8.5v2h6"/><path d="M10 10.5v5"/><path d="M7.5 13.5h5v3h-5z"/></svg>;
+  if (type === 'analytics') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 16h14"/><path d="M5.5 13V9.5"/><path d="M10 13V6"/><path d="M14.5 13V4"/></svg>;
+  if (type === 'customers') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="7" cy="7" r="2.3"/><circle cx="13.2" cy="8" r="1.8"/><path d="M3.2 15c.9-2 2.2-3 3.8-3s2.9 1 3.8 3"/><path d="M11.4 14.3c.5-1.3 1.4-2 2.6-2"/></svg>;
+  if (type === 'visual') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M10 3a7 7 0 1 0 0 14h1.3a2 2 0 0 0 2-2 1.8 1.8 0 0 1 1.8-1.8h1A3.2 3.2 0 0 0 10 3z"/><circle cx="6.4" cy="8.1" r=".7" fill="currentColor"/><circle cx="9" cy="6.2" r=".7" fill="currentColor"/><circle cx="11.8" cy="6.2" r=".7" fill="currentColor"/></svg>;
+  if (type === 'archive') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3.5 5h13v3h-13z"/><path d="M5 8v8h10V8"/><path d="M8 11h4"/></svg>;
+  return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 4h4v12h-4"/><path d="M8 6L4 10l4 4"/><path d="M4 10h9"/></svg>;
 }
 
 function ActiveChevron({ visible }: { visible: boolean }) {

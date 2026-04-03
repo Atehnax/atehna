@@ -16,7 +16,7 @@ export function DownloadIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -36,7 +36,7 @@ export function UploadIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -56,7 +56,7 @@ export function SaveIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       aria-hidden="true"
       {...props}
     >
@@ -77,7 +77,7 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.8}
+      strokeWidth={1.5}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -117,7 +117,7 @@ export function PanelAddRemoveIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(classNames('scale-[0.81]', className))}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -182,7 +182,7 @@ export function PencilIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       aria-hidden="true"
       {...props}
     >
@@ -199,7 +199,7 @@ export function PlusIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       aria-hidden="true"
       {...props}
     >
@@ -215,7 +215,7 @@ export function CheckCircleIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -266,7 +266,7 @@ export function CopyIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       aria-hidden="true"
       {...props}
     >
@@ -283,7 +283,7 @@ export function ArchiveIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       aria-hidden="true"
       {...props}
     >
@@ -300,7 +300,7 @@ export function CloseIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       aria-hidden="true"
       {...props}
     >
@@ -316,7 +316,7 @@ export function GeneratePdfIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       aria-hidden="true"
       {...props}
     >

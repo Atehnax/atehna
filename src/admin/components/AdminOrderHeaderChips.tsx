@@ -1,15 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { EuiFieldText } from '@elastic/eui';
 import PaymentChip from '@/admin/components/PaymentChip';
 import StatusChip from '@/admin/components/StatusChip';
 import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/shared/domain/order/customerType';
 import { ORDER_STATUS_OPTIONS } from '@/shared/domain/order/orderStatus';
 import { toDateInputValue } from '@/shared/domain/order/dateTime';
 import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/shared/domain/order/paymentStatus';
-import AdminHeaderField from '@/admin/components/AdminHeaderField';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { CustomSelect } from '@/shared/ui/select';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
@@ -30,6 +28,7 @@ const toEditableOrderNumber = (value: string) => value.trim().replace(/^#/, '');
 type TopData = {
   orderDate: string;
   customerType: string;
+  postalCode: string;
   organizationName: string;
   contactName: string;
   email: string;
@@ -49,9 +48,87 @@ type Props = {
   contactName: string;
   email: string;
   deliveryAddress: string | null;
+  postalCode?: string | null;
   notes: string | null;
   createdAt: string;
 };
+
+function ChipDropdown({
+  value,
+  options,
+  onChange,
+  renderChip,
+  disabled = false,
+  showArrow = true,
+  interactive = true
+}: {
+  value: string;
+  options: ReadonlyArray<{ value: string; label: string }>;
+  onChange: (value: string) => void;
+  renderChip: (value: string) => ReactNode;
+  disabled?: boolean;
+  showArrow?: boolean;
+  interactive?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onDocClick = (event: MouseEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) setIsOpen(false);
+    };
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onEscape);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onEscape);
+    };
+  }, [isOpen]);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => {
+          if (disabled || !interactive) return;
+          setIsOpen((prev) => !prev);
+        }}
+        disabled={disabled}
+        aria-haspopup="menu"
+        aria-expanded={interactive ? isOpen : false}
+        className="relative block rounded-full focus:outline-none disabled:cursor-default disabled:opacity-60"
+      >
+        {showArrow ? (
+          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span>
+        ) : null}
+        <span className="block">{renderChip(value)}</span>
+      </button>
+
+      {isOpen ? (
+        <div role="menu">
+          <MenuPanel className="absolute left-0 top-9 z-30 min-w-[150px]">
+            {options.map((option) => (
+              <MenuItem
+                key={option.value}
+                isActive={option.value === value}
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+              >
+                {option.label}
+              </MenuItem>
+            ))}
+          </MenuPanel>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 const asTopData = ({
   createdAt,
@@ -60,6 +137,7 @@ const asTopData = ({
   contactName,
   email,
   deliveryAddress,
+  postalCode,
   notes,
   status,
   paymentStatus
@@ -70,16 +148,20 @@ const asTopData = ({
   contactName: string;
   email: string;
   deliveryAddress: string | null;
+  postalCode?: string | null;
   notes: string | null;
   status: string;
   paymentStatus?: string | null;
 }): TopData => ({
+  postalCode:
+    (typeof postalCode === 'string' && postalCode.trim()) ||
+    (deliveryAddress?.match(/\b\d{4}\b/)?.[0] ?? ''),
   orderDate: toDateInputValue(createdAt),
   customerType,
   organizationName: organizationName?.trim() ? organizationName : contactName,
   contactName,
   email,
-  deliveryAddress: deliveryAddress ?? '',
+  deliveryAddress: (deliveryAddress ?? '').replace(/\b\d{4}\b/g, '').replace(/\s{2,}/g, ' ').trim(),
   notes: notes?.trim() ? notes : '',
   status,
   paymentStatus: isPaymentStatus(paymentStatus ?? '') ? paymentStatus ?? 'unpaid' : 'unpaid'
@@ -89,95 +171,6 @@ type CompactDropdownOption = {
   value: string;
   label: string;
 };
-
-function CompactDropdown({
-  value,
-  options,
-  onChange,
-  disabled = false,
-  buttonClassName = '',
-  menuClassName = ''
-}: {
-  value: string;
-  options: readonly CompactDropdownOption[];
-  onChange: (value: string) => void;
-  disabled?: boolean;
-  buttonClassName?: string;
-  menuClassName?: string;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement | null>(null);
-
-  const selectedLabel =
-    options.find((option) => option.value === value)?.label ?? options[0]?.label ?? '';
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleOutsideClick = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (!wrapperRef.current?.contains(target)) {
-        setIsOpen(false);
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleOutsideClick);
-    document.addEventListener('keydown', handleEscape);
-
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isOpen]);
-
-  return (
-    <div className="relative" ref={wrapperRef}>
-      <button
-        type="button"
-        onClick={() => {
-          if (disabled) return;
-          setIsOpen((previousOpen) => !previousOpen);
-        }}
-        disabled={disabled}
-        aria-haspopup="menu"
-        aria-expanded={isOpen}
-        className={`inline-flex h-8 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-left text-xs font-semibold leading-[1.2] text-slate-700 shadow-sm transition hover:border-slate-400 focus:border-slate-300 focus:outline-none focus:ring-0 focus-visible:border-slate-300 disabled:cursor-default disabled:opacity-60 ${buttonClassName}`}
-      >
-        <span className="block min-w-0 flex-1 truncate text-left">{selectedLabel}</span>
-        <span className="ml-2 shrink-0 text-slate-500">▾</span>
-      </button>
-
-      {isOpen ? (
-        <div role="menu">
-          <MenuPanel className={`absolute left-0 top-9 z-30 min-w-full w-max max-w-[260px] ${menuClassName}`}>
-            {options.map((option) => {
-              const isSelected = option.value === value;
-
-              return (
-                <MenuItem
-                  key={option.value}
-                  onClick={() => {
-                    onChange(option.value);
-                    setIsOpen(false);
-                  }}
-                  isActive={isSelected}
-                >
-                  <span className="block w-full whitespace-nowrap text-left">{option.label}</span>
-                </MenuItem>
-              );
-            })}
-          </MenuPanel>
-        </div>
-      ) : null}
-    </div>
-  );
-}
 
 export default function AdminOrderHeaderChips(props: Props) {
   const { orderId, orderNumber } = props;
@@ -203,7 +196,6 @@ export default function AdminOrderHeaderChips(props: Props) {
 
   const topInputsEditable = topSectionMode === 'edit';
   const topSaveDisabled = topSectionMode !== 'edit' || isTopSaving;
-
   const startEdit = () => {
     if (topSectionMode === 'edit') {
       setDraftTopData({ ...persistedTopData });
@@ -248,6 +240,7 @@ export default function AdminOrderHeaderChips(props: Props) {
             contactName: draftTopData.organizationName.trim() || draftTopData.contactName.trim(),
             email: draftTopData.email,
             deliveryAddress: draftTopData.deliveryAddress,
+            postalCode: draftTopData.postalCode,
             notes: draftTopData.notes,
             orderDate: draftTopData.orderDate
           })
@@ -309,52 +302,63 @@ export default function AdminOrderHeaderChips(props: Props) {
   const displayValue = (value: string) => (value?.trim() ? value : '');
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-4 py-3 shadow-sm">
+    <div className="min-h-[258px] rounded-2xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-4 py-3 shadow-sm font-['Inter',system-ui,sans-serif]">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-900">
-          <span>Naročilo #</span>
+        <h1 className="flex h-10 flex-nowrap items-center gap-1 whitespace-nowrap text-lg font-semibold tracking-tight text-slate-900">
+          <span>Naročilo</span>
+          <span className="inline-flex h-10 items-center gap-0">
+            <span>#</span>
           {topInputsEditable ? (
-            <EuiFieldText
-              value={draftOrderNumber}
-              onChange={(event) =>
-                setDraftOrderNumber(event.target.value.replace(/[^\d]/g, ''))
-              }
-              inputMode="numeric"
+            <span
+              role="textbox"
+              contentEditable
+              suppressContentEditableWarning
               aria-label="Številka naročila"
-              className="!h-auto !w-24 border-0 bg-transparent p-0 text-2xl font-bold leading-none tracking-tight text-slate-900 shadow-none focus:border-0 focus:shadow-none focus:outline-none focus:ring-0"
-            />
+              onInput={(event) => {
+                const raw = event.currentTarget.textContent ?? '';
+                const digitsOnly = raw.replace(/[^\d]/g, '');
+                if (raw !== digitsOnly) event.currentTarget.textContent = digitsOnly;
+                setDraftOrderNumber(digitsOnly);
+              }}
+              onBlur={(event) => {
+                event.currentTarget.textContent = draftOrderNumber;
+              }}
+              className="inline-flex h-[1.45em] w-[6ch] items-center rounded-md border border-slate-300 bg-white px-1.5 py-0 font-inherit text-inherit leading-none tracking-tight text-slate-900 shadow-none outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+            >
+              {draftOrderNumber}
+            </span>
           ) : (
             <span>{toEditableOrderNumber(displayOrderNumber)}</span>
           )}
+          </span>
         </h1>
 
         <div className="ml-auto flex items-center gap-1.5">
-          {topInputsEditable ? (
-            <>
-              <CompactDropdown
-                value={draftTopData.status}
-                onChange={(value) => setDraftTopData((prev) => ({ ...prev, status: value }))}
-                options={ORDER_STATUS_OPTIONS}
-                disabled={isTopSaving}
-                buttonClassName="w-[120px]"
-                menuClassName="max-w-[280px]"
-              />
+          <ChipDropdown
+            value={topInputsEditable ? draftTopData.status : persistedTopData.status}
+            options={ORDER_STATUS_OPTIONS}
+            disabled={isTopSaving}
+            showArrow={topInputsEditable}
+            interactive={topInputsEditable}
+            onChange={(value) => {
+              if (!topInputsEditable) return;
+              setDraftTopData((prev) => ({ ...prev, status: value }));
+            }}
+            renderChip={(value) => <StatusChip status={value} />}
+          />
 
-              <CompactDropdown
-                value={draftTopData.paymentStatus}
-                onChange={(value) => setDraftTopData((prev) => ({ ...prev, paymentStatus: value }))}
-                options={PAYMENT_STATUS_OPTIONS}
-                disabled={isTopSaving}
-                buttonClassName="w-[120px]"
-                menuClassName="max-w-[280px]"
-              />
-            </>
-          ) : (
-            <>
-              <StatusChip status={persistedTopData.status} />
-              <PaymentChip status={persistedTopData.paymentStatus} />
-            </>
-          )}
+          <ChipDropdown
+            value={topInputsEditable ? draftTopData.paymentStatus : persistedTopData.paymentStatus}
+            options={PAYMENT_STATUS_OPTIONS}
+            disabled={isTopSaving}
+            showArrow={topInputsEditable}
+            interactive={topInputsEditable}
+            onChange={(value) => {
+              if (!topInputsEditable) return;
+              setDraftTopData((prev) => ({ ...prev, paymentStatus: value }));
+            }}
+            renderChip={(value) => <PaymentChip status={value} />}
+          />
 
           <IconButton
             type="button"
@@ -392,63 +396,88 @@ export default function AdminOrderHeaderChips(props: Props) {
       </div>
 
       {topInputsEditable ? (
-        <div className="mt-4 grid min-h-[132px] items-start gap-3 text-[12px] md:grid-cols-2">
-          <AdminHeaderField
-            id="orderDate"
-            label="Datum"
-            type="date"
-            value={activeTopData.orderDate}
-            onChange={(event) => setDraftTopData((prev) => ({ ...prev, orderDate: event.target.value }))}
-          />
-
-          <div className="group relative rounded-xl border border-slate-300 bg-white transition-colors focus-within:border-[#3e67d6] focus-within:ring-2 focus-within:ring-brand-100">
+        <div className="mt-4 grid min-h-[132px] gap-3 text-[12px] md:grid-cols-2">
+          <div className="min-h-10 px-2.5">
+            <p className="text-sm font-semibold text-slate-700">Datum</p>
+            <input
+              type="date"
+              value={activeTopData.orderDate}
+              onChange={(event) => setDraftTopData((prev) => ({ ...prev, orderDate: event.target.value }))}
+              className="mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+            />
+          </div>
+          <div className="min-h-10 px-2.5">
+            <p className="text-sm font-semibold text-slate-700">Tip naročnika</p>
             <CustomSelect
               value={activeTopData.customerType}
               onChange={(value) => setDraftTopData((prev) => ({ ...prev, customerType: value }))}
               options={CUSTOMER_TYPE_FORM_OPTIONS}
-              placeholder="Tip naročnika"
-              className="!h-10 !pb-0 !pt-0 pr-7 font-['Inter',system-ui,sans-serif] text-[11px]"
+              className="mt-0.5 !h-5 w-full !rounded-md border border-slate-300 bg-white px-1.5 font-['Inter',system-ui,sans-serif] text-xs leading-5 text-slate-900 hover:bg-white focus:border-[#3e67d6]"
+              valueClassName="font-['Inter',system-ui,sans-serif]"
               menuClassName="max-w-[280px]"
               disabled={isTopSaving}
             />
           </div>
-
-          <AdminHeaderField
-            id="organizationName"
-            label="Naročnik"
-            value={activeTopData.organizationName}
-            onChange={(event) => setDraftTopData((prev) => ({ ...prev, organizationName: event.target.value }))}
-          />
-
-          <AdminHeaderField
-            id="email"
-            label="Email"
-            type="email"
-            value={activeTopData.email}
-            onChange={(event) => setDraftTopData((prev) => ({ ...prev, email: event.target.value }))}
-          />
-
-          <AdminHeaderField
-            id="deliveryAddress"
-            label="Naslov"
-            value={activeTopData.deliveryAddress}
-            onChange={(event) => setDraftTopData((prev) => ({ ...prev, deliveryAddress: event.target.value }))}
-          />
-
-          <AdminHeaderField
-            id="notes"
-            label="Opombe"
-            value={activeTopData.notes}
-            onChange={(event) => setDraftTopData((prev) => ({ ...prev, notes: event.target.value }))}
-          />
+          <div className="min-h-10 px-2.5">
+            <p className="text-sm font-semibold text-slate-700">Naročnik</p>
+            <input
+              type="text"
+              value={activeTopData.organizationName}
+              onChange={(event) => setDraftTopData((prev) => ({ ...prev, organizationName: event.target.value }))}
+              className="mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+            />
+          </div>
+          <div className="min-h-10 px-2.5">
+            <p className="text-sm font-semibold text-slate-700">Email</p>
+            <input
+              type="email"
+              value={activeTopData.email}
+              onChange={(event) => setDraftTopData((prev) => ({ ...prev, email: event.target.value }))}
+              className="mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+            />
+          </div>
+          <div className="min-h-10 px-2.5">
+            <p className="text-sm font-semibold text-slate-700">Poštna številka</p>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={4}
+              value={activeTopData.postalCode}
+              onChange={(event) =>
+                setDraftTopData((prev) => ({
+                  ...prev,
+                  postalCode: event.target.value.replace(/[^\d]/g, '').slice(0, 4)
+                }))
+              }
+              className="mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+            />
+          </div>
+          <div className="min-h-10 px-2.5">
+            <p className="text-sm font-semibold text-slate-700">Naslov</p>
+            <input
+              type="text"
+              value={activeTopData.deliveryAddress}
+              onChange={(event) => setDraftTopData((prev) => ({ ...prev, deliveryAddress: event.target.value }))}
+              className="mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+            />
+          </div>
+          <div className="min-h-10 px-2.5 md:col-span-1">
+            <p className="text-sm font-semibold text-slate-700">Opombe stranke</p>
+            <textarea
+              rows={1}
+              value={activeTopData.notes}
+              onChange={(event) => setDraftTopData((prev) => ({ ...prev, notes: event.target.value }))}
+              className="mt-0.5 min-h-5 w-full resize-y rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+            />
+          </div>
         </div>
       ) : (
         <div className="mt-4 grid min-h-[132px] gap-3 text-[12px] md:grid-cols-2">
-          <div className="min-h-10">
+          <div className="min-h-10 px-2.5">
             <p className="text-sm font-semibold text-slate-700">Datum</p>
             <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.orderDate)}</p>
           </div>
-          <div className="min-h-10">
+          <div className="min-h-10 px-2.5">
             <p className="text-sm font-semibold text-slate-700">Tip naročnika</p>
             <p className="mt-0.5 text-xs leading-5 text-slate-900">
               {displayValue(
@@ -457,20 +486,24 @@ export default function AdminOrderHeaderChips(props: Props) {
               )}
             </p>
           </div>
-          <div className="min-h-10">
+          <div className="min-h-10 px-2.5">
             <p className="text-sm font-semibold text-slate-700">Naročnik</p>
             <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.organizationName)}</p>
           </div>
-          <div className="min-h-10">
+          <div className="min-h-10 px-2.5">
             <p className="text-sm font-semibold text-slate-700">Email</p>
             <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.email)}</p>
           </div>
-          <div className="min-h-10">
-            <p className="text-sm font-semibold text-slate-700">Naslov</p>
-            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.deliveryAddress)}</p>
+          <div className="min-h-10 px-2.5">
+            <p className="text-sm font-semibold text-slate-700">Poštna številka</p>
+            <p className="mt-0.5 text-xs leading-5 text-slate-900">{displayValue(activeTopData.postalCode)}</p>
           </div>
-          <div className="min-h-10">
-            <p className="text-sm font-semibold text-slate-700">Opombe</p>
+          <div className="min-h-10 px-2.5">
+            <p className="text-sm font-semibold text-slate-700">Naslov</p>
+            <p className="mt-0.5 whitespace-pre-wrap text-xs leading-5 text-slate-900">{displayValue(activeTopData.deliveryAddress)}</p>
+          </div>
+          <div className="min-h-10 px-2.5">
+            <p className="text-sm font-semibold text-slate-700">Opombe stranke</p>
             <p className="mt-0.5 whitespace-pre-wrap text-xs leading-5 text-slate-900">{displayValue(activeTopData.notes)}</p>
           </div>
         </div>

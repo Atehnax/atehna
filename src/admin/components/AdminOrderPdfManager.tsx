@@ -69,8 +69,7 @@ const LazyConfirmDialog = dynamic(
   { ssr: false }
 );
 
-const notesReadClass = `mt-2 h-[44px] overflow-y-auto whitespace-pre-wrap rounded-xl border border-slate-300 px-3 py-1.5 text-[11px] leading-5 text-slate-900 shadow-sm font-['Inter',system-ui,sans-serif] ${ADMIN_TABLE_BG}`;
-const notesEditClass = `mt-2 min-h-0 !w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-[11px] leading-5 text-slate-900 shadow-sm font-['Inter',system-ui,sans-serif] ${ADMIN_TABLE_BG}`;
+const notesSharedClass = `mt-2 !h-[68px] min-h-0 !w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-[11px] leading-5 text-slate-900 shadow-sm font-['Inter',system-ui,sans-serif] ${ADMIN_TABLE_BG}`;
 
 export default function AdminOrderPdfManager({
   orderId,
@@ -263,12 +262,10 @@ export default function AdminOrderPdfManager({
   };
 
   return (
-    <section className="w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-base font-semibold text-slate-900">PDF dokumenti</h2>
-      <div className="mt-4 rounded-2xl border border-slate-200/80 p-3.5">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-semibold text-slate-900">Opombe</p>
-          <div className="flex items-center gap-1.5">
+    <section className="w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm font-['Inter',system-ui,sans-serif]">
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-semibold text-slate-900">Opombe administratorja</h2>
+        <div className="flex items-center gap-1.5">
             <IconButton
               type="button"
               onClick={toggleNotesEdit}
@@ -288,26 +285,22 @@ export default function AdminOrderPdfManager({
             >
               <SaveIcon />
             </IconButton>
-          </div>
         </div>
-
-        {notesSectionMode === 'edit' ? (
-          <EuiTextArea
-            value={draftNotes}
-            onChange={(event) => setDraftNotes(event.target.value)}
-            rows={3}
-            fullWidth
-            placeholder="Opombe"
-            aria-label="Opombe"
-            className={`${notesEditClass} outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
-          />
-        ) : (
-          <p className={`${notesReadClass} text-slate-600`}>
-            {persistedNotes.trim()}
-          </p>
-        )}
+      </div>
+      <div className="mt-3 p-0">
+        <EuiTextArea
+          value={notesSectionMode === 'edit' ? draftNotes : persistedNotes}
+          onChange={(event) => setDraftNotes(event.target.value)}
+          rows={2}
+          fullWidth
+          placeholder=""
+          aria-label="Opombe"
+          readOnly={notesSectionMode !== 'edit'}
+          className={`${notesSharedClass} outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] ${notesSectionMode === 'edit' ? 'bg-white text-slate-900' : '!bg-[color:var(--ui-neutral-bg)] text-slate-600'}`}
+        />
       </div>
 
+      <h2 className="mt-5 text-base font-semibold text-slate-900">PDF dokumenti</h2>
       <div className="mt-4 space-y-4">
         {PDF_TYPES.map((pdfType) => {
           const docs = grouped[pdfType.key];
@@ -377,7 +370,7 @@ export default function AdminOrderPdfManager({
                 {docs.length > 0 ? (
                   <div
                     id={`pdf-versions-${pdfType.key}`}
-                    className={`rounded-xl border border-slate-200 p-2 text-[11px] leading-4 text-slate-600 shadow-inner ${ADMIN_TABLE_BG}`}
+                    className={`rounded-xl p-2 text-[11px] leading-4 text-slate-600 ${ADMIN_TABLE_BG}`}
                   >
                     <ul className="space-y-1">
                       {visibleDocs.map((doc, index) => {
@@ -386,7 +379,7 @@ export default function AdminOrderPdfManager({
                         return (
                           <li
                             key={`${doc.id}-${doc.created_at}`}
-                            className="rounded-lg border border-transparent px-2 py-1 transition hover:border-slate-200 hover:bg-[color:var(--hover-neutral)]"
+                            className="px-2 py-1 transition hover:bg-[color:var(--hover-neutral)]"
                           >
                             <div className="grid min-w-0 grid-cols-[14px_minmax(0,1fr)_130px_24px] items-center gap-2">
                               <span

@@ -55,6 +55,7 @@ function normalizeOrder(order: OrderRow, orderId: number) {
     email: asText(order.email, ''),
     phone: asText(order.phone),
     delivery_address: asText(order.delivery_address),
+    postal_code: asText((order as Record<string, unknown>).postal_code),
     reference: asText(order.reference),
     notes: asText(order.notes),
     status: asText(order.status, 'received'),
@@ -120,6 +121,7 @@ function AdminOrderDetailShell({
                 contactName={order.contact_name}
                 email={order.email}
                 deliveryAddress={order.delivery_address}
+                postalCode={order.postal_code}
                 notes={order.notes}
                 createdAt={order.created_at}
               />

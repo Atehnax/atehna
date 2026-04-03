@@ -21,6 +21,7 @@ export async function POST(
       email,
       phone,
       deliveryAddress,
+      postalCode,
       reference,
       notes,
       orderDate,
@@ -48,12 +49,13 @@ export async function POST(
             email = $4,
             phone = $5,
             delivery_address = $6,
-            reference = $7,
-            notes = $8,
-            order_number = coalesce(nullif($9::text, ''), order_number),
-            created_at = coalesce($10::timestamptz, created_at),
+            postal_code = $7,
+            reference = $8,
+            notes = $9,
+            order_number = coalesce(nullif($10::text, ''), order_number),
+            created_at = coalesce($11::timestamptz, created_at),
             is_draft = false
-        WHERE id = $11
+        WHERE id = $12
         `,
         [
           customerType,
@@ -62,6 +64,7 @@ export async function POST(
           email,
           phone || null,
           deliveryAddress || null,
+          typeof postalCode === 'string' ? postalCode.trim().slice(0, 4) || null : null,
           reference || null,
           notes || null,
           typeof orderNumber === 'string' ? orderNumber.trim() : null,

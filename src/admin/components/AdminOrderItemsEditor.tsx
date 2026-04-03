@@ -108,6 +108,7 @@ export default function AdminOrderItemsEditor({
   const [persistedShipping, setPersistedShipping] = useState(initialShipping);
   const [draftShipping, setDraftShipping] = useState(initialShipping);
   const [isItemsSaving, setIsItemsSaving] = useState(false);
+  const [selectedDraftItemIds, setSelectedDraftItemIds] = useState<string[]>([]);
 
   const [catalogChoices, setCatalogChoices] = useState<CatalogChoice[]>([]);
   const [catalogQuery, setCatalogQuery] = useState('');
@@ -124,6 +125,9 @@ export default function AdminOrderItemsEditor({
   const addItemDisabled = !itemsEditable || isItemsSaving;
 
   const activeItems = itemsEditable ? draftItems : persistedItems;
+  const hasSelectedDraftItems = selectedDraftItemIds.length > 0;
+  const areAllActiveItemsSelected =
+    activeItems.length > 0 && activeItems.every((item) => selectedDraftItemIds.includes(item.id));
 
   const totals = useMemo(() => {
     const subtotal = toMoney(
@@ -164,21 +168,18 @@ export default function AdminOrderItemsEditor({
     );
   };
 
-  const removeItem = (id: string) => {
-    if (!itemsEditable) return;
-    setDraftItems((currentItems) => currentItems.filter((item) => item.id !== id));
-  };
-
   const startItemsEdit = () => {
     if (itemsSectionMode === 'edit') {
       setDraftItems(cloneEditableItems(persistedItems));
       setDraftShipping(persistedShipping);
+      setSelectedDraftItemIds([]);
       setItemsSectionMode('read');
-        return;
+      return;
     }
 
     setDraftItems(cloneEditableItems(persistedItems));
     setDraftShipping(persistedShipping);
+    setSelectedDraftItemIds([]);
     setItemsSectionMode('edit');
   };
 
@@ -261,6 +262,7 @@ export default function AdminOrderItemsEditor({
       setPersistedItems(nextItems);
       setPersistedShipping(toMoney(draftShipping));
       setDraftItems(cloneEditableItems(nextItems));
+      setSelectedDraftItemIds([]);
       setItemsSectionMode('read');
       toast.success('Postavke so posodobljene.');
     } catch (error) {
@@ -268,6 +270,29 @@ export default function AdminOrderItemsEditor({
     } finally {
       setIsItemsSaving(false);
     }
+  };
+
+  const toggleSelectedDraftItem = (itemId: string) => {
+    if (!itemsEditable) return;
+    setSelectedDraftItemIds((previous) =>
+      previous.includes(itemId) ? previous.filter((id) => id !== itemId) : [...previous, itemId]
+    );
+  };
+
+  const toggleAllDraftItems = () => {
+    if (!itemsEditable) return;
+    if (areAllActiveItemsSelected) {
+      setSelectedDraftItemIds([]);
+      return;
+    }
+    setSelectedDraftItemIds(activeItems.map((item) => item.id));
+  };
+
+  const deleteSelectedDraftItems = () => {
+    if (!itemsEditable || selectedDraftItemIds.length === 0) return;
+    const selectedSet = new Set(selectedDraftItemIds);
+    setDraftItems((previous) => previous.filter((item) => !selectedSet.has(item.id)));
+    setSelectedDraftItemIds([]);
   };
 
   return (
@@ -310,19 +335,46 @@ export default function AdminOrderItemsEditor({
             >
               <PlusIcon />
             </IconButton>
+            <IconButton
+              type="button"
+              aria-label="Odstrani izbrane postavke"
+              onClick={deleteSelectedDraftItems}
+              title="Izbriši izbrane"
+              tone={hasSelectedDraftItems ? 'danger' : 'neutral'}
+              disabled={!itemsEditable || !hasSelectedDraftItems}
+            >
+              <TrashCanIcon />
+            </IconButton>
           </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="min-w-full text-[11px] leading-4">
+            <colgroup>
+              <col style={{ width: '4%' }} />
+              <col style={{ width: '53%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '13%' }} />
+            </colgroup>
             <thead className="bg-white text-slate-600">
               <tr>
+                <th className="px-1 py-2 text-center" aria-label="Izbira">
+                  <input
+                    type="checkbox"
+                    checked={itemsEditable ? areAllActiveItemsSelected : false}
+                    disabled={!itemsEditable}
+                    onChange={toggleAllDraftItems}
+                    className="h-3.5 w-3.5 rounded border-slate-300 text-[color:var(--blue-500)] focus:ring-0 disabled:cursor-default disabled:opacity-45"
+                    aria-label="Izberi vse postavke"
+                  />
+                </th>
                 <th className="px-3 py-2 text-left">Artikel</th>
                 <th className="px-2 py-2 text-center">Količina</th>
                 <th className="px-2 py-2 text-center">Cena</th>
                 <th className="px-2 py-2 text-center">Popust %</th>
                 <th className="px-2 py-2 text-right">Skupaj</th>
-                <th className="px-2 py-2" aria-label="Dejanje" />
               </tr>
             </thead>
             <tbody>
@@ -330,67 +382,70 @@ export default function AdminOrderItemsEditor({
                 const lineTotal = toMoney(item.quantity * item.unitPrice * (1 - item.discountPercentage / 100));
                 return (
                   <tr key={item.id} className="border-t border-slate-200/80 bg-white/80 align-middle">
-                    <td className="px-3 py-2 align-middle">
+                    <td className="px-1 py-1.5 align-middle text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedDraftItemIds.includes(item.id)}
+                        disabled={!itemsEditable}
+                        onChange={() => toggleSelectedDraftItem(item.id)}
+                        className="h-3.5 w-3.5 rounded border-slate-300 text-[color:var(--blue-500)] focus:ring-0 disabled:cursor-default disabled:opacity-45"
+                        aria-label={`Izberi postavko ${item.name}`}
+                      />
+                    </td>
+                    <td className="px-3 py-1.5 align-middle">
                       <p className="text-[11px] leading-4 font-medium text-slate-900">{item.name}</p>
                     </td>
-                    <td className="px-2 py-2 align-middle text-center">
+                    <td className="px-2 py-1.5 align-middle text-center">
                       {itemsEditable ? (
-                        <EuiFieldText
+                        <input
                           type="number"
                           min={1}
                           value={item.quantity}
                           onChange={(event) => updateItem(item.id, { quantity: Number(event.target.value) || 1 })}
                           aria-label="Količina"
-                          className="h-6 w-12 rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
+                          className="h-5 w-10 rounded-md border border-slate-300 bg-white px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                         />
                       ) : (
-                        <span className="inline-flex h-6 items-center text-[11px] leading-4 text-slate-900">{item.quantity}</span>
+                        <span className="inline-flex h-5 w-10 items-center justify-center text-[11px] leading-4 text-slate-900">{item.quantity}</span>
                       )}
                     </td>
-                    <td className="px-2 py-2 align-middle text-center">
+                    <td className="px-2 py-1.5 align-middle text-center">
                       {itemsEditable ? (
-                        <EuiFieldText
-                          type="text"
-                          inputMode="decimal"
-                          value={formatDecimalInput(item.unitPrice)}
-                          onChange={(event) => updateItem(item.id, { unitPrice: parseLocaleNumber(event.target.value) })}
-                          aria-label="Cena"
-                          className="h-6 w-[4.5rem] rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
-                        />
+                        <span className="inline-flex items-center justify-center gap-1">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={formatDecimalInput(item.unitPrice)}
+                            onChange={(event) => updateItem(item.id, { unitPrice: parseLocaleNumber(event.target.value) })}
+                            aria-label="Cena"
+                            className="h-5 w-14 rounded-md border border-slate-300 bg-white px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                          />
+                          <span className="text-[11px] leading-4 text-slate-900">€</span>
+                        </span>
                       ) : (
-                        <span className="inline-flex h-6 items-center text-[11px] leading-4 text-slate-900">{formatCurrency(item.unitPrice)}</span>
+                        <span className="inline-flex h-5 w-16 items-center justify-center text-[11px] leading-4 text-slate-900">{formatCurrency(item.unitPrice)}</span>
                       )}
                     </td>
-                    <td className="px-2 py-2 align-middle text-center">
+                    <td className="px-2 py-1.5 align-middle text-center">
                       {itemsEditable ? (
-                        <EuiFieldText
-                          type="text"
-                          inputMode="decimal"
-                          value={formatDecimalInput(item.discountPercentage)}
-                          onChange={(event) =>
-                            updateItem(item.id, { discountPercentage: parseLocaleNumber(event.target.value) })
-                          }
-                          aria-label="Popust"
-                          className="h-6 w-14 rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
-                        />
+                        <span className="inline-flex items-center justify-center gap-1">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={formatDecimalInput(item.discountPercentage)}
+                            onChange={(event) =>
+                              updateItem(item.id, { discountPercentage: parseLocaleNumber(event.target.value) })
+                            }
+                            aria-label="Popust"
+                            className="h-5 w-10 rounded-md border border-slate-300 bg-white px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                          />
+                          <span className="text-[11px] leading-4 text-slate-900">%</span>
+                        </span>
                       ) : (
-                        <span className="inline-flex h-6 items-center text-[11px] leading-4 text-slate-900">{formatDecimalInput(item.discountPercentage)} %</span>
+                        <span className="inline-flex h-5 w-12 items-center justify-center text-[11px] leading-4 text-slate-900">{formatDecimalInput(item.discountPercentage)} %</span>
                       )}
                     </td>
-                    <td className="px-2 py-2 align-middle text-right font-semibold text-slate-900">{formatCurrency(lineTotal)}</td>
-                    <td className="px-2 py-2 align-middle text-right">
-                      {itemsEditable ? (
-                        <button
-                          type="button"
-                          onClick={() => removeItem(item.id)}
-                          className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-rose-300 text-xs font-semibold leading-none text-rose-600 hover:bg-rose-50"
-                          aria-label="Odstrani postavko"
-                          title="Odstrani"
-                        >
-                          <TrashCanIcon />
-                        </button>
-                      ) : null}
-                    </td>
+                    <td className="px-2 py-1.5 align-middle text-right font-semibold text-slate-900">{formatCurrency(lineTotal)}</td>
                   </tr>
                 );
               })}
@@ -398,33 +453,42 @@ export default function AdminOrderItemsEditor({
           </table>
         </div>
 
-        <div className="space-y-1 border-t border-slate-200 bg-white px-4 py-3 text-[11px] text-slate-700">
+        <div className="space-y-1 border-t border-slate-200 px-2 py-3 text-[11px] text-slate-700">
           <div className="flex items-center justify-between">
             <span>Vmesni seštevek</span>
-            <span className="font-semibold">{formatCurrency(totals.subtotal)}</span>
+            <span className="inline-flex w-[13%] justify-end font-semibold">{formatCurrency(totals.subtotal)}</span>
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex h-5 items-center justify-between">
             <span>Poštnina</span>
-            {itemsEditable ? (
-              <EuiFieldText
-                type="text"
-                inputMode="decimal"
-                value={formatDecimalInput(draftShipping)}
-                onChange={(event) => setDraftShipping(Math.max(0, parseLocaleNumber(event.target.value)))}
-                aria-label="Poštnina"
-                className="h-6 w-full max-w-none rounded-md border border-slate-300 bg-white px-1 text-right text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] sm:max-w-[60px]"
-              />
-            ) : (
-              <span className="font-semibold">{formatCurrency(totals.shipping)}</span>
-            )}
+            <span className="inline-flex w-[13%] justify-end">
+              {itemsEditable ? (
+                <span className="inline-flex h-5 items-center justify-end gap-1">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={formatDecimalInput(draftShipping)}
+                    onChange={(event) => {
+                      const sanitized = event.target.value.replace(/[^0-9,]/g, '').slice(0, 5);
+                      setDraftShipping(Math.max(0, parseLocaleNumber(sanitized)));
+                    }}
+                    aria-label="Poštnina"
+                    className="h-5 w-[38px] rounded-md border border-slate-300 bg-white px-0.5 text-right text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                  />
+                  <span className="text-[11px] leading-4 text-slate-900">€</span>
+                </span>
+              ) : (
+                <span className="inline-flex h-5 items-center font-semibold">{formatCurrency(totals.shipping)}</span>
+              )}
+            </span>
           </div>
           <div className="flex items-center justify-between text-slate-500">
             <span>DDV (22 %)</span>
-            <span className="font-semibold">{formatCurrency(totals.taxIncludedInfo)}</span>
+            <span className="inline-flex w-[13%] justify-end font-semibold">{formatCurrency(totals.taxIncludedInfo)}</span>
           </div>
+          <hr className="border-slate-200" />
           <div className="flex items-center justify-between text-sm font-semibold text-slate-900">
             <span>Skupaj</span>
-            <span>{formatCurrency(totals.total)}</span>
+            <span className="inline-flex w-[13%] justify-end">{formatCurrency(totals.total)}</span>
           </div>
         </div>
       </div>

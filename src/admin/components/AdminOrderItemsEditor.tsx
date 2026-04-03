@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { EuiFieldText } from '@elastic/eui';
 import { IconButton } from '@/shared/ui/icon-button';
 import { PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
@@ -334,11 +335,12 @@ export default function AdminOrderItemsEditor({
                     </td>
                     <td className="px-2 py-2 align-middle text-center">
                       {itemsEditable ? (
-                        <input
+                        <EuiFieldText
                           type="number"
                           min={1}
                           value={item.quantity}
                           onChange={(event) => updateItem(item.id, { quantity: Number(event.target.value) || 1 })}
+                          aria-label="Količina"
                           className="h-6 w-12 rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
                         />
                       ) : (
@@ -347,11 +349,12 @@ export default function AdminOrderItemsEditor({
                     </td>
                     <td className="px-2 py-2 align-middle text-center">
                       {itemsEditable ? (
-                        <input
+                        <EuiFieldText
                           type="text"
                           inputMode="decimal"
                           value={formatDecimalInput(item.unitPrice)}
                           onChange={(event) => updateItem(item.id, { unitPrice: parseLocaleNumber(event.target.value) })}
+                          aria-label="Cena"
                           className="h-6 w-[4.5rem] rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
                         />
                       ) : (
@@ -360,13 +363,14 @@ export default function AdminOrderItemsEditor({
                     </td>
                     <td className="px-2 py-2 align-middle text-center">
                       {itemsEditable ? (
-                        <input
+                        <EuiFieldText
                           type="text"
                           inputMode="decimal"
                           value={formatDecimalInput(item.discountPercentage)}
                           onChange={(event) =>
                             updateItem(item.id, { discountPercentage: parseLocaleNumber(event.target.value) })
                           }
+                          aria-label="Popust"
                           className="h-6 w-14 rounded-md border border-slate-300 bg-white px-1 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]"
                         />
                       ) : (
@@ -402,11 +406,12 @@ export default function AdminOrderItemsEditor({
           <div className="flex items-center justify-between">
             <span>Poštnina</span>
             {itemsEditable ? (
-              <input
+              <EuiFieldText
                 type="text"
                 inputMode="decimal"
                 value={formatDecimalInput(draftShipping)}
                 onChange={(event) => setDraftShipping(Math.max(0, parseLocaleNumber(event.target.value)))}
+                aria-label="Poštnina"
                 className="h-6 w-full max-w-none rounded-md border border-slate-300 bg-white px-1 text-right text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] sm:max-w-[60px]"
               />
             ) : (
@@ -437,10 +442,11 @@ export default function AdminOrderItemsEditor({
                 Zapri
               </button>
             </div>
-            <input
+            <EuiFieldText
               value={catalogQuery}
               onChange={(event) => setCatalogQuery(event.target.value)}
               placeholder="Išči po nazivu ali šifri"
+              aria-label="Išči artikel"
               className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
             />
             <div className="mt-3 max-h-[360px] overflow-y-auto rounded-lg border border-slate-200">

@@ -1,5 +1,6 @@
 'use client';
 
+import { EuiFieldText } from '@elastic/eui';
 import type { AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
 
 function isHexColor(value: string) {
@@ -21,7 +22,7 @@ function ColorPopoverField({ label, value, onChange }: { label: string; value: s
         </summary>
         <div className="absolute z-20 mt-1 w-56 rounded-md border border-slate-200 bg-white p-2 shadow-lg">
           <input type="color" className="h-8 w-full cursor-pointer rounded border border-slate-200" value={safeValue} onChange={(event) => onChange(event.target.value)} />
-          <input className={`mt-2 w-full rounded border px-2 py-1 font-mono text-xs ${isValid ? 'border-slate-300' : 'border-rose-300 bg-rose-50'}`} value={value} onChange={(event) => onChange(event.target.value)} placeholder="#RRGGBB" />
+          <EuiFieldText className={`mt-2 w-full rounded border px-2 py-1 font-mono text-xs ${isValid ? 'border-slate-300' : 'border-rose-300 bg-rose-50'}`} value={value} onChange={(event) => onChange(event.target.value)} placeholder="#RRGGBB" aria-label={`${label} HEX`} />
           {!isValid ? <span className="mt-1 block text-[11px] text-rose-500">Use HEX like #RRGGBB.</span> : null}
         </div>
       </details>

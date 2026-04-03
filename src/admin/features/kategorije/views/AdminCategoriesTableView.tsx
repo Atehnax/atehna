@@ -8,6 +8,7 @@ import { AdminTableLayout } from '@/shared/ui/admin-table';
 import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
 import { ActionRestoreIcon, ActionUndoIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { Spinner } from '@/shared/ui/loading';
+import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import type { CategoryStatus, CategoriesView } from '../common/types';
 
 const treeRowHeight = 48;
@@ -93,13 +94,14 @@ export function AdminCategoriesTableView({
           className="border"
           contentClassName="overflow-x-auto"
           headerLeft={
-            <input
+            <AdminSearchInput
               id="categories-table-search"
               name="categoriesTableSearch"
               value={query}
               onChange={(event) => onQueryChange(event.target.value)}
               placeholder="Išči po kategoriji ali opisu ..."
-              className={`${ADMIN_CONTROL_HEIGHT} min-w-[240px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} text-[11px] text-slate-700 outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
+              aria-label="Iskanje kategorij"
+              className={`${ADMIN_CONTROL_HEIGHT} min-w-[340px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} outline-none focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
             />
           }
           headerRight={

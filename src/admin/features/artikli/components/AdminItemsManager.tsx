@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { EuiFieldText, EuiTextArea } from '@elastic/eui';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import {
@@ -20,6 +21,7 @@ import { useToast } from '@/shared/ui/toast';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
 import { AdminTableLayout, ColumnVisibilityControl } from '@/shared/ui/admin-table';
 import { adminTableRowToneClasses, buttonTokenClasses, getAdminStripedRowToneClass } from '@/shared/ui/theme/tokens';
+import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 
 type Item = {
   id: string;
@@ -134,25 +136,18 @@ function FloatingInput({
   disabled?: boolean;
   placeholder?: string;
 }) {
-  const filled = String(value ?? '').length > 0;
-  return (
-    <div className="group relative" data-filled={filled ? 'true' : 'false'}>
-      <input
-        type={type}
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        disabled={disabled}
-        placeholder={placeholder}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 pb-1.5 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] disabled:bg-slate-100 disabled:text-slate-400"
-      />
-      <label className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600 ${disabled ? 'bg-slate-100' : 'bg-white'}`}>
-        {label}
-      </label>
-    </div>
-  );
+  return <EuiFieldText
+    type={type}
+    min={min}
+    max={max}
+    step={step}
+    value={value}
+    disabled={disabled}
+    placeholder={placeholder === ' ' ? label : placeholder}
+    aria-label={label}
+    onChange={(event) => onChange(event.target.value)}
+    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] disabled:bg-slate-100 disabled:text-slate-400"
+  />;
 }
 
 function FloatingSelect({
@@ -589,11 +584,12 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
         }
         filterRowLeft={
           <>
-            <input
+            <AdminSearchInput
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Poišči po nazivu, SKU ali kategoriji …"
-              className={`${ADMIN_CONTROL_HEIGHT} min-w-[240px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} text-[11px] focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
+              aria-label="Iskanje artiklov"
+              className={`h-7 min-w-[340px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
             />
             <div className="relative min-w-[220px]">
               <CustomSelect
@@ -736,7 +732,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
             <div className="space-y-3 text-sm">
               <FloatingInput label="Naziv" value={draft.name} onChange={(value) => setDraft((prev) => ({ ...prev, name: value }))} disabled={editorMode !== 'edit'} />
               <div className="group relative" data-filled={draft.description ? 'true' : 'false'}>
-                <textarea value={draft.description} disabled={editorMode !== 'edit'} onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))} placeholder=" " className="min-h-[90px] w-full rounded-xl border border-slate-300 bg-white px-3 pb-2 pt-5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] disabled:bg-slate-100 disabled:text-slate-400" />
+                <EuiTextArea value={draft.description} disabled={editorMode !== 'edit'} onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))} placeholder="Opis" aria-label="Opis" className="min-h-[90px] w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] disabled:bg-slate-100 disabled:text-slate-400" />
                 <label className="pointer-events-none absolute left-3 top-1.5 bg-white px-1 text-[10px] text-slate-600">Opis</label>
               </div>
 

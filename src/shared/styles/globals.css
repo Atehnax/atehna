@@ -127,7 +127,6 @@ input[type='radio'] {
   button:focus-visible,
   a:focus-visible,
   input:focus-visible,
-  select:focus-visible,
   textarea:focus-visible,
   summary:focus-visible {
     outline: none;
@@ -247,6 +246,24 @@ input[type='radio'] {
 
 .admin-orders-pagination [role="option"]:hover {
   background: transparent !important;
+}
+
+.euiFieldText,
+.euiTextArea,
+.euiSelect,
+.euiSelect__button {
+  font-family: "Inter", system-ui, sans-serif !important;
+}
+
+.admin-scope .euiFieldText,
+.admin-scope .euiTextArea,
+.admin-scope .euiSelect,
+.admin-scope .euiSelect__button,
+.admin-scope input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='color']):not([type='submit']):not([type='button']):not([type='reset']),
+.admin-scope select,
+.admin-scope textarea {
+  font-family: "Inter", system-ui, sans-serif !important;
+  font-size: 11px !important;
 }
 
 

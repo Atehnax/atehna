@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { EuiFieldText } from '@elastic/eui';
 import PaymentChip from '@/admin/components/PaymentChip';
 import StatusChip from '@/admin/components/StatusChip';
 import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/shared/domain/order/customerType';
@@ -19,12 +20,12 @@ import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 
 type TopSectionMode = 'read' | 'edit';
 
-const toEditableOrderNumber = (value: string) => value.trim().replace(/^#/, '');
 const toDisplayOrderNumberValue = (value: string) => {
   const trimmed = value.trim();
   if (!trimmed) return '#';
   return trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
 };
+const toEditableOrderNumber = (value: string) => value.trim().replace(/^#/, '');
 
 type TopData = {
   orderDate: string;
@@ -79,7 +80,7 @@ const asTopData = ({
   contactName,
   email,
   deliveryAddress: deliveryAddress ?? '',
-  notes: notes?.trim() ? notes : '/',
+  notes: notes?.trim() ? notes : '',
   status,
   paymentStatus: isPaymentStatus(paymentStatus ?? '') ? paymentStatus ?? 'unpaid' : 'unpaid'
 });
@@ -146,7 +147,7 @@ function CompactDropdown({
         disabled={disabled}
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        className={`inline-flex h-8 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-left text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] disabled:cursor-default disabled:opacity-60 ${buttonClassName}`}
+        className={`inline-flex h-8 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-left text-xs font-semibold leading-[1.2] text-slate-700 shadow-sm transition hover:border-slate-400 focus:border-slate-300 focus:outline-none focus:ring-0 focus-visible:border-slate-300 disabled:cursor-default disabled:opacity-60 ${buttonClassName}`}
       >
         <span className="block min-w-0 flex-1 truncate text-left">{selectedLabel}</span>
         <span className="ml-2 shrink-0 text-slate-500">▾</span>
@@ -305,25 +306,27 @@ export default function AdminOrderHeaderChips(props: Props) {
   };
 
   const activeTopData = topInputsEditable ? draftTopData : persistedTopData;
-  const displayValue = (value: string) => (value?.trim() ? value : '/');
+  const displayValue = (value: string) => (value?.trim() ? value : '');
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-4 py-3 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        {topInputsEditable ? (
-          <div className="flex h-9 w-full max-w-none items-center gap-1 rounded-md border border-slate-300 bg-white px-1 text-2xl font-bold tracking-tight text-slate-900 transition focus-within:border-[#3e67d6] sm:max-w-[15ch]">
-            <span className="shrink-0">Naročilo #</span>
-            <input
+        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-900">
+          <span>Naročilo #</span>
+          {topInputsEditable ? (
+            <EuiFieldText
               value={draftOrderNumber}
-              onChange={(event) => setDraftOrderNumber(event.target.value.replace(/[^\d]/g, ''))}
-              className="w-full min-w-[4ch] bg-transparent text-2xl font-bold tracking-tight text-slate-900 outline-none focus:ring-0"
-              aria-label="Številka naročila"
+              onChange={(event) =>
+                setDraftOrderNumber(event.target.value.replace(/[^\d]/g, ''))
+              }
               inputMode="numeric"
+              aria-label="Številka naročila"
+              className="!h-auto !w-24 border-0 bg-transparent p-0 text-2xl font-bold leading-none tracking-tight text-slate-900 shadow-none focus:border-0 focus:shadow-none focus:outline-none focus:ring-0"
             />
-          </div>
-        ) : (
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{`Naročilo ${displayOrderNumber}`}</h1>
-        )}
+          ) : (
+            <span>{toEditableOrderNumber(displayOrderNumber)}</span>
+          )}
+        </h1>
 
         <div className="ml-auto flex items-center gap-1.5">
           {topInputsEditable ? (
@@ -389,7 +392,7 @@ export default function AdminOrderHeaderChips(props: Props) {
       </div>
 
       {topInputsEditable ? (
-        <div className="mt-4 grid min-h-[132px] gap-3 text-[12px] md:grid-cols-2">
+        <div className="mt-4 grid min-h-[132px] items-start gap-3 text-[12px] md:grid-cols-2">
           <AdminHeaderField
             id="orderDate"
             label="Datum"
@@ -399,17 +402,12 @@ export default function AdminOrderHeaderChips(props: Props) {
           />
 
           <div className="group relative rounded-xl border border-slate-300 bg-white transition-colors focus-within:border-[#3e67d6] focus-within:ring-2 focus-within:ring-brand-100">
-            <label
-              htmlFor="customerType"
-              className="pointer-events-none absolute left-2.5 top-1.5 z-10 bg-white px-1 text-[10px] text-slate-600"
-            >
-              Tip naročnika
-            </label>
             <CustomSelect
               value={activeTopData.customerType}
               onChange={(value) => setDraftTopData((prev) => ({ ...prev, customerType: value }))}
               options={CUSTOMER_TYPE_FORM_OPTIONS}
-              className="!pb-0 !pt-4 pr-7"
+              placeholder="Tip naročnika"
+              className="!h-10 !pb-0 !pt-0 pr-7 font-['Inter',system-ui,sans-serif] text-[11px]"
               menuClassName="max-w-[280px]"
               disabled={isTopSaving}
             />
@@ -438,7 +436,6 @@ export default function AdminOrderHeaderChips(props: Props) {
           />
 
           <AdminHeaderField
-            kind="textarea"
             id="notes"
             label="Opombe"
             value={activeTopData.notes}

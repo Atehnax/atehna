@@ -104,7 +104,7 @@ export default function CustomSelect({
           triggerClassName
         )}
       >
-        <span className={classNames('min-w-0 flex-1 truncate text-left leading-none', valueClassName)}>{selectedLabel}</span>
+        <span className={classNames('min-w-0 flex-1 truncate text-left leading-[1.2]', valueClassName)}>{selectedLabel}</span>
         <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500">▾</span>
       </button>
 

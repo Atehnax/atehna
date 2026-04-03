@@ -16,7 +16,7 @@ export function DownloadIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -36,7 +36,7 @@ export function UploadIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -56,7 +56,7 @@ export function SaveIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       aria-hidden="true"
       {...props}
     >
@@ -77,7 +77,7 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.8}
+      strokeWidth={1.5}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -117,7 +117,7 @@ export function PanelAddRemoveIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(classNames('scale-[0.81]', className))}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -182,7 +182,7 @@ export function PencilIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       aria-hidden="true"
       {...props}
     >
@@ -199,7 +199,7 @@ export function PlusIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       aria-hidden="true"
       {...props}
     >
@@ -215,7 +215,7 @@ export function CheckCircleIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -266,7 +266,7 @@ export function CopyIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       aria-hidden="true"
       {...props}
     >
@@ -283,7 +283,7 @@ export function ArchiveIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       aria-hidden="true"
       {...props}
     >
@@ -300,7 +300,7 @@ export function CloseIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       aria-hidden="true"
       {...props}
     >
@@ -316,14 +316,18 @@ export function GeneratePdfIcon({ className, ...props }: ActionIconProps) {
       className={iconClassName(className)}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-hidden="true"
       {...props}
     >
-      <path d="M6 2.8h6.2l3 3V17H6z" />
-      <path d="M12.2 2.8v3h3" />
-      <path d="M8 10h4" />
-      <path d="M10 8v4" />
+      <path d="M4.8 2.2h7.3l3.1 3.1v10.5a2 2 0 0 1-2 2H4.8a2 2 0 0 1-2-2V4.2a2 2 0 0 1 2-2z" />
+      <path d="M12.1 2.2v2.9a1 1 0 0 0 1 1H16" />
+      <rect x="2.2" y="9.3" width="15.6" height="5.4" rx="1.2" fill="currentColor" stroke="currentColor" />
+      <path d="M5 13v-2h1.1a.7.7 0 1 1 0 1.4H5" fill="none" stroke="white" strokeWidth="1" />
+      <path d="M8 13v-2h.8a1 1 0 1 1 0 2H8z" fill="none" stroke="white" strokeWidth="1" />
+      <path d="M11 13v-2h1.8M11 12h1.4" fill="none" stroke="white" strokeWidth="1" />
     </svg>
   );
 }

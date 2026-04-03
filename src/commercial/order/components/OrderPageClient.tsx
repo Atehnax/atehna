@@ -95,7 +95,7 @@ const classNames = (...parts: Array<string | false | null | undefined>) =>
 
 function CheckIcon() {
   return (
-    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5">
       <path d="M5 10.5l3 3 7-7" />
     </svg>
   );
@@ -103,7 +103,7 @@ function CheckIcon() {
 
 function PencilIcon() {
   return (
-    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.9">
+    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5">
       <path d="M13.8 3.6a1.6 1.6 0 0 1 2.3 2.3l-8.6 8.6-3.6.8.8-3.6 8.6-8.1z" />
       <path d="M11.8 5.5l2.8 2.8" />
     </svg>

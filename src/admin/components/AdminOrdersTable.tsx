@@ -1431,8 +1431,8 @@ export default function AdminOrdersTable({
                     setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }));
                   }}
                   showLabel={false}
-                  className="[&>button]:!h-7 [&>button]:!w-7"
-                  icon={<PanelAddRemoveIcon className="!scale-100" />}
+                  className="[&>button]:!h-7 [&>button]:!w-7 [&>button:hover]:text-[color:var(--blue-500)] [&>button[aria-expanded='true']]:text-[color:var(--blue-500)]"
+                  icon={<PanelAddRemoveIcon className="!scale-[0.8]" />}
                   menuClassName="!w-32"
                 />
                 <IconButton
@@ -2004,7 +2004,7 @@ function FunnelIcon() {
       className="block h-[12px] w-[12px]"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       xmlns="http://www.w3.org/2000/svg"

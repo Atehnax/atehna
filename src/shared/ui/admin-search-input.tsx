@@ -15,7 +15,7 @@ export function AdminSearchInput({ className = '', showIcon = true, ...props }: 
           className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-500"
           fill="none"
           stroke="currentColor"
-          strokeWidth="1.8"
+          strokeWidth="1.5"
           aria-hidden="true"
         >
           <circle cx="9" cy="9" r="5.6" />

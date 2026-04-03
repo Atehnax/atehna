@@ -266,52 +266,6 @@ input[type='radio'] {
   font-size: 11px !important;
 }
 
-.admin-scope .euiFieldText,
-.admin-scope .euiTextArea,
-.admin-scope .euiSelect,
-.admin-scope .euiSelect__button,
-.admin-scope input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='color']):not([type='submit']):not([type='button']):not([type='reset']),
-.admin-scope select,
-.admin-scope textarea,
-.admin-scope button[aria-haspopup='listbox'] {
-  border-width: 1px !important;
-  box-shadow: none !important;
-}
-
-.admin-scope .euiFieldText:hover,
-.admin-scope .euiTextArea:hover,
-.admin-scope .euiSelect:hover,
-.admin-scope .euiSelect__button:hover,
-.admin-scope input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='color']):not([type='submit']):not([type='button']):not([type='reset']):hover,
-.admin-scope select:hover,
-.admin-scope textarea:hover,
-.admin-scope button[aria-haspopup='listbox']:hover {
-  border-width: 1px !important;
-}
-
-.admin-scope .euiFieldText:focus,
-.admin-scope .euiTextArea:focus,
-.admin-scope .euiSelect:focus,
-.admin-scope .euiSelect__button:focus,
-.admin-scope .euiFieldText:focus-visible,
-.admin-scope .euiTextArea:focus-visible,
-.admin-scope .euiSelect:focus-visible,
-.admin-scope .euiSelect__button:focus-visible,
-.admin-scope input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='color']):not([type='submit']):not([type='button']):not([type='reset']):focus,
-.admin-scope input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='color']):not([type='submit']):not([type='button']):not([type='reset']):focus-visible,
-.admin-scope select:focus,
-.admin-scope select:focus-visible,
-.admin-scope textarea:focus,
-.admin-scope textarea:focus-visible,
-.admin-scope button[aria-haspopup='listbox']:focus,
-.admin-scope button[aria-haspopup='listbox']:focus-visible {
-  border-color: #3e67d6 !important;
-  border-width: 1px !important;
-  box-shadow: none !important;
-  outline: none !important;
-}
-
-
 [data-floating-field] input:-webkit-autofill,
 [data-floating-field] textarea:-webkit-autofill,
 [data-floating-field] select:-webkit-autofill,

@@ -162,3 +162,6 @@ export const dateInputTokenClasses = {
   compact: 'h-8 rounded-lg px-2.5',
   floating: 'h-10 rounded-xl px-2.5 pb-1.5 pt-5 leading-6'
 } as const;
+
+export const adminInputFocusTokenClasses =
+  'outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none';

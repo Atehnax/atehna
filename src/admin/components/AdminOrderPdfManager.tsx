@@ -16,6 +16,7 @@ import {
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 import { ADMIN_TABLE_BG } from '@/shared/ui/table';
+import { adminInputFocusTokenClasses } from '@/shared/ui/theme/tokens';
 
 type PdfDocument = {
   id: number;
@@ -297,7 +298,7 @@ export default function AdminOrderPdfManager({
           placeholder=""
           aria-label="Opombe"
           readOnly={notesSectionMode !== 'edit'}
-          className={`${notesSharedClass} outline-none transition hover:border-slate-300 focus:!border-[#3e67d6] focus:!ring-0 focus-visible:!border-[#3e67d6] focus-visible:!ring-0 ${notesSectionMode === 'edit' ? 'bg-white text-slate-900' : '!bg-[color:var(--ui-neutral-bg)] text-slate-600'}`}
+          className={`${notesSharedClass} ${adminInputFocusTokenClasses} transition ${notesSectionMode === 'edit' ? 'bg-white text-slate-900' : '!bg-[color:var(--ui-neutral-bg)] text-slate-600'}`}
         />
       </div>
 

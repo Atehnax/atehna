@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic';
 import { EuiFieldText } from '@elastic/eui';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import { IconButton } from '@/shared/ui/icon-button';
+import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import AdminOrderStatusSelect from '@/admin/components/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { Spinner } from '@/shared/ui/loading';
@@ -1395,14 +1396,16 @@ export default function AdminOrdersTable({
           showDivider={false}
           headerLeft={
             <div className="flex h-7 w-full items-stretch">
-              <AdminSearchInput
-                showIcon={false}
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Poišči naročila"
-                aria-label="Poišči naročila"
-                className="h-7"
-              />
+              <div className="min-w-0 w-full rounded-xl border border-slate-200 bg-white transition-colors focus-within:border-[#3e67d6]">
+                <AdminSearchInput
+                  showIcon={false}
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Poišči naročila"
+                  aria-label="Poišči naročila"
+                  className="!m-0 !h-7 min-w-0 w-full flex-1 !border-0 !bg-transparent !shadow-none !outline-none ring-0 transition-colors placeholder:text-slate-400 [--euiFormControlStateWidth:0px] focus:[--euiFormControlStateWidth:0px] focus-visible:[--euiFormControlStateWidth:0px] focus:!border-0 focus:!shadow-none focus:!outline-none focus-visible:!border-0 focus-visible:!shadow-none focus-visible:!outline-none"
+                />
+              </div>
             </div>
           }
           headerRight={

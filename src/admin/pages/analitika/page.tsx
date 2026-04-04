@@ -4,6 +4,7 @@ import { emptyOrdersAnalyticsResponse, fetchOrdersAnalytics } from '@/shared/ser
 import { fetchAnalyticsCharts, fetchGlobalAnalyticsAppearance } from '@/shared/server/analyticsCharts';
 import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';
+import { AdminPageHeader } from '@/shared/ui/admin-primitives';
 
 export const metadata = {
   title: 'Administracija analitika'
@@ -56,10 +57,7 @@ export default async function AdminAnalyticsIndexPage({
 }) {
   return (
     <div className="w-full">
-      <div className="mb-4">
-        <h1 className="text-2xl font-semibold text-slate-900">Analitika</h1>
-        <p className="mt-1 text-[13px] text-slate-500">Pregled analitike naročil in spletnega obiska.</p>
-      </div>
+      <AdminPageHeader title="Analitika" description="Pregled analitike naročil in spletnega obiska." />
       <AdminAnalyticsTopTabs />
       {await AdminAnalyticsDashboardSection({ searchParams })}
     </div>

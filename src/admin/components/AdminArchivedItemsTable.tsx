@@ -5,6 +5,7 @@ import { Button } from '@/shared/ui/button';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
 import { EmptyState, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
+import { AdminCheckbox } from '@/shared/ui/checkbox';
 
 const STORAGE_KEY = 'admin-items-crud-v2';
 
@@ -105,8 +106,7 @@ export default function AdminArchivedItemsTable() {
           <THead>
             <TR>
               <TH className="w-[40px] px-3 py-2 text-center">
-                <input
-                  type="checkbox"
+                <AdminCheckbox
                   checked={allSelected}
                   onChange={() => setSelectedIds(allSelected ? [] : archivedItems.map((item) => item.id))}
                   aria-label="Izberi vse"
@@ -134,8 +134,7 @@ export default function AdminArchivedItemsTable() {
             {archivedItems.map((item) => (
               <TR key={item.id}>
                 <TD className="px-3 py-2 text-center">
-                  <input
-                    type="checkbox"
+                  <AdminCheckbox
                     checked={selectedIds.includes(item.id)}
                     onChange={() =>
                       setSelectedIds((current) =>

@@ -947,13 +947,13 @@ function AdminOrdersPreviewChart({
   return (
     <section className="mb-3" aria-label="Orders analytics previews">
       <div className="mb-[15px] flex items-end justify-end gap-2">
-        <div className="inline-flex h-8 items-center gap-1 rounded-xl border border-slate-300 bg-white px-1">
+        <div className="inline-flex h-8 items-center gap-1 rounded-md border border-slate-300 bg-white px-1">
           {rangeOptions.map((option) => (
             <button
               key={option.key}
               type="button"
               onClick={() => onRangeChange?.(option.key)}
-              className={`rounded-lg px-3 py-1 text-xs font-semibold transition focus-visible:border focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0 ${activeRange === option.key ? 'bg-[color:var(--blue-500)] text-white' : 'border border-transparent text-slate-700 hover:bg-[color:var(--hover-neutral)]'}`}
+              className={`rounded-md px-3 py-1 text-xs font-semibold transition focus-visible:border focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0 ${activeRange === option.key ? 'bg-[color:var(--blue-500)] text-white' : 'border border-transparent text-slate-700 hover:bg-[color:var(--hover-neutral)]'}`}
             >
               {option.label}
             </button>

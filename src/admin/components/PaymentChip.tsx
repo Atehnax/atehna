@@ -10,7 +10,7 @@ export default function PaymentChip({ status, isSaving = false }: Props) {
   const isKnown = Boolean(status && isPaymentStatus(status));
 
   return (
-    <Chip variant={getPaymentBadgeVariant(status)} className={isKnown ? undefined : 'text-slate-400'}>
+    <Chip variant={getPaymentBadgeVariant(status)} className={isKnown ? 'rounded-md' : 'rounded-md text-slate-400'}>
       <span>{getPaymentLabel(status)}</span>
       {isSaving && <span className="ml-1 text-[10px]">…</span>}
     </Chip>

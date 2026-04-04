@@ -1,7 +1,7 @@
 import type { InputHTMLAttributes } from 'react';
 import { EuiFieldText } from '@elastic/eui';
 import { ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
-import { adminInputFocusTokenClasses } from '@/shared/ui/theme/tokens';
+import { adminEuiInputFocusTokenClasses } from '@/shared/ui/theme/tokens';
 
 type AdminSearchInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & {
   showIcon?: boolean;
@@ -29,7 +29,8 @@ export function AdminSearchInput({ className = '', showIcon = true, ...props }: 
       <EuiFieldText
         type="search"
         fullWidth
-        className={`!m-0 !h-full min-w-0 w-full !border-0 !bg-transparent !shadow-none focus:!border-0 focus:!shadow-none focus-visible:!border-0 focus-visible:!shadow-none ${showIcon ? '!pl-10' : '!pl-3'} !pr-3 font-['Inter',system-ui,sans-serif] !text-[11px] text-slate-700 placeholder:text-slate-400 ${ADMIN_CONTROL_PADDING_X} ${adminInputFocusTokenClasses}`}
+        controlOnly
+        className={`!h-7 min-w-0 w-full rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} ${showIcon ? '!pl-10' : ''} font-['Inter',system-ui,sans-serif] !text-[11px] text-slate-700 ${adminEuiInputFocusTokenClasses} ${className}`}
         aria-label={props['aria-label'] ?? props.placeholder ?? 'Iskanje'}
         {...props}
       />

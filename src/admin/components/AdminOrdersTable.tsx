@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { EuiFieldText } from '@elastic/eui';
-import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import { IconButton } from '@/shared/ui/icon-button';
+import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import AdminOrderStatusSelect from '@/admin/components/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { Spinner } from '@/shared/ui/loading';
@@ -1395,14 +1395,16 @@ export default function AdminOrdersTable({
           showDivider={false}
           headerLeft={
             <div className="flex h-7 w-full items-stretch">
-              <AdminSearchInput
-                showIcon={false}
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Poišči naročila"
-                aria-label="Poišči naročila"
-                className="h-7"
-              />
+              <div className="min-w-0 w-full rounded-md border border-slate-200 bg-white transition-colors focus-within:border-[#3e67d6]">
+                <AdminSearchInput
+                  showIcon={false}
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Poišči naročila"
+                  aria-label="Poišči naročila"
+                  className="!m-0 !h-7 min-w-0 w-full flex-1 !rounded-md !border-0 !bg-transparent !shadow-none !outline-none ring-0 transition-colors placeholder:text-slate-400 [--euiFormControlStateWidth:0px] focus:[--euiFormControlStateWidth:0px] focus-visible:[--euiFormControlStateWidth:0px] focus:!border-0 focus:!shadow-none focus:!outline-none focus-visible:!border-0 focus-visible:!shadow-none focus-visible:!outline-none"
+                />
+              </div>
             </div>
           }
           headerRight={
@@ -1450,7 +1452,7 @@ export default function AdminOrdersTable({
                     <TrashCanIcon />
                   )}
                 </IconButton>
-                {topAction ? <div className="flex items-center [&_button]:!h-7 [&_button]:!rounded-xl">{topAction}</div> : null}
+                {topAction ? <div className="flex items-center [&_button]:!h-7 [&_button]:!rounded-md">{topAction}</div> : null}
               </div>
             </>
           }
@@ -1727,9 +1729,9 @@ export default function AdminOrdersTable({
                         </span>
                       </TD> : null}
 
-                      {visibleColumns.customer ? <TD className="text-slate-700">
+                      {visibleColumns.customer ? <TD className="align-middle text-slate-700">
                         <span
-                          className={`inline-block max-w-full truncate ${isMatchingHoveredCell('customer', order.organization_name || order.contact_name) ? matchingValueHighlightNoShiftClass : ''}`}
+                          className={`inline-flex max-w-full items-center truncate ${isMatchingHoveredCell('customer', order.organization_name || order.contact_name) ? matchingValueHighlightNoShiftClass : ''}`}
                           title={order.organization_name || order.contact_name}
                           onMouseEnter={() => setHoveredCellMatch({ column: 'customer', value: getComparableCellValue(order.organization_name || order.contact_name) })}
                           onMouseLeave={() => setHoveredCellMatch(null)}
@@ -1738,9 +1740,9 @@ export default function AdminOrdersTable({
                         </span>
                       </TD> : null}
 
-                      {visibleColumns.address ? <TD className="text-slate-700">
+                      {visibleColumns.address ? <TD className="align-middle text-slate-700">
                         <span
-                          className={`inline-block max-w-full truncate ${isMatchingHoveredCell('address', orderAddress || '—') ? matchingValueHighlightNoShiftClass : ''}`}
+                          className={`inline-flex max-w-full items-center truncate ${isMatchingHoveredCell('address', orderAddress || '—') ? matchingValueHighlightNoShiftClass : ''}`}
                           title={orderAddress || '—'}
                           onMouseEnter={() => setHoveredCellMatch({ column: 'address', value: getComparableCellValue(orderAddress || '—') })}
                           onMouseLeave={() => setHoveredCellMatch(null)}

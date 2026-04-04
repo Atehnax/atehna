@@ -167,4 +167,4 @@ export const adminInputFocusTokenClasses =
   'outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none';
 
 export const adminEuiInputFocusTokenClasses =
-  'focus:[--euiFormControlStateWidth:0px] focus:!border-[#3e67d6] focus:!outline-none focus:!shadow-none focus:ring-0 focus-visible:[--euiFormControlStateWidth:0px] focus-visible:!border-[#3e67d6] focus-visible:!outline-none focus-visible:!shadow-none focus-visible:ring-0';
+  'focus:[--euiFormControlStateColor:#3e67d6] focus:[--euiFormControlStateHoverColor:#3e67d6] focus:[--euiFormControlStateWidth:1px] focus:border-transparent focus:ring-0 focus-visible:[--euiFormControlStateColor:#3e67d6] focus-visible:[--euiFormControlStateHoverColor:#3e67d6] focus-visible:[--euiFormControlStateWidth:1px] focus-visible:border-transparent focus-visible:ring-0 focus-visible:shadow-none';

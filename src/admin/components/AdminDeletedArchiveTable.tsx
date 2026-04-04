@@ -1,17 +1,20 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
-import { CustomSelect } from '@/shared/ui/select';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 import { EmptyState, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
-import { AdminTableLayout } from '@/shared/ui/admin-table';
-import { ActionRestoreIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
-import { adminTableRowToneClasses, getAdminStripedRowToneClass } from '@/shared/ui/theme/tokens';
+import { AdminTableLayout, ColumnVisibilityControl } from '@/shared/ui/admin-table';
+import { ActionRestoreIcon, ColumnFilterIcon, PanelAddRemoveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
+import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import { AdminSearchInput } from '@/shared/ui/admin-search-input';
+import { getCustomerTypeLabel } from '@/shared/domain/order/customerType';
+import { adminTableRowToneClasses, filterPillTokenClasses, getAdminStripedRowToneClass } from '@/shared/ui/theme/tokens';
 
 type ArchiveEntry = {
   id: number;
@@ -19,10 +22,26 @@ type ArchiveEntry = {
   order_id: number | null;
   document_id: number | null;
   label: string;
+  order_created_at: string | null;
+  customer_name: string | null;
+  address: string | null;
+  customer_type: string | null;
   deleted_at: string;
   expires_at: string;
 };
-type ArchiveEntryTuple = readonly [id: number, itemType: 'order' | 'pdf', orderId: number | null, documentId: number | null, label: string, deletedAt: string, expiresAt: string];
+type ArchiveEntryTuple = readonly [
+  id: number,
+  itemType: 'order' | 'pdf',
+  orderId: number | null,
+  documentId: number | null,
+  label: string,
+  orderCreatedAt: string | null,
+  customerName: string | null,
+  address: string | null,
+  customerType: string | null,
+  deletedAt: string,
+  expiresAt: string
+];
 
 type DisplayRow = {
   entry: ArchiveEntry;
@@ -31,15 +50,25 @@ type DisplayRow = {
 };
 
 type TypeFilterValue = 'all' | 'order' | 'pdf';
-
-
+type ArchiveHeaderFilter = 'type' | null;
 type ArchiveSortKey = 'deleted_at' | 'expires_at';
 type ArchiveSortDirection = 'asc' | 'desc';
+type ArchiveColumnKey = 'type' | 'element' | 'orderDate' | 'customer' | 'address' | 'orderType' | 'deleted' | 'expires';
 
 const TYPE_FILTER_OPTIONS: Array<{ value: TypeFilterValue; label: string }> = [
   { value: 'all', label: 'Vse vrste' },
   { value: 'order', label: 'Naročila' },
   { value: 'pdf', label: 'PDF datoteke' }
+];
+const ARCHIVE_COLUMN_OPTIONS: Array<{ key: ArchiveColumnKey; label: string }> = [
+  { key: 'type', label: 'Vrsta' },
+  { key: 'element', label: 'Element' },
+  { key: 'orderDate', label: 'Datum naročila' },
+  { key: 'customer', label: 'Naročnik' },
+  { key: 'address', label: 'Naslov' },
+  { key: 'orderType', label: 'Tip' },
+  { key: 'deleted', label: 'Izbrisano' },
+  { key: 'expires', label: 'Poteče' }
 ];
 const LazyConfirmDialog = dynamic(
   () => import('@/shared/ui/confirm-dialog').then((module) => module.ConfirmDialog),
@@ -61,8 +90,12 @@ const tupleToArchiveEntry = (entry: ArchiveEntryTuple): ArchiveEntry => ({
   order_id: entry[2],
   document_id: entry[3],
   label: entry[4],
-  deleted_at: entry[5],
-  expires_at: entry[6]
+  order_created_at: entry[5],
+  customer_name: entry[6],
+  address: entry[7],
+  customer_type: entry[8],
+  deleted_at: entry[9],
+  expires_at: entry[10]
 });
 
 export default function AdminDeletedArchiveTable({
@@ -74,18 +107,44 @@ export default function AdminDeletedArchiveTable({
   const router = useRouter();
   const [entries, setEntries] = useState(normalizedInitialEntries);
   const [selected, setSelected] = useState<number[]>([]);
+  const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilterValue>('all');
+  const [openHeaderFilter, setOpenHeaderFilter] = useState<ArchiveHeaderFilter>(null);
   const [sortKey, setSortKey] = useState<ArchiveSortKey>('deleted_at');
   const [sortDirection, setSortDirection] = useState<ArchiveSortDirection>('desc');
+  const [visibleColumns, setVisibleColumns] = useState<Record<ArchiveColumnKey, boolean>>({
+    type: true,
+    element: true,
+    orderDate: true,
+    customer: true,
+    address: true,
+    orderType: true,
+    deleted: true,
+    expires: true
+  });
+  const typeFilterRootRef = useRef<HTMLDivElement | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const { toast } = useToast();
 
-  const filtered = useMemo(
-    () => entries.filter((entry) => (typeFilter === 'all' ? true : entry.item_type === typeFilter)),
-    [entries, typeFilter]
-  );
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return entries.filter((entry) => {
+      const matchesType = typeFilter === 'all' ? true : entry.item_type === typeFilter;
+      if (!matchesType) return false;
+      if (!query) return true;
+      const values = [
+        entry.label,
+        entry.customer_name ?? '',
+        entry.address ?? '',
+        entry.customer_type ?? '',
+        entry.order_created_at ?? '',
+        entry.order_id ? String(entry.order_id) : ''
+      ];
+      return values.some((value) => value.toLowerCase().includes(query));
+    });
+  }, [entries, search, typeFilter]);
 
   const displayRows = useMemo<DisplayRow[]>(() => {
     if (typeFilter === 'pdf') {
@@ -145,7 +204,45 @@ export default function AdminDeletedArchiveTable({
     });
   }, [filtered, sortDirection, sortKey, typeFilter]);
 
-  const visibleIds = useMemo(() => displayRows.map((row) => row.entry.id), [displayRows]);
+  const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
+    totalCount: displayRows.length,
+    storageKey: 'adminArhiv.pageSize',
+    defaultPageSize: 50,
+    pageSizeOptions: [25, 50, 100]
+  });
+
+  const pagedRows = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return displayRows.slice(start, start + pageSize);
+  }, [displayRows, page, pageSize]);
+
+  const activeFilterChips = useMemo(() => {
+    const chips: Array<{ key: string; title: string; value: string; clear: () => void }> = [];
+    const trimmedSearch = search.trim();
+    if (trimmedSearch) {
+      chips.push({ key: 'search', title: 'Iskanje:', value: trimmedSearch, clear: () => setSearch('') });
+    }
+    if (typeFilter !== 'all') {
+      chips.push({
+        key: 'type',
+        title: 'Vrsta:',
+        value: typeFilter === 'order' ? 'Naročila' : 'PDF datoteke',
+        clear: () => setTypeFilter('all')
+      });
+    }
+    return chips;
+  }, [search, typeFilter]);
+
+  const toggleColumnVisibility = (key: ArchiveColumnKey) => {
+    setVisibleColumns((current) => {
+      const next = { ...current, [key]: !current[key] };
+      if (!next.element) return current;
+      if (Object.values(next).every((isVisible) => !isVisible)) return current;
+      return next;
+    });
+  };
+
+  const visibleIds = useMemo(() => pagedRows.map((row) => row.entry.id), [pagedRows]);
   const selectedIdSet = useMemo(() => new Set(selected), [selected]);
   const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIdSet.has(id));
   const hasSelectedRows = selected.length > 0;
@@ -301,6 +398,21 @@ export default function AdminDeletedArchiveTable({
     return <span className="ml-1 text-slate-500">{sortDirection === 'asc' ? '↑' : '↓'}</span>;
   };
 
+  useEffect(() => {
+    setPage(1);
+  }, [search, setPage, sortDirection, sortKey, typeFilter]);
+
+  useEffect(() => {
+    if (!openHeaderFilter) return;
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (typeFilterRootRef.current?.contains(target)) return;
+      setOpenHeaderFilter(null);
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [openHeaderFilter]);
+
   const confirmBulkDelete = async () => {
     const deletableIds = selected.filter((id) => id > 0);
     if (deletableIds.length === 0) {
@@ -333,19 +445,33 @@ export default function AdminDeletedArchiveTable({
 
   return (
     <AdminTableLayout
-      className="w-full border-slate-200 bg-white"
+      className="w-full border shadow-sm"
+      style={{ background: '#ffffff', borderColor: '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
+      headerClassName="!bg-white"
       headerLeft={
-        <div className="relative min-w-[140px]">
-          <CustomSelect
-            value={typeFilter}
-            onChange={(next) => setTypeFilter(next as TypeFilterValue)}
-            options={TYPE_FILTER_OPTIONS}
-            className="h-7 min-w-[130px] px-2.5 py-0 text-[11px] font-semibold"
-          />
+        <div className="flex h-7 w-full items-stretch">
+          <div className="min-w-0 w-full rounded-md border border-slate-200 bg-white transition-colors focus-within:border-[#3e67d6]">
+            <AdminSearchInput
+              showIcon={false}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Poišči arhivirane zapise"
+              aria-label="Poišči arhivirane zapise"
+              className="!m-0 !h-7 min-w-0 w-full flex-1 !rounded-md !border-0 !bg-transparent !shadow-none !outline-none ring-0 transition-colors placeholder:text-slate-400 [--euiFormControlStateWidth:0px] focus:[--euiFormControlStateWidth:0px] focus-visible:[--euiFormControlStateWidth:0px] focus:!border-0 focus:!shadow-none focus:!outline-none focus-visible:!border-0 focus-visible:!shadow-none focus-visible:!outline-none"
+            />
+          </div>
         </div>
       }
       headerRight={
-        <>
+        <div className="flex h-7 items-center gap-2 self-center">
+          <ColumnVisibilityControl
+            options={ARCHIVE_COLUMN_OPTIONS.map((option) => ({ ...option, disabled: option.key === 'element' }))}
+            visibleMap={visibleColumns}
+            onToggle={(key) => toggleColumnVisibility(key as ArchiveColumnKey)}
+            showLabel={false}
+            className="[&>button]:!h-7 [&>button]:!w-7 [&>button:hover]:text-[color:var(--blue-500)] [&>button[aria-expanded='true']]:text-[color:var(--blue-500)]"
+            icon={<PanelAddRemoveIcon className="!scale-[0.8]" />}
+          />
           <Button
             type="button"
             variant={hasSelectedRows ? 'restore' : 'default'}
@@ -374,9 +500,46 @@ export default function AdminDeletedArchiveTable({
               <TrashCanIcon />
             )}
           </Button>
-        </>
+        </div>
       }
-      contentClassName="overflow-x-auto"
+      filterRowLeft={
+        activeFilterChips.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {activeFilterChips.map((chip) => (
+              <span key={chip.key} className={filterPillTokenClasses.base}>
+                <span>
+                  {chip.title} <span className="font-semibold">{chip.value}</span>
+                </span>
+                <button type="button" className={filterPillTokenClasses.clear} onClick={chip.clear} aria-label={`Odstrani filter ${chip.title}`}>
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : null
+      }
+      filterRowRight={
+        <EuiTablePagination
+          page={page}
+          pageCount={pageCount}
+          onPageChange={setPage}
+          itemsPerPage={pageSize}
+          onChangeItemsPerPage={setPageSize}
+          itemsPerPageOptions={[25, 50, 100]}
+        />
+      }
+      contentClassName="overflow-x-auto bg-white"
+      showDivider={false}
+      footerRight={
+        <EuiTablePagination
+          page={page}
+          pageCount={pageCount}
+          onPageChange={setPage}
+          itemsPerPage={pageSize}
+          onChangeItemsPerPage={setPageSize}
+          itemsPerPageOptions={[25, 50, 100]}
+        />
+      }
     >
       {isDeleteConfirmOpen ? (
         <LazyConfirmDialog
@@ -394,28 +557,63 @@ export default function AdminDeletedArchiveTable({
         />
       ) : null}
 
-      <Table className="w-full table-fixed border-collapse text-[11px]">
+      <Table className="w-full min-w-[1080px] table-fixed border-collapse text-[11px] font-['Inter',system-ui,sans-serif]">
+          <colgroup>
+            <col className="w-[44px]" />
+            {visibleColumns.type ? <col className="w-[120px]" /> : null}
+            {visibleColumns.element ? <col className="w-[240px]" /> : null}
+            {visibleColumns.orderDate ? <col className="w-[130px]" /> : null}
+            {visibleColumns.customer ? <col className="w-[150px]" /> : null}
+            {visibleColumns.address ? <col className="w-[220px]" /> : null}
+            {visibleColumns.orderType ? <col className="w-[100px]" /> : null}
+            {visibleColumns.deleted ? <col className="w-[150px]" /> : null}
+            {visibleColumns.expires ? <col className="w-[150px]" /> : null}
+          </colgroup>
           <THead>
             <TR>
               <TH className="w-10 text-center">
                 <AdminCheckbox checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" />
               </TH>
-              <TH className="w-24 text-[11px]">Vrsta</TH>
-              <TH className="text-[11px]">Element</TH>
-              <TH className="w-40 text-[11px]">
+              {visibleColumns.type ? (
+                <TH className="w-24 text-[11px]">
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" ref={typeFilterRootRef}>
+                    <span className="inline-flex items-center text-[11px] font-semibold leading-none">Vrsta</span>
+                    <button type="button" className="group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500" data-active={openHeaderFilter === 'type'} aria-label="Filtriraj vrsto" onClick={() => setOpenHeaderFilter((previousFilter) => (previousFilter === 'type' ? null : 'type'))}>
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                    {openHeaderFilter === 'type' ? (
+                      <div role="menu" className="absolute left-1/2 top-8 z-30 w-40 -translate-x-1/2">
+                        <MenuPanel className="w-full">
+                          {TYPE_FILTER_OPTIONS.map((option) => (
+                            <MenuItem key={option.value} onClick={() => { setTypeFilter(option.value); setOpenHeaderFilter(null); }}>
+                              {option.label}
+                            </MenuItem>
+                          ))}
+                        </MenuPanel>
+                      </div>
+                    ) : null}
+                  </div>
+                </TH>
+              ) : null}
+              {visibleColumns.element ? <TH className="text-[11px]">Element</TH> : null}
+              {visibleColumns.orderDate ? <TH className="text-[11px]">Datum naročila</TH> : null}
+              {visibleColumns.customer ? <TH className="text-[11px]">Naročnik</TH> : null}
+              {visibleColumns.address ? <TH className="text-[11px]">Naslov</TH> : null}
+              {visibleColumns.orderType ? <TH className="text-[11px]">Tip</TH> : null}
+              {visibleColumns.deleted ? <TH className="w-40 text-[11px]">
                 <button type="button" onClick={() => handleSort('deleted_at')} className="inline-flex items-center font-semibold hover:text-slate-700">
                   Izbrisano {sortIndicator('deleted_at')}
                 </button>
-              </TH>
-              <TH className="w-40 text-[11px]">
+              </TH> : null}
+              {visibleColumns.expires ? <TH className="w-40 text-[11px]">
                 <button type="button" onClick={() => handleSort('expires_at')} className="inline-flex items-center font-semibold hover:text-slate-700">
                   Poteče {sortIndicator('expires_at')}
                 </button>
-              </TH>
+              </TH> : null}
             </TR>
           </THead>
           <TBody>
-            {displayRows.map((row, index) => {
+            {pagedRows.map((row, index) => {
               const { entry, isChild, parentOrderId } = row;
               const parentSelected =
                 !isChild || parentOrderId === null
@@ -436,10 +634,8 @@ export default function AdminDeletedArchiveTable({
                       aria-label={`Izberi zapis ${entry.label}`}
                     />
                   </TD>
-                  <TD className="px-0 py-2 text-[11px] font-semibold text-slate-700">
-                    {entry.item_type === 'order' ? 'Naročilo' : 'PDF datoteka'}
-                  </TD>
-                  <TD className={`px-0 py-2 text-slate-800 ${isChild ? 'pl-6' : ''}`}>
+                  {visibleColumns.type ? <TD className="px-0 py-2 text-[11px] font-semibold text-slate-700">{entry.item_type === 'order' ? 'Naročilo' : 'PDF datoteka'}</TD> : null}
+                  {visibleColumns.element ? <TD className={`px-0 py-2 text-slate-800 ${isChild ? 'pl-6' : ''}`}>
                     {entry.item_type === 'order' && entry.order_id ? (
                       <a href={`/admin/orders/${entry.order_id}`} className="font-medium text-[color:var(--blue-500)] hover:text-[color:var(--blue-600)]">
                         {entry.label}
@@ -447,15 +643,19 @@ export default function AdminDeletedArchiveTable({
                     ) : (
                       <span>{isChild ? `↳ ${entry.label}` : entry.label}</span>
                     )}
-                  </TD>
-                  <TD className="px-0 py-2 text-xs text-slate-500">{formatDateTime(entry.deleted_at)}</TD>
-                  <TD className="px-0 py-2 text-xs text-slate-500">{formatDateTime(entry.expires_at)}</TD>
+                  </TD> : null}
+                  {visibleColumns.orderDate ? <TD className="px-0 py-2 text-xs text-slate-500">{entry.order_created_at ? formatDateTime(entry.order_created_at) : '—'}</TD> : null}
+                  {visibleColumns.customer ? <TD className="px-0 py-2 text-xs text-slate-600">{entry.customer_name ?? '—'}</TD> : null}
+                  {visibleColumns.address ? <TD className="px-0 py-2 text-xs text-slate-600">{entry.address ?? '—'}</TD> : null}
+                  {visibleColumns.orderType ? <TD className="px-0 py-2 text-xs text-slate-600">{entry.customer_type ? getCustomerTypeLabel(entry.customer_type) : '—'}</TD> : null}
+                  {visibleColumns.deleted ? <TD className="px-0 py-2 text-xs text-slate-500">{formatDateTime(entry.deleted_at)}</TD> : null}
+                  {visibleColumns.expires ? <TD className="px-0 py-2 text-xs text-slate-500">{formatDateTime(entry.expires_at)}</TD> : null}
                 </TR>
               );
             })}
-            {displayRows.length === 0 ? (
+            {pagedRows.length === 0 ? (
               <TR>
-                <TD colSpan={5} className="py-8 text-center text-sm text-slate-500">
+                <TD colSpan={1 + Object.values(visibleColumns).filter(Boolean).length} className="py-8 text-center text-sm text-slate-500">
                   <EmptyState title="Arhiv je prazen." />
                 </TD>
               </TR>

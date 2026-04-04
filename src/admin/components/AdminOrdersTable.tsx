@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { EuiFieldText } from '@elastic/eui';
-import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import { IconButton } from '@/shared/ui/icon-button';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import AdminOrderStatusSelect from '@/admin/components/AdminOrderStatusSelect';

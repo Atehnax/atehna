@@ -9,19 +9,18 @@ import {
   ArchiveIcon,
   CloseIcon,
   CopyIcon,
-  FilterIcon,
+  PanelAddRemoveIcon,
   PencilIcon,
   SaveIcon
 } from '@/shared/ui/icons/AdminActionIcons';
-import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
-import { CustomSelect } from '@/shared/ui/select';
 import { RowActionsDropdown, Table, THead, TH, TR } from '@/shared/ui/table';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
+import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { Chip } from '@/shared/ui/badge';
 import { useToast } from '@/shared/ui/toast';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
 import { AdminTableLayout, ColumnVisibilityControl } from '@/shared/ui/admin-table';
-import { adminTableRowToneClasses, buttonTokenClasses, getAdminStripedRowToneClass } from '@/shared/ui/theme/tokens';
+import { adminTableRowToneClasses, buttonTokenClasses } from '@/shared/ui/theme/tokens';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 
 type Item = {
@@ -57,7 +56,7 @@ type SeedItemTuple = [
 ];
 
 type SortKey = 'name' | 'sku' | 'category' | 'price' | 'status';
-type StatusTab = 'active' | 'inactive';
+type StatusFilter = 'all' | 'active' | 'inactive';
 type ItemColumnKey = 'name' | 'sku' | 'category' | 'price' | 'discount' | 'salePrice' | 'status';
 
 const STORAGE_KEY = 'admin-items-crud-v3';
@@ -89,10 +88,6 @@ const emptyItem = (): Item => ({
 const discountedPrice = (price: number, discountPct: number) =>
   Number((price * (1 - Math.max(0, Math.min(100, discountPct)) / 100)).toFixed(2));
 
-const statusTabs: Array<{ key: StatusTab; label: string }> = [
-  { key: 'active', label: 'Aktivni' },
-  { key: 'inactive', label: 'Neaktivni' }
-];
 const itemColumnOptions: Array<{ key: ItemColumnKey; label: string }> = [
   { key: 'name', label: 'Naziv' },
   { key: 'sku', label: 'SKU' },
@@ -214,7 +209,8 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   );
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [statusTab, setStatusTab] = useState<StatusTab>('active');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [openHeaderFilter, setOpenHeaderFilter] = useState<'category' | 'status' | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [editorOpen, setEditorOpen] = useState(false);
@@ -235,6 +231,8 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   });
   const hasCompletedInitialStorageHydrationRef = useRef(false);
   const pendingStorageWriteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const categoryFilterRootRef = useRef<HTMLDivElement | null>(null);
+  const statusFilterRootRef = useRef<HTMLDivElement | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -323,17 +321,24 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
     [getResolvedCategoryLabel, items]
   );
 
-  const selectedCategoryLabel =
-    categoryFilter === 'all'
-      ? 'Vse kategorije'
-      : categories.find((category) => category === categoryFilter) ?? 'Vse kategorije';
-
   useEffect(() => {
     if (categoryFilter === 'all') return;
     if (!categories.includes(categoryFilter)) {
       setCategoryFilter('all');
     }
   }, [categories, categoryFilter]);
+
+  useEffect(() => {
+    if (!openHeaderFilter) return;
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const roots = [categoryFilterRootRef.current, statusFilterRootRef.current];
+      if (roots.some((root) => root?.contains(target))) return;
+      setOpenHeaderFilter(null);
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [openHeaderFilter]);
 
   const filteredItems = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -346,7 +351,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
         item.sku.toLowerCase().includes(q) ||
         resolvedCategory.toLowerCase().includes(q);
       const matchesCategory = categoryFilter === 'all' || resolvedCategory === categoryFilter;
-      const matchesStatus = statusTab === 'active' ? item.active : !item.active;
+      const matchesStatus = statusFilter === 'all' ? true : statusFilter === 'active' ? item.active : !item.active;
       return matchesSearch && matchesCategory && matchesStatus;
     });
 
@@ -360,7 +365,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
     });
 
     return next;
-  }, [categoryFilter, getResolvedCategoryLabel, items, search, sortDirection, sortKey, statusTab]);
+  }, [categoryFilter, getResolvedCategoryLabel, items, search, sortDirection, sortKey, statusFilter]);
 
   const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
     totalCount: filteredItems.length,
@@ -390,7 +395,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
 
   useEffect(() => {
     setPage(1);
-  }, [categoryFilter, search, setPage, sortDirection, sortKey, statusTab]);
+  }, [categoryFilter, search, setPage, sortDirection, sortKey, statusFilter]);
 
   useEffect(() => {
     setSelectedIds((current) => current.filter((id) => filteredItemIdSet.has(id)));
@@ -529,32 +534,21 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Artikli</h1>
-      </div>
-
       <AdminTableLayout
         className="border shadow-sm"
-        style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)', borderColor: '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
+        style={{ background: '#ffffff', borderColor: '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
         headerLeft={
-          <div className="inline-flex items-center gap-0.5 border-b border-slate-200 pb-1">
-            {statusTabs.map((tab) => {
-              const isActive = statusTab === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setStatusTab(tab.key)}
-                  className={`relative px-3 py-1.5 text-[11px] font-medium transition ${
-                    isActive
-                      ? 'text-slate-900 after:absolute after:inset-x-0 after:bottom-[-5px] after:h-[2px] after:rounded-full after:bg-slate-800'
-                      : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
+          <div className="flex h-7 w-full items-stretch">
+            <div className="min-w-0 w-full rounded-md border border-slate-200 bg-white transition-colors focus-within:border-[#3e67d6]">
+              <AdminSearchInput
+                showIcon={false}
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Poišči artikle"
+                aria-label="Poišči artikle"
+                className="!m-0 !h-7 min-w-0 w-full flex-1 !rounded-md !border-0 !bg-transparent !shadow-none !outline-none ring-0 transition-colors placeholder:text-slate-400 [--euiFormControlStateWidth:0px] focus:[--euiFormControlStateWidth:0px] focus-visible:[--euiFormControlStateWidth:0px] focus:!border-0 focus:!shadow-none focus:!outline-none focus-visible:!border-0 focus-visible:!shadow-none focus-visible:!outline-none"
+              />
+            </div>
           </div>
         }
         headerRight={
@@ -564,8 +558,8 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
               visibleMap={visibleColumns}
               onToggle={(key) => toggleColumnVisibility(key as ItemColumnKey)}
               showLabel={false}
-              className="[&>button]:!h-7 [&>button]:!w-7 [&>button]:!rounded-md [&>button]:!border-slate-200 [&>button]:!bg-transparent [&>button]:!px-0 [&>button]:!text-slate-600 [&>button]:hover:!border-slate-300 [&>button]:hover:!bg-[color:var(--hover-neutral)] [&>button]:hover:!text-slate-700"
-              icon={<FilterIcon />}
+              className="[&>button]:!h-7 [&>button]:!w-7 [&>button:hover]:text-[color:var(--blue-500)] [&>button[aria-expanded='true']]:text-[color:var(--blue-500)]"
+              icon={<PanelAddRemoveIcon className="!scale-[0.8]" />}
             />
             <IconButton
               type="button"
@@ -578,35 +572,14 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
             >
               <ActionIcon type="archive" />
             </IconButton>
-            <Button type="button" variant="primary" size="toolbar" onClick={openCreate}>
-              Nov artikel
-            </Button>
-          </>
-        }
-        filterRowLeft={
-          <>
-            <AdminSearchInput
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Poišči po nazivu, SKU ali kategoriji …"
-              aria-label="Iskanje artiklov"
-              className={`h-7 min-w-[340px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
-            />
-            <div className="relative min-w-[220px]">
-              <CustomSelect
-                value={categoryFilter}
-                onChange={setCategoryFilter}
-                options={[
-                  { value: 'all', label: 'Vse kategorije' },
-                  ...categories.map((category) => ({ value: category, label: category }))
-                ]}
-                className={`${ADMIN_CONTROL_HEIGHT} ${ADMIN_CONTROL_PADDING_X} py-0 text-[11px] font-semibold`}
-                valueClassName="min-w-0 flex-1 text-left"
-                menuClassName="min-w-full w-max max-w-[560px]"
-              />
+            <div className="flex items-center [&_button]:!h-7 [&_button]:!rounded-md">
+              <Button type="button" variant="primary" size="toolbar" onClick={openCreate}>
+                Nov artikel
+              </Button>
             </div>
           </>
         }
+        filterRowLeft={null}
         filterRowRight={
           <EuiTablePagination
             page={page}
@@ -630,7 +603,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
         }
       >
         <div className="w-full overflow-x-auto">
-          <Table className="min-w-[860px] text-[11px]">
+          <Table className="min-w-[860px] text-[11px] font-['Inter',system-ui,sans-serif]">
             <THead>
               <TR>
                 <TH className="w-[44px] text-center"><AdminCheckbox checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" /></TH>
@@ -641,7 +614,24 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                   <button type="button" onClick={() => handleSort('sku')} className="inline-flex items-center font-semibold hover:text-slate-700">SKU <SortIndicator active={sortKey === 'sku'} direction={sortDirection} /></button>
                 </TH> : null}
                 {visibleColumns.category ? <TH className="text-[11px]">
-                  <button type="button" onClick={() => handleSort('category')} className="inline-flex items-center font-semibold hover:text-slate-700">Kategorija <SortIndicator active={sortKey === 'category'} direction={sortDirection} /></button>
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" ref={categoryFilterRootRef}>
+                    <button type="button" onClick={() => handleSort('category')} className="inline-flex items-center font-semibold hover:text-slate-700">Kategorija <SortIndicator active={sortKey === 'category'} direction={sortDirection} /></button>
+                    <button type="button" className="group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500" aria-label="Filtriraj kategorijo" onClick={() => setOpenHeaderFilter((prev) => (prev === 'category' ? null : 'category'))}>
+                      <span className="text-[11px]">▾</span>
+                    </button>
+                    {openHeaderFilter === 'category' ? (
+                      <div role="menu" className="absolute left-1/2 top-8 z-30 w-48 -translate-x-1/2">
+                        <MenuPanel className="w-full">
+                          <MenuItem onClick={() => { setCategoryFilter('all'); setOpenHeaderFilter(null); }}>Vse kategorije</MenuItem>
+                          {categories.map((category) => (
+                            <MenuItem key={category} onClick={() => { setCategoryFilter(category); setOpenHeaderFilter(null); }}>
+                              {category}
+                            </MenuItem>
+                          ))}
+                        </MenuPanel>
+                      </div>
+                    ) : null}
+                  </div>
                 </TH> : null}
                 {visibleColumns.price ? <TH className="text-center text-[11px]">
                   <button type="button" onClick={() => handleSort('price')} className="inline-flex items-center font-semibold hover:text-slate-700">Cena <SortIndicator active={sortKey === 'price'} direction={sortDirection} /></button>
@@ -649,14 +639,28 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                 {visibleColumns.discount ? <TH className="text-center text-[11px]"><span className="inline-flex items-center">Popust</span></TH> : null}
                 {visibleColumns.salePrice ? <TH className="whitespace-nowrap text-center text-[11px]"><span className="inline-flex items-center">Akcijska cena</span></TH> : null}
                 {visibleColumns.status ? <TH className="text-center text-[11px]">
-                  <button type="button" onClick={() => handleSort('status')} className="inline-flex items-center font-semibold hover:text-slate-700">Status <SortIndicator active={sortKey === 'status'} direction={sortDirection} /></button>
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" ref={statusFilterRootRef}>
+                    <button type="button" onClick={() => handleSort('status')} className="inline-flex items-center font-semibold hover:text-slate-700">Status <SortIndicator active={sortKey === 'status'} direction={sortDirection} /></button>
+                    <button type="button" className="group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500" aria-label="Filtriraj status" onClick={() => setOpenHeaderFilter((prev) => (prev === 'status' ? null : 'status'))}>
+                      <span className="text-[11px]">▾</span>
+                    </button>
+                    {openHeaderFilter === 'status' ? (
+                      <div role="menu" className="absolute left-1/2 top-8 z-30 w-40 -translate-x-1/2">
+                        <MenuPanel className="w-full">
+                          <MenuItem onClick={() => { setStatusFilter('all'); setOpenHeaderFilter(null); }}>Vsi statusi</MenuItem>
+                          <MenuItem onClick={() => { setStatusFilter('active'); setOpenHeaderFilter(null); }}>Aktivni</MenuItem>
+                          <MenuItem onClick={() => { setStatusFilter('inactive'); setOpenHeaderFilter(null); }}>Neaktivni</MenuItem>
+                        </MenuPanel>
+                      </div>
+                    ) : null}
+                  </div>
                 </TH> : null}
                 <TH className="text-center text-[11px]"><span className="inline-flex items-center">Uredi</span></TH>
               </TR>
             </THead>
             <tbody>
-              {pagedItems.map((item, index) => (
-                <tr key={item.id} className={`border-t border-slate-200 transition-colors ${getAdminStripedRowToneClass(index)} ${adminTableRowToneClasses.hover}`}>
+              {pagedItems.map((item) => (
+                <tr key={item.id} className={`border-t border-slate-100 bg-white text-[11px] transition-colors duration-200 ${adminTableRowToneClasses.hover}`}>
                   <td className="px-2.5 py-2 text-center"><AdminCheckbox checked={selectedIds.includes(item.id)} onChange={() => toggleOne(item.id)} aria-label={`Izberi ${item.name}`} /></td>
                   {visibleColumns.name ? <td className="px-2.5 py-2 text-[11px] font-medium text-slate-900">{item.name}</td> : null}
                   {visibleColumns.sku ? <td className="px-2.5 py-2 text-[11px] text-slate-600">{item.sku}</td> : null}

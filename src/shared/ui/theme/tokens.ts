@@ -164,4 +164,4 @@ export const dateInputTokenClasses = {
 } as const;
 
 export const adminInputFocusTokenClasses =
-  'outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none';
+  'outline-none focus:border-[#3e67d6] focus:[--euiFormControlStateWidth:1px] focus:!outline-none focus:outline-none focus:ring-0 focus:shadow-none focus-visible:[--euiFormControlStateWidth:1px] focus-visible:!outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none';

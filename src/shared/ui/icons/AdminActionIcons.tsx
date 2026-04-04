@@ -110,6 +110,28 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
 
 export const FilterIcon = ActionFilterIcon;
 
+export function ColumnFilterIcon({ className, ...props }: ActionIconProps) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className={iconClassName(classNames('h-[12px] w-[12px]', className))}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      {...props}
+    >
+      <path
+        className="fill-transparent transition-colors duration-150 group-hover:fill-current group-data-[active=true]:fill-current"
+        d="M3 4h14l-5.5 6.2V16L8.5 13v-2.8L3 4Z"
+      />
+    </svg>
+  );
+}
+
 export function PanelAddRemoveIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg
@@ -284,6 +306,8 @@ export function ArchiveIcon({ className, ...props }: ActionIconProps) {
       fill="none"
       stroke="currentColor"
       strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-hidden="true"
       {...props}
     >

@@ -153,9 +153,11 @@ export const pillTokenClasses = {
 
 export const filterPillTokenClasses = {
   base: 'inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-[color:var(--ui-neutral-bg)] px-3 py-1 text-xs text-slate-700 transition-colors hover:bg-[color:var(--ui-neutral-bg-hover)]',
-  clear:
-    'inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-[10px] leading-none text-slate-500 transition hover:border-[#3e67d6] hover:text-[color:var(--blue-500)]'
+  clear: 'inline-flex text-[12px] leading-none text-slate-500 transition hover:text-[color:var(--danger-600)] active:text-[color:var(--danger-600)]'
 } as const;
+
+export const adminFilterInputTokenClasses =
+  "h-7 rounded-md border border-slate-300 bg-white px-2 text-[11px] leading-[1.2] text-slate-700 font-['Inter',system-ui,sans-serif] outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0";
 
 export const selectTokenClasses = {
   trigger:

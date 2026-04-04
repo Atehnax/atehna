@@ -23,6 +23,7 @@ import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, RowActionsDropdown, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import {
+  adminFilterInputTokenClasses,
   adminTableRowToneClasses,
   dateInputTokenClasses,
   filterPillTokenClasses
@@ -116,7 +117,7 @@ const PAYMENT_SORT_PRIORITY: Record<string, number> = {
 const TYPE_SORT_CYCLE: TypePriority[] = ['school', 'company', 'individual'];
 const HEADER_TITLE_BUTTON_CLASS = 'inline-flex items-center text-[11px] font-semibold leading-none hover:text-slate-700';
 const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500';
-const COMPACT_FILTER_INPUT_CLASS = `h-7 rounded-md px-2 text-[11px] ${dateInputTokenClasses.base}`;
+const COMPACT_FILTER_INPUT_CLASS = adminFilterInputTokenClasses;
 const formatDateForRangeChip = (value: string) => {
   const trimmed = value.trim();
   if (!trimmed) return '—';

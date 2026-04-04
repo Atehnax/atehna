@@ -21,7 +21,12 @@ import { Chip } from '@/shared/ui/badge';
 import { useToast } from '@/shared/ui/toast';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
 import { AdminTableLayout, ColumnVisibilityControl } from '@/shared/ui/admin-table';
-import { adminTableRowToneClasses, buttonTokenClasses, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
+import {
+  adminFilterInputTokenClasses,
+  adminTableRowToneClasses,
+  buttonTokenClasses,
+  filterPillTokenClasses
+} from '@/shared/ui/theme/tokens';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 
 type Item = {
@@ -60,6 +65,7 @@ type SortKey = 'name' | 'sku' | 'category' | 'price' | 'discount' | 'salePrice' 
 type StatusFilter = 'all' | 'active' | 'inactive';
 type ItemColumnKey = 'name' | 'sku' | 'category' | 'price' | 'discount' | 'salePrice' | 'status';
 type SortDirection = 'asc' | 'desc';
+type ItemsHeaderFilter = 'category' | 'status' | 'price' | 'discount' | 'salePrice' | null;
 
 const STORAGE_KEY = 'admin-items-crud-v3';
 const PAGE_SIZE_OPTIONS = [50, 100];
@@ -102,6 +108,7 @@ const itemColumnOptions: Array<{ key: ItemColumnKey; label: string }> = [
 
 const HEADER_TITLE_BUTTON_CLASS = 'inline-flex items-center text-[11px] font-semibold leading-none hover:text-slate-700';
 const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500';
+const PRICE_RANGE_PRESETS = ['0-10', '10-20', '20-50', '50-100', '100-200', '200-500'];
 
 function ActionIcon({ type }: { type: 'edit' | 'copy' | 'archive' | 'save' | 'close' }) {
   if (type === 'edit') return <PencilIcon />;
@@ -210,7 +217,13 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [openHeaderFilter, setOpenHeaderFilter] = useState<'category' | 'status' | null>(null);
+  const [openHeaderFilter, setOpenHeaderFilter] = useState<ItemsHeaderFilter>(null);
+  const [priceMin, setPriceMin] = useState('');
+  const [priceMax, setPriceMax] = useState('');
+  const [discountMin, setDiscountMin] = useState('');
+  const [discountMax, setDiscountMax] = useState('');
+  const [salePriceMin, setSalePriceMin] = useState('');
+  const [salePriceMax, setSalePriceMax] = useState('');
   const [sortState, setSortState] = useState<{ key: SortKey; direction: SortDirection } | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -232,6 +245,9 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   const pendingStorageWriteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const categoryFilterRootRef = useRef<HTMLDivElement | null>(null);
   const statusFilterRootRef = useRef<HTMLDivElement | null>(null);
+  const priceFilterRootRef = useRef<HTMLDivElement | null>(null);
+  const discountFilterRootRef = useRef<HTMLDivElement | null>(null);
+  const salePriceFilterRootRef = useRef<HTMLDivElement | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -331,7 +347,13 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
     if (!openHeaderFilter) return;
     const handleOutsideClick = (event: MouseEvent) => {
       const target = event.target as Node;
-      const roots = [categoryFilterRootRef.current, statusFilterRootRef.current];
+      const roots = [
+        categoryFilterRootRef.current,
+        statusFilterRootRef.current,
+        priceFilterRootRef.current,
+        discountFilterRootRef.current,
+        salePriceFilterRootRef.current
+      ];
       if (roots.some((root) => root?.contains(target))) return;
       setOpenHeaderFilter(null);
     };
@@ -351,7 +373,25 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
         resolvedCategory.toLowerCase().includes(q);
       const matchesCategory = categoryFilter === 'all' || resolvedCategory === categoryFilter;
       const matchesStatus = statusFilter === 'all' ? true : statusFilter === 'active' ? item.active : !item.active;
-      return matchesSearch && matchesCategory && matchesStatus;
+      const itemSalePrice = discountedPrice(item.price, item.discountPct);
+      const toNumber = (value: string) => {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : null;
+      };
+      const priceMinValue = toNumber(priceMin);
+      const priceMaxValue = toNumber(priceMax);
+      const discountMinValue = toNumber(discountMin);
+      const discountMaxValue = toNumber(discountMax);
+      const salePriceMinValue = toNumber(salePriceMin);
+      const salePriceMaxValue = toNumber(salePriceMax);
+      const matchesPrice = (priceMinValue === null || item.price >= priceMinValue) && (priceMaxValue === null || item.price <= priceMaxValue);
+      const matchesDiscount =
+        (discountMinValue === null || item.discountPct >= Math.max(0, discountMinValue)) &&
+        (discountMaxValue === null || item.discountPct <= Math.min(100, discountMaxValue));
+      const matchesSalePrice =
+        (salePriceMinValue === null || itemSalePrice >= salePriceMinValue) &&
+        (salePriceMaxValue === null || itemSalePrice <= salePriceMaxValue);
+      return matchesSearch && matchesCategory && matchesStatus && matchesPrice && matchesDiscount && matchesSalePrice;
     });
 
     const textCmp = (a: string, b: string) => a.localeCompare(b, 'sl', { sensitivity: 'base' });
@@ -369,7 +409,20 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
     }
 
     return next;
-  }, [categoryFilter, getResolvedCategoryLabel, items, search, sortState, statusFilter]);
+  }, [
+    categoryFilter,
+    discountMax,
+    discountMin,
+    getResolvedCategoryLabel,
+    items,
+    priceMax,
+    priceMin,
+    salePriceMax,
+    salePriceMin,
+    search,
+    sortState,
+    statusFilter
+  ]);
 
   const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
     totalCount: filteredItems.length,
@@ -399,7 +452,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
 
   useEffect(() => {
     setPage(1);
-  }, [categoryFilter, search, setPage, sortState, statusFilter]);
+  }, [categoryFilter, discountMax, discountMin, priceMax, priceMin, salePriceMax, salePriceMin, search, setPage, sortState, statusFilter]);
 
   useEffect(() => {
     setSelectedIds((current) => current.filter((id) => filteredItemIdSet.has(id)));
@@ -465,8 +518,41 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
         clear: () => setStatusFilter('all')
       });
     }
+    if (priceMin || priceMax) {
+      chips.push({
+        key: 'price',
+        title: 'Cena:',
+        value: `${priceMin || '0'}–${priceMax || '∞'}`,
+        clear: () => {
+          setPriceMin('');
+          setPriceMax('');
+        }
+      });
+    }
+    if (discountMin || discountMax) {
+      chips.push({
+        key: 'discount',
+        title: 'Popust:',
+        value: `${discountMin || '0'}–${discountMax || '100'}%`,
+        clear: () => {
+          setDiscountMin('');
+          setDiscountMax('');
+        }
+      });
+    }
+    if (salePriceMin || salePriceMax) {
+      chips.push({
+        key: 'salePrice',
+        title: 'Akcijska cena:',
+        value: `${salePriceMin || '0'}–${salePriceMax || '∞'}`,
+        clear: () => {
+          setSalePriceMin('');
+          setSalePriceMax('');
+        }
+      });
+    }
     return chips;
-  }, [categoryFilter, search, statusFilter]);
+  }, [categoryFilter, discountMax, discountMin, priceMax, priceMin, salePriceMax, salePriceMin, search, statusFilter]);
 
   const openCreate = () => {
     setEditingId(null);
@@ -669,7 +755,18 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
         }
       >
         <div className="w-full overflow-x-auto">
-          <Table className="min-w-[860px] text-[11px] font-['Inter',system-ui,sans-serif]">
+          <Table className="min-w-[860px] table-fixed text-[11px] font-['Inter',system-ui,sans-serif]">
+            <colgroup>
+              <col className="w-[44px]" />
+              {visibleColumns.name ? <col className="w-[220px]" /> : null}
+              {visibleColumns.sku ? <col className="w-[132px]" /> : null}
+              {visibleColumns.category ? <col className="w-[200px]" /> : null}
+              {visibleColumns.price ? <col className="w-[110px]" /> : null}
+              {visibleColumns.discount ? <col className="w-[100px]" /> : null}
+              {visibleColumns.salePrice ? <col className="w-[128px]" /> : null}
+              {visibleColumns.status ? <col className="w-[122px]" /> : null}
+              <col className="w-[84px]" />
+            </colgroup>
             <THead>
               <TR>
                 <TH className="w-[44px] text-center"><AdminCheckbox checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" /></TH>
@@ -700,10 +797,79 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                   </div>
                 </TH> : null}
                 {visibleColumns.price ? <TH className="text-center text-[11px]">
-                  <button type="button" onClick={() => handleSort('price')} className={getHeaderTitleClass('price')}>Cena</button>
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" ref={priceFilterRootRef}>
+                    <button type="button" onClick={() => handleSort('price')} className={getHeaderTitleClass('price')}>Cena</button>
+                    <button type="button" className={HEADER_FILTER_BUTTON_CLASS} data-active={openHeaderFilter === 'price'} aria-label="Filtriraj ceno" onClick={() => setOpenHeaderFilter((prev) => (prev === 'price' ? null : 'price'))}>
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                    {openHeaderFilter === 'price' ? (
+                      <div role="menu" className="absolute left-1/2 top-8 z-30 w-56 -translate-x-1/2">
+                        <MenuPanel className="space-y-1 p-1">
+                          <div className="grid grid-cols-2 gap-1">
+                            {PRICE_RANGE_PRESETS.map((preset) => (
+                              <MenuItem key={preset} onClick={() => {
+                                const [min, max] = preset.split('-');
+                                setPriceMin(min ?? '');
+                                setPriceMax(max ?? '');
+                                setOpenHeaderFilter(null);
+                              }}>{preset}</MenuItem>
+                            ))}
+                          </div>
+                          <div className="grid grid-cols-2 gap-1">
+                            <input type="number" min={0} value={priceMin} onChange={(event) => setPriceMin(event.target.value)} placeholder="Min" className={adminFilterInputTokenClasses} />
+                            <input type="number" min={0} value={priceMax} onChange={(event) => setPriceMax(event.target.value)} placeholder="Max" className={adminFilterInputTokenClasses} />
+                          </div>
+                        </MenuPanel>
+                      </div>
+                    ) : null}
+                  </div>
                 </TH> : null}
-                {visibleColumns.discount ? <TH className="text-center text-[11px]"><button type="button" onClick={() => handleSort('discount')} className={getHeaderTitleClass('discount')}>Popust</button></TH> : null}
-                {visibleColumns.salePrice ? <TH className="whitespace-nowrap text-center text-[11px]"><button type="button" onClick={() => handleSort('salePrice')} className={getHeaderTitleClass('salePrice')}>Akcijska cena</button></TH> : null}
+                {visibleColumns.discount ? <TH className="text-center text-[11px]">
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" ref={discountFilterRootRef}>
+                    <button type="button" onClick={() => handleSort('discount')} className={getHeaderTitleClass('discount')}>Popust</button>
+                    <button type="button" className={HEADER_FILTER_BUTTON_CLASS} data-active={openHeaderFilter === 'discount'} aria-label="Filtriraj popust" onClick={() => setOpenHeaderFilter((prev) => (prev === 'discount' ? null : 'discount'))}>
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                    {openHeaderFilter === 'discount' ? (
+                      <div role="menu" className="absolute left-1/2 top-8 z-30 w-48 -translate-x-1/2">
+                        <MenuPanel className="space-y-1 p-1">
+                          <div className="grid grid-cols-2 gap-1">
+                            <input type="number" min={0} max={100} value={discountMin} onChange={(event) => setDiscountMin(event.target.value)} placeholder="Min %" className={adminFilterInputTokenClasses} />
+                            <input type="number" min={0} max={100} value={discountMax} onChange={(event) => setDiscountMax(event.target.value)} placeholder="Max %" className={adminFilterInputTokenClasses} />
+                          </div>
+                        </MenuPanel>
+                      </div>
+                    ) : null}
+                  </div>
+                </TH> : null}
+                {visibleColumns.salePrice ? <TH className="whitespace-nowrap text-center text-[11px]">
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" ref={salePriceFilterRootRef}>
+                    <button type="button" onClick={() => handleSort('salePrice')} className={getHeaderTitleClass('salePrice')}>Akcijska cena</button>
+                    <button type="button" className={HEADER_FILTER_BUTTON_CLASS} data-active={openHeaderFilter === 'salePrice'} aria-label="Filtriraj akcijsko ceno" onClick={() => setOpenHeaderFilter((prev) => (prev === 'salePrice' ? null : 'salePrice'))}>
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                    {openHeaderFilter === 'salePrice' ? (
+                      <div role="menu" className="absolute left-1/2 top-8 z-30 w-56 -translate-x-1/2">
+                        <MenuPanel className="space-y-1 p-1">
+                          <div className="grid grid-cols-2 gap-1">
+                            {PRICE_RANGE_PRESETS.map((preset) => (
+                              <MenuItem key={preset} onClick={() => {
+                                const [min, max] = preset.split('-');
+                                setSalePriceMin(min ?? '');
+                                setSalePriceMax(max ?? '');
+                                setOpenHeaderFilter(null);
+                              }}>{preset}</MenuItem>
+                            ))}
+                          </div>
+                          <div className="grid grid-cols-2 gap-1">
+                            <input type="number" min={0} value={salePriceMin} onChange={(event) => setSalePriceMin(event.target.value)} placeholder="Min" className={adminFilterInputTokenClasses} />
+                            <input type="number" min={0} value={salePriceMax} onChange={(event) => setSalePriceMax(event.target.value)} placeholder="Max" className={adminFilterInputTokenClasses} />
+                          </div>
+                        </MenuPanel>
+                      </div>
+                    ) : null}
+                  </div>
+                </TH> : null}
                 {visibleColumns.status ? <TH className="text-center text-[11px]">
                   <div className="relative inline-flex items-center gap-1.5 align-middle" ref={statusFilterRootRef}>
                     <button type="button" onClick={() => handleSort('status')} className={getHeaderTitleClass('status')}>Status</button>
@@ -762,7 +928,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                           key: 'archive',
                           label: 'Arhiviraj',
                           icon: <ActionIcon type="archive" />,
-                          className: 'text-amber-700',
+                          className: 'text-amber-700 hover:!bg-amber-50 hover:!text-amber-700',
                           onSelect: () => archive(item)
                         }
                       ]}

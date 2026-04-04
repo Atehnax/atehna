@@ -29,6 +29,7 @@ import {
   filterPillTokenClasses
 } from '@/shared/ui/theme/tokens';
 import { AdminTableLayout, ColumnVisibilityControl } from '@/shared/ui/admin-table';
+import AdminRangeFilterPanel, { type RangePreset } from '@/shared/ui/admin-range-filter-panel';
 import AdminOrderPaymentSelect from '@/admin/components/AdminOrderPaymentSelect';
 import StatusChip from '@/admin/components/StatusChip';
 import PaymentChip from '@/admin/components/PaymentChip';
@@ -118,6 +119,10 @@ const TYPE_SORT_CYCLE: TypePriority[] = ['school', 'company', 'individual'];
 const HEADER_TITLE_BUTTON_CLASS = 'inline-flex items-center text-[11px] font-semibold leading-none hover:text-slate-700';
 const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500';
 const COMPACT_FILTER_INPUT_CLASS = adminFilterInputTokenClasses;
+const ORDERS_NUMERIC_RANGE_PRESETS: RangePreset[] = ['20', '50', '100', '200', '500', '1000'].map((maxValue) => ({
+  label: `0-${maxValue === '1000' ? '1k' : maxValue}`,
+  value: { min: '0', max: maxValue }
+}));
 const formatDateForRangeChip = (value: string) => {
   const trimmed = value.trim();
   if (!trimmed) return '—';
@@ -1950,23 +1955,23 @@ export default function AdminOrdersTable({
               </div>
             ) : null}
             {openHeaderFilter === 'total' ? (
-              <div style={getHeaderPopoverStyle(totalFilterButtonRef.current, 192)} className="rounded-xl border border-slate-200 bg-white p-2 text-left shadow-lg">
-                <h4 className="mb-2 text-[11px] font-semibold text-slate-800">Nastavi razpon zneskov (€)</h4>
-                <div className="mb-3 grid grid-cols-3 gap-1">
-                  {['20', '50', '100', '200', '500', '1000'].map((maxValue) => (
-                    <button key={maxValue} type="button" onClick={() => { const nextRange = { min: '0', max: maxValue }; setDraftTotalRange(nextRange); setTotalRange(nextRange); setOpenHeaderFilter(null); }} className="rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-[color:var(--hover-neutral)]">{`0-${maxValue === '1000' ? '1k' : maxValue}`}</button>
-                  ))}
-                </div>
-                <div className="mb-3 border-t border-slate-200 pt-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    <EuiFieldText type="number" placeholder="Od" value={draftTotalRange.min} onChange={(event) => setDraftTotalRange((current) => ({ ...current, min: event.target.value }))} className={COMPACT_FILTER_INPUT_CLASS} aria-label="Od" />
-                    <EuiFieldText type="number" placeholder="Do" value={draftTotalRange.max} onChange={(event) => setDraftTotalRange((current) => ({ ...current, max: event.target.value }))} className={COMPACT_FILTER_INPUT_CLASS} aria-label="Do" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button type="button" className="rounded-xl bg-[color:var(--blue-500)] py-2 text-[11px] font-semibold text-white" onClick={() => { setTotalRange(draftTotalRange); setOpenHeaderFilter(null); }}>Potrdi</button>
-                  <button type="button" className="rounded-xl border border-slate-300 bg-[color:var(--ui-neutral-bg)] py-2 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--ui-neutral-bg-hover)]" onClick={() => { setDraftTotalRange({ min: '', max: '' }); setTotalRange({ min: '', max: '' }); setOpenHeaderFilter(null); }}>Ponastavi</button>
-                </div>
+              <div style={getHeaderPopoverStyle(totalFilterButtonRef.current, 192)}>
+                <AdminRangeFilterPanel
+                  title="Nastavi razpon zneskov (€)"
+                  draftRange={draftTotalRange}
+                  presets={ORDERS_NUMERIC_RANGE_PRESETS}
+                  onDraftChange={setDraftTotalRange}
+                  onConfirm={() => {
+                    setTotalRange(draftTotalRange);
+                    setOpenHeaderFilter(null);
+                  }}
+                  onReset={() => {
+                    const emptyRange = { min: '', max: '' };
+                    setDraftTotalRange(emptyRange);
+                    setTotalRange(emptyRange);
+                    setOpenHeaderFilter(null);
+                  }}
+                />
               </div>
             ) : null}
             {openHeaderFilter === 'documents' ? (

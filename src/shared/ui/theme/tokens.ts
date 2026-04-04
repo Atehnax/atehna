@@ -159,6 +159,20 @@ export const filterPillTokenClasses = {
 export const adminFilterInputTokenClasses =
   "h-7 rounded-md border border-slate-300 bg-white px-2 text-[11px] leading-[1.2] text-slate-700 font-['Inter',system-ui,sans-serif] outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0";
 
+export const adminRangeFilterTokenClasses = {
+  panel: 'rounded-xl border border-slate-200 bg-white p-2 text-left shadow-lg',
+  title: 'mb-2 text-[11px] font-semibold text-slate-800',
+  presetsGrid: 'mb-3 grid grid-cols-3 gap-1',
+  presetButton:
+    'rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-[color:var(--hover-neutral)]',
+  inputsSection: 'mb-3 border-t border-slate-200 pt-3',
+  inputGrid: 'grid grid-cols-2 gap-2',
+  actionsGrid: 'grid grid-cols-2 gap-2',
+  confirmButton: 'rounded-xl bg-[color:var(--blue-500)] py-2 text-[11px] font-semibold text-white',
+  resetButton:
+    'rounded-xl border border-slate-300 bg-[color:var(--ui-neutral-bg)] py-2 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--ui-neutral-bg-hover)]'
+} as const;
+
 export const selectTokenClasses = {
   trigger:
     "inline-flex h-7 w-full items-center overflow-visible rounded-md border border-slate-300 bg-white px-2 py-0.5 text-left text-[11px] font-normal leading-[1.2] text-slate-700 font-['Inter',system-ui,sans-serif] outline-none ring-0 transition hover:bg-white active:bg-white focus:border-[#3e67d6] focus:bg-white focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:bg-white focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:text-slate-300",

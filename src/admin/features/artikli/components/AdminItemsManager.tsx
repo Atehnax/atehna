@@ -21,8 +21,8 @@ import { Chip } from '@/shared/ui/badge';
 import { useToast } from '@/shared/ui/toast';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
 import { AdminTableLayout, ColumnVisibilityControl } from '@/shared/ui/admin-table';
+import AdminRangeFilterPanel, { type RangePreset, type RangeValue } from '@/shared/ui/admin-range-filter-panel';
 import {
-  adminFilterInputTokenClasses,
   adminTableRowToneClasses,
   buttonTokenClasses,
   filterPillTokenClasses
@@ -108,7 +108,15 @@ const itemColumnOptions: Array<{ key: ItemColumnKey; label: string }> = [
 
 const HEADER_TITLE_BUTTON_CLASS = 'inline-flex items-center text-[11px] font-semibold leading-none hover:text-slate-700';
 const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500';
-const PRICE_RANGE_PRESETS = ['0-10', '10-20', '20-50', '50-100', '100-200', '200-500'];
+const NUMERIC_FILTER_PRESETS: RangePreset[] = ['20', '50', '100', '200', '500', '1000'].map((maxValue) => ({
+  label: `0-${maxValue === '1000' ? '1k' : maxValue}`,
+  value: { min: '0', max: maxValue }
+}));
+const DISCOUNT_FILTER_PRESETS: RangePreset[] = ['10', '20', '40', '60', '80', '100'].map((maxValue) => ({
+  label: `0-${maxValue}`,
+  value: { min: '0', max: maxValue }
+}));
+const EMPTY_RANGE: RangeValue = { min: '', max: '' };
 
 function ActionIcon({ type }: { type: 'edit' | 'copy' | 'archive' | 'save' | 'close' }) {
   if (type === 'edit') return <PencilIcon />;
@@ -218,12 +226,12 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [openHeaderFilter, setOpenHeaderFilter] = useState<ItemsHeaderFilter>(null);
-  const [priceMin, setPriceMin] = useState('');
-  const [priceMax, setPriceMax] = useState('');
-  const [discountMin, setDiscountMin] = useState('');
-  const [discountMax, setDiscountMax] = useState('');
-  const [salePriceMin, setSalePriceMin] = useState('');
-  const [salePriceMax, setSalePriceMax] = useState('');
+  const [priceRange, setPriceRange] = useState<RangeValue>(EMPTY_RANGE);
+  const [draftPriceRange, setDraftPriceRange] = useState<RangeValue>(EMPTY_RANGE);
+  const [discountRange, setDiscountRange] = useState<RangeValue>(EMPTY_RANGE);
+  const [draftDiscountRange, setDraftDiscountRange] = useState<RangeValue>(EMPTY_RANGE);
+  const [salePriceRange, setSalePriceRange] = useState<RangeValue>(EMPTY_RANGE);
+  const [draftSalePriceRange, setDraftSalePriceRange] = useState<RangeValue>(EMPTY_RANGE);
   const [sortState, setSortState] = useState<{ key: SortKey; direction: SortDirection } | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -379,12 +387,12 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
         const parsed = Number(value);
         return Number.isFinite(parsed) ? parsed : null;
       };
-      const priceMinValue = toNumber(priceMin);
-      const priceMaxValue = toNumber(priceMax);
-      const discountMinValue = toNumber(discountMin);
-      const discountMaxValue = toNumber(discountMax);
-      const salePriceMinValue = toNumber(salePriceMin);
-      const salePriceMaxValue = toNumber(salePriceMax);
+      const priceMinValue = toNumber(priceRange.min);
+      const priceMaxValue = toNumber(priceRange.max);
+      const discountMinValue = toNumber(discountRange.min);
+      const discountMaxValue = toNumber(discountRange.max);
+      const salePriceMinValue = toNumber(salePriceRange.min);
+      const salePriceMaxValue = toNumber(salePriceRange.max);
       const matchesPrice = (priceMinValue === null || item.price >= priceMinValue) && (priceMaxValue === null || item.price <= priceMaxValue);
       const matchesDiscount =
         (discountMinValue === null || item.discountPct >= Math.max(0, discountMinValue)) &&
@@ -412,14 +420,11 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
     return next;
   }, [
     categoryFilter,
-    discountMax,
-    discountMin,
+    discountRange,
     getResolvedCategoryLabel,
     items,
-    priceMax,
-    priceMin,
-    salePriceMax,
-    salePriceMin,
+    priceRange,
+    salePriceRange,
     search,
     sortState,
     statusFilter
@@ -453,7 +458,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
 
   useEffect(() => {
     setPage(1);
-  }, [categoryFilter, discountMax, discountMin, priceMax, priceMin, salePriceMax, salePriceMin, search, setPage, sortState, statusFilter]);
+  }, [categoryFilter, discountRange, priceRange, salePriceRange, search, setPage, sortState, statusFilter]);
 
   useEffect(() => {
     setSelectedIds((current) => current.filter((id) => filteredItemIdSet.has(id)));
@@ -519,41 +524,41 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
         clear: () => setStatusFilter('all')
       });
     }
-    if (priceMin || priceMax) {
+    if (priceRange.min || priceRange.max) {
       chips.push({
         key: 'price',
         title: 'Cena:',
-        value: `${priceMin || '0'}–${priceMax || '∞'}`,
+        value: `${priceRange.min || '0'}–${priceRange.max || '∞'}`,
         clear: () => {
-          setPriceMin('');
-          setPriceMax('');
+          setPriceRange(EMPTY_RANGE);
+          setDraftPriceRange(EMPTY_RANGE);
         }
       });
     }
-    if (discountMin || discountMax) {
+    if (discountRange.min || discountRange.max) {
       chips.push({
         key: 'discount',
         title: 'Popust:',
-        value: `${discountMin || '0'}–${discountMax || '100'}%`,
+        value: `${discountRange.min || '0'}–${discountRange.max || '100'}%`,
         clear: () => {
-          setDiscountMin('');
-          setDiscountMax('');
+          setDiscountRange(EMPTY_RANGE);
+          setDraftDiscountRange(EMPTY_RANGE);
         }
       });
     }
-    if (salePriceMin || salePriceMax) {
+    if (salePriceRange.min || salePriceRange.max) {
       chips.push({
         key: 'salePrice',
         title: 'Akcijska cena:',
-        value: `${salePriceMin || '0'}–${salePriceMax || '∞'}`,
+        value: `${salePriceRange.min || '0'}–${salePriceRange.max || '∞'}`,
         clear: () => {
-          setSalePriceMin('');
-          setSalePriceMax('');
+          setSalePriceRange(EMPTY_RANGE);
+          setDraftSalePriceRange(EMPTY_RANGE);
         }
       });
     }
     return chips;
-  }, [categoryFilter, discountMax, discountMin, priceMax, priceMin, salePriceMax, salePriceMin, search, statusFilter]);
+  }, [categoryFilter, discountRange, priceRange, salePriceRange, search, statusFilter]);
 
   const openCreate = () => {
     setEditingId(null);
@@ -669,6 +674,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
       <AdminTableLayout
         className="border shadow-sm"
         style={{ background: '#ffffff', borderColor: '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
+        headerClassName="!bg-white"
         headerLeft={
           <div className="flex h-7 w-full items-stretch">
             <div className="min-w-0 w-full rounded-md border border-slate-200 bg-white transition-colors focus-within:border-[#3e67d6]">
@@ -805,40 +811,55 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                     </button>
                     {openHeaderFilter === 'price' ? (
                       <div role="menu" className="absolute left-1/2 top-8 z-30 w-56 -translate-x-1/2">
-                        <MenuPanel className="space-y-1 p-1">
-                          <div className="grid grid-cols-2 gap-1">
-                            {PRICE_RANGE_PRESETS.map((preset) => (
-                              <MenuItem key={preset} onClick={() => {
-                                const [min, max] = preset.split('-');
-                                setPriceMin(min ?? '');
-                                setPriceMax(max ?? '');
-                                setOpenHeaderFilter(null);
-                              }}>{preset}</MenuItem>
-                            ))}
-                          </div>
-                          <div className="grid grid-cols-2 gap-1">
-                            <input type="number" min={0} value={priceMin} onChange={(event) => setPriceMin(event.target.value)} placeholder="Min" className={adminFilterInputTokenClasses} />
-                            <input type="number" min={0} value={priceMax} onChange={(event) => setPriceMax(event.target.value)} placeholder="Max" className={adminFilterInputTokenClasses} />
-                          </div>
-                        </MenuPanel>
+                        <AdminRangeFilterPanel
+                          title="Nastavi razpon zneskov (€)"
+                          draftRange={draftPriceRange}
+                          presets={NUMERIC_FILTER_PRESETS}
+                          onDraftChange={setDraftPriceRange}
+                          onConfirm={() => {
+                            setPriceRange(draftPriceRange);
+                            setOpenHeaderFilter(null);
+                          }}
+                          onReset={() => {
+                            setDraftPriceRange(EMPTY_RANGE);
+                            setPriceRange(EMPTY_RANGE);
+                            setOpenHeaderFilter(null);
+                          }}
+                          min={0}
+                          minPlaceholder="Min"
+                          maxPlaceholder="Max"
+                        />
                       </div>
                     ) : null}
                   </div>
                 </TH> : null}
                 {visibleColumns.discount ? <TH className="text-center text-[11px]">
                   <div className="relative inline-flex items-center gap-1.5 align-middle" ref={discountFilterRootRef}>
-                    <button type="button" onClick={() => handleSort('discount')} className={getHeaderTitleClass('discount')}>Popust</button>
+                    <button type="button" onClick={() => handleSort('discount')} className={getHeaderTitleClass('discount')}>Popust %</button>
                     <button type="button" className={HEADER_FILTER_BUTTON_CLASS} data-active={openHeaderFilter === 'discount'} aria-label="Filtriraj popust" onClick={() => setOpenHeaderFilter((prev) => (prev === 'discount' ? null : 'discount'))}>
                       <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                     </button>
                     {openHeaderFilter === 'discount' ? (
                       <div role="menu" className="absolute left-1/2 top-8 z-30 w-48 -translate-x-1/2">
-                        <MenuPanel className="space-y-1 p-1">
-                          <div className="grid grid-cols-2 gap-1">
-                            <input type="number" min={0} max={100} value={discountMin} onChange={(event) => setDiscountMin(event.target.value)} placeholder="Min %" className={adminFilterInputTokenClasses} />
-                            <input type="number" min={0} max={100} value={discountMax} onChange={(event) => setDiscountMax(event.target.value)} placeholder="Max %" className={adminFilterInputTokenClasses} />
-                          </div>
-                        </MenuPanel>
+                        <AdminRangeFilterPanel
+                          title="Nastavi razpon popusta (%)"
+                          draftRange={draftDiscountRange}
+                          presets={DISCOUNT_FILTER_PRESETS}
+                          onDraftChange={setDraftDiscountRange}
+                          onConfirm={() => {
+                            setDiscountRange(draftDiscountRange);
+                            setOpenHeaderFilter(null);
+                          }}
+                          onReset={() => {
+                            setDraftDiscountRange(EMPTY_RANGE);
+                            setDiscountRange(EMPTY_RANGE);
+                            setOpenHeaderFilter(null);
+                          }}
+                          min={0}
+                          max={100}
+                          minPlaceholder="Min %"
+                          maxPlaceholder="Max %"
+                        />
                       </div>
                     ) : null}
                   </div>
@@ -851,22 +872,24 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                     </button>
                     {openHeaderFilter === 'salePrice' ? (
                       <div role="menu" className="absolute left-1/2 top-8 z-30 w-56 -translate-x-1/2">
-                        <MenuPanel className="space-y-1 p-1">
-                          <div className="grid grid-cols-2 gap-1">
-                            {PRICE_RANGE_PRESETS.map((preset) => (
-                              <MenuItem key={preset} onClick={() => {
-                                const [min, max] = preset.split('-');
-                                setSalePriceMin(min ?? '');
-                                setSalePriceMax(max ?? '');
-                                setOpenHeaderFilter(null);
-                              }}>{preset}</MenuItem>
-                            ))}
-                          </div>
-                          <div className="grid grid-cols-2 gap-1">
-                            <input type="number" min={0} value={salePriceMin} onChange={(event) => setSalePriceMin(event.target.value)} placeholder="Min" className={adminFilterInputTokenClasses} />
-                            <input type="number" min={0} value={salePriceMax} onChange={(event) => setSalePriceMax(event.target.value)} placeholder="Max" className={adminFilterInputTokenClasses} />
-                          </div>
-                        </MenuPanel>
+                        <AdminRangeFilterPanel
+                          title="Nastavi razpon zneskov (€)"
+                          draftRange={draftSalePriceRange}
+                          presets={NUMERIC_FILTER_PRESETS}
+                          onDraftChange={setDraftSalePriceRange}
+                          onConfirm={() => {
+                            setSalePriceRange(draftSalePriceRange);
+                            setOpenHeaderFilter(null);
+                          }}
+                          onReset={() => {
+                            setDraftSalePriceRange(EMPTY_RANGE);
+                            setSalePriceRange(EMPTY_RANGE);
+                            setOpenHeaderFilter(null);
+                          }}
+                          min={0}
+                          minPlaceholder="Min"
+                          maxPlaceholder="Max"
+                        />
                       </div>
                     ) : null}
                   </div>

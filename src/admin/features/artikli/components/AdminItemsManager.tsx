@@ -9,6 +9,7 @@ import {
   ArchiveIcon,
   CloseIcon,
   CopyIcon,
+  ColumnFilterIcon,
   PanelAddRemoveIcon,
   PencilIcon,
   SaveIcon
@@ -55,9 +56,10 @@ type SeedItemTuple = [
   displayOrder: number | null
 ];
 
-type SortKey = 'name' | 'sku' | 'category' | 'price' | 'status';
+type SortKey = 'name' | 'sku' | 'category' | 'price' | 'discount' | 'salePrice' | 'status';
 type StatusFilter = 'all' | 'active' | 'inactive';
 type ItemColumnKey = 'name' | 'sku' | 'category' | 'price' | 'discount' | 'salePrice' | 'status';
+type SortDirection = 'asc' | 'desc';
 
 const STORAGE_KEY = 'admin-items-crud-v3';
 const PAGE_SIZE_OPTIONS = [50, 100];
@@ -98,10 +100,8 @@ const itemColumnOptions: Array<{ key: ItemColumnKey; label: string }> = [
   { key: 'status', label: 'Status' }
 ];
 
-function SortIndicator({ active, direction }: { active: boolean; direction: 'asc' | 'desc' }) {
-  if (!active) return <span className="ml-1 text-slate-300">↕</span>;
-  return <span className="ml-1 text-slate-500">{direction === 'asc' ? '↑' : '↓'}</span>;
-}
+const HEADER_TITLE_BUTTON_CLASS = 'inline-flex items-center text-[11px] font-semibold leading-none hover:text-slate-700';
+const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500';
 
 function ActionIcon({ type }: { type: 'edit' | 'copy' | 'archive' | 'save' | 'close' }) {
   if (type === 'edit') return <PencilIcon />;
@@ -211,8 +211,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [openHeaderFilter, setOpenHeaderFilter] = useState<'category' | 'status' | null>(null);
-  const [sortKey, setSortKey] = useState<SortKey>('name');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [sortState, setSortState] = useState<{ key: SortKey; direction: SortDirection } | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Item>(emptyItem());
@@ -356,16 +355,21 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
     });
 
     const textCmp = (a: string, b: string) => a.localeCompare(b, 'sl', { sensitivity: 'base' });
-    next.sort((a, b) => {
-      let cmp = 0;
-      if (sortKey === 'price') cmp = discountedPrice(a.price, a.discountPct) - discountedPrice(b.price, b.discountPct);
-      else if (sortKey === 'status') cmp = textCmp(a.active ? 'Aktiven' : 'Neaktiven', b.active ? 'Aktiven' : 'Neaktiven');
-      else cmp = textCmp(String(a[sortKey]), String(b[sortKey]));
-      return sortDirection === 'asc' ? cmp : -cmp;
-    });
+    if (sortState) {
+      next.sort((a, b) => {
+        let cmp = 0;
+        if (sortState.key === 'price') cmp = a.price - b.price;
+        else if (sortState.key === 'discount') cmp = a.discountPct - b.discountPct;
+        else if (sortState.key === 'salePrice') cmp = discountedPrice(a.price, a.discountPct) - discountedPrice(b.price, b.discountPct);
+        else if (sortState.key === 'status') cmp = textCmp(a.active ? 'Aktiven' : 'Neaktiven', b.active ? 'Aktiven' : 'Neaktiven');
+        else if (sortState.key === 'category') cmp = textCmp(getResolvedCategoryLabel(a), getResolvedCategoryLabel(b));
+        else cmp = textCmp(String(a[sortState.key]), String(b[sortState.key]));
+        return sortState.direction === 'asc' ? cmp : -cmp;
+      });
+    }
 
     return next;
-  }, [categoryFilter, getResolvedCategoryLabel, items, search, sortDirection, sortKey, statusFilter]);
+  }, [categoryFilter, getResolvedCategoryLabel, items, search, sortState, statusFilter]);
 
   const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
     totalCount: filteredItems.length,
@@ -395,20 +399,31 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
 
   useEffect(() => {
     setPage(1);
-  }, [categoryFilter, search, setPage, sortDirection, sortKey, statusFilter]);
+  }, [categoryFilter, search, setPage, sortState, statusFilter]);
 
   useEffect(() => {
     setSelectedIds((current) => current.filter((id) => filteredItemIdSet.has(id)));
   }, [filteredItemIdSet]);
 
+  const getSortCycle = (key: SortKey): Array<SortDirection | null> => {
+    if (key === 'name') return ['desc', null];
+    if (key === 'category') return ['asc', 'desc', null];
+    if (key === 'price' || key === 'discount' || key === 'salePrice' || key === 'status') return ['desc', 'asc', null];
+    return ['asc', 'desc', null];
+  };
   const handleSort = (key: SortKey) => {
-    if (sortKey === key) {
-      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    const cycle = getSortCycle(key);
+    const currentDirection = sortState?.key === key ? sortState.direction : null;
+    const currentIndex = cycle.indexOf(currentDirection);
+    const nextDirection = cycle[(currentIndex + 1) % cycle.length];
+    if (!nextDirection) {
+      setSortState(null);
       return;
     }
-    setSortKey(key);
-    setSortDirection(key === 'price' ? 'desc' : 'asc');
+    setSortState({ key, direction: nextDirection });
   };
+  const getHeaderTitleClass = (key: SortKey) =>
+    `${HEADER_TITLE_BUTTON_CLASS} ${sortState?.key === key ? 'underline underline-offset-2' : ''}`;
 
   const toggleAll = () => {
     if (allSelected) {
@@ -608,19 +623,19 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
               <TR>
                 <TH className="w-[44px] text-center"><AdminCheckbox checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" /></TH>
                 {visibleColumns.name ? <TH className="text-[11px]">
-                  <button type="button" onClick={() => handleSort('name')} className="inline-flex items-center font-semibold hover:text-slate-700">Naziv <SortIndicator active={sortKey === 'name'} direction={sortDirection} /></button>
+                  <button type="button" onClick={() => handleSort('name')} className={getHeaderTitleClass('name')}>Naziv</button>
                 </TH> : null}
                 {visibleColumns.sku ? <TH className="text-[11px]">
-                  <button type="button" onClick={() => handleSort('sku')} className="inline-flex items-center font-semibold hover:text-slate-700">SKU <SortIndicator active={sortKey === 'sku'} direction={sortDirection} /></button>
+                  <button type="button" onClick={() => handleSort('sku')} className={getHeaderTitleClass('sku')}>SKU</button>
                 </TH> : null}
                 {visibleColumns.category ? <TH className="text-[11px]">
                   <div className="relative inline-flex items-center gap-1.5 align-middle" ref={categoryFilterRootRef}>
-                    <button type="button" onClick={() => handleSort('category')} className="inline-flex items-center font-semibold hover:text-slate-700">Kategorija <SortIndicator active={sortKey === 'category'} direction={sortDirection} /></button>
-                    <button type="button" className="group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500" aria-label="Filtriraj kategorijo" onClick={() => setOpenHeaderFilter((prev) => (prev === 'category' ? null : 'category'))}>
-                      <span className="text-[11px]">▾</span>
+                    <button type="button" onClick={() => handleSort('category')} className={getHeaderTitleClass('category')}>Kategorija</button>
+                    <button type="button" className={HEADER_FILTER_BUTTON_CLASS} data-active={openHeaderFilter === 'category'} aria-label="Filtriraj kategorijo" onClick={() => setOpenHeaderFilter((prev) => (prev === 'category' ? null : 'category'))}>
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                     </button>
                     {openHeaderFilter === 'category' ? (
-                      <div role="menu" className="absolute left-1/2 top-8 z-30 w-48 -translate-x-1/2">
+                      <div role="menu" className="absolute left-1/2 top-8 z-30 w-[336px] max-w-[70vw] -translate-x-1/2">
                         <MenuPanel className="w-full">
                           <MenuItem onClick={() => { setCategoryFilter('all'); setOpenHeaderFilter(null); }}>Vse kategorije</MenuItem>
                           {categories.map((category) => (
@@ -634,15 +649,15 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                   </div>
                 </TH> : null}
                 {visibleColumns.price ? <TH className="text-center text-[11px]">
-                  <button type="button" onClick={() => handleSort('price')} className="inline-flex items-center font-semibold hover:text-slate-700">Cena <SortIndicator active={sortKey === 'price'} direction={sortDirection} /></button>
+                  <button type="button" onClick={() => handleSort('price')} className={getHeaderTitleClass('price')}>Cena</button>
                 </TH> : null}
-                {visibleColumns.discount ? <TH className="text-center text-[11px]"><span className="inline-flex items-center">Popust</span></TH> : null}
-                {visibleColumns.salePrice ? <TH className="whitespace-nowrap text-center text-[11px]"><span className="inline-flex items-center">Akcijska cena</span></TH> : null}
+                {visibleColumns.discount ? <TH className="text-center text-[11px]"><button type="button" onClick={() => handleSort('discount')} className={getHeaderTitleClass('discount')}>Popust</button></TH> : null}
+                {visibleColumns.salePrice ? <TH className="whitespace-nowrap text-center text-[11px]"><button type="button" onClick={() => handleSort('salePrice')} className={getHeaderTitleClass('salePrice')}>Akcijska cena</button></TH> : null}
                 {visibleColumns.status ? <TH className="text-center text-[11px]">
                   <div className="relative inline-flex items-center gap-1.5 align-middle" ref={statusFilterRootRef}>
-                    <button type="button" onClick={() => handleSort('status')} className="inline-flex items-center font-semibold hover:text-slate-700">Status <SortIndicator active={sortKey === 'status'} direction={sortDirection} /></button>
-                    <button type="button" className="group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500" aria-label="Filtriraj status" onClick={() => setOpenHeaderFilter((prev) => (prev === 'status' ? null : 'status'))}>
-                      <span className="text-[11px]">▾</span>
+                    <button type="button" onClick={() => handleSort('status')} className={getHeaderTitleClass('status')}>Status</button>
+                    <button type="button" className={HEADER_FILTER_BUTTON_CLASS} data-active={openHeaderFilter === 'status'} aria-label="Filtriraj status" onClick={() => setOpenHeaderFilter((prev) => (prev === 'status' ? null : 'status'))}>
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                     </button>
                     {openHeaderFilter === 'status' ? (
                       <div role="menu" className="absolute left-1/2 top-8 z-30 w-40 -translate-x-1/2">

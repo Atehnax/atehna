@@ -186,7 +186,7 @@ export function AdminCategoriesMiller({
             className="h-7 w-[320px] max-w-[36vw] text-[11px]"
             aria-label="Išči v Miller stolpcih"
           />
-          <IconButton type="button" size="sm" tone="neutral" aria-label="Dodaj" onClick={() => onAddNode(activeColumnKind)}>
+          <IconButton type="button" size="sm" tone="add" aria-label="Dodaj" onClick={() => onAddNode(activeColumnKind)}>
             {plusIcon}
           </IconButton>
           <IconButton

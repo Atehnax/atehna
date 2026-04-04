@@ -2,6 +2,7 @@ import type { RefObject, ReactNode } from 'react';
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Button } from '@/shared/ui/button';
+import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { IconButton } from '@/shared/ui/icon-button';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
@@ -157,7 +158,7 @@ export function AdminCategoriesTableView({
                 </colgroup>
                 <thead className="bg-slate-50/90">
                   <tr>
-                    <th className="border-b border-slate-200 px-2 py-2 text-center text-[11px] font-semibold text-slate-600"><input id="categories-select-all" name="categoriesSelectAll" ref={selectAllRef} type="checkbox" checked={allRowsSelected} onChange={onToggleSelectAll} aria-label="Izberi vse" /></th>
+                    <th className="border-b border-slate-200 px-2 py-2 text-center text-[11px] font-semibold text-slate-600"><AdminCheckbox id="categories-select-all" name="categoriesSelectAll" ref={selectAllRef} checked={allRowsSelected} onChange={onToggleSelectAll} aria-label="Izberi vse" /></th>
                     <th className="border-b border-slate-200 px-2.5 py-0 text-left text-[11px] font-semibold text-slate-600 align-middle">
                       <div className="relative flex h-12 items-center gap-2 overflow-visible px-1">
                         <div className="relative shrink-0 overflow-visible" style={{ width: `${treeButtonDiameter}px`, height: `${treeRowHeight}px` }}>

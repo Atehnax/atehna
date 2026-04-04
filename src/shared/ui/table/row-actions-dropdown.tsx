@@ -95,6 +95,7 @@ export default function RowActionsDropdown({
               {items.map((item) => (
                 <MenuItem
                   key={item.key}
+                  className={item.className}
                   disabled={item.disabled}
                   onClick={() => {
                     if (item.disabled) return;
@@ -102,7 +103,7 @@ export default function RowActionsDropdown({
                     item.onSelect();
                   }}
                 >
-                  <span className={`inline-flex items-center gap-1.5 leading-none ${item.className ?? ''}`.trim()}>
+                  <span className="inline-flex items-center gap-1.5 leading-none">
                     {item.icon ? <span className="inline-flex h-[11px] w-[11px] items-center justify-center text-[11px] [&_svg]:h-[11px] [&_svg]:w-[11px]">{item.icon}</span> : null}
                     <span className="inline-flex items-center">{item.label}</span>
                   </span>

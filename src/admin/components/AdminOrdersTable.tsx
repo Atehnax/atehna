@@ -20,6 +20,7 @@ import {
 } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, RowActionsDropdown, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
+import { AdminCheckbox } from '@/shared/ui/checkbox';
 import {
   adminTableRowToneClasses,
   dateInputTokenClasses
@@ -1511,8 +1512,7 @@ export default function AdminOrdersTable({
               <TR>
                 <TH className="h-11 px-2 text-center text-[11px]">
                   <div className="flex h-full items-center justify-center">
-                    <input
-                      type="checkbox"
+                    <AdminCheckbox
                       ref={selectAllRef}
                       checked={allSelected}
                       onChange={toggleAll}
@@ -1690,9 +1690,8 @@ export default function AdminOrdersTable({
                     >
                       <TD>
                         <div className="flex h-full items-center justify-center">
-                          <input
+                          <AdminCheckbox
                             data-no-row-nav
-                            type="checkbox"
                             checked={selected.includes(order.id)}
                             onChange={() => toggleSelected(order.id)}
                             aria-label={`Izberi naročilo ${toDisplayOrderNumber(order.order_number)}`}

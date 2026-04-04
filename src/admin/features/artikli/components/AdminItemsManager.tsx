@@ -16,6 +16,7 @@ import {
 import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
 import { CustomSelect } from '@/shared/ui/select';
 import { RowActionsDropdown, Table, THead, TH, TR } from '@/shared/ui/table';
+import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { Chip } from '@/shared/ui/badge';
 import { useToast } from '@/shared/ui/toast';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
@@ -632,7 +633,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
           <Table className="min-w-[860px] text-[11px]">
             <THead>
               <TR>
-                <TH className="w-[44px] text-center"><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" /></TH>
+                <TH className="w-[44px] text-center"><AdminCheckbox checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" /></TH>
                 {visibleColumns.name ? <TH className="text-[11px]">
                   <button type="button" onClick={() => handleSort('name')} className="inline-flex items-center font-semibold hover:text-slate-700">Naziv <SortIndicator active={sortKey === 'name'} direction={sortDirection} /></button>
                 </TH> : null}
@@ -656,7 +657,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
             <tbody>
               {pagedItems.map((item, index) => (
                 <tr key={item.id} className={`border-t border-slate-200 transition-colors ${getAdminStripedRowToneClass(index)} ${adminTableRowToneClasses.hover}`}>
-                  <td className="px-2.5 py-2 text-center"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleOne(item.id)} aria-label={`Izberi ${item.name}`} /></td>
+                  <td className="px-2.5 py-2 text-center"><AdminCheckbox checked={selectedIds.includes(item.id)} onChange={() => toggleOne(item.id)} aria-label={`Izberi ${item.name}`} /></td>
                   {visibleColumns.name ? <td className="px-2.5 py-2 text-[11px] font-medium text-slate-900">{item.name}</td> : null}
                   {visibleColumns.sku ? <td className="px-2.5 py-2 text-[11px] text-slate-600">{item.sku}</td> : null}
                   {visibleColumns.category ? <td className="px-2.5 py-2 text-[11px] text-slate-600">{getResolvedCategoryLabel(item)}</td> : null}
@@ -741,7 +742,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                 {categories.map((category) => <option key={category} value={category}>{category}</option>)}
               </FloatingSelect>
 
-              <label className="inline-flex items-center gap-2 text-xs text-slate-700"><input type="checkbox" checked={newCategoryEnabled} disabled={editorMode !== 'edit'} onChange={(event) => setNewCategoryEnabled(event.target.checked)} />Dodaj novo kategorijo</label>
+              <label className="inline-flex items-center gap-2 text-xs text-slate-700"><AdminCheckbox checked={newCategoryEnabled} disabled={editorMode !== 'edit'} onChange={(event) => setNewCategoryEnabled(event.target.checked)} />Dodaj novo kategorijo</label>
               <FloatingInput label="Nova Kategorija" value={newCategoryValue} onChange={(value) => setNewCategoryValue(value)} disabled={!newCategoryEnabled || editorMode !== 'edit'} />
 
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-2">
@@ -787,7 +788,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                 </div>
               ) : null}
 
-              <label className="inline-flex items-center gap-2"><input type="checkbox" checked={draft.active} disabled={editorMode !== 'edit'} onChange={(event) => setDraft((prev) => ({ ...prev, active: event.target.checked }))} /><span>Aktiven</span></label>
+              <label className="inline-flex items-center gap-2"><AdminCheckbox checked={draft.active} disabled={editorMode !== 'edit'} onChange={(event) => setDraft((prev) => ({ ...prev, active: event.target.checked }))} /><span>Aktiven</span></label>
             </div>
           </div>
         </div>

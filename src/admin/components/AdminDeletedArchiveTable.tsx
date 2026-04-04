@@ -8,6 +8,7 @@ import { CustomSelect } from '@/shared/ui/select';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 import { EmptyState, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
+import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
 import { ActionRestoreIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { adminTableRowToneClasses, getAdminStripedRowToneClass } from '@/shared/ui/theme/tokens';
@@ -397,7 +398,7 @@ export default function AdminDeletedArchiveTable({
           <THead>
             <TR>
               <TH className="w-10 text-center">
-                <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" />
+                <AdminCheckbox checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" />
               </TH>
               <TH className="w-24 text-[11px]">Vrsta</TH>
               <TH className="text-[11px]">Element</TH>
@@ -427,8 +428,7 @@ export default function AdminDeletedArchiveTable({
               return (
                 <TR key={entry.id} className={`border-b border-slate-100 transition-colors ${getAdminStripedRowToneClass(index)} ${adminTableRowToneClasses.hover}`}>
                   <TD className="px-0 py-2 text-center">
-                    <input
-                      type="checkbox"
+                    <AdminCheckbox
                       className="disabled:cursor-default disabled:opacity-50"
                       checked={selectedIdSet.has(entry.id)}
                       onChange={() => toggleOne(row)}

@@ -3,6 +3,8 @@ import AdminArchiveTabs from '@/admin/components/AdminArchiveTabs';
 import { fetchArchiveEntries } from '@/shared/server/deletedArchive';
 import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';
+import { AdminPageHeader } from '@/shared/ui/admin-primitives';
+
 
 export const metadata = {
   title: 'Arhiv naročil'
@@ -51,13 +53,11 @@ async function AdminArchiveTableSection() {
   });
 }
 
+
 export default async function AdminArchivePage() {
   return (
     <div className="w-full space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Arhiv naročil</h1>
-        <p className="mt-1 text-sm text-slate-600">Izbrisani zapisi se hranijo 60 dni, nato se trajno odstranijo.</p>
-      </div>
+      <AdminPageHeader title="Arhiv naročil" description="Izbrisani zapisi se hranijo 60 dni, nato se trajno odstranijo." />
       <AdminArchiveTabs />
       {await AdminArchiveTableSection()}
     </div>

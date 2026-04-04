@@ -375,6 +375,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
       const matchesStatus = statusFilter === 'all' ? true : statusFilter === 'active' ? item.active : !item.active;
       const itemSalePrice = discountedPrice(item.price, item.discountPct);
       const toNumber = (value: string) => {
+        if (value.trim() === '') return null;
         const parsed = Number(value);
         return Number.isFinite(parsed) ? parsed : null;
       };

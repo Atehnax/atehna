@@ -9,18 +9,24 @@ import {
   ArchiveIcon,
   CloseIcon,
   CopyIcon,
-  FilterIcon,
+  ColumnFilterIcon,
+  PanelAddRemoveIcon,
   PencilIcon,
   SaveIcon
 } from '@/shared/ui/icons/AdminActionIcons';
-import { ADMIN_CONTROL_HEIGHT, ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
-import { CustomSelect } from '@/shared/ui/select';
 import { RowActionsDropdown, Table, THead, TH, TR } from '@/shared/ui/table';
+import { AdminCheckbox } from '@/shared/ui/checkbox';
+import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { Chip } from '@/shared/ui/badge';
 import { useToast } from '@/shared/ui/toast';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
 import { AdminTableLayout, ColumnVisibilityControl } from '@/shared/ui/admin-table';
-import { adminTableRowToneClasses, buttonTokenClasses, getAdminStripedRowToneClass } from '@/shared/ui/theme/tokens';
+import AdminRangeFilterPanel, { type RangePreset, type RangeValue } from '@/shared/ui/admin-range-filter-panel';
+import {
+  adminTableRowToneClasses,
+  buttonTokenClasses,
+  filterPillTokenClasses
+} from '@/shared/ui/theme/tokens';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 
 type Item = {
@@ -55,9 +61,12 @@ type SeedItemTuple = [
   displayOrder: number | null
 ];
 
-type SortKey = 'name' | 'sku' | 'category' | 'price' | 'status';
-type StatusTab = 'active' | 'inactive';
+type SortKey = 'name' | 'sku' | 'category' | 'price' | 'discount' | 'salePrice' | 'status';
+type StatusFilter = 'all' | 'active' | 'inactive';
 type ItemColumnKey = 'name' | 'sku' | 'category' | 'price' | 'discount' | 'salePrice' | 'status';
+type SortDirection = 'asc' | 'desc';
+type ItemsHeaderFilter = 'category' | 'status' | 'price' | 'discount' | 'salePrice' | null;
+type ItemHoverColumn = 'category' | 'price' | 'discount' | 'salePrice';
 
 const STORAGE_KEY = 'admin-items-crud-v3';
 const PAGE_SIZE_OPTIONS = [50, 100];
@@ -88,10 +97,6 @@ const emptyItem = (): Item => ({
 const discountedPrice = (price: number, discountPct: number) =>
   Number((price * (1 - Math.max(0, Math.min(100, discountPct)) / 100)).toFixed(2));
 
-const statusTabs: Array<{ key: StatusTab; label: string }> = [
-  { key: 'active', label: 'Aktivni' },
-  { key: 'inactive', label: 'Neaktivni' }
-];
 const itemColumnOptions: Array<{ key: ItemColumnKey; label: string }> = [
   { key: 'name', label: 'Naziv' },
   { key: 'sku', label: 'SKU' },
@@ -102,10 +107,17 @@ const itemColumnOptions: Array<{ key: ItemColumnKey; label: string }> = [
   { key: 'status', label: 'Status' }
 ];
 
-function SortIndicator({ active, direction }: { active: boolean; direction: 'asc' | 'desc' }) {
-  if (!active) return <span className="ml-1 text-slate-300">↕</span>;
-  return <span className="ml-1 text-slate-500">{direction === 'asc' ? '↑' : '↓'}</span>;
-}
+const HEADER_TITLE_BUTTON_CLASS = 'inline-flex items-center text-[11px] font-semibold leading-none hover:text-slate-700';
+const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500';
+const NUMERIC_FILTER_PRESETS: RangePreset[] = ['20', '50', '100', '200', '500', '1000'].map((maxValue) => ({
+  label: `0-${maxValue === '1000' ? '1k' : maxValue}`,
+  value: { min: '0', max: maxValue }
+}));
+const DISCOUNT_FILTER_PRESETS: RangePreset[] = ['10', '20', '40', '60', '80', '100'].map((maxValue) => ({
+  label: `0-${maxValue}`,
+  value: { min: '0', max: maxValue }
+}));
+const EMPTY_RANGE: RangeValue = { min: '', max: '' };
 
 function ActionIcon({ type }: { type: 'edit' | 'copy' | 'archive' | 'save' | 'close' }) {
   if (type === 'edit') return <PencilIcon />;
@@ -213,9 +225,16 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   );
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [statusTab, setStatusTab] = useState<StatusTab>('active');
-  const [sortKey, setSortKey] = useState<SortKey>('name');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [openHeaderFilter, setOpenHeaderFilter] = useState<ItemsHeaderFilter>(null);
+  const [priceRange, setPriceRange] = useState<RangeValue>(EMPTY_RANGE);
+  const [draftPriceRange, setDraftPriceRange] = useState<RangeValue>(EMPTY_RANGE);
+  const [discountRange, setDiscountRange] = useState<RangeValue>(EMPTY_RANGE);
+  const [draftDiscountRange, setDraftDiscountRange] = useState<RangeValue>(EMPTY_RANGE);
+  const [salePriceRange, setSalePriceRange] = useState<RangeValue>(EMPTY_RANGE);
+  const [draftSalePriceRange, setDraftSalePriceRange] = useState<RangeValue>(EMPTY_RANGE);
+  const [sortState, setSortState] = useState<{ key: SortKey; direction: SortDirection } | null>(null);
+  const [hoveredCellMatch, setHoveredCellMatch] = useState<{ column: ItemHoverColumn; value: string } | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Item>(emptyItem());
@@ -234,6 +253,11 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   });
   const hasCompletedInitialStorageHydrationRef = useRef(false);
   const pendingStorageWriteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const categoryFilterRootRef = useRef<HTMLDivElement | null>(null);
+  const statusFilterRootRef = useRef<HTMLDivElement | null>(null);
+  const priceFilterRootRef = useRef<HTMLDivElement | null>(null);
+  const discountFilterRootRef = useRef<HTMLDivElement | null>(null);
+  const salePriceFilterRootRef = useRef<HTMLDivElement | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -322,17 +346,30 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
     [getResolvedCategoryLabel, items]
   );
 
-  const selectedCategoryLabel =
-    categoryFilter === 'all'
-      ? 'Vse kategorije'
-      : categories.find((category) => category === categoryFilter) ?? 'Vse kategorije';
-
   useEffect(() => {
     if (categoryFilter === 'all') return;
     if (!categories.includes(categoryFilter)) {
       setCategoryFilter('all');
     }
   }, [categories, categoryFilter]);
+
+  useEffect(() => {
+    if (!openHeaderFilter) return;
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const roots = [
+        categoryFilterRootRef.current,
+        statusFilterRootRef.current,
+        priceFilterRootRef.current,
+        discountFilterRootRef.current,
+        salePriceFilterRootRef.current
+      ];
+      if (roots.some((root) => root?.contains(target))) return;
+      setOpenHeaderFilter(null);
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [openHeaderFilter]);
 
   const filteredItems = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -345,21 +382,55 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
         item.sku.toLowerCase().includes(q) ||
         resolvedCategory.toLowerCase().includes(q);
       const matchesCategory = categoryFilter === 'all' || resolvedCategory === categoryFilter;
-      const matchesStatus = statusTab === 'active' ? item.active : !item.active;
-      return matchesSearch && matchesCategory && matchesStatus;
+      const matchesStatus = statusFilter === 'all' ? true : statusFilter === 'active' ? item.active : !item.active;
+      const itemSalePrice = discountedPrice(item.price, item.discountPct);
+      const toNumber = (value: string) => {
+        if (value.trim() === '') return null;
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : null;
+      };
+      const priceMinValue = toNumber(priceRange.min);
+      const priceMaxValue = toNumber(priceRange.max);
+      const discountMinValue = toNumber(discountRange.min);
+      const discountMaxValue = toNumber(discountRange.max);
+      const salePriceMinValue = toNumber(salePriceRange.min);
+      const salePriceMaxValue = toNumber(salePriceRange.max);
+      const matchesPrice = (priceMinValue === null || item.price >= priceMinValue) && (priceMaxValue === null || item.price <= priceMaxValue);
+      const matchesDiscount =
+        (discountMinValue === null || item.discountPct >= Math.max(0, discountMinValue)) &&
+        (discountMaxValue === null || item.discountPct <= Math.min(100, discountMaxValue));
+      const matchesSalePrice =
+        (salePriceMinValue === null || itemSalePrice >= salePriceMinValue) &&
+        (salePriceMaxValue === null || itemSalePrice <= salePriceMaxValue);
+      return matchesSearch && matchesCategory && matchesStatus && matchesPrice && matchesDiscount && matchesSalePrice;
     });
 
     const textCmp = (a: string, b: string) => a.localeCompare(b, 'sl', { sensitivity: 'base' });
-    next.sort((a, b) => {
-      let cmp = 0;
-      if (sortKey === 'price') cmp = discountedPrice(a.price, a.discountPct) - discountedPrice(b.price, b.discountPct);
-      else if (sortKey === 'status') cmp = textCmp(a.active ? 'Aktiven' : 'Neaktiven', b.active ? 'Aktiven' : 'Neaktiven');
-      else cmp = textCmp(String(a[sortKey]), String(b[sortKey]));
-      return sortDirection === 'asc' ? cmp : -cmp;
-    });
+    if (sortState) {
+      next.sort((a, b) => {
+        let cmp = 0;
+        if (sortState.key === 'price') cmp = a.price - b.price;
+        else if (sortState.key === 'discount') cmp = a.discountPct - b.discountPct;
+        else if (sortState.key === 'salePrice') cmp = discountedPrice(a.price, a.discountPct) - discountedPrice(b.price, b.discountPct);
+        else if (sortState.key === 'status') cmp = textCmp(a.active ? 'Aktiven' : 'Neaktiven', b.active ? 'Aktiven' : 'Neaktiven');
+        else if (sortState.key === 'category') cmp = textCmp(getResolvedCategoryLabel(a), getResolvedCategoryLabel(b));
+        else cmp = textCmp(String(a[sortState.key]), String(b[sortState.key]));
+        return sortState.direction === 'asc' ? cmp : -cmp;
+      });
+    }
 
     return next;
-  }, [categoryFilter, getResolvedCategoryLabel, items, search, sortDirection, sortKey, statusTab]);
+  }, [
+    categoryFilter,
+    discountRange,
+    getResolvedCategoryLabel,
+    items,
+    priceRange,
+    salePriceRange,
+    search,
+    sortState,
+    statusFilter
+  ]);
 
   const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
     totalCount: filteredItems.length,
@@ -389,20 +460,35 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
 
   useEffect(() => {
     setPage(1);
-  }, [categoryFilter, search, setPage, sortDirection, sortKey, statusTab]);
+  }, [categoryFilter, discountRange, priceRange, salePriceRange, search, setPage, sortState, statusFilter]);
 
   useEffect(() => {
     setSelectedIds((current) => current.filter((id) => filteredItemIdSet.has(id)));
   }, [filteredItemIdSet]);
 
+  const getSortCycle = (key: SortKey): Array<SortDirection | null> => {
+    if (key === 'name') return ['desc', null];
+    if (key === 'category') return ['asc', 'desc', null];
+    if (key === 'price' || key === 'discount' || key === 'salePrice' || key === 'status') return ['desc', 'asc', null];
+    return ['asc', 'desc', null];
+  };
   const handleSort = (key: SortKey) => {
-    if (sortKey === key) {
-      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    const cycle = getSortCycle(key);
+    const currentDirection = sortState?.key === key ? sortState.direction : null;
+    const currentIndex = cycle.indexOf(currentDirection);
+    const nextDirection = cycle[(currentIndex + 1) % cycle.length];
+    if (!nextDirection) {
+      setSortState(null);
       return;
     }
-    setSortKey(key);
-    setSortDirection(key === 'price' ? 'desc' : 'asc');
+    setSortState({ key, direction: nextDirection });
   };
+  const getHeaderTitleClass = (key: SortKey) =>
+    `${HEADER_TITLE_BUTTON_CLASS} ${sortState?.key === key ? 'underline underline-offset-2' : ''}`;
+  const getComparableCellValue = (value: string) => value.toLowerCase();
+  const isMatchingHoveredCell = (column: ItemHoverColumn, value: string) =>
+    hoveredCellMatch?.column === column && hoveredCellMatch.value === getComparableCellValue(value);
+  const matchingValueHighlightClass = 'rounded-[4px] bg-amber-100/70 outline outline-1 outline-dashed outline-amber-500/80';
 
   const toggleAll = () => {
     if (allSelected) {
@@ -416,6 +502,69 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   const toggleOne = (id: string) => {
     setSelectedIds((current) => (current.includes(id) ? current.filter((entry) => entry !== id) : [...current, id]));
   };
+
+  const activeFilterChips = useMemo(() => {
+    const chips: Array<{ key: string; title: string; value: string; clear: () => void }> = [];
+    const trimmedSearch = search.trim();
+    if (trimmedSearch) {
+      chips.push({
+        key: 'q',
+        title: 'Iskanje:',
+        value: trimmedSearch,
+        clear: () => setSearch('')
+      });
+    }
+    if (categoryFilter !== 'all') {
+      chips.push({
+        key: 'category',
+        title: 'Kategorija:',
+        value: categoryFilter,
+        clear: () => setCategoryFilter('all')
+      });
+    }
+    if (statusFilter !== 'all') {
+      chips.push({
+        key: 'status',
+        title: 'Status:',
+        value: statusFilter === 'active' ? 'Aktivni' : 'Neaktivni',
+        clear: () => setStatusFilter('all')
+      });
+    }
+    if (priceRange.min || priceRange.max) {
+      chips.push({
+        key: 'price',
+        title: 'Cena:',
+        value: `${priceRange.min || '0'}–${priceRange.max || '∞'}`,
+        clear: () => {
+          setPriceRange(EMPTY_RANGE);
+          setDraftPriceRange(EMPTY_RANGE);
+        }
+      });
+    }
+    if (discountRange.min || discountRange.max) {
+      chips.push({
+        key: 'discount',
+        title: 'Popust:',
+        value: `${discountRange.min || '0'}–${discountRange.max || '100'}%`,
+        clear: () => {
+          setDiscountRange(EMPTY_RANGE);
+          setDraftDiscountRange(EMPTY_RANGE);
+        }
+      });
+    }
+    if (salePriceRange.min || salePriceRange.max) {
+      chips.push({
+        key: 'salePrice',
+        title: 'Akcijska cena:',
+        value: `${salePriceRange.min || '0'}–${salePriceRange.max || '∞'}`,
+        clear: () => {
+          setSalePriceRange(EMPTY_RANGE);
+          setDraftSalePriceRange(EMPTY_RANGE);
+        }
+      });
+    }
+    return chips;
+  }, [categoryFilter, discountRange, priceRange, salePriceRange, search, statusFilter]);
 
   const openCreate = () => {
     setEditingId(null);
@@ -527,44 +676,34 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Artikli</h1>
-      </div>
-
+    <div className="space-y-4 font-['Inter',system-ui,sans-serif]">
       <AdminTableLayout
-        className="border shadow-sm"
-        style={{ background: 'linear-gradient(180deg, rgba(250,251,252,0.96) 0%, rgba(242,244,247,0.96) 100%)', borderColor: '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
+        className="!overflow-visible border shadow-sm"
+        style={{ background: '#ffffff', borderColor: '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
+        headerClassName="!bg-white"
         headerLeft={
-          <div className="inline-flex items-center gap-0.5 border-b border-slate-200 pb-1">
-            {statusTabs.map((tab) => {
-              const isActive = statusTab === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setStatusTab(tab.key)}
-                  className={`relative px-3 py-1.5 text-[11px] font-medium transition ${
-                    isActive
-                      ? 'text-slate-900 after:absolute after:inset-x-0 after:bottom-[-5px] after:h-[2px] after:rounded-full after:bg-slate-800'
-                      : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
+          <div className="flex h-7 w-full items-stretch">
+            <div className="min-w-0 w-full rounded-md border border-slate-200 bg-white transition-colors focus-within:border-[#3e67d6]">
+              <AdminSearchInput
+                showIcon={false}
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Poišči artikle"
+                aria-label="Poišči artikle"
+                className="!m-0 !h-7 min-w-0 w-full flex-1 !rounded-md !border-0 !bg-transparent !shadow-none !outline-none ring-0 transition-colors placeholder:text-slate-400 [--euiFormControlStateWidth:0px] focus:[--euiFormControlStateWidth:0px] focus-visible:[--euiFormControlStateWidth:0px] focus:!border-0 focus:!shadow-none focus:!outline-none focus-visible:!border-0 focus-visible:!shadow-none focus-visible:!outline-none"
+              />
+            </div>
           </div>
         }
         headerRight={
-          <>
+          <div className="flex h-7 items-center gap-2 self-center">
             <ColumnVisibilityControl
               options={itemColumnOptions.map((option) => ({ ...option, disabled: option.key === 'name' }))}
               visibleMap={visibleColumns}
               onToggle={(key) => toggleColumnVisibility(key as ItemColumnKey)}
               showLabel={false}
-              className="[&>button]:!h-7 [&>button]:!w-7 [&>button]:!rounded-md [&>button]:!border-slate-200 [&>button]:!bg-transparent [&>button]:!px-0 [&>button]:!text-slate-600 [&>button]:hover:!border-slate-300 [&>button]:hover:!bg-[color:var(--hover-neutral)] [&>button]:hover:!text-slate-700"
-              icon={<FilterIcon />}
+              className="[&>button]:!h-7 [&>button]:!w-7 [&>button:hover]:text-[color:var(--blue-500)] [&>button[aria-expanded='true']]:text-[color:var(--blue-500)]"
+              icon={<PanelAddRemoveIcon className="!scale-[0.8]" />}
             />
             <IconButton
               type="button"
@@ -577,34 +716,33 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
             >
               <ActionIcon type="archive" />
             </IconButton>
-            <Button type="button" variant="primary" size="toolbar" onClick={openCreate}>
-              Nov artikel
-            </Button>
-          </>
+            <div className="flex items-center [&_button]:!h-7 [&_button]:!rounded-md">
+              <Button type="button" variant="primary" size="toolbar" onClick={openCreate}>
+                Nov artikel
+              </Button>
+            </div>
+          </div>
         }
         filterRowLeft={
-          <>
-            <AdminSearchInput
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Poišči po nazivu, SKU ali kategoriji …"
-              aria-label="Iskanje artiklov"
-              className={`h-7 min-w-[340px] flex-1 rounded-xl border border-slate-300 ${ADMIN_CONTROL_PADDING_X} focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6]`}
-            />
-            <div className="relative min-w-[220px]">
-              <CustomSelect
-                value={categoryFilter}
-                onChange={setCategoryFilter}
-                options={[
-                  { value: 'all', label: 'Vse kategorije' },
-                  ...categories.map((category) => ({ value: category, label: category }))
-                ]}
-                className={`${ADMIN_CONTROL_HEIGHT} ${ADMIN_CONTROL_PADDING_X} py-0 text-[11px] font-semibold`}
-                valueClassName="min-w-0 flex-1 text-left"
-                menuClassName="min-w-full w-max max-w-[560px]"
-              />
+          activeFilterChips.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {activeFilterChips.map((chip) => (
+                <span key={chip.key} className={filterPillTokenClasses.base}>
+                  <span>
+                    {chip.title} <span className="font-semibold">{chip.value}</span>
+                  </span>
+                  <button
+                    type="button"
+                    className={filterPillTokenClasses.clear}
+                    onClick={chip.clear}
+                    aria-label={`Odstrani filter ${chip.title}`}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
             </div>
-          </>
+          ) : null
         }
         filterRowRight={
           <EuiTablePagination
@@ -616,7 +754,8 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
             itemsPerPageOptions={PAGE_SIZE_OPTIONS}
           />
         }
-        contentClassName="overflow-x-auto"
+        contentClassName="overflow-x-auto overflow-y-visible bg-white"
+        showDivider={false}
         footerRight={
           <EuiTablePagination
             page={page}
@@ -629,40 +768,184 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
         }
       >
         <div className="w-full overflow-x-auto">
-          <Table className="min-w-[860px] text-[11px]">
+          <Table className="min-w-[860px] table-fixed text-[11px] font-['Inter',system-ui,sans-serif]">
+            <colgroup>
+              <col className="w-[44px]" />
+              {visibleColumns.name ? <col className="w-[220px]" /> : null}
+              {visibleColumns.sku ? <col className="w-[132px]" /> : null}
+              {visibleColumns.category ? <col className="w-[200px]" /> : null}
+              {visibleColumns.price ? <col className="w-[110px]" /> : null}
+              {visibleColumns.discount ? <col className="w-[100px]" /> : null}
+              {visibleColumns.salePrice ? <col className="w-[128px]" /> : null}
+              {visibleColumns.status ? <col className="w-[122px]" /> : null}
+              <col className="w-[84px]" />
+            </colgroup>
             <THead>
               <TR>
-                <TH className="w-[44px] text-center"><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" /></TH>
+                <TH className="w-[44px] text-center"><AdminCheckbox checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" /></TH>
                 {visibleColumns.name ? <TH className="text-[11px]">
-                  <button type="button" onClick={() => handleSort('name')} className="inline-flex items-center font-semibold hover:text-slate-700">Naziv <SortIndicator active={sortKey === 'name'} direction={sortDirection} /></button>
+                  <button type="button" onClick={() => handleSort('name')} className={getHeaderTitleClass('name')}>Naziv</button>
                 </TH> : null}
                 {visibleColumns.sku ? <TH className="text-[11px]">
-                  <button type="button" onClick={() => handleSort('sku')} className="inline-flex items-center font-semibold hover:text-slate-700">SKU <SortIndicator active={sortKey === 'sku'} direction={sortDirection} /></button>
+                  <button type="button" onClick={() => handleSort('sku')} className={getHeaderTitleClass('sku')}>SKU</button>
                 </TH> : null}
                 {visibleColumns.category ? <TH className="text-[11px]">
-                  <button type="button" onClick={() => handleSort('category')} className="inline-flex items-center font-semibold hover:text-slate-700">Kategorija <SortIndicator active={sortKey === 'category'} direction={sortDirection} /></button>
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" ref={categoryFilterRootRef}>
+                    <button type="button" onClick={() => handleSort('category')} className={getHeaderTitleClass('category')}>Kategorija</button>
+                    <button type="button" className={HEADER_FILTER_BUTTON_CLASS} data-active={openHeaderFilter === 'category'} aria-label="Filtriraj kategorijo" onClick={() => setOpenHeaderFilter((prev) => (prev === 'category' ? null : 'category'))}>
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                    {openHeaderFilter === 'category' ? (
+                      <div role="menu" className="absolute left-1/2 top-8 z-30 w-[336px] max-w-[70vw] -translate-x-1/2">
+                        <MenuPanel className="w-full">
+                          <MenuItem onClick={() => { setCategoryFilter('all'); setOpenHeaderFilter(null); }}>Vse kategorije</MenuItem>
+                          {categories.map((category) => (
+                            <MenuItem key={category} onClick={() => { setCategoryFilter(category); setOpenHeaderFilter(null); }}>
+                              {category}
+                            </MenuItem>
+                          ))}
+                        </MenuPanel>
+                      </div>
+                    ) : null}
+                  </div>
                 </TH> : null}
                 {visibleColumns.price ? <TH className="text-center text-[11px]">
-                  <button type="button" onClick={() => handleSort('price')} className="inline-flex items-center font-semibold hover:text-slate-700">Cena <SortIndicator active={sortKey === 'price'} direction={sortDirection} /></button>
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" ref={priceFilterRootRef}>
+                    <button type="button" onClick={() => handleSort('price')} className={getHeaderTitleClass('price')}>Cena</button>
+                    <button type="button" className={HEADER_FILTER_BUTTON_CLASS} data-active={openHeaderFilter === 'price'} aria-label="Filtriraj ceno" onClick={() => setOpenHeaderFilter((prev) => (prev === 'price' ? null : 'price'))}>
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                    {openHeaderFilter === 'price' ? (
+                      <div role="menu" className="absolute left-1/2 top-8 z-30 w-56 -translate-x-1/2">
+                        <AdminRangeFilterPanel
+                          title="Nastavi razpon cen (€)"
+                          draftRange={draftPriceRange}
+                          presets={NUMERIC_FILTER_PRESETS}
+                          onDraftChange={setDraftPriceRange}
+                          onConfirm={() => {
+                            setPriceRange(draftPriceRange);
+                            setOpenHeaderFilter(null);
+                          }}
+                          onReset={() => {
+                            setDraftPriceRange(EMPTY_RANGE);
+                            setPriceRange(EMPTY_RANGE);
+                            setOpenHeaderFilter(null);
+                          }}
+                          min={0}
+                          minPlaceholder="Min"
+                          maxPlaceholder="Max"
+                        />
+                      </div>
+                    ) : null}
+                  </div>
                 </TH> : null}
-                {visibleColumns.discount ? <TH className="text-center text-[11px]"><span className="inline-flex items-center">Popust</span></TH> : null}
-                {visibleColumns.salePrice ? <TH className="whitespace-nowrap text-center text-[11px]"><span className="inline-flex items-center">Akcijska cena</span></TH> : null}
+                {visibleColumns.discount ? <TH className="text-center text-[11px]">
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" ref={discountFilterRootRef}>
+                    <button type="button" onClick={() => handleSort('discount')} className={getHeaderTitleClass('discount')}>Popust %</button>
+                    <button type="button" className={HEADER_FILTER_BUTTON_CLASS} data-active={openHeaderFilter === 'discount'} aria-label="Filtriraj popust" onClick={() => setOpenHeaderFilter((prev) => (prev === 'discount' ? null : 'discount'))}>
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                    {openHeaderFilter === 'discount' ? (
+                      <div role="menu" className="absolute left-1/2 top-8 z-30 w-48 -translate-x-1/2">
+                        <AdminRangeFilterPanel
+                          title="Nastavi razpon popusta (%)"
+                          draftRange={draftDiscountRange}
+                          presets={DISCOUNT_FILTER_PRESETS}
+                          onDraftChange={setDraftDiscountRange}
+                          onConfirm={() => {
+                            setDiscountRange(draftDiscountRange);
+                            setOpenHeaderFilter(null);
+                          }}
+                          onReset={() => {
+                            setDraftDiscountRange(EMPTY_RANGE);
+                            setDiscountRange(EMPTY_RANGE);
+                            setOpenHeaderFilter(null);
+                          }}
+                          min={0}
+                          max={100}
+                          minPlaceholder="Min %"
+                          maxPlaceholder="Max %"
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                </TH> : null}
+                {visibleColumns.salePrice ? <TH className="whitespace-nowrap text-center text-[11px]">
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" ref={salePriceFilterRootRef}>
+                    <button type="button" onClick={() => handleSort('salePrice')} className={getHeaderTitleClass('salePrice')}>Akcijska cena</button>
+                    <button type="button" className={HEADER_FILTER_BUTTON_CLASS} data-active={openHeaderFilter === 'salePrice'} aria-label="Filtriraj akcijsko ceno" onClick={() => setOpenHeaderFilter((prev) => (prev === 'salePrice' ? null : 'salePrice'))}>
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                    {openHeaderFilter === 'salePrice' ? (
+                      <div role="menu" className="absolute left-1/2 top-8 z-30 w-56 -translate-x-1/2">
+                        <AdminRangeFilterPanel
+                          title="Nastavi razpon cen (€)"
+                          draftRange={draftSalePriceRange}
+                          presets={NUMERIC_FILTER_PRESETS}
+                          onDraftChange={setDraftSalePriceRange}
+                          onConfirm={() => {
+                            setSalePriceRange(draftSalePriceRange);
+                            setOpenHeaderFilter(null);
+                          }}
+                          onReset={() => {
+                            setDraftSalePriceRange(EMPTY_RANGE);
+                            setSalePriceRange(EMPTY_RANGE);
+                            setOpenHeaderFilter(null);
+                          }}
+                          min={0}
+                          minPlaceholder="Min"
+                          maxPlaceholder="Max"
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                </TH> : null}
                 {visibleColumns.status ? <TH className="text-center text-[11px]">
-                  <button type="button" onClick={() => handleSort('status')} className="inline-flex items-center font-semibold hover:text-slate-700">Status <SortIndicator active={sortKey === 'status'} direction={sortDirection} /></button>
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" ref={statusFilterRootRef}>
+                    <button type="button" onClick={() => handleSort('status')} className={getHeaderTitleClass('status')}>Status</button>
+                    <button type="button" className={HEADER_FILTER_BUTTON_CLASS} data-active={openHeaderFilter === 'status'} aria-label="Filtriraj status" onClick={() => setOpenHeaderFilter((prev) => (prev === 'status' ? null : 'status'))}>
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                    {openHeaderFilter === 'status' ? (
+                      <div role="menu" className="absolute left-1/2 top-8 z-30 w-40 -translate-x-1/2">
+                        <MenuPanel className="w-full">
+                          <MenuItem onClick={() => { setStatusFilter('all'); setOpenHeaderFilter(null); }}>Vsi statusi</MenuItem>
+                          <MenuItem onClick={() => { setStatusFilter('active'); setOpenHeaderFilter(null); }}>Aktivni</MenuItem>
+                          <MenuItem onClick={() => { setStatusFilter('inactive'); setOpenHeaderFilter(null); }}>Neaktivni</MenuItem>
+                        </MenuPanel>
+                      </div>
+                    ) : null}
+                  </div>
                 </TH> : null}
                 <TH className="text-center text-[11px]"><span className="inline-flex items-center">Uredi</span></TH>
               </TR>
             </THead>
             <tbody>
-              {pagedItems.map((item, index) => (
-                <tr key={item.id} className={`border-t border-slate-200 transition-colors ${getAdminStripedRowToneClass(index)} ${adminTableRowToneClasses.hover}`}>
-                  <td className="px-2.5 py-2 text-center"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleOne(item.id)} aria-label={`Izberi ${item.name}`} /></td>
+              {pagedItems.map((item) => (
+                <tr key={item.id} className={`border-t border-slate-100 bg-white text-[11px] transition-colors duration-200 ${adminTableRowToneClasses.hover}`}>
+                  <td className="px-2.5 py-2 text-center"><AdminCheckbox checked={selectedIds.includes(item.id)} onChange={() => toggleOne(item.id)} aria-label={`Izberi ${item.name}`} /></td>
                   {visibleColumns.name ? <td className="px-2.5 py-2 text-[11px] font-medium text-slate-900">{item.name}</td> : null}
                   {visibleColumns.sku ? <td className="px-2.5 py-2 text-[11px] text-slate-600">{item.sku}</td> : null}
-                  {visibleColumns.category ? <td className="px-2.5 py-2 text-[11px] text-slate-600">{getResolvedCategoryLabel(item)}</td> : null}
-                  {visibleColumns.price ? <td className="px-2.5 py-2 text-center text-[11px] text-slate-600">{formatCurrency(item.price)}</td> : null}
-                  {visibleColumns.discount ? <td className="px-2.5 py-2 text-center text-[11px] text-slate-600">{item.discountPct}%</td> : null}
-                  {visibleColumns.salePrice ? <td className="px-2.5 py-2 text-center text-[11px] text-slate-600">{formatCurrency(discountedPrice(item.price, item.discountPct))}</td> : null}
+                  {visibleColumns.category ? <td className="px-2.5 py-2 text-[11px] text-slate-600">
+                    <span className={isMatchingHoveredCell('category', getResolvedCategoryLabel(item)) ? matchingValueHighlightClass : ''} onMouseEnter={() => setHoveredCellMatch({ column: 'category', value: getComparableCellValue(getResolvedCategoryLabel(item)) })} onMouseLeave={() => setHoveredCellMatch(null)}>
+                      {getResolvedCategoryLabel(item)}
+                    </span>
+                  </td> : null}
+                  {visibleColumns.price ? <td className="px-2.5 py-2 text-center text-[11px] text-slate-600">
+                    <span className={isMatchingHoveredCell('price', formatCurrency(item.price)) ? matchingValueHighlightClass : ''} onMouseEnter={() => setHoveredCellMatch({ column: 'price', value: getComparableCellValue(formatCurrency(item.price)) })} onMouseLeave={() => setHoveredCellMatch(null)}>
+                      {formatCurrency(item.price)}
+                    </span>
+                  </td> : null}
+                  {visibleColumns.discount ? <td className="px-2.5 py-2 text-center text-[11px] text-slate-600">
+                    <span className={isMatchingHoveredCell('discount', `${item.discountPct}%`) ? matchingValueHighlightClass : ''} onMouseEnter={() => setHoveredCellMatch({ column: 'discount', value: getComparableCellValue(`${item.discountPct}%`) })} onMouseLeave={() => setHoveredCellMatch(null)}>
+                      {item.discountPct}%
+                    </span>
+                  </td> : null}
+                  {visibleColumns.salePrice ? <td className="px-2.5 py-2 text-center text-[11px] text-slate-600">
+                    <span className={isMatchingHoveredCell('salePrice', formatCurrency(discountedPrice(item.price, item.discountPct))) ? matchingValueHighlightClass : ''} onMouseEnter={() => setHoveredCellMatch({ column: 'salePrice', value: getComparableCellValue(formatCurrency(discountedPrice(item.price, item.discountPct))) })} onMouseLeave={() => setHoveredCellMatch(null)}>
+                      {formatCurrency(discountedPrice(item.price, item.discountPct))}
+                    </span>
+                  </td> : null}
                   {visibleColumns.status ? <td className="px-2.5 py-2 text-center">
                     <Chip
                       variant={item.active ? 'success' : 'neutral'}
@@ -691,7 +974,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                           key: 'archive',
                           label: 'Arhiviraj',
                           icon: <ActionIcon type="archive" />,
-                          className: 'text-amber-700',
+                          className: 'text-amber-700 hover:!bg-amber-50 hover:!text-amber-700',
                           onSelect: () => archive(item)
                         }
                       ]}
@@ -741,7 +1024,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                 {categories.map((category) => <option key={category} value={category}>{category}</option>)}
               </FloatingSelect>
 
-              <label className="inline-flex items-center gap-2 text-xs text-slate-700"><input type="checkbox" checked={newCategoryEnabled} disabled={editorMode !== 'edit'} onChange={(event) => setNewCategoryEnabled(event.target.checked)} />Dodaj novo kategorijo</label>
+              <label className="inline-flex items-center gap-2 text-xs text-slate-700"><AdminCheckbox checked={newCategoryEnabled} disabled={editorMode !== 'edit'} onChange={(event) => setNewCategoryEnabled(event.target.checked)} />Dodaj novo kategorijo</label>
               <FloatingInput label="Nova Kategorija" value={newCategoryValue} onChange={(value) => setNewCategoryValue(value)} disabled={!newCategoryEnabled || editorMode !== 'edit'} />
 
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-2">
@@ -787,7 +1070,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                 </div>
               ) : null}
 
-              <label className="inline-flex items-center gap-2"><input type="checkbox" checked={draft.active} disabled={editorMode !== 'edit'} onChange={(event) => setDraft((prev) => ({ ...prev, active: event.target.checked }))} /><span>Aktiven</span></label>
+              <label className="inline-flex items-center gap-2"><AdminCheckbox checked={draft.active} disabled={editorMode !== 'edit'} onChange={(event) => setDraft((prev) => ({ ...prev, active: event.target.checked }))} /><span>Aktiven</span></label>
             </div>
           </div>
         </div>

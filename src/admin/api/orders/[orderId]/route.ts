@@ -14,7 +14,7 @@ async function ensureArchiveSchema() {
       document_id bigint,
       label text not null,
       deleted_at timestamptz not null default now(),
-      expires_at timestamptz not null default (now() + interval '60 days'),
+      expires_at timestamptz not null default (now() + interval '90 days'),
       payload jsonb not null default '{}'::jsonb
     )
   `);
@@ -51,8 +51,8 @@ export async function DELETE(
 
     const orderResult = await pool.query(
       supportsSoftDelete
-        ? 'select id, order_number, contact_name, deleted_at from orders where id = $1'
-        : 'select id, order_number, contact_name, null::timestamptz as deleted_at from orders where id = $1',
+        ? 'select id, order_number, contact_name, customer_type, delivery_address, created_at, deleted_at from orders where id = $1'
+        : 'select id, order_number, contact_name, customer_type, delivery_address, created_at, null::timestamptz as deleted_at from orders where id = $1',
       [orderId]
     );
 
@@ -64,6 +64,9 @@ export async function DELETE(
       id: number;
       order_number: string;
       contact_name: string;
+      customer_type: string | null;
+      delivery_address: string | null;
+      created_at: string | null;
       deleted_at: string | null;
     };
 
@@ -85,7 +88,13 @@ export async function DELETE(
             'order',
             orderId,
             `${order.order_number || `#${orderId}`} · ${order.contact_name || 'Naročilo'}`,
-            JSON.stringify({ orderNumber: order.order_number || `#${orderId}` })
+            JSON.stringify({
+              orderNumber: order.order_number || `#${orderId}`,
+              orderCreatedAt: order.created_at,
+              customerName: order.contact_name || null,
+              address: order.delivery_address || null,
+              customerType: order.customer_type || null
+            })
           ]
         );
       } catch (error) {

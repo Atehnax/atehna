@@ -151,6 +151,12 @@ export const pillTokenClasses = {
   itemIdle: `border border-transparent bg-transparent text-slate-700 ${hoverTokenClasses.neutral}`
 } as const;
 
+export const filterPillTokenClasses = {
+  base: 'inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-[color:var(--ui-neutral-bg)] px-3 py-1 text-xs text-slate-700 transition-colors hover:bg-[color:var(--ui-neutral-bg-hover)]',
+  clear:
+    'inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-[10px] leading-none text-slate-500 transition hover:border-[#3e67d6] hover:text-[color:var(--blue-500)]'
+} as const;
+
 export const selectTokenClasses = {
   trigger:
     "inline-flex h-7 w-full items-center overflow-visible rounded-md border border-slate-300 bg-white px-2 py-0.5 text-left text-[11px] font-normal leading-[1.2] text-slate-700 font-['Inter',system-ui,sans-serif] outline-none ring-0 transition hover:bg-white active:bg-white focus:border-[#3e67d6] focus:bg-white focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:bg-white focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:text-slate-300",

@@ -21,7 +21,7 @@ import { Chip } from '@/shared/ui/badge';
 import { useToast } from '@/shared/ui/toast';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
 import { AdminTableLayout, ColumnVisibilityControl } from '@/shared/ui/admin-table';
-import { adminTableRowToneClasses, buttonTokenClasses } from '@/shared/ui/theme/tokens';
+import { adminTableRowToneClasses, buttonTokenClasses, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 
 type Item = {
@@ -438,6 +438,36 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
     setSelectedIds((current) => (current.includes(id) ? current.filter((entry) => entry !== id) : [...current, id]));
   };
 
+  const activeFilterChips = useMemo(() => {
+    const chips: Array<{ key: string; title: string; value: string; clear: () => void }> = [];
+    const trimmedSearch = search.trim();
+    if (trimmedSearch) {
+      chips.push({
+        key: 'q',
+        title: 'Iskanje:',
+        value: trimmedSearch,
+        clear: () => setSearch('')
+      });
+    }
+    if (categoryFilter !== 'all') {
+      chips.push({
+        key: 'category',
+        title: 'Kategorija:',
+        value: categoryFilter,
+        clear: () => setCategoryFilter('all')
+      });
+    }
+    if (statusFilter !== 'all') {
+      chips.push({
+        key: 'status',
+        title: 'Status:',
+        value: statusFilter === 'active' ? 'Aktivni' : 'Neaktivni',
+        clear: () => setStatusFilter('all')
+      });
+    }
+    return chips;
+  }, [categoryFilter, search, statusFilter]);
+
   const openCreate = () => {
     setEditingId(null);
     setDraft(emptyItem());
@@ -548,7 +578,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 font-['Inter',system-ui,sans-serif]">
       <AdminTableLayout
         className="border shadow-sm"
         style={{ background: '#ffffff', borderColor: '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
@@ -567,7 +597,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
           </div>
         }
         headerRight={
-          <>
+          <div className="flex h-7 items-center gap-2 self-center">
             <ColumnVisibilityControl
               options={itemColumnOptions.map((option) => ({ ...option, disabled: option.key === 'name' }))}
               visibleMap={visibleColumns}
@@ -592,9 +622,29 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                 Nov artikel
               </Button>
             </div>
-          </>
+          </div>
         }
-        filterRowLeft={null}
+        filterRowLeft={
+          activeFilterChips.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {activeFilterChips.map((chip) => (
+                <span key={chip.key} className={filterPillTokenClasses.base}>
+                  <span>
+                    {chip.title} <span className="font-semibold">{chip.value}</span>
+                  </span>
+                  <button
+                    type="button"
+                    className={filterPillTokenClasses.clear}
+                    onClick={chip.clear}
+                    aria-label={`Odstrani filter ${chip.title}`}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : null
+        }
         filterRowRight={
           <EuiTablePagination
             page={page}
@@ -605,7 +655,8 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
             itemsPerPageOptions={PAGE_SIZE_OPTIONS}
           />
         }
-        contentClassName="overflow-x-auto"
+        contentClassName="overflow-x-auto bg-white"
+        showDivider={false}
         footerRight={
           <EuiTablePagination
             page={page}

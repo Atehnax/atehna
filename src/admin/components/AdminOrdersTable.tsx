@@ -24,7 +24,8 @@ import { EmptyState, RowActions, RowActionsDropdown, Table, TBody, TD, THead, TH
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import {
   adminTableRowToneClasses,
-  dateInputTokenClasses
+  dateInputTokenClasses,
+  filterPillTokenClasses
 } from '@/shared/ui/theme/tokens';
 import { AdminTableLayout, ColumnVisibilityControl } from '@/shared/ui/admin-table';
 import AdminOrderPaymentSelect from '@/admin/components/AdminOrderPaymentSelect';
@@ -1462,12 +1463,12 @@ export default function AdminOrdersTable({
             activeFilterChips.length > 0 ? (
               <div className="flex flex-wrap items-center gap-2">
                 {activeFilterChips.map((chip) => (
-                  <span key={chip.key} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-[color:var(--ui-neutral-bg)] px-3 py-1 text-xs text-slate-700 transition-colors hover:bg-[color:var(--ui-neutral-bg-hover)]">
+                  <span key={chip.key} className={filterPillTokenClasses.base}>
                     <span>
                       {chip.title}{' '}
                       <span className="font-semibold">{chip.value}</span>
                     </span>
-                    <button type="button" onClick={chip.clear} className="text-[10px] leading-none text-slate-500 transition-colors hover:text-[color:var(--danger-600)]" aria-label={`Odstrani filter ${chip.title} ${chip.value}`}>×</button>
+                    <button type="button" onClick={chip.clear} className={filterPillTokenClasses.clear} aria-label={`Odstrani filter ${chip.title} ${chip.value}`}>×</button>
                   </span>
                 ))}
               </div>

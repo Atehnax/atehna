@@ -406,12 +406,14 @@ export default function AdminOrderItemsEditor({
                           className="h-5 w-10 rounded-md border border-slate-300 bg-white px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                         />
                       ) : (
-                        <span className="inline-flex h-5 w-10 items-center justify-center text-[11px] leading-4 text-slate-900">{item.quantity}</span>
+                        <span className="inline-flex h-5 w-10 items-center justify-center text-[11px] leading-4 text-slate-900">
+                          {item.quantity}
+                        </span>
                       )}
                     </td>
                     <td className="px-2 py-1.5 align-middle text-center">
-                      {itemsEditable ? (
-                        <span className="inline-flex items-center justify-center gap-1">
+                      <span className="inline-flex w-[60px] items-center justify-center gap-1">
+                        {itemsEditable ? (
                           <input
                             type="text"
                             inputMode="decimal"
@@ -420,15 +422,17 @@ export default function AdminOrderItemsEditor({
                             aria-label="Cena"
                             className="h-5 w-14 rounded-md border border-slate-300 bg-white px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                           />
-                          <span className="text-[11px] leading-4 text-slate-900">€</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex h-5 w-16 items-center justify-center text-[11px] leading-4 text-slate-900">{formatCurrency(item.unitPrice)}</span>
-                      )}
+                        ) : (
+                          <span className="inline-flex h-5 w-14 items-center justify-center text-[11px] leading-4 text-slate-900">
+                            {formatDecimalInput(item.unitPrice)}
+                          </span>
+                        )}
+                        <span className="text-[11px] leading-4 text-slate-900">€</span>
+                      </span>
                     </td>
                     <td className="px-2 py-1.5 align-middle text-center">
-                      {itemsEditable ? (
-                        <span className="inline-flex items-center justify-center gap-1">
+                      <span className="inline-flex w-[45px] items-center justify-center gap-1">
+                        {itemsEditable ? (
                           <input
                             type="text"
                             inputMode="decimal"
@@ -439,11 +443,13 @@ export default function AdminOrderItemsEditor({
                             aria-label="Popust"
                             className="h-5 w-10 rounded-md border border-slate-300 bg-white px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                           />
-                          <span className="text-[11px] leading-4 text-slate-900">%</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex h-5 w-12 items-center justify-center text-[11px] leading-4 text-slate-900">{formatDecimalInput(item.discountPercentage)} %</span>
-                      )}
+                        ) : (
+                          <span className="inline-flex h-5 w-10 items-center justify-center text-[11px] leading-4 text-slate-900">
+                            {formatDecimalInput(item.discountPercentage)}
+                          </span>
+                        )}
+                        <span className="text-[11px] leading-4 text-slate-900">%</span>
+                      </span>
                     </td>
                     <td className="px-2 py-1.5 align-middle text-right font-semibold text-slate-900">{formatCurrency(lineTotal)}</td>
                   </tr>

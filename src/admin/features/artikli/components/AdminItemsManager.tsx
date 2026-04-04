@@ -812,7 +812,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                     {openHeaderFilter === 'price' ? (
                       <div role="menu" className="absolute left-1/2 top-8 z-30 w-56 -translate-x-1/2">
                         <AdminRangeFilterPanel
-                          title="Nastavi razpon zneskov (€)"
+                          title="Nastavi razpon cen (€)"
                           draftRange={draftPriceRange}
                           presets={NUMERIC_FILTER_PRESETS}
                           onDraftChange={setDraftPriceRange}
@@ -873,7 +873,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                     {openHeaderFilter === 'salePrice' ? (
                       <div role="menu" className="absolute left-1/2 top-8 z-30 w-56 -translate-x-1/2">
                         <AdminRangeFilterPanel
-                          title="Nastavi razpon zneskov (€)"
+                          title="Nastavi razpon cen (€)"
                           draftRange={draftSalePriceRange}
                           presets={NUMERIC_FILTER_PRESETS}
                           onDraftChange={setDraftSalePriceRange}

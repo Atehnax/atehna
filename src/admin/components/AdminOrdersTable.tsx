@@ -5,7 +5,6 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { EuiFieldText } from '@elastic/eui';
 import { IconButton } from '@/shared/ui/icon-button';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import AdminOrderStatusSelect from '@/admin/components/AdminOrderStatusSelect';
@@ -22,14 +21,10 @@ import {
 import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, RowActionsDropdown, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
-import {
-  adminFilterInputTokenClasses,
-  adminTableRowToneClasses,
-  dateInputTokenClasses,
-  filterPillTokenClasses
-} from '@/shared/ui/theme/tokens';
+import { adminTableRowToneClasses, dateInputTokenClasses, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
 import { AdminTableLayout, ColumnVisibilityControl } from '@/shared/ui/admin-table';
 import AdminRangeFilterPanel, { type RangePreset } from '@/shared/ui/admin-range-filter-panel';
+import AdminFilterInput from '@/shared/ui/admin-filter-input';
 import AdminOrderPaymentSelect from '@/admin/components/AdminOrderPaymentSelect';
 import StatusChip from '@/admin/components/StatusChip';
 import PaymentChip from '@/admin/components/PaymentChip';
@@ -118,7 +113,6 @@ const PAYMENT_SORT_PRIORITY: Record<string, number> = {
 const TYPE_SORT_CYCLE: TypePriority[] = ['school', 'company', 'individual'];
 const HEADER_TITLE_BUTTON_CLASS = 'inline-flex items-center text-[11px] font-semibold leading-none hover:text-slate-700';
 const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500';
-const COMPACT_FILTER_INPUT_CLASS = adminFilterInputTokenClasses;
 const ORDERS_NUMERIC_RANGE_PRESETS: RangePreset[] = ['20', '50', '100', '200', '500', '1000'].map((maxValue) => ({
   label: `0-${maxValue === '1000' ? '1k' : maxValue}`,
   value: { min: '0', max: maxValue }
@@ -1871,8 +1865,8 @@ export default function AdminOrdersTable({
               <div style={getHeaderPopoverStyle(orderFilterButtonRef.current, 192)} className="rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
                 <h4 className="mb-2 text-[11px] font-semibold text-slate-800">Nastavi razpon naročil</h4>
                 <div className="grid grid-cols-2 gap-2">
-                  <EuiFieldText type="number" placeholder="Od" value={draftOrderNumberRange.min} onChange={(event) => setDraftOrderNumberRange((current) => ({ ...current, min: event.target.value }))} className={COMPACT_FILTER_INPUT_CLASS} aria-label="Od" />
-                  <EuiFieldText type="number" placeholder="Do" value={draftOrderNumberRange.max} onChange={(event) => setDraftOrderNumberRange((current) => ({ ...current, max: event.target.value }))} className={COMPACT_FILTER_INPUT_CLASS} aria-label="Do" />
+                  <AdminFilterInput type="number" placeholder="Od" value={draftOrderNumberRange.min} onChange={(event) => setDraftOrderNumberRange((current) => ({ ...current, min: event.target.value }))} aria-label="Od" />
+                  <AdminFilterInput type="number" placeholder="Do" value={draftOrderNumberRange.max} onChange={(event) => setDraftOrderNumberRange((current) => ({ ...current, max: event.target.value }))} aria-label="Do" />
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   <button type="button" className="rounded-xl bg-[color:var(--blue-500)] py-2 text-[11px] font-semibold text-white" onClick={() => { setOrderNumberRange(draftOrderNumberRange); setOpenHeaderFilter(null); }}>Potrdi</button>
@@ -1912,8 +1906,8 @@ export default function AdminOrdersTable({
                 </div>
                 <div className="mb-3 border-t border-slate-200 pt-3">
                   <div className="grid grid-cols-2 gap-2">
-                    <EuiFieldText type="date" lang="sl-SI" value={draftFromDate} onChange={(event) => setDraftFromDate(event.target.value)} className={COMPACT_FILTER_INPUT_CLASS} aria-label="Od" />
-                    <EuiFieldText type="date" lang="sl-SI" value={draftToDate} onChange={(event) => setDraftToDate(event.target.value)} className={COMPACT_FILTER_INPUT_CLASS} aria-label="Do" />
+                    <AdminFilterInput type="date" lang="sl-SI" value={draftFromDate} onChange={(event) => setDraftFromDate(event.target.value)} aria-label="Od" />
+                    <AdminFilterInput type="date" lang="sl-SI" value={draftToDate} onChange={(event) => setDraftToDate(event.target.value)} aria-label="Do" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">

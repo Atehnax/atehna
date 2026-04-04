@@ -1,4 +1,5 @@
-import { adminFilterInputTokenClasses, adminRangeFilterTokenClasses } from '@/shared/ui/theme/tokens';
+import AdminFilterInput from '@/shared/ui/admin-filter-input';
+import { adminRangeFilterTokenClasses } from '@/shared/ui/theme/tokens';
 
 type RangeValue = { min: string; max: string };
 
@@ -51,24 +52,22 @@ export default function AdminRangeFilterPanel({
       ) : null}
       <div className={adminRangeFilterTokenClasses.inputsSection}>
         <div className={adminRangeFilterTokenClasses.inputGrid}>
-          <input
+          <AdminFilterInput
             type="number"
             min={min}
             max={max}
             placeholder={minPlaceholder}
             value={draftRange.min}
             onChange={(event) => onDraftChange({ ...draftRange, min: event.target.value })}
-            className={adminFilterInputTokenClasses}
             aria-label={minPlaceholder}
           />
-          <input
+          <AdminFilterInput
             type="number"
             min={min}
             max={max}
             placeholder={maxPlaceholder}
             value={draftRange.max}
             onChange={(event) => onDraftChange({ ...draftRange, max: event.target.value })}
-            className={adminFilterInputTokenClasses}
             aria-label={maxPlaceholder}
           />
         </div>

@@ -3,6 +3,8 @@ import AdminArchiveTabs from '@/admin/components/AdminArchiveTabs';
 import { fetchArchiveEntries } from '@/shared/server/deletedArchive';
 import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';
+import { AdminPageHeader } from '@/shared/ui/admin-primitives';
+
 
 export const metadata = {
   title: 'Arhiv naročil'
@@ -21,8 +23,12 @@ async function AdminArchiveTableSection() {
           order_id: 1,
           document_id: null,
           label: '#1 · Demo naročilo',
+          order_created_at: new Date().toISOString(),
+          customer_name: 'Demo kupec',
+          address: 'Demo naslov 1, Ljubljana',
+          customer_type: 'individual',
           deleted_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
+          expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
         },
         {
           id: 2,
@@ -30,8 +36,12 @@ async function AdminArchiveTableSection() {
           order_id: 1,
           document_id: 17,
           label: '#1-order-summary-v2.pdf',
+          order_created_at: new Date().toISOString(),
+          customer_name: 'Demo kupec',
+          address: 'Demo naslov 1, Ljubljana',
+          customer_type: 'individual',
           deleted_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
+          expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
         }
       ];
     const compactEntries = entries.map((entry) => [
@@ -40,6 +50,10 @@ async function AdminArchiveTableSection() {
       entry.order_id,
       entry.document_id,
       entry.label,
+      entry.order_created_at,
+      entry.customer_name,
+      entry.address,
+      entry.customer_type,
       entry.deleted_at,
       entry.expires_at
     ] as const);
@@ -51,13 +65,11 @@ async function AdminArchiveTableSection() {
   });
 }
 
+
 export default async function AdminArchivePage() {
   return (
     <div className="w-full space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Arhiv naročil</h1>
-        <p className="mt-1 text-sm text-slate-600">Izbrisani zapisi se hranijo 60 dni, nato se trajno odstranijo.</p>
-      </div>
+      <AdminPageHeader title="Arhiv naročil" description="Izbrisani zapisi se hranijo 90 dni, nato se trajno odstranijo." />
       <AdminArchiveTabs />
       {await AdminArchiveTableSection()}
     </div>

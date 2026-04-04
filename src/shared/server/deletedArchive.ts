@@ -14,6 +14,10 @@ export type ArchiveEntry = {
   order_id: number | null;
   document_id: number | null;
   label: string;
+  order_created_at: string | null;
+  customer_name: string | null;
+  address: string | null;
+  customer_type: string | null;
   deleted_at: string;
   expires_at: string;
 };
@@ -23,6 +27,10 @@ type SoftDeletedEntry = {
   order_id: number | null;
   document_id: number | null;
   label: string;
+  order_created_at: string | null;
+  customer_name: string | null;
+  address: string | null;
+  customer_type: string | null;
   deleted_at: string;
   expires_at: string;
 };
@@ -92,7 +100,10 @@ async function fetchSoftDeletedFallbackEntries(
           order_number,
           contact_name,
           deleted_at,
-          deleted_at + interval '60 days' as expires_at
+          customer_type,
+          delivery_address,
+          created_at,
+          deleted_at + interval '90 days' as expires_at
         from orders
         where deleted_at is not null
         order by deleted_at desc
@@ -105,8 +116,12 @@ async function fetchSoftDeletedFallbackEntries(
           order_id: Number(row.order_id),
           document_id: null,
           label: `${String(row.order_number || `#${row.order_id}`)} · ${String(row.contact_name || 'Naročilo')}`,
+          order_created_at: row.created_at ? new Date(row.created_at).toISOString() : null,
+          customer_name: row.contact_name ? String(row.contact_name) : null,
+          address: row.delivery_address ? String(row.delivery_address) : null,
+          customer_type: row.customer_type ? String(row.customer_type) : null,
           deleted_at: new Date(row.deleted_at).toISOString(),
-          expires_at: new Date(row.expires_at ?? new Date(row.deleted_at).getTime() + 60 * 24 * 60 * 60 * 1000).toISOString()
+          expires_at: new Date(row.expires_at ?? new Date(row.deleted_at).getTime() + 90 * 24 * 60 * 60 * 1000).toISOString()
         }))
       );
     } catch (error) {
@@ -119,14 +134,19 @@ async function fetchSoftDeletedFallbackEntries(
       const documentsResult = await pool.query(
         `
         select
-          id as document_id,
-          order_id,
-          filename,
-          deleted_at,
-          deleted_at + interval '60 days' as expires_at
-        from order_documents
-        where deleted_at is not null
-        order by deleted_at desc
+          d.id as document_id,
+          d.order_id,
+          d.filename,
+          d.deleted_at,
+          o.contact_name,
+          o.delivery_address,
+          o.customer_type,
+          o.created_at,
+          d.deleted_at + interval '90 days' as expires_at
+        from order_documents d
+        left join orders o on o.id = d.order_id
+        where d.deleted_at is not null
+        order by d.deleted_at desc
         `
       );
 
@@ -136,8 +156,12 @@ async function fetchSoftDeletedFallbackEntries(
           order_id: Number(row.order_id),
           document_id: Number(row.document_id),
           label: String(row.filename || 'PDF dokument'),
+          order_created_at: row.created_at ? new Date(row.created_at).toISOString() : null,
+          customer_name: row.contact_name ? String(row.contact_name) : null,
+          address: row.delivery_address ? String(row.delivery_address) : null,
+          customer_type: row.customer_type ? String(row.customer_type) : null,
           deleted_at: new Date(row.deleted_at).toISOString(),
-          expires_at: new Date(row.expires_at ?? new Date(row.deleted_at).getTime() + 60 * 24 * 60 * 60 * 1000).toISOString()
+          expires_at: new Date(row.expires_at ?? new Date(row.deleted_at).getTime() + 90 * 24 * 60 * 60 * 1000).toISOString()
         }))
       );
     } catch (error) {
@@ -156,7 +180,7 @@ export async function fetchArchiveEntries(itemType?: 'all' | 'order' | 'pdf'): P
 
     if (itemType && itemType !== 'all') {
       params.push(itemType);
-      where = `where item_type = $${params.length}`;
+      where = `where e.item_type = $${params.length}`;
     }
 
     let explicitEntries: ArchiveEntry[] = [];
@@ -164,10 +188,22 @@ export async function fetchArchiveEntries(itemType?: 'all' | 'order' | 'pdf'): P
     try {
       const result = await pool.query(
         `
-        select id, item_type, order_id, document_id, label, deleted_at, expires_at
-        from deleted_archive_entries
+        select
+          e.id,
+          e.item_type,
+          e.order_id,
+          e.document_id,
+          e.label,
+          coalesce(e.payload->>'orderCreatedAt', o.created_at::text) as order_created_at,
+          coalesce(e.payload->>'customerName', o.contact_name) as customer_name,
+          coalesce(e.payload->>'address', o.delivery_address) as address,
+          coalesce(e.payload->>'customerType', o.customer_type) as customer_type,
+          e.deleted_at,
+          e.expires_at
+        from deleted_archive_entries e
+        left join orders o on o.id = e.order_id
         ${where}
-        order by deleted_at desc
+        order by e.deleted_at desc
         `,
         params
       );
@@ -178,6 +214,10 @@ export async function fetchArchiveEntries(itemType?: 'all' | 'order' | 'pdf'): P
         order_id: row.order_id === null ? null : Number(row.order_id),
         document_id: row.document_id === null ? null : Number(row.document_id),
         label: String(row.label),
+        order_created_at: row.order_created_at ? new Date(row.order_created_at).toISOString() : null,
+        customer_name: row.customer_name ? String(row.customer_name) : null,
+        address: row.address ? String(row.address) : null,
+        customer_type: row.customer_type ? String(row.customer_type) : null,
         deleted_at: new Date(row.deleted_at).toISOString(),
         expires_at: new Date(row.expires_at).toISOString()
       }));

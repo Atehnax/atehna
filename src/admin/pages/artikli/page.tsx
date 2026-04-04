@@ -8,6 +8,7 @@ import {
 } from '@/commercial/catalog/catalog';
 import { getCatalogItemsIndexServer } from '@/commercial/catalog/catalogServer';
 import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
+import { AdminPageHeader } from '@/shared/ui/admin-primitives';
 
 export const dynamic = 'force-dynamic';
 
@@ -84,13 +85,11 @@ async function AdminItemsManagerSection() {
   });
 }
 
+
 export default async function AdminArtikliPage() {
   return (
     <div className="w-full space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Artikli</h1>
-        <p className="mt-1 text-sm text-slate-600">Urejanje artiklov, statusov in prikaza v katalogu.</p>
-      </div>
+      <AdminPageHeader title="Artikli" description="Urejanje artiklov, statusov in prikaza v katalogu." />
       {await AdminItemsManagerSection()}
     </div>
   );

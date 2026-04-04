@@ -66,6 +66,7 @@ type StatusFilter = 'all' | 'active' | 'inactive';
 type ItemColumnKey = 'name' | 'sku' | 'category' | 'price' | 'discount' | 'salePrice' | 'status';
 type SortDirection = 'asc' | 'desc';
 type ItemsHeaderFilter = 'category' | 'status' | 'price' | 'discount' | 'salePrice' | null;
+type ItemHoverColumn = 'category' | 'price' | 'discount' | 'salePrice';
 
 const STORAGE_KEY = 'admin-items-crud-v3';
 const PAGE_SIZE_OPTIONS = [50, 100];
@@ -233,6 +234,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   const [salePriceRange, setSalePriceRange] = useState<RangeValue>(EMPTY_RANGE);
   const [draftSalePriceRange, setDraftSalePriceRange] = useState<RangeValue>(EMPTY_RANGE);
   const [sortState, setSortState] = useState<{ key: SortKey; direction: SortDirection } | null>(null);
+  const [hoveredCellMatch, setHoveredCellMatch] = useState<{ column: ItemHoverColumn; value: string } | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Item>(emptyItem());
@@ -483,6 +485,10 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   };
   const getHeaderTitleClass = (key: SortKey) =>
     `${HEADER_TITLE_BUTTON_CLASS} ${sortState?.key === key ? 'underline underline-offset-2' : ''}`;
+  const getComparableCellValue = (value: string) => value.toLowerCase();
+  const isMatchingHoveredCell = (column: ItemHoverColumn, value: string) =>
+    hoveredCellMatch?.column === column && hoveredCellMatch.value === getComparableCellValue(value);
+  const matchingValueHighlightClass = 'rounded-[4px] bg-amber-100/70 outline outline-1 outline-dashed outline-amber-500/80';
 
   const toggleAll = () => {
     if (allSelected) {
@@ -672,7 +678,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   return (
     <div className="space-y-4 font-['Inter',system-ui,sans-serif]">
       <AdminTableLayout
-        className="border shadow-sm"
+        className="!overflow-visible border shadow-sm"
         style={{ background: '#ffffff', borderColor: '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
         headerClassName="!bg-white"
         headerLeft={
@@ -748,7 +754,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
             itemsPerPageOptions={PAGE_SIZE_OPTIONS}
           />
         }
-        contentClassName="overflow-x-auto bg-white"
+        contentClassName="overflow-x-auto overflow-y-visible bg-white"
         showDivider={false}
         footerRight={
           <EuiTablePagination
@@ -920,10 +926,26 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                   <td className="px-2.5 py-2 text-center"><AdminCheckbox checked={selectedIds.includes(item.id)} onChange={() => toggleOne(item.id)} aria-label={`Izberi ${item.name}`} /></td>
                   {visibleColumns.name ? <td className="px-2.5 py-2 text-[11px] font-medium text-slate-900">{item.name}</td> : null}
                   {visibleColumns.sku ? <td className="px-2.5 py-2 text-[11px] text-slate-600">{item.sku}</td> : null}
-                  {visibleColumns.category ? <td className="px-2.5 py-2 text-[11px] text-slate-600">{getResolvedCategoryLabel(item)}</td> : null}
-                  {visibleColumns.price ? <td className="px-2.5 py-2 text-center text-[11px] text-slate-600">{formatCurrency(item.price)}</td> : null}
-                  {visibleColumns.discount ? <td className="px-2.5 py-2 text-center text-[11px] text-slate-600">{item.discountPct}%</td> : null}
-                  {visibleColumns.salePrice ? <td className="px-2.5 py-2 text-center text-[11px] text-slate-600">{formatCurrency(discountedPrice(item.price, item.discountPct))}</td> : null}
+                  {visibleColumns.category ? <td className="px-2.5 py-2 text-[11px] text-slate-600">
+                    <span className={isMatchingHoveredCell('category', getResolvedCategoryLabel(item)) ? matchingValueHighlightClass : ''} onMouseEnter={() => setHoveredCellMatch({ column: 'category', value: getComparableCellValue(getResolvedCategoryLabel(item)) })} onMouseLeave={() => setHoveredCellMatch(null)}>
+                      {getResolvedCategoryLabel(item)}
+                    </span>
+                  </td> : null}
+                  {visibleColumns.price ? <td className="px-2.5 py-2 text-center text-[11px] text-slate-600">
+                    <span className={isMatchingHoveredCell('price', formatCurrency(item.price)) ? matchingValueHighlightClass : ''} onMouseEnter={() => setHoveredCellMatch({ column: 'price', value: getComparableCellValue(formatCurrency(item.price)) })} onMouseLeave={() => setHoveredCellMatch(null)}>
+                      {formatCurrency(item.price)}
+                    </span>
+                  </td> : null}
+                  {visibleColumns.discount ? <td className="px-2.5 py-2 text-center text-[11px] text-slate-600">
+                    <span className={isMatchingHoveredCell('discount', `${item.discountPct}%`) ? matchingValueHighlightClass : ''} onMouseEnter={() => setHoveredCellMatch({ column: 'discount', value: getComparableCellValue(`${item.discountPct}%`) })} onMouseLeave={() => setHoveredCellMatch(null)}>
+                      {item.discountPct}%
+                    </span>
+                  </td> : null}
+                  {visibleColumns.salePrice ? <td className="px-2.5 py-2 text-center text-[11px] text-slate-600">
+                    <span className={isMatchingHoveredCell('salePrice', formatCurrency(discountedPrice(item.price, item.discountPct))) ? matchingValueHighlightClass : ''} onMouseEnter={() => setHoveredCellMatch({ column: 'salePrice', value: getComparableCellValue(formatCurrency(discountedPrice(item.price, item.discountPct))) })} onMouseLeave={() => setHoveredCellMatch(null)}>
+                      {formatCurrency(discountedPrice(item.price, item.discountPct))}
+                    </span>
+                  </td> : null}
                   {visibleColumns.status ? <td className="px-2.5 py-2 text-center">
                     <Chip
                       variant={item.active ? 'success' : 'neutral'}

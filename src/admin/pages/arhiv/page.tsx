@@ -23,8 +23,12 @@ async function AdminArchiveTableSection() {
           order_id: 1,
           document_id: null,
           label: '#1 · Demo naročilo',
+          order_created_at: new Date().toISOString(),
+          customer_name: 'Demo kupec',
+          address: 'Demo naslov 1, Ljubljana',
+          customer_type: 'individual',
           deleted_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
+          expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
         },
         {
           id: 2,
@@ -32,8 +36,12 @@ async function AdminArchiveTableSection() {
           order_id: 1,
           document_id: 17,
           label: '#1-order-summary-v2.pdf',
+          order_created_at: new Date().toISOString(),
+          customer_name: 'Demo kupec',
+          address: 'Demo naslov 1, Ljubljana',
+          customer_type: 'individual',
           deleted_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
+          expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
         }
       ];
     const compactEntries = entries.map((entry) => [
@@ -42,6 +50,10 @@ async function AdminArchiveTableSection() {
       entry.order_id,
       entry.document_id,
       entry.label,
+      entry.order_created_at,
+      entry.customer_name,
+      entry.address,
+      entry.customer_type,
       entry.deleted_at,
       entry.expires_at
     ] as const);
@@ -57,7 +69,7 @@ async function AdminArchiveTableSection() {
 export default async function AdminArchivePage() {
   return (
     <div className="w-full space-y-4">
-      <AdminPageHeader title="Arhiv naročil" description="Izbrisani zapisi se hranijo 60 dni, nato se trajno odstranijo." />
+      <AdminPageHeader title="Arhiv naročil" description="Izbrisani zapisi se hranijo 90 dni, nato se trajno odstranijo." />
       <AdminArchiveTabs />
       {await AdminArchiveTableSection()}
     </div>

@@ -7,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { EuiFieldText } from '@elastic/eui';
 import { IconButton } from '@/shared/ui/icon-button';
+import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import AdminOrderStatusSelect from '@/admin/components/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { Spinner } from '@/shared/ui/loading';
@@ -21,7 +22,6 @@ import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, RowActionsDropdown, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import {
   adminTableRowToneClasses,
-  adminEuiInputFocusTokenClasses,
   dateInputTokenClasses
 } from '@/shared/ui/theme/tokens';
 import { AdminTableLayout, ColumnVisibilityControl } from '@/shared/ui/admin-table';
@@ -1395,14 +1395,13 @@ export default function AdminOrdersTable({
           showDivider={false}
           headerLeft={
             <div className="flex h-7 w-full items-stretch">
-              <EuiFieldText
-                type="text"
-                fullWidth
+              <AdminSearchInput
+                showIcon={false}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Poišči naročila"
                 aria-label="Poišči naročila"
-                className={`!m-0 !h-7 min-w-0 w-full flex-1 rounded-xl border border-slate-200 bg-white px-3 font-['Inter',system-ui,sans-serif] !text-[11px] text-slate-700 ring-0 transition-colors placeholder:text-slate-400 ${adminEuiInputFocusTokenClasses}`}
+                className="!m-0 !h-7 min-w-0 w-full flex-1 border-slate-200 bg-white px-3 ring-0 transition-colors placeholder:text-slate-400"
               />
             </div>
           }

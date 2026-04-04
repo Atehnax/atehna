@@ -9,7 +9,9 @@ type AdminSearchInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>
 
 export function AdminSearchInput({ className = '', showIcon = true, ...props }: AdminSearchInputProps) {
   return (
-    <div className="relative min-w-0 w-full flex-1">
+    <div
+      className={`relative min-w-0 w-full flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white transition-colors focus-within:border-[#3e67d6] ${className}`}
+    >
       {showIcon ? (
         <svg
           viewBox="0 0 20 20"
@@ -23,6 +25,7 @@ export function AdminSearchInput({ className = '', showIcon = true, ...props }: 
           <path d="m13 13 3.8 3.8" />
         </svg>
       ) : null}
+
       <EuiFieldText
         type="search"
         fullWidth

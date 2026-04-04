@@ -64,7 +64,7 @@ export const surfaceTokenClasses = {
 } as const;
 
 const BTN_BASE =
-  "inline-flex items-center justify-center font-['SF_Pro_Display','Helvetica_Neue','Neue_Haas_Grotesk','Inter',system-ui,sans-serif] font-normal tracking-[0] transition disabled:pointer-events-none disabled:opacity-45";
+  "inline-flex items-center justify-center font-['Inter',system-ui,sans-serif] font-normal tracking-[0] transition disabled:pointer-events-none disabled:opacity-45";
 const BTN_FOCUS =
   'focus:border-[color:var(--blue-500)] focus:outline-none focus:ring-0 focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0';
 const BTN_SIZE_MD = 'h-8 px-3 rounded-lg text-xs';
@@ -137,6 +137,9 @@ export const iconButtonTokenClasses = {
   success:
     'border border-emerald-700/35 bg-emerald-50 text-emerald-700 shadow-none transition hover:bg-emerald-100 active:bg-emerald-100 disabled:cursor-default disabled:pointer-events-none disabled:opacity-60 disabled:bg-emerald-50/60 disabled:text-emerald-500',
   warning: 'border border-amber-300 text-amber-700 hover:bg-amber-100',
+
+  add:
+    'border border-amber-300/80 bg-amber-50/80 text-amber-700 shadow-none transition hover:border-dashed hover:border-amber-400 hover:bg-amber-100/80 active:bg-amber-100/80 disabled:cursor-default disabled:pointer-events-none disabled:opacity-60',
   danger: 'border border-rose-300 text-xs font-semibold leading-none text-rose-600 hover:bg-rose-50'
 } as const;
 
@@ -146,6 +149,28 @@ export const pillTokenClasses = {
     'rounded-lg font-semibold transition focus-visible:border focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0',
   itemActive: 'rounded-lg bg-[#e9efff] text-[#3659d6]',
   itemIdle: `border border-transparent bg-transparent text-slate-700 ${hoverTokenClasses.neutral}`
+} as const;
+
+export const filterPillTokenClasses = {
+  base: 'inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-[color:var(--ui-neutral-bg)] px-3 py-1 text-xs text-slate-700 transition-colors hover:bg-[color:var(--ui-neutral-bg-hover)]',
+  clear: 'inline-flex text-[12px] leading-none text-slate-500 transition hover:text-[color:var(--danger-600)] active:text-[color:var(--danger-600)]'
+} as const;
+
+export const adminFilterInputTokenClasses =
+  "h-7 rounded-md border border-slate-300 bg-white px-2 text-[11px] leading-[1.2] text-slate-700 font-['Inter',system-ui,sans-serif] outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0";
+
+export const adminRangeFilterTokenClasses = {
+  panel: 'rounded-xl border border-slate-200 bg-white p-2 text-left shadow-lg',
+  title: 'mb-2 text-[11px] font-semibold text-slate-800',
+  presetsGrid: 'mb-3 grid grid-cols-3 gap-1',
+  presetButton:
+    'rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-[color:var(--hover-neutral)]',
+  inputsSection: 'mb-3 border-t border-slate-200 pt-3',
+  inputGrid: 'grid grid-cols-2 gap-2',
+  actionsGrid: 'grid grid-cols-2 gap-2',
+  confirmButton: 'rounded-xl bg-[color:var(--blue-500)] py-2 text-[11px] font-semibold text-white',
+  resetButton:
+    'rounded-xl border border-slate-300 bg-[color:var(--ui-neutral-bg)] py-2 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--ui-neutral-bg-hover)]'
 } as const;
 
 export const selectTokenClasses = {

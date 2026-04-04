@@ -8,7 +8,7 @@ type SharedIconButtonProps = {
   className?: string;
   shape?: 'rounded' | 'square';
   size?: 'sm' | 'md';
-  tone?: 'neutral' | 'neutralStatus' | 'success' | 'warning' | 'danger';
+  tone?: 'neutral' | 'neutralStatus' | 'success' | 'warning' | 'danger' | 'add';
 };
 
 type IconButtonAsButtonProps = SharedIconButtonProps &
@@ -42,7 +42,8 @@ const toneClassMap = {
   neutralStatus: iconButtonTokenClasses.neutralStatus,
   success: iconButtonTokenClasses.success,
   warning: iconButtonTokenClasses.warning,
-  danger: iconButtonTokenClasses.danger
+  danger: iconButtonTokenClasses.danger,
+  add: iconButtonTokenClasses.add
 } as const;
 
 export default function IconButton({

@@ -67,9 +67,6 @@ export default function SiteHeader() {
             Atehna
             <span className="ml-2 text-sm font-medium text-brand-600">Šolska tehnika</span>
           </Link>
-          <span className="rounded-full border border-[color:var(--semantic-info-border)] bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-[color:var(--blue-500)]">
-            Administracija
-          </span>
         </div>
       </header>
     );

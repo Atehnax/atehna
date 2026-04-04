@@ -24,6 +24,31 @@ const toDisplayOrderNumberValue = (value: string) => {
   return trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
 };
 const toEditableOrderNumber = (value: string) => value.trim().replace(/^#/, '');
+const DATE_DISPLAY_PATTERN = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+
+const toDisplayOrderDate = (value: string) => {
+  const normalized = toDateInputValue(value);
+  const [year, month, day] = normalized.split('-');
+  if (!year || !month || !day) return value;
+  return `${day}/${month}/${year}`;
+};
+
+const toApiOrderDate = (value: string) => {
+  const trimmed = value.trim();
+  const displayMatch = DATE_DISPLAY_PATTERN.exec(trimmed);
+  if (displayMatch) {
+    const [, day, month, year] = displayMatch;
+    const isoCandidate = `${year}-${month}-${day}`;
+    const parsed = new Date(`${isoCandidate}T00:00:00`);
+    if (!Number.isNaN(parsed.getTime()) && parsed.getUTCFullYear() === Number(year) && parsed.getUTCMonth() + 1 === Number(month) && parsed.getUTCDate() === Number(day)) {
+      return isoCandidate;
+    }
+    return '';
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+  return '';
+};
 
 type TopData = {
   orderDate: string;
@@ -156,7 +181,7 @@ const asTopData = ({
   postalCode:
     (typeof postalCode === 'string' && postalCode.trim()) ||
     (deliveryAddress?.match(/\b\d{4}\b/)?.[0] ?? ''),
-  orderDate: toDateInputValue(createdAt),
+  orderDate: toDisplayOrderDate(createdAt),
   customerType,
   organizationName: organizationName?.trim() ? organizationName : contactName,
   contactName,
@@ -242,7 +267,7 @@ export default function AdminOrderHeaderChips(props: Props) {
             deliveryAddress: draftTopData.deliveryAddress,
             postalCode: draftTopData.postalCode,
             notes: draftTopData.notes,
-            orderDate: draftTopData.orderDate
+            orderDate: toApiOrderDate(draftTopData.orderDate)
           })
         })
       ]);
@@ -402,9 +427,15 @@ export default function AdminOrderHeaderChips(props: Props) {
           <div className="min-h-10 px-2.5">
             <p className="text-sm font-semibold text-slate-700">Datum</p>
             <input
-              type="date"
+              type="text"
               value={activeTopData.orderDate}
               onChange={(event) => setDraftTopData((prev) => ({ ...prev, orderDate: event.target.value }))}
+              onBlur={(event) => {
+                const normalized = toApiOrderDate(event.target.value);
+                if (!normalized) return;
+                setDraftTopData((prev) => ({ ...prev, orderDate: toDisplayOrderDate(normalized) }));
+              }}
+              placeholder="dd/mm/yyyy"
               className={editableInputClassName}
             />
           </div>

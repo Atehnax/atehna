@@ -33,10 +33,33 @@ export async function POST(
     }
 
 
-    const normalizedOrderDate =
-      typeof orderDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(orderDate)
-        ? `${orderDate}T00:00:00.000Z`
-        : null;
+    const normalizeOrderDate = (value: unknown) => {
+      if (typeof value !== 'string') return null;
+      const trimmed = value.trim();
+
+      if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+        return `${trimmed}T00:00:00.000Z`;
+      }
+
+      const displayMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmed);
+      if (!displayMatch) return null;
+
+      const [, day, month, year] = displayMatch;
+      const isoDate = `${year}-${month}-${day}`;
+      const parsed = new Date(`${isoDate}T00:00:00`);
+      if (
+        Number.isNaN(parsed.getTime()) ||
+        parsed.getUTCFullYear() !== Number(year) ||
+        parsed.getUTCMonth() + 1 !== Number(month) ||
+        parsed.getUTCDate() !== Number(day)
+      ) {
+        return null;
+      }
+
+      return `${isoDate}T00:00:00.000Z`;
+    };
+
+    const normalizedOrderDate = normalizeOrderDate(orderDate);
 
     const pool = await getPool();
     try {

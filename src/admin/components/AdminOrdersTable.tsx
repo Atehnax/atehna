@@ -1731,7 +1731,7 @@ export default function AdminOrdersTable({
 
                       {visibleColumns.customer ? <TD className="align-middle text-slate-700">
                         <span
-                          className={`inline-block max-w-full truncate ${isMatchingHoveredCell('customer', order.organization_name || order.contact_name) ? matchingValueHighlightNoShiftClass : ''}`}
+                          className={`inline-flex max-w-full items-center truncate ${isMatchingHoveredCell('customer', order.organization_name || order.contact_name) ? matchingValueHighlightNoShiftClass : ''}`}
                           title={order.organization_name || order.contact_name}
                           onMouseEnter={() => setHoveredCellMatch({ column: 'customer', value: getComparableCellValue(order.organization_name || order.contact_name) })}
                           onMouseLeave={() => setHoveredCellMatch(null)}
@@ -1742,7 +1742,7 @@ export default function AdminOrdersTable({
 
                       {visibleColumns.address ? <TD className="align-middle text-slate-700">
                         <span
-                          className={`inline-block max-w-full truncate ${isMatchingHoveredCell('address', orderAddress || '—') ? matchingValueHighlightNoShiftClass : ''}`}
+                          className={`inline-flex max-w-full items-center truncate ${isMatchingHoveredCell('address', orderAddress || '—') ? matchingValueHighlightNoShiftClass : ''}`}
                           title={orderAddress || '—'}
                           onMouseEnter={() => setHoveredCellMatch({ column: 'address', value: getComparableCellValue(orderAddress || '—') })}
                           onMouseLeave={() => setHoveredCellMatch(null)}

@@ -13,7 +13,7 @@ async function ensureArchiveSchema() {
       document_id bigint,
       label text not null,
       deleted_at timestamptz not null default now(),
-      expires_at timestamptz not null default (now() + interval '60 days'),
+      expires_at timestamptz not null default (now() + interval '90 days'),
       payload jsonb not null default '{}'::jsonb
     )
   `);
@@ -53,8 +53,20 @@ export async function DELETE(
 
     const documentResult = await pool.query(
       supportsSoftDelete
-        ? 'select id, type, filename, blob_url, blob_pathname, deleted_at from order_documents where id = $1 and order_id = $2'
-        : 'select id, type, filename, blob_url, blob_pathname, null::timestamptz as deleted_at from order_documents where id = $1 and order_id = $2',
+        ? `
+          select d.id, d.type, d.filename, d.blob_url, d.blob_pathname, d.deleted_at,
+            o.contact_name, o.delivery_address, o.customer_type, o.created_at
+          from order_documents d
+          left join orders o on o.id = d.order_id
+          where d.id = $1 and d.order_id = $2
+        `
+        : `
+          select d.id, d.type, d.filename, d.blob_url, d.blob_pathname, null::timestamptz as deleted_at,
+            o.contact_name, o.delivery_address, o.customer_type, o.created_at
+          from order_documents d
+          left join orders o on o.id = d.order_id
+          where d.id = $1 and d.order_id = $2
+        `,
       [documentId, orderId]
     );
 
@@ -67,6 +79,10 @@ export async function DELETE(
       filename: string;
       blob_url: string;
       blob_pathname: string | null;
+      contact_name: string | null;
+      delivery_address: string | null;
+      customer_type: string | null;
+      created_at: string | null;
       deleted_at: string | null;
     };
 
@@ -88,7 +104,15 @@ export async function DELETE(
             orderId,
             documentId,
             row.filename,
-            JSON.stringify({ type: row.type, blobUrl: row.blob_url, blobPathname: row.blob_pathname })
+            JSON.stringify({
+              type: row.type,
+              blobUrl: row.blob_url,
+              blobPathname: row.blob_pathname,
+              orderCreatedAt: row.created_at,
+              customerName: row.contact_name || null,
+              address: row.delivery_address || null,
+              customerType: row.customer_type || null
+            })
           ]
         );
       } catch (error) {

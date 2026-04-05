@@ -1446,6 +1446,7 @@ export default function AdminOrdersTable({
                   disabled={!hasSelectedRows || isDeleting}
                   tone={hasSelectedRows ? 'danger' : 'neutral'}
                   size="sm"
+                  className={hasSelectedRows ? '!border-rose-300 !bg-rose-50/70 !text-rose-700 !transition-none' : '!transition-none'}
                   aria-label="Izbriši izbrana naročila"
                   title="Izbriši"
                 >

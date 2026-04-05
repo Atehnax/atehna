@@ -91,7 +91,10 @@ function AdminOrderDetailShell({
         ) : null}
 
         {!showDemoBanner ? (
-          <Link href="/admin/orders" className="text-sm font-semibold text-[color:var(--blue-500)] hover:text-[color:var(--blue-600)]">
+          <Link
+            href="/admin/orders"
+            className="text-sm font-semibold text-black transition-colors hover:text-[#1982bf] active:text-[#1982bf]"
+          >
             ← Nazaj na seznam
           </Link>
         ) : null}

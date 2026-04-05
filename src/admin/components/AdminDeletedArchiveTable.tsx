@@ -468,7 +468,7 @@ export default function AdminDeletedArchiveTable({
   };
 
   const getHeaderTitleClass = (key: ArchiveSortKey) =>
-    `inline-flex items-center text-[11px] font-semibold leading-none hover:text-slate-700 ${sortState?.key === key ? 'underline underline-offset-2' : ''}`;
+    `inline-flex items-center text-[11px] font-semibold leading-none hover:text-[color:var(--blue-500)] ${sortState?.key === key ? 'underline underline-offset-2' : ''}`;
 
   const toComparableValue = (value: string) => (value || '—').toLowerCase();
   const isMatchingHoveredCell = (key: ArchiveSortKey, value: string) =>

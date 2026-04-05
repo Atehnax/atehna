@@ -1,5 +1,4 @@
 import { useEffect, useRef, type HTMLAttributes, type KeyboardEvent } from 'react';
-import { adminInputFocusTokenClasses } from '@/shared/ui/theme/tokens';
 
 type InlineEditableTextProps = Omit<HTMLAttributes<HTMLDivElement>, 'onChange' | 'onInput'> & {
   value: string;
@@ -50,7 +49,7 @@ export default function InlineEditableText({
       contentEditable
       suppressContentEditableWarning
       data-inline-edit-field="true"
-      className={`border border-transparent ${adminInputFocusTokenClasses} ${className ?? ''}`.trim()}
+      className={`outline-none focus:outline-none ${className ?? ''}`.trim()}
       onInput={(event) => {
         onChange(event.currentTarget.textContent ?? '');
       }}

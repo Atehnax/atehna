@@ -4,7 +4,7 @@ import type {
   MutableRefObject,
   ReactNode,
 } from "react";
-import { memo } from "react";
+import { memo, useState } from "react";
 import Image from "next/image";
 import {
   DndContext,
@@ -29,7 +29,6 @@ import {
   getDiscountedPrice,
 } from "@/commercial/catalog/catalogUtils";
 import { Button } from "@/shared/ui/button";
-import { adminInputFocusTokenClasses } from "@/shared/ui/theme/tokens";
 import { InlineEditableText } from "@/shared/ui/inline-edit";
 import type {
   CategoryStatus,
@@ -279,6 +278,11 @@ export function AdminCategoriesPreview({
   );
 }
 
+const CUT_CORNER_FOCUS_STYLE: CSSProperties = {
+  clipPath:
+    "polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px),0 8px)",
+};
+
 const CategoryPreviewCard = memo(function CategoryPreviewCard({
   dragHandleProps,
   setNodeRef,
@@ -320,6 +324,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
   onOpenNode: (item: ContentCard) => void;
   onStageStatusChange: (rowId: string, status: CategoryStatus) => void;
 }) {
+  const [focusedField, setFocusedField] = useState<"title" | "description" | null>(null);
   const editingDraft = editingRow?.id === item.id ? editingRow : null;
   const isEditing = Boolean(editingDraft);
   const isHidden = item.isInactive;
@@ -543,23 +548,36 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
               )}
             </div>
             {isEditing ? (
-              <InlineEditableText
-                id={`preview-title-${item.id}`}
-                aria-label="Naziv kategorije"
-                value={editingDraft?.title ?? titlePreview}
-                onChange={onEditingRowTitleChange}
-                onBlur={handleCardEditBlur}
-                autoFocus
-                placeCaretAtEndOnFocus
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
-                    event.preventDefault();
-                    onCommitEdit();
-                  }
-                  if (event.key === "Escape") onCancelEdit();
-                }}
-                className={`absolute inset-x-0 top-0 min-h-[40px] w-full whitespace-pre-wrap bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[0.92rem] font-semibold leading-5 tracking-normal text-slate-950 ${adminInputFocusTokenClasses}`}
-              />
+              <div className="absolute inset-x-0 top-0 min-h-[40px]">
+                {focusedField === "title" ? (
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 border border-[#3e67d6]"
+                    style={CUT_CORNER_FOCUS_STYLE}
+                  />
+                ) : null}
+                <InlineEditableText
+                  id={`preview-title-${item.id}`}
+                  aria-label="Naziv kategorije"
+                  value={editingDraft?.title ?? titlePreview}
+                  onChange={onEditingRowTitleChange}
+                  onFocus={() => setFocusedField("title")}
+                  onBlur={(event) => {
+                    setFocusedField((current) => (current === "title" ? null : current));
+                    handleCardEditBlur(event);
+                  }}
+                  autoFocus
+                  placeCaretAtEndOnFocus
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !event.shiftKey) {
+                      event.preventDefault();
+                      onCommitEdit();
+                    }
+                    if (event.key === "Escape") onCancelEdit();
+                  }}
+                  className="min-h-[40px] w-full whitespace-pre-wrap bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[0.92rem] font-semibold leading-5 tracking-normal text-slate-950"
+                />
+              </div>
             ) : null}
           </div>
 
@@ -570,24 +588,37 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
               {descriptionPreview}
             </p>
             {isEditing ? (
-              <InlineEditableText
-                id={`preview-description-${item.id}`}
-                aria-label="Opis kategorije"
-                value={editingDraft?.description ?? descriptionPreview}
-                onChange={onEditingRowDescriptionChange}
-                onBlur={handleCardEditBlur}
-                onKeyDown={(event) => {
-                  if (
-                    (event.metaKey || event.ctrlKey) &&
-                    event.key === "Enter"
-                  ) {
-                    event.preventDefault();
-                    onCommitEdit();
-                  }
-                  if (event.key === "Escape") onCancelEdit();
-                }}
-                className={`absolute inset-0 h-full w-full overflow-y-auto whitespace-pre-wrap bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[12px] leading-5 tracking-normal text-slate-950 ${adminInputFocusTokenClasses}`}
-              />
+              <div className="absolute inset-0">
+                {focusedField === "description" ? (
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 border border-[#3e67d6]"
+                    style={CUT_CORNER_FOCUS_STYLE}
+                  />
+                ) : null}
+                <InlineEditableText
+                  id={`preview-description-${item.id}`}
+                  aria-label="Opis kategorije"
+                  value={editingDraft?.description ?? descriptionPreview}
+                  onChange={onEditingRowDescriptionChange}
+                  onFocus={() => setFocusedField("description")}
+                  onBlur={(event) => {
+                    setFocusedField((current) => (current === "description" ? null : current));
+                    handleCardEditBlur(event);
+                  }}
+                  onKeyDown={(event) => {
+                    if (
+                      (event.metaKey || event.ctrlKey) &&
+                      event.key === "Enter"
+                    ) {
+                      event.preventDefault();
+                      onCommitEdit();
+                    }
+                    if (event.key === "Escape") onCancelEdit();
+                  }}
+                  className="h-full w-full overflow-y-auto whitespace-pre-wrap bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[12px] leading-5 tracking-normal text-slate-950"
+                />
+              </div>
             ) : null}
           </div>
 

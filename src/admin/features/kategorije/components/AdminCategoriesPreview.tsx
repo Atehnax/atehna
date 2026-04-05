@@ -29,6 +29,7 @@ import {
   getDiscountedPrice,
 } from "@/commercial/catalog/catalogUtils";
 import { Button } from "@/shared/ui/button";
+import { IconButton } from "@/shared/ui/icon-button";
 import { InlineEditableText, InlineEditFocusFrame } from "@/shared/ui/inline-edit";
 import type {
   CategoryStatus,
@@ -146,35 +147,42 @@ export function AdminCategoriesPreview({
           <p className="text-[13px] font-semibold text-slate-700">Predogled</p>
           <div className="flex items-center gap-3">
             <label className="mr-2 flex items-center gap-2 text-[11px] text-slate-500">
-              Elementov na vrstico
-              <input
-                id="categories-preview-columns"
-                name="categoriesPreviewColumns"
-                type="range"
-                min={3}
-                max={8}
-                value={lowerViewCount}
-                onChange={(event) =>
-                  onLowerViewCountChange(Number(event.target.value || 5))
-                }
-                className="h-1.5 w-28 accent-[#3e67d6]"
-              />
-              <span className="w-4 text-right text-slate-600">
+              <span>Elementov na vrstico</span>
+              <div className="flex flex-col">
+                <input
+                  id="categories-preview-columns"
+                  name="categoriesPreviewColumns"
+                  type="range"
+                  min={3}
+                  max={8}
+                  step={1}
+                  value={lowerViewCount}
+                  onChange={(event) =>
+                    onLowerViewCountChange(Number(event.target.value || 5))
+                  }
+                  className="h-1.5 w-[102px] cursor-pointer appearance-none rounded-full bg-slate-200 accent-[#3e67d6] [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-[#84c9f3] [&::-webkit-slider-thumb]:bg-[#9fd7fb] [&::-webkit-slider-thumb]:shadow-sm [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-[#84c9f3] [&::-moz-range-thumb]:bg-[#9fd7fb] [&::-moz-range-thumb]:shadow-sm"
+                />
+                <div className="mt-1 flex w-[102px] items-center justify-between px-0.5" aria-hidden="true">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <span key={`preview-columns-tick-${index}`} className="h-1 w-1 rounded-full bg-slate-400/80" />
+                  ))}
+                </div>
+              </div>
+              <span className="inline-flex h-5 min-w-[1.35rem] items-center justify-center rounded bg-slate-100 px-1 text-right text-slate-600">
                 {lowerViewCount}
               </span>
             </label>
-            <Button
-              variant="outline"
-              size="toolbar"
+            <IconButton
               onClick={onNavigateUp}
               disabled={!canNavigateUp}
               aria-label="Nazaj na nadrejeno kategorijo"
               title="Nazaj"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-xl px-0"
+              size="sm"
+              tone="neutral"
             >
               <svg
                 viewBox="0 0 640 640"
-                className="h-5 w-5 shrink-0"
+                className="h-4 w-4 shrink-0"
                 fill="currentColor"
                 stroke="currentColor"
                 strokeWidth="1.5"
@@ -183,10 +191,11 @@ export function AdminCategoriesPreview({
               >
                 <path d="M73.4 297.4C60.9 309.9 60.9 330.2 73.4 342.7L233.4 502.7C245.9 515.2 266.2 515.2 278.7 502.7C291.2 490.2 291.2 469.9 278.7 457.4L173.3 352L544 352C561.7 352 576 337.7 576 320C576 302.3 561.7 288 544 288L173.3 288L278.7 182.6C291.2 170.1 291.2 149.8 278.7 137.3C266.2 124.8 245.9 124.8 233.4 137.3L73.4 297.3z" />
               </svg>
-            </Button>
+            </IconButton>
             <Button
               variant="primary"
               size="toolbar"
+              className="!h-7 !rounded-md !px-3 !text-[11px]"
               onClick={() => {
                 if (hasActiveEditChanges) onCommitEdit();
                 onRequestSave();

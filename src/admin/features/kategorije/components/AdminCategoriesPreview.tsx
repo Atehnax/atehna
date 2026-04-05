@@ -4,7 +4,7 @@ import type {
   MutableRefObject,
   ReactNode,
 } from "react";
-import { memo } from "react";
+import { memo, useState } from "react";
 import Image from "next/image";
 import {
   DndContext,
@@ -15,7 +15,6 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
-import { EuiTextArea } from "@elastic/eui";
 import type {
   CatalogCategory,
   CatalogItem,
@@ -30,6 +29,7 @@ import {
   getDiscountedPrice,
 } from "@/commercial/catalog/catalogUtils";
 import { Button } from "@/shared/ui/button";
+import { InlineEditableText, InlineEditFocusFrame } from "@/shared/ui/inline-edit";
 import type {
   CategoryStatus,
   ContentCard,
@@ -167,17 +167,15 @@ export function AdminCategoriesPreview({
               className="inline-flex h-8 w-8 items-center justify-center rounded-xl px-0"
             >
               <svg
-                viewBox="0 0 24 24"
-                className="h-4 w-4"
-                fill="none"
+                viewBox="0 0 640 640"
+                className="h-5 w-5 shrink-0"
+                fill="currentColor"
                 stroke="currentColor"
                 strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+                xmlns="http://www.w3.org/2000/svg"
                 aria-hidden="true"
               >
-                <path d="M21 12H4" />
-                <path d="m10 6-6 6 6 6" />
+                <path d="M73.4 297.4C60.9 309.9 60.9 330.2 73.4 342.7L233.4 502.7C245.9 515.2 266.2 515.2 278.7 502.7C291.2 490.2 291.2 469.9 278.7 457.4L173.3 352L544 352C561.7 352 576 337.7 576 320C576 302.3 561.7 288 544 288L173.3 288L278.7 182.6C291.2 170.1 291.2 149.8 278.7 137.3C266.2 124.8 245.9 124.8 233.4 137.3L73.4 297.3z" />
               </svg>
             </Button>
             <Button
@@ -321,19 +319,18 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
   onOpenNode: (item: ContentCard) => void;
   onStageStatusChange: (rowId: string, status: CategoryStatus) => void;
 }) {
+  const [isTitleFocused, setIsTitleFocused] = useState(false);
+  const [isDescriptionFocused, setIsDescriptionFocused] = useState(false);
   const editingDraft = editingRow?.id === item.id ? editingRow : null;
   const isEditing = Boolean(editingDraft);
   const isHidden = item.isInactive;
   const titlePreview = item.title || "—";
   const descriptionPreview = item.description || "—";
+  const descriptionEditValue = editingDraft?.description ?? descriptionPreview;
+  const descriptionLineCount = Math.max(2, descriptionEditValue.split("\n").length);
+  const descriptionEditorHeight = Math.min(76, descriptionLineCount * 20);
   const shouldShowHoverDetails =
     titlePreview.length > 50 || descriptionPreview.length > 75;
-  const moveCaretToEnd = (event: FocusEvent<HTMLTextAreaElement>) => {
-    const input = event.currentTarget;
-    const end = input.value.length;
-    input.setSelectionRange(end, end);
-  };
-
   const triggerImagePicker = () => {
     const input = uploadRefs.current[item.id];
     if (!input) return;
@@ -388,7 +385,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
       icon: (
         <svg
           viewBox="0 0 24 24"
-          className="h-4 w-4"
+          className="block h-[17.6px] w-[17.6px] shrink-0"
           fill="none"
           stroke="currentColor"
           strokeWidth="1.5"
@@ -417,7 +414,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
       icon: (
         <svg
           viewBox="0 0 20 20"
-          className="h-3.5 w-3.5"
+          className="block h-[15.4px] w-[15.4px] shrink-0"
           fill="none"
           stroke="currentColor"
           strokeWidth="1.5"
@@ -465,7 +462,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
       style={style}
       className="group flex h-full min-h-[225px] flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04)]"
     >
-      <div className="group/image relative h-[170px] overflow-hidden">
+      <div className="group/image relative h-[170px] shrink-0 overflow-hidden">
         <div
           className={`absolute inset-0 ${item.image ? "bg-slate-100" : "bg-[#323538]"}`}
           aria-hidden="true"
@@ -491,7 +488,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
             <button
               key={action.key}
               type="button"
-              className={`inline-flex h-[25px] min-w-[1.6rem] items-center justify-center rounded-md border px-0 shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${action.tone === "danger" ? "border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]" : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50"} ${action.dragHandle ? "cursor-grab active:cursor-grabbing" : ""}`}
+              className={`inline-flex h-[25px] min-w-[1.6rem] items-center justify-center rounded-md border px-0 leading-none shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${action.tone === "danger" ? "border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]" : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50"} ${action.dragHandle ? "cursor-grab active:cursor-grabbing" : ""}`}
               onPointerDown={(event) => {
                 if (!action.dragHandle) {
                   event.stopPropagation();
@@ -503,7 +500,9 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
               title={action.label}
               {...(action.dragHandle ? dragHandleProps : {})}
             >
-              {action.icon}
+              <span className="inline-flex h-full w-full items-center justify-center">
+                {action.icon}
+              </span>
             </button>
           ))}
         </div>
@@ -515,7 +514,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
         ) : null}
       </div>
 
-      <div className="relative flex h-[110px] flex-none flex-col px-3 pb-3 pt-2.5">
+      <div className="relative flex h-[133px] flex-none flex-col px-3 pb-3 pt-2.5">
         <div
           className="absolute inset-x-0 top-0 h-5 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.9),rgba(255,255,255,0)_72%)]"
           aria-hidden="true"
@@ -548,28 +547,32 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
               )}
             </div>
             {isEditing ? (
-              <EuiTextArea
-                id={`preview-title-${item.id}`}
-                name={`previewTitle-${item.id}`}
-                value={editingDraft?.title ?? titlePreview}
-                onChange={(event) =>
-                  onEditingRowTitleChange(event.target.value)
-                }
-                onBlur={handleCardEditBlur}
-                onFocus={moveCaretToEnd}
-                data-inline-edit-field="true"
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
-                    event.preventDefault();
-                    onCommitEdit();
-                  }
-                  if (event.key === "Escape") onCancelEdit();
-                }}
-                placeholder="Naziv kategorije"
-                className="absolute inset-x-0 top-0 h-10 w-full resize-none overflow-hidden border-transparent bg-transparent px-0 py-0 text-[0.92rem] font-semibold leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
-                autoFocus
-                aria-label="Naziv kategorije"
-              />
+              <div className="absolute inset-x-0 top-0 h-[40px]">
+                {isTitleFocused ? (
+                  <InlineEditFocusFrame />
+                ) : null}
+                <InlineEditableText
+                  id={`preview-title-${item.id}`}
+                  aria-label="Naziv kategorije"
+                  value={editingDraft?.title ?? titlePreview}
+                  onChange={onEditingRowTitleChange}
+                  onFocus={() => setIsTitleFocused(true)}
+                  onBlur={(event) => {
+                    setIsTitleFocused(false);
+                    handleCardEditBlur(event);
+                  }}
+                  autoFocus
+                  placeCaretAtEndOnFocus
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !event.shiftKey) {
+                      event.preventDefault();
+                      onCommitEdit();
+                    }
+                    if (event.key === "Escape") onCancelEdit();
+                  }}
+                  className="h-[40px] w-full overflow-hidden whitespace-pre-wrap bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[0.92rem] font-semibold leading-5 tracking-normal text-slate-950"
+                />
+              </div>
             ) : null}
           </div>
 
@@ -580,29 +583,33 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
               {descriptionPreview}
             </p>
             {isEditing ? (
-              <EuiTextArea
-                id={`preview-description-${item.id}`}
-                name={`previewDescription-${item.id}`}
-                value={editingDraft?.description ?? descriptionPreview}
-                onChange={(event) =>
-                  onEditingRowDescriptionChange(event.target.value)
-                }
-                onBlur={handleCardEditBlur}
-                data-inline-edit-field="true"
-                onKeyDown={(event) => {
-                  if (
-                    (event.metaKey || event.ctrlKey) &&
-                    event.key === "Enter"
-                  ) {
-                    event.preventDefault();
-                    onCommitEdit();
-                  }
-                  if (event.key === "Escape") onCancelEdit();
-                }}
-                placeholder="Opis kategorije"
-                className="absolute inset-0 min-h-[54px] w-full resize-none border-transparent bg-transparent px-0 py-0 text-[12px] leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
-                aria-label="Opis kategorije"
-              />
+              <div className="absolute inset-x-0 top-0" style={{ height: `${descriptionEditorHeight}px` }}>
+                {isDescriptionFocused ? (
+                  <InlineEditFocusFrame />
+                ) : null}
+                <InlineEditableText
+                  id={`preview-description-${item.id}`}
+                  aria-label="Opis kategorije"
+                  value={descriptionEditValue}
+                  onChange={onEditingRowDescriptionChange}
+                  onFocus={() => setIsDescriptionFocused(true)}
+                  onBlur={(event) => {
+                    setIsDescriptionFocused(false);
+                    handleCardEditBlur(event);
+                  }}
+                  onKeyDown={(event) => {
+                    if (
+                      (event.metaKey || event.ctrlKey) &&
+                      event.key === "Enter"
+                    ) {
+                      event.preventDefault();
+                      onCommitEdit();
+                    }
+                    if (event.key === "Escape") onCancelEdit();
+                  }}
+                  className="h-full w-full overflow-y-auto whitespace-pre-wrap bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[12px] leading-5 tracking-normal text-slate-950"
+                />
+              </div>
             ) : null}
           </div>
 
@@ -679,7 +686,7 @@ function CreateCategoryCard({ onClick }: { onClick: () => void }) {
         </svg>
       </span>
       <span className="mt-6 text-lg font-semibold text-slate-700">
-        Dodaj kategorijo
+        Ustvari kategorijo
       </span>
     </button>
   );
@@ -820,19 +827,18 @@ function DragHandleIcon({ className }: { className?: string }) {
     <svg
       viewBox="0 0 24 24"
       className={className}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      fill="currentColor"
       aria-hidden="true"
     >
-      <path d="M12 3v18" />
-      <path d="m8.5 6.5 3.5-3 3.5 3" />
-      <path d="m8.5 17.5 3.5 3 3.5-3" />
-      <path d="M3 12h18" />
-      <path d="m6.5 8.5-3.5 3 3.5 3" />
-      <path d="m17.5 8.5 3.5 3-3.5 3" />
+      <circle cx="7" cy="7" r="1.5" />
+      <circle cx="12" cy="7" r="1.5" />
+      <circle cx="17" cy="7" r="1.5" />
+      <circle cx="7" cy="12" r="1.5" />
+      <circle cx="12" cy="12" r="1.5" />
+      <circle cx="17" cy="12" r="1.5" />
+      <circle cx="7" cy="17" r="1.5" />
+      <circle cx="12" cy="17" r="1.5" />
+      <circle cx="17" cy="17" r="1.5" />
     </svg>
   );
 }

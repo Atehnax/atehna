@@ -78,6 +78,7 @@ import { PencilIcon, PlusIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActio
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActions, RowActionsDropdown } from '@/shared/ui/table';
 import {
+  adminInputFocusTokenClasses,
   adminTableRowToneClasses
 } from '@/shared/ui/theme/tokens';
 import { Input } from '@/shared/ui/input';
@@ -3175,7 +3176,7 @@ export default function AdminCategoriesMainTable({
                     },
                     {
                       key: 'add',
-                      label: 'Dodaj',
+                      label: 'Ustvari',
                       icon: <PlusIcon />,
                       onSelect: () => {
                         if (kind === 'root') {
@@ -3465,7 +3466,7 @@ export default function AdminCategoriesMainTable({
         open={createTarget !== null}
         title={createTarget?.kind === 'category' ? 'Nova kategorija' : 'Nova podkategorija'}
         description="Vnesite ime kategorije."
-        confirmLabel="Dodaj"
+        confirmLabel="Ustvari"
         cancelLabel="Prekliči"
         onCancel={() => {
           setCreateTarget(null);
@@ -3475,14 +3476,15 @@ export default function AdminCategoriesMainTable({
         confirmDisabled={createName.trim().length === 0}
       >
         <div className="mt-3">
-          <Input
+          <input
             id="create-category-name"
             name="createCategoryName"
             value={createName}
             onChange={(event: ChangeEvent<HTMLInputElement>) => setCreateName(event.target.value)}
             placeholder="Ime kategorije"
-            className="h-9 w-full rounded-xl px-3 text-sm"
+            className={`h-9 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-['Inter',system-ui,sans-serif] text-slate-900 ${adminInputFocusTokenClasses}`}
             autoFocus
+            aria-label="Ime kategorije"
           />
         </div>
       </LazyConfirmDialog> : null}

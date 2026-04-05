@@ -1,9 +1,6 @@
 'use client';
 
-import dynamic from 'next/dynamic';
-
-const ElasticTabs = dynamic(() => import('@elastic/eui').then((module) => module.EuiTabs), { ssr: false });
-const ElasticTab = dynamic(() => import('@elastic/eui').then((module) => module.EuiTab), { ssr: false });
+import type { KeyboardEvent } from 'react';
 
 type EuiTabItem = {
   value: string;
@@ -18,47 +15,38 @@ type EuiTabsProps = {
 };
 
 export default function EuiTabs({ value, onChange, tabs, className }: EuiTabsProps) {
-  if (typeof window === 'undefined') {
-    return (
-      <div className={`inline-flex items-end gap-5 ${className ?? ''}`.trim()}>
-        {tabs.map((tab) => {
-          const active = tab.value === value;
-          return (
-            <button
-              key={tab.value}
-              type="button"
-              onClick={() => onChange(tab.value)}
-              className={`border-b-2 bg-transparent pb-2 text-base leading-none font-['Inter',system-ui,sans-serif] transition ${
-                active
-                  ? 'border-[#1982bf] text-[#1982bf] font-medium'
-                  : 'border-slate-300 text-black hover:text-[#1982bf] active:text-[#1982bf]'
-              }`}
-              aria-pressed={active}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-    );
-  }
+  const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
+    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+    event.preventDefault();
+    const direction = event.key === 'ArrowRight' ? 1 : -1;
+    const nextIndex = (currentIndex + direction + tabs.length) % tabs.length;
+    onChange(tabs[nextIndex]?.value ?? value);
+  };
 
   return (
-    <ElasticTabs className={`admin-eui-tabs ${className ?? ''}`.trim()}>
+    <div role="tablist" aria-orientation="horizontal" className={`inline-flex items-end gap-5 ${className ?? ''}`.trim()}>
       {tabs.map((tab) => {
         const active = tab.value === value;
         return (
-          <ElasticTab
+          <button
             key={tab.value}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            tabIndex={active ? 0 : -1}
             onClick={() => onChange(tab.value)}
-            isSelected={active}
-            className="admin-eui-tab"
+            onKeyDown={(event) => onKeyDown(event, tabs.findIndex((entry) => entry.value === tab.value))}
+            className={`border-b-2 bg-transparent pb-2 text-base leading-none font-['Inter',system-ui,sans-serif] font-medium transition ${
+              active
+                ? 'border-[#1982bf] text-[#1982bf]'
+                : 'border-slate-300 text-black hover:text-[#1982bf] active:text-[#1982bf]'
+            }`}
           >
             {tab.label}
-          </ElasticTab>
+          </button>
         );
       })}
-    </ElasticTabs>
+    </div>
   );
 }
 

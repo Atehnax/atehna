@@ -4,7 +4,7 @@ import type {
   MutableRefObject,
   ReactNode,
 } from "react";
-import { memo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import Image from "next/image";
 import {
   DndContext,
@@ -287,7 +287,7 @@ function CutCornerFocusOutline() {
       preserveAspectRatio="none"
     >
       <polygon
-        points="8,0 92,0 100,8 100,92 92,100 8,100 0,92 0,8"
+        points="8,1 92,1 99,8 99,92 92,99 8,99 1,92 1,8"
         fill="none"
         stroke="#3e67d6"
         strokeWidth="1"
@@ -340,6 +340,17 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
   const [focusedField, setFocusedField] = useState<"title" | "description" | null>(null);
   const editingDraft = editingRow?.id === item.id ? editingRow : null;
   const isEditing = Boolean(editingDraft);
+  const isTitleEditing = isEditing && focusedField === "title";
+  const isDescriptionEditing = isEditing && focusedField === "description";
+  useEffect(() => {
+    if (isEditing && focusedField === null) {
+      setFocusedField("title");
+      return;
+    }
+    if (!isEditing && focusedField !== null) {
+      setFocusedField(null);
+    }
+  }, [focusedField, isEditing]);
   const isHidden = item.isInactive;
   const titlePreview = item.title || "—";
   const descriptionPreview = item.description || "—";
@@ -536,7 +547,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
         <div className="relative flex h-full flex-col">
           <div className="relative min-h-[40px]">
             <div
-              className={`min-h-[40px] min-w-0 ${isEditing ? "invisible" : ""}`}
+              className={`min-h-[40px] min-w-0 ${isTitleEditing ? "invisible" : ""}`}
             >
               {item.hasChildren ? (
                 <button
@@ -560,8 +571,8 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
                 </p>
               )}
             </div>
-            {isEditing ? (
-              <div className="absolute inset-x-0 top-0 min-h-[40px]">
+            {isTitleEditing ? (
+              <div className="absolute inset-x-0 top-0 h-[40px]">
                 {focusedField === "title" ? (
                   <CutCornerFocusOutline />
                 ) : null}
@@ -584,7 +595,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
                     }
                     if (event.key === "Escape") onCancelEdit();
                   }}
-                  className="min-h-[40px] w-full whitespace-pre-wrap bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[0.92rem] font-semibold leading-5 tracking-normal text-slate-950"
+                  className="h-[40px] w-full overflow-hidden whitespace-pre-wrap bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[0.92rem] font-semibold leading-5 tracking-normal text-slate-950"
                 />
               </div>
             ) : null}
@@ -592,11 +603,15 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
 
           <div className="relative mt-2 min-h-[66px] flex-1 overflow-hidden">
             <p
-              className={`line-clamp-3 min-h-[60px] whitespace-pre-wrap text-[12px] leading-5 text-slate-950 ${isEditing ? "invisible" : ""}`}
+              className={`line-clamp-3 min-h-[60px] whitespace-pre-wrap text-[12px] leading-5 text-slate-950 ${isDescriptionEditing ? "invisible" : ""}`}
+              onClick={() => {
+                if (!isEditing || isDescriptionEditing) return;
+                setFocusedField("description");
+              }}
             >
               {descriptionPreview}
             </p>
-            {isEditing ? (
+            {isDescriptionEditing ? (
               <div className="relative min-h-[60px]">
                 {focusedField === "description" ? (
                   <CutCornerFocusOutline />

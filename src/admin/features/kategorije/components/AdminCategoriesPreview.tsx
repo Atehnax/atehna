@@ -168,12 +168,10 @@ export function AdminCategoriesPreview({
             >
               <svg
                 viewBox="0 0 640 640"
-                className="h-4 w-4"
+                className="h-5 w-5 shrink-0"
                 fill="currentColor"
                 stroke="currentColor"
                 strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
                 xmlns="http://www.w3.org/2000/svg"
                 aria-hidden="true"
               >
@@ -388,7 +386,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
       icon: (
         <svg
           viewBox="0 0 24 24"
-          className="h-[17.6px] w-[17.6px]"
+          className="block h-[17.6px] w-[17.6px] shrink-0"
           fill="none"
           stroke="currentColor"
           strokeWidth="1.5"
@@ -417,7 +415,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
       icon: (
         <svg
           viewBox="0 0 20 20"
-          className="h-[15.4px] w-[15.4px]"
+          className="block h-[15.4px] w-[15.4px] shrink-0"
           fill="none"
           stroke="currentColor"
           strokeWidth="1.5"
@@ -491,7 +489,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
             <button
               key={action.key}
               type="button"
-              className={`inline-flex h-[25px] min-w-[1.6rem] items-center justify-center rounded-md border px-0 shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${action.tone === "danger" ? "border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]" : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50"} ${action.dragHandle ? "cursor-grab active:cursor-grabbing" : ""}`}
+              className={`inline-flex h-[25px] min-w-[1.6rem] items-center justify-center rounded-md border px-0 leading-none shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${action.tone === "danger" ? "border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]" : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50"} ${action.dragHandle ? "cursor-grab active:cursor-grabbing" : ""}`}
               onPointerDown={(event) => {
                 if (!action.dragHandle) {
                   event.stopPropagation();

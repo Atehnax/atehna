@@ -129,7 +129,13 @@ export function AdminCategoriesPreview({
     : false;
 
   return (
-    <div className={activeView === "preview" ? "w-full space-y-4" : "hidden"}>
+    <div
+      className={
+        activeView === "preview"
+          ? "w-full space-y-4 font-['Inter',system-ui,sans-serif]"
+          : "hidden"
+      }
+    >
       <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
         {tableError ? (
           <p className="mb-3 rounded-lg border border-[var(--danger-300)] bg-[var(--danger-100)] px-3 py-2 text-xs text-[var(--danger-700)]">
@@ -460,7 +466,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
     <article
       ref={setNodeRef}
       style={style}
-      className="group flex h-full min-h-[225px] flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04)]"
+      className="group flex h-full min-h-[225px] flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white font-['Inter',system-ui,sans-serif] shadow-[0_2px_8px_rgba(15,23,42,0.04)]"
     >
       <div className="group/image relative h-[170px] shrink-0 overflow-hidden">
         <div
@@ -668,7 +674,7 @@ function CreateCategoryCard({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-[225px] flex-col items-center justify-center rounded-[18px] border border-dashed border-slate-300 bg-[color:var(--ui-neutral-bg)] px-6 text-center transition hover:border-slate-400 hover:bg-[color:var(--ui-neutral-bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/40"
+      className="flex min-h-[225px] flex-col items-center justify-center rounded-[18px] border border-dashed border-slate-300 bg-[color:var(--ui-neutral-bg)] px-6 text-center font-['Inter',system-ui,sans-serif] transition hover:border-slate-400 hover:bg-[color:var(--ui-neutral-bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/40"
       aria-label="Ustvari novo kategorijo"
     >
       <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-slate-600 shadow-sm">
@@ -747,7 +753,7 @@ function LeafProductsView({
   );
 
   return (
-    <div>
+    <div className="font-['Inter',system-ui,sans-serif]">
       <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
       <p className="mt-1 text-sm text-slate-600">
         Storefront-like pogled izdelkov iz izbrane kategorije.

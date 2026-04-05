@@ -3411,6 +3411,7 @@ export default function AdminCategoriesMainTable({
 
       {isBulkDeleteDialogOpen ? <LazyConfirmDialog
         open={isBulkDeleteDialogOpen}
+        panelClassName={activeView === 'preview' ? "font-['Inter',system-ui,sans-serif]" : undefined}
         title="Izbris kategorij"
         description={`Ali ste prepričani, da želite izbrisati ${selectedRows.length} izbranih vrstic?`}
         confirmLabel="Izbriši"
@@ -3425,6 +3426,7 @@ export default function AdminCategoriesMainTable({
 
       {warningDialog !== null ? <LazyConfirmDialog
         open={warningDialog !== null}
+        panelClassName={activeView === 'preview' ? "font-['Inter',system-ui,sans-serif]" : undefined}
         title={warningDialog?.title ?? 'Opozorilo'}
         description={warningDialog?.description}
         confirmLabel="V redu"
@@ -3434,6 +3436,7 @@ export default function AdminCategoriesMainTable({
 
       {isUnsavedLeaveDialogOpen ? <LazyConfirmDialog
         open={isUnsavedLeaveDialogOpen}
+        panelClassName={activeView === 'preview' ? "font-['Inter',system-ui,sans-serif]" : undefined}
         title="Neshranjene spremembe"
         description="Imate neshranjene spremembe. Če zapustite stran, bodo lokalne spremembe izgubljene."
         confirmLabel="Zapusti stran"
@@ -3453,6 +3456,7 @@ export default function AdminCategoriesMainTable({
 
       {imageDeleteTarget !== null ? <LazyConfirmDialog
         open={imageDeleteTarget !== null}
+        panelClassName={activeView === 'preview' ? "font-['Inter',system-ui,sans-serif]" : undefined}
         title="Odstrani sliko"
         description="Ali ste prepričani, da želite odstraniti sliko?"
         confirmLabel="Odstrani"
@@ -3464,6 +3468,7 @@ export default function AdminCategoriesMainTable({
 
       {createTarget !== null ? <LazyConfirmDialog
         open={createTarget !== null}
+        panelClassName={activeView === 'preview' ? "font-['Inter',system-ui,sans-serif]" : undefined}
         title={createTarget?.kind === 'category' ? 'Nova kategorija' : 'Nova podkategorija'}
         description="Vnesite ime kategorije."
         confirmLabel="Ustvari"
@@ -3592,6 +3597,7 @@ export default function AdminCategoriesMainTable({
 
       {isTableSaveDialogOpen ? <LazyConfirmDialog
         open={isTableSaveDialogOpen}
+        panelClassName={activeView === 'preview' ? "font-['Inter',system-ui,sans-serif]" : undefined}
         title="Shrani spremembe"
         description="Pregled pripravljenih sprememb:"
         confirmLabel="Shrani"

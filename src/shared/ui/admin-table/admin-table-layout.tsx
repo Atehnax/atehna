@@ -34,7 +34,7 @@ export default function AdminTableLayout({
   const hasFilterRow = Boolean(filterRowLeft || filterRowRight);
 
   return (
-    <TableShell className={classNames('overflow-visible border-slate-200 bg-white', className)} style={style}>
+    <TableShell className={classNames('border-slate-200 bg-white', className)} style={style}>
       <div className={classNames(ADMIN_TABLE_BG, 'px-3 py-3', headerClassName)}>
         {hasHeaderRow ? (
           <div className="flex flex-nowrap items-center justify-between gap-1.5">

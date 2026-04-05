@@ -678,7 +678,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   return (
     <div className="space-y-4 font-['Inter',system-ui,sans-serif]">
       <AdminTableLayout
-        className="!overflow-visible border shadow-sm"
+        className="border shadow-sm"
         style={{ background: '#ffffff', borderColor: '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
         headerClassName="!bg-white"
         headerLeft={

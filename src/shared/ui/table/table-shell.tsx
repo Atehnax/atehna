@@ -11,7 +11,7 @@ const classNames = (...parts: Array<string | false | null | undefined>) =>
 
 export default function TableShell({ children, className, style }: TableShellProps) {
   return (
-    <div className={classNames('overflow-visible rounded-2xl border shadow-sm', className)} style={style}>
+    <div className={classNames('overflow-hidden rounded-2xl border shadow-sm', className)} style={style}>
       {children}
     </div>
   );

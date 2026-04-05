@@ -169,7 +169,7 @@ export function AdminCategoriesPreview({
               <svg
                 viewBox="0 0 640 640"
                 className="h-4 w-4"
-                fill="none"
+                fill="currentColor"
                 stroke="currentColor"
                 strokeWidth="1.5"
                 strokeLinecap="round"
@@ -388,7 +388,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
       icon: (
         <svg
           viewBox="0 0 24 24"
-          className="h-4 w-4"
+          className="h-[17.6px] w-[17.6px]"
           fill="none"
           stroke="currentColor"
           strokeWidth="1.5"
@@ -417,7 +417,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
       icon: (
         <svg
           viewBox="0 0 20 20"
-          className="h-3.5 w-3.5"
+          className="h-[15.4px] w-[15.4px]"
           fill="none"
           stroke="currentColor"
           strokeWidth="1.5"
@@ -503,7 +503,9 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
               title={action.label}
               {...(action.dragHandle ? dragHandleProps : {})}
             >
-              {action.icon}
+              <span className="inline-flex h-full w-full items-center justify-center">
+                {action.icon}
+              </span>
             </button>
           ))}
         </div>

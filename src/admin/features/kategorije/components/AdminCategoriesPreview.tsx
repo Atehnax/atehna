@@ -30,6 +30,7 @@ import {
 } from "@/commercial/catalog/catalogUtils";
 import { Button } from "@/shared/ui/button";
 import { adminInputFocusTokenClasses } from "@/shared/ui/theme/tokens";
+import { InlineEditableText } from "@/shared/ui/inline-edit";
 import type {
   CategoryStatus,
   ContentCard,
@@ -326,12 +327,6 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
   const descriptionPreview = item.description || "—";
   const shouldShowHoverDetails =
     titlePreview.length > 50 || descriptionPreview.length > 75;
-  const moveCaretToEnd = (event: FocusEvent<HTMLTextAreaElement>) => {
-    const input = event.currentTarget;
-    const end = input.value.length;
-    input.setSelectionRange(end, end);
-  };
-
   const triggerImagePicker = () => {
     const input = uploadRefs.current[item.id];
     if (!input) return;
@@ -548,16 +543,14 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
               )}
             </div>
             {isEditing ? (
-              <textarea
+              <InlineEditableText
                 id={`preview-title-${item.id}`}
-                name={`previewTitle-${item.id}`}
+                aria-label="Naziv kategorije"
                 value={editingDraft?.title ?? titlePreview}
-                onChange={(event) =>
-                  onEditingRowTitleChange(event.target.value)
-                }
+                onChange={onEditingRowTitleChange}
                 onBlur={handleCardEditBlur}
-                onFocus={moveCaretToEnd}
-                data-inline-edit-field="true"
+                autoFocus
+                placeCaretAtEndOnFocus
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && !event.shiftKey) {
                     event.preventDefault();
@@ -565,11 +558,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
                   }
                   if (event.key === "Escape") onCancelEdit();
                 }}
-                placeholder="Naziv kategorije"
-                rows={2}
-                className={`absolute inset-x-0 top-0 min-h-[40px] w-full resize-none overflow-hidden border border-transparent bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[0.92rem] font-semibold leading-5 tracking-normal text-slate-950 ${adminInputFocusTokenClasses}`}
-                autoFocus
-                aria-label="Naziv kategorije"
+                className={`absolute inset-x-0 top-0 min-h-[40px] w-full whitespace-pre-wrap bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[0.92rem] font-semibold leading-5 tracking-normal text-slate-950 ${adminInputFocusTokenClasses}`}
               />
             ) : null}
           </div>
@@ -581,15 +570,12 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
               {descriptionPreview}
             </p>
             {isEditing ? (
-              <textarea
+              <InlineEditableText
                 id={`preview-description-${item.id}`}
-                name={`previewDescription-${item.id}`}
+                aria-label="Opis kategorije"
                 value={editingDraft?.description ?? descriptionPreview}
-                onChange={(event) =>
-                  onEditingRowDescriptionChange(event.target.value)
-                }
+                onChange={onEditingRowDescriptionChange}
                 onBlur={handleCardEditBlur}
-                data-inline-edit-field="true"
                 onKeyDown={(event) => {
                   if (
                     (event.metaKey || event.ctrlKey) &&
@@ -600,9 +586,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
                   }
                   if (event.key === "Escape") onCancelEdit();
                 }}
-                placeholder="Opis kategorije"
-                className={`absolute inset-0 h-full w-full resize-none overflow-y-auto border border-transparent bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[12px] leading-5 tracking-normal text-slate-950 ${adminInputFocusTokenClasses}`}
-                aria-label="Opis kategorije"
+                className={`absolute inset-0 h-full w-full overflow-y-auto whitespace-pre-wrap bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[12px] leading-5 tracking-normal text-slate-950 ${adminInputFocusTokenClasses}`}
               />
             ) : null}
           </div>

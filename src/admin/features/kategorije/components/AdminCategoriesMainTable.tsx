@@ -78,7 +78,7 @@ import { PencilIcon, PlusIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActio
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActions, RowActionsDropdown } from '@/shared/ui/table';
 import {
-  adminEuiInputFocusTokenClasses,
+  adminInputFocusTokenClasses,
   adminTableRowToneClasses
 } from '@/shared/ui/theme/tokens';
 import { Input } from '@/shared/ui/input';
@@ -3476,14 +3476,15 @@ export default function AdminCategoriesMainTable({
         confirmDisabled={createName.trim().length === 0}
       >
         <div className="mt-3">
-          <Input
+          <input
             id="create-category-name"
             name="createCategoryName"
             value={createName}
             onChange={(event: ChangeEvent<HTMLInputElement>) => setCreateName(event.target.value)}
             placeholder="Ime kategorije"
-            className={`h-9 w-full rounded-xl px-3 text-sm ${adminEuiInputFocusTokenClasses}`}
+            className={`h-9 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-['Inter',system-ui,sans-serif] text-slate-900 ${adminInputFocusTokenClasses}`}
             autoFocus
+            aria-label="Ime kategorije"
           />
         </div>
       </LazyConfirmDialog> : null}

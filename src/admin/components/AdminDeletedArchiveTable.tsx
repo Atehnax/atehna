@@ -468,7 +468,7 @@ export default function AdminDeletedArchiveTable({
   };
 
   const getHeaderTitleClass = (key: ArchiveSortKey) =>
-    `inline-flex items-center text-[11px] font-semibold leading-none hover:text-slate-700 ${sortState?.key === key ? 'underline underline-offset-2' : ''}`;
+    `inline-flex items-center text-[11px] font-semibold leading-none hover:text-[color:var(--blue-500)] ${sortState?.key === key ? 'underline underline-offset-2' : ''}`;
 
   const toComparableValue = (value: string) => (value || '—').toLowerCase();
   const isMatchingHoveredCell = (key: ArchiveSortKey, value: string) =>
@@ -678,7 +678,7 @@ export default function AdminDeletedArchiveTable({
                   </div>
                 </TH>
               ) : null}
-              {visibleColumns.element ? <TH className="text-[11px]">Element</TH> : null}
+              {visibleColumns.element ? <TH className="text-[11px]"><span className="inline-flex items-center text-[11px] font-semibold leading-none text-slate-700">Element</span></TH> : null}
               {visibleColumns.orderDate ? <TH className="text-center text-[11px]">
                 <div className="relative inline-flex items-center gap-1.5 align-middle" data-archive-header-filter="true">
                   <button type="button" onClick={() => handleSort('order_created_at')} className={getHeaderTitleClass('order_created_at')}>Datum naročila</button>

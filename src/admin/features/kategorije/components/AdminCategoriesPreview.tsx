@@ -176,8 +176,8 @@ export function AdminCategoriesPreview({
                 strokeLinejoin="round"
                 aria-hidden="true"
               >
-                <path d="M9 7 4 12l5 5" />
-                <path d="M5 12h8c4.418 0 8 3.582 8 8" />
+                <path d="M21 12H4" />
+                <path d="m10 6-6 6 6 6" />
               </svg>
             </Button>
             <Button
@@ -827,7 +827,12 @@ function DragHandleIcon({ className }: { className?: string }) {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path d="M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01" />
+      <path d="M12 3v18" />
+      <path d="m8.5 6.5 3.5-3 3.5 3" />
+      <path d="m8.5 17.5 3.5 3 3.5-3" />
+      <path d="M3 12h18" />
+      <path d="m6.5 8.5-3.5 3 3.5 3" />
+      <path d="m17.5 8.5 3.5 3-3.5 3" />
     </svg>
   );
 }

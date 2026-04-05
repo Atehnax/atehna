@@ -15,7 +15,6 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
-import { EuiTextArea } from "@elastic/eui";
 import type {
   CatalogCategory,
   CatalogItem,
@@ -30,6 +29,7 @@ import {
   getDiscountedPrice,
 } from "@/commercial/catalog/catalogUtils";
 import { Button } from "@/shared/ui/button";
+import { adminInputFocusTokenClasses } from "@/shared/ui/theme/tokens";
 import type {
   CategoryStatus,
   ContentCard,
@@ -548,7 +548,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
               )}
             </div>
             {isEditing ? (
-              <EuiTextArea
+              <textarea
                 id={`preview-title-${item.id}`}
                 name={`previewTitle-${item.id}`}
                 value={editingDraft?.title ?? titlePreview}
@@ -566,7 +566,8 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
                   if (event.key === "Escape") onCancelEdit();
                 }}
                 placeholder="Naziv kategorije"
-                className="absolute inset-x-0 top-0 h-10 w-full resize-none overflow-hidden border-transparent bg-transparent px-0 py-0 text-[0.92rem] font-semibold leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                rows={2}
+                className={`absolute inset-x-0 top-0 min-h-[40px] w-full resize-none overflow-hidden rounded-md border border-transparent bg-transparent px-0 py-0 text-[0.92rem] font-semibold leading-5 text-slate-950 ${adminInputFocusTokenClasses}`}
                 autoFocus
                 aria-label="Naziv kategorije"
               />
@@ -580,7 +581,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
               {descriptionPreview}
             </p>
             {isEditing ? (
-              <EuiTextArea
+              <textarea
                 id={`preview-description-${item.id}`}
                 name={`previewDescription-${item.id}`}
                 value={editingDraft?.description ?? descriptionPreview}
@@ -600,7 +601,8 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
                   if (event.key === "Escape") onCancelEdit();
                 }}
                 placeholder="Opis kategorije"
-                className="absolute inset-0 min-h-[54px] w-full resize-none border-transparent bg-transparent px-0 py-0 text-[12px] leading-5 text-slate-950 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                rows={3}
+                className={`absolute inset-0 min-h-[60px] w-full resize-none overflow-hidden rounded-md border border-transparent bg-transparent px-0 py-0 text-[12px] leading-5 text-slate-950 ${adminInputFocusTokenClasses}`}
                 aria-label="Opis kategorije"
               />
             ) : null}

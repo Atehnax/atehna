@@ -463,7 +463,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
       style={style}
       className="group flex h-full min-h-[225px] flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04)]"
     >
-      <div className="group/image relative h-[170px] overflow-hidden">
+      <div className="group/image relative h-[170px] shrink-0 overflow-hidden">
         <div
           className={`absolute inset-0 ${item.image ? "bg-slate-100" : "bg-[#323538]"}`}
           aria-hidden="true"
@@ -567,14 +567,14 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
                 }}
                 placeholder="Naziv kategorije"
                 rows={2}
-                className={`absolute inset-x-0 top-0 min-h-[40px] w-full resize-none overflow-hidden rounded-md border border-transparent bg-transparent px-0 py-0 text-[0.92rem] font-semibold leading-5 text-slate-950 ${adminInputFocusTokenClasses}`}
+                className={`absolute inset-x-0 top-0 min-h-[40px] w-full resize-none overflow-hidden rounded-md border border-transparent bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[0.92rem] font-semibold leading-5 text-slate-950 ${adminInputFocusTokenClasses}`}
                 autoFocus
                 aria-label="Naziv kategorije"
               />
             ) : null}
           </div>
 
-          <div className="relative mt-2 min-h-[66px] flex-1">
+          <div className="relative mt-2 min-h-[66px] flex-1 overflow-hidden">
             <p
               className={`line-clamp-3 min-h-[60px] whitespace-pre-wrap text-[12px] leading-5 text-slate-950 ${isEditing ? "invisible" : ""}`}
             >
@@ -602,7 +602,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
                 }}
                 placeholder="Opis kategorije"
                 rows={3}
-                className={`absolute inset-0 min-h-[60px] w-full resize-none overflow-hidden rounded-md border border-transparent bg-transparent px-0 py-0 text-[12px] leading-5 text-slate-950 ${adminInputFocusTokenClasses}`}
+                className={`absolute inset-0 max-h-full min-h-[60px] w-full resize-none overflow-hidden rounded-md border border-transparent bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[12px] leading-5 text-slate-950 ${adminInputFocusTokenClasses}`}
                 aria-label="Opis kategorije"
               />
             ) : null}
@@ -681,7 +681,7 @@ function CreateCategoryCard({ onClick }: { onClick: () => void }) {
         </svg>
       </span>
       <span className="mt-6 text-lg font-semibold text-slate-700">
-        Dodaj kategorijo
+        Ustvari kategorijo
       </span>
     </button>
   );

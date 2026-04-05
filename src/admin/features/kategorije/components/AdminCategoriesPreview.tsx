@@ -146,31 +146,24 @@ export function AdminCategoriesPreview({
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-[13px] font-semibold text-slate-700">Predogled</p>
           <div className="flex items-center gap-3">
-            <label className="mr-2 flex items-center gap-2 text-[11px] text-slate-500">
-              <span>Elementov na vrstico</span>
-              <div className="flex flex-col">
-                <input
-                  id="categories-preview-columns"
-                  name="categoriesPreviewColumns"
-                  type="range"
-                  min={3}
-                  max={8}
-                  step={1}
-                  value={lowerViewCount}
-                  onChange={(event) =>
-                    onLowerViewCountChange(Number(event.target.value || 5))
-                  }
-                  className="h-1.5 w-[102px] cursor-pointer appearance-none rounded-full bg-slate-200 accent-[#3e67d6] [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-[#84c9f3] [&::-webkit-slider-thumb]:bg-[#9fd7fb] [&::-webkit-slider-thumb]:shadow-sm [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-[#84c9f3] [&::-moz-range-thumb]:bg-[#9fd7fb] [&::-moz-range-thumb]:shadow-sm"
-                />
-                <div className="mt-1 flex w-[102px] items-center justify-between px-0.5" aria-hidden="true">
-                  {Array.from({ length: 6 }).map((_, index) => (
-                    <span key={`preview-columns-tick-${index}`} className="h-1 w-1 rounded-full bg-slate-400/80" />
-                  ))}
-                </div>
-              </div>
-              <span className="inline-flex h-5 min-w-[1.35rem] items-center justify-center rounded bg-slate-100 px-1 text-right text-slate-600">
-                {lowerViewCount}
-              </span>
+            <label
+              htmlFor="categories-preview-columns"
+              className="mr-1 flex h-7 w-[92px] flex-col justify-center gap-0.5 text-slate-500"
+            >
+              <span className="text-[10px] leading-3">Elementov na vrstico</span>
+              <input
+                id="categories-preview-columns"
+                name="categoriesPreviewColumns"
+                type="range"
+                min={3}
+                max={8}
+                step={1}
+                value={lowerViewCount}
+                onChange={(event) =>
+                  onLowerViewCountChange(Number(event.target.value || 5))
+                }
+                className="h-1 w-[92px] cursor-pointer appearance-none rounded-full bg-slate-200 accent-[#1982bf] [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1982bf] [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#1982bf]"
+              />
             </label>
             <IconButton
               onClick={onNavigateUp}

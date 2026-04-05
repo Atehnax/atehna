@@ -95,9 +95,16 @@ export function AdminCategoriesTableView({
   const canUseRestore = canRestoreCommittedHistory && !hasPendingStagedChanges;
   const hasSelectedRows = selectedRows.length > 0;
 
-  const getSortIndicator = (key: CategorySortKey) => {
-    if (!sortState || sortState.key != key) return '↕';
-    return sortState.direction === 'asc' ? '↑' : '↓';
+  const getSortHeaderLabel = (key: CategorySortKey, baseLabel: string) => {
+    if (!sortState || sortState.key !== key) return baseLabel;
+    return `${baseLabel} (${sortState.direction === 'asc' ? 'A-Z' : 'Z-A'})`;
+  };
+
+  const getSortHeaderClassName = (key: CategorySortKey) => {
+    const isActive = sortState?.key === key;
+    return `inline-flex items-center text-[11px] font-semibold transition-colors ${
+      isActive ? 'text-slate-900 underline underline-offset-2' : 'text-slate-700 hover:text-slate-900'
+    }`;
   };
 
   return (
@@ -161,7 +168,15 @@ export function AdminCategoriesTableView({
               >
                 {isBulkDeleting ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : <TrashCanIcon />}
               </IconButton>
-              <Button variant="primary" size="toolbar" onClick={onRequestSave} disabled={!tableDirty || saving}>Shrani</Button>
+              <Button
+                variant="primary"
+                size="toolbar"
+                className="!h-7 !rounded-md !px-3 !text-[11px]"
+                onClick={onRequestSave}
+                disabled={!tableDirty || saving}
+              >
+                Shrani
+              </Button>
             </>
           }
         >
@@ -189,12 +204,22 @@ export function AdminCategoriesTableView({
                             </button>
                           </div>
                         </div>
-                        <button type="button" onClick={() => onSort('category')} className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 hover:text-slate-900">Kategorija <span className="text-slate-400">{getSortIndicator('category')}</span></button>
+                        <button type="button" onClick={() => onSort('category')} className={getSortHeaderClassName('category')}>
+                          {getSortHeaderLabel('category', 'Kategorija')}
+                        </button>
                       </div>
                     </th>
                     <th className="h-11 border-b border-slate-200 bg-[color:var(--ui-neutral-bg)] px-2.5 py-2 text-left text-[11px] font-semibold text-slate-600">Opis</th>
-                    <th className="h-11 border-b border-slate-200 bg-[color:var(--ui-neutral-bg)] px-2.5 py-2 text-center text-[11px] font-semibold text-slate-600"><button type="button" onClick={() => onSort('subcategories')} className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 hover:text-slate-900">Podkategorije <span className="text-slate-400">{getSortIndicator('subcategories')}</span></button></th>
-                    <th className="h-11 border-b border-slate-200 bg-[color:var(--ui-neutral-bg)] px-2.5 py-2 text-center text-[11px] font-semibold text-slate-600"><button type="button" onClick={() => onSort('items')} className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 hover:text-slate-900">Izdelki <span className="text-slate-400">{getSortIndicator('items')}</span></button></th>
+                    <th className="h-11 border-b border-slate-200 bg-[color:var(--ui-neutral-bg)] px-2.5 py-2 text-center text-[11px] font-semibold text-slate-600">
+                      <button type="button" onClick={() => onSort('subcategories')} className={getSortHeaderClassName('subcategories')}>
+                        {getSortHeaderLabel('subcategories', 'Podkategorije')}
+                      </button>
+                    </th>
+                    <th className="h-11 border-b border-slate-200 bg-[color:var(--ui-neutral-bg)] px-2.5 py-2 text-center text-[11px] font-semibold text-slate-600">
+                      <button type="button" onClick={() => onSort('items')} className={getSortHeaderClassName('items')}>
+                        {getSortHeaderLabel('items', 'Izdelki')}
+                      </button>
+                    </th>
                     <th className="h-11 border-b border-slate-200 bg-[color:var(--ui-neutral-bg)] px-2.5 py-0 text-center text-[11px] font-semibold text-slate-600 align-middle">
                       <div className="relative flex h-8 items-center justify-center" ref={statusHeaderMenuRef}>
                         <button type="button" onClick={onToggleStatusHeaderMenu} className={`inline-flex h-6 items-center rounded-md border px-2 text-[11px] font-semibold ${selectedRows.length > 0 ? 'border-slate-300 bg-white text-slate-700 hover:bg-[color:var(--hover-neutral)]' : 'border-transparent bg-transparent text-slate-500 cursor-default'}`} aria-haspopup="menu" aria-expanded={selectedRows.length > 0 ? isStatusHeaderMenuOpen : false} disabled={selectedRows.length === 0}>

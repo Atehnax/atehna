@@ -78,8 +78,7 @@ import { PencilIcon, PlusIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActio
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActions, RowActionsDropdown } from '@/shared/ui/table';
 import {
-  adminTableRowToneClasses,
-  getAdminCategoryRowToneClass
+  adminTableRowToneClasses
 } from '@/shared/ui/theme/tokens';
 import { Input } from '@/shared/ui/input';
 import { useToast } from '@/shared/ui/toast';
@@ -2865,7 +2864,6 @@ export default function AdminCategoriesMainTable({
     const isExpanded = expanded[id] ?? false;
     const isRowEditing = editingRow?.id === id;
     const isChecked = selectedRowSet.has(id);
-    const rowDepthTone = getAdminCategoryRowToneClass(level);
     const rowStatus = statusByRow[id] ?? 'active';
 
     const toggleInlineEdit = async () => {
@@ -2940,7 +2938,7 @@ export default function AdminCategoriesMainTable({
             key={id}
             ref={setNodeRef}
             style={style}
-            className={`${isSelected ? adminTableRowToneClasses.selected : rowDepthTone} transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''} ${isDragging ? 'opacity-70' : ''} ${kind !== 'root' ? 'cursor-grab active:cursor-grabbing select-none' : ''}`}
+            className={`${isSelected ? adminTableRowToneClasses.selected : 'bg-white'} transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''} ${isDragging ? 'opacity-70' : ''} ${kind !== 'root' ? 'cursor-grab active:cursor-grabbing select-none' : ''}`}
             {...dragHandleProps}
           >
             <td className="relative overflow-visible border-b border-slate-200 px-2 py-2 text-center align-middle">

@@ -20,7 +20,7 @@ type EuiTabsProps = {
 export default function EuiTabs({ value, onChange, tabs, className }: EuiTabsProps) {
   if (typeof window === 'undefined') {
     return (
-      <div className={`inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white p-1 ${className ?? ''}`.trim()}>
+      <div className={`inline-flex items-end gap-5 ${className ?? ''}`.trim()}>
         {tabs.map((tab) => {
           const active = tab.value === value;
           return (
@@ -28,10 +28,10 @@ export default function EuiTabs({ value, onChange, tabs, className }: EuiTabsPro
               key={tab.value}
               type="button"
               onClick={() => onChange(tab.value)}
-              className={`rounded-md px-3 py-1.5 text-xs transition ${
+              className={`border-b-2 bg-transparent pb-2 text-base leading-none font-['Inter',system-ui,sans-serif] transition ${
                 active
-                  ? 'bg-[#e9efff] text-[#3659d6] font-semibold'
-                  : 'text-slate-700 hover:bg-[color:var(--hover-neutral)]'
+                  ? 'border-[#1982bf] text-[#1982bf] font-medium'
+                  : 'border-slate-300 text-black hover:text-[#1982bf] active:text-[#1982bf]'
               }`}
               aria-pressed={active}
             >

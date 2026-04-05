@@ -2729,7 +2729,7 @@ export default function AdminCategoriesMainTable({
   }, [activeView, catalog.categories, isSearchActive, searchQuery, tableSort]);
 
   const visibleRowIds = useMemo(() => {
-    const ids: string[] = [rootId];
+    const ids: string[] = [];
     const isRootExpanded =
       isSearchActive || (expanded[rootId] ?? true) || closingRowIds.includes(rootId);
 
@@ -3329,21 +3329,6 @@ export default function AdminCategoriesMainTable({
     const rows: ReactNode[] = [];
     const isRootExpanded = isSearchActive || (expanded[rootId] ?? true) || closingRowIdSet.has(rootId);
 
-    rows.push(
-      renderTreeRow({
-        id: rootId,
-        title: 'Vse kategorije',
-        level: 0,
-        kind: 'root',
-        description: 'Pogled vseh kategorij',
-        childrenCount: catalog.categories.length,
-        productCount: 0,
-        ancestorContinuationColumns: [],
-        continueCurrentColumnBelow: isRootExpanded && filteredCategories.length > 0,
-        parentIsAnimating: false
-      })
-    );
-
     if (!isRootExpanded) {
       return rows;
     }
@@ -3388,7 +3373,6 @@ export default function AdminCategoriesMainTable({
   }, [
     activeView,
     buildSubcategoryRows,
-    catalog.categories.length,
     closingRowIdSet,
     expanded,
     filteredCategories,

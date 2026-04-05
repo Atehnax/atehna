@@ -111,7 +111,7 @@ const PAYMENT_SORT_PRIORITY: Record<string, number> = {
   unpaid: 2
 };
 const TYPE_SORT_CYCLE: TypePriority[] = ['school', 'company', 'individual'];
-const HEADER_TITLE_BUTTON_CLASS = 'inline-flex items-center text-[11px] font-semibold leading-none hover:text-slate-700';
+const HEADER_TITLE_BUTTON_CLASS = 'inline-flex items-center text-[11px] font-semibold leading-none hover:text-[color:var(--blue-500)]';
 const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500';
 const ORDERS_NUMERIC_RANGE_PRESETS: RangePreset[] = ['20', '50', '100', '200', '500', '1000'].map((maxValue) => ({
   label: `0-${maxValue === '1000' ? '1k' : maxValue}`,

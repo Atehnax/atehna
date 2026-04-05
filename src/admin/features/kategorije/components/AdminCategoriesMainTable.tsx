@@ -3383,10 +3383,7 @@ export default function AdminCategoriesMainTable({
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="text-2xl font-semibold text-slate-900">Kategorije</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Top: povezano drevo levo → desno. Bottom: vsebina izbrane kategorije v storefront admin pogledu.
-        </p>
+        <h1 className="text-2xl font-semibold leading-8 text-slate-900">Kategorije</h1>
       </header>
 
       <EuiTabs

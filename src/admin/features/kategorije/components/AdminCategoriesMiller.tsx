@@ -16,7 +16,7 @@ const formatMillerDate = (value?: string) => {
   const month = padTwoDigits(safeDate.getMonth() + 1);
   const year = safeDate.getFullYear();
 
-  return `${day}-${month}-${year}`;
+  return `${day}.${month}.${year}`;
 };
 
 const millerRowGridClass = 'grid grid-cols-3 items-center gap-x-3';
@@ -183,10 +183,10 @@ export function AdminCategoriesMiller({
             value={searchQuery}
             onChange={(event) => onSearchQueryChange(event.target.value)}
             placeholder="Išči po kategorijah"
-            className="h-7 w-[320px] max-w-[36vw] text-[11px]"
+            className="w-[320px] max-w-[36vw]"
             aria-label="Išči v Miller stolpcih"
           />
-          <IconButton type="button" size="sm" tone="add" aria-label="Dodaj" onClick={() => onAddNode(activeColumnKind)}>
+          <IconButton type="button" size="sm" tone="neutral" aria-label="Dodaj" onClick={() => onAddNode(activeColumnKind)}>
             {plusIcon}
           </IconButton>
           <IconButton
@@ -222,7 +222,7 @@ export function AdminCategoriesMiller({
           >
             <TrashCanIcon />
           </IconButton>
-          <Button type="button" variant="primary" size="toolbar" onClick={onRequestSave} disabled={!millerDirty || saving}>
+          <Button type="button" variant="primary" size="toolbar" className="!h-7 !rounded-md !px-3 !text-[11px]" onClick={onRequestSave} disabled={!millerDirty || saving}>
             Shrani
           </Button>
         </div>

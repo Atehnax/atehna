@@ -144,13 +144,13 @@ export function AdminCategoriesPreview({
           </p>
         ) : null}
         <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="text-[13px] font-semibold text-slate-700">Predogled</p>
+          <h2 className="text-2xl font-semibold leading-8 text-slate-900">Predogled</h2>
           <div className="flex items-center gap-3">
             <label
               htmlFor="categories-preview-columns"
-              className="mr-1 flex h-7 w-[92px] flex-col justify-center gap-0.5 text-slate-500"
+              className="mr-1 flex h-7 w-[92px] flex-col justify-center gap-1 text-slate-500"
             >
-              <span className="text-[10px] leading-3">Elementov na vrstico</span>
+              <span className="text-[10px] leading-[10px]">Elementov na vrstico</span>
               <input
                 id="categories-preview-columns"
                 name="categoriesPreviewColumns"

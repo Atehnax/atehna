@@ -95,11 +95,6 @@ export function AdminCategoriesTableView({
   const canUseRestore = canRestoreCommittedHistory && !hasPendingStagedChanges;
   const hasSelectedRows = selectedRows.length > 0;
 
-  const getSortHeaderLabel = (key: CategorySortKey, baseLabel: string) => {
-    if (!sortState || sortState.key !== key) return baseLabel;
-    return `${baseLabel} (${sortState.direction === 'asc' ? 'A-Z' : 'Z-A'})`;
-  };
-
   const getSortHeaderClassName = (key: CategorySortKey) => {
     const isActive = sortState?.key === key;
     return `inline-flex items-center text-[11px] font-semibold transition-colors ${
@@ -205,19 +200,19 @@ export function AdminCategoriesTableView({
                           </div>
                         </div>
                         <button type="button" onClick={() => onSort('category')} className={getSortHeaderClassName('category')}>
-                          {getSortHeaderLabel('category', 'Kategorija')}
+                          Kategorija
                         </button>
                       </div>
                     </th>
                     <th className="h-11 border-b border-slate-200 bg-[color:var(--ui-neutral-bg)] px-2.5 py-2 text-left text-[11px] font-semibold text-slate-600">Opis</th>
                     <th className="h-11 border-b border-slate-200 bg-[color:var(--ui-neutral-bg)] px-2.5 py-2 text-center text-[11px] font-semibold text-slate-600">
                       <button type="button" onClick={() => onSort('subcategories')} className={getSortHeaderClassName('subcategories')}>
-                        {getSortHeaderLabel('subcategories', 'Podkategorije')}
+                        Podkategorije
                       </button>
                     </th>
                     <th className="h-11 border-b border-slate-200 bg-[color:var(--ui-neutral-bg)] px-2.5 py-2 text-center text-[11px] font-semibold text-slate-600">
                       <button type="button" onClick={() => onSort('items')} className={getSortHeaderClassName('items')}>
-                        {getSortHeaderLabel('items', 'Izdelki')}
+                        Izdelki
                       </button>
                     </th>
                     <th className="h-11 border-b border-slate-200 bg-[color:var(--ui-neutral-bg)] px-2.5 py-0 text-center text-[11px] font-semibold text-slate-600 align-middle">

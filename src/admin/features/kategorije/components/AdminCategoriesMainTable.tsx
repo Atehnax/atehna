@@ -454,10 +454,7 @@ export default function AdminCategoriesMainTable({
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const [tableSort, setTableSort] = useState<{ key: CategorySortKey; direction: CategorySortDirection }>({
-    key: 'category',
-    direction: 'asc'
-  });
+  const [tableSort, setTableSort] = useState<{ key: CategorySortKey; direction: CategorySortDirection } | null>(null);
   const [millerSearchQuery, setMillerSearchQuery] = useState('');
   const [deletingRowId, setDeletingRowId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
@@ -2652,10 +2649,34 @@ export default function AdminCategoriesMainTable({
 
   const searchQuery = query.trim().toLowerCase();
   const isSearchActive = searchQuery.length > 0;
-  const sortDirectionMultiplier = tableSort.direction === 'asc' ? 1 : -1;
-
   const filteredCategories = useMemo(() => {
     const collator = new Intl.Collator('sl', { sensitivity: 'base' });
+    if (!tableSort) {
+      if (activeView !== 'table') return catalog.categories;
+      if (!isSearchActive) return catalog.categories;
+
+      return catalog.categories
+        .map((category) => {
+          const categoryMatches = [category.title, category.summary, category.description]
+            .join(' ')
+            .toLowerCase()
+            .includes(searchQuery);
+
+          const matchingSubcategories = categoryMatches
+            ? category.subcategories
+            : filterSubcategoryTree(category.subcategories, searchQuery);
+
+          if (!categoryMatches && matchingSubcategories.length === 0) return null;
+
+          return {
+            ...category,
+            subcategories: matchingSubcategories
+          };
+        })
+        .filter((category): category is RecursiveCatalogCategory => category !== null);
+    }
+
+    const sortDirectionMultiplier = tableSort.direction === 'asc' ? 1 : -1;
     const getSortValue = (node: { title: string; subcategories: RecursiveCatalogSubcategory[]; items?: CatalogItem[] }) => {
       if (tableSort.key === 'subcategories') return node.subcategories.length;
       if (tableSort.key === 'items') return (node.items ?? []).length;
@@ -2705,7 +2726,7 @@ export default function AdminCategoriesMainTable({
     return [...baseCategories]
       .sort(compareNodes)
       .map((category) => ({ ...category, subcategories: sortSubcategories(category.subcategories) }));
-  }, [activeView, catalog.categories, isSearchActive, searchQuery, sortDirectionMultiplier, tableSort.key]);
+  }, [activeView, catalog.categories, isSearchActive, searchQuery, tableSort]);
 
   const visibleRowIds = useMemo(() => {
     const ids: string[] = [rootId];
@@ -3537,11 +3558,11 @@ export default function AdminCategoriesMainTable({
           treeRows={treeRows}
           sortState={tableSort}
           onSort={(key) => {
-            setTableSort((current) => (
-              current.key === key
-                ? { key, direction: current.direction === 'asc' ? 'desc' : 'asc' }
-                : { key, direction: key === 'category' ? 'asc' : 'desc' }
-            ));
+            setTableSort((current) => {
+              if (!current || current.key !== key) return { key, direction: 'asc' };
+              if (current.direction === 'asc') return { key, direction: 'desc' };
+              return null;
+            });
           }}
         />
       ) : null}

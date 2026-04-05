@@ -4,7 +4,7 @@ import type {
   MutableRefObject,
   ReactNode,
 } from "react";
-import { memo, useEffect, useState } from "react";
+import { memo, useState } from "react";
 import Image from "next/image";
 import {
   DndContext,
@@ -319,20 +319,10 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
   onOpenNode: (item: ContentCard) => void;
   onStageStatusChange: (rowId: string, status: CategoryStatus) => void;
 }) {
-  const [focusedField, setFocusedField] = useState<"title" | "description" | null>(null);
+  const [isTitleFocused, setIsTitleFocused] = useState(false);
+  const [isDescriptionFocused, setIsDescriptionFocused] = useState(false);
   const editingDraft = editingRow?.id === item.id ? editingRow : null;
   const isEditing = Boolean(editingDraft);
-  const isTitleEditing = isEditing && focusedField === "title";
-  const isDescriptionEditing = isEditing && focusedField === "description";
-  useEffect(() => {
-    if (isEditing && focusedField === null) {
-      setFocusedField("title");
-      return;
-    }
-    if (!isEditing && focusedField !== null) {
-      setFocusedField(null);
-    }
-  }, [focusedField, isEditing]);
   const isHidden = item.isInactive;
   const titlePreview = item.title || "—";
   const descriptionPreview = item.description || "—";
@@ -529,7 +519,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
         <div className="relative flex h-full flex-col">
           <div className="relative min-h-[40px]">
             <div
-              className={`min-h-[40px] min-w-0 ${isTitleEditing ? "invisible" : ""}`}
+              className={`min-h-[40px] min-w-0 ${isEditing ? "invisible" : ""}`}
             >
               {item.hasChildren ? (
                 <button
@@ -553,9 +543,9 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
                 </p>
               )}
             </div>
-            {isTitleEditing ? (
+            {isEditing ? (
               <div className="absolute inset-x-0 top-0 h-[40px]">
-                {focusedField === "title" ? (
+                {isTitleFocused ? (
                   <InlineEditFocusFrame />
                 ) : null}
                 <InlineEditableText
@@ -563,9 +553,9 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
                   aria-label="Naziv kategorije"
                   value={editingDraft?.title ?? titlePreview}
                   onChange={onEditingRowTitleChange}
-                  onFocus={() => setFocusedField("title")}
+                  onFocus={() => setIsTitleFocused(true)}
                   onBlur={(event) => {
-                    setFocusedField((current) => (current === "title" ? null : current));
+                    setIsTitleFocused(false);
                     handleCardEditBlur(event);
                   }}
                   autoFocus
@@ -583,28 +573,15 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
             ) : null}
           </div>
 
-          <div className="relative mt-2 min-h-[66px] flex-1 overflow-hidden">
-            {isEditing && !isDescriptionEditing ? (
-              <button
-                type="button"
-                data-inline-edit-field="true"
-                className="w-full text-left"
-                onClick={() => setFocusedField("description")}
-              >
-                <p className="line-clamp-3 min-h-[60px] whitespace-pre-wrap text-[12px] leading-5 text-slate-950">
-                  {descriptionPreview}
-                </p>
-              </button>
-            ) : (
-              <p
-                className={`line-clamp-3 min-h-[60px] whitespace-pre-wrap text-[12px] leading-5 text-slate-950 ${isDescriptionEditing ? "invisible" : ""}`}
-              >
-                {descriptionPreview}
-              </p>
-            )}
-            {isDescriptionEditing ? (
-              <div className="relative min-h-[60px]">
-                {focusedField === "description" ? (
+          <div className="relative mt-2 min-h-[66px] flex-1">
+            <p
+              className={`line-clamp-3 min-h-[60px] whitespace-pre-wrap text-[12px] leading-5 text-slate-950 ${isEditing ? "invisible" : ""}`}
+            >
+              {descriptionPreview}
+            </p>
+            {isEditing ? (
+              <div className="absolute inset-0 min-h-[60px]">
+                {isDescriptionFocused ? (
                   <InlineEditFocusFrame />
                 ) : null}
                 <InlineEditableText
@@ -612,9 +589,9 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
                   aria-label="Opis kategorije"
                   value={editingDraft?.description ?? descriptionPreview}
                   onChange={onEditingRowDescriptionChange}
-                  onFocus={() => setFocusedField("description")}
+                  onFocus={() => setIsDescriptionFocused(true)}
                   onBlur={(event) => {
-                    setFocusedField((current) => (current === "description" ? null : current));
+                    setIsDescriptionFocused(false);
                     handleCardEditBlur(event);
                   }}
                   onKeyDown={(event) => {
@@ -627,7 +604,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
                     }
                     if (event.key === "Escape") onCancelEdit();
                   }}
-                  className="max-h-full min-h-[60px] w-full overflow-y-auto whitespace-pre-wrap bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[12px] leading-5 tracking-normal text-slate-950"
+                  className="min-h-[60px] w-full whitespace-pre-wrap bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[12px] leading-5 tracking-normal text-slate-950"
                 />
               </div>
             ) : null}

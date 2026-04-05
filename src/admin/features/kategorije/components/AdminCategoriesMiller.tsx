@@ -5,6 +5,7 @@ import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { ActionRestoreIcon, ActionUndoIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
+import { categoriesBreadcrumbCurrentTextClassName } from '../common/typography';
 
 const padTwoDigits = (value: number) => String(value).padStart(2, '0');
 
@@ -170,7 +171,7 @@ export function AdminCategoriesMiller({
                     <span title={crumb.label}>{crumb.label}</span>
                   </button>
                 ) : (
-                  <span className={crumb.isCurrent ? 'font-semibold text-slate-900' : ''} title={crumb.label}>{crumb.label}</span>
+                  <span className={crumb.isCurrent ? categoriesBreadcrumbCurrentTextClassName : ''} title={crumb.label}>{crumb.label}</span>
                 )}
               </span>
             ))}

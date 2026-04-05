@@ -37,6 +37,7 @@ import type {
   EditingRowDraft,
   SelectedPreviewContext,
 } from "../common/types";
+import { categoriesBreadcrumbCurrentTextClassName } from "../common/typography";
 
 export function AdminCategoriesPreview({
   activeView,
@@ -144,11 +145,11 @@ export function AdminCategoriesPreview({
           </p>
         ) : null}
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-2xl font-semibold leading-8 text-slate-900">Predogled</h2>
+          <h2 className={categoriesBreadcrumbCurrentTextClassName}>Predogled</h2>
           <div className="flex items-center gap-3">
             <label
               htmlFor="categories-preview-columns"
-              className="mr-1 flex h-7 w-[92px] flex-col justify-center gap-1 text-slate-500"
+              className="mr-1 flex h-7 w-[92px] flex-col justify-center gap-[9px] text-slate-500"
             >
               <span className="text-[10px] leading-[10px]">Elementov na vrstico</span>
               <input
@@ -162,7 +163,7 @@ export function AdminCategoriesPreview({
                 onChange={(event) =>
                   onLowerViewCountChange(Number(event.target.value || 5))
                 }
-                className="h-1 w-[92px] cursor-pointer appearance-none rounded-full bg-slate-200 accent-[#1982bf] [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1982bf] [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#1982bf]"
+                className="h-1 w-[92px] cursor-pointer appearance-none rounded-full bg-slate-200 accent-[#1982bf] [&::-webkit-slider-thumb]:h-[12.5px] [&::-webkit-slider-thumb]:w-[12.5px] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1982bf] [&::-moz-range-thumb]:h-[12.5px] [&::-moz-range-thumb]:w-[12.5px] [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#1982bf]"
               />
             </label>
             <IconButton

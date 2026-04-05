@@ -567,7 +567,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
                 }}
                 placeholder="Naziv kategorije"
                 rows={2}
-                className={`absolute inset-x-0 top-0 min-h-[40px] w-full resize-none overflow-hidden rounded-md border border-transparent bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[0.92rem] font-semibold leading-5 text-slate-950 ${adminInputFocusTokenClasses}`}
+                className={`absolute inset-x-0 top-0 min-h-[40px] w-full resize-none overflow-hidden border border-transparent bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[0.92rem] font-semibold leading-5 tracking-normal text-slate-950 ${adminInputFocusTokenClasses}`}
                 autoFocus
                 aria-label="Naziv kategorije"
               />
@@ -601,8 +601,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
                   if (event.key === "Escape") onCancelEdit();
                 }}
                 placeholder="Opis kategorije"
-                rows={3}
-                className={`absolute inset-0 max-h-full min-h-[60px] w-full resize-none overflow-hidden rounded-md border border-transparent bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[12px] leading-5 text-slate-950 ${adminInputFocusTokenClasses}`}
+                className={`absolute inset-0 h-full w-full resize-none overflow-y-auto border border-transparent bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[12px] leading-5 tracking-normal text-slate-950 ${adminInputFocusTokenClasses}`}
                 aria-label="Opis kategorije"
               />
             ) : null}

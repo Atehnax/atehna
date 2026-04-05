@@ -29,7 +29,7 @@ import {
   getDiscountedPrice,
 } from "@/commercial/catalog/catalogUtils";
 import { Button } from "@/shared/ui/button";
-import { InlineEditableText } from "@/shared/ui/inline-edit";
+import { InlineEditableText, InlineEditFocusFrame } from "@/shared/ui/inline-edit";
 import type {
   CategoryStatus,
   ContentCard,
@@ -275,24 +275,6 @@ export function AdminCategoriesPreview({
         ) : null}
       </section>
     </div>
-  );
-}
-
-function CutCornerFocusOutline() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-0 h-full w-full"
-      viewBox="0 0 100 100"
-      preserveAspectRatio="none"
-    >
-      <polygon
-        points="8,1 92,1 99,8 99,92 92,99 8,99 1,92 1,8"
-        fill="none"
-        stroke="#3e67d6"
-        strokeWidth="1"
-      />
-    </svg>
   );
 }
 
@@ -574,7 +556,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
             {isTitleEditing ? (
               <div className="absolute inset-x-0 top-0 h-[40px]">
                 {focusedField === "title" ? (
-                  <CutCornerFocusOutline />
+                  <InlineEditFocusFrame />
                 ) : null}
                 <InlineEditableText
                   id={`preview-title-${item.id}`}
@@ -602,19 +584,28 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
           </div>
 
           <div className="relative mt-2 min-h-[66px] flex-1 overflow-hidden">
-            <p
-              className={`line-clamp-3 min-h-[60px] whitespace-pre-wrap text-[12px] leading-5 text-slate-950 ${isDescriptionEditing ? "invisible" : ""}`}
-              onClick={() => {
-                if (!isEditing || isDescriptionEditing) return;
-                setFocusedField("description");
-              }}
-            >
-              {descriptionPreview}
-            </p>
+            {isEditing && !isDescriptionEditing ? (
+              <button
+                type="button"
+                data-inline-edit-field="true"
+                className="w-full text-left"
+                onClick={() => setFocusedField("description")}
+              >
+                <p className="line-clamp-3 min-h-[60px] whitespace-pre-wrap text-[12px] leading-5 text-slate-950">
+                  {descriptionPreview}
+                </p>
+              </button>
+            ) : (
+              <p
+                className={`line-clamp-3 min-h-[60px] whitespace-pre-wrap text-[12px] leading-5 text-slate-950 ${isDescriptionEditing ? "invisible" : ""}`}
+              >
+                {descriptionPreview}
+              </p>
+            )}
             {isDescriptionEditing ? (
               <div className="relative min-h-[60px]">
                 {focusedField === "description" ? (
-                  <CutCornerFocusOutline />
+                  <InlineEditFocusFrame />
                 ) : null}
                 <InlineEditableText
                   id={`preview-description-${item.id}`}

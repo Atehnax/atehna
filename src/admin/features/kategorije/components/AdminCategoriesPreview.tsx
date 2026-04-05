@@ -167,17 +167,17 @@ export function AdminCategoriesPreview({
               className="inline-flex h-8 w-8 items-center justify-center rounded-xl px-0"
             >
               <svg
-                viewBox="0 0 24 24"
+                viewBox="0 0 640 640"
                 className="h-4 w-4"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                xmlns="http://www.w3.org/2000/svg"
                 aria-hidden="true"
               >
-                <path d="M21 12H4" />
-                <path d="m10 6-6 6 6 6" />
+                <path d="M73.4 297.4C60.9 309.9 60.9 330.2 73.4 342.7L233.4 502.7C245.9 515.2 266.2 515.2 278.7 502.7C291.2 490.2 291.2 469.9 278.7 457.4L173.3 352L544 352C561.7 352 576 337.7 576 320C576 302.3 561.7 288 544 288L173.3 288L278.7 182.6C291.2 170.1 291.2 149.8 278.7 137.3C266.2 124.8 245.9 124.8 233.4 137.3L73.4 297.3z" />
               </svg>
             </Button>
             <Button
@@ -820,19 +820,18 @@ function DragHandleIcon({ className }: { className?: string }) {
     <svg
       viewBox="0 0 24 24"
       className={className}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      fill="currentColor"
       aria-hidden="true"
     >
-      <path d="M12 3v18" />
-      <path d="m8.5 6.5 3.5-3 3.5 3" />
-      <path d="m8.5 17.5 3.5 3 3.5-3" />
-      <path d="M3 12h18" />
-      <path d="m6.5 8.5-3.5 3 3.5 3" />
-      <path d="m17.5 8.5 3.5 3-3.5 3" />
+      <circle cx="7" cy="7" r="1.5" />
+      <circle cx="12" cy="7" r="1.5" />
+      <circle cx="17" cy="7" r="1.5" />
+      <circle cx="7" cy="12" r="1.5" />
+      <circle cx="12" cy="12" r="1.5" />
+      <circle cx="17" cy="12" r="1.5" />
+      <circle cx="7" cy="17" r="1.5" />
+      <circle cx="12" cy="17" r="1.5" />
+      <circle cx="17" cy="17" r="1.5" />
     </svg>
   );
 }

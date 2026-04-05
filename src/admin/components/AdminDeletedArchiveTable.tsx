@@ -53,7 +53,7 @@ type DisplayRow = {
 type TypeFilterValue = 'all' | 'order' | 'pdf';
 type CustomerTypeFilterValue = 'all' | 'individual' | 'company' | 'school';
 type ArchiveHeaderFilter = 'type' | 'orderDate' | 'customerType' | 'deletedDate' | 'expiresDate' | null;
-type ArchiveSortKey = 'type' | 'order_created_at' | 'customer_name' | 'address' | 'customer_type' | 'deleted_at' | 'expires_at';
+type ArchiveSortKey = 'type' | 'element' | 'order_created_at' | 'customer_name' | 'address' | 'customer_type' | 'deleted_at' | 'expires_at';
 type ArchiveSortDirection = 'asc' | 'desc';
 type ArchiveColumnKey = 'type' | 'element' | 'orderDate' | 'customer' | 'address' | 'orderType' | 'deleted' | 'expires';
 
@@ -243,18 +243,27 @@ export default function AdminDeletedArchiveTable({
     }
 
     sortedRows.sort((leftRow, rightRow) => {
-      const resolveSortValue = (entry: ArchiveEntry) => {
+      const resolveSortValue = (entry: ArchiveEntry): string | number => {
         if (sortState.key === 'type') return entry.item_type;
+        if (sortState.key === 'element') {
+          if (typeof entry.order_id === 'number') return entry.order_id;
+          if (typeof entry.document_id === 'number') return entry.document_id;
+          return 0;
+        }
         return String(entry[sortState.key] ?? '');
       };
       const leftValue = resolveSortValue(leftRow.entry);
       const rightValue = resolveSortValue(rightRow.entry);
+      if (sortState.key === 'element') {
+        const numericComparison = Number(leftValue) - Number(rightValue);
+        return sortState.direction === 'asc' ? numericComparison : -numericComparison;
+      }
       const isDateKey = sortState.key.includes('date') || sortState.key.includes('created') || sortState.key.includes('expires');
       let comparison = 0;
       if (isDateKey) {
-        comparison = new Date(leftValue || 0).getTime() - new Date(rightValue || 0).getTime();
+        comparison = new Date(String(leftValue || 0)).getTime() - new Date(String(rightValue || 0)).getTime();
       } else {
-        comparison = leftValue.localeCompare(rightValue, 'sl', { sensitivity: 'base' });
+        comparison = String(leftValue).localeCompare(String(rightValue), 'sl', { sensitivity: 'base' });
       }
       return sortState.direction === 'asc' ? comparison : -comparison;
     });
@@ -678,7 +687,7 @@ export default function AdminDeletedArchiveTable({
                   </div>
                 </TH>
               ) : null}
-              {visibleColumns.element ? <TH className="text-[11px]"><span className="inline-flex items-center text-[11px] font-semibold leading-none text-slate-700">Element</span></TH> : null}
+              {visibleColumns.element ? <TH className="text-[11px]"><button type="button" onClick={() => handleSort('element')} className={getHeaderTitleClass('element')}>Element</button></TH> : null}
               {visibleColumns.orderDate ? <TH className="text-center text-[11px]">
                 <div className="relative inline-flex items-center gap-1.5 align-middle" data-archive-header-filter="true">
                   <button type="button" onClick={() => handleSort('order_created_at')} className={getHeaderTitleClass('order_created_at')}>Datum naročila</button>

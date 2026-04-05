@@ -178,15 +178,20 @@ export function AdminCategoriesMiller({
           </nav>
         </div>
         <div className="flex items-center gap-2">
-          <AdminSearchInput
-            id="miller-search"
-            name="millerSearch"
-            value={searchQuery}
-            onChange={(event) => onSearchQueryChange(event.target.value)}
-            placeholder="Išči po kategorijah"
-            className="w-[320px] max-w-[36vw]"
-            aria-label="Išči v Miller stolpcih"
-          />
+          <div className="flex h-7 w-[320px] max-w-[36vw] items-stretch">
+            <div className="min-w-0 w-full rounded-md border border-slate-200 bg-white transition-colors focus-within:border-[#3e67d6]">
+              <AdminSearchInput
+                id="miller-search"
+                name="millerSearch"
+                value={searchQuery}
+                showIcon={false}
+                onChange={(event) => onSearchQueryChange(event.target.value)}
+                placeholder="Išči po kategorijah"
+                aria-label="Išči v Miller stolpcih"
+                className="!m-0 !h-7 min-w-0 w-full flex-1 !rounded-md !border-0 !bg-transparent !shadow-none !outline-none ring-0 transition-colors placeholder:text-slate-400 [--euiFormControlStateWidth:0px] focus:[--euiFormControlStateWidth:0px] focus-visible:[--euiFormControlStateWidth:0px] focus:!border-0 focus:!shadow-none focus:!outline-none focus-visible:!border-0 focus-visible:!shadow-none focus-visible:!outline-none"
+              />
+            </div>
+          </div>
           <IconButton type="button" size="sm" tone="neutral" aria-label="Dodaj" onClick={() => onAddNode(activeColumnKind)}>
             {plusIcon}
           </IconButton>

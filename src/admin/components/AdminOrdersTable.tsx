@@ -111,7 +111,7 @@ const PAYMENT_SORT_PRIORITY: Record<string, number> = {
   unpaid: 2
 };
 const TYPE_SORT_CYCLE: TypePriority[] = ['school', 'company', 'individual'];
-const HEADER_TITLE_BUTTON_CLASS = 'inline-flex items-center text-[11px] font-semibold leading-none hover:text-slate-700';
+const HEADER_TITLE_BUTTON_CLASS = 'inline-flex items-center text-[11px] font-semibold leading-none hover:text-[color:var(--blue-500)]';
 const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500';
 const ORDERS_NUMERIC_RANGE_PRESETS: RangePreset[] = ['20', '50', '100', '200', '500', '1000'].map((maxValue) => ({
   label: `0-${maxValue === '1000' ? '1k' : maxValue}`,
@@ -1529,7 +1529,7 @@ export default function AdminOrdersTable({
                   <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
                     <button type="button" onClick={() => onSort('order')} className={getHeaderTitleClass('order')}>Naročilo</button>
                     <button ref={orderFilterButtonRef} data-active={openHeaderFilter === 'order'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('order'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Naročilo">
-                      <ColumnFilterIcon />
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                     </button>
                   </div>
                 </TH> : null}
@@ -1538,7 +1538,7 @@ export default function AdminOrdersTable({
                   <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
                     <button type="button" onClick={() => onSort('date')} className={getHeaderTitleClass('date')}>Datum</button>
                     <button ref={dateFilterButtonRef} data-active={openHeaderFilter === 'date'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('date'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Datum">
-                      <ColumnFilterIcon />
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                     </button>
                   </div>
                 </TH> : null}
@@ -1550,7 +1550,7 @@ export default function AdminOrdersTable({
                 {visibleColumns.type ? <TH className="h-11 text-center text-[11px]">
                   <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
                     <button type="button" onClick={() => onSort('type')} className={getHeaderTitleClass('type')}>Tip</button>
-                    <button ref={typeFilterButtonRef} data-active={openHeaderFilter === 'type'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('type'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Tip"><ColumnFilterIcon /></button>
+                    <button ref={typeFilterButtonRef} data-active={openHeaderFilter === 'type'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('type'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Tip"><ColumnFilterIcon className="!h-[12px] !w-[12px]" /></button>
                   </div>
                 </TH> : null}
 
@@ -1588,7 +1588,7 @@ export default function AdminOrdersTable({
                     ) : (
                       <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
                         <button type="button" onClick={() => onSort('status')} className={getHeaderTitleClass('status')}>Status</button>
-                        <button ref={statusFilterButtonRef} data-active={openHeaderFilter === 'status'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('status'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Status"><ColumnFilterIcon /></button>
+                        <button ref={statusFilterButtonRef} data-active={openHeaderFilter === 'status'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('status'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Status"><ColumnFilterIcon className="!h-[12px] !w-[12px]" /></button>
                       </div>
                     )}
                   </div>
@@ -1628,7 +1628,7 @@ export default function AdminOrdersTable({
                     ) : (
                       <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
                         <button type="button" onClick={() => onSort('payment')} className={getHeaderTitleClass('payment')}>Plačilo</button>
-                        <button ref={paymentFilterButtonRef} data-active={openHeaderFilter === 'payment'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('payment'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Plačilo"><ColumnFilterIcon /></button>
+                        <button ref={paymentFilterButtonRef} data-active={openHeaderFilter === 'payment'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('payment'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Plačilo"><ColumnFilterIcon className="!h-[12px] !w-[12px]" /></button>
                       </div>
                     )}
                   </div>
@@ -1637,14 +1637,14 @@ export default function AdminOrdersTable({
                 {visibleColumns.total ? <TH className="h-11 text-center text-[11px]">
                   <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
                     <button type="button" onClick={() => onSort('total')} className={getHeaderTitleClass('total')}>Skupaj</button>
-                    <button ref={totalFilterButtonRef} data-active={openHeaderFilter === 'total'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('total'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Skupaj"><ColumnFilterIcon /></button>
+                    <button ref={totalFilterButtonRef} data-active={openHeaderFilter === 'total'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('total'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Skupaj"><ColumnFilterIcon className="!h-[12px] !w-[12px]" /></button>
                   </div>
                 </TH> : null}
 
                 {visibleColumns.documents ? <TH className="h-11 min-w-[100px] whitespace-nowrap text-center text-[11px]">
                   <div className="relative inline-flex items-center gap-1.5 whitespace-nowrap align-middle" data-header-filter-root="true">
                     <span className="inline-flex items-center whitespace-nowrap text-[11px] font-semibold leading-none">PDF datoteke</span>
-                    <button ref={documentsFilterButtonRef} data-active={openHeaderFilter === 'documents'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('documents'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj PDF datoteke"><ColumnFilterIcon /></button>
+                    <button ref={documentsFilterButtonRef} data-active={openHeaderFilter === 'documents'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('documents'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj PDF datoteke"><ColumnFilterIcon className="!h-[12px] !w-[12px]" /></button>
                   </div>
                 </TH> : null}
                 <TH className="h-11 text-center text-[11px]">
@@ -1843,7 +1843,7 @@ export default function AdminOrdersTable({
                                 key: 'delete',
                                 label: 'Izbriši',
                                 icon: deletingRowId === order.id ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : <TrashCanIcon />,
-                                className: 'text-[rgb(192,64,46)]',
+                                className: 'text-rose-600',
                                 disabled: deletingRowId === order.id,
                                 onSelect: () => {
                                   void handleDeleteRow(order.id);

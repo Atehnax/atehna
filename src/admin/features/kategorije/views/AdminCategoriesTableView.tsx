@@ -98,7 +98,9 @@ export function AdminCategoriesTableView({
   const getSortHeaderClassName = (key: CategorySortKey) => {
     const isActive = sortState?.key === key;
     return `inline-flex items-center text-[11px] font-semibold transition-colors ${
-      isActive ? 'text-slate-900 underline underline-offset-2' : 'text-slate-700 hover:text-slate-900'
+      isActive
+        ? 'text-slate-900 underline underline-offset-2 hover:text-[color:var(--blue-500)]'
+        : 'text-slate-700 hover:text-[color:var(--blue-500)]'
     }`;
   };
 

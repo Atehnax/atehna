@@ -78,8 +78,7 @@ import { PencilIcon, PlusIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActio
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActions, RowActionsDropdown } from '@/shared/ui/table';
 import {
-  adminTableRowToneClasses,
-  getAdminCategoryRowToneClass
+  adminTableRowToneClasses
 } from '@/shared/ui/theme/tokens';
 import { Input } from '@/shared/ui/input';
 import { useToast } from '@/shared/ui/toast';
@@ -119,6 +118,8 @@ type MillerDropLocation = {
   index: number;
   columnKey: string;
 };
+type CategorySortKey = 'category' | 'subcategories' | 'items';
+type CategorySortDirection = 'asc' | 'desc';
 
 type TreeNodeRef =
   | { kind: 'category'; category: RecursiveCatalogCategory; categoryIndex: number }
@@ -197,38 +198,35 @@ export const InlineStatusToggle = ({
       event.stopPropagation();
       onToggle();
     }}
-    className={`relative inline-flex h-6 w-12 items-center rounded-full border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${
-      checked
-        ? 'border-[#243f58] bg-[#3c5167] text-[#d4c08f]'
-        : 'border-[#3e556d] bg-[#e8eaee] text-[#5e636b]'
-    }`}
+    className="relative inline-flex h-7 w-[58px] items-center rounded-full border-2 border-[#3b4754] bg-[#f2f2f1] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
   >
-    <span
-      aria-hidden="true"
-      className={`pointer-events-none absolute top-1/2 -translate-y-1/2 transition-all duration-200 ${
-        checked ? 'left-1.5 opacity-100 text-[#d4c08f]' : 'right-1.5 opacity-100 text-[#686d75]'
-      }`}
-    >
+    <span aria-hidden="true" className={`pointer-events-none absolute top-1/2 -translate-y-1/2 transition-all duration-200 ${checked ? 'left-1.5 text-[#1fa56a]' : 'right-1.5 text-[#df4f67]'}`}>
       {checked ? (
-        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M1.5 12s3.75-6.75 10.5-6.75S22.5 12 22.5 12s-3.75 6.75-10.5 6.75S1.5 12 1.5 12Z" />
           <circle cx="12" cy="12" r="3" />
         </svg>
       ) : (
-        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M1.5 12s3.75-6.75 10.5-6.75S22.5 12 22.5 12s-3.75 6.75-10.5 6.75S1.5 12 1.5 12Z" />
           <circle cx="12" cy="12" r="3" />
           <path d="M3 3 21 21" />
         </svg>
       )}
     </span>
-    <span
-      aria-hidden="true"
-      className={`absolute inset-y-0 z-10 w-5 rounded-full border border-[#1f2a36] bg-[#2f3942] shadow-[inset_0_1px_2px_rgba(255,255,255,0.08),inset_0_-3px_6px_rgba(0,0,0,0.2),0_2px_5px_rgba(15,23,42,0.25)] transition-transform duration-200 ${
-        checked ? 'translate-x-7' : 'translate-x-0'
+      <span
+        aria-hidden="true"
+      className={`absolute left-[-1px] top-1/2 z-10 h-6 w-6 -translate-y-1/2 rounded-full border border-[#37424f] bg-[#4f5b68] shadow-[inset_0_1px_2px_rgba(255,255,255,0.08),inset_0_-3px_6px_rgba(0,0,0,0.22),0_5px_10px_rgba(20,30,45,0.33)] transition-transform duration-200 ${
+        checked ? 'translate-x-[33px]' : 'translate-x-0'
       }`}
     >
-      <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#9aa0a7]" />
+      <span
+        className={`absolute left-1/2 top-1/2 h-[4.5px] w-[4.5px] -translate-x-1/2 -translate-y-1/2 rounded-full ${
+          checked
+            ? 'bg-[#51ee87] shadow-[0_0_6px_rgba(81,238,135,0.82)]'
+            : 'bg-[#77808b]'
+        }`}
+      />
     </span>
   </button>
 );
@@ -453,6 +451,7 @@ export default function AdminCategoriesMainTable({
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [tableSort, setTableSort] = useState<{ key: CategorySortKey; direction: CategorySortDirection } | null>(null);
   const [millerSearchQuery, setMillerSearchQuery] = useState('');
   const [deletingRowId, setDeletingRowId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
@@ -2647,12 +2646,61 @@ export default function AdminCategoriesMainTable({
 
   const searchQuery = query.trim().toLowerCase();
   const isSearchActive = searchQuery.length > 0;
-
   const filteredCategories = useMemo(() => {
-    if (activeView !== 'table') return catalog.categories;
-    if (!isSearchActive) return catalog.categories;
+    const collator = new Intl.Collator('sl', { sensitivity: 'base' });
+    if (!tableSort) {
+      if (activeView !== 'table') return catalog.categories;
+      if (!isSearchActive) return catalog.categories;
 
-    return catalog.categories
+      return catalog.categories
+        .map((category) => {
+          const categoryMatches = [category.title, category.summary, category.description]
+            .join(' ')
+            .toLowerCase()
+            .includes(searchQuery);
+
+          const matchingSubcategories = categoryMatches
+            ? category.subcategories
+            : filterSubcategoryTree(category.subcategories, searchQuery);
+
+          if (!categoryMatches && matchingSubcategories.length === 0) return null;
+
+          return {
+            ...category,
+            subcategories: matchingSubcategories
+          };
+        })
+        .filter((category): category is RecursiveCatalogCategory => category !== null);
+    }
+
+    const sortDirectionMultiplier = tableSort.direction === 'asc' ? 1 : -1;
+    const getSortValue = (node: { title: string; subcategories: RecursiveCatalogSubcategory[]; items?: CatalogItem[] }) => {
+      if (tableSort.key === 'subcategories') return node.subcategories.length;
+      if (tableSort.key === 'items') return (node.items ?? []).length;
+      return node.title;
+    };
+    const compareNodes = (
+      left: { title: string; subcategories: RecursiveCatalogSubcategory[]; items?: CatalogItem[] },
+      right: { title: string; subcategories: RecursiveCatalogSubcategory[]; items?: CatalogItem[] }
+    ) => {
+      const leftValue = getSortValue(left);
+      const rightValue = getSortValue(right);
+      if (typeof leftValue === 'number' && typeof rightValue === 'number') {
+        const numericCompare = leftValue - rightValue;
+        if (numericCompare !== 0) return numericCompare * sortDirectionMultiplier;
+        return collator.compare(left.title, right.title) * sortDirectionMultiplier;
+      }
+      return collator.compare(String(leftValue), String(rightValue)) * sortDirectionMultiplier;
+    };
+    const sortSubcategories = (nodes: RecursiveCatalogSubcategory[]): RecursiveCatalogSubcategory[] =>
+      [...nodes]
+        .sort(compareNodes)
+        .map((node) => ({ ...node, subcategories: sortSubcategories(node.subcategories) }));
+
+    const baseCategories =
+      activeView !== 'table' || !isSearchActive
+        ? catalog.categories
+        : catalog.categories
       .map((category) => {
         const categoryMatches = [category.title, category.summary, category.description]
           .join(' ')
@@ -2671,10 +2719,14 @@ export default function AdminCategoriesMainTable({
         };
       })
       .filter((category): category is RecursiveCatalogCategory => category !== null);
-  }, [activeView, catalog.categories, isSearchActive, searchQuery]);
+
+    return [...baseCategories]
+      .sort(compareNodes)
+      .map((category) => ({ ...category, subcategories: sortSubcategories(category.subcategories) }));
+  }, [activeView, catalog.categories, isSearchActive, searchQuery, tableSort]);
 
   const visibleRowIds = useMemo(() => {
-    const ids: string[] = [rootId];
+    const ids: string[] = [];
     const isRootExpanded =
       isSearchActive || (expanded[rootId] ?? true) || closingRowIds.includes(rootId);
 
@@ -2830,7 +2882,6 @@ export default function AdminCategoriesMainTable({
     const isExpanded = expanded[id] ?? false;
     const isRowEditing = editingRow?.id === id;
     const isChecked = selectedRowSet.has(id);
-    const rowDepthTone = getAdminCategoryRowToneClass(level);
     const rowStatus = statusByRow[id] ?? 'active';
 
     const toggleInlineEdit = async () => {
@@ -2905,7 +2956,7 @@ export default function AdminCategoriesMainTable({
             key={id}
             ref={setNodeRef}
             style={style}
-            className={`${isSelected ? adminTableRowToneClasses.selected : rowDepthTone} transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''} ${isDragging ? 'opacity-70' : ''} ${kind !== 'root' ? 'cursor-grab active:cursor-grabbing select-none' : ''}`}
+            className={`${isSelected ? adminTableRowToneClasses.selected : 'bg-white'} transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''} ${isDragging ? 'opacity-70' : ''} ${kind !== 'root' ? 'cursor-grab active:cursor-grabbing select-none' : ''}`}
             {...dragHandleProps}
           >
             <td className="relative overflow-visible border-b border-slate-200 px-2 py-2 text-center align-middle">
@@ -3150,7 +3201,7 @@ export default function AdminCategoriesMainTable({
                       key: 'delete',
                       label: 'Izbriši',
                       icon: <TrashCanIcon />,
-                      className: 'text-[rgb(192,64,46)]',
+                      className: 'text-rose-600',
                       onSelect: () => {
                         if (kind === 'root') {
                           stageTableCatalog({ categories: [] });
@@ -3275,21 +3326,6 @@ export default function AdminCategoriesMainTable({
     const rows: ReactNode[] = [];
     const isRootExpanded = isSearchActive || (expanded[rootId] ?? true) || closingRowIdSet.has(rootId);
 
-    rows.push(
-      renderTreeRow({
-        id: rootId,
-        title: 'Vse kategorije',
-        level: 0,
-        kind: 'root',
-        description: 'Pogled vseh kategorij',
-        childrenCount: catalog.categories.length,
-        productCount: 0,
-        ancestorContinuationColumns: [],
-        continueCurrentColumnBelow: isRootExpanded && filteredCategories.length > 0,
-        parentIsAnimating: false
-      })
-    );
-
     if (!isRootExpanded) {
       return rows;
     }
@@ -3334,7 +3370,6 @@ export default function AdminCategoriesMainTable({
   }, [
     activeView,
     buildSubcategoryRows,
-    catalog.categories.length,
     closingRowIdSet,
     expanded,
     filteredCategories,
@@ -3502,6 +3537,14 @@ export default function AdminCategoriesMainTable({
             setIsStatusHeaderMenuOpen(false);
           }}
           treeRows={treeRows}
+          sortState={tableSort}
+          onSort={(key) => {
+            setTableSort((current) => {
+              if (!current || current.key !== key) return { key, direction: 'asc' };
+              if (current.direction === 'asc') return { key, direction: 'desc' };
+              return null;
+            });
+          }}
         />
       ) : null}
 

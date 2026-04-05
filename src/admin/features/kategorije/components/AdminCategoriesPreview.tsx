@@ -326,6 +326,9 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
   const isHidden = item.isInactive;
   const titlePreview = item.title || "—";
   const descriptionPreview = item.description || "—";
+  const descriptionEditValue = editingDraft?.description ?? descriptionPreview;
+  const descriptionLineCount = Math.max(2, descriptionEditValue.split("\n").length);
+  const descriptionEditorHeight = Math.min(76, descriptionLineCount * 20);
   const shouldShowHoverDetails =
     titlePreview.length > 50 || descriptionPreview.length > 75;
   const triggerImagePicker = () => {
@@ -511,7 +514,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
         ) : null}
       </div>
 
-      <div className="relative flex h-[121px] flex-none flex-col px-3 pb-3 pt-2.5">
+      <div className="relative flex h-[133px] flex-none flex-col px-3 pb-3 pt-2.5">
         <div
           className="absolute inset-x-0 top-0 h-5 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.9),rgba(255,255,255,0)_72%)]"
           aria-hidden="true"
@@ -580,14 +583,14 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
               {descriptionPreview}
             </p>
             {isEditing ? (
-              <div className="absolute inset-0 min-h-[60px]">
+              <div className="absolute inset-x-0 top-0" style={{ height: `${descriptionEditorHeight}px` }}>
                 {isDescriptionFocused ? (
                   <InlineEditFocusFrame />
                 ) : null}
                 <InlineEditableText
                   id={`preview-description-${item.id}`}
                   aria-label="Opis kategorije"
-                  value={editingDraft?.description ?? descriptionPreview}
+                  value={descriptionEditValue}
                   onChange={onEditingRowDescriptionChange}
                   onFocus={() => setIsDescriptionFocused(true)}
                   onBlur={(event) => {
@@ -604,7 +607,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
                     }
                     if (event.key === "Escape") onCancelEdit();
                   }}
-                  className="min-h-[60px] w-full whitespace-pre-wrap bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[12px] leading-5 tracking-normal text-slate-950"
+                  className="h-full w-full overflow-y-auto whitespace-pre-wrap bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[12px] leading-5 tracking-normal text-slate-950"
                 />
               </div>
             ) : null}

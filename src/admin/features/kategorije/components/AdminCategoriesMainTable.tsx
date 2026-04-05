@@ -119,6 +119,8 @@ type MillerDropLocation = {
   index: number;
   columnKey: string;
 };
+type CategorySortKey = 'category' | 'subcategories' | 'items';
+type CategorySortDirection = 'asc' | 'desc';
 
 type TreeNodeRef =
   | { kind: 'category'; category: RecursiveCatalogCategory; categoryIndex: number }
@@ -453,6 +455,10 @@ export default function AdminCategoriesMainTable({
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [tableSort, setTableSort] = useState<{ key: CategorySortKey; direction: CategorySortDirection }>({
+    key: 'category',
+    direction: 'asc'
+  });
   const [millerSearchQuery, setMillerSearchQuery] = useState('');
   const [deletingRowId, setDeletingRowId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
@@ -2647,12 +2653,37 @@ export default function AdminCategoriesMainTable({
 
   const searchQuery = query.trim().toLowerCase();
   const isSearchActive = searchQuery.length > 0;
+  const sortDirectionMultiplier = tableSort.direction === 'asc' ? 1 : -1;
 
   const filteredCategories = useMemo(() => {
-    if (activeView !== 'table') return catalog.categories;
-    if (!isSearchActive) return catalog.categories;
+    const collator = new Intl.Collator('sl', { sensitivity: 'base' });
+    const getSortValue = (node: { title: string; subcategories: RecursiveCatalogSubcategory[]; items?: CatalogItem[] }) => {
+      if (tableSort.key === 'subcategories') return node.subcategories.length;
+      if (tableSort.key === 'items') return (node.items ?? []).length;
+      return node.title;
+    };
+    const compareNodes = (
+      left: { title: string; subcategories: RecursiveCatalogSubcategory[]; items?: CatalogItem[] },
+      right: { title: string; subcategories: RecursiveCatalogSubcategory[]; items?: CatalogItem[] }
+    ) => {
+      const leftValue = getSortValue(left);
+      const rightValue = getSortValue(right);
+      if (typeof leftValue === 'number' && typeof rightValue === 'number') {
+        const numericCompare = leftValue - rightValue;
+        if (numericCompare !== 0) return numericCompare * sortDirectionMultiplier;
+        return collator.compare(left.title, right.title) * sortDirectionMultiplier;
+      }
+      return collator.compare(String(leftValue), String(rightValue)) * sortDirectionMultiplier;
+    };
+    const sortSubcategories = (nodes: RecursiveCatalogSubcategory[]): RecursiveCatalogSubcategory[] =>
+      [...nodes]
+        .sort(compareNodes)
+        .map((node) => ({ ...node, subcategories: sortSubcategories(node.subcategories) }));
 
-    return catalog.categories
+    const baseCategories =
+      activeView !== 'table' || !isSearchActive
+        ? catalog.categories
+        : catalog.categories
       .map((category) => {
         const categoryMatches = [category.title, category.summary, category.description]
           .join(' ')
@@ -2671,7 +2702,11 @@ export default function AdminCategoriesMainTable({
         };
       })
       .filter((category): category is RecursiveCatalogCategory => category !== null);
-  }, [activeView, catalog.categories, isSearchActive, searchQuery]);
+
+    return [...baseCategories]
+      .sort(compareNodes)
+      .map((category) => ({ ...category, subcategories: sortSubcategories(category.subcategories) }));
+  }, [activeView, catalog.categories, isSearchActive, searchQuery, sortDirectionMultiplier, tableSort.key]);
 
   const visibleRowIds = useMemo(() => {
     const ids: string[] = [rootId];
@@ -3502,6 +3537,14 @@ export default function AdminCategoriesMainTable({
             setIsStatusHeaderMenuOpen(false);
           }}
           treeRows={treeRows}
+          sortState={tableSort}
+          onSort={(key) => {
+            setTableSort((current) => (
+              current.key === key
+                ? { key, direction: current.direction === 'asc' ? 'desc' : 'asc' }
+                : { key, direction: key === 'category' ? 'asc' : 'desc' }
+            ));
+          }}
         />
       ) : null}
 

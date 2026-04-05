@@ -468,7 +468,7 @@ export default function AdminDeletedArchiveTable({
   };
 
   const getHeaderTitleClass = (key: ArchiveSortKey) =>
-    `inline-flex items-center text-[11px] font-semibold leading-none hover:text-slate-700 ${sortState?.key === key ? 'underline underline-offset-2' : ''}`;
+    `inline-flex items-center text-[11px] font-semibold leading-none hover:text-[color:var(--blue-500)] ${sortState?.key === key ? 'underline underline-offset-2' : ''}`;
 
   const toComparableValue = (value: string) => (value || '—').toLowerCase();
   const isMatchingHoveredCell = (key: ArchiveSortKey, value: string) =>
@@ -678,7 +678,7 @@ export default function AdminDeletedArchiveTable({
                   </div>
                 </TH>
               ) : null}
-              {visibleColumns.element ? <TH className="text-[11px]">Element</TH> : null}
+              {visibleColumns.element ? <TH className="text-[11px]"><span className="inline-flex items-center text-[11px] font-semibold leading-none text-slate-700">Element</span></TH> : null}
               {visibleColumns.orderDate ? <TH className="text-center text-[11px]">
                 <div className="relative inline-flex items-center gap-1.5 align-middle" data-archive-header-filter="true">
                   <button type="button" onClick={() => handleSort('order_created_at')} className={getHeaderTitleClass('order_created_at')}>Datum naročila</button>
@@ -817,7 +817,7 @@ export default function AdminDeletedArchiveTable({
                       {entry.item_type === 'order' ? 'Naročilo' : 'PDF datoteka'}
                     </span>
                   </TD> : null}
-                  {visibleColumns.element ? <TD className={`px-3 py-2 text-slate-800 ${isChild ? 'pl-6' : ''}`}>
+                  {visibleColumns.element ? <TD className={`px-3 py-2 text-[11px] font-['Inter',system-ui,sans-serif] text-slate-800 ${isChild ? 'pl-6' : ''}`}>
                     {entry.item_type === 'order' && entry.order_id ? (
                       <a href={`/admin/orders/${entry.order_id}`} className="font-medium text-[color:var(--blue-500)] hover:text-[color:var(--blue-600)]">
                         {entry.label}

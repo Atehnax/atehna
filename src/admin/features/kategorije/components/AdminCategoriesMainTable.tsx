@@ -577,7 +577,7 @@ export default function AdminCategoriesMainTable({
 
     if (!hydrationPromiseRef.current) {
       hydrationPromiseRef.current = fetch(
-        activeView === 'preview' ? '/api/admin/categories?view=preview' : '/api/admin/categories',
+        '/api/admin/categories',
         { cache: 'no-store' }
       )
         .then(async (response) => {
@@ -594,7 +594,7 @@ export default function AdminCategoriesMainTable({
     }
 
     return hydrationPromiseRef.current;
-  }, [activeView]);
+  }, []);
 
   const ensureFullPayloadLoaded = useCallback(async () => {
     if (!partialPayloadRef.current) return;
@@ -2854,6 +2854,7 @@ export default function AdminCategoriesMainTable({
     productCount,
     ancestorContinuationColumns,
     continueCurrentColumnBelow,
+    hasPreviousSibling,
     parentIsAnimating
   }: {
     id: string;
@@ -2867,6 +2868,7 @@ export default function AdminCategoriesMainTable({
     productCount: number;
     ancestorContinuationColumns: boolean[];
     continueCurrentColumnBelow: boolean;
+    hasPreviousSibling?: boolean;
     parentIsAnimating?: boolean;
   }) => {
     const resolvedSubcategoryPath = toSubcategoryPath(subcategoryPath);
@@ -2960,7 +2962,7 @@ export default function AdminCategoriesMainTable({
             className={`${isSelected ? adminTableRowToneClasses.selected : 'bg-white'} transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''} ${isDragging ? 'opacity-70' : ''} ${kind !== 'root' ? 'cursor-grab active:cursor-grabbing select-none' : ''}`}
             {...dragHandleProps}
           >
-            <td className="relative overflow-visible border-b border-slate-200 px-2 py-2 text-center align-middle">
+            <td className="relative overflow-visible border-b border-slate-200 px-2 py-0 text-center align-middle">
               <div
                 className="absolute top-1/2 z-20"
                 style={
@@ -3026,14 +3028,16 @@ export default function AdminCategoriesMainTable({
 
                   {level > 0 && parentColumnX !== null ? (
                     <>
-                      <span
-                        className="absolute z-0 w-px bg-slate-300/90"
-                        style={{
-                          left: `${parentColumnX}px`,
-                          top: `-${treeConnectorBleed}px`,
-                          height: `${treeHalfRowHeight + treeConnectorBleed}px`
-                        }}
-                      />
+                      {hasPreviousSibling ? (
+                        <span
+                          className="absolute z-0 w-px bg-slate-300/90"
+                          style={{
+                            left: `${parentColumnX}px`,
+                            top: `-${treeConnectorBleed}px`,
+                            height: `${treeHalfRowHeight + treeConnectorBleed}px`
+                          }}
+                        />
+                      ) : null}
 
                       {continueCurrentColumnBelow ? (
                         <span
@@ -3301,6 +3305,7 @@ export default function AdminCategoriesMainTable({
           childrenCount: subcategory.subcategories.length,
           productCount: subcategory.items.length,
           ancestorContinuationColumns,
+          hasPreviousSibling: index > 0,
           continueCurrentColumnBelow: !isLastSibling,
           parentIsAnimating: openingRowIdSet.has(currentId) || closingRowIdSet.has(currentId)
         })
@@ -3349,6 +3354,7 @@ export default function AdminCategoriesMainTable({
           childrenCount: category.subcategories.length,
           productCount: (category.items ?? []).length,
           ancestorContinuationColumns: [],
+          hasPreviousSibling: categoryIndex > 0,
           continueCurrentColumnBelow: hasVisibleChildren || hasNextCategory,
           parentIsAnimating: openingRowIdSet.has(rootId) || closingRowIdSet.has(rootId)
         })

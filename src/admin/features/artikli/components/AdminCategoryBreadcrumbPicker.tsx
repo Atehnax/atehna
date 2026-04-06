@@ -164,26 +164,58 @@ export default function AdminCategoryBreadcrumbPicker({
 
   const breadcrumbItems =
     value.length === 0
-      ? [{ label: placeholder, onClick: () => !disabled && setIsOpen(true), isCurrent: false, labelClassName: 'text-xs text-slate-500' }]
-      : value.map((segment, index) => ({
-          label: segment,
-          key: `${segment}-${index}`,
-          title: value.slice(0, index + 1).join(' / '),
-          isCurrent: false,
-          onClick: () => {
-            if (disabled) return;
-            setDrillPath(value.slice(0, index + 1));
-            setQuery('');
-            setIsOpen(true);
+      ? [
+          {
+            key: 'categories-root',
+            label: 'Kategorije',
+            isCurrent: false,
+            onClick: () => {
+              if (disabled) return;
+              setDrillPath([]);
+              setQuery('');
+              setIsOpen(true);
+            }
           },
-          labelClassName: index === value.length - 1 ? 'inline-block max-w-[320px] truncate align-bottom font-semibold text-slate-900' : undefined
-        }));
+          {
+            key: 'categories-placeholder',
+            label: placeholder,
+            isCurrent: false,
+            onClick: () => !disabled && setIsOpen(true),
+            labelClassName: 'font-semibold text-slate-900'
+          }
+        ]
+      : [
+          {
+            key: 'categories-root',
+            label: 'Kategorije',
+            isCurrent: false,
+            onClick: () => {
+              if (disabled) return;
+              setDrillPath([]);
+              setQuery('');
+              setIsOpen(true);
+            }
+          },
+          ...value.map((segment, index) => ({
+            label: segment,
+            key: `${segment}-${index}`,
+            title: value.slice(0, index + 1).join(' / '),
+            isCurrent: false,
+            onClick: () => {
+              if (disabled) return;
+              setDrillPath(value.slice(0, index + 1));
+              setQuery('');
+              setIsOpen(true);
+            },
+            labelClassName: index === value.length - 1 ? 'inline-block max-w-[260px] truncate align-bottom font-semibold text-slate-900' : undefined
+          }))
+        ];
 
   return (
     <div ref={containerRef} className="relative col-span-2 space-y-1">
       <label className="sr-only">Kategorija</label>
       <div
-        className="flex h-7 w-full items-center rounded-md border border-slate-200 bg-white px-2 text-left transition hover:border-slate-300"
+        className="flex min-h-7 w-full items-center text-left"
         role="group"
         aria-label="Izbira poti kategorije"
       >
@@ -193,7 +225,10 @@ export default function AdminCategoryBreadcrumbPicker({
           setQuery('');
           setIsOpen(true);
         }}>
-          <AdminBreadcrumbPath items={breadcrumbItems} />
+          <AdminBreadcrumbPath
+            items={breadcrumbItems}
+            className="truncate whitespace-nowrap text-sm text-slate-700"
+          />
         </span>
       </div>
 

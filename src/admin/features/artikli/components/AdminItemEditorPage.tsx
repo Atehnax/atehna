@@ -11,7 +11,6 @@ import { MoreActionsIcon, PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@
 import { StatusToggle } from '@/shared/ui/status-toggle';
 import { useToast } from '@/shared/ui/toast';
 import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
-import AdminBreadcrumbPath from '@/shared/ui/admin-breadcrumb-path';
 import {
   buildFamiliesFromSeed,
   computeSalePrice,
@@ -106,16 +105,17 @@ export default function AdminItemEditorPage({
       .map((entry) => entry.trim())
       .filter(Boolean)
   );
-  const [categorySearch, setCategorySearch] = useState('');
-  const [isCategorySearchActive, setIsCategorySearchActive] = useState(false);
-  const searchContextKey = selectedCategoryPath.join(' / ');
+  const [activeBreadcrumbSearch, setActiveBreadcrumbSearch] = useState<{ index: number; query: string } | null>(null);
+  const searchContextKey = activeBreadcrumbSearch
+    ? selectedCategoryPath.slice(0, Math.max(0, activeBreadcrumbSearch.index)).join(' / ')
+    : selectedCategoryPath.join(' / ');
   const categorySuggestions = useMemo(() => {
     const normalize = (value: string) =>
       value
         .toLowerCase()
         .normalize('NFD')
         .replace(/\p{Diacritic}/gu, '');
-    const query = normalize(categorySearch.trim());
+    const query = normalize(activeBreadcrumbSearch?.query.trim() ?? '');
     const contextChildren = Array.from(categoryTree.tree.get(searchContextKey) ?? []);
     const candidates = query.length > 0 ? Array.from(categoryTree.nodes.keys()) : contextChildren;
     return candidates
@@ -131,7 +131,7 @@ export default function AdminItemEditorPage({
         path: categoryTree.nodes.get(key) ?? key.split(' / ').map((entry) => entry.trim()),
         hasChildren: (categoryTree.tree.get(key)?.size ?? 0) > 0
       }));
-  }, [categorySearch, categoryTree, searchContextKey]);
+  }, [activeBreadcrumbSearch?.query, categoryTree, searchContextKey]);
 
   useEffect(() => {
     setDraft((current) => ({ ...current, category: selectedCategoryPath.join(' / ') }));
@@ -178,7 +178,7 @@ export default function AdminItemEditorPage({
 
   const selectCategoryPath = (path: string[]) => {
     setSelectedCategoryPath(path);
-    setCategorySearch('');
+    setActiveBreadcrumbSearch(null);
   };
 
   const isEditable = editorMode === 'edit';
@@ -248,31 +248,67 @@ export default function AdminItemEditorPage({
               <div className="col-span-1 space-y-1"><label className="text-xs text-slate-600">Naziv</label><input disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></div>
               <div className="relative col-span-2 space-y-1">
                 <label className="sr-only">Kategorija</label>
-                <input
-                  disabled={!isEditable}
-                  className={`${inputClass} ${readOnlyInputClass}`}
-                  value={categorySearch}
-                  onChange={(event) => setCategorySearch(event.target.value)}
-                  onFocus={() => setIsCategorySearchActive(true)}
-                  onBlur={() => {
-                    window.setTimeout(() => setIsCategorySearchActive(false), 150);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key !== 'Enter') return;
-                    event.preventDefault();
-                    const first = categorySuggestions[0];
-                    if (!first) return;
-                    selectCategoryPath(first.path);
-                  }}
-                  placeholder="Vpišite kategorijo ali podkategorijo in pritisnite Enter"
-                />
-                <AdminBreadcrumbPath
-                  items={selectedCategoryPath.map((crumb, index) => ({
-                    label: crumb,
-                    isCurrent: index === selectedCategoryPath.length - 1
-                  }))}
-                />
-                {isCategorySearchActive && categorySuggestions.length > 0 ? (
+                <div className="min-h-10 rounded-md border border-slate-300 px-2 py-2">
+                  {selectedCategoryPath.length === 0 ? (
+                    <button
+                      type="button"
+                      className="text-xs text-slate-500 hover:text-slate-900"
+                      onClick={() => setActiveBreadcrumbSearch({ index: 0, query: '' })}
+                    >
+                      Izberi kategorijo …
+                    </button>
+                  ) : (
+                    <nav className="truncate whitespace-nowrap text-sm text-slate-700" aria-label="Breadcrumb">
+                      {selectedCategoryPath.map((crumb, index) => (
+                        <span key={`${crumb}-${index}`}>
+                          <button
+                            type="button"
+                            className={`hover:text-slate-900 ${index === selectedCategoryPath.length - 1 ? 'font-semibold text-slate-900' : ''}`}
+                            onClick={() => setActiveBreadcrumbSearch({ index, query: crumb })}
+                          >
+                            {crumb}
+                          </button>
+                          {index < selectedCategoryPath.length - 1 ? (
+                            <button
+                              type="button"
+                              className="mx-1 text-slate-400 hover:text-slate-700"
+                              onClick={() => setActiveBreadcrumbSearch({ index: index + 1, query: '' })}
+                              aria-label={`Išči podkategorijo za ${crumb}`}
+                            >
+                              /
+                            </button>
+                          ) : null}
+                        </span>
+                      ))}
+                    </nav>
+                  )}
+                </div>
+                {activeBreadcrumbSearch ? (
+                  <div className="absolute z-30 mt-1 w-[calc(100%-1rem)] rounded-md border border-slate-200 bg-white p-2 shadow-lg">
+                    <input
+                      autoFocus
+                      disabled={!isEditable}
+                      className={`${inputClass} ${readOnlyInputClass} !h-8`}
+                      value={activeBreadcrumbSearch.query}
+                      onChange={(event) =>
+                        setActiveBreadcrumbSearch((current) => (current ? { ...current, query: event.target.value } : current))
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === 'Escape') {
+                          setActiveBreadcrumbSearch(null);
+                          return;
+                        }
+                        if (event.key !== 'Enter') return;
+                        event.preventDefault();
+                        const first = categorySuggestions[0];
+                        if (!first) return;
+                        selectCategoryPath(first.path);
+                      }}
+                      placeholder="Išči kategorijo ali podkategorijo"
+                    />
+                  </div>
+                ) : null}
+                {activeBreadcrumbSearch && categorySuggestions.length > 0 ? (
                   <div className="absolute z-30 mt-1 max-h-56 w-[calc(100%-1rem)] overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg">
                     {categorySuggestions.map((suggestion) => (
                       <button

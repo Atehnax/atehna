@@ -7,7 +7,7 @@ import { Button } from '@/shared/ui/button';
 import { Chip } from '@/shared/ui/badge';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { IconButton } from '@/shared/ui/icon-button';
-import { CloseIcon, MoreActionsIcon, PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { MoreActionsIcon, PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { StatusToggle } from '@/shared/ui/status-toggle';
 import { useToast } from '@/shared/ui/toast';
 import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
@@ -110,15 +110,22 @@ export default function AdminItemEditorPage({
   const [isCategorySearchActive, setIsCategorySearchActive] = useState(false);
   const searchContextKey = selectedCategoryPath.join(' / ');
   const categorySuggestions = useMemo(() => {
-    const query = categorySearch.trim().toLowerCase();
+    const normalize = (value: string) =>
+      value
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '');
+    const query = normalize(categorySearch.trim());
     const contextChildren = Array.from(categoryTree.tree.get(searchContextKey) ?? []);
     const candidates = query.length > 0 ? Array.from(categoryTree.nodes.keys()) : contextChildren;
     return candidates
       .filter((key) => {
         const label = key.split(' / ').at(-1) ?? key;
-        return query.length === 0 || key.toLowerCase().includes(query) || label.toLowerCase().includes(query);
+        const normalizedKey = normalize(key);
+        const normalizedLabel = normalize(label);
+        return query.length === 0 || normalizedKey.includes(query) || normalizedLabel.includes(query);
       })
-      .slice(0, 8)
+      .slice(0, 30)
       .map((key) => ({
         key,
         path: categoryTree.nodes.get(key) ?? key.split(' / ').map((entry) => entry.trim()),
@@ -133,12 +140,16 @@ export default function AdminItemEditorPage({
   useEffect(() => {
     let cancelled = false;
 
-    const collectPaths = (nodes: Array<{ title?: string; subcategories?: unknown[] }>, parents: string[] = [], target: string[] = []) => {
+    const collectPaths = (nodes: Array<{ title?: string; slug?: string; subcategories?: unknown[] }>, parents: string[] = [], target: string[] = []) => {
       nodes.forEach((node) => {
         const title = (node.title ?? '').trim();
         if (!title) return;
         const path = [...parents, title];
         target.push(path.join(' / '));
+        const slug = (node.slug ?? '').trim();
+        if (slug && slug.toLowerCase() !== title.toLowerCase()) {
+          target.push([...parents, slug].join(' / '));
+        }
         const subcategories = Array.isArray(node.subcategories) ? (node.subcategories as Array<{ title?: string; subcategories?: unknown[] }>) : [];
         if (subcategories.length > 0) {
           collectPaths(subcategories, path, target);
@@ -253,13 +264,13 @@ export default function AdminItemEditorPage({
               <h1 className="flex h-10 items-center text-lg font-semibold tracking-tight text-slate-900">{mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</h1>
               <div className="ml-auto flex items-center gap-1.5">
                 <Chip variant={draft.active ? 'success' : 'warning'}>{statusLabel(draft.active)}</Chip>
-                <IconButton type="button" tone="neutral" onClick={() => setEditorMode((current) => (current === 'read' ? 'edit' : 'read'))} aria-label="Uredi artikel" title="Uredi">{isEditable ? <CloseIcon /> : <PencilIcon />}</IconButton>
+                <IconButton type="button" tone="neutral" onClick={() => setEditorMode((current) => (current === 'read' ? 'edit' : 'read'))} aria-label="Uredi artikel" title="Uredi"><PencilIcon /></IconButton>
                 <IconButton type="button" tone="neutral" onClick={() => save(false)} aria-label="Shrani artikel" title="Shrani" disabled={!isEditable}><SaveIcon /></IconButton>
                 <button type="button" className={buttonTokenClasses.closeX} onClick={deleteItem} aria-label="Izbriši artikel" title="Izbriši"><TrashCanIcon /></button>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2 space-y-1"><label className="text-xs text-slate-600">Naziv</label><input disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></div>
+              <div className="col-span-1 space-y-1"><label className="text-xs text-slate-600">Naziv</label><input disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></div>
               <div className="relative col-span-2 space-y-1">
                 <label className="sr-only">Kategorija</label>
                 <input

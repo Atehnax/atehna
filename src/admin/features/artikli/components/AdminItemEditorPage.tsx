@@ -23,6 +23,7 @@ import {
   type SeedItemTuple,
   type Variant
 } from '@/admin/features/artikli/lib/familyModel';
+import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/AdminCategoryBreadcrumbPicker';
 
 const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0';
 const readOnlyInputClass = 'disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500';
@@ -44,23 +45,11 @@ export default function AdminItemEditorPage({
   const { toast } = useToast();
   const families = useMemo(() => buildFamiliesFromSeed(seedItems), [seedItems]);
   const existing = mode === 'edit' ? families.find((family) => family.id === articleId) ?? null : null;
-  const categoryTreeFromSeed = useMemo(() => {
-    const tree = new Map<string, Set<string>>();
-    const nodes = new Map<string, string[]>();
-    seedItems.forEach(([, , , categoryPath]) => {
-      const parts = categoryPath.split('/').map((entry) => entry.trim()).filter(Boolean);
-      parts.forEach((part, index) => {
-        const prefix = parts.slice(0, index + 1);
-        const parentKey = prefix.slice(0, -1).join(' / ');
-        const currentKey = prefix.join(' / ');
-        if (!tree.has(parentKey)) tree.set(parentKey, new Set());
-        tree.get(parentKey)?.add(currentKey);
-        nodes.set(currentKey, prefix);
-      });
-    });
-    return { tree, nodes };
-  }, [seedItems]);
-  const [categoryTree, setCategoryTree] = useState(categoryTreeFromSeed);
+  const categoryPathsFromSeed = useMemo(
+    () => Array.from(new Set(seedItems.map(([, , , categoryPath]) => categoryPath).filter((categoryPath) => categoryPath.trim().length > 0))),
+    [seedItems]
+  );
+  const [categoryPaths, setCategoryPaths] = useState<string[]>(categoryPathsFromSeed);
 
   const [draft, setDraft] = useState<ProductFamily>(() => {
     if (existing) return structuredClone(existing);
@@ -105,33 +94,6 @@ export default function AdminItemEditorPage({
       .map((entry) => entry.trim())
       .filter(Boolean)
   );
-  const [activeBreadcrumbSearch, setActiveBreadcrumbSearch] = useState<{ index: number; query: string } | null>(null);
-  const searchContextKey = activeBreadcrumbSearch
-    ? selectedCategoryPath.slice(0, Math.max(0, activeBreadcrumbSearch.index)).join(' / ')
-    : selectedCategoryPath.join(' / ');
-  const categorySuggestions = useMemo(() => {
-    const normalize = (value: string) =>
-      value
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/\p{Diacritic}/gu, '');
-    const query = normalize(activeBreadcrumbSearch?.query.trim() ?? '');
-    const contextChildren = Array.from(categoryTree.tree.get(searchContextKey) ?? []);
-    const candidates = query.length > 0 ? Array.from(categoryTree.nodes.keys()) : contextChildren;
-    return candidates
-      .filter((key) => {
-        const label = key.split(' / ').at(-1) ?? key;
-        const normalizedKey = normalize(key);
-        const normalizedLabel = normalize(label);
-        return query.length === 0 || normalizedKey.includes(query) || normalizedLabel.includes(query);
-      })
-      .slice(0, 30)
-      .map((key) => ({
-        key,
-        path: categoryTree.nodes.get(key) ?? key.split(' / ').map((entry) => entry.trim()),
-        hasChildren: (categoryTree.tree.get(key)?.size ?? 0) > 0
-      }));
-  }, [activeBreadcrumbSearch?.query, categoryTree, searchContextKey]);
 
   useEffect(() => {
     setDraft((current) => ({ ...current, category: selectedCategoryPath.join(' / ') }));
@@ -140,33 +102,16 @@ export default function AdminItemEditorPage({
   useEffect(() => {
     let cancelled = false;
 
-    const mergeTrees = (paths: string[]) => {
-      const tree = new Map<string, Set<string>>();
-      const nodes = new Map<string, string[]>();
-      paths.forEach((pathValue) => {
-        const parts = pathValue.split('/').map((entry) => entry.trim()).filter(Boolean);
-        parts.forEach((_, index) => {
-          const prefix = parts.slice(0, index + 1);
-          const parentKey = prefix.slice(0, -1).join(' / ');
-          const currentKey = prefix.join(' / ');
-          if (!tree.has(parentKey)) tree.set(parentKey, new Set());
-          tree.get(parentKey)?.add(currentKey);
-          nodes.set(currentKey, prefix);
-        });
-      });
-      return { tree, nodes };
-    };
-
     const hydrateCategoryTree = async () => {
       try {
         const response = await fetch('/api/admin/categories/paths', { cache: 'no-store' });
         if (!response.ok) return;
         const payload = (await response.json()) as { paths?: string[] };
         const apiPaths = Array.isArray(payload.paths) ? payload.paths : [];
-        const mergedPaths = Array.from(new Set([...Array.from(categoryTreeFromSeed.nodes.keys()), ...apiPaths]));
-        if (!cancelled) setCategoryTree(mergeTrees(mergedPaths));
+        const mergedPaths = Array.from(new Set([...categoryPathsFromSeed, ...apiPaths]));
+        if (!cancelled) setCategoryPaths(mergedPaths);
       } catch {
-        if (!cancelled) setCategoryTree(categoryTreeFromSeed);
+        if (!cancelled) setCategoryPaths(categoryPathsFromSeed);
       }
     };
 
@@ -174,11 +119,10 @@ export default function AdminItemEditorPage({
     return () => {
       cancelled = true;
     };
-  }, [categoryTreeFromSeed]);
+  }, [categoryPathsFromSeed]);
 
   const selectCategoryPath = (path: string[]) => {
     setSelectedCategoryPath(path);
-    setActiveBreadcrumbSearch(null);
   };
 
   const isEditable = editorMode === 'edit';
@@ -246,84 +190,12 @@ export default function AdminItemEditorPage({
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-1 space-y-1"><label className="text-xs text-slate-600">Naziv</label><input disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></div>
-              <div className="relative col-span-2 space-y-1">
-                <label className="sr-only">Kategorija</label>
-                <div className="min-h-10 rounded-md border border-slate-300 px-2 py-2">
-                  {selectedCategoryPath.length === 0 ? (
-                    <button
-                      type="button"
-                      className="text-xs text-slate-500 hover:text-slate-900"
-                      onClick={() => setActiveBreadcrumbSearch({ index: 0, query: '' })}
-                    >
-                      Izberi kategorijo …
-                    </button>
-                  ) : (
-                    <nav className="truncate whitespace-nowrap text-sm text-slate-700" aria-label="Breadcrumb">
-                      {selectedCategoryPath.map((crumb, index) => (
-                        <span key={`${crumb}-${index}`}>
-                          <button
-                            type="button"
-                            className={`hover:text-slate-900 ${index === selectedCategoryPath.length - 1 ? 'font-semibold text-slate-900' : ''}`}
-                            onClick={() => setActiveBreadcrumbSearch({ index, query: crumb })}
-                          >
-                            {crumb}
-                          </button>
-                          {index < selectedCategoryPath.length - 1 ? (
-                            <button
-                              type="button"
-                              className="mx-1 text-slate-400 hover:text-slate-700"
-                              onClick={() => setActiveBreadcrumbSearch({ index: index + 1, query: '' })}
-                              aria-label={`Išči podkategorijo za ${crumb}`}
-                            >
-                              /
-                            </button>
-                          ) : null}
-                        </span>
-                      ))}
-                    </nav>
-                  )}
-                </div>
-                {activeBreadcrumbSearch ? (
-                  <div className="absolute z-30 mt-1 w-[calc(100%-1rem)] rounded-md border border-slate-200 bg-white p-2 shadow-lg">
-                    <input
-                      autoFocus
-                      disabled={!isEditable}
-                      className={`${inputClass} ${readOnlyInputClass} !h-8`}
-                      value={activeBreadcrumbSearch.query}
-                      onChange={(event) =>
-                        setActiveBreadcrumbSearch((current) => (current ? { ...current, query: event.target.value } : current))
-                      }
-                      onKeyDown={(event) => {
-                        if (event.key === 'Escape') {
-                          setActiveBreadcrumbSearch(null);
-                          return;
-                        }
-                        if (event.key !== 'Enter') return;
-                        event.preventDefault();
-                        const first = categorySuggestions[0];
-                        if (!first) return;
-                        selectCategoryPath(first.path);
-                      }}
-                      placeholder="Išči kategorijo ali podkategorijo"
-                    />
-                  </div>
-                ) : null}
-                {activeBreadcrumbSearch && categorySuggestions.length > 0 ? (
-                  <div className="absolute z-30 mt-1 max-h-56 w-[calc(100%-1rem)] overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg">
-                    {categorySuggestions.map((suggestion) => (
-                      <button
-                        key={suggestion.key}
-                        type="button"
-                        className="flex w-full items-center justify-between border-b border-slate-100 px-2 py-1.5 text-left text-xs last:border-b-0 hover:bg-slate-50"
-                        onClick={() => selectCategoryPath(suggestion.path)}
-                      >
-                        <span>{suggestion.path.join(' → ')}</span>
-                        <span className="text-slate-400">{suggestion.hasChildren ? 'ima podkategorije' : 'končna'}</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
+              <AdminCategoryBreadcrumbPicker
+                value={selectedCategoryPath}
+                onChange={selectCategoryPath}
+                categoryPaths={categoryPaths}
+                disabled={!isEditable}
+              />
               <div className="col-span-2 space-y-1"><label className="text-xs text-slate-600">Opis</label><textarea disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass} !h-28 py-2`} value={draft.description} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} /></div>
               <div className="space-y-1"><label className="text-xs text-slate-600">Oznake (badge)</label><input disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={draft.promoBadge} onChange={(event) => setDraft((current) => ({ ...current, promoBadge: event.target.value }))} placeholder="Akcija, Novo ..." /></div>
               <div className="col-span-2 space-y-1"><label className="text-xs text-slate-600">Kratek URL (slug)</label><input disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={draft.slug} onChange={(event) => setDraft((current) => ({ ...current, slug: event.target.value }))} placeholder={toSlug(draft.name)} /></div>

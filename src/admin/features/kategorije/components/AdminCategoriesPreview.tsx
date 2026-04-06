@@ -29,6 +29,7 @@ import {
   getDiscountedPrice,
 } from "@/commercial/catalog/catalogUtils";
 import { Button } from "@/shared/ui/button";
+import { IconButton } from "@/shared/ui/icon-button";
 import { InlineEditableText, InlineEditFocusFrame } from "@/shared/ui/inline-edit";
 import type {
   CategoryStatus,
@@ -36,6 +37,7 @@ import type {
   EditingRowDraft,
   SelectedPreviewContext,
 } from "../common/types";
+import { categoriesBreadcrumbCurrentTextClassName } from "../common/typography";
 
 export function AdminCategoriesPreview({
   activeView,
@@ -129,7 +131,13 @@ export function AdminCategoriesPreview({
     : false;
 
   return (
-    <div className={activeView === "preview" ? "w-full space-y-4" : "hidden"}>
+    <div
+      className={
+        activeView === "preview"
+          ? "w-full space-y-4 font-['Inter',system-ui,sans-serif]"
+          : "hidden"
+      }
+    >
       <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
         {tableError ? (
           <p className="mb-3 rounded-lg border border-[var(--danger-300)] bg-[var(--danger-100)] px-3 py-2 text-xs text-[var(--danger-700)]">
@@ -137,38 +145,38 @@ export function AdminCategoriesPreview({
           </p>
         ) : null}
         <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="text-[13px] font-semibold text-slate-700">Predogled</p>
+          <h2 className={categoriesBreadcrumbCurrentTextClassName}>Predogled</h2>
           <div className="flex items-center gap-3">
-            <label className="mr-2 flex items-center gap-2 text-[11px] text-slate-500">
-              Elementov na vrstico
+            <label
+              htmlFor="categories-preview-columns"
+              className="mr-1 flex h-7 w-[92px] flex-col justify-center gap-[9px] text-slate-500"
+            >
+              <span className="text-[10px] leading-[10px]">Elementov na vrstico</span>
               <input
                 id="categories-preview-columns"
                 name="categoriesPreviewColumns"
                 type="range"
                 min={3}
                 max={8}
+                step={1}
                 value={lowerViewCount}
                 onChange={(event) =>
                   onLowerViewCountChange(Number(event.target.value || 5))
                 }
-                className="h-1.5 w-28 accent-[#3e67d6]"
+                className="h-1 w-[92px] cursor-pointer appearance-none rounded-full bg-slate-200 accent-[#1982bf] [&::-webkit-slider-thumb]:h-[12.5px] [&::-webkit-slider-thumb]:w-[12.5px] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1982bf] [&::-moz-range-thumb]:h-[12.5px] [&::-moz-range-thumb]:w-[12.5px] [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#1982bf]"
               />
-              <span className="w-4 text-right text-slate-600">
-                {lowerViewCount}
-              </span>
             </label>
-            <Button
-              variant="outline"
-              size="toolbar"
+            <IconButton
               onClick={onNavigateUp}
               disabled={!canNavigateUp}
               aria-label="Nazaj na nadrejeno kategorijo"
               title="Nazaj"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-xl px-0"
+              size="sm"
+              tone="neutral"
             >
               <svg
                 viewBox="0 0 640 640"
-                className="h-5 w-5 shrink-0"
+                className="h-4 w-4 shrink-0"
                 fill="currentColor"
                 stroke="currentColor"
                 strokeWidth="1.5"
@@ -177,10 +185,11 @@ export function AdminCategoriesPreview({
               >
                 <path d="M73.4 297.4C60.9 309.9 60.9 330.2 73.4 342.7L233.4 502.7C245.9 515.2 266.2 515.2 278.7 502.7C291.2 490.2 291.2 469.9 278.7 457.4L173.3 352L544 352C561.7 352 576 337.7 576 320C576 302.3 561.7 288 544 288L173.3 288L278.7 182.6C291.2 170.1 291.2 149.8 278.7 137.3C266.2 124.8 245.9 124.8 233.4 137.3L73.4 297.3z" />
               </svg>
-            </Button>
+            </IconButton>
             <Button
               variant="primary"
               size="toolbar"
+              className="!h-7 !rounded-md !px-3 !text-[11px]"
               onClick={() => {
                 if (hasActiveEditChanges) onCommitEdit();
                 onRequestSave();
@@ -460,7 +469,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
     <article
       ref={setNodeRef}
       style={style}
-      className="group flex h-full min-h-[225px] flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04)]"
+      className="group flex h-full min-h-[225px] flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white font-['Inter',system-ui,sans-serif] shadow-[0_2px_8px_rgba(15,23,42,0.04)]"
     >
       <div className="group/image relative h-[170px] shrink-0 overflow-hidden">
         <div
@@ -668,7 +677,7 @@ function CreateCategoryCard({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-[225px] flex-col items-center justify-center rounded-[18px] border border-dashed border-slate-300 bg-[color:var(--ui-neutral-bg)] px-6 text-center transition hover:border-slate-400 hover:bg-[color:var(--ui-neutral-bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/40"
+      className="flex min-h-[225px] flex-col items-center justify-center rounded-[18px] border border-dashed border-slate-300 bg-[color:var(--ui-neutral-bg)] px-6 text-center font-['Inter',system-ui,sans-serif] transition hover:border-slate-400 hover:bg-[color:var(--ui-neutral-bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/40"
       aria-label="Ustvari novo kategorijo"
     >
       <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-slate-600 shadow-sm">
@@ -747,7 +756,7 @@ function LeafProductsView({
   );
 
   return (
-    <div>
+    <div className="font-['Inter',system-ui,sans-serif]">
       <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
       <p className="mt-1 text-sm text-slate-600">
         Storefront-like pogled izdelkov iz izbrane kategorije.

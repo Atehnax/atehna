@@ -12,6 +12,7 @@ type ConfirmDialogProps = {
   onCancel: () => void;
   confirmDisabled?: boolean;
   children?: ReactNode;
+  panelClassName?: string;
 };
 
 export default function ConfirmDialog({
@@ -24,7 +25,8 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
   confirmDisabled = false,
-  children
+  children,
+  panelClassName
 }: ConfirmDialogProps) {
   return (
     <Dialog
@@ -34,6 +36,7 @@ export default function ConfirmDialog({
       }}
       title={title}
       isDismissable={false}
+      panelClassName={panelClassName}
       footer={
         <div className="mt-4 flex justify-end gap-2">
           <button

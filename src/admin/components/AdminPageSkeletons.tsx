@@ -15,7 +15,7 @@ function AdminSectionShell({ title, description, children }: SectionProps) {
     <div className="space-y-4">
       {(title || description) ? (
         <div>
-          {title ? <h1 className="text-2xl font-semibold text-slate-900">{title}</h1> : null}
+          {title ? <h1 className="text-2xl font-semibold leading-8 text-slate-900">{title}</h1> : null}
           {description ? <p className="mt-1 text-sm text-slate-600">{description}</p> : null}
         </div>
       ) : null}
@@ -318,10 +318,11 @@ const categoryTableColumnSkeletonWidths = ['24px', '180px', 'minmax(240px, 1fr)'
 
 function CategoryTabsSkeleton({ initialView }: { initialView: 'table' | 'preview' | 'miller' }) {
   return (
-    <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1">
-      <Skeleton className={`h-9 rounded-lg ${initialView === 'table' ? 'w-28' : 'w-24'}`} />
-      <Skeleton className={`ml-1 h-9 rounded-lg ${initialView === 'preview' ? 'w-28' : 'w-24'}`} />
-      <Skeleton className={`ml-1 h-9 rounded-lg ${initialView === 'miller' ? 'w-32' : 'w-28'}`} />
+    <div className="relative inline-flex items-end gap-5">
+      <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-slate-300" />
+      <Skeleton className={`relative z-10 h-7 ${initialView === 'table' ? 'w-20' : 'w-16'}`} />
+      <Skeleton className={`relative z-10 h-7 ${initialView === 'preview' ? 'w-20' : 'w-16'}`} />
+      <Skeleton className={`relative z-10 h-7 ${initialView === 'miller' ? 'w-24' : 'w-20'}`} />
     </div>
   );
 }
@@ -331,12 +332,13 @@ export function AdminCategoriesTableContentSkeleton() {
     <AdminTableLayout
       className="border"
       contentClassName="overflow-x-auto"
-      headerLeft={<Skeleton className="h-10 min-w-[260px] flex-1 rounded-xl" />}
+      headerLeft={<Skeleton className="h-7 min-w-[260px] flex-1 rounded-md" />}
       headerRight={
         <>
-          <Skeleton className="h-10 w-24 rounded-xl" />
-          <Skeleton className="h-10 w-36 rounded-xl" />
-          <Skeleton className="h-10 w-10 rounded-xl" />
+          <Skeleton className="h-7 w-7 rounded-md" />
+          <Skeleton className="h-7 w-7 rounded-md" />
+          <Skeleton className="h-7 w-7 rounded-md" />
+          <Skeleton className="h-7 w-[52px] rounded-md" />
         </>
       }
     >
@@ -415,17 +417,16 @@ function CategoryPreviewCardSkeleton({ showAddButton = false }: { showAddButton?
 
 export function AdminCategoriesPreviewContentSkeleton() {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <Skeleton className="h-5 w-24" />
+        <Skeleton className="h-5 w-16" />
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Skeleton className="h-3.5 w-28" />
-            <Skeleton className="h-4 w-28 rounded-full" />
-            <Skeleton className="h-4 w-4" />
+          <div className="flex h-7 w-[92px] flex-col justify-center gap-[9px]">
+            <Skeleton className="h-[10px] w-20" />
+            <Skeleton className="h-1 w-[92px] rounded-full" />
           </div>
-          <Skeleton className="h-9 w-9 rounded-xl" />
-          <Skeleton className="h-10 w-36 rounded-xl" />
+          <Skeleton className="h-7 w-7 rounded-md" />
+          <Skeleton className="h-7 w-[52px] rounded-md" />
         </div>
       </div>
       <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' } as CSSProperties}>
@@ -445,11 +446,12 @@ export function AdminCategoriesMillerContentSkeleton() {
           <Skeleton className="h-4 w-80 max-w-full" />
         </div>
         <div className="flex items-center gap-2">
-          <Skeleton className="h-10 w-[280px] rounded-xl" />
-          <Skeleton className="h-10 w-36 rounded-xl" />
-          <Skeleton className="h-10 w-10 rounded-xl" />
-          <Skeleton className="h-10 w-10 rounded-xl" />
-          <Skeleton className="h-10 w-10 rounded-xl" />
+          <Skeleton className="h-7 w-[320px] max-w-[36vw] rounded-md" />
+          <Skeleton className="h-7 w-7 rounded-md" />
+          <Skeleton className="h-7 w-7 rounded-md" />
+          <Skeleton className="h-7 w-7 rounded-md" />
+          <Skeleton className="h-7 w-7 rounded-md" />
+          <Skeleton className="h-7 w-[52px] rounded-md" />
         </div>
       </div>
       <div className="flex items-stretch gap-0 overflow-hidden pb-1">
@@ -477,10 +479,7 @@ export function AdminCategoriesMillerContentSkeleton() {
 
 export function AdminCategoriesRouteSkeleton({ initialView }: { initialView: 'table' | 'preview' | 'miller' }) {
   return (
-    <AdminSectionShell
-      title="Kategorije"
-      description="Top: povezano drevo levo → desno. Bottom: vsebina izbrane kategorije v storefront admin pogledu."
-    >
+    <AdminSectionShell title="Kategorije">
       <CategoryTabsSkeleton initialView={initialView} />
       {initialView === 'table' ? <AdminCategoriesTableContentSkeleton /> : null}
       {initialView === 'preview' ? <AdminCategoriesPreviewContentSkeleton /> : null}

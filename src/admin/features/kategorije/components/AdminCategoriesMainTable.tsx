@@ -218,7 +218,7 @@ export const InlineStatusToggle = ({
       <span
         aria-hidden="true"
       className={`absolute left-[-1px] top-1/2 z-10 h-5 w-5 -translate-y-1/2 rounded-full border border-[#37424f] bg-[#4f5b68] shadow-[inset_0_1px_2px_rgba(255,255,255,0.08),inset_0_-3px_6px_rgba(0,0,0,0.22),0_4px_8px_rgba(20,30,45,0.33)] transition-transform duration-200 ${
-        checked ? 'translate-x-[27px]' : 'translate-x-0'
+        checked ? 'translate-x-[28px]' : 'translate-x-0'
       }`}
     >
       <span
@@ -577,7 +577,7 @@ export default function AdminCategoriesMainTable({
 
     if (!hydrationPromiseRef.current) {
       hydrationPromiseRef.current = fetch(
-        activeView === 'preview' ? '/api/admin/categories?view=preview' : '/api/admin/categories',
+        '/api/admin/categories',
         { cache: 'no-store' }
       )
         .then(async (response) => {
@@ -594,7 +594,7 @@ export default function AdminCategoriesMainTable({
     }
 
     return hydrationPromiseRef.current;
-  }, [activeView]);
+  }, []);
 
   const ensureFullPayloadLoaded = useCallback(async () => {
     if (!partialPayloadRef.current) return;
@@ -2854,6 +2854,7 @@ export default function AdminCategoriesMainTable({
     productCount,
     ancestorContinuationColumns,
     continueCurrentColumnBelow,
+    hasPreviousSibling,
     parentIsAnimating
   }: {
     id: string;
@@ -2867,6 +2868,7 @@ export default function AdminCategoriesMainTable({
     productCount: number;
     ancestorContinuationColumns: boolean[];
     continueCurrentColumnBelow: boolean;
+    hasPreviousSibling?: boolean;
     parentIsAnimating?: boolean;
   }) => {
     const resolvedSubcategoryPath = toSubcategoryPath(subcategoryPath);
@@ -2960,7 +2962,7 @@ export default function AdminCategoriesMainTable({
             className={`${isSelected ? adminTableRowToneClasses.selected : 'bg-white'} transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''} ${isDragging ? 'opacity-70' : ''} ${kind !== 'root' ? 'cursor-grab active:cursor-grabbing select-none' : ''}`}
             {...dragHandleProps}
           >
-            <td className="relative overflow-visible border-b border-slate-200 px-2 py-2 text-center align-middle">
+            <td className="relative overflow-visible border-b border-slate-200 px-2 py-0 text-center align-middle">
               <div
                 className="absolute top-1/2 z-20"
                 style={
@@ -3026,14 +3028,16 @@ export default function AdminCategoriesMainTable({
 
                   {level > 0 && parentColumnX !== null ? (
                     <>
-                      <span
-                        className="absolute z-0 w-px bg-slate-300/90"
-                        style={{
-                          left: `${parentColumnX}px`,
-                          top: `-${treeConnectorBleed}px`,
-                          height: `${treeHalfRowHeight + treeConnectorBleed}px`
-                        }}
-                      />
+                      {hasPreviousSibling ? (
+                        <span
+                          className="absolute z-0 w-px bg-slate-300/90"
+                          style={{
+                            left: `${parentColumnX}px`,
+                            top: `-${treeConnectorBleed}px`,
+                            height: `${treeHalfRowHeight + treeConnectorBleed}px`
+                          }}
+                        />
+                      ) : null}
 
                       {continueCurrentColumnBelow ? (
                         <span
@@ -3301,6 +3305,7 @@ export default function AdminCategoriesMainTable({
           childrenCount: subcategory.subcategories.length,
           productCount: subcategory.items.length,
           ancestorContinuationColumns,
+          hasPreviousSibling: index > 0,
           continueCurrentColumnBelow: !isLastSibling,
           parentIsAnimating: openingRowIdSet.has(currentId) || closingRowIdSet.has(currentId)
         })
@@ -3349,6 +3354,7 @@ export default function AdminCategoriesMainTable({
           childrenCount: category.subcategories.length,
           productCount: (category.items ?? []).length,
           ancestorContinuationColumns: [],
+          hasPreviousSibling: categoryIndex > 0,
           continueCurrentColumnBelow: hasVisibleChildren || hasNextCategory,
           parentIsAnimating: openingRowIdSet.has(rootId) || closingRowIdSet.has(rootId)
         })
@@ -3383,10 +3389,7 @@ export default function AdminCategoriesMainTable({
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="text-2xl font-semibold text-slate-900">Kategorije</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Top: povezano drevo levo → desno. Bottom: vsebina izbrane kategorije v storefront admin pogledu.
-        </p>
+        <h1 className="text-2xl font-semibold leading-8 text-slate-900">Kategorije</h1>
       </header>
 
       <EuiTabs
@@ -3411,6 +3414,7 @@ export default function AdminCategoriesMainTable({
 
       {isBulkDeleteDialogOpen ? <LazyConfirmDialog
         open={isBulkDeleteDialogOpen}
+        panelClassName={activeView === 'preview' ? "font-['Inter',system-ui,sans-serif]" : undefined}
         title="Izbris kategorij"
         description={`Ali ste prepričani, da želite izbrisati ${selectedRows.length} izbranih vrstic?`}
         confirmLabel="Izbriši"
@@ -3425,6 +3429,7 @@ export default function AdminCategoriesMainTable({
 
       {warningDialog !== null ? <LazyConfirmDialog
         open={warningDialog !== null}
+        panelClassName={activeView === 'preview' ? "font-['Inter',system-ui,sans-serif]" : undefined}
         title={warningDialog?.title ?? 'Opozorilo'}
         description={warningDialog?.description}
         confirmLabel="V redu"
@@ -3434,6 +3439,7 @@ export default function AdminCategoriesMainTable({
 
       {isUnsavedLeaveDialogOpen ? <LazyConfirmDialog
         open={isUnsavedLeaveDialogOpen}
+        panelClassName={activeView === 'preview' ? "font-['Inter',system-ui,sans-serif]" : undefined}
         title="Neshranjene spremembe"
         description="Imate neshranjene spremembe. Če zapustite stran, bodo lokalne spremembe izgubljene."
         confirmLabel="Zapusti stran"
@@ -3453,6 +3459,7 @@ export default function AdminCategoriesMainTable({
 
       {imageDeleteTarget !== null ? <LazyConfirmDialog
         open={imageDeleteTarget !== null}
+        panelClassName={activeView === 'preview' ? "font-['Inter',system-ui,sans-serif]" : undefined}
         title="Odstrani sliko"
         description="Ali ste prepričani, da želite odstraniti sliko?"
         confirmLabel="Odstrani"
@@ -3464,6 +3471,7 @@ export default function AdminCategoriesMainTable({
 
       {createTarget !== null ? <LazyConfirmDialog
         open={createTarget !== null}
+        panelClassName={activeView === 'preview' ? "font-['Inter',system-ui,sans-serif]" : undefined}
         title={createTarget?.kind === 'category' ? 'Nova kategorija' : 'Nova podkategorija'}
         description="Vnesite ime kategorije."
         confirmLabel="Ustvari"
@@ -3592,6 +3600,7 @@ export default function AdminCategoriesMainTable({
 
       {isTableSaveDialogOpen ? <LazyConfirmDialog
         open={isTableSaveDialogOpen}
+        panelClassName={activeView === 'preview' ? "font-['Inter',system-ui,sans-serif]" : undefined}
         title="Shrani spremembe"
         description="Pregled pripravljenih sprememb:"
         confirmLabel="Shrani"

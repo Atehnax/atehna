@@ -8,6 +8,7 @@ type DialogProps = {
   footer?: ReactNode;
   isDismissable?: boolean;
   initialFocusRef?: RefObject<HTMLElement>;
+  panelClassName?: string;
 };
 
 export default function Dialog({
@@ -17,7 +18,8 @@ export default function Dialog({
   children,
   footer,
   isDismissable = false,
-  initialFocusRef
+  initialFocusRef,
+  panelClassName
 }: DialogProps) {
   useEffect(() => {
     if (!open) return;
@@ -42,7 +44,7 @@ export default function Dialog({
       aria-modal="true"
       onClick={handleOverlayClick}
     >
-      <div className="w-full max-w-sm rounded-2xl bg-white p-4 shadow-xl" onClick={handleCardClick}>
+      <div className={`w-full max-w-sm rounded-2xl bg-white p-4 shadow-xl ${panelClassName ?? ''}`.trim()} onClick={handleCardClick}>
         {title ? <p className="text-sm font-semibold text-slate-900">{title}</p> : null}
         {children}
         {footer}

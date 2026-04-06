@@ -109,7 +109,7 @@ export function TabsList({ children, className }: TabsListProps) {
           <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-[color:var(--semantic-info-border)]" />
           <span
             aria-hidden
-            className="pointer-events-none absolute bottom-0 h-0.5 rounded bg-[color:var(--blue-500)] transition-all duration-200 ease-out"
+            className="pointer-events-none absolute bottom-0 h-0.5 rounded bg-[#1982bf] transition-all duration-200 ease-out"
             style={{
               width: indicator?.width ?? 0,
               transform: `translateX(${indicator?.left ?? 0}px)`
@@ -172,7 +172,7 @@ export function TabsTrigger({ value, disabled, children, className }: TabsTrigge
       onKeyDown={handleKeyDown}
       className={classNames(
         variant === 'motion'
-          ? 'relative rounded-none px-5 py-2 text-sm font-semibold transition-colors duration-200 ease-out text-[color:var(--semantic-info)] hover:text-[color:var(--blue-500)] data-[active=true]:text-[color:var(--blue-500)]'
+          ? 'relative rounded-none px-5 py-2 text-sm font-semibold transition-colors duration-200 ease-out text-[color:var(--semantic-info)] hover:text-[#1982bf] data-[active=true]:text-[#1982bf]'
           : classNames(
               'rounded-lg px-3 py-1 text-xs',
               pillTokenClasses.itemBase,

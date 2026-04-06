@@ -5,6 +5,7 @@ import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { ActionRestoreIcon, ActionUndoIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
+import { categoriesBreadcrumbCurrentTextClassName } from '../common/typography';
 
 const padTwoDigits = (value: number) => String(value).padStart(2, '0');
 
@@ -16,7 +17,7 @@ const formatMillerDate = (value?: string) => {
   const month = padTwoDigits(safeDate.getMonth() + 1);
   const year = safeDate.getFullYear();
 
-  return `${day}-${month}-${year}`;
+  return `${day}.${month}.${year}`;
 };
 
 const millerRowGridClass = 'grid grid-cols-3 items-center gap-x-3';
@@ -170,23 +171,28 @@ export function AdminCategoriesMiller({
                     <span title={crumb.label}>{crumb.label}</span>
                   </button>
                 ) : (
-                  <span className={crumb.isCurrent ? 'font-semibold text-slate-900' : ''} title={crumb.label}>{crumb.label}</span>
+                  <span className={crumb.isCurrent ? categoriesBreadcrumbCurrentTextClassName : ''} title={crumb.label}>{crumb.label}</span>
                 )}
               </span>
             ))}
           </nav>
         </div>
         <div className="flex items-center gap-2">
-          <AdminSearchInput
-            id="miller-search"
-            name="millerSearch"
-            value={searchQuery}
-            onChange={(event) => onSearchQueryChange(event.target.value)}
-            placeholder="Išči po kategorijah"
-            className="h-7 w-[320px] max-w-[36vw] text-[11px]"
-            aria-label="Išči v Miller stolpcih"
-          />
-          <IconButton type="button" size="sm" tone="add" aria-label="Dodaj" onClick={() => onAddNode(activeColumnKind)}>
+          <div className="flex h-7 w-[320px] max-w-[36vw] items-stretch">
+            <div className="min-w-0 w-full rounded-md border border-slate-200 bg-white transition-colors focus-within:border-[#3e67d6]">
+              <AdminSearchInput
+                id="miller-search"
+                name="millerSearch"
+                value={searchQuery}
+                showIcon={false}
+                onChange={(event) => onSearchQueryChange(event.target.value)}
+                placeholder="Išči po kategorijah"
+                aria-label="Išči v Miller stolpcih"
+                className="!m-0 !h-7 min-w-0 w-full flex-1 !rounded-md !border-0 !bg-transparent !shadow-none !outline-none ring-0 transition-colors placeholder:text-slate-400 [--euiFormControlStateWidth:0px] focus:[--euiFormControlStateWidth:0px] focus-visible:[--euiFormControlStateWidth:0px] focus:!border-0 focus:!shadow-none focus:!outline-none focus-visible:!border-0 focus-visible:!shadow-none focus-visible:!outline-none"
+              />
+            </div>
+          </div>
+          <IconButton type="button" size="sm" tone="neutral" aria-label="Dodaj" onClick={() => onAddNode(activeColumnKind)}>
             {plusIcon}
           </IconButton>
           <IconButton
@@ -222,7 +228,7 @@ export function AdminCategoriesMiller({
           >
             <TrashCanIcon />
           </IconButton>
-          <Button type="button" variant="primary" size="toolbar" onClick={onRequestSave} disabled={!millerDirty || saving}>
+          <Button type="button" variant="primary" size="toolbar" className="!h-7 !rounded-md !px-3 !text-[11px]" onClick={onRequestSave} disabled={!millerDirty || saving}>
             Shrani
           </Button>
         </div>

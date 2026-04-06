@@ -140,24 +140,6 @@ export default function AdminItemEditorPage({
   useEffect(() => {
     let cancelled = false;
 
-    const collectPaths = (nodes: Array<{ title?: string; slug?: string; subcategories?: unknown[] }>, parents: string[] = [], target: string[] = []) => {
-      nodes.forEach((node) => {
-        const title = (node.title ?? '').trim();
-        if (!title) return;
-        const path = [...parents, title];
-        target.push(path.join(' / '));
-        const slug = (node.slug ?? '').trim();
-        if (slug && slug.toLowerCase() !== title.toLowerCase()) {
-          target.push([...parents, slug].join(' / '));
-        }
-        const subcategories = Array.isArray(node.subcategories) ? (node.subcategories as Array<{ title?: string; subcategories?: unknown[] }>) : [];
-        if (subcategories.length > 0) {
-          collectPaths(subcategories, path, target);
-        }
-      });
-      return target;
-    };
-
     const mergeTrees = (paths: string[]) => {
       const tree = new Map<string, Set<string>>();
       const nodes = new Map<string, string[]>();
@@ -177,17 +159,10 @@ export default function AdminItemEditorPage({
 
     const hydrateCategoryTree = async () => {
       try {
-        const [mainResponse, previewResponse] = await Promise.all([
-          fetch('/api/admin/categories', { cache: 'no-store' }),
-          fetch('/api/admin/categories?view=preview', { cache: 'no-store' })
-        ]);
-        const mainPayload = mainResponse.ok
-          ? ((await mainResponse.json()) as Array<{ title?: string; subcategories?: unknown[] }>)
-          : [];
-        const previewPayload = previewResponse.ok
-          ? ((await previewResponse.json()) as Array<{ title?: string; subcategories?: unknown[] }>)
-          : [];
-        const apiPaths = [...collectPaths(mainPayload), ...collectPaths(previewPayload)];
+        const response = await fetch('/api/admin/categories/paths', { cache: 'no-store' });
+        if (!response.ok) return;
+        const payload = (await response.json()) as { paths?: string[] };
+        const apiPaths = Array.isArray(payload.paths) ? payload.paths : [];
         const mergedPaths = Array.from(new Set([...Array.from(categoryTreeFromSeed.nodes.keys()), ...apiPaths]));
         if (!cancelled) setCategoryTree(mergeTrees(mergedPaths));
       } catch {

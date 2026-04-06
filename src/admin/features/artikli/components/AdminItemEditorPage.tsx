@@ -7,7 +7,7 @@ import { Button } from '@/shared/ui/button';
 import { Chip } from '@/shared/ui/badge';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { IconButton } from '@/shared/ui/icon-button';
-import { MoreActionsIcon, PlusIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { CloseIcon, MoreActionsIcon, PencilIcon, PlusIcon, SaveIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { StatusToggle } from '@/shared/ui/status-toggle';
 import { useToast } from '@/shared/ui/toast';
 import {
@@ -20,11 +20,11 @@ import {
   toSlug,
   type ProductFamily,
   type SeedItemTuple,
-  type Variant,
-  variantLabel
+  type Variant
 } from '@/admin/features/artikli/lib/familyModel';
 
 const inputClass = 'h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[#2f66dd]';
+const readOnlyInputClass = 'disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500';
 
 type EditorMode = 'create' | 'edit';
 type CreateType = 'simple' | 'variants';
@@ -92,6 +92,7 @@ export default function AdminItemEditorPage({
     videoUrl: ''
   });
   const [documents, setDocuments] = useState<Array<{ name: string; size: string }>>([]);
+  const [editorMode, setEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
   const [selectedParentCategory, setSelectedParentCategory] = useState(() => {
     const [parent] = (draft.category || '').split('/').map((entry) => entry.trim());
     return parent || Array.from(categoryTree.keys())[0] || '';
@@ -112,6 +113,7 @@ export default function AdminItemEditorPage({
 
   const priceValues = draft.variants.map((variant) => variant.price);
   const priceRange = priceValues.length ? `${formatCurrency(Math.min(...priceValues))} – ${formatCurrency(Math.max(...priceValues))}` : '—';
+  const isEditable = editorMode === 'edit';
 
   const save = (asDraft = false) => {
     if (!draft.name.trim()) {
@@ -154,7 +156,7 @@ export default function AdminItemEditorPage({
   };
 
   return (
-    <div className="space-y-4 font-['Inter',system-ui,sans-serif]">
+    <div className="mx-auto max-w-7xl space-y-4 font-['Inter',system-ui,sans-serif]">
       <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3">
         <div>
           <div className="mb-1 text-xs text-slate-500"><Link href="/admin/artikli" className="hover:underline">Artikli</Link> › {mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</div>
@@ -167,24 +169,32 @@ export default function AdminItemEditorPage({
         </div>
         <div className="flex items-center gap-2">
           <Link href="/admin/artikli"><Button type="button" variant="default" size="toolbar">Prekliči</Button></Link>
-          <Button type="button" variant="default" size="toolbar" onClick={() => save(true)}>Shrani osnutek</Button>
-          <Button type="button" variant="primary" size="toolbar" onClick={() => save(false)}>Shrani</Button>
+          <IconButton type="button" tone="neutral" onClick={() => setEditorMode((current) => (current === 'read' ? 'edit' : 'read'))} title={isEditable ? 'Zakleni urejanje' : 'Odkleni urejanje'}>
+            {isEditable ? <CloseIcon /> : <PencilIcon />}
+          </IconButton>
+          <Button type="button" variant="default" size="toolbar" onClick={() => save(true)} disabled={!isEditable}>Shrani osnutek</Button>
+          <Button type="button" variant="primary" size="toolbar" onClick={() => save(false)} disabled={!isEditable}><SaveIcon />Shrani</Button>
           <IconButton type="button" tone="neutral"><MoreActionsIcon /></IconButton>
         </div>
       </div>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-4">
+      <section className="rounded-xl border border-slate-200 bg-white p-4">
+        <h3 className="mb-3 text-xl font-semibold">Hitre akcije</h3>
+        <div className="flex flex-wrap gap-2"><Button type="button" variant="default" size="toolbar">Uvozi iz CSV</Button><Button type="button" variant="default" size="toolbar">Podvoji izdelek</Button><Button type="button" variant="default" size="toolbar" className="text-red-600">Izbriši izdelek</Button></div>
+      </section>
+
+      <div className="grid items-start gap-6 lg:grid-cols-[2fr_1.1fr]">
         <div className="space-y-4">
           <section className="rounded-xl border border-slate-200 bg-white p-4">
             <h2 className="mb-3 text-2xl font-semibold">Osnovno</h2>
             <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2 space-y-1"><label className="text-xs text-slate-600">Naziv</label><input className={inputClass} value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></div>
+              <div className="col-span-2 space-y-1"><label className="text-xs text-slate-600">Naziv</label><input disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></div>
               <div className="space-y-1"><label className="text-xs text-slate-600">Status</label><div className="flex h-10 items-center rounded-lg border border-slate-300 px-3"><StatusToggle checked={draft.active} onToggle={() => setDraft((current) => ({ ...current, active: !current.active }))} ariaLabel="Preklopi aktivnost v osnovnem delu" /></div></div>
-              <div className="space-y-1"><label className="text-xs text-slate-600">Kategorija (1. nivo)</label><select className={inputClass} value={selectedParentCategory} onChange={(event) => { setSelectedParentCategory(event.target.value); setSelectedChildCategory(''); }}>{Array.from(categoryTree.keys()).map((parent) => <option key={parent} value={parent}>{parent}</option>)}</select></div>
-              <div className="space-y-1"><label className="text-xs text-slate-600">Podkategorija (2. nivo)</label><select className={inputClass} value={selectedChildCategory} onChange={(event) => setSelectedChildCategory(event.target.value)}><option value="">Brez podkategorije</option>{childCategories.map((child) => <option key={child} value={child}>{child}</option>)}</select></div>
-              <div className="col-span-2 space-y-1"><label className="text-xs text-slate-600">Opis</label><textarea className={`${inputClass} !h-28 py-2`} value={draft.description} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} /></div>
-              <div className="space-y-1"><label className="text-xs text-slate-600">Oznake (badge)</label><input className={inputClass} value={draft.promoBadge} onChange={(event) => setDraft((current) => ({ ...current, promoBadge: event.target.value }))} placeholder="Akcija, Novo ..." /></div>
-              <div className="col-span-2 space-y-1"><label className="text-xs text-slate-600">Kratek URL (slug)</label><input className={inputClass} value={draft.slug} onChange={(event) => setDraft((current) => ({ ...current, slug: event.target.value }))} placeholder={toSlug(draft.name)} /></div>
+              <div className="space-y-1"><label className="text-xs text-slate-600">Kategorija (1. nivo)</label><select disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={selectedParentCategory} onChange={(event) => { setSelectedParentCategory(event.target.value); setSelectedChildCategory(''); }}>{Array.from(categoryTree.keys()).map((parent) => <option key={parent} value={parent}>{parent}</option>)}</select></div>
+              <div className="space-y-1"><label className="text-xs text-slate-600">Podkategorija (2. nivo)</label><select disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={selectedChildCategory} onChange={(event) => setSelectedChildCategory(event.target.value)}><option value="">Brez podkategorije</option>{childCategories.map((child) => <option key={child} value={child}>{child}</option>)}</select></div>
+              <div className="col-span-2 space-y-1"><label className="text-xs text-slate-600">Opis</label><textarea disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass} !h-28 py-2`} value={draft.description} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} /></div>
+              <div className="space-y-1"><label className="text-xs text-slate-600">Oznake (badge)</label><input disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={draft.promoBadge} onChange={(event) => setDraft((current) => ({ ...current, promoBadge: event.target.value }))} placeholder="Akcija, Novo ..." /></div>
+              <div className="col-span-2 space-y-1"><label className="text-xs text-slate-600">Kratek URL (slug)</label><input disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={draft.slug} onChange={(event) => setDraft((current) => ({ ...current, slug: event.target.value }))} placeholder={toSlug(draft.name)} /></div>
               <label className="col-span-1 mt-2 inline-flex items-center gap-2 text-sm"><AdminCheckbox checked={draft.active} onChange={(event) => setDraft((current) => ({ ...current, active: event.target.checked }))} />Vidno v katalogu</label>
             </div>
           </section>
@@ -194,7 +204,7 @@ export default function AdminItemEditorPage({
             <p className="mb-3 text-sm text-slate-500">Galerija artikla. Prva slika je glavna.</p>
             <div className="grid grid-cols-5 gap-2">
               {draft.images.map((img, index) => <div key={`${img}-${index}`} className="relative overflow-hidden rounded-lg border border-slate-200"><Image src={img} alt={`Slika ${index + 1}`} width={180} height={120} unoptimized className="h-28 w-full object-cover" /></div>)}
-              <label className="flex h-28 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 text-sm text-slate-500 hover:border-[#2f66dd]">Dodaj slike<input type="file" className="hidden" multiple accept="image/*" onChange={(event) => {
+              <label className={`flex h-28 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 text-sm text-slate-500 ${isEditable ? 'cursor-pointer hover:border-[#2f66dd]' : 'cursor-not-allowed opacity-60'}`}>Dodaj slike<input disabled={!isEditable} type="file" className="hidden" multiple accept="image/*" onChange={(event) => {
                 const urls = Array.from(event.target.files ?? []).map((file) => URL.createObjectURL(file));
                 setDraft((current) => ({ ...current, images: [...current.images, ...urls] }));
               }} /></label>
@@ -212,15 +222,11 @@ export default function AdminItemEditorPage({
               <div className="space-y-1"><label className="text-xs text-slate-600">Debelina (mm)</label><input className={inputClass} value={attrValues.thickness} onChange={(event) => setAttrValues((current) => ({ ...current, thickness: event.target.value }))} /></div>
             </div>
             <div className="overflow-x-auto rounded-lg border border-slate-200">
-              <table className="min-w-full text-xs"><thead className="bg-slate-50"><tr><th className="px-2 py-2" /><th className="px-2 py-2 text-left">Širina</th><th className="px-2 py-2 text-left">Dolžina</th><th className="px-2 py-2 text-left">Debelina</th><th className="px-2 py-2 text-left">SKU</th><th className="px-2 py-2 text-left">Cena</th><th className="px-2 py-2 text-left">Popust</th><th className="px-2 py-2 text-left">Akcijska cena</th><th className="px-2 py-2 text-left">Zaloga</th><th className="px-2 py-2 text-left">Status</th><th className="px-2 py-2 text-left">Sort</th><th className="px-2 py-2 text-right">Akcije</th></tr></thead><tbody>{draft.variants.map((variant, index) => <tr key={variant.id} className="border-t border-slate-100"><td className="px-2 py-2"><AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} /></td><td className="px-2 py-2">{variant.width ?? '—'}</td><td className="px-2 py-2">{variant.length ?? '—'}</td><td className="px-2 py-2">{variant.thickness ?? '—'}</td><td className="px-2 py-2"><input className={`${inputClass} !h-8`} value={variant.sku} onChange={(event) => setDraft((current) => { const next = [...current.variants]; next[index] = { ...next[index], sku: event.target.value }; return { ...current, variants: next }; })} /></td><td className="px-2 py-2"><input type="number" className={`${inputClass} !h-8`} value={variant.price} onChange={(event) => setDraft((current) => { const next = [...current.variants]; next[index] = { ...next[index], price: Number(event.target.value) || 0 }; return { ...current, variants: next }; })} /></td><td className="px-2 py-2"><input type="number" className={`${inputClass} !h-8`} value={variant.discountPct} onChange={(event) => setDraft((current) => { const next = [...current.variants]; next[index] = { ...next[index], discountPct: Number(event.target.value) || 0 }; return { ...current, variants: next }; })} /></td><td className="px-2 py-2">{formatCurrency(computeSalePrice(variant.price, variant.discountPct))}</td><td className="px-2 py-2"><input type="number" className={`${inputClass} !h-8`} value={variant.stock} onChange={(event) => setDraft((current) => { const next = [...current.variants]; next[index] = { ...next[index], stock: Number(event.target.value) || 0 }; return { ...current, variants: next }; })} /></td><td className="px-2 py-2"><Chip variant={variant.active ? 'success' : 'warning'}>{statusLabel(variant.active)}</Chip></td><td className="px-2 py-2"><input type="number" className={`${inputClass} !h-8`} value={variant.sort} onChange={(event) => setDraft((current) => { const next = [...current.variants]; next[index] = { ...next[index], sort: Number(event.target.value) || 1 }; return { ...current, variants: next }; })} /></td><td className="px-2 py-2 text-right"><IconButton type="button" tone="neutral" onClick={() => setDraft((current) => ({ ...current, variants: current.variants.filter((entry) => entry.id !== variant.id) }))}><MoreActionsIcon /></IconButton></td></tr>)}</tbody></table>
+              <table className="min-w-full text-xs"><thead className="bg-slate-50"><tr><th className="px-2 py-2" /><th className="px-2 py-2 text-left">Širina</th><th className="px-2 py-2 text-left">Dolžina</th><th className="px-2 py-2 text-left">Debelina</th><th className="px-2 py-2 text-left">SKU</th><th className="px-2 py-2 text-left">Cena</th><th className="px-2 py-2 text-left">Popust</th><th className="px-2 py-2 text-left">Akcijska cena</th><th className="px-2 py-2 text-left">Zaloga</th><th className="px-2 py-2 text-left">Status</th><th className="px-2 py-2 text-left">Sort</th><th className="px-2 py-2 text-right">Akcije</th></tr></thead><tbody>{draft.variants.map((variant, index) => <tr key={variant.id} className="border-t border-slate-100"><td className="px-2 py-2"><AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} /></td><td className="px-2 py-2">{variant.width ?? '—'}</td><td className="px-2 py-2">{variant.length ?? '—'}</td><td className="px-2 py-2">{variant.thickness ?? '—'}</td><td className="px-2 py-2"><input disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass} !h-8`} value={variant.sku} onChange={(event) => setDraft((current) => { const next = [...current.variants]; next[index] = { ...next[index], sku: event.target.value }; return { ...current, variants: next }; })} /></td><td className="px-2 py-2"><input disabled={!isEditable} type="number" className={`${inputClass} ${readOnlyInputClass} !h-8`} value={variant.price} onChange={(event) => setDraft((current) => { const next = [...current.variants]; next[index] = { ...next[index], price: Number(event.target.value) || 0 }; return { ...current, variants: next }; })} /></td><td className="px-2 py-2"><input disabled={!isEditable} type="number" className={`${inputClass} ${readOnlyInputClass} !h-8`} value={variant.discountPct} onChange={(event) => setDraft((current) => { const next = [...current.variants]; next[index] = { ...next[index], discountPct: Number(event.target.value) || 0 }; return { ...current, variants: next }; })} /></td><td className="px-2 py-2">{formatCurrency(computeSalePrice(variant.price, variant.discountPct))}</td><td className="px-2 py-2"><input disabled={!isEditable} type="number" className={`${inputClass} ${readOnlyInputClass} !h-8`} value={variant.stock} onChange={(event) => setDraft((current) => { const next = [...current.variants]; next[index] = { ...next[index], stock: Number(event.target.value) || 0 }; return { ...current, variants: next }; })} /></td><td className="px-2 py-2"><Chip variant={variant.active ? 'success' : 'warning'}>{statusLabel(variant.active)}</Chip></td><td className="px-2 py-2"><input disabled={!isEditable} type="number" className={`${inputClass} ${readOnlyInputClass} !h-8`} value={variant.sort} onChange={(event) => setDraft((current) => { const next = [...current.variants]; next[index] = { ...next[index], sort: Number(event.target.value) || 1 }; return { ...current, variants: next }; })} /></td><td className="px-2 py-2 text-right"><IconButton type="button" tone="neutral" disabled={!isEditable} onClick={() => setDraft((current) => ({ ...current, variants: current.variants.filter((entry) => entry.id !== variant.id) }))}><MoreActionsIcon /></IconButton></td></tr>)}</tbody></table>
             </div>
-            <Button type="button" variant="ghost" size="toolbar" className="mt-3" onClick={() => setDraft((current) => ({ ...current, variants: [...current.variants, createVariant({ sort: current.variants.length + 1 })] }))}><PlusIcon />Dodaj različico</Button>
+            <Button type="button" variant="ghost" size="toolbar" disabled={!isEditable} className="mt-3" onClick={() => setDraft((current) => ({ ...current, variants: [...current.variants, createVariant({ sort: current.variants.length + 1 })] }))}><PlusIcon />Dodaj različico</Button>
           </section>
-
-          <div className="grid grid-cols-2 gap-4">
-            <section className="rounded-xl border border-slate-200 bg-white p-4"><h3 className="mb-3 text-xl font-semibold">Hitre akcije</h3><div className="flex flex-wrap gap-2"><Button type="button" variant="default" size="toolbar">Uvozi iz CSV</Button><Button type="button" variant="default" size="toolbar">Podvoji izdelek</Button><Button type="button" variant="default" size="toolbar" className="text-red-600">Izbriši izdelek</Button></div></section>
-            <section className="rounded-xl border border-slate-200 bg-slate-50 p-4"><h3 className="mb-2 text-xl font-semibold">Povzetek</h3><p className="text-sm text-slate-600">{draft.variants.length} različic</p><p className="text-sm text-slate-600">Razpon cen: {priceRange}</p><p className="text-sm text-slate-600">Aktivnih: {draft.variants.filter((variant) => variant.active).length}</p></section>
-          </div>
+          <section className="rounded-xl border border-slate-200 bg-slate-50 p-4"><h3 className="mb-2 text-xl font-semibold">Povzetek</h3><p className="text-sm text-slate-600">{draft.variants.length} različic</p><p className="text-sm text-slate-600">Razpon cen: {priceRange}</p><p className="text-sm text-slate-600">Aktivnih: {draft.variants.filter((variant) => variant.active).length}</p></section>
         </div>
 
         <aside className="rounded-xl border border-slate-200 bg-white p-4">

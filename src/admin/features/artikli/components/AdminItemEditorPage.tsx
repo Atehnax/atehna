@@ -10,6 +10,7 @@ import { IconButton } from '@/shared/ui/icon-button';
 import { CloseIcon, MoreActionsIcon, PencilIcon, PlusIcon, SaveIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { StatusToggle } from '@/shared/ui/status-toggle';
 import { useToast } from '@/shared/ui/toast';
+import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 import {
   buildFamiliesFromSeed,
   computeSalePrice,
@@ -23,7 +24,7 @@ import {
   type Variant
 } from '@/admin/features/artikli/lib/familyModel';
 
-const inputClass = 'h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[#2f66dd]';
+const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0';
 const readOnlyInputClass = 'disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500';
 
 type EditorMode = 'create' | 'edit';
@@ -75,14 +76,12 @@ export default function AdminItemEditorPage({
     weightPerUnit: '',
     palletCount: '',
     dimensions: { width: '', depth: '', height: '' },
-    specialPackaging: false,
     trackInventory: true,
     currentStock: 0,
     minStock: 0,
     warehouseLocation: '',
     basePriceNoVat: '',
     priceRounding: '0.01',
-    allowManualDiscount: true,
     showOldPrice: true,
     showGallery: true,
     autoSquareCrop: true,
@@ -111,8 +110,6 @@ export default function AdminItemEditorPage({
     setDraft((current) => ({ ...current, category: joined }));
   }, [selectedChildCategory, selectedParentCategory]);
 
-  const priceValues = draft.variants.map((variant) => variant.price);
-  const priceRange = priceValues.length ? `${formatCurrency(Math.min(...priceValues))} – ${formatCurrency(Math.max(...priceValues))}` : '—';
   const isEditable = editorMode === 'edit';
 
   const save = (asDraft = false) => {
@@ -157,45 +154,29 @@ export default function AdminItemEditorPage({
 
   return (
     <div className="mx-auto max-w-7xl space-y-4 font-['Inter',system-ui,sans-serif]">
-      <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3">
-        <div>
-          <div className="mb-1 text-xs text-slate-500"><Link href="/admin/artikli" className="hover:underline">Artikli</Link> › {mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-semibold text-slate-900">{mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</h1>
-            <Chip variant={draft.active ? 'success' : 'warning'}>{statusLabel(draft.active)}</Chip>
-            <StatusToggle checked={draft.active} onToggle={() => setDraft((current) => ({ ...current, active: !current.active }))} ariaLabel="Preklopi status artikla" />
-          </div>
-          <p className="text-sm text-slate-500">Ustvarite artikel z različicami ali brez njih. Spremembe so pripravljene za shranjevanje.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link href="/admin/artikli"><Button type="button" variant="default" size="toolbar">Prekliči</Button></Link>
-          <IconButton type="button" tone="neutral" onClick={() => setEditorMode((current) => (current === 'read' ? 'edit' : 'read'))} title={isEditable ? 'Zakleni urejanje' : 'Odkleni urejanje'}>
-            {isEditable ? <CloseIcon /> : <PencilIcon />}
-          </IconButton>
-          <Button type="button" variant="default" size="toolbar" onClick={() => save(true)} disabled={!isEditable}>Shrani osnutek</Button>
-          <Button type="button" variant="primary" size="toolbar" onClick={() => save(false)} disabled={!isEditable}><SaveIcon />Shrani</Button>
-          <IconButton type="button" tone="neutral"><MoreActionsIcon /></IconButton>
-        </div>
-      </div>
-
-      <section className="rounded-xl border border-slate-200 bg-white p-4">
-        <h3 className="mb-3 text-xl font-semibold">Hitre akcije</h3>
-        <div className="flex flex-wrap gap-2"><Button type="button" variant="default" size="toolbar">Uvozi iz CSV</Button><Button type="button" variant="default" size="toolbar">Podvoji izdelek</Button><Button type="button" variant="default" size="toolbar" className="text-red-600">Izbriši izdelek</Button></div>
-      </section>
+      <div className="text-xs text-slate-500"><Link href="/admin/artikli" className="hover:underline">Artikli</Link> › {mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</div>
 
       <div className="grid items-start gap-6 lg:grid-cols-[2fr_1.1fr]">
         <div className="space-y-4">
           <section className="rounded-xl border border-slate-200 bg-white p-4">
-            <h2 className="mb-3 text-2xl font-semibold">Osnovno</h2>
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <h1 className="flex h-10 items-center text-lg font-semibold tracking-tight text-slate-900">{mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</h1>
+              <div className="ml-auto flex items-center gap-1.5">
+                <Chip variant={draft.active ? 'success' : 'warning'}>{statusLabel(draft.active)}</Chip>
+                <IconButton type="button" tone="neutral" onClick={() => setEditorMode((current) => (current === 'read' ? 'edit' : 'read'))} aria-label="Uredi artikel" title="Uredi">{isEditable ? <CloseIcon /> : <PencilIcon />}</IconButton>
+                <IconButton type="button" tone="neutral" onClick={() => save(false)} aria-label="Shrani artikel" title="Shrani" disabled={!isEditable}><SaveIcon /></IconButton>
+                <button type="button" className={buttonTokenClasses.closeX} aria-label="Izbriši artikel" title="Izbriši"><MoreActionsIcon /></button>
+              </div>
+            </div>
+            <h2 className="mb-3 text-xl font-semibold">Osnovno</h2>
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2 space-y-1"><label className="text-xs text-slate-600">Naziv</label><input disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></div>
-              <div className="space-y-1"><label className="text-xs text-slate-600">Status</label><div className="flex h-10 items-center rounded-lg border border-slate-300 px-3"><StatusToggle checked={draft.active} onToggle={() => setDraft((current) => ({ ...current, active: !current.active }))} ariaLabel="Preklopi aktivnost v osnovnem delu" /></div></div>
+              <div className="space-y-1"><label className="text-xs text-slate-600">Aktiven</label><div className="flex h-10 items-center rounded-lg border border-slate-300 px-3"><StatusToggle checked={draft.active} onToggle={() => setDraft((current) => ({ ...current, active: !current.active }))} ariaLabel="Preklopi aktivnost v osnovnem delu" /></div></div>
               <div className="space-y-1"><label className="text-xs text-slate-600">Kategorija (1. nivo)</label><select disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={selectedParentCategory} onChange={(event) => { setSelectedParentCategory(event.target.value); setSelectedChildCategory(''); }}>{Array.from(categoryTree.keys()).map((parent) => <option key={parent} value={parent}>{parent}</option>)}</select></div>
               <div className="space-y-1"><label className="text-xs text-slate-600">Podkategorija (2. nivo)</label><select disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={selectedChildCategory} onChange={(event) => setSelectedChildCategory(event.target.value)}><option value="">Brez podkategorije</option>{childCategories.map((child) => <option key={child} value={child}>{child}</option>)}</select></div>
               <div className="col-span-2 space-y-1"><label className="text-xs text-slate-600">Opis</label><textarea disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass} !h-28 py-2`} value={draft.description} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} /></div>
               <div className="space-y-1"><label className="text-xs text-slate-600">Oznake (badge)</label><input disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={draft.promoBadge} onChange={(event) => setDraft((current) => ({ ...current, promoBadge: event.target.value }))} placeholder="Akcija, Novo ..." /></div>
               <div className="col-span-2 space-y-1"><label className="text-xs text-slate-600">Kratek URL (slug)</label><input disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={draft.slug} onChange={(event) => setDraft((current) => ({ ...current, slug: event.target.value }))} placeholder={toSlug(draft.name)} /></div>
-              <label className="col-span-1 mt-2 inline-flex items-center gap-2 text-sm"><AdminCheckbox checked={draft.active} onChange={(event) => setDraft((current) => ({ ...current, active: event.target.checked }))} />Vidno v katalogu</label>
             </div>
           </section>
 
@@ -226,7 +207,6 @@ export default function AdminItemEditorPage({
             </div>
             <Button type="button" variant="ghost" size="toolbar" disabled={!isEditable} className="mt-3" onClick={() => setDraft((current) => ({ ...current, variants: [...current.variants, createVariant({ sort: current.variants.length + 1 })] }))}><PlusIcon />Dodaj različico</Button>
           </section>
-          <section className="rounded-xl border border-slate-200 bg-slate-50 p-4"><h3 className="mb-2 text-xl font-semibold">Povzetek</h3><p className="text-sm text-slate-600">{draft.variants.length} različic</p><p className="text-sm text-slate-600">Razpon cen: {priceRange}</p><p className="text-sm text-slate-600">Aktivnih: {draft.variants.filter((variant) => variant.active).length}</p></section>
         </div>
 
         <aside className="rounded-xl border border-slate-200 bg-white p-4">
@@ -247,7 +227,6 @@ export default function AdminItemEditorPage({
                 <h4 className="mb-2 text-sm font-semibold">Logistika</h4>
                 <div className="grid grid-cols-2 gap-2"><div className="space-y-1"><label className="text-xs text-slate-600">MOQ</label><input type="number" className={inputClass} value={sideSettings.moq} onChange={(event) => setSideSettings((current) => ({ ...current, moq: Number(event.target.value) || 1 }))} /></div><div className="space-y-1"><label className="text-xs text-slate-600">Teža na kos (kg)</label><input className={inputClass} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} /></div><div className="space-y-1"><label className="text-xs text-slate-600">Kosov na paleti</label><input className={inputClass} value={sideSettings.palletCount} onChange={(event) => setSideSettings((current) => ({ ...current, palletCount: event.target.value }))} /></div><div className="space-y-1"><label className="text-xs text-slate-600">Lokacija skladišča</label><input className={inputClass} value={sideSettings.warehouseLocation} onChange={(event) => setSideSettings((current) => ({ ...current, warehouseLocation: event.target.value }))} placeholder="Glavno skladišče" /></div></div>
                 <div className="mt-2 grid grid-cols-3 gap-2"><input className={inputClass} placeholder="Š" value={sideSettings.dimensions.width} onChange={(event) => setSideSettings((current) => ({ ...current, dimensions: { ...current.dimensions, width: event.target.value } }))} /><input className={inputClass} placeholder="D" value={sideSettings.dimensions.depth} onChange={(event) => setSideSettings((current) => ({ ...current, dimensions: { ...current.dimensions, depth: event.target.value } }))} /><input className={inputClass} placeholder="V" value={sideSettings.dimensions.height} onChange={(event) => setSideSettings((current) => ({ ...current, dimensions: { ...current.dimensions, height: event.target.value } }))} /></div>
-                <label className="mt-2 inline-flex items-center gap-2 text-sm"><StatusToggle checked={sideSettings.specialPackaging} onToggle={() => setSideSettings((current) => ({ ...current, specialPackaging: !current.specialPackaging }))} ariaLabel="Preklopi posebno pakiranje" />Zahteva posebno pakiranje</label>
               </section>
               <section className="rounded-lg border border-slate-200 p-3">
                 <h4 className="mb-2 text-sm font-semibold">Zaloga</h4>
@@ -257,7 +236,6 @@ export default function AdminItemEditorPage({
               <section className="rounded-lg border border-slate-200 p-3">
                 <h4 className="mb-2 text-sm font-semibold">Cenovna pravila</h4>
                 <div className="grid grid-cols-2 gap-2"><div className="space-y-1"><label className="text-xs text-slate-600">Osnovna cena brez DDV</label><input className={inputClass} value={sideSettings.basePriceNoVat} onChange={(event) => setSideSettings((current) => ({ ...current, basePriceNoVat: event.target.value }))} /></div><div className="space-y-1"><label className="text-xs text-slate-600">Zaokroževanje cen</label><select className={inputClass} value={sideSettings.priceRounding} onChange={(event) => setSideSettings((current) => ({ ...current, priceRounding: event.target.value }))}><option value="0.01">Na 0,01 €</option><option value="0.05">Na 0,05 €</option><option value="0.1">Na 0,10 €</option></select></div></div>
-                <label className="mt-2 inline-flex items-center gap-2 text-sm"><StatusToggle checked={sideSettings.allowManualDiscount} onToggle={() => setSideSettings((current) => ({ ...current, allowManualDiscount: !current.allowManualDiscount }))} ariaLabel="Dovoli ročni popust" />Dovoli ročni popust na blagajni</label>
                 <label className="mt-2 inline-flex items-center gap-2 text-sm"><StatusToggle checked={sideSettings.showOldPrice} onToggle={() => setSideSettings((current) => ({ ...current, showOldPrice: !current.showOldPrice }))} ariaLabel="Prikaži staro ceno" />Prikaži staro ceno, ko je v akciji</label>
               </section>
               <div className="space-y-1"><label className="text-xs text-slate-600">Interna opomba</label><textarea className={`${inputClass} !h-24 py-2`} value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} /></div>

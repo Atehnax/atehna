@@ -114,7 +114,7 @@ export default function AdminItemEditorPage({
     });
   });
   const [variantSelections, setVariantSelections] = useState<Set<string>>(new Set());
-  const [rightTab, setRightTab] = useState<'dodatno' | 'slike'>('dodatno');
+  const [rightTab, setRightTab] = useState<'cena' | 'zaloga' | 'slike'>('cena');
   const [attrValues, setAttrValues] = useState({ width: '100, 200', length: '100, 200', thickness: '0,5' });
   const [sideSettings, setSideSettings] = useState({
     brand: '',
@@ -290,14 +290,18 @@ export default function AdminItemEditorPage({
                     <input className={inputClass} value={sideSettings.surface} onChange={(event) => setSideSettings((current) => ({ ...current, surface: event.target.value }))} placeholder="Oblika (npr. pravokotna)" />
                     <input className={inputClass} value={sideSettings.color} onChange={(event) => setSideSettings((current) => ({ ...current, color: event.target.value }))} placeholder="Barva (npr. srebrna)" />
                     <input className={inputClass} value={sideSettings.thicknessTolerance} onChange={(event) => setSideSettings((current) => ({ ...current, thicknessTolerance: event.target.value }))} placeholder="Toleranca mere (npr. ± 2mm / ± 3 cm)" />
+                    <input className={inputClass} value={String(sideSettings.moq)} onChange={(event) => setSideSettings((current) => ({ ...current, moq: Number(event.target.value) || 1 }))} placeholder="Minimalna količina naročila" />
+                    <input className={inputClass} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} placeholder="Teža na kos (kg)" />
                   </>
                 ) : (
                   <div className="space-y-1 text-sm text-slate-700">
-                    <p>{sideSettings.brand || '—'}</p>
-                    <p>{sideSettings.material || '—'}</p>
-                    <p>{sideSettings.surface || '—'}</p>
-                    <p>{sideSettings.color || '—'}</p>
-                    <p>{sideSettings.thicknessTolerance || '—'}</p>
+                    <p>{sideSettings.brand || 'Blagovna znamka (npr. AluCraft)'}</p>
+                    <p>{sideSettings.material || 'Material (npr. aluminij)'}</p>
+                    <p>{sideSettings.surface || 'Oblika (npr. pravokotna)'}</p>
+                    <p>{sideSettings.color || 'Barva (npr. srebrna)'}</p>
+                    <p>{sideSettings.thicknessTolerance || 'Toleranca mere (npr. ± 2mm / ± 3 cm)'}</p>
+                    <p>{sideSettings.moq > 0 ? String(sideSettings.moq) : 'Minimalna količina naročila'}</p>
+                    <p>{sideSettings.weightPerUnit || 'Teža na kos (kg)'}</p>
                   </div>
                 )}
               </div>
@@ -306,7 +310,7 @@ export default function AdminItemEditorPage({
                 {isEditable ? (
                   <input className={inputClass} value={draft.promoBadge} onChange={(event) => setDraft((current) => ({ ...current, promoBadge: event.target.value }))} placeholder="Akcija, Novo ..." />
                 ) : (
-                  <p className="flex min-h-10 items-center text-sm text-slate-700">{draft.promoBadge.trim() || '—'}</p>
+                  <p className="flex min-h-10 items-center text-sm text-slate-700">{draft.promoBadge.trim() || 'Akcija, Novo ...'}</p>
                 )}
               </div>
               <div className="col-span-2 space-y-1">
@@ -314,7 +318,7 @@ export default function AdminItemEditorPage({
                 {isEditable ? (
                   <input className={inputClass} value={draft.slug} onChange={(event) => setDraft((current) => ({ ...current, slug: event.target.value }))} placeholder={toSlug(draft.name)} />
                 ) : (
-                  <p className="flex min-h-10 items-center text-sm text-slate-700">{draft.slug.trim() || '—'}</p>
+                  <p className="flex min-h-10 items-center text-sm text-slate-700">{draft.slug.trim() || toSlug(draft.name || 'naziv-artikla')}</p>
                 )}
               </div>
             </div>
@@ -351,29 +355,24 @@ export default function AdminItemEditorPage({
 
         <aside className="rounded-xl border border-slate-200 bg-white p-4">
           <div className="mb-3 flex items-center gap-4 border-b border-slate-100 text-sm font-semibold">
-            <button type="button" className={`-mb-px border-b-2 pb-2 ${rightTab === 'dodatno' ? 'border-[#2f66dd] text-[#2f66dd]' : 'border-transparent text-slate-500'}`} onClick={() => setRightTab('dodatno')}>Dodatno</button>
+            <button type="button" className={`-mb-px border-b-2 pb-2 ${rightTab === 'cena' ? 'border-[#2f66dd] text-[#2f66dd]' : 'border-transparent text-slate-500'}`} onClick={() => setRightTab('cena')}>Cena</button>
+            <button type="button" className={`-mb-px border-b-2 pb-2 ${rightTab === 'zaloga' ? 'border-[#2f66dd] text-[#2f66dd]' : 'border-transparent text-slate-500'}`} onClick={() => setRightTab('zaloga')}>Zaloga</button>
             <button type="button" className={`-mb-px border-b-2 pb-2 ${rightTab === 'slike' ? 'border-[#2f66dd] text-[#2f66dd]' : 'border-transparent text-slate-500'}`} onClick={() => setRightTab('slike')}>Slike</button>
           </div>
 
-          {rightTab === 'dodatno' ? (
+          {rightTab === 'cena' ? (
             <div className="space-y-3">
-              <h3 className="text-lg font-semibold">Dodatne lastnosti</h3>
-              <section className="space-y-2">
-                <h3 className="text-lg font-semibold">Logistika</h3>
-                <div className="grid grid-cols-2 gap-2"><div className="space-y-1"><label className="text-xs text-slate-600">MOQ</label><input type="number" className={inputClass} value={sideSettings.moq} onChange={(event) => setSideSettings((current) => ({ ...current, moq: Number(event.target.value) || 1 }))} /></div><div className="space-y-1"><label className="text-xs text-slate-600">Teža na kos (kg)</label><input className={inputClass} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} /></div><div className="space-y-1"><label className="text-xs text-slate-600">Kosov na paleti</label><input className={inputClass} value={sideSettings.palletCount} onChange={(event) => setSideSettings((current) => ({ ...current, palletCount: event.target.value }))} /></div><div className="space-y-1"><label className="text-xs text-slate-600">Lokacija skladišča</label><input className={inputClass} value={sideSettings.warehouseLocation} onChange={(event) => setSideSettings((current) => ({ ...current, warehouseLocation: event.target.value }))} placeholder="Glavno skladišče" /></div></div>
-                <div className="mt-2 grid grid-cols-3 gap-2"><input className={inputClass} placeholder="Š" value={sideSettings.dimensions.width} onChange={(event) => setSideSettings((current) => ({ ...current, dimensions: { ...current.dimensions, width: event.target.value } }))} /><input className={inputClass} placeholder="D" value={sideSettings.dimensions.depth} onChange={(event) => setSideSettings((current) => ({ ...current, dimensions: { ...current.dimensions, depth: event.target.value } }))} /><input className={inputClass} placeholder="V" value={sideSettings.dimensions.height} onChange={(event) => setSideSettings((current) => ({ ...current, dimensions: { ...current.dimensions, height: event.target.value } }))} /></div>
-              </section>
-              <section className="space-y-2">
-                <h3 className="text-lg font-semibold">Zaloga</h3>
-                <label className="inline-flex items-center gap-2 text-sm"><StatusToggle checked={sideSettings.trackInventory} onToggle={() => setSideSettings((current) => ({ ...current, trackInventory: !current.trackInventory }))} ariaLabel="Spremljaj zalogo" />Spremljaj zalogo</label>
-                <div className="mt-2 grid grid-cols-2 gap-2"><div className="space-y-1"><label className="text-xs text-slate-600">Trenutna zaloga</label><input type="number" className={inputClass} value={sideSettings.currentStock} onChange={(event) => setSideSettings((current) => ({ ...current, currentStock: Number(event.target.value) || 0 }))} /></div><div className="space-y-1"><label className="text-xs text-slate-600">Minimalna zaloga</label><input type="number" className={inputClass} value={sideSettings.minStock} onChange={(event) => setSideSettings((current) => ({ ...current, minStock: Number(event.target.value) || 0 }))} /></div></div>
-              </section>
               <section className="rounded-lg border border-slate-200 p-3">
                 <h4 className="mb-2 text-sm font-semibold">Cenovna pravila</h4>
                 <div className="grid grid-cols-2 gap-2"><div className="space-y-1"><label className="text-xs text-slate-600">Osnovna cena brez DDV</label><input className={inputClass} value={sideSettings.basePriceNoVat} onChange={(event) => setSideSettings((current) => ({ ...current, basePriceNoVat: event.target.value }))} /></div><div className="space-y-1"><label className="text-xs text-slate-600">Zaokroževanje cen</label><select className={inputClass} value={sideSettings.priceRounding} onChange={(event) => setSideSettings((current) => ({ ...current, priceRounding: event.target.value }))}><option value="0.01">Na 0,01 €</option><option value="0.05">Na 0,05 €</option><option value="0.1">Na 0,10 €</option></select></div></div>
                 <label className="mt-2 inline-flex items-center gap-2 text-sm"><StatusToggle checked={sideSettings.showOldPrice} onToggle={() => setSideSettings((current) => ({ ...current, showOldPrice: !current.showOldPrice }))} ariaLabel="Prikaži staro ceno" />Prikaži staro ceno, ko je v akciji</label>
               </section>
               <div className="space-y-1"><label className="text-xs text-slate-600">Interna opomba</label><textarea className={`${inputClass} !h-24 py-2`} value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} /></div>
+            </div>
+          ) : rightTab === 'zaloga' ? (
+            <div className="space-y-3">
+              <label className="inline-flex items-center gap-2 text-sm"><StatusToggle checked={sideSettings.trackInventory} onToggle={() => setSideSettings((current) => ({ ...current, trackInventory: !current.trackInventory }))} ariaLabel="Spremljaj zalogo" />Spremljaj zalogo</label>
+              <div className="grid grid-cols-2 gap-2"><div className="space-y-1"><label className="text-xs text-slate-600">Trenutna zaloga</label><input type="number" className={inputClass} value={sideSettings.currentStock} onChange={(event) => setSideSettings((current) => ({ ...current, currentStock: Number(event.target.value) || 0 }))} /></div><div className="space-y-1"><label className="text-xs text-slate-600">Minimalna zaloga</label><input type="number" className={inputClass} value={sideSettings.minStock} onChange={(event) => setSideSettings((current) => ({ ...current, minStock: Number(event.target.value) || 0 }))} /></div></div>
             </div>
           ) : (
             <div className="space-y-3">

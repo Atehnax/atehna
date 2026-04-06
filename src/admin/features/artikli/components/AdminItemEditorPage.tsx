@@ -2,12 +2,13 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { Chip } from '@/shared/ui/badge';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { IconButton } from '@/shared/ui/icon-button';
 import { MoreActionsIcon, PlusIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { StatusToggle } from '@/shared/ui/status-toggle';
 import { useToast } from '@/shared/ui/toast';
 import {
   buildFamiliesFromSeed,
@@ -42,6 +43,16 @@ export default function AdminItemEditorPage({
   const { toast } = useToast();
   const families = useMemo(() => buildFamiliesFromSeed(seedItems), [seedItems]);
   const existing = mode === 'edit' ? families.find((family) => family.id === articleId) ?? null : null;
+  const categoryTree = useMemo(() => {
+    const tree = new Map<string, Set<string>>();
+    seedItems.forEach(([, , , categoryPath]) => {
+      const [parent, child] = categoryPath.split('/').map((entry) => entry.trim());
+      if (!parent) return;
+      if (!tree.has(parent)) tree.set(parent, new Set());
+      if (child) tree.get(parent)?.add(child);
+    });
+    return tree;
+  }, [seedItems]);
 
   const [draft, setDraft] = useState<ProductFamily>(() => {
     if (existing) return structuredClone(existing);
@@ -54,14 +65,50 @@ export default function AdminItemEditorPage({
   const [rightTab, setRightTab] = useState<'dodatno' | 'slike'>('dodatno');
   const [attrValues, setAttrValues] = useState({ width: '100, 200', length: '100, 200', thickness: '0,5' });
   const [sideSettings, setSideSettings] = useState({
+    brand: '',
     material: '',
     surface: '',
+    color: '',
+    toleranceEnabled: false,
+    thicknessTolerance: '',
     moq: 1,
+    weightPerUnit: '',
+    palletCount: '',
+    dimensions: { width: '', depth: '', height: '' },
+    specialPackaging: false,
+    trackInventory: true,
+    currentStock: 0,
+    minStock: 0,
     warehouseLocation: '',
+    basePriceNoVat: '',
+    priceRounding: '0.01',
+    allowManualDiscount: true,
+    showOldPrice: true,
     showGallery: true,
+    autoSquareCrop: true,
+    imageFocus: 'center',
+    galleryMode: 'grid' as 'grid' | 'slider' | 'list',
     imageAltText: '',
     videoUrl: ''
   });
+  const [documents, setDocuments] = useState<Array<{ name: string; size: string }>>([]);
+  const [selectedParentCategory, setSelectedParentCategory] = useState(() => {
+    const [parent] = (draft.category || '').split('/').map((entry) => entry.trim());
+    return parent || Array.from(categoryTree.keys())[0] || '';
+  });
+  const childCategories = useMemo(
+    () => Array.from(categoryTree.get(selectedParentCategory) ?? []),
+    [categoryTree, selectedParentCategory]
+  );
+  const [selectedChildCategory, setSelectedChildCategory] = useState(() => {
+    const [, child] = (draft.category || '').split('/').map((entry) => entry.trim());
+    return child || '';
+  });
+
+  useEffect(() => {
+    const joined = selectedChildCategory ? `${selectedParentCategory} / ${selectedChildCategory}` : selectedParentCategory;
+    setDraft((current) => ({ ...current, category: joined }));
+  }, [selectedChildCategory, selectedParentCategory]);
 
   const priceValues = draft.variants.map((variant) => variant.price);
   const priceRange = priceValues.length ? `${formatCurrency(Math.min(...priceValues))} – ${formatCurrency(Math.max(...priceValues))}` : '—';
@@ -114,6 +161,7 @@ export default function AdminItemEditorPage({
           <div className="flex items-center gap-2">
             <h1 className="text-3xl font-semibold text-slate-900">{mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</h1>
             <Chip variant={draft.active ? 'success' : 'warning'}>{statusLabel(draft.active)}</Chip>
+            <StatusToggle checked={draft.active} onToggle={() => setDraft((current) => ({ ...current, active: !current.active }))} ariaLabel="Preklopi status artikla" />
           </div>
           <p className="text-sm text-slate-500">Ustvarite artikel z različicami ali brez njih. Spremembe so pripravljene za shranjevanje.</p>
         </div>
@@ -131,10 +179,9 @@ export default function AdminItemEditorPage({
             <h2 className="mb-3 text-2xl font-semibold">Osnovno</h2>
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2 space-y-1"><label className="text-xs text-slate-600">Naziv</label><input className={inputClass} value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></div>
-              <div className="space-y-1"><label className="text-xs text-slate-600">Status</label><select className={inputClass} value={draft.active ? 'active' : 'hidden'} onChange={(event) => setDraft((current) => ({ ...current, active: event.target.value === 'active' }))}><option value="active">Aktiven</option><option value="hidden">Skrit</option></select></div>
-              <div className="space-y-1"><label className="text-xs text-slate-600">Kategorija</label><input className={inputClass} value={draft.category} onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))} /></div>
-              <div className="space-y-1"><label className="text-xs text-slate-600">Podkategorija</label><input className={inputClass} value={draft.subcategoryId ?? ''} onChange={(event) => setDraft((current) => ({ ...current, subcategoryId: event.target.value || null }))} /></div>
-              <div className="space-y-1"><label className="text-xs text-slate-600">Datum objave</label><input type="date" className={inputClass} /></div>
+              <div className="space-y-1"><label className="text-xs text-slate-600">Status</label><div className="flex h-10 items-center rounded-lg border border-slate-300 px-3"><StatusToggle checked={draft.active} onToggle={() => setDraft((current) => ({ ...current, active: !current.active }))} ariaLabel="Preklopi aktivnost v osnovnem delu" /></div></div>
+              <div className="space-y-1"><label className="text-xs text-slate-600">Kategorija (1. nivo)</label><select className={inputClass} value={selectedParentCategory} onChange={(event) => { setSelectedParentCategory(event.target.value); setSelectedChildCategory(''); }}>{Array.from(categoryTree.keys()).map((parent) => <option key={parent} value={parent}>{parent}</option>)}</select></div>
+              <div className="space-y-1"><label className="text-xs text-slate-600">Podkategorija (2. nivo)</label><select className={inputClass} value={selectedChildCategory} onChange={(event) => setSelectedChildCategory(event.target.value)}><option value="">Brez podkategorije</option>{childCategories.map((child) => <option key={child} value={child}>{child}</option>)}</select></div>
               <div className="col-span-2 space-y-1"><label className="text-xs text-slate-600">Opis</label><textarea className={`${inputClass} !h-28 py-2`} value={draft.description} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} /></div>
               <div className="space-y-1"><label className="text-xs text-slate-600">Oznake (badge)</label><input className={inputClass} value={draft.promoBadge} onChange={(event) => setDraft((current) => ({ ...current, promoBadge: event.target.value }))} placeholder="Akcija, Novo ..." /></div>
               <div className="col-span-2 space-y-1"><label className="text-xs text-slate-600">Kratek URL (slug)</label><input className={inputClass} value={draft.slug} onChange={(event) => setDraft((current) => ({ ...current, slug: event.target.value }))} placeholder={toSlug(draft.name)} /></div>
@@ -185,18 +232,40 @@ export default function AdminItemEditorPage({
           {rightTab === 'dodatno' ? (
             <div className="space-y-3">
               <h3 className="text-lg font-semibold">Dodatne lastnosti</h3>
-              <div className="space-y-1"><label className="text-xs text-slate-600">Material</label><input className={inputClass} value={sideSettings.material} onChange={(event) => setSideSettings((current) => ({ ...current, material: event.target.value }))} placeholder="Aluminij" /></div>
-              <div className="space-y-1"><label className="text-xs text-slate-600">Površina</label><input className={inputClass} value={sideSettings.surface} onChange={(event) => setSideSettings((current) => ({ ...current, surface: event.target.value }))} placeholder="Gladko" /></div>
-              <div className="grid grid-cols-2 gap-2"><div className="space-y-1"><label className="text-xs text-slate-600">MOQ</label><input type="number" className={inputClass} value={sideSettings.moq} onChange={(event) => setSideSettings((current) => ({ ...current, moq: Number(event.target.value) || 1 }))} /></div><div className="space-y-1"><label className="text-xs text-slate-600">Lokacija skladišča</label><input className={inputClass} value={sideSettings.warehouseLocation} onChange={(event) => setSideSettings((current) => ({ ...current, warehouseLocation: event.target.value }))} placeholder="Glavno" /></div></div>
+              <div className="space-y-1"><label className="text-xs text-slate-600">Blagovna znamka</label><input className={inputClass} value={sideSettings.brand} onChange={(event) => setSideSettings((current) => ({ ...current, brand: event.target.value }))} placeholder="AluCraft" /></div>
+              <div className="space-y-1"><label className="text-xs text-slate-600">Material</label><input className={inputClass} value={sideSettings.material} onChange={(event) => setSideSettings((current) => ({ ...current, material: event.target.value }))} placeholder="Aluminij (EN AW-1050)" /></div>
+              <div className="grid grid-cols-2 gap-2"><div className="space-y-1"><label className="text-xs text-slate-600">Površina</label><input className={inputClass} value={sideSettings.surface} onChange={(event) => setSideSettings((current) => ({ ...current, surface: event.target.value }))} placeholder="Gladko" /></div><div className="space-y-1"><label className="text-xs text-slate-600">Barva</label><input className={inputClass} value={sideSettings.color} onChange={(event) => setSideSettings((current) => ({ ...current, color: event.target.value }))} placeholder="Srebrna" /></div></div>
+              <label className="inline-flex items-center gap-2 text-sm"><StatusToggle checked={sideSettings.toleranceEnabled} onToggle={() => setSideSettings((current) => ({ ...current, toleranceEnabled: !current.toleranceEnabled }))} ariaLabel="Preklopi toleranco debeline" />Toleranca debeline (samo za materiale)</label>
+              {sideSettings.toleranceEnabled ? <div className="space-y-1"><label className="text-xs text-slate-600">Debelina toleranca (mm)</label><input className={inputClass} value={sideSettings.thicknessTolerance} onChange={(event) => setSideSettings((current) => ({ ...current, thicknessTolerance: event.target.value }))} placeholder="±0,05" /></div> : null}
+              <section className="rounded-lg border border-slate-200 p-3">
+                <h4 className="mb-2 text-sm font-semibold">Logistika</h4>
+                <div className="grid grid-cols-2 gap-2"><div className="space-y-1"><label className="text-xs text-slate-600">MOQ</label><input type="number" className={inputClass} value={sideSettings.moq} onChange={(event) => setSideSettings((current) => ({ ...current, moq: Number(event.target.value) || 1 }))} /></div><div className="space-y-1"><label className="text-xs text-slate-600">Teža na kos (kg)</label><input className={inputClass} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} /></div><div className="space-y-1"><label className="text-xs text-slate-600">Kosov na paleti</label><input className={inputClass} value={sideSettings.palletCount} onChange={(event) => setSideSettings((current) => ({ ...current, palletCount: event.target.value }))} /></div><div className="space-y-1"><label className="text-xs text-slate-600">Lokacija skladišča</label><input className={inputClass} value={sideSettings.warehouseLocation} onChange={(event) => setSideSettings((current) => ({ ...current, warehouseLocation: event.target.value }))} placeholder="Glavno skladišče" /></div></div>
+                <div className="mt-2 grid grid-cols-3 gap-2"><input className={inputClass} placeholder="Š" value={sideSettings.dimensions.width} onChange={(event) => setSideSettings((current) => ({ ...current, dimensions: { ...current.dimensions, width: event.target.value } }))} /><input className={inputClass} placeholder="D" value={sideSettings.dimensions.depth} onChange={(event) => setSideSettings((current) => ({ ...current, dimensions: { ...current.dimensions, depth: event.target.value } }))} /><input className={inputClass} placeholder="V" value={sideSettings.dimensions.height} onChange={(event) => setSideSettings((current) => ({ ...current, dimensions: { ...current.dimensions, height: event.target.value } }))} /></div>
+                <label className="mt-2 inline-flex items-center gap-2 text-sm"><StatusToggle checked={sideSettings.specialPackaging} onToggle={() => setSideSettings((current) => ({ ...current, specialPackaging: !current.specialPackaging }))} ariaLabel="Preklopi posebno pakiranje" />Zahteva posebno pakiranje</label>
+              </section>
+              <section className="rounded-lg border border-slate-200 p-3">
+                <h4 className="mb-2 text-sm font-semibold">Zaloga</h4>
+                <label className="inline-flex items-center gap-2 text-sm"><StatusToggle checked={sideSettings.trackInventory} onToggle={() => setSideSettings((current) => ({ ...current, trackInventory: !current.trackInventory }))} ariaLabel="Spremljaj zalogo" />Spremljaj zalogo</label>
+                <div className="mt-2 grid grid-cols-2 gap-2"><div className="space-y-1"><label className="text-xs text-slate-600">Trenutna zaloga</label><input type="number" className={inputClass} value={sideSettings.currentStock} onChange={(event) => setSideSettings((current) => ({ ...current, currentStock: Number(event.target.value) || 0 }))} /></div><div className="space-y-1"><label className="text-xs text-slate-600">Minimalna zaloga</label><input type="number" className={inputClass} value={sideSettings.minStock} onChange={(event) => setSideSettings((current) => ({ ...current, minStock: Number(event.target.value) || 0 }))} /></div></div>
+              </section>
+              <section className="rounded-lg border border-slate-200 p-3">
+                <h4 className="mb-2 text-sm font-semibold">Cenovna pravila</h4>
+                <div className="grid grid-cols-2 gap-2"><div className="space-y-1"><label className="text-xs text-slate-600">Osnovna cena brez DDV</label><input className={inputClass} value={sideSettings.basePriceNoVat} onChange={(event) => setSideSettings((current) => ({ ...current, basePriceNoVat: event.target.value }))} /></div><div className="space-y-1"><label className="text-xs text-slate-600">Zaokroževanje cen</label><select className={inputClass} value={sideSettings.priceRounding} onChange={(event) => setSideSettings((current) => ({ ...current, priceRounding: event.target.value }))}><option value="0.01">Na 0,01 €</option><option value="0.05">Na 0,05 €</option><option value="0.1">Na 0,10 €</option></select></div></div>
+                <label className="mt-2 inline-flex items-center gap-2 text-sm"><StatusToggle checked={sideSettings.allowManualDiscount} onToggle={() => setSideSettings((current) => ({ ...current, allowManualDiscount: !current.allowManualDiscount }))} ariaLabel="Dovoli ročni popust" />Dovoli ročni popust na blagajni</label>
+                <label className="mt-2 inline-flex items-center gap-2 text-sm"><StatusToggle checked={sideSettings.showOldPrice} onToggle={() => setSideSettings((current) => ({ ...current, showOldPrice: !current.showOldPrice }))} ariaLabel="Prikaži staro ceno" />Prikaži staro ceno, ko je v akciji</label>
+              </section>
               <div className="space-y-1"><label className="text-xs text-slate-600">Interna opomba</label><textarea className={`${inputClass} !h-24 py-2`} value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} /></div>
             </div>
           ) : (
             <div className="space-y-3">
               <h3 className="text-lg font-semibold">Nastavitve slik</h3>
               <label className="inline-flex items-center gap-2 text-sm"><AdminCheckbox checked={sideSettings.showGallery} onChange={(event) => setSideSettings((current) => ({ ...current, showGallery: event.target.checked }))} />Prikaži galerijo na strani izdelka</label>
+              <label className="inline-flex items-center gap-2 text-sm"><AdminCheckbox checked={sideSettings.autoSquareCrop} onChange={(event) => setSideSettings((current) => ({ ...current, autoSquareCrop: event.target.checked }))} />Samodejno obreži na kvadrat (1:1)</label>
+              <div className="space-y-1"><label className="text-xs text-slate-600">Fokus slike</label><select className={inputClass} value={sideSettings.imageFocus} onChange={(event) => setSideSettings((current) => ({ ...current, imageFocus: event.target.value }))}><option value="center">Center</option><option value="top">Zgoraj</option><option value="bottom">Spodaj</option></select></div>
+              <div className="space-y-1"><label className="text-xs text-slate-600">Galerija</label><div className="grid grid-cols-3 gap-1">{([{ key: 'grid', label: 'Mreža' }, { key: 'slider', label: 'Drsnik' }, { key: 'list', label: 'Seznam' }] as const).map((modeOption) => <button key={modeOption.key} type="button" className={`rounded-md border px-2 py-2 text-xs ${sideSettings.galleryMode === modeOption.key ? 'border-[#2f66dd] text-[#2f66dd]' : 'border-slate-300 text-slate-600'}`} onClick={() => setSideSettings((current) => ({ ...current, galleryMode: modeOption.key }))}>{modeOption.label}</button>)}</div></div>
               <div className="space-y-1"><label className="text-xs text-slate-600">Alt besedilo</label><input className={inputClass} value={sideSettings.imageAltText} onChange={(event) => setSideSettings((current) => ({ ...current, imageAltText: event.target.value }))} placeholder={`${draft.name || 'Artikel'} - različice`} /></div>
               <div className="space-y-1"><label className="text-xs text-slate-600">Video URL (neobvezno)</label><input className={inputClass} value={sideSettings.videoUrl} onChange={(event) => setSideSettings((current) => ({ ...current, videoUrl: event.target.value }))} placeholder="https://" /></div>
-              <div className="space-y-1"><label className="text-xs text-slate-600">Dokument (neobvezno)</label><Button type="button" variant="default" size="toolbar">Dodaj dokument</Button></div>
+              <div className="space-y-1"><label className="text-xs text-slate-600">Dokumenti (tehnični list)</label><div className="space-y-2">{documents.map((doc) => <div key={doc.name} className="rounded-md border border-slate-200 px-2 py-1 text-xs">{doc.name} · {doc.size}</div>)}</div><input type="file" className="hidden" id="tech-sheet-upload" onChange={(event) => { const file = event.target.files?.[0]; if (!file) return; setDocuments((current) => [...current, { name: file.name, size: `${Math.max(1, Math.round(file.size / 1024))} KB` }]); }} /><label htmlFor="tech-sheet-upload"><Button type="button" variant="default" size="toolbar">Dodaj dokument</Button></label></div>
             </div>
           )}
         </aside>

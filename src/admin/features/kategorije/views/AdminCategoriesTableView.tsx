@@ -13,6 +13,7 @@ import type { CategoryStatus, CategoriesView } from '../common/types';
 
 const treeRowHeight = 48;
 const treeButtonDiameter = 28;
+const treeIndent = 32;
 const categoryTableColumnWidths = {
   select: 50,
   category: 315,
@@ -191,11 +192,15 @@ export function AdminCategoriesTableView({
                 </colgroup>
                 <thead>
                   <tr>
-                    <th className="h-11 border-b border-slate-200 bg-[color:var(--ui-neutral-bg)] px-2 py-2 text-center text-[11px] font-semibold text-slate-600"><AdminCheckbox id="categories-select-all" name="categoriesSelectAll" ref={selectAllRef} checked={allRowsSelected} onChange={onToggleSelectAll} aria-label="Izberi vse" /></th>
+                    <th className="relative h-11 overflow-visible border-b border-slate-200 bg-[color:var(--ui-neutral-bg)] px-2 py-2 text-center text-[11px] font-semibold text-slate-600">
+                      <div className="absolute top-1/2 z-20" style={{ left: '100%', transform: 'translateY(-50%)' }}>
+                        <AdminCheckbox id="categories-select-all" name="categoriesSelectAll" ref={selectAllRef} checked={allRowsSelected} onChange={onToggleSelectAll} aria-label="Izberi vse" />
+                      </div>
+                    </th>
                     <th className="h-11 border-b border-slate-200 bg-[color:var(--ui-neutral-bg)] px-2.5 py-0 text-left text-[11px] font-semibold text-slate-600 align-middle">
                       <div className="relative flex h-12 items-center gap-2 overflow-visible px-1">
-                        <div className="relative shrink-0 overflow-visible" style={{ width: `${treeButtonDiameter}px`, height: `${treeRowHeight}px` }}>
-                          <div className="absolute inset-y-0 z-10 flex items-center justify-center" style={{ left: 0, width: `${treeButtonDiameter}px` }}>
+                        <div className="relative shrink-0 overflow-visible" style={{ width: `${treeIndent + treeButtonDiameter}px`, height: `${treeRowHeight}px` }}>
+                          <div className="absolute inset-y-0 z-10 flex items-center justify-center" style={{ left: `${treeIndent}px`, width: `${treeButtonDiameter}px` }}>
                             <button type="button" onClick={onToggleAllExpanded} className="inline-grid h-4 w-4 place-items-center rounded-[2px] border border-slate-300 text-slate-600" aria-label="Razširi/skrij vse kategorije">
                               {allExpanded ? <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M3 8h10" /></svg> : <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M3 8h10M8 3v10" /></svg>}
                             </button>

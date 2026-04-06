@@ -46,13 +46,19 @@ export default function AdminItemEditorPage({
   const existing = mode === 'edit' ? families.find((family) => family.id === articleId) ?? null : null;
   const categoryTree = useMemo(() => {
     const tree = new Map<string, Set<string>>();
+    const nodes = new Map<string, string[]>();
     seedItems.forEach(([, , , categoryPath]) => {
-      const [parent, child] = categoryPath.split('/').map((entry) => entry.trim());
-      if (!parent) return;
-      if (!tree.has(parent)) tree.set(parent, new Set());
-      if (child) tree.get(parent)?.add(child);
+      const parts = categoryPath.split('/').map((entry) => entry.trim()).filter(Boolean);
+      parts.forEach((part, index) => {
+        const prefix = parts.slice(0, index + 1);
+        const parentKey = prefix.slice(0, -1).join(' / ');
+        const currentKey = prefix.join(' / ');
+        if (!tree.has(parentKey)) tree.set(parentKey, new Set());
+        tree.get(parentKey)?.add(currentKey);
+        nodes.set(currentKey, prefix);
+      });
     });
-    return tree;
+    return { tree, nodes };
   }, [seedItems]);
 
   const [draft, setDraft] = useState<ProductFamily>(() => {
@@ -92,23 +98,39 @@ export default function AdminItemEditorPage({
   });
   const [documents, setDocuments] = useState<Array<{ name: string; size: string }>>([]);
   const [editorMode, setEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
-  const [selectedParentCategory, setSelectedParentCategory] = useState(() => {
-    const [parent] = (draft.category || '').split('/').map((entry) => entry.trim());
-    return parent || Array.from(categoryTree.keys())[0] || '';
-  });
-  const childCategories = useMemo(
-    () => Array.from(categoryTree.get(selectedParentCategory) ?? []),
-    [categoryTree, selectedParentCategory]
+  const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() =>
+    (draft.category || '')
+      .split('/')
+      .map((entry) => entry.trim())
+      .filter(Boolean)
   );
-  const [selectedChildCategory, setSelectedChildCategory] = useState(() => {
-    const [, child] = (draft.category || '').split('/').map((entry) => entry.trim());
-    return child || '';
-  });
+  const [categorySearch, setCategorySearch] = useState('');
+  const searchContextKey = selectedCategoryPath.join(' / ');
+  const categorySuggestions = useMemo(() => {
+    const query = categorySearch.trim().toLowerCase();
+    const contextChildren = Array.from(categoryTree.tree.get(searchContextKey) ?? []);
+    const candidates = query.length > 0 ? Array.from(categoryTree.nodes.keys()) : contextChildren;
+    return candidates
+      .filter((key) => {
+        const label = key.split(' / ').at(-1) ?? key;
+        return query.length === 0 || key.toLowerCase().includes(query) || label.toLowerCase().includes(query);
+      })
+      .slice(0, 8)
+      .map((key) => ({
+        key,
+        path: categoryTree.nodes.get(key) ?? key.split(' / ').map((entry) => entry.trim()),
+        hasChildren: (categoryTree.tree.get(key)?.size ?? 0) > 0
+      }));
+  }, [categorySearch, categoryTree, searchContextKey]);
 
   useEffect(() => {
-    const joined = selectedChildCategory ? `${selectedParentCategory} / ${selectedChildCategory}` : selectedParentCategory;
-    setDraft((current) => ({ ...current, category: joined }));
-  }, [selectedChildCategory, selectedParentCategory]);
+    setDraft((current) => ({ ...current, category: selectedCategoryPath.join(' / ') }));
+  }, [selectedCategoryPath]);
+
+  const selectCategoryPath = (path: string[]) => {
+    setSelectedCategoryPath(path);
+    setCategorySearch('');
+  };
 
   const isEditable = editorMode === 'edit';
 
@@ -168,12 +190,44 @@ export default function AdminItemEditorPage({
                 <button type="button" className={buttonTokenClasses.closeX} aria-label="Izbriši artikel" title="Izbriši"><MoreActionsIcon /></button>
               </div>
             </div>
-            <h2 className="mb-3 text-xl font-semibold">Osnovno</h2>
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2 space-y-1"><label className="text-xs text-slate-600">Naziv</label><input disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></div>
               <div className="space-y-1"><label className="text-xs text-slate-600">Aktiven</label><div className="flex h-10 items-center rounded-lg border border-slate-300 px-3"><StatusToggle checked={draft.active} onToggle={() => setDraft((current) => ({ ...current, active: !current.active }))} ariaLabel="Preklopi aktivnost v osnovnem delu" /></div></div>
-              <div className="space-y-1"><label className="text-xs text-slate-600">Kategorija (1. nivo)</label><select disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={selectedParentCategory} onChange={(event) => { setSelectedParentCategory(event.target.value); setSelectedChildCategory(''); }}>{Array.from(categoryTree.keys()).map((parent) => <option key={parent} value={parent}>{parent}</option>)}</select></div>
-              <div className="space-y-1"><label className="text-xs text-slate-600">Podkategorija (2. nivo)</label><select disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={selectedChildCategory} onChange={(event) => setSelectedChildCategory(event.target.value)}><option value="">Brez podkategorije</option>{childCategories.map((child) => <option key={child} value={child}>{child}</option>)}</select></div>
+              <div className="col-span-2 space-y-1">
+                <label className="text-xs text-slate-600">Kategorija (iskanje otroških kategorij)</label>
+                <input
+                  disabled={!isEditable}
+                  className={`${inputClass} ${readOnlyInputClass}`}
+                  value={categorySearch}
+                  onChange={(event) => setCategorySearch(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Enter') return;
+                    event.preventDefault();
+                    const first = categorySuggestions[0];
+                    if (!first) return;
+                    selectCategoryPath(first.path);
+                  }}
+                  placeholder="Vpišite kategorijo ali podkategorijo in pritisnite Enter"
+                />
+                <p className="text-xs text-slate-500">
+                  Breadcrumbs: {selectedCategoryPath.length > 0 ? selectedCategoryPath.join(' → ') : 'ni izbrano'}
+                </p>
+                {categorySuggestions.length > 0 ? (
+                  <div className="rounded-md border border-slate-200 bg-white">
+                    {categorySuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion.key}
+                        type="button"
+                        className="flex w-full items-center justify-between border-b border-slate-100 px-2 py-1.5 text-left text-xs last:border-b-0 hover:bg-slate-50"
+                        onClick={() => selectCategoryPath(suggestion.path)}
+                      >
+                        <span>{suggestion.path.join(' → ')}</span>
+                        <span className="text-slate-400">{suggestion.hasChildren ? 'ima podkategorije' : 'končna'}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
               <div className="col-span-2 space-y-1"><label className="text-xs text-slate-600">Opis</label><textarea disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass} !h-28 py-2`} value={draft.description} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} /></div>
               <div className="space-y-1"><label className="text-xs text-slate-600">Oznake (badge)</label><input disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={draft.promoBadge} onChange={(event) => setDraft((current) => ({ ...current, promoBadge: event.target.value }))} placeholder="Akcija, Novo ..." /></div>
               <div className="col-span-2 space-y-1"><label className="text-xs text-slate-600">Kratek URL (slug)</label><input disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={draft.slug} onChange={(event) => setDraft((current) => ({ ...current, slug: event.target.value }))} placeholder={toSlug(draft.name)} /></div>

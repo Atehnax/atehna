@@ -11,6 +11,7 @@ import { CloseIcon, MoreActionsIcon, PencilIcon, PlusIcon, SaveIcon } from '@/sh
 import { StatusToggle } from '@/shared/ui/status-toggle';
 import { useToast } from '@/shared/ui/toast';
 import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
+import { categoriesBreadcrumbCurrentTextClassName } from '@/admin/features/kategorije/common/typography';
 import {
   buildFamiliesFromSeed,
   computeSalePrice,
@@ -44,7 +45,7 @@ export default function AdminItemEditorPage({
   const { toast } = useToast();
   const families = useMemo(() => buildFamiliesFromSeed(seedItems), [seedItems]);
   const existing = mode === 'edit' ? families.find((family) => family.id === articleId) ?? null : null;
-  const categoryTree = useMemo(() => {
+  const categoryTreeFromSeed = useMemo(() => {
     const tree = new Map<string, Set<string>>();
     const nodes = new Map<string, string[]>();
     seedItems.forEach(([, , , categoryPath]) => {
@@ -60,6 +61,7 @@ export default function AdminItemEditorPage({
     });
     return { tree, nodes };
   }, [seedItems]);
+  const [categoryTree, setCategoryTree] = useState(categoryTreeFromSeed);
 
   const [draft, setDraft] = useState<ProductFamily>(() => {
     if (existing) return structuredClone(existing);
@@ -105,6 +107,7 @@ export default function AdminItemEditorPage({
       .filter(Boolean)
   );
   const [categorySearch, setCategorySearch] = useState('');
+  const [isCategorySearchActive, setIsCategorySearchActive] = useState(false);
   const searchContextKey = selectedCategoryPath.join(' / ');
   const categorySuggestions = useMemo(() => {
     const query = categorySearch.trim().toLowerCase();
@@ -126,6 +129,59 @@ export default function AdminItemEditorPage({
   useEffect(() => {
     setDraft((current) => ({ ...current, category: selectedCategoryPath.join(' / ') }));
   }, [selectedCategoryPath]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const collectPaths = (nodes: Array<{ title?: string; subcategories?: unknown[] }>, parents: string[] = [], target: string[] = []) => {
+      nodes.forEach((node) => {
+        const title = (node.title ?? '').trim();
+        if (!title) return;
+        const path = [...parents, title];
+        target.push(path.join(' / '));
+        const subcategories = Array.isArray(node.subcategories) ? (node.subcategories as Array<{ title?: string; subcategories?: unknown[] }>) : [];
+        if (subcategories.length > 0) {
+          collectPaths(subcategories, path, target);
+        }
+      });
+      return target;
+    };
+
+    const mergeTrees = (paths: string[]) => {
+      const tree = new Map<string, Set<string>>();
+      const nodes = new Map<string, string[]>();
+      paths.forEach((pathValue) => {
+        const parts = pathValue.split('/').map((entry) => entry.trim()).filter(Boolean);
+        parts.forEach((_, index) => {
+          const prefix = parts.slice(0, index + 1);
+          const parentKey = prefix.slice(0, -1).join(' / ');
+          const currentKey = prefix.join(' / ');
+          if (!tree.has(parentKey)) tree.set(parentKey, new Set());
+          tree.get(parentKey)?.add(currentKey);
+          nodes.set(currentKey, prefix);
+        });
+      });
+      return { tree, nodes };
+    };
+
+    const hydrateCategoryTree = async () => {
+      try {
+        const response = await fetch('/api/admin/categories?view=preview');
+        if (!response.ok) return;
+        const payload = (await response.json()) as Array<{ title?: string; subcategories?: unknown[] }>;
+        const apiPaths = collectPaths(payload);
+        const mergedPaths = Array.from(new Set([...Array.from(categoryTreeFromSeed.nodes.keys()), ...apiPaths]));
+        if (!cancelled) setCategoryTree(mergeTrees(mergedPaths));
+      } catch {
+        if (!cancelled) setCategoryTree(categoryTreeFromSeed);
+      }
+    };
+
+    void hydrateCategoryTree();
+    return () => {
+      cancelled = true;
+    };
+  }, [categoryTreeFromSeed]);
 
   const selectCategoryPath = (path: string[]) => {
     setSelectedCategoryPath(path);
@@ -193,13 +249,17 @@ export default function AdminItemEditorPage({
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2 space-y-1"><label className="text-xs text-slate-600">Naziv</label><input disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></div>
               <div className="space-y-1"><label className="text-xs text-slate-600">Aktiven</label><div className="flex h-10 items-center rounded-lg border border-slate-300 px-3"><StatusToggle checked={draft.active} onToggle={() => setDraft((current) => ({ ...current, active: !current.active }))} ariaLabel="Preklopi aktivnost v osnovnem delu" /></div></div>
-              <div className="col-span-2 space-y-1">
-                <label className="text-xs text-slate-600">Kategorija (iskanje otroških kategorij)</label>
+              <div className="relative col-span-2 space-y-1">
+                <label className="sr-only">Kategorija</label>
                 <input
                   disabled={!isEditable}
                   className={`${inputClass} ${readOnlyInputClass}`}
                   value={categorySearch}
                   onChange={(event) => setCategorySearch(event.target.value)}
+                  onFocus={() => setIsCategorySearchActive(true)}
+                  onBlur={() => {
+                    window.setTimeout(() => setIsCategorySearchActive(false), 150);
+                  }}
                   onKeyDown={(event) => {
                     if (event.key !== 'Enter') return;
                     event.preventDefault();
@@ -209,11 +269,18 @@ export default function AdminItemEditorPage({
                   }}
                   placeholder="Vpišite kategorijo ali podkategorijo in pritisnite Enter"
                 />
-                <p className="text-xs text-slate-500">
-                  Breadcrumbs: {selectedCategoryPath.length > 0 ? selectedCategoryPath.join(' → ') : 'ni izbrano'}
-                </p>
-                {categorySuggestions.length > 0 ? (
-                  <div className="rounded-md border border-slate-200 bg-white">
+                <nav className="truncate whitespace-nowrap text-sm text-slate-700" aria-label="Breadcrumb">
+                  {selectedCategoryPath.length === 0 ? <span className="text-xs text-slate-400">Ni izbrane poti.</span> : selectedCategoryPath.map((crumb, index) => (
+                    <span key={`${crumb}-${index}`}>
+                      {index > 0 ? <span className="mx-1 text-slate-400">/</span> : null}
+                      <span className={index === selectedCategoryPath.length - 1 ? categoriesBreadcrumbCurrentTextClassName : 'text-sm text-slate-700'}>
+                        {crumb}
+                      </span>
+                    </span>
+                  ))}
+                </nav>
+                {isCategorySearchActive && categorySuggestions.length > 0 ? (
+                  <div className="absolute z-30 mt-1 max-h-56 w-[calc(100%-1rem)] overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg">
                     {categorySuggestions.map((suggestion) => (
                       <button
                         key={suggestion.key}

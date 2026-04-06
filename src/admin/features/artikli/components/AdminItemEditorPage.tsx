@@ -180,7 +180,14 @@ export default function AdminItemEditorPage({
         <div className="space-y-4">
           <section className="rounded-xl border border-slate-200 bg-white p-4">
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <h1 className="flex h-10 items-center text-lg font-semibold tracking-tight text-slate-900">{mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</h1>
+              <input
+                disabled={!isEditable}
+                aria-label="Naziv artikla"
+                placeholder={mode === 'edit' ? 'Naziv artikla' : 'Nov artikel'}
+                className={`h-10 min-w-[220px] flex-1 rounded-md border border-slate-200 bg-white px-2.5 text-lg font-semibold tracking-tight text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0 ${readOnlyInputClass}`}
+                value={draft.name}
+                onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
+              />
               <div className="ml-auto flex items-center gap-1.5">
                 <Chip variant={draft.active ? 'success' : 'warning'}>{statusLabel(draft.active)}</Chip>
                 <IconButton type="button" tone="neutral" onClick={() => setEditorMode((current) => (current === 'read' ? 'edit' : 'read'))} aria-label="Uredi artikel" title="Uredi"><PencilIcon /></IconButton>
@@ -189,14 +196,23 @@ export default function AdminItemEditorPage({
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-1 space-y-1"><label className="text-xs text-slate-600">Naziv</label><input disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></div>
               <AdminCategoryBreadcrumbPicker
+                className="col-span-1"
                 value={selectedCategoryPath}
                 onChange={selectCategoryPath}
                 categoryPaths={categoryPaths}
                 disabled={!isEditable}
               />
-              <div className="col-span-2 space-y-1"><label className="text-xs text-slate-600">Opis</label><textarea disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass} !h-28 py-2`} value={draft.description} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} /></div>
+              <div className="col-span-2 space-y-1">
+                <label className="sr-only">Opis</label>
+                <textarea
+                  disabled={!isEditable}
+                  placeholder="Opis artikla..."
+                  className={`${inputClass} ${readOnlyInputClass} !h-28 py-2`}
+                  value={draft.description}
+                  onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
+                />
+              </div>
               <div className="space-y-1"><label className="text-xs text-slate-600">Oznake (badge)</label><input disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={draft.promoBadge} onChange={(event) => setDraft((current) => ({ ...current, promoBadge: event.target.value }))} placeholder="Akcija, Novo ..." /></div>
               <div className="col-span-2 space-y-1"><label className="text-xs text-slate-600">Kratek URL (slug)</label><input disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={draft.slug} onChange={(event) => setDraft((current) => ({ ...current, slug: event.target.value }))} placeholder={toSlug(draft.name)} /></div>
             </div>

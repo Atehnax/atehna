@@ -82,13 +82,15 @@ export default function AdminCategoryBreadcrumbPicker({
   onChange,
   categoryPaths,
   disabled,
-  placeholder = 'Izberi kategorijo'
+  placeholder = 'Izberi kategorijo',
+  className = 'col-span-2'
 }: {
   value: string[];
   onChange: (path: string[]) => void;
   categoryPaths: string[];
   disabled?: boolean;
   placeholder?: string;
+  className?: string;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -212,7 +214,7 @@ export default function AdminCategoryBreadcrumbPicker({
         ];
 
   return (
-    <div ref={containerRef} className="relative col-span-2 space-y-1">
+    <div ref={containerRef} className={`relative space-y-1 ${className}`.trim()}>
       <label className="sr-only">Kategorija</label>
       <div
         className="flex min-h-7 w-full items-center text-left"
@@ -234,41 +236,43 @@ export default function AdminCategoryBreadcrumbPicker({
 
       {isOpen ? (
         <div className="absolute z-30 mt-1 w-full rounded-md border border-slate-200 bg-white p-2 shadow-lg">
-          <Input
-            autoFocus
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') {
-                setIsOpen(false);
-                return;
-              }
-              if (event.key === 'ArrowDown') {
-                event.preventDefault();
-                setActiveIndex((current) => Math.min(current + 1, Math.max(0, searchResults.length - 1)));
-                return;
-              }
-              if (event.key === 'ArrowUp') {
-                event.preventDefault();
-                setActiveIndex((current) => Math.max(current - 1, 0));
-                return;
-              }
-              if (event.key === 'Enter') {
-                event.preventDefault();
-                const current = searchResults[activeIndex];
-                if (!current) return;
-                if (current.isLeaf) {
-                  assignPath(current.path);
-                } else {
-                  setDrillPath(current.path);
-                  setQuery('');
+          <div className="rounded-md border border-slate-200 bg-white transition-colors focus-within:border-[#3e67d6]">
+            <Input
+              autoFocus
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') {
+                  setIsOpen(false);
+                  return;
                 }
-              }
-            }}
-            placeholder="Išči po poti kategorij"
-            aria-label="Išči kategorijo"
-            className="!h-8"
-          />
+                if (event.key === 'ArrowDown') {
+                  event.preventDefault();
+                  setActiveIndex((current) => Math.min(current + 1, Math.max(0, searchResults.length - 1)));
+                  return;
+                }
+                if (event.key === 'ArrowUp') {
+                  event.preventDefault();
+                  setActiveIndex((current) => Math.max(current - 1, 0));
+                  return;
+                }
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  const current = searchResults[activeIndex];
+                  if (!current) return;
+                  if (current.isLeaf) {
+                    assignPath(current.path);
+                  } else {
+                    setDrillPath(current.path);
+                    setQuery('');
+                  }
+                }
+              }}
+              placeholder="Išči po poti kategorij"
+              aria-label="Išči kategorijo"
+              className="!h-8 !rounded-md !border-0 !bg-transparent focus:[--euiFormControlStateWidth:0px] focus-visible:[--euiFormControlStateWidth:0px]"
+            />
+          </div>
 
           {query.length === 0 && drillPath.length > 0 ? (
             <div className="mt-1 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-600">

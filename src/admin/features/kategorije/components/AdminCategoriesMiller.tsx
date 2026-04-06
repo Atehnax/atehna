@@ -5,7 +5,7 @@ import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { ActionRestoreIcon, ActionUndoIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
-import { categoriesBreadcrumbCurrentTextClassName } from '../common/typography';
+import AdminBreadcrumbPath from '@/shared/ui/admin-breadcrumb-path';
 
 const padTwoDigits = (value: number) => String(value).padStart(2, '0');
 
@@ -158,24 +158,7 @@ export function AdminCategoriesMiller({
     <section className={activeView === 'miller' ? 'w-full rounded-2xl border border-slate-200 bg-white p-3 shadow-sm' : 'hidden'}>
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="ml-[30px] min-w-0 text-xs text-slate-600">
-          <nav className="truncate whitespace-nowrap text-sm text-slate-700" aria-label="Breadcrumb">
-            {breadcrumbs.map((crumb, index) => (
-              <span key={`${crumb.label}-${index}`}>
-                {index > 0 ? <span className="mx-1 text-slate-400">/</span> : null}
-                {crumb.onClick && !crumb.isCurrent ? (
-                  <button
-                    type="button"
-                    onClick={crumb.onClick}
-                    className="text-slate-600 hover:text-slate-900 focus-visible:outline-none focus-visible:underline"
-                  >
-                    <span title={crumb.label}>{crumb.label}</span>
-                  </button>
-                ) : (
-                  <span className={crumb.isCurrent ? categoriesBreadcrumbCurrentTextClassName : ''} title={crumb.label}>{crumb.label}</span>
-                )}
-              </span>
-            ))}
-          </nav>
+          <AdminBreadcrumbPath items={breadcrumbs} />
         </div>
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-[320px] max-w-[36vw] items-stretch">

@@ -7,11 +7,11 @@ import { Button } from '@/shared/ui/button';
 import { Chip } from '@/shared/ui/badge';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { IconButton } from '@/shared/ui/icon-button';
-import { CloseIcon, MoreActionsIcon, PencilIcon, PlusIcon, SaveIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { CloseIcon, MoreActionsIcon, PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { StatusToggle } from '@/shared/ui/status-toggle';
 import { useToast } from '@/shared/ui/toast';
 import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
-import { categoriesBreadcrumbCurrentTextClassName } from '@/admin/features/kategorije/common/typography';
+import AdminBreadcrumbPath from '@/shared/ui/admin-breadcrumb-path';
 import {
   buildFamiliesFromSeed,
   computeSalePrice,
@@ -166,10 +166,17 @@ export default function AdminItemEditorPage({
 
     const hydrateCategoryTree = async () => {
       try {
-        const response = await fetch('/api/admin/categories?view=preview');
-        if (!response.ok) return;
-        const payload = (await response.json()) as Array<{ title?: string; subcategories?: unknown[] }>;
-        const apiPaths = collectPaths(payload);
+        const [mainResponse, previewResponse] = await Promise.all([
+          fetch('/api/admin/categories', { cache: 'no-store' }),
+          fetch('/api/admin/categories?view=preview', { cache: 'no-store' })
+        ]);
+        const mainPayload = mainResponse.ok
+          ? ((await mainResponse.json()) as Array<{ title?: string; subcategories?: unknown[] }>)
+          : [];
+        const previewPayload = previewResponse.ok
+          ? ((await previewResponse.json()) as Array<{ title?: string; subcategories?: unknown[] }>)
+          : [];
+        const apiPaths = [...collectPaths(mainPayload), ...collectPaths(previewPayload)];
         const mergedPaths = Array.from(new Set([...Array.from(categoryTreeFromSeed.nodes.keys()), ...apiPaths]));
         if (!cancelled) setCategoryTree(mergeTrees(mergedPaths));
       } catch {
@@ -200,6 +207,11 @@ export default function AdminItemEditorPage({
       return;
     }
     toast.success(asDraft ? 'Osnutek shranjen (lokalno).' : 'Artikel shranjen (lokalno).');
+  };
+  const deleteItem = () => {
+    const shouldDelete = window.confirm('Ali želite odstraniti artikel iz urejanja?');
+    if (!shouldDelete) return;
+    toast.success('Artikel je označen za brisanje (lokalni prikaz).');
   };
 
   const generateVariants = () => {
@@ -243,12 +255,11 @@ export default function AdminItemEditorPage({
                 <Chip variant={draft.active ? 'success' : 'warning'}>{statusLabel(draft.active)}</Chip>
                 <IconButton type="button" tone="neutral" onClick={() => setEditorMode((current) => (current === 'read' ? 'edit' : 'read'))} aria-label="Uredi artikel" title="Uredi">{isEditable ? <CloseIcon /> : <PencilIcon />}</IconButton>
                 <IconButton type="button" tone="neutral" onClick={() => save(false)} aria-label="Shrani artikel" title="Shrani" disabled={!isEditable}><SaveIcon /></IconButton>
-                <button type="button" className={buttonTokenClasses.closeX} aria-label="Izbriši artikel" title="Izbriši"><MoreActionsIcon /></button>
+                <button type="button" className={buttonTokenClasses.closeX} onClick={deleteItem} aria-label="Izbriši artikel" title="Izbriši"><TrashCanIcon /></button>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2 space-y-1"><label className="text-xs text-slate-600">Naziv</label><input disabled={!isEditable} className={`${inputClass} ${readOnlyInputClass}`} value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></div>
-              <div className="space-y-1"><label className="text-xs text-slate-600">Aktiven</label><div className="flex h-10 items-center rounded-lg border border-slate-300 px-3"><StatusToggle checked={draft.active} onToggle={() => setDraft((current) => ({ ...current, active: !current.active }))} ariaLabel="Preklopi aktivnost v osnovnem delu" /></div></div>
               <div className="relative col-span-2 space-y-1">
                 <label className="sr-only">Kategorija</label>
                 <input
@@ -269,16 +280,12 @@ export default function AdminItemEditorPage({
                   }}
                   placeholder="Vpišite kategorijo ali podkategorijo in pritisnite Enter"
                 />
-                <nav className="truncate whitespace-nowrap text-sm text-slate-700" aria-label="Breadcrumb">
-                  {selectedCategoryPath.length === 0 ? <span className="text-xs text-slate-400">Ni izbrane poti.</span> : selectedCategoryPath.map((crumb, index) => (
-                    <span key={`${crumb}-${index}`}>
-                      {index > 0 ? <span className="mx-1 text-slate-400">/</span> : null}
-                      <span className={index === selectedCategoryPath.length - 1 ? categoriesBreadcrumbCurrentTextClassName : 'text-sm text-slate-700'}>
-                        {crumb}
-                      </span>
-                    </span>
-                  ))}
-                </nav>
+                <AdminBreadcrumbPath
+                  items={selectedCategoryPath.map((crumb, index) => ({
+                    label: crumb,
+                    isCurrent: index === selectedCategoryPath.length - 1
+                  }))}
+                />
                 {isCategorySearchActive && categorySuggestions.length > 0 ? (
                   <div className="absolute z-30 mt-1 max-h-56 w-[calc(100%-1rem)] overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg">
                     {categorySuggestions.map((suggestion) => (

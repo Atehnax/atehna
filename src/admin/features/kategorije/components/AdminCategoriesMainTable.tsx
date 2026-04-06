@@ -218,7 +218,7 @@ export const InlineStatusToggle = ({
       <span
         aria-hidden="true"
       className={`absolute left-[-1px] top-1/2 z-10 h-5 w-5 -translate-y-1/2 rounded-full border border-[#37424f] bg-[#4f5b68] shadow-[inset_0_1px_2px_rgba(255,255,255,0.08),inset_0_-3px_6px_rgba(0,0,0,0.22),0_4px_8px_rgba(20,30,45,0.33)] transition-transform duration-200 ${
-        checked ? 'translate-x-[27px]' : 'translate-x-0'
+        checked ? 'translate-x-[28px]' : 'translate-x-0'
       }`}
     >
       <span

@@ -11,6 +11,7 @@ import { MoreActionsIcon, PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@
 import { StatusToggle } from '@/shared/ui/status-toggle';
 import { useToast } from '@/shared/ui/toast';
 import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
+import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import {
   buildFamiliesFromSeed,
   computeSalePrice,
@@ -30,6 +31,60 @@ const readOnlyInputClass = 'disabled:cursor-default disabled:border-transparent 
 
 type EditorMode = 'create' | 'edit';
 type CreateType = 'simple' | 'variants';
+
+function ActiveStateChip({
+  active,
+  editable,
+  onChange
+}: {
+  active: boolean;
+  editable: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onDocClick = () => setIsOpen(false);
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick, { once: true });
+    document.addEventListener('keydown', onEscape);
+    return () => {
+      document.removeEventListener('keydown', onEscape);
+    };
+  }, [isOpen]);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => {
+          if (!editable) return;
+          setIsOpen((current) => !current);
+        }}
+        className="relative block rounded-full focus:outline-none"
+        aria-haspopup={editable ? 'menu' : undefined}
+        aria-expanded={editable ? isOpen : undefined}
+      >
+        {editable ? <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span> : null}
+        <span className="block">
+          <Chip variant={active ? 'success' : 'warning'}>{statusLabel(active)}</Chip>
+        </span>
+      </button>
+
+      {editable && isOpen ? (
+        <div role="menu" className="absolute left-0 top-8 z-30 min-w-[130px]">
+          <MenuPanel>
+            <MenuItem onClick={() => { onChange(true); setIsOpen(false); }}>Aktiven</MenuItem>
+            <MenuItem onClick={() => { onChange(false); setIsOpen(false); }}>Neaktiven</MenuItem>
+          </MenuPanel>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export default function AdminItemEditorPage({
   seedItems,
@@ -184,7 +239,7 @@ export default function AdminItemEditorPage({
                 <input
                   aria-label="Naziv artikla"
                   placeholder={mode === 'edit' ? 'Naziv artikla' : 'Nov artikel'}
-                  className="h-10 min-w-[220px] flex-1 rounded-md border border-slate-200 bg-white px-2.5 text-lg font-semibold tracking-tight text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                  className="h-10 w-full max-w-[50%] rounded-md border border-slate-200 bg-white px-2.5 text-lg font-semibold tracking-tight text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                   value={draft.name}
                   onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
                 />
@@ -194,13 +249,13 @@ export default function AdminItemEditorPage({
                 </h1>
               )}
               <div className="ml-auto flex items-center gap-1.5">
-                <Chip variant={draft.active ? 'success' : 'warning'}>{statusLabel(draft.active)}</Chip>
+                <ActiveStateChip active={draft.active} editable={isEditable} onChange={(next) => setDraft((current) => ({ ...current, active: next }))} />
                 <IconButton type="button" tone="neutral" onClick={() => setEditorMode((current) => (current === 'read' ? 'edit' : 'read'))} aria-label="Uredi artikel" title="Uredi"><PencilIcon /></IconButton>
                 <IconButton type="button" tone="neutral" onClick={() => save(false)} aria-label="Shrani artikel" title="Shrani" disabled={!isEditable}><SaveIcon /></IconButton>
                 <button type="button" className={buttonTokenClasses.closeX} onClick={deleteItem} aria-label="Izbriši artikel" title="Izbriši"><TrashCanIcon /></button>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="mb-2">
               <AdminCategoryBreadcrumbPicker
                 className="col-span-3"
                 value={selectedCategoryPath}
@@ -208,7 +263,9 @@ export default function AdminItemEditorPage({
                 categoryPaths={categoryPaths}
                 disabled={!isEditable}
               />
-              <div className="col-span-3 space-y-1">
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2 space-y-1">
                 {isEditable ? (
                   <>
                     <label className="sr-only">Opis</label>
@@ -221,8 +278,27 @@ export default function AdminItemEditorPage({
                   </>
                 ) : (
                   <p className="min-h-10 rounded-md border border-transparent px-0 py-1 text-sm text-slate-700">
-                    {draft.description.trim() || '—'}
+                    {draft.description.trim() || '[Opis artikla]'}
                   </p>
+                )}
+              </div>
+              <div className="col-span-1 space-y-2">
+                {isEditable ? (
+                  <>
+                    <input className={inputClass} value={sideSettings.brand} onChange={(event) => setSideSettings((current) => ({ ...current, brand: event.target.value }))} placeholder="Blagovna znamka (npr. AluCraft)" />
+                    <input className={inputClass} value={sideSettings.material} onChange={(event) => setSideSettings((current) => ({ ...current, material: event.target.value }))} placeholder="Material (npr. aluminij)" />
+                    <input className={inputClass} value={sideSettings.surface} onChange={(event) => setSideSettings((current) => ({ ...current, surface: event.target.value }))} placeholder="Oblika (npr. pravokotna)" />
+                    <input className={inputClass} value={sideSettings.color} onChange={(event) => setSideSettings((current) => ({ ...current, color: event.target.value }))} placeholder="Barva (npr. srebrna)" />
+                    <input className={inputClass} value={sideSettings.thicknessTolerance} onChange={(event) => setSideSettings((current) => ({ ...current, thicknessTolerance: event.target.value }))} placeholder="Toleranca mere (npr. ± 2mm / ± 3 cm)" />
+                  </>
+                ) : (
+                  <div className="space-y-1 text-sm text-slate-700">
+                    <p>{sideSettings.brand || '—'}</p>
+                    <p>{sideSettings.material || '—'}</p>
+                    <p>{sideSettings.surface || '—'}</p>
+                    <p>{sideSettings.color || '—'}</p>
+                    <p>{sideSettings.thicknessTolerance || '—'}</p>
+                  </div>
                 )}
               </div>
               <div className="space-y-1">
@@ -282,20 +358,13 @@ export default function AdminItemEditorPage({
           {rightTab === 'dodatno' ? (
             <div className="space-y-3">
               <h3 className="text-lg font-semibold">Dodatne lastnosti</h3>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1"><label className="text-xs text-slate-600">Blagovna znamka</label><input className={inputClass} value={sideSettings.brand} onChange={(event) => setSideSettings((current) => ({ ...current, brand: event.target.value }))} placeholder="AluCraft" /></div>
-                <div className="space-y-1"><label className="text-xs text-slate-600">Material</label><input className={inputClass} value={sideSettings.material} onChange={(event) => setSideSettings((current) => ({ ...current, material: event.target.value }))} placeholder="Aluminij (EN AW-1050)" /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-2"><div className="space-y-1"><label className="text-xs text-slate-600">Površina</label><input className={inputClass} value={sideSettings.surface} onChange={(event) => setSideSettings((current) => ({ ...current, surface: event.target.value }))} placeholder="Gladko" /></div><div className="space-y-1"><label className="text-xs text-slate-600">Barva</label><input className={inputClass} value={sideSettings.color} onChange={(event) => setSideSettings((current) => ({ ...current, color: event.target.value }))} placeholder="Srebrna" /></div></div>
-              <label className="inline-flex items-center gap-2 text-sm"><StatusToggle checked={sideSettings.toleranceEnabled} onToggle={() => setSideSettings((current) => ({ ...current, toleranceEnabled: !current.toleranceEnabled }))} ariaLabel="Preklopi toleranco debeline" />Toleranca debeline (samo za materiale)</label>
-              {sideSettings.toleranceEnabled ? <div className="space-y-1"><label className="text-xs text-slate-600">Debelina toleranca (mm)</label><input className={inputClass} value={sideSettings.thicknessTolerance} onChange={(event) => setSideSettings((current) => ({ ...current, thicknessTolerance: event.target.value }))} placeholder="±0,05" /></div> : null}
-              <section className="rounded-lg border border-slate-200 p-3">
-                <h4 className="mb-2 text-sm font-semibold">Logistika</h4>
+              <section className="space-y-2">
+                <h3 className="text-lg font-semibold">Logistika</h3>
                 <div className="grid grid-cols-2 gap-2"><div className="space-y-1"><label className="text-xs text-slate-600">MOQ</label><input type="number" className={inputClass} value={sideSettings.moq} onChange={(event) => setSideSettings((current) => ({ ...current, moq: Number(event.target.value) || 1 }))} /></div><div className="space-y-1"><label className="text-xs text-slate-600">Teža na kos (kg)</label><input className={inputClass} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} /></div><div className="space-y-1"><label className="text-xs text-slate-600">Kosov na paleti</label><input className={inputClass} value={sideSettings.palletCount} onChange={(event) => setSideSettings((current) => ({ ...current, palletCount: event.target.value }))} /></div><div className="space-y-1"><label className="text-xs text-slate-600">Lokacija skladišča</label><input className={inputClass} value={sideSettings.warehouseLocation} onChange={(event) => setSideSettings((current) => ({ ...current, warehouseLocation: event.target.value }))} placeholder="Glavno skladišče" /></div></div>
                 <div className="mt-2 grid grid-cols-3 gap-2"><input className={inputClass} placeholder="Š" value={sideSettings.dimensions.width} onChange={(event) => setSideSettings((current) => ({ ...current, dimensions: { ...current.dimensions, width: event.target.value } }))} /><input className={inputClass} placeholder="D" value={sideSettings.dimensions.depth} onChange={(event) => setSideSettings((current) => ({ ...current, dimensions: { ...current.dimensions, depth: event.target.value } }))} /><input className={inputClass} placeholder="V" value={sideSettings.dimensions.height} onChange={(event) => setSideSettings((current) => ({ ...current, dimensions: { ...current.dimensions, height: event.target.value } }))} /></div>
               </section>
-              <section className="rounded-lg border border-slate-200 p-3">
-                <h4 className="mb-2 text-sm font-semibold">Zaloga</h4>
+              <section className="space-y-2">
+                <h3 className="text-lg font-semibold">Zaloga</h3>
                 <label className="inline-flex items-center gap-2 text-sm"><StatusToggle checked={sideSettings.trackInventory} onToggle={() => setSideSettings((current) => ({ ...current, trackInventory: !current.trackInventory }))} ariaLabel="Spremljaj zalogo" />Spremljaj zalogo</label>
                 <div className="mt-2 grid grid-cols-2 gap-2"><div className="space-y-1"><label className="text-xs text-slate-600">Trenutna zaloga</label><input type="number" className={inputClass} value={sideSettings.currentStock} onChange={(event) => setSideSettings((current) => ({ ...current, currentStock: Number(event.target.value) || 0 }))} /></div><div className="space-y-1"><label className="text-xs text-slate-600">Minimalna zaloga</label><input type="number" className={inputClass} value={sideSettings.minStock} onChange={(event) => setSideSettings((current) => ({ ...current, minStock: Number(event.target.value) || 0 }))} /></div></div>
               </section>

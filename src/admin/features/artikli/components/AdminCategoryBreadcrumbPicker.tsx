@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import AdminBreadcrumbPath from '@/shared/ui/admin-breadcrumb-path';
-import { Input } from '@/shared/ui/input';
 
 type CategoryNodeEntry = {
   key: string;
@@ -171,8 +170,7 @@ export default function AdminCategoryBreadcrumbPicker({
             key: 'categories-root',
             label: 'Kategorije',
             isCurrent: false,
-            onClick: () => {
-              if (disabled) return;
+            onClick: disabled ? undefined : () => {
               setDrillPath([]);
               setQuery('');
               setIsOpen(true);
@@ -182,7 +180,7 @@ export default function AdminCategoryBreadcrumbPicker({
             key: 'categories-placeholder',
             label: placeholder,
             isCurrent: false,
-            onClick: () => !disabled && setIsOpen(true),
+            onClick: disabled ? undefined : () => setIsOpen(true),
             labelClassName: 'font-semibold text-slate-900'
           }
         ]
@@ -191,8 +189,7 @@ export default function AdminCategoryBreadcrumbPicker({
             key: 'categories-root',
             label: 'Kategorije',
             isCurrent: false,
-            onClick: () => {
-              if (disabled) return;
+            onClick: disabled ? undefined : () => {
               setDrillPath([]);
               setQuery('');
               setIsOpen(true);
@@ -203,8 +200,7 @@ export default function AdminCategoryBreadcrumbPicker({
             key: `${segment}-${index}`,
             title: value.slice(0, index + 1).join(' / '),
             isCurrent: false,
-            onClick: () => {
-              if (disabled) return;
+            onClick: disabled ? undefined : () => {
               setDrillPath(value.slice(0, index + 1));
               setQuery('');
               setIsOpen(true);
@@ -236,8 +232,8 @@ export default function AdminCategoryBreadcrumbPicker({
 
       {isOpen ? (
         <div className="absolute z-30 mt-1 w-full rounded-md border border-slate-200 bg-white p-2 shadow-lg">
-          <div className="rounded-md border border-slate-200 bg-white transition-colors focus-within:border-[#3e67d6]">
-            <Input
+          <div className="rounded-md border border-slate-300 bg-white transition-colors focus-within:border-[#3e67d6]">
+            <input
               autoFocus
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -270,7 +266,7 @@ export default function AdminCategoryBreadcrumbPicker({
               }}
               placeholder="Išči po poti kategorij"
               aria-label="Išči kategorijo"
-              className="!h-8 !rounded-md !border-0 !bg-transparent focus:[--euiFormControlStateWidth:0px] focus-visible:[--euiFormControlStateWidth:0px]"
+              className="h-8 w-full rounded-md border-0 bg-transparent px-2 text-xs text-slate-700 outline-none focus:outline-none focus:ring-0"
             />
           </div>
 

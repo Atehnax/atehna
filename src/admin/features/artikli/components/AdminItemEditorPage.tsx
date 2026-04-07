@@ -28,6 +28,7 @@ import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/A
 
 const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0';
 const readOnlyInputClass = 'disabled:cursor-default disabled:border-transparent disabled:bg-transparent disabled:px-0 disabled:text-slate-700 disabled:shadow-none';
+const orderLikeEditableInputClassName = 'mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0';
 
 type EditorMode = 'create' | 'edit';
 type CreateType = 'simple' | 'variants';
@@ -235,19 +236,31 @@ export default function AdminItemEditorPage({
         <div className="space-y-4">
           <section className="rounded-xl border border-slate-200 bg-white p-4">
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              {isEditable ? (
-                <input
-                  aria-label="Naziv artikla"
-                  placeholder={mode === 'edit' ? 'Naziv artikla' : 'Nov artikel'}
-                  className="h-10 w-full max-w-[50%] rounded-md border border-slate-200 bg-white px-2.5 text-lg font-semibold tracking-tight text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0"
-                  value={draft.name}
-                  onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
-                />
-              ) : (
-                <h1 className="flex h-10 flex-nowrap items-center gap-1 whitespace-nowrap text-lg font-semibold tracking-tight text-slate-900">
-                  {draft.name.trim() || 'Naziv artikla'}
-                </h1>
-              )}
+              <h1 className="flex h-10 flex-nowrap items-center gap-1 whitespace-nowrap text-lg font-semibold tracking-tight text-slate-900">
+                <span>Naziv artikla</span>
+                <span className="inline-flex h-10 items-center gap-0">
+                  {isEditable ? (
+                    <span
+                      role="textbox"
+                      contentEditable
+                      suppressContentEditableWarning
+                      aria-label="Naziv artikla"
+                      onInput={(event) => {
+                        const nextValue = event.currentTarget.textContent ?? '';
+                        setDraft((current) => ({ ...current, name: nextValue }));
+                      }}
+                      onBlur={(event) => {
+                        event.currentTarget.textContent = draft.name;
+                      }}
+                      className="inline-flex h-[1.45em] min-w-[12ch] items-center rounded-md border border-slate-300 bg-white px-1.5 py-0 font-inherit text-inherit leading-none tracking-tight text-slate-900 shadow-none outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+                    >
+                      {draft.name}
+                    </span>
+                  ) : (
+                    <span>{draft.name.trim() || 'Nov artikel'}</span>
+                  )}
+                </span>
+              </h1>
               <div className="ml-auto flex items-center gap-1.5">
                 <ActiveStateChip active={draft.active} editable={isEditable} onChange={(next) => setDraft((current) => ({ ...current, active: next }))} />
                 <IconButton type="button" tone="neutral" onClick={() => setEditorMode((current) => (current === 'read' ? 'edit' : 'read'))} aria-label="Uredi artikel" title="Uredi"><PencilIcon /></IconButton>
@@ -265,28 +278,17 @@ export default function AdminItemEditorPage({
               />
             </div>
             <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2 space-y-1">
-                {isEditable ? (
-                  <>
-                    <label className="sr-only">Opis</label>
-                    <textarea
-                      placeholder="Opis artikla..."
-                      className={`${inputClass} !h-28 py-2`}
-                      value={draft.description}
-                      onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
-                    />
-                  </>
-                ) : (
-                  <p className="min-h-10 rounded-md border border-transparent px-0 py-1 text-sm text-slate-700">
-                    {draft.description.trim() || '[Opis artikla]'}
-                  </p>
-                )}
-              </div>
               <div className="col-span-1 space-y-2">
                 {isEditable ? (
                   <>
-                    <input className={inputClass} value={sideSettings.brand} onChange={(event) => setSideSettings((current) => ({ ...current, brand: event.target.value }))} placeholder="Blagovna znamka (npr. AluCraft)" />
-                    <input className={inputClass} value={sideSettings.material} onChange={(event) => setSideSettings((current) => ({ ...current, material: event.target.value }))} placeholder="Material (npr. aluminij)" />
+                    <div className="min-h-10 px-2.5">
+                      <p className="text-sm font-semibold text-slate-700">Blagovna znamka</p>
+                      <input className={orderLikeEditableInputClassName} value={sideSettings.brand} onChange={(event) => setSideSettings((current) => ({ ...current, brand: event.target.value }))} placeholder="Blagovna znamka (npr. AluCraft)" />
+                    </div>
+                    <div className="min-h-10 px-2.5">
+                      <p className="text-sm font-semibold text-slate-700">Material</p>
+                      <input className={orderLikeEditableInputClassName} value={sideSettings.material} onChange={(event) => setSideSettings((current) => ({ ...current, material: event.target.value }))} placeholder="Material (npr. aluminij)" />
+                    </div>
                     <input className={inputClass} value={sideSettings.surface} onChange={(event) => setSideSettings((current) => ({ ...current, surface: event.target.value }))} placeholder="Oblika (npr. pravokotna)" />
                     <input className={inputClass} value={sideSettings.color} onChange={(event) => setSideSettings((current) => ({ ...current, color: event.target.value }))} placeholder="Barva (npr. srebrna)" />
                     <input className={inputClass} value={sideSettings.thicknessTolerance} onChange={(event) => setSideSettings((current) => ({ ...current, thicknessTolerance: event.target.value }))} placeholder="Toleranca mere (npr. ± 2mm / ± 3 cm)" />
@@ -295,8 +297,14 @@ export default function AdminItemEditorPage({
                   </>
                 ) : (
                   <div className="space-y-1 text-sm text-slate-700">
-                    <p>{sideSettings.brand || 'Blagovna znamka (npr. AluCraft)'}</p>
-                    <p>{sideSettings.material || 'Material (npr. aluminij)'}</p>
+                    <div className="min-h-10 px-2.5">
+                      <p className="text-sm font-semibold text-slate-700">Blagovna znamka</p>
+                      <p className="text-sm text-slate-700">{sideSettings.brand || 'Blagovna znamka (npr. AluCraft)'}</p>
+                    </div>
+                    <div className="min-h-10 px-2.5">
+                      <p className="text-sm font-semibold text-slate-700">Material</p>
+                      <p className="text-sm text-slate-700">{sideSettings.material || 'Material (npr. aluminij)'}</p>
+                    </div>
                     <p>{sideSettings.surface || 'Oblika (npr. pravokotna)'}</p>
                     <p>{sideSettings.color || 'Barva (npr. srebrna)'}</p>
                     <p>{sideSettings.thicknessTolerance || 'Toleranca mere (npr. ± 2mm / ± 3 cm)'}</p>
@@ -319,6 +327,23 @@ export default function AdminItemEditorPage({
                   <input className={inputClass} value={draft.slug} onChange={(event) => setDraft((current) => ({ ...current, slug: event.target.value }))} placeholder={toSlug(draft.name)} />
                 ) : (
                   <p className="flex min-h-10 items-center text-sm text-slate-700">{draft.slug.trim() || toSlug(draft.name || 'naziv-artikla')}</p>
+                )}
+              </div>
+              <div className="col-span-3 space-y-1">
+                {isEditable ? (
+                  <>
+                    <label className="sr-only">Opis</label>
+                    <textarea
+                      placeholder="Opis artikla..."
+                      className={`${inputClass} !h-28 py-2`}
+                      value={draft.description}
+                      onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
+                    />
+                  </>
+                ) : (
+                  <p className="min-h-10 rounded-md border border-transparent px-0 py-1 text-sm text-slate-700">
+                    {draft.description.trim() || '[Opis artikla]'}
+                  </p>
                 )}
               </div>
             </div>

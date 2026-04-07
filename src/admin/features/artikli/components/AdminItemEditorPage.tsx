@@ -257,7 +257,7 @@ export default function AdminItemEditorPage({
                       {draft.name}
                     </span>
                   ) : (
-                    <span>{draft.name.trim() || 'Nov artikel'}</span>
+                    <span>{draft.name.trim() || 'Naziv artikla'}</span>
                   )}
                 </span>
               </h1>
@@ -278,55 +278,32 @@ export default function AdminItemEditorPage({
               />
             </div>
             <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-1 space-y-2">
-                {isEditable ? (
-                  <>
-                    <div className="min-h-10 px-2.5">
-                      <p className="text-sm font-semibold text-slate-700">Blagovna znamka</p>
-                      <input className={orderLikeEditableInputClassName} value={sideSettings.brand} onChange={(event) => setSideSettings((current) => ({ ...current, brand: event.target.value }))} placeholder="Blagovna znamka (npr. AluCraft)" />
-                    </div>
-                    <div className="min-h-10 px-2.5">
-                      <p className="text-sm font-semibold text-slate-700">Material</p>
-                      <input className={orderLikeEditableInputClassName} value={sideSettings.material} onChange={(event) => setSideSettings((current) => ({ ...current, material: event.target.value }))} placeholder="Material (npr. aluminij)" />
-                    </div>
-                    <input className={inputClass} value={sideSettings.surface} onChange={(event) => setSideSettings((current) => ({ ...current, surface: event.target.value }))} placeholder="Oblika (npr. pravokotna)" />
-                    <input className={inputClass} value={sideSettings.color} onChange={(event) => setSideSettings((current) => ({ ...current, color: event.target.value }))} placeholder="Barva (npr. srebrna)" />
-                    <input className={inputClass} value={sideSettings.thicknessTolerance} onChange={(event) => setSideSettings((current) => ({ ...current, thicknessTolerance: event.target.value }))} placeholder="Toleranca mere (npr. ± 2mm / ± 3 cm)" />
-                    <input className={inputClass} value={String(sideSettings.moq)} onChange={(event) => setSideSettings((current) => ({ ...current, moq: Number(event.target.value) || 1 }))} placeholder="Minimalna količina naročila" />
-                    <input className={inputClass} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} placeholder="Teža na kos (kg)" />
-                  </>
-                ) : (
-                  <div className="space-y-1 text-sm text-slate-700">
-                    <div className="min-h-10 px-2.5">
-                      <p className="text-sm font-semibold text-slate-700">Blagovna znamka</p>
-                      <p className="text-sm text-slate-700">{sideSettings.brand || 'Blagovna znamka (npr. AluCraft)'}</p>
-                    </div>
-                    <div className="min-h-10 px-2.5">
-                      <p className="text-sm font-semibold text-slate-700">Material</p>
-                      <p className="text-sm text-slate-700">{sideSettings.material || 'Material (npr. aluminij)'}</p>
-                    </div>
-                    <p>{sideSettings.surface || 'Oblika (npr. pravokotna)'}</p>
-                    <p>{sideSettings.color || 'Barva (npr. srebrna)'}</p>
-                    <p>{sideSettings.thicknessTolerance || 'Toleranca mere (npr. ± 2mm / ± 3 cm)'}</p>
-                    <p>{sideSettings.moq > 0 ? String(sideSettings.moq) : 'Minimalna količina naročila'}</p>
-                    <p>{sideSettings.weightPerUnit || 'Teža na kos (kg)'}</p>
+              <div className="col-span-3 grid grid-cols-3 gap-3">
+                {[
+                  { title: 'Blagovna znamka', value: sideSettings.brand, placeholder: 'Blagovna znamka (npr. AluCraft)', onChange: (value: string) => setSideSettings((current) => ({ ...current, brand: value })) },
+                  { title: 'Material', value: sideSettings.material, placeholder: 'Material (npr. aluminij)', onChange: (value: string) => setSideSettings((current) => ({ ...current, material: value })) },
+                  { title: 'Oblika', value: sideSettings.surface, placeholder: 'Oblika (npr. pravokotna)', onChange: (value: string) => setSideSettings((current) => ({ ...current, surface: value })) },
+                  { title: 'Barva', value: sideSettings.color, placeholder: 'Barva (npr. srebrna)', onChange: (value: string) => setSideSettings((current) => ({ ...current, color: value })) },
+                  { title: 'Toleranca mere', value: sideSettings.thicknessTolerance, placeholder: 'Toleranca mere (npr. ± 2mm / ± 3 cm)', onChange: (value: string) => setSideSettings((current) => ({ ...current, thicknessTolerance: value })) },
+                  { title: 'Teža na kos', value: sideSettings.weightPerUnit, placeholder: 'Teža na kos (kg)', onChange: (value: string) => setSideSettings((current) => ({ ...current, weightPerUnit: value })) },
+                  { title: 'Kratek URL', value: draft.slug, placeholder: toSlug(draft.name || 'naziv-artikla'), onChange: (value: string) => setDraft((current) => ({ ...current, slug: value })) }
+                ].map((field) => (
+                  <div key={field.title} className="min-h-10 px-2.5">
+                    <p className="text-sm font-semibold text-slate-700">{field.title}</p>
+                    {isEditable ? (
+                      <input className={orderLikeEditableInputClassName} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
+                    ) : (
+                      <p className="text-sm text-slate-700">{field.value || field.placeholder}</p>
+                    )}
                   </div>
-                )}
+                ))}
               </div>
-              <div className="space-y-1">
+              <div className="col-span-3 space-y-1">
                 <label className="text-xs text-slate-600">Oznake (badge)</label>
                 {isEditable ? (
                   <input className={inputClass} value={draft.promoBadge} onChange={(event) => setDraft((current) => ({ ...current, promoBadge: event.target.value }))} placeholder="Akcija, Novo ..." />
                 ) : (
                   <p className="flex min-h-10 items-center text-sm text-slate-700">{draft.promoBadge.trim() || 'Akcija, Novo ...'}</p>
-                )}
-              </div>
-              <div className="col-span-2 space-y-1">
-                <label className="text-xs text-slate-600">Kratek URL (slug)</label>
-                {isEditable ? (
-                  <input className={inputClass} value={draft.slug} onChange={(event) => setDraft((current) => ({ ...current, slug: event.target.value }))} placeholder={toSlug(draft.name)} />
-                ) : (
-                  <p className="flex min-h-10 items-center text-sm text-slate-700">{draft.slug.trim() || toSlug(draft.name || 'naziv-artikla')}</p>
                 )}
               </div>
               <div className="col-span-3 space-y-1">

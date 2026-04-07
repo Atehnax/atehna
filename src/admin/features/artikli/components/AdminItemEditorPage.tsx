@@ -12,6 +12,7 @@ import { StatusToggle } from '@/shared/ui/status-toggle';
 import { useToast } from '@/shared/ui/toast';
 import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import { CustomSelect } from '@/shared/ui/select';
 import {
   buildFamiliesFromSeed,
   computeSalePrice,
@@ -144,6 +145,7 @@ export default function AdminItemEditorPage({
   });
   const [documents, setDocuments] = useState<Array<{ name: string; size: string }>>([]);
   const [editorMode, setEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
+  const [articleType, setArticleType] = useState<'unit' | 'sheet' | 'bulk'>('unit');
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() =>
     (draft.category || '')
       .split('/')
@@ -235,9 +237,8 @@ export default function AdminItemEditorPage({
       <div className="grid items-start gap-6 lg:grid-cols-[2fr_1.1fr]">
         <div className="space-y-4">
           <section className="rounded-xl border border-slate-200 bg-white p-4">
-            <div className="mb-4 flex flex-wrap items-center gap-2">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
               <h1 className="flex h-10 flex-nowrap items-center gap-1 whitespace-nowrap text-lg font-semibold tracking-tight text-slate-900">
-                <span>Naziv artikla</span>
                 <span className="inline-flex h-10 items-center gap-0">
                   {isEditable ? (
                     <span
@@ -268,16 +269,35 @@ export default function AdminItemEditorPage({
                 <button type="button" className={buttonTokenClasses.closeX} onClick={deleteItem} aria-label="Izbriši artikel" title="Izbriši"><TrashCanIcon /></button>
               </div>
             </div>
-            <div className="mb-2">
+            <div className="mb-1 grid grid-cols-[minmax(0,1fr)_220px] items-start gap-3 px-2.5">
               <AdminCategoryBreadcrumbPicker
-                className="col-span-3"
+                className="col-span-1"
                 value={selectedCategoryPath}
                 onChange={selectCategoryPath}
                 categoryPaths={categoryPaths}
                 disabled={!isEditable}
               />
+              <div className="min-h-10">
+                <p className="text-sm font-semibold text-slate-700">Tip artikla</p>
+                {isEditable ? (
+                  <CustomSelect
+                    value={articleType}
+                    onChange={(value) => setArticleType(value as 'unit' | 'sheet' | 'bulk')}
+                    options={[
+                      { value: 'unit', label: 'Kosovni artikel' },
+                      { value: 'sheet', label: 'Ploščni material' },
+                      { value: 'bulk', label: 'Sipki material' }
+                    ]}
+                    className="mt-0.5 !h-5 w-full !rounded-md border border-slate-300 bg-white px-1.5 font-['Inter',system-ui,sans-serif] text-xs leading-5 text-slate-900 hover:bg-white focus:border-[#3e67d6]"
+                    valueClassName="font-['Inter',system-ui,sans-serif]"
+                    menuClassName="max-w-[280px]"
+                  />
+                ) : (
+                  <p className="mt-0.5 text-sm text-slate-700">{articleType === 'unit' ? 'Kosovni artikel' : articleType === 'sheet' ? 'Ploščni material' : 'Sipki material'}</p>
+                )}
+              </div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-3 px-2.5">
               <div className="col-span-3 grid grid-cols-3 gap-3">
                 {[
                   { title: 'Blagovna znamka', value: sideSettings.brand, placeholder: 'Blagovna znamka (npr. AluCraft)', onChange: (value: string) => setSideSettings((current) => ({ ...current, brand: value })) },

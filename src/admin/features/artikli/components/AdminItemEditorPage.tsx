@@ -11,7 +11,7 @@ import { PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/
 import { useToast } from '@/shared/ui/toast';
 import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
+import EuiTabs from '@/shared/ui/eui-tabs';
 import {
   buildFamiliesFromSeed,
   computeSalePrice,
@@ -33,6 +33,7 @@ const orderLikeEditableInputClassName = 'mt-0.5 h-5 w-full rounded-md border bor
 type EditorMode = 'create' | 'edit';
 type CreateType = 'simple' | 'variants';
 type MediaTab = 'slike' | 'video';
+type VariantTag = 'novo' | 'akcija';
 
 function ActiveStateChip({
   active,
@@ -214,6 +215,7 @@ export default function AdminItemEditorPage({
   const [videoInputMode, setVideoInputMode] = useState<'upload' | 'youtube'>('youtube');
   const [uploadedVideo, setUploadedVideo] = useState<{ name: string; url: string } | null>(null);
   const [dimensionsLocked, setDimensionsLocked] = useState(true);
+  const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>({});
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() =>
     (draft.category || '')
       .split('/')
@@ -317,46 +319,36 @@ export default function AdminItemEditorPage({
     setVariantSelections(new Set());
   };
 
+  const setVariantTag = (variantId: string, tag: VariantTag) => {
+    setVariantTags((current) => ({ ...current, [variantId]: tag }));
+  };
+
+  const getVariantTag = (variantId: string): VariantTag => variantTags[variantId] ?? 'novo';
+
   return (
     <div className="mx-auto max-w-7xl space-y-4 font-['Inter',system-ui,sans-serif]">
       <div className="text-xs text-slate-500"><Link href="/admin/artikli" className="hover:underline">Artikli</Link> › {mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</div>
 
-      <div className="grid items-stretch gap-6 lg:grid-cols-[3fr_7fr]">
+      <div className="grid items-stretch gap-6 lg:grid-cols-[7fr_13fr]">
         <div className="space-y-4">
           <section className="h-full rounded-xl border border-slate-200 bg-white p-4">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <h1 className="flex min-h-10 flex-nowrap items-center gap-1 whitespace-nowrap text-lg font-semibold tracking-tight text-slate-900">
-                <span>Naziv artikla</span>
                 <span className="inline-flex h-10 items-center gap-0">
                   {isEditable ? (
                     <input
                       aria-label="Naziv artikla"
                       value={draft.name}
                       onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
-                      className="h-[1.45em] min-w-[12ch] rounded-md border border-slate-300 bg-white px-1.5 py-0 font-inherit text-inherit leading-none tracking-tight text-slate-900 shadow-none outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0"
+                      placeholder="Naziv artikla"
+                      className="h-[1.45em] min-w-[14ch] rounded-md border border-slate-300 bg-white px-1.5 py-0 font-inherit text-inherit leading-none tracking-tight text-slate-900 shadow-none outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0"
                     />
                   ) : (
-                    <span className="inline-flex h-[1.45em] min-w-[12ch] items-center px-1.5">{draft.name.trim() || 'Naziv artikla'}</span>
+                    <span className="inline-flex h-[1.45em] min-w-[14ch] items-center px-1.5">{draft.name.trim() || 'Naziv artikla'}</span>
                   )}
                 </span>
               </h1>
               <div className="ml-auto flex items-center gap-1.5">
-                <ActiveStateChip active={draft.active} editable={isEditable} onChange={(next) => setDraft((current) => ({ ...current, active: next }))} />
-                <IconButton type="button" tone="neutral" onClick={() => setEditorMode((current) => (current === 'read' ? 'edit' : 'read'))} aria-label="Uredi artikel" title="Uredi"><PencilIcon /></IconButton>
-                <IconButton type="button" tone="neutral" onClick={() => save(false)} aria-label="Shrani artikel" title="Shrani" disabled={!isEditable}><SaveIcon /></IconButton>
-                <button type="button" className={buttonTokenClasses.closeX} onClick={deleteItem} aria-label="Izbriši artikel" title="Izbriši"><TrashCanIcon /></button>
-              </div>
-            </div>
-            <div className="mb-1 grid grid-cols-[minmax(0,1fr)_220px] items-start gap-3 px-2.5">
-              <AdminCategoryBreadcrumbPicker
-                className="col-span-1"
-                value={selectedCategoryPath}
-                onChange={selectCategoryPath}
-                categoryPaths={categoryPaths}
-                disabled={!isEditable}
-              />
-              <div className="min-h-10">
-                <p className="text-sm font-semibold text-slate-700">Tip artikla</p>
                 <NeutralDropdownChip
                   value={articleType}
                   editable={isEditable}
@@ -367,15 +359,28 @@ export default function AdminItemEditorPage({
                     { value: 'bulk', label: 'Sipki material' }
                   ]}
                 />
+                <ActiveStateChip active={draft.active} editable={isEditable} onChange={(next) => setDraft((current) => ({ ...current, active: next }))} />
+                <IconButton type="button" tone="neutral" onClick={() => setEditorMode((current) => (current === 'read' ? 'edit' : 'read'))} aria-label="Uredi artikel" title="Uredi"><PencilIcon /></IconButton>
+                <IconButton type="button" tone="neutral" onClick={() => save(false)} aria-label="Shrani artikel" title="Shrani" disabled={!isEditable}><SaveIcon /></IconButton>
+                <button type="button" className={buttonTokenClasses.closeX} onClick={deleteItem} aria-label="Izbriši artikel" title="Izbriši"><TrashCanIcon /></button>
               </div>
+            </div>
+            <div className="mb-1 grid grid-cols-[minmax(0,1fr)] items-start gap-3 px-2.5">
+              <AdminCategoryBreadcrumbPicker
+                className="col-span-1"
+                value={selectedCategoryPath}
+                onChange={selectCategoryPath}
+                categoryPaths={categoryPaths}
+                disabled={!isEditable}
+              />
             </div>
             <div className="grid grid-cols-2 gap-3 px-2.5">
               <div className="col-span-2 grid grid-cols-2 gap-3">
                 {[
-                  { title: 'Blagovna znamka', value: sideSettings.brand, placeholder: 'Blagovna znamka (npr. AluCraft)', onChange: (value: string) => setSideSettings((current) => ({ ...current, brand: value })) },
-                  { title: 'Material', value: sideSettings.material, placeholder: 'Material (npr. aluminij)', onChange: (value: string) => setSideSettings((current) => ({ ...current, material: value })) },
-                  { title: 'Oblika', value: sideSettings.surface, placeholder: 'Oblika (npr. pravokotna)', onChange: (value: string) => setSideSettings((current) => ({ ...current, surface: value })) },
-                  { title: 'Barva', value: sideSettings.color, placeholder: 'Barva (npr. srebrna)', onChange: (value: string) => setSideSettings((current) => ({ ...current, color: value })) },
+                  { title: 'Blagovna znamka', value: sideSettings.brand, placeholder: 'AluCraft', onChange: (value: string) => setSideSettings((current) => ({ ...current, brand: value })) },
+                  { title: 'Material', value: sideSettings.material, placeholder: 'Aluminij', onChange: (value: string) => setSideSettings((current) => ({ ...current, material: value })) },
+                  { title: 'Oblika', value: sideSettings.surface, placeholder: 'pravokotna', onChange: (value: string) => setSideSettings((current) => ({ ...current, surface: value })) },
+                  { title: 'Barva', value: sideSettings.color, placeholder: 'srebrna', onChange: (value: string) => setSideSettings((current) => ({ ...current, color: value })) },
                   { title: 'Tehnični list', value: documents.map((doc) => doc.name).join(', '), placeholder: 'Dodajte dokument', onChange: () => {} },
                   { title: 'Kratek URL', value: draft.slug, placeholder: toSlug(draft.name || 'naziv-artikla'), onChange: (value: string) => setDraft((current) => ({ ...current, slug: value })) }
                 ].map((field) => (
@@ -408,14 +413,6 @@ export default function AdminItemEditorPage({
                 ))}
               </div>
               <div className="col-span-2 space-y-1">
-                <label className="text-xs text-slate-600">Oznake (badge)</label>
-                {isEditable ? (
-                  <input className={inputClass} value={draft.promoBadge} onChange={(event) => setDraft((current) => ({ ...current, promoBadge: event.target.value }))} placeholder="Akcija, Novo ..." />
-                ) : (
-                  <p className="flex min-h-10 items-center text-sm text-slate-700">{draft.promoBadge.trim() || 'Akcija, Novo ...'}</p>
-                )}
-              </div>
-              <div className="col-span-2 space-y-1">
                 {isEditable ? (
                   <>
                     <label className="sr-only">Opis</label>
@@ -439,13 +436,17 @@ export default function AdminItemEditorPage({
 
         <aside className="h-full rounded-xl border border-slate-200 bg-white p-4">
           <div className="space-y-3">
-            <h3 className="text-lg font-semibold">Slike</h3>
-            <Tabs value={mediaTab} onValueChange={(value) => setMediaTab(value as MediaTab)}>
-              <TabsList className="w-fit">
-                <TabsTrigger value="slike">Slike</TabsTrigger>
-                <TabsTrigger value="video">Video</TabsTrigger>
-              </TabsList>
-              <TabsContent value="slike" className="mt-3 space-y-3">
+            <EuiTabs
+              value={mediaTab}
+              onChange={(value) => setMediaTab(value as MediaTab)}
+              size="compact"
+              tabs={[
+                { value: 'slike', label: 'Slike' },
+                { value: 'video', label: 'Video' }
+              ]}
+            />
+            {mediaTab === 'slike' ? (
+              <div className="mt-3 space-y-3">
                 <p className="text-sm text-slate-500">Galerija artikla. Prva slika je glavna.</p>
                 <div className="grid grid-cols-2 gap-2">
                   {draft.images.map((img, index) => <div key={`${img}-${index}`} className="relative overflow-hidden rounded-lg border border-slate-200"><Image src={img} alt={`Slika ${index + 1}`} width={180} height={120} unoptimized className="h-24 w-full object-cover" /></div>)}
@@ -459,8 +460,9 @@ export default function AdminItemEditorPage({
                 <div className="space-y-1"><label className="text-xs text-slate-600">Fokus slike</label><select className={inputClass} value={sideSettings.imageFocus} onChange={(event) => setSideSettings((current) => ({ ...current, imageFocus: event.target.value }))}><option value="center">Center</option><option value="top">Zgoraj</option><option value="bottom">Spodaj</option></select></div>
                 <div className="space-y-1"><label className="text-xs text-slate-600">Galerija</label><div className="grid grid-cols-3 gap-1">{([{ key: 'grid', label: 'Mreža' }, { key: 'slider', label: 'Drsnik' }, { key: 'list', label: 'Seznam' }] as const).map((modeOption) => <button key={modeOption.key} type="button" className={`rounded-md border px-2 py-2 text-xs ${sideSettings.galleryMode === modeOption.key ? 'border-[#2f66dd] text-[#2f66dd]' : 'border-slate-300 text-slate-600'}`} onClick={() => setSideSettings((current) => ({ ...current, galleryMode: modeOption.key }))}>{modeOption.label}</button>)}</div></div>
                 <div className="space-y-1"><label className="text-xs text-slate-600">Alt besedilo</label><input className={inputClass} value={sideSettings.imageAltText} onChange={(event) => setSideSettings((current) => ({ ...current, imageAltText: event.target.value }))} placeholder={`${draft.name || 'Artikel'} - različice`} /></div>
-              </TabsContent>
-              <TabsContent value="video" className="mt-3 space-y-3">
+              </div>
+            ) : (
+              <div className="mt-3 space-y-3">
                 <div className="grid grid-cols-2 gap-2">
                   <Button type="button" variant={videoInputMode === 'upload' ? 'primary' : 'default'} size="toolbar" onClick={() => setVideoInputMode('upload')}>Naloži video</Button>
                   <Button type="button" variant={videoInputMode === 'youtube' ? 'primary' : 'default'} size="toolbar" onClick={() => setVideoInputMode('youtube')}>YouTube povezava</Button>
@@ -498,8 +500,8 @@ export default function AdminItemEditorPage({
                     ) : <p className="text-xs text-slate-500">Vnesite YouTube povezavo za predogled.</p>}
                   </div>
                 )}
-              </TabsContent>
-            </Tabs>
+              </div>
+            )}
           </div>
         </aside>
       </div>
@@ -561,6 +563,7 @@ export default function AdminItemEditorPage({
                 <th className="px-2 py-2 text-right">Zaloga</th>
                 <th className="px-2 py-2 text-center">Min. naročilo</th>
                 <th className="px-2 py-2 text-center">Status</th>
+                <th className="px-2 py-2 text-center">Oznake</th>
                 <th className="px-2 py-2 text-center">Sort</th>
               </tr>
             </thead>
@@ -580,6 +583,22 @@ export default function AdminItemEditorPage({
                   <td className="px-2 py-2 text-right">{isEditable ? <input type="number" className={`${inputClass} !h-8 text-right`} value={variant.stock} onChange={(event) => updateVariant(index, { stock: Number(event.target.value) || 0 })} /> : <span className="inline-flex min-h-8 items-center justify-end">{variant.stock}</span>}</td>
                   <td className="px-2 py-2 text-center">{isEditable ? <input type="number" className={`${inputClass} !h-8 text-center`} value={sideSettings.moq} onChange={(event) => setSideSettings((current) => ({ ...current, moq: Number(event.target.value) || 1 }))} /> : <span className="inline-flex min-h-8 items-center justify-center">{sideSettings.moq}</span>}</td>
                   <td className="px-2 py-2 text-center"><Chip variant={variant.active ? 'success' : 'warning'}>{statusLabel(variant.active)}</Chip></td>
+                  <td className="px-2 py-2 text-center">
+                    {isEditable ? (
+                      <div className="inline-flex gap-1">
+                        <button type="button" onClick={() => setVariantTag(variant.id, 'novo')}>
+                          <Chip variant="info" className={getVariantTag(variant.id) === 'novo' ? '' : 'opacity-60'}>Novo</Chip>
+                        </button>
+                        <button type="button" onClick={() => setVariantTag(variant.id, 'akcija')}>
+                          <Chip variant="warning" className={getVariantTag(variant.id) === 'akcija' ? '' : 'opacity-60'}>V akciji</Chip>
+                        </button>
+                      </div>
+                    ) : (
+                      <Chip variant={getVariantTag(variant.id) === 'novo' ? 'info' : 'warning'}>
+                        {getVariantTag(variant.id) === 'novo' ? 'Novo' : 'V akciji'}
+                      </Chip>
+                    )}
+                  </td>
                   <td className="px-2 py-2 text-center">{isEditable ? <input type="number" className={`${inputClass} !h-8 text-center`} value={variant.sort} onChange={(event) => updateVariant(index, { sort: Number(event.target.value) || 1 })} /> : <span className="inline-flex min-h-8 items-center justify-center">{variant.sort}</span>}</td>
                 </tr>
               ))}

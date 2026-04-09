@@ -27,13 +27,14 @@ import {
 import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/AdminCategoryBreadcrumbPicker';
 
 const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0';
-const readOnlyInputClass = 'disabled:cursor-default disabled:border-transparent disabled:bg-transparent disabled:px-0 disabled:text-slate-700 disabled:shadow-none';
 const orderLikeEditableInputClassName = 'mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0';
 
 type EditorMode = 'create' | 'edit';
 type CreateType = 'simple' | 'variants';
 type MediaTab = 'slike' | 'video';
 type VariantTag = 'novo' | 'akcija';
+type GeneratorDimension = 'length' | 'width' | 'thickness';
+type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 
 function ActiveStateChip({
   active,
@@ -239,7 +240,13 @@ export default function AdminItemEditorPage({
     });
   });
   const [variantSelections, setVariantSelections] = useState<Set<string>>(new Set());
-  const [attrValues, setAttrValues] = useState({ width: '100, 200', length: '100, 200', thickness: '0,5' });
+  const [generatorInput, setGeneratorInput] = useState('');
+  const [generatorChips, setGeneratorChips] = useState<GeneratorChip[]>([
+    { dimension: 'length', values: [100, 200] },
+    { dimension: 'width', values: [100, 200] },
+    { dimension: 'thickness', values: [0.5] }
+  ]);
+  const [generatorError, setGeneratorError] = useState<string | null>(null);
   const [sideSettings, setSideSettings] = useState({
     brand: '',
     material: '',
@@ -266,10 +273,10 @@ export default function AdminItemEditorPage({
   });
   const [documents, setDocuments] = useState<Array<{ name: string; size: string }>>([]);
   const [editorMode, setEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
+  const [tableEditorMode, setTableEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
   const [articleType, setArticleType] = useState<'unit' | 'sheet' | 'bulk'>('unit');
   const [mediaTab, setMediaTab] = useState<MediaTab>('slike');
   const [uploadedVideo, setUploadedVideo] = useState<{ name: string; url: string } | null>(null);
-  const [dimensionsLocked, setDimensionsLocked] = useState(true);
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>({});
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() =>
     (draft.category || '')
@@ -309,8 +316,28 @@ export default function AdminItemEditorPage({
   };
 
   const isEditable = editorMode === 'edit';
+  const isTableEditable = tableEditorMode === 'edit';
   const hasSelectedVariants = variantSelections.size > 0;
   const allVariantsSelected = draft.variants.length > 0 && draft.variants.every((variant) => variantSelections.has(variant.id));
+  const generatorDimensionLabels: Record<GeneratorDimension, string> = {
+    length: 'Dolžina',
+    width: 'Širina',
+    thickness: 'Debelina'
+  };
+  const generatorByDimension = useMemo(() => {
+    const map = new Map<GeneratorDimension, number[]>();
+    generatorChips.forEach((chip) => {
+      map.set(chip.dimension, chip.values);
+    });
+    return map;
+  }, [generatorChips]);
+  const combinationCount = useMemo(() => {
+    const lengthValues = generatorByDimension.get('length') ?? [];
+    const widthValues = generatorByDimension.get('width') ?? [];
+    const thicknessValues = generatorByDimension.get('thickness') ?? [];
+    if (!lengthValues.length || !widthValues.length || !thicknessValues.length) return 0;
+    return lengthValues.length * widthValues.length * thicknessValues.length;
+  }, [generatorByDimension]);
 
   const save = (asDraft = false) => {
     if (!draft.name.trim()) {
@@ -330,13 +357,12 @@ export default function AdminItemEditorPage({
   };
 
   const generateVariants = () => {
-    const parse = (value: string) => value.split(',').map((entry) => Number(entry.trim().replace(',', '.'))).filter((entry) => Number.isFinite(entry));
-    const widths = parse(attrValues.width);
-    const lengths = parse(attrValues.length);
-    const thicknesses = parse(attrValues.thickness);
+    const widths = generatorByDimension.get('width') ?? [];
+    const lengths = generatorByDimension.get('length') ?? [];
+    const thicknesses = generatorByDimension.get('thickness') ?? [];
 
     if (widths.length === 0 || lengths.length === 0 || thicknesses.length === 0) {
-      toast.error('Vnesite številčne vrednosti atributov.');
+      toast.error('Najprej dodajte Dolžino, Širino in Debelino.');
       return;
     }
 
@@ -357,6 +383,47 @@ export default function AdminItemEditorPage({
     setVariantSelections(new Set());
   };
 
+  const parseGeneratorEntry = (value: string): { dimension: GeneratorDimension; values: number[] } | { error: string } => {
+    const normalized = value.trim();
+    if (!normalized) return { error: 'Vnos ne sme biti prazen.' };
+    const match = normalized.match(/^(dolzina|dolžina|sirina|širina|debelina)\s*:?\s*(.+)$/i);
+    if (!match) return { error: 'Uporabite Dolžina/Širina/Debelina + vrednosti.' };
+    const prefix = match[1].toLowerCase();
+    const rawValues = (match[2] ?? '').trim();
+    if (!rawValues) return { error: 'Dodajte vsaj eno številčno vrednost.' };
+
+    const dimension: GeneratorDimension = prefix.startsWith('dol') ? 'length' : prefix.startsWith('s') ? 'width' : 'thickness';
+    const parts = rawValues.split(',').map((entry) => entry.trim()).filter(Boolean);
+    if (parts.length === 0) return { error: 'Dodajte vsaj eno številčno vrednost.' };
+    if (parts.length > 5) return { error: `${generatorDimensionLabels[dimension]} podpira največ 5 vrednosti.` };
+
+    const parsedValues: number[] = [];
+    const duplicateGuard = new Set<number>();
+    for (const part of parts) {
+      const parsed = Number(part.replace(',', '.'));
+      if (!Number.isFinite(parsed)) return { error: 'Vse vrednosti morajo biti številke.' };
+      if (duplicateGuard.has(parsed)) return { error: 'Podvojene vrednosti v isti dimenziji niso dovoljene.' };
+      duplicateGuard.add(parsed);
+      parsedValues.push(parsed);
+    }
+
+    return { dimension, values: parsedValues };
+  };
+
+  const submitGeneratorEntry = () => {
+    const parsed = parseGeneratorEntry(generatorInput);
+    if ('error' in parsed) {
+      setGeneratorError(parsed.error);
+      return;
+    }
+    setGeneratorError(null);
+    setGeneratorChips((current) => {
+      const next = current.filter((chip) => chip.dimension !== parsed.dimension);
+      return [...next, parsed];
+    });
+    setGeneratorInput('');
+  };
+
   const updateVariant = (index: number, updates: Partial<Variant>) => {
     setDraft((current) => {
       const next = [...current.variants];
@@ -366,7 +433,7 @@ export default function AdminItemEditorPage({
   };
 
   const deleteSelectedVariants = () => {
-    if (!isEditable || !hasSelectedVariants) return;
+    if (!isTableEditable || !hasSelectedVariants) return;
     setDraft((current) => ({
       ...current,
       variants: current.variants.filter((variant) => !variantSelections.has(variant.id))
@@ -384,7 +451,7 @@ export default function AdminItemEditorPage({
     <div className="mx-auto max-w-7xl space-y-4 font-['Inter',system-ui,sans-serif]">
       <div className="text-xs text-slate-500"><Link href="/admin/artikli" className="hover:underline">Artikli</Link> › {mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</div>
 
-      <div className="grid items-stretch gap-6 lg:grid-cols-[2fr_3fr]">
+      <div className="grid items-stretch gap-6 lg:grid-cols-2">
         <div className="space-y-4">
           <section className="h-full rounded-xl border border-slate-200 bg-white p-4">
             <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -512,8 +579,36 @@ export default function AdminItemEditorPage({
                 </div>
                 <label className="inline-flex items-center gap-2 text-sm"><AdminCheckbox checked={sideSettings.showGallery} onChange={(event) => setSideSettings((current) => ({ ...current, showGallery: event.target.checked }))} />Prikaži galerijo na strani izdelka</label>
                 <label className="inline-flex items-center gap-2 text-sm"><AdminCheckbox checked={sideSettings.autoSquareCrop} onChange={(event) => setSideSettings((current) => ({ ...current, autoSquareCrop: event.target.checked }))} />Samodejno obreži na kvadrat (1:1)</label>
-                <div className="space-y-1"><label className="text-xs text-slate-600">Fokus slike</label><select className={inputClass} value={sideSettings.imageFocus} onChange={(event) => setSideSettings((current) => ({ ...current, imageFocus: event.target.value }))}><option value="center">Center</option><option value="top">Zgoraj</option><option value="bottom">Spodaj</option></select></div>
-                <div className="space-y-1"><label className="text-xs text-slate-600">Galerija</label><div className="grid grid-cols-3 gap-1">{([{ key: 'grid', label: 'Mreža' }, { key: 'slider', label: 'Drsnik' }, { key: 'list', label: 'Seznam' }] as const).map((modeOption) => <button key={modeOption.key} type="button" className={`rounded-md border px-2 py-2 text-xs ${sideSettings.galleryMode === modeOption.key ? 'border-[#2f66dd] text-[#2f66dd]' : 'border-slate-300 text-slate-600'}`} onClick={() => setSideSettings((current) => ({ ...current, galleryMode: modeOption.key }))}>{modeOption.label}</button>)}</div></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-600">Postavitev</label>
+                    <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+                      {([
+                        { key: 'grid', icon: <span className="grid grid-cols-2 gap-0.5">{Array.from({ length: 4 }).map((_, idx) => <span key={idx} className="h-1.5 w-1.5 rounded-[2px] border border-current" />)}</span> },
+                        { key: 'slider', icon: <span className="inline-flex gap-0.5">{Array.from({ length: 2 }).map((_, idx) => <span key={idx} className="h-3 w-1.5 rounded-[2px] border border-current" />)}</span> },
+                        { key: 'list', icon: <span className="inline-flex flex-col gap-0.5">{Array.from({ length: 3 }).map((_, idx) => <span key={idx} className="h-1 w-4 rounded-[2px] border border-current" />)}</span> }
+                      ] as const).map((modeOption) => (
+                        <button
+                          key={modeOption.key}
+                          type="button"
+                          aria-label={`Postavitev ${modeOption.key}`}
+                          className={`inline-flex h-9 w-9 items-center justify-center rounded-md border transition ${sideSettings.galleryMode === modeOption.key ? 'border-[#6f95ff] bg-[#edf2ff] text-[#3e67d6]' : 'border-transparent bg-transparent text-slate-400 hover:text-slate-600'}`}
+                          onClick={() => setSideSettings((current) => ({ ...current, galleryMode: modeOption.key }))}
+                        >
+                          {modeOption.icon}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-600">Fokus slike</label>
+                    <select className={inputClass} value={sideSettings.imageFocus} onChange={(event) => setSideSettings((current) => ({ ...current, imageFocus: event.target.value }))}>
+                      <option value="center">Center</option>
+                      <option value="top">Zgoraj</option>
+                      <option value="bottom">Spodaj</option>
+                    </select>
+                  </div>
+                </div>
                 <div className="space-y-1"><label className="text-xs text-slate-600">Alt besedilo</label><input className={inputClass} value={sideSettings.imageAltText} onChange={(event) => setSideSettings((current) => ({ ...current, imageAltText: event.target.value }))} placeholder={`${draft.name || 'Artikel'} - različice`} /></div>
               </div>
             ) : (
@@ -563,28 +658,63 @@ export default function AdminItemEditorPage({
               aria-label="Odstrani izbrane različice"
               title="Izbriši izbrane"
               tone={hasSelectedVariants ? 'danger' : 'neutral'}
-              disabled={!isEditable || !hasSelectedVariants}
+              disabled={!isTableEditable || !hasSelectedVariants}
               onClick={deleteSelectedVariants}
             >
               <TrashCanIcon />
             </IconButton>
             <IconButton
               type="button"
-              aria-label="Zakleni ali odkleni dimenzije"
-              title={dimensionsLocked ? 'Odkleni dimenzije' : 'Zakleni dimenzije'}
+              aria-label="Uredi tabelo artikla"
+              title={isTableEditable ? 'Zaključi urejanje' : 'Uredi'}
               tone="neutral"
-              disabled={!isEditable}
-              onClick={() => setDimensionsLocked((current) => !current)}
+              onClick={() => setTableEditorMode((current) => (current === 'read' ? 'edit' : 'read'))}
             >
               <PencilIcon />
             </IconButton>
             <Button type="button" variant="primary" size="toolbar" onClick={generateVariants}>Generiraj različice</Button>
           </div>
         </div>
-        <div className="mb-3 grid grid-cols-3 gap-2 lg:max-w-[420px]">
-          <div className="space-y-1"><label className="text-xs text-slate-600">Dolžina (mm)</label><input disabled={!isEditable || dimensionsLocked} className={`${inputClass} !h-8 !w-24 ${readOnlyInputClass}`} value={attrValues.length} onChange={(event) => setAttrValues((current) => ({ ...current, length: event.target.value }))} /></div>
-          <div className="space-y-1"><label className="text-xs text-slate-600">Širina (mm)</label><input disabled={!isEditable || dimensionsLocked} className={`${inputClass} !h-8 !w-24 ${readOnlyInputClass}`} value={attrValues.width} onChange={(event) => setAttrValues((current) => ({ ...current, width: event.target.value }))} /></div>
-          <div className="space-y-1"><label className="text-xs text-slate-600">Debelina (mm)</label><input disabled={!isEditable || dimensionsLocked} className={`${inputClass} !h-8 !w-24 ${readOnlyInputClass}`} value={attrValues.thickness} onChange={(event) => setAttrValues((current) => ({ ...current, thickness: event.target.value }))} /></div>
+        <div className="mb-3 space-y-2">
+          <p className="text-xs text-slate-600">
+            Vnesite eno vrstico naenkrat (npr. “Dolžina: 10,20”). Podprto: Dolžina/Širina/Debelina, največ 5 vrednosti na dimenzijo. Generiranje ustvari vse kombinacije.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {generatorChips.map((chip) => (
+              <span key={chip.dimension} className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-slate-50 px-2 py-1 text-xs text-slate-700">
+                {`${generatorDimensionLabels[chip.dimension]}: ${chip.values.join(', ')}`}
+                <button
+                  type="button"
+                  aria-label={`Odstrani ${generatorDimensionLabels[chip.dimension]}`}
+                  className="text-slate-500 hover:text-slate-700"
+                  onClick={() => setGeneratorChips((current) => current.filter((entry) => entry.dimension !== chip.dimension))}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+          <input
+            className={`${inputClass} !h-9`}
+            value={generatorInput}
+            disabled={!isTableEditable}
+            onChange={(event) => {
+              setGeneratorInput(event.target.value);
+              if (generatorError) setGeneratorError(null);
+            }}
+            placeholder="Dolžina: 10,20"
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter') return;
+              event.preventDefault();
+              submitGeneratorEntry();
+            }}
+          />
+          <div className="flex items-center justify-between text-xs">
+            <span className={generatorError ? 'text-rose-600' : 'text-slate-500'}>
+              {generatorError || 'Dodajte do tri čipe (Dolžina, Širina, Debelina).'}
+            </span>
+            <span className="font-semibold text-slate-700">Kombinacij: {combinationCount}</span>
+          </div>
         </div>
         <div className="overflow-x-auto rounded-lg border border-slate-200">
           <table className="min-w-full text-xs">
@@ -592,11 +722,11 @@ export default function AdminItemEditorPage({
               <tr>
                 <th className="px-2 py-2 text-center">
                   <AdminCheckbox
-                    checked={isEditable && allVariantsSelected}
+                    checked={isTableEditable && allVariantsSelected}
                     onChange={() =>
                       setVariantSelections(allVariantsSelected ? new Set() : new Set(draft.variants.map((variant) => variant.id)))
                     }
-                    disabled={!isEditable}
+                    disabled={!isTableEditable}
                   />
                 </th>
                 <th className="px-2 py-2 text-center">Dolžina</th>
@@ -618,23 +748,23 @@ export default function AdminItemEditorPage({
             <tbody>
               {draft.variants.map((variant, index) => (
                 <tr key={variant.id} className="border-t border-slate-100">
-                  <td className="px-2 py-2 text-center"><AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} disabled={!isEditable} /></td>
+                  <td className="px-2 py-2 text-center"><AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} disabled={!isTableEditable} /></td>
                   <td className="px-2 py-2 text-center">{variant.length ?? '—'}</td>
                   <td className="px-2 py-2 text-center">{variant.width ?? '—'}</td>
                   <td className="px-2 py-2 text-center">{variant.thickness ?? '—'}</td>
                   <td className="px-2 py-2 text-center">{sideSettings.thicknessTolerance || '—'}</td>
-                  <td className="px-2 py-2 text-center">{isEditable ? <input className={`${inputClass} !h-8`} value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} /> : <span className="inline-flex min-h-8 items-center">{variant.sku || '—'}</span>}</td>
-                  <td className="px-2 py-2 text-right">{isEditable ? <input type="number" className={`${inputClass} !h-8 text-right`} value={variant.price} onChange={(event) => updateVariant(index, { price: Number(event.target.value) || 0 })} /> : <span className="inline-flex min-h-8 items-center justify-end">{formatCurrency(variant.price)}</span>}</td>
-                  <td className="px-2 py-2 text-right">{isEditable ? <input className={`${inputClass} !h-8 text-right`} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} /> : <span className="inline-flex min-h-8 items-center justify-end">{sideSettings.weightPerUnit || '—'}</span>}</td>
-                  <td className="px-2 py-2 text-right">{isEditable ? <input type="number" className={`${inputClass} !h-8 text-right`} value={variant.discountPct} onChange={(event) => updateVariant(index, { discountPct: Number(event.target.value) || 0 })} /> : <span className="inline-flex min-h-8 items-center justify-end">{variant.discountPct}</span>}</td>
+                  <td className="px-2 py-2 text-center">{isTableEditable ? <input className={`${inputClass} !h-8`} value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} /> : <span className="inline-flex min-h-8 items-center">{variant.sku || '—'}</span>}</td>
+                  <td className="px-2 py-2 text-right">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 text-right`} value={variant.price} onChange={(event) => updateVariant(index, { price: Number(event.target.value) || 0 })} /> : <span className="inline-flex min-h-8 items-center justify-end">{formatCurrency(variant.price)}</span>}</td>
+                  <td className="px-2 py-2 text-right">{isTableEditable ? <input className={`${inputClass} !h-8 text-right`} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} /> : <span className="inline-flex min-h-8 items-center justify-end">{sideSettings.weightPerUnit || '—'}</span>}</td>
+                  <td className="px-2 py-2 text-right">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 text-right`} value={variant.discountPct} onChange={(event) => updateVariant(index, { discountPct: Number(event.target.value) || 0 })} /> : <span className="inline-flex min-h-8 items-center justify-end">{variant.discountPct}</span>}</td>
                   <td className="px-2 py-2 text-right">{formatCurrency(computeSalePrice(variant.price, variant.discountPct))}</td>
-                  <td className="px-2 py-2 text-right">{isEditable ? <input type="number" className={`${inputClass} !h-8 text-right`} value={variant.stock} onChange={(event) => updateVariant(index, { stock: Number(event.target.value) || 0 })} /> : <span className="inline-flex min-h-8 items-center justify-end">{variant.stock}</span>}</td>
-                  <td className="px-2 py-2 text-center">{isEditable ? <input type="number" className={`${inputClass} !h-8 text-center`} value={sideSettings.moq} onChange={(event) => setSideSettings((current) => ({ ...current, moq: Number(event.target.value) || 1 }))} /> : <span className="inline-flex min-h-8 items-center justify-center">{sideSettings.moq}</span>}</td>
+                  <td className="px-2 py-2 text-right">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 text-right`} value={variant.stock} onChange={(event) => updateVariant(index, { stock: Number(event.target.value) || 0 })} /> : <span className="inline-flex min-h-8 items-center justify-end">{variant.stock}</span>}</td>
+                  <td className="px-2 py-2 text-center">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 text-center`} value={sideSettings.moq} onChange={(event) => setSideSettings((current) => ({ ...current, moq: Number(event.target.value) || 1 }))} /> : <span className="inline-flex min-h-8 items-center justify-center">{sideSettings.moq}</span>}</td>
                   <td className="px-2 py-2 text-center">
                     <div className="inline-flex justify-center">
                       <ActiveStateChip
                         active={variant.active}
-                        editable={isEditable}
+                        editable={isTableEditable}
                         onChange={(next) => updateVariant(index, { active: next })}
                       />
                     </div>
@@ -643,18 +773,18 @@ export default function AdminItemEditorPage({
                     <div className="inline-flex justify-center">
                       <TagStateChip
                         value={getVariantTag(variant.id)}
-                        editable={isEditable}
+                        editable={isTableEditable}
                         onChange={(next) => setVariantTag(variant.id, next)}
                       />
                     </div>
                   </td>
-                  <td className="px-2 py-2 text-center">{isEditable ? <input type="number" className={`${inputClass} !h-8 text-center`} value={variant.sort} onChange={(event) => updateVariant(index, { sort: Number(event.target.value) || 1 })} /> : <span className="inline-flex min-h-8 items-center justify-center">{variant.sort}</span>}</td>
+                  <td className="px-2 py-2 text-center">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 text-center`} value={variant.sort} onChange={(event) => updateVariant(index, { sort: Number(event.target.value) || 1 })} /> : <span className="inline-flex min-h-8 items-center justify-center">{variant.sort}</span>}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <Button type="button" variant="ghost" size="toolbar" disabled={!isEditable} className="mt-3" onClick={() => setDraft((current) => ({ ...current, variants: [...current.variants, createVariant({ sort: current.variants.length + 1 })] }))}><PlusIcon />Dodaj različico</Button>
+        <Button type="button" variant="ghost" size="toolbar" disabled={!isTableEditable} className="mt-3" onClick={() => setDraft((current) => ({ ...current, variants: [...current.variants, createVariant({ sort: current.variants.length + 1 })] }))}><PlusIcon />Dodaj različico</Button>
       </section>
     </div>
   );

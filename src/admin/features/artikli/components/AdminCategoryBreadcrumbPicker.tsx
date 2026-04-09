@@ -20,6 +20,8 @@ const normalizeSearch = (value: string) =>
     .replace(/\p{Diacritic}/gu, '')
     .trim();
 
+const isSlugLikeTitle = (value: string) => /^[a-z0-9]+(?:-[a-z0-9]+)+$/.test(value.trim().toLowerCase());
+
 const toPathParts = (value: string) =>
   value
     .split('/')
@@ -110,7 +112,10 @@ export default function AdminCategoryBreadcrumbPicker({
 
     return childKeys
       .map((childKey) => categoryIndex.entryMap.get(childKey))
-      .filter((entry): entry is CategoryNodeEntry => Boolean(entry))
+      .filter((entry): entry is CategoryNodeEntry => {
+        if (!entry) return false;
+        return !isSlugLikeTitle(entry.title);
+      })
       .sort((a, b) => a.title.localeCompare(b.title, 'sl'));
   }, [categoryIndex.childrenByParent, categoryIndex.entryMap, drillPath]);
 
@@ -120,6 +125,7 @@ export default function AdminCategoryBreadcrumbPicker({
 
     return categoryIndex.entries
       .filter((entry) => {
+        if (isSlugLikeTitle(entry.title)) return false;
         const normalizedTitle = normalizeSearch(entry.title);
         return normalizedTitle.includes(normalizedQuery);
       })

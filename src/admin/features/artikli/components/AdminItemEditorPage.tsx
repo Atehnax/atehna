@@ -30,6 +30,8 @@ const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2
 const numberInputClass = '[-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 const orderLikeEditableInputClassName = 'mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0';
 const compactTableNumberInputClassName = `h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-[11px] leading-4 text-slate-900 outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0 ${numberInputClass}`;
+const compactSideInputWrapClassName = 'mt-0.5 flex h-[30px] items-center gap-2 rounded-md border border-slate-300 bg-white px-3';
+const compactSideInputClassName = 'h-full w-full border-0 bg-transparent p-0 text-sm text-slate-900 outline-none focus:ring-0';
 
 type EditorMode = 'create' | 'edit';
 type CreateType = 'simple' | 'variants';
@@ -38,6 +40,18 @@ type VariantTag = 'novo' | 'akcija' | 'zadnji-kosi';
 type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 type VideoEntry = { id: string; source: 'upload' | 'youtube'; label: string; previewUrl: string; visible: boolean };
+type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document';
+
+function SideInputIcon({ icon }: { icon: SideFieldIcon }) {
+  const iconProps = { className: 'h-5 w-5 text-slate-500', strokeWidth: 2, fill: 'none', viewBox: '0 0 24 24' };
+
+  if (icon === 'brand') return <svg {...iconProps}><path d="M3 7V3h4l11 11-4 4L3 7Z" /><path d="m9 8 1-1" /></svg>;
+  if (icon === 'material') return <svg {...iconProps}><path d="m12 4 8 4-8 4-8-4 8-4Z" /><path d="m4 12 8 4 8-4" /><path d="m4 16 8 4 8-4" /></svg>;
+  if (icon === 'shape') return <svg {...iconProps}><rect x="4" y="4" width="16" height="16" rx="3" /></svg>;
+  if (icon === 'color') return <svg {...iconProps}><circle cx="12" cy="12" r="9" /><circle cx="9" cy="9" r="1.2" /><circle cx="15" cy="9" r="1.2" /><circle cx="9" cy="15" r="1.2" /></svg>;
+  if (icon === 'link') return <svg {...iconProps}><path d="M10 13a5 5 0 0 1 0-7l1-1a5 5 0 0 1 7 7l-1 1" /><path d="M14 11a5 5 0 0 1 0 7l-1 1a5 5 0 0 1-7-7l1-1" /></svg>;
+  return <svg {...iconProps}><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5" /><path d="M10 12h6M10 16h6" /></svg>;
+}
 
 function ActiveStateChip({
   active,
@@ -680,13 +694,16 @@ export default function AdminItemEditorPage({
               <h1 className="flex min-h-10 flex-nowrap items-center gap-1 whitespace-nowrap text-lg font-semibold tracking-tight text-slate-900">
                 <span className="inline-flex h-10 items-center gap-0">
                   {isEditable ? (
-                    <input
-                      aria-label="Naziv artikla"
-                      value={draft.name}
-                      onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
-                      placeholder="Naziv artikla"
-                      className="inline-flex h-10 min-w-[14ch] items-center rounded-md border border-slate-300 bg-white px-1.5 text-lg font-semibold leading-none tracking-tight text-slate-900 shadow-none outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
-                    />
+                    <div className="inline-flex h-[30px] min-w-[14ch] items-center gap-2 rounded-md border border-slate-300 bg-white px-2.5">
+                      <SideInputIcon icon="name" />
+                      <input
+                        aria-label="Naziv artikla"
+                        value={draft.name}
+                        onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
+                        placeholder="Naziv artikla"
+                        className="h-full min-w-0 border-0 bg-transparent p-0 text-lg font-semibold leading-none tracking-tight text-slate-900 shadow-none outline-none transition focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+                      />
+                    </div>
                   ) : (
                     <span className="inline-flex h-10 min-w-[14ch] items-center px-1.5 text-lg font-semibold leading-none tracking-tight">{draft.name.trim() || 'Naziv artikla'}</span>
                   )}
@@ -713,7 +730,7 @@ export default function AdminItemEditorPage({
             </div>
             <div className="mb-1 grid grid-cols-[minmax(0,1fr)] items-start gap-3 px-2.5">
               <AdminCategoryBreadcrumbPicker
-                className="col-span-1"
+                className="col-span-1 rounded-lg bg-[color:var(--ui-neutral-bg)] px-2 py-1"
                 value={selectedCategoryPath}
                 onChange={selectCategoryPath}
                 categoryPaths={categoryPaths}
@@ -723,12 +740,12 @@ export default function AdminItemEditorPage({
             <div className="grid grid-cols-2 gap-3 px-2.5">
               <div className="col-span-2 grid grid-cols-2 gap-3">
                 {[
-                  { title: 'Blagovna znamka', value: sideSettings.brand, placeholder: 'AluCraft', onChange: (value: string) => setSideSettings((current) => ({ ...current, brand: value })) },
-                  { title: 'Material', value: sideSettings.material, placeholder: 'Aluminij', onChange: (value: string) => setSideSettings((current) => ({ ...current, material: value })) },
-                  { title: 'Oblika', value: sideSettings.surface, placeholder: 'Pravokotna', onChange: (value: string) => setSideSettings((current) => ({ ...current, surface: value })) },
-                  { title: 'Barva', value: sideSettings.color, placeholder: 'Srebrna', onChange: (value: string) => setSideSettings((current) => ({ ...current, color: value })) },
-                  { title: 'Tehnični list', value: documents.map((doc) => doc.name).join(', '), placeholder: 'Dodajte dokument', onChange: () => {} },
-                  { title: 'Kratek URL', value: draft.slug, placeholder: toSlug(draft.name || 'naziv-artikla'), onChange: (value: string) => setDraft((current) => ({ ...current, slug: value })) }
+                  { title: 'Blagovna znamka', value: sideSettings.brand, placeholder: 'AluCraft', icon: 'brand' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, brand: value })) },
+                  { title: 'Material', value: sideSettings.material, placeholder: 'Aluminij', icon: 'material' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, material: value })) },
+                  { title: 'Oblika', value: sideSettings.surface, placeholder: 'Pravokotna', icon: 'shape' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, surface: value })) },
+                  { title: 'Barva', value: sideSettings.color, placeholder: 'Srebrna', icon: 'color' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, color: value })) },
+                  { title: 'Tehnični list', value: documents.map((doc) => doc.name).join(', '), placeholder: 'Dodajte dokument', icon: 'document' as SideFieldIcon, onChange: () => {} },
+                  { title: 'Kratek URL', value: draft.slug, placeholder: toSlug(draft.name || 'naziv-artikla'), icon: 'link' as SideFieldIcon, onChange: (value: string) => setDraft((current) => ({ ...current, slug: value })) }
                 ].map((field) => (
                   <div key={field.title} className="min-h-10 px-2.5">
                     <p className="text-sm font-semibold text-slate-700">{field.title}</p>
@@ -745,12 +762,32 @@ export default function AdminItemEditorPage({
                             setDocuments((current) => [...current, { name: file.name, size: `${Math.max(1, Math.round(file.size / 1024))} KB` }]);
                           }}
                         />
-                        <label htmlFor="tech-sheet-upload-inline">
-                          <Button type="button" variant="default" size="toolbar" className="whitespace-nowrap" disabled={!isEditable}>Dodaj dokument</Button>
+                        <label
+                          htmlFor="tech-sheet-upload-inline"
+                          className={`flex w-full cursor-pointer items-center rounded-xl border border-dashed border-blue-300 bg-blue-50/35 px-4 py-3 ${!isEditable ? 'cursor-not-allowed opacity-60' : ''}`}
+                        >
+                          <span className="mx-auto flex items-center gap-3 text-blue-600">
+                            <SideInputIcon icon="document" />
+                            <span className="leading-tight">
+                              <span className="block text-sm font-semibold">Dodaj dokument</span>
+                              <span className="block text-sm text-slate-500">PDF, DOC, XLSX do 10 MB</span>
+                            </span>
+                          </span>
                         </label>
                       </div>
+                    ) : field.title === 'Kratek URL' ? (
+                      <div className="space-y-1">
+                        <div className={compactSideInputWrapClassName}>
+                          <SideInputIcon icon="link" />
+                          <input className={compactSideInputClassName} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
+                        </div>
+                        <p className="text-sm text-slate-500">Uporablja se v povezavi izdelka.</p>
+                      </div>
                     ) : isEditable ? (
-                      <input className={inputClass} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
+                      <div className={compactSideInputWrapClassName}>
+                        <SideInputIcon icon={field.icon} />
+                        <input className={compactSideInputClassName} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
+                      </div>
                     ) : (
                       <p className="text-sm text-slate-700">{field.value || field.placeholder}</p>
                     )}

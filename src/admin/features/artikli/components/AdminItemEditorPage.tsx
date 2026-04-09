@@ -35,6 +35,7 @@ type MediaTab = 'slike' | 'video';
 type VariantTag = 'novo' | 'akcija';
 type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
+type VideoEntry = { id: string; source: 'upload' | 'youtube'; label: string; previewUrl: string; visible: boolean };
 
 function ActiveStateChip({
   active,
@@ -131,7 +132,7 @@ function NeutralDropdownChip({
       >
         {editable ? <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span> : null}
         <span className="block">
-          <Chip variant="neutral">{selectedOption?.label ?? ''}</Chip>
+          <Chip variant="neutral" className="min-w-[124px]">{selectedOption?.label ?? ''}</Chip>
         </span>
       </button>
 
@@ -212,6 +213,54 @@ function TagStateChip({
   );
 }
 
+function VisibilityChip({
+  visible,
+  editable,
+  onChange
+}: {
+  visible: boolean;
+  editable: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  useEffect(() => {
+    if (!isOpen) return;
+    const onDocClick = () => setIsOpen(false);
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick, { once: true });
+    document.addEventListener('keydown', onEscape);
+    return () => {
+      document.removeEventListener('keydown', onEscape);
+    };
+  }, [isOpen]);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => {
+          if (!editable) return;
+          setIsOpen((current) => !current);
+        }}
+        className="relative block rounded-full focus:outline-none"
+      >
+        {editable ? <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span> : null}
+        <Chip variant={visible ? 'success' : 'warning'}>{visible ? 'Prikaži' : 'Skrij'}</Chip>
+      </button>
+      {editable && isOpen ? (
+        <div role="menu" className="absolute left-0 top-8 z-30 min-w-[120px]">
+          <MenuPanel>
+            <MenuItem onClick={() => { onChange(true); setIsOpen(false); }}>Prikaži</MenuItem>
+            <MenuItem onClick={() => { onChange(false); setIsOpen(false); }}>Skrij</MenuItem>
+          </MenuPanel>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function AdminItemEditorPage({
   seedItems,
   articleId,
@@ -277,6 +326,11 @@ export default function AdminItemEditorPage({
   const [articleType, setArticleType] = useState<'unit' | 'sheet' | 'bulk'>('unit');
   const [mediaTab, setMediaTab] = useState<MediaTab>('slike');
   const [uploadedVideo, setUploadedVideo] = useState<{ name: string; url: string } | null>(null);
+  const [youtubeInput, setYoutubeInput] = useState('');
+  const [videoEntriesDraft, setVideoEntriesDraft] = useState<VideoEntry[]>([]);
+  const [videoEntriesSaved, setVideoEntriesSaved] = useState<VideoEntry[]>([]);
+  const [videoSelections, setVideoSelections] = useState<Set<string>>(new Set());
+  const [videoMode, setVideoMode] = useState<'read' | 'edit'>('read');
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>({});
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() =>
     (draft.category || '')
@@ -317,6 +371,7 @@ export default function AdminItemEditorPage({
 
   const isEditable = editorMode === 'edit';
   const isTableEditable = tableEditorMode === 'edit';
+  const isVideoEditable = videoMode === 'edit';
   const hasSelectedVariants = variantSelections.size > 0;
   const allVariantsSelected = draft.variants.length > 0 && draft.variants.every((variant) => variantSelections.has(variant.id));
   const generatorDimensionLabels: Record<GeneratorDimension, string> = {
@@ -422,6 +477,35 @@ export default function AdminItemEditorPage({
       return [...next, parsed];
     });
     setGeneratorInput('');
+  };
+
+  const addYoutubeVideo = () => {
+    const value = youtubeInput.trim();
+    if (!value) return;
+    if (!value.includes('youtube.com') && !value.includes('youtu.be')) {
+      toast.error('Vnesite veljavno YouTube povezavo.');
+      return;
+    }
+    const previewUrl = value.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/');
+    setVideoEntriesDraft((current) => [
+      ...current,
+      { id: `video-${Date.now()}`, source: 'youtube', label: value, previewUrl, visible: true }
+    ]);
+    setYoutubeInput('');
+  };
+
+  const addUploadedVideo = () => {
+    if (!uploadedVideo) return;
+    setVideoEntriesDraft((current) => [
+      ...current,
+      { id: `video-${Date.now()}`, source: 'upload', label: uploadedVideo.name, previewUrl: uploadedVideo.url, visible: true }
+    ]);
+    setUploadedVideo(null);
+  };
+
+  const saveVideoEntries = () => {
+    setVideoEntriesSaved(videoEntriesDraft);
+    toast.success('Video spremembe shranjene lokalno.');
   };
 
   const updateVariant = (index: number, updates: Partial<Variant>) => {
@@ -534,9 +618,9 @@ export default function AdminItemEditorPage({
                 ))}
               </div>
               <div className="col-span-2 space-y-1">
+                <label className="text-sm font-semibold text-slate-700">Opis</label>
                 {isEditable ? (
                   <>
-                    <label className="sr-only">Opis</label>
                     <textarea
                       placeholder="Opis artikla..."
                       className={`${inputClass} !h-28 py-2`}
@@ -613,35 +697,87 @@ export default function AdminItemEditorPage({
               </div>
             ) : (
               <div className="mt-3 space-y-3">
-                <div className="space-y-1">
-                  <label className="text-xs text-slate-600">Video datoteka</label>
-                  <input
-                    type="file"
-                    accept="video/*"
-                    disabled={!isEditable}
-                    className="block w-full text-xs text-slate-700 file:mr-2 file:rounded-md file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs file:font-semibold"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      if (!file) return;
-                      setUploadedVideo({ name: file.name, url: URL.createObjectURL(file) });
+                <div className="flex items-center justify-end gap-1.5">
+                  <IconButton type="button" tone="neutral" aria-label="Uredi video" title="Uredi" onClick={() => setVideoMode((current) => (current === 'read' ? 'edit' : 'read'))}><PencilIcon /></IconButton>
+                  <IconButton type="button" tone="neutral" aria-label="Shrani video" title="Shrani" onClick={saveVideoEntries} disabled={!isVideoEditable}><SaveIcon /></IconButton>
+                  <IconButton
+                    type="button"
+                    tone={videoSelections.size > 0 ? 'danger' : 'neutral'}
+                    aria-label="Izbriši video"
+                    title="Izbriši"
+                    disabled={!isVideoEditable || videoSelections.size === 0}
+                    onClick={() => {
+                      const selected = new Set(videoSelections);
+                      setVideoEntriesDraft((current) => current.filter((entry) => !selected.has(entry.id)));
+                      setVideoSelections(new Set());
                     }}
-                  />
-                  {uploadedVideo ? <video controls className="mt-2 w-full rounded-lg border border-slate-200"><source src={uploadedVideo.url} /></video> : <p className="text-xs text-slate-500">Noben video ni naložen.</p>}
+                  >
+                    <TrashCanIcon />
+                  </IconButton>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-slate-600">YouTube URL</label>
-                  <input className={inputClass} value={sideSettings.videoUrl} onChange={(event) => setSideSettings((current) => ({ ...current, videoUrl: event.target.value }))} placeholder="https://www.youtube.com/watch?v=..." />
-                  {sideSettings.videoUrl.includes('youtube.com') || sideSettings.videoUrl.includes('youtu.be') ? (
-                    <iframe
-                      title="YouTube video predogled"
-                      className="h-52 w-full rounded-lg border border-slate-200"
-                      src={sideSettings.videoUrl
-                        .replace('watch?v=', 'embed/')
-                        .replace('youtu.be/', 'youtube.com/embed/')}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  ) : <p className="text-xs text-slate-500">Vnesite YouTube povezavo za predogled.</p>}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <div className="space-y-1">
+                      <label className="text-xs text-slate-600">YouTube URL</label>
+                      <div className="flex gap-2">
+                        <input className={inputClass} value={youtubeInput} disabled={!isVideoEditable} onChange={(event) => setYoutubeInput(event.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
+                        <Button type="button" variant="default" size="toolbar" disabled={!isVideoEditable} onClick={addYoutubeVideo}>Dodaj</Button>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-slate-600">Video datoteka</label>
+                      <input
+                        type="file"
+                        accept="video/*"
+                        disabled={!isVideoEditable}
+                        className="block w-full text-xs text-slate-700 file:mr-2 file:rounded-md file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs file:font-semibold"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          if (!file) return;
+                          setUploadedVideo({ name: file.name, url: URL.createObjectURL(file) });
+                        }}
+                      />
+                      <Button type="button" variant="default" size="toolbar" disabled={!isVideoEditable || !uploadedVideo} onClick={addUploadedVideo}>Dodaj video</Button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs text-slate-600">Predogled</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(videoEntriesDraft.length ? videoEntriesDraft : videoEntriesSaved).slice(0, 4).map((entry) => (
+                        entry.source === 'youtube' ? (
+                          <iframe key={entry.id} title={`Predogled ${entry.id}`} className="h-16 w-full rounded border border-slate-200" src={entry.previewUrl} />
+                        ) : (
+                          <video key={entry.id} className="h-16 w-full rounded border border-slate-200 object-cover"><source src={entry.previewUrl} /></video>
+                        )
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="overflow-hidden rounded-lg border border-slate-200">
+                  <table className="min-w-full text-xs">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="px-2 py-1.5 text-center" />
+                        <th className="px-2 py-1.5 text-left">Vir videa</th>
+                        <th className="px-2 py-1.5 text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {videoEntriesDraft.map((entry) => (
+                        <tr key={entry.id} className="border-t border-slate-100">
+                          <td className="px-2 py-1.5 text-center">
+                            <AdminCheckbox checked={videoSelections.has(entry.id)} disabled={!isVideoEditable} onChange={() => setVideoSelections((current) => {
+                              const next = new Set(current);
+                              if (next.has(entry.id)) next.delete(entry.id); else next.add(entry.id);
+                              return next;
+                            })} />
+                          </td>
+                          <td className="px-2 py-1.5">{entry.source === 'youtube' ? 'YouTube povezava' : 'Naložen video'}</td>
+                          <td className="px-2 py-1.5 text-center"><VisibilityChip visible={entry.visible} editable={isVideoEditable} onChange={(next) => setVideoEntriesDraft((current) => current.map((video) => video.id === entry.id ? { ...video, visible: next } : video))} /></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
@@ -655,6 +791,25 @@ export default function AdminItemEditorPage({
           <div className="flex items-center gap-2">
             <IconButton
               type="button"
+              aria-label="Uredi tabelo artikla"
+              title={isTableEditable ? 'Zaključi urejanje' : 'Uredi'}
+              tone="neutral"
+              onClick={() => setTableEditorMode((current) => (current === 'read' ? 'edit' : 'read'))}
+            >
+              <PencilIcon />
+            </IconButton>
+            <IconButton
+              type="button"
+              aria-label="Shrani tabelo artikla"
+              title="Shrani"
+              tone="neutral"
+              disabled={!isTableEditable}
+              onClick={() => setTableEditorMode('read')}
+            >
+              <SaveIcon />
+            </IconButton>
+            <IconButton
+              type="button"
               aria-label="Odstrani izbrane različice"
               title="Izbriši izbrane"
               tone={hasSelectedVariants ? 'danger' : 'neutral'}
@@ -663,25 +818,20 @@ export default function AdminItemEditorPage({
             >
               <TrashCanIcon />
             </IconButton>
-            <IconButton
-              type="button"
-              aria-label="Uredi tabelo artikla"
-              title={isTableEditable ? 'Zaključi urejanje' : 'Uredi'}
-              tone="neutral"
-              onClick={() => setTableEditorMode((current) => (current === 'read' ? 'edit' : 'read'))}
-            >
-              <PencilIcon />
-            </IconButton>
-            <Button type="button" variant="primary" size="toolbar" onClick={generateVariants}>Generiraj različice</Button>
+            <Button type="button" variant="primary" size="toolbar" className="h-7 whitespace-nowrap px-3" onClick={generateVariants}>Generiraj različice</Button>
           </div>
         </div>
         <div className="mb-3 space-y-2">
           <p className="text-xs text-slate-600">
-            Vnesite eno vrstico naenkrat (npr. “Dolžina: 10,20”). Podprto: Dolžina/Širina/Debelina, največ 5 vrednosti na dimenzijo. Generiranje ustvari vse kombinacije.
+            Vnesi mere za vsako dimenzijo posebej, npr. <span className="font-semibold">Dolžina: 10,20</span>
           </p>
-          <div className="flex flex-wrap gap-2">
+          <p className="text-xs text-slate-500">
+            Oznake nastavi v spodnji tabeli (mm/cm). Podprte dimenzije: Dolžina, Širina in Debelina, največ 5 vrednosti na dimenzijo. Generiranje ustvari kartezični produkt vseh mer in na tej osnovi pripravi različice.
+          </p>
+          <p className="text-xs text-slate-500">Dodajte do tri čipe (Dolžina, Širina, Debelina).</p>
+          <div className="flex min-h-9 flex-wrap items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1">
             {generatorChips.map((chip) => (
-              <span key={chip.dimension} className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-slate-50 px-2 py-1 text-xs text-slate-700">
+              <span key={chip.dimension} className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs text-slate-700">
                 {`${generatorDimensionLabels[chip.dimension]}: ${chip.values.join(', ')}`}
                 <button
                   type="button"
@@ -693,22 +843,22 @@ export default function AdminItemEditorPage({
                 </button>
               </span>
             ))}
+            <input
+              className="h-6 min-w-[180px] flex-1 border-0 bg-transparent text-xs text-slate-900 outline-none focus:ring-0"
+              value={generatorInput}
+              disabled={!isTableEditable}
+              onChange={(event) => {
+                setGeneratorInput(event.target.value);
+                if (generatorError) setGeneratorError(null);
+              }}
+              placeholder="Dolžina: 10,20"
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter') return;
+                event.preventDefault();
+                submitGeneratorEntry();
+              }}
+            />
           </div>
-          <input
-            className={`${inputClass} !h-9`}
-            value={generatorInput}
-            disabled={!isTableEditable}
-            onChange={(event) => {
-              setGeneratorInput(event.target.value);
-              if (generatorError) setGeneratorError(null);
-            }}
-            placeholder="Dolžina: 10,20"
-            onKeyDown={(event) => {
-              if (event.key !== 'Enter') return;
-              event.preventDefault();
-              submitGeneratorEntry();
-            }}
-          />
           <div className="flex items-center justify-between text-xs">
             <span className={generatorError ? 'text-rose-600' : 'text-slate-500'}>
               {generatorError || 'Dodajte do tri čipe (Dolžina, Širina, Debelina).'}

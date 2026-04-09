@@ -290,11 +290,7 @@ export default function AdminItemEditorPage({
   });
   const [variantSelections, setVariantSelections] = useState<Set<string>>(new Set());
   const [generatorInput, setGeneratorInput] = useState('');
-  const [generatorChips, setGeneratorChips] = useState<GeneratorChip[]>([
-    { dimension: 'length', values: [100, 200] },
-    { dimension: 'width', values: [100, 200] },
-    { dimension: 'thickness', values: [0.5] }
-  ]);
+  const [generatorChips, setGeneratorChips] = useState<GeneratorChip[]>([]);
   const [generatorError, setGeneratorError] = useState<string | null>(null);
   const [sideSettings, setSideSettings] = useState({
     brand: '',
@@ -325,12 +321,15 @@ export default function AdminItemEditorPage({
   const [tableEditorMode, setTableEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
   const [articleType, setArticleType] = useState<'unit' | 'sheet' | 'bulk'>('unit');
   const [mediaTab, setMediaTab] = useState<MediaTab>('slike');
+  const [mediaMode, setMediaMode] = useState<'read' | 'edit'>('read');
+  const [mediaImagesSaved, setMediaImagesSaved] = useState<string[]>(draft.images);
+  const [mediaImagesDraft, setMediaImagesDraft] = useState<string[]>(draft.images);
+  const [selectedImageIndexes, setSelectedImageIndexes] = useState<Set<number>>(new Set());
   const [uploadedVideo, setUploadedVideo] = useState<{ name: string; url: string } | null>(null);
   const [youtubeInput, setYoutubeInput] = useState('');
   const [videoEntriesDraft, setVideoEntriesDraft] = useState<VideoEntry[]>([]);
   const [videoEntriesSaved, setVideoEntriesSaved] = useState<VideoEntry[]>([]);
   const [videoSelections, setVideoSelections] = useState<Set<string>>(new Set());
-  const [videoMode, setVideoMode] = useState<'read' | 'edit'>('read');
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>({});
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() =>
     (draft.category || '')
@@ -371,7 +370,7 @@ export default function AdminItemEditorPage({
 
   const isEditable = editorMode === 'edit';
   const isTableEditable = tableEditorMode === 'edit';
-  const isVideoEditable = videoMode === 'edit';
+  const isMediaEditable = mediaMode === 'edit';
   const hasSelectedVariants = variantSelections.size > 0;
   const allVariantsSelected = draft.variants.length > 0 && draft.variants.every((variant) => variantSelections.has(variant.id));
   const generatorDimensionLabels: Record<GeneratorDimension, string> = {
@@ -505,6 +504,8 @@ export default function AdminItemEditorPage({
 
   const saveVideoEntries = () => {
     setVideoEntriesSaved(videoEntriesDraft);
+    setMediaImagesSaved(mediaImagesDraft);
+    setDraft((current) => ({ ...current, images: mediaImagesDraft }));
     toast.success('Video spremembe shranjene lokalno.');
   };
 
@@ -651,14 +652,38 @@ export default function AdminItemEditorPage({
                 { value: 'video', label: 'Video' }
               ]}
             />
+            <div className="flex items-center justify-end gap-1.5">
+              <IconButton type="button" tone="neutral" aria-label="Uredi medije" title="Uredi" onClick={() => setMediaMode((current) => (current === 'read' ? 'edit' : 'read'))}><PencilIcon /></IconButton>
+              <IconButton type="button" tone="neutral" aria-label="Shrani medije" title="Shrani" onClick={saveVideoEntries} disabled={!isMediaEditable}><SaveIcon /></IconButton>
+              <IconButton
+                type="button"
+                tone={(mediaTab === 'video' ? videoSelections.size : selectedImageIndexes.size) > 0 ? 'danger' : 'neutral'}
+                aria-label="Izbriši medije"
+                title="Izbriši"
+                disabled={!isMediaEditable || (mediaTab === 'video' ? videoSelections.size === 0 : selectedImageIndexes.size === 0)}
+                onClick={() => {
+                  if (mediaTab === 'video') {
+                    const selected = new Set(videoSelections);
+                    setVideoEntriesDraft((current) => current.filter((entry) => !selected.has(entry.id)));
+                    setVideoSelections(new Set());
+                    return;
+                  }
+                  const selected = new Set(selectedImageIndexes);
+                  setMediaImagesDraft((current) => current.filter((_, index) => !selected.has(index)));
+                  setSelectedImageIndexes(new Set());
+                }}
+              >
+                <TrashCanIcon />
+              </IconButton>
+            </div>
             {mediaTab === 'slike' ? (
               <div className="mt-3 space-y-3">
                 <p className="text-sm text-slate-500">Galerija artikla. Prva slika je glavna.</p>
                 <div className="grid grid-cols-2 gap-2">
-                  {draft.images.map((img, index) => <div key={`${img}-${index}`} className="relative overflow-hidden rounded-lg border border-slate-200"><Image src={img} alt={`Slika ${index + 1}`} width={180} height={120} unoptimized className="h-24 w-full object-cover" /></div>)}
-                  <label className={`flex h-24 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 text-sm text-slate-500 ${isEditable ? 'cursor-pointer hover:border-[#2f66dd]' : 'cursor-not-allowed opacity-60'}`}>Dodaj slike<input disabled={!isEditable} type="file" className="hidden" multiple accept="image/*" onChange={(event) => {
+                  {mediaImagesDraft.map((img, index) => <div key={`${img}-${index}`} className="relative overflow-hidden rounded-lg border border-slate-200"><Image src={img} alt={`Slika ${index + 1}`} width={180} height={120} unoptimized className="h-24 w-full object-cover" />{isMediaEditable ? <div className="absolute left-1 top-1"><AdminCheckbox checked={selectedImageIndexes.has(index)} onChange={() => setSelectedImageIndexes((current) => { const next = new Set(current); if (next.has(index)) next.delete(index); else next.add(index); return next; })} /></div> : null}</div>)}
+                  <label className={`flex h-24 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 text-sm text-slate-500 ${isMediaEditable ? 'cursor-pointer hover:border-[#2f66dd]' : 'cursor-not-allowed opacity-60'}`}>Dodaj slike<input disabled={!isMediaEditable} type="file" className="hidden" multiple accept="image/*" onChange={(event) => {
                     const urls = Array.from(event.target.files ?? []).map((file) => URL.createObjectURL(file));
-                    setDraft((current) => ({ ...current, images: [...current.images, ...urls] }));
+                    setMediaImagesDraft((current) => [...current, ...urls]);
                   }} /></label>
                 </div>
                 <label className="inline-flex items-center gap-2 text-sm"><AdminCheckbox checked={sideSettings.showGallery} onChange={(event) => setSideSettings((current) => ({ ...current, showGallery: event.target.checked }))} />Prikaži galerijo na strani izdelka</label>
@@ -697,31 +722,13 @@ export default function AdminItemEditorPage({
               </div>
             ) : (
               <div className="mt-3 space-y-3">
-                <div className="flex items-center justify-end gap-1.5">
-                  <IconButton type="button" tone="neutral" aria-label="Uredi video" title="Uredi" onClick={() => setVideoMode((current) => (current === 'read' ? 'edit' : 'read'))}><PencilIcon /></IconButton>
-                  <IconButton type="button" tone="neutral" aria-label="Shrani video" title="Shrani" onClick={saveVideoEntries} disabled={!isVideoEditable}><SaveIcon /></IconButton>
-                  <IconButton
-                    type="button"
-                    tone={videoSelections.size > 0 ? 'danger' : 'neutral'}
-                    aria-label="Izbriši video"
-                    title="Izbriši"
-                    disabled={!isVideoEditable || videoSelections.size === 0}
-                    onClick={() => {
-                      const selected = new Set(videoSelections);
-                      setVideoEntriesDraft((current) => current.filter((entry) => !selected.has(entry.id)));
-                      setVideoSelections(new Set());
-                    }}
-                  >
-                    <TrashCanIcon />
-                  </IconButton>
-                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <div className="space-y-1">
                       <label className="text-xs text-slate-600">YouTube URL</label>
                       <div className="flex gap-2">
-                        <input className={inputClass} value={youtubeInput} disabled={!isVideoEditable} onChange={(event) => setYoutubeInput(event.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
-                        <Button type="button" variant="default" size="toolbar" disabled={!isVideoEditable} onClick={addYoutubeVideo}>Dodaj</Button>
+                        <input className={inputClass} value={youtubeInput} disabled={!isMediaEditable} onChange={(event) => setYoutubeInput(event.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
+                        <Button type="button" variant="default" size="toolbar" disabled={!isMediaEditable} onClick={addYoutubeVideo}>Dodaj</Button>
                       </div>
                     </div>
                     <div className="space-y-1">
@@ -729,7 +736,7 @@ export default function AdminItemEditorPage({
                       <input
                         type="file"
                         accept="video/*"
-                        disabled={!isVideoEditable}
+                        disabled={!isMediaEditable}
                         className="block w-full text-xs text-slate-700 file:mr-2 file:rounded-md file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs file:font-semibold"
                         onChange={(event) => {
                           const file = event.target.files?.[0];
@@ -737,7 +744,7 @@ export default function AdminItemEditorPage({
                           setUploadedVideo({ name: file.name, url: URL.createObjectURL(file) });
                         }}
                       />
-                      <Button type="button" variant="default" size="toolbar" disabled={!isVideoEditable || !uploadedVideo} onClick={addUploadedVideo}>Dodaj video</Button>
+                      <Button type="button" variant="default" size="toolbar" disabled={!isMediaEditable || !uploadedVideo} onClick={addUploadedVideo}>Dodaj video</Button>
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -766,14 +773,14 @@ export default function AdminItemEditorPage({
                       {videoEntriesDraft.map((entry) => (
                         <tr key={entry.id} className="border-t border-slate-100">
                           <td className="px-2 py-1.5 text-center">
-                            <AdminCheckbox checked={videoSelections.has(entry.id)} disabled={!isVideoEditable} onChange={() => setVideoSelections((current) => {
+                            <AdminCheckbox checked={videoSelections.has(entry.id)} disabled={!isMediaEditable} onChange={() => setVideoSelections((current) => {
                               const next = new Set(current);
                               if (next.has(entry.id)) next.delete(entry.id); else next.add(entry.id);
                               return next;
                             })} />
                           </td>
                           <td className="px-2 py-1.5">{entry.source === 'youtube' ? 'YouTube povezava' : 'Naložen video'}</td>
-                          <td className="px-2 py-1.5 text-center"><VisibilityChip visible={entry.visible} editable={isVideoEditable} onChange={(next) => setVideoEntriesDraft((current) => current.map((video) => video.id === entry.id ? { ...video, visible: next } : video))} /></td>
+                          <td className="px-2 py-1.5 text-center"><VisibilityChip visible={entry.visible} editable={isMediaEditable} onChange={(next) => setVideoEntriesDraft((current) => current.map((video) => video.id === entry.id ? { ...video, visible: next } : video))} /></td>
                         </tr>
                       ))}
                     </tbody>
@@ -794,6 +801,7 @@ export default function AdminItemEditorPage({
               aria-label="Uredi tabelo artikla"
               title={isTableEditable ? 'Zaključi urejanje' : 'Uredi'}
               tone="neutral"
+              size="md"
               onClick={() => setTableEditorMode((current) => (current === 'read' ? 'edit' : 'read'))}
             >
               <PencilIcon />
@@ -803,6 +811,7 @@ export default function AdminItemEditorPage({
               aria-label="Shrani tabelo artikla"
               title="Shrani"
               tone="neutral"
+              size="md"
               disabled={!isTableEditable}
               onClick={() => setTableEditorMode('read')}
             >
@@ -813,22 +822,23 @@ export default function AdminItemEditorPage({
               aria-label="Odstrani izbrane različice"
               title="Izbriši izbrane"
               tone={hasSelectedVariants ? 'danger' : 'neutral'}
+              size="md"
               disabled={!isTableEditable || !hasSelectedVariants}
               onClick={deleteSelectedVariants}
             >
               <TrashCanIcon />
             </IconButton>
-            <Button type="button" variant="primary" size="toolbar" className="h-7 whitespace-nowrap px-3" onClick={generateVariants}>Generiraj različice</Button>
+            <Button type="button" variant="primary" size="toolbar" onClick={generateVariants}>Generiraj različice</Button>
           </div>
         </div>
         <div className="mb-3 space-y-2">
-          <p className="text-xs text-slate-600">
-            Vnesi mere za vsako dimenzijo posebej, npr. <span className="font-semibold">Dolžina: 10,20</span>
-          </p>
           <p className="text-xs text-slate-500">
-            Oznake nastavi v spodnji tabeli (mm/cm). Podprte dimenzije: Dolžina, Širina in Debelina, največ 5 vrednosti na dimenzijo. Generiranje ustvari kartezični produkt vseh mer in na tej osnovi pripravi različice.
+            Vnesi mere za vsako dimenzijo posebej, npr. <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">Dolžina: 10,20</span> Oznake nastavi v spodnji tabeli (mm/cm). Podprte dimenzije: Dolžina, Širina in Debelina, največ 5 vrednosti na dimenzijo. Generiranje ustvari kartezični produkt vseh mer in na tej osnovi pripravi različice.
           </p>
-          <p className="text-xs text-slate-500">Dodajte do tri čipe (Dolžina, Širina, Debelina).</p>
+          <div className="flex items-center justify-between text-xs">
+            <p className="text-xs text-slate-500">Dodajte do tri čipe (Dolžina, Širina, Debelina).</p>
+            <span className="font-semibold text-slate-700">Kombinacij: {combinationCount}</span>
+          </div>
           <div className="flex min-h-9 flex-wrap items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1">
             {generatorChips.map((chip) => (
               <span key={chip.dimension} className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs text-slate-700">
@@ -851,7 +861,7 @@ export default function AdminItemEditorPage({
                 setGeneratorInput(event.target.value);
                 if (generatorError) setGeneratorError(null);
               }}
-              placeholder="Dolžina: 10,20"
+              placeholder={generatorChips.length > 0 ? '' : 'Dolžina: 10,20'}
               onKeyDown={(event) => {
                 if (event.key !== 'Enter') return;
                 event.preventDefault();
@@ -859,11 +869,10 @@ export default function AdminItemEditorPage({
               }}
             />
           </div>
-          <div className="flex items-center justify-between text-xs">
+          <div className="text-xs">
             <span className={generatorError ? 'text-rose-600' : 'text-slate-500'}>
-              {generatorError || 'Dodajte do tri čipe (Dolžina, Širina, Debelina).'}
+              {generatorError || 'Podprte dimenzije so pripravljene za generiranje.'}
             </span>
-            <span className="font-semibold text-slate-700">Kombinacij: {combinationCount}</span>
           </div>
         </div>
         <div className="overflow-x-auto rounded-lg border border-slate-200">
@@ -882,6 +891,7 @@ export default function AdminItemEditorPage({
                 <th className="px-2 py-2 text-center">Dolžina</th>
                 <th className="px-2 py-2 text-center">Širina</th>
                 <th className="px-2 py-2 text-center">Debelina</th>
+                <th className="px-2 py-2 text-center">Oznaka</th>
                 <th className="px-2 py-2 text-center">Toleranca</th>
                 <th className="px-2 py-2 text-center">SKU</th>
                 <th className="px-2 py-2 text-right">Cena</th>
@@ -891,7 +901,6 @@ export default function AdminItemEditorPage({
                 <th className="px-2 py-2 text-right">Zaloga</th>
                 <th className="px-2 py-2 text-center">Min. naročilo</th>
                 <th className="px-2 py-2 text-center">Status</th>
-                <th className="px-2 py-2 text-center">Oznake</th>
                 <th className="px-2 py-2 text-center">Sort</th>
               </tr>
             </thead>
@@ -902,7 +911,29 @@ export default function AdminItemEditorPage({
                   <td className="px-2 py-2 text-center">{variant.length ?? '—'}</td>
                   <td className="px-2 py-2 text-center">{variant.width ?? '—'}</td>
                   <td className="px-2 py-2 text-center">{variant.thickness ?? '—'}</td>
-                  <td className="px-2 py-2 text-center">{sideSettings.thicknessTolerance || '—'}</td>
+                  <td className="px-2 py-2 text-center">
+                    <div className="inline-flex justify-center">
+                      <TagStateChip
+                        value={getVariantTag(variant.id)}
+                        editable={isTableEditable}
+                        onChange={(next) => setVariantTag(variant.id, next)}
+                      />
+                    </div>
+                  </td>
+                  <td className="px-2 py-2 text-center">
+                    {isTableEditable ? (
+                      <div className="inline-flex items-center gap-1">
+                        <span className="text-slate-500">±</span>
+                        <input
+                          className={`${inputClass} !h-8 !w-16 text-center`}
+                          value={sideSettings.thicknessTolerance}
+                          onChange={(event) => setSideSettings((current) => ({ ...current, thicknessTolerance: event.target.value }))}
+                        />
+                      </div>
+                    ) : (
+                      <span>{sideSettings.thicknessTolerance ? `± ${sideSettings.thicknessTolerance}` : '—'}</span>
+                    )}
+                  </td>
                   <td className="px-2 py-2 text-center">{isTableEditable ? <input className={`${inputClass} !h-8`} value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} /> : <span className="inline-flex min-h-8 items-center">{variant.sku || '—'}</span>}</td>
                   <td className="px-2 py-2 text-right">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 text-right`} value={variant.price} onChange={(event) => updateVariant(index, { price: Number(event.target.value) || 0 })} /> : <span className="inline-flex min-h-8 items-center justify-end">{formatCurrency(variant.price)}</span>}</td>
                   <td className="px-2 py-2 text-right">{isTableEditable ? <input className={`${inputClass} !h-8 text-right`} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} /> : <span className="inline-flex min-h-8 items-center justify-end">{sideSettings.weightPerUnit || '—'}</span>}</td>
@@ -916,15 +947,6 @@ export default function AdminItemEditorPage({
                         active={variant.active}
                         editable={isTableEditable}
                         onChange={(next) => updateVariant(index, { active: next })}
-                      />
-                    </div>
-                  </td>
-                  <td className="px-2 py-2 text-center">
-                    <div className="inline-flex justify-center">
-                      <TagStateChip
-                        value={getVariantTag(variant.id)}
-                        editable={isTableEditable}
-                        onChange={(next) => setVariantTag(variant.id, next)}
                       />
                     </div>
                   </td>

@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { Chip } from '@/shared/ui/badge';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
@@ -32,7 +32,8 @@ const orderLikeEditableInputClassName = 'mt-0.5 h-5 w-full rounded-md border bor
 type EditorMode = 'create' | 'edit';
 type CreateType = 'simple' | 'variants';
 type MediaTab = 'slike' | 'video';
-type VariantTag = 'novo' | 'akcija';
+type VariantTag = 'novo' | 'akcija' | 'zadnji-kosi';
+type VariantMeasure = 'mm' | 'cm';
 type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 type VideoEntry = { id: string; source: 'upload' | 'youtube'; label: string; previewUrl: string; visible: boolean };
@@ -47,22 +48,27 @@ function ActiveStateChip({
   onChange: (next: boolean) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
-    const onDocClick = () => setIsOpen(false);
+    const onDocClick = (event: MouseEvent) => {
+      if (rootRef.current?.contains(event.target as Node)) return;
+      setIsOpen(false);
+    };
     const onEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setIsOpen(false);
     };
-    document.addEventListener('mousedown', onDocClick, { once: true });
+    document.addEventListener('mousedown', onDocClick);
     document.addEventListener('keydown', onEscape);
     return () => {
+      document.removeEventListener('mousedown', onDocClick);
       document.removeEventListener('keydown', onEscape);
     };
   }, [isOpen]);
 
   return (
-    <div className="relative">
+    <div ref={rootRef} className="relative">
       <button
         type="button"
         onClick={() => {
@@ -103,23 +109,28 @@ function NeutralDropdownChip({
   onChange: (next: string) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
   const selectedOption = options.find((option) => option.value === value) ?? options[0];
 
   useEffect(() => {
     if (!isOpen) return;
-    const onDocClick = () => setIsOpen(false);
+    const onDocClick = (event: MouseEvent) => {
+      if (rootRef.current?.contains(event.target as Node)) return;
+      setIsOpen(false);
+    };
     const onEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setIsOpen(false);
     };
-    document.addEventListener('mousedown', onDocClick, { once: true });
+    document.addEventListener('mousedown', onDocClick);
     document.addEventListener('keydown', onEscape);
     return () => {
+      document.removeEventListener('mousedown', onDocClick);
       document.removeEventListener('keydown', onEscape);
     };
   }, [isOpen]);
 
   return (
-    <div className="relative">
+    <div ref={rootRef} className="relative">
       <button
         type="button"
         onClick={() => {
@@ -167,24 +178,29 @@ function TagStateChip({
   onChange: (next: VariantTag) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const label = value === 'novo' ? 'Novo' : 'V akciji';
-  const variant = value === 'novo' ? 'info' : 'warning';
+  const rootRef = useRef<HTMLDivElement>(null);
+  const label = value === 'novo' ? 'Novo' : value === 'akcija' ? 'V akciji' : 'Zadnji kosi';
+  const variant = value === 'novo' ? 'info' : value === 'akcija' ? 'warning' : 'purple';
 
   useEffect(() => {
     if (!isOpen) return;
-    const onDocClick = () => setIsOpen(false);
+    const onDocClick = (event: MouseEvent) => {
+      if (rootRef.current?.contains(event.target as Node)) return;
+      setIsOpen(false);
+    };
     const onEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setIsOpen(false);
     };
-    document.addEventListener('mousedown', onDocClick, { once: true });
+    document.addEventListener('mousedown', onDocClick);
     document.addEventListener('keydown', onEscape);
     return () => {
+      document.removeEventListener('mousedown', onDocClick);
       document.removeEventListener('keydown', onEscape);
     };
   }, [isOpen]);
 
   return (
-    <div className="relative">
+    <div ref={rootRef} className="relative">
       <button
         type="button"
         onClick={() => {
@@ -206,6 +222,7 @@ function TagStateChip({
           <MenuPanel>
             <MenuItem onClick={() => { onChange('novo'); setIsOpen(false); }}>Novo</MenuItem>
             <MenuItem onClick={() => { onChange('akcija'); setIsOpen(false); }}>V akciji</MenuItem>
+            <MenuItem onClick={() => { onChange('zadnji-kosi'); setIsOpen(false); }}>Zadnji kosi</MenuItem>
           </MenuPanel>
         </div>
       ) : null}
@@ -223,21 +240,26 @@ function VisibilityChip({
   onChange: (next: boolean) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!isOpen) return;
-    const onDocClick = () => setIsOpen(false);
+    const onDocClick = (event: MouseEvent) => {
+      if (rootRef.current?.contains(event.target as Node)) return;
+      setIsOpen(false);
+    };
     const onEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setIsOpen(false);
     };
-    document.addEventListener('mousedown', onDocClick, { once: true });
+    document.addEventListener('mousedown', onDocClick);
     document.addEventListener('keydown', onEscape);
     return () => {
+      document.removeEventListener('mousedown', onDocClick);
       document.removeEventListener('keydown', onEscape);
     };
   }, [isOpen]);
 
   return (
-    <div className="relative">
+    <div ref={rootRef} className="relative">
       <button
         type="button"
         onClick={() => {
@@ -319,7 +341,7 @@ export default function AdminItemEditorPage({
   const [documents, setDocuments] = useState<Array<{ name: string; size: string }>>([]);
   const [editorMode, setEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
   const [tableEditorMode, setTableEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
-  const [articleType, setArticleType] = useState<'unit' | 'sheet' | 'bulk'>('unit');
+  const [articleType, setArticleType] = useState<'unit' | 'sheet' | 'bulk' | ''>('');
   const [mediaTab, setMediaTab] = useState<MediaTab>('slike');
   const [mediaMode, setMediaMode] = useState<'read' | 'edit'>('read');
   const [mediaImagesSaved, setMediaImagesSaved] = useState<string[]>(draft.images);
@@ -331,6 +353,7 @@ export default function AdminItemEditorPage({
   const [videoEntriesSaved, setVideoEntriesSaved] = useState<VideoEntry[]>([]);
   const [videoSelections, setVideoSelections] = useState<Set<string>>(new Set());
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>({});
+  const [variantMeasures, setVariantMeasures] = useState<Record<string, VariantMeasure>>({});
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() =>
     (draft.category || '')
       .split('/')
@@ -442,11 +465,14 @@ export default function AdminItemEditorPage({
     if (!normalized) return { error: 'Vnos ne sme biti prazen.' };
     const match = normalized.match(/^(dolzina|dolžina|sirina|širina|debelina)\s*:?\s*(.+)$/i);
     if (!match) return { error: 'Uporabite Dolžina/Širina/Debelina + vrednosti.' };
-    const prefix = match[1].toLowerCase();
+    const prefix = match[1]
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '');
     const rawValues = (match[2] ?? '').trim();
     if (!rawValues) return { error: 'Dodajte vsaj eno številčno vrednost.' };
 
-    const dimension: GeneratorDimension = prefix.startsWith('dol') ? 'length' : prefix.startsWith('s') ? 'width' : 'thickness';
+    const dimension: GeneratorDimension = prefix.startsWith('dol') ? 'length' : prefix.startsWith('sir') ? 'width' : 'thickness';
     const parts = rawValues.split(',').map((entry) => entry.trim()).filter(Boolean);
     if (parts.length === 0) return { error: 'Dodajte vsaj eno številčno vrednost.' };
     if (parts.length > 5) return { error: `${generatorDimensionLabels[dimension]} podpira največ 5 vrednosti.` };
@@ -531,6 +557,7 @@ export default function AdminItemEditorPage({
   };
 
   const getVariantTag = (variantId: string): VariantTag => variantTags[variantId] ?? 'novo';
+  const getVariantMeasure = (variantId: string): VariantMeasure => variantMeasures[variantId] ?? 'mm';
 
   return (
     <div className="mx-auto max-w-7xl space-y-4 font-['Inter',system-ui,sans-serif]">
@@ -559,8 +586,9 @@ export default function AdminItemEditorPage({
                 <NeutralDropdownChip
                   value={articleType}
                   editable={isEditable}
-                  onChange={(value) => setArticleType(value as 'unit' | 'sheet' | 'bulk')}
+                  onChange={(value) => setArticleType(value as 'unit' | 'sheet' | 'bulk' | '')}
                   options={[
+                    { value: '', label: 'Tip artikla' },
                     { value: 'unit', label: 'Kosovni artikel' },
                     { value: 'sheet', label: 'Ploščni material' },
                     { value: 'bulk', label: 'Sipki material' }
@@ -752,9 +780,13 @@ export default function AdminItemEditorPage({
                     <div className="grid grid-cols-2 gap-2">
                       {(videoEntriesDraft.length ? videoEntriesDraft : videoEntriesSaved).slice(0, 4).map((entry) => (
                         entry.source === 'youtube' ? (
-                          <iframe key={entry.id} title={`Predogled ${entry.id}`} className="h-16 w-full rounded border border-slate-200" src={entry.previewUrl} />
+                          <button key={entry.id} type="button" className="block" onClick={() => window.open(entry.label, '_blank', 'noopener,noreferrer')}>
+                            <iframe title={`Predogled ${entry.id}`} className="h-16 w-full rounded border border-slate-200" src={entry.previewUrl} />
+                          </button>
                         ) : (
-                          <video key={entry.id} className="h-16 w-full rounded border border-slate-200 object-cover"><source src={entry.previewUrl} /></video>
+                          <button key={entry.id} type="button" className="block" onClick={() => window.open(entry.previewUrl, '_blank', 'noopener,noreferrer')}>
+                            <video className="h-16 w-full rounded border border-slate-200 object-cover"><source src={entry.previewUrl} /></video>
+                          </button>
                         )
                       ))}
                     </div>
@@ -875,7 +907,7 @@ export default function AdminItemEditorPage({
             </span>
           </div>
         </div>
-        <div className="overflow-x-auto rounded-lg border border-slate-200">
+        <div className="relative overflow-x-auto overflow-y-visible rounded-lg border border-slate-200">
           <table className="min-w-full text-xs">
             <thead className="bg-slate-50">
               <tr>
@@ -901,6 +933,7 @@ export default function AdminItemEditorPage({
                 <th className="px-2 py-2 text-right">Zaloga</th>
                 <th className="px-2 py-2 text-center">Min. naročilo</th>
                 <th className="px-2 py-2 text-center">Status</th>
+                <th className="px-2 py-2 text-center">Opomba</th>
                 <th className="px-2 py-2 text-center">Sort</th>
               </tr>
             </thead>
@@ -908,17 +941,11 @@ export default function AdminItemEditorPage({
               {draft.variants.map((variant, index) => (
                 <tr key={variant.id} className="border-t border-slate-100">
                   <td className="px-2 py-2 text-center"><AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} disabled={!isTableEditable} /></td>
-                  <td className="px-2 py-2 text-center">{variant.length ?? '—'}</td>
-                  <td className="px-2 py-2 text-center">{variant.width ?? '—'}</td>
-                  <td className="px-2 py-2 text-center">{variant.thickness ?? '—'}</td>
+                  <td className="px-2 py-2 text-center">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 !w-16 text-center`} value={variant.length ?? ''} onChange={(event) => updateVariant(index, { length: Number(event.target.value) || 0 })} /> : (variant.length ?? '—')}</td>
+                  <td className="px-2 py-2 text-center">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 !w-16 text-center`} value={variant.width ?? ''} onChange={(event) => updateVariant(index, { width: Number(event.target.value) || 0 })} /> : (variant.width ?? '—')}</td>
+                  <td className="px-2 py-2 text-center">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 !w-16 text-center`} value={variant.thickness ?? ''} onChange={(event) => updateVariant(index, { thickness: Number(event.target.value) || 0 })} /> : (variant.thickness ?? '—')}</td>
                   <td className="px-2 py-2 text-center">
-                    <div className="inline-flex justify-center">
-                      <TagStateChip
-                        value={getVariantTag(variant.id)}
-                        editable={isTableEditable}
-                        onChange={(next) => setVariantTag(variant.id, next)}
-                      />
-                    </div>
+                    <div className="inline-flex justify-center"><NeutralDropdownChip value={getVariantMeasure(variant.id)} editable={isTableEditable} onChange={(next) => setVariantMeasures((current) => ({ ...current, [variant.id]: next as VariantMeasure }))} options={[{ value: 'mm', label: 'mm' }, { value: 'cm', label: 'cm' }]} /></div>
                   </td>
                   <td className="px-2 py-2 text-center">
                     {isTableEditable ? (
@@ -935,12 +962,12 @@ export default function AdminItemEditorPage({
                     )}
                   </td>
                   <td className="px-2 py-2 text-center">{isTableEditable ? <input className={`${inputClass} !h-8`} value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} /> : <span className="inline-flex min-h-8 items-center">{variant.sku || '—'}</span>}</td>
-                  <td className="px-2 py-2 text-right">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 text-right`} value={variant.price} onChange={(event) => updateVariant(index, { price: Number(event.target.value) || 0 })} /> : <span className="inline-flex min-h-8 items-center justify-end">{formatCurrency(variant.price)}</span>}</td>
-                  <td className="px-2 py-2 text-right">{isTableEditable ? <input className={`${inputClass} !h-8 text-right`} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} /> : <span className="inline-flex min-h-8 items-center justify-end">{sideSettings.weightPerUnit || '—'}</span>}</td>
-                  <td className="px-2 py-2 text-right">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 text-right`} value={variant.discountPct} onChange={(event) => updateVariant(index, { discountPct: Number(event.target.value) || 0 })} /> : <span className="inline-flex min-h-8 items-center justify-end">{variant.discountPct}</span>}</td>
+                  <td className="px-2 py-2 text-right">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 !w-20 text-right`} value={variant.price} onChange={(event) => updateVariant(index, { price: Number(event.target.value) || 0 })} /> : <span className="inline-flex min-h-8 items-center justify-end">{formatCurrency(variant.price)}</span>}</td>
+                  <td className="px-2 py-2 text-right">{isTableEditable ? <input className={`${inputClass} !h-8 !w-20 text-right`} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} /> : <span className="inline-flex min-h-8 items-center justify-end">{sideSettings.weightPerUnit || '—'}</span>}</td>
+                  <td className="px-2 py-2 text-right">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 !w-20 text-right`} value={variant.discountPct} onChange={(event) => updateVariant(index, { discountPct: Number(event.target.value) || 0 })} /> : <span className="inline-flex min-h-8 items-center justify-end">{variant.discountPct}</span>}</td>
                   <td className="px-2 py-2 text-right">{formatCurrency(computeSalePrice(variant.price, variant.discountPct))}</td>
-                  <td className="px-2 py-2 text-right">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 text-right`} value={variant.stock} onChange={(event) => updateVariant(index, { stock: Number(event.target.value) || 0 })} /> : <span className="inline-flex min-h-8 items-center justify-end">{variant.stock}</span>}</td>
-                  <td className="px-2 py-2 text-center">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 text-center`} value={sideSettings.moq} onChange={(event) => setSideSettings((current) => ({ ...current, moq: Number(event.target.value) || 1 }))} /> : <span className="inline-flex min-h-8 items-center justify-center">{sideSettings.moq}</span>}</td>
+                  <td className="px-2 py-2 text-right">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 !w-20 text-right`} value={variant.stock} onChange={(event) => updateVariant(index, { stock: Number(event.target.value) || 0 })} /> : <span className="inline-flex min-h-8 items-center justify-end">{variant.stock}</span>}</td>
+                  <td className="px-2 py-2 text-center">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 !w-20 text-center`} value={sideSettings.moq} onChange={(event) => setSideSettings((current) => ({ ...current, moq: Number(event.target.value) || 1 }))} /> : <span className="inline-flex min-h-8 items-center justify-center">{sideSettings.moq}</span>}</td>
                   <td className="px-2 py-2 text-center">
                     <div className="inline-flex justify-center">
                       <ActiveStateChip
@@ -950,7 +977,16 @@ export default function AdminItemEditorPage({
                       />
                     </div>
                   </td>
-                  <td className="px-2 py-2 text-center">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 text-center`} value={variant.sort} onChange={(event) => updateVariant(index, { sort: Number(event.target.value) || 1 })} /> : <span className="inline-flex min-h-8 items-center justify-center">{variant.sort}</span>}</td>
+                  <td className="px-2 py-2 text-center">
+                    <div className="inline-flex justify-center">
+                      <TagStateChip
+                        value={getVariantTag(variant.id)}
+                        editable={isTableEditable}
+                        onChange={(next) => setVariantTag(variant.id, next)}
+                      />
+                    </div>
+                  </td>
+                  <td className="px-2 py-2 text-center">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 !w-16 text-center`} value={variant.sort} onChange={(event) => updateVariant(index, { sort: Number(event.target.value) || 1 })} /> : <span className="inline-flex min-h-8 items-center justify-center">{variant.sort}</span>}</td>
                 </tr>
               ))}
             </tbody>

@@ -47,7 +47,7 @@ export default function EuiTabs({ value, onChange, tabs, className, size = 'defa
             className={`relative z-10 border-b-2 bg-transparent font-['Inter',system-ui,sans-serif] transition ${size === 'compact' ? 'pt-2 pb-2.5 text-[15px] leading-[22px]' : 'pb-2 text-base leading-none'} ${tabClassName ?? ''} ${
               tone === 'muted-control'
                 ? active
-                  ? 'border-[#1982bf] text-slate-900 font-semibold'
+                  ? 'border-[#1982bf] text-[#1982bf] font-semibold'
                   : 'border-transparent text-slate-500 font-medium hover:text-slate-700 active:text-slate-700'
                 : active
                   ? 'border-[#1982bf] text-[#1982bf] font-semibold'

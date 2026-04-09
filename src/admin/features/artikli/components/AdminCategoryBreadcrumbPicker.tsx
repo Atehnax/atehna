@@ -121,8 +121,7 @@ export default function AdminCategoryBreadcrumbPicker({
     return categoryIndex.entries
       .filter((entry) => {
         const normalizedTitle = normalizeSearch(entry.title);
-        const normalizedPath = normalizeSearch(entry.fullPath);
-        return normalizedTitle.includes(normalizedQuery) || normalizedPath.includes(normalizedQuery);
+        return normalizedTitle.includes(normalizedQuery);
       })
       .slice(0, 60);
   }, [categoryIndex.entries, drillChildren, query]);

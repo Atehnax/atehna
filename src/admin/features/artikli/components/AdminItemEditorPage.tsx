@@ -137,17 +137,20 @@ function NeutralDropdownChip({
   editable,
   options,
   onChange,
-  chipClassName
+  chipClassName,
+  placeholderLabel
 }: {
   value: string;
   editable: boolean;
   options: Array<{ value: string; label: string }>;
   onChange: (next: string) => void;
   chipClassName?: string;
+  placeholderLabel?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const selectedOption = options.find((option) => option.value === value) ?? options[0];
+  const selectedOption = options.find((option) => option.value === value) ?? null;
+  const displayedLabel = selectedOption?.label ?? placeholderLabel ?? '';
 
   useEffect(() => {
     if (!isOpen) return;
@@ -180,7 +183,7 @@ function NeutralDropdownChip({
       >
         {editable ? <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span> : null}
         <span className="block">
-          <Chip variant="neutral" className={`min-w-[124px] ${chipClassName ?? ''}`}>{selectedOption?.label ?? ''}</Chip>
+          <Chip variant="neutral" className={`min-w-[124px] ${chipClassName ?? ''}`}>{displayedLabel}</Chip>
         </span>
       </button>
 
@@ -666,9 +669,9 @@ export default function AdminItemEditorPage({
                 <NeutralDropdownChip
                   value={articleType}
                   editable={isEditable}
+                  placeholderLabel="Tip artikla"
                   onChange={(value) => setArticleType(value as 'unit' | 'sheet' | 'bulk' | 'linear' | '')}
                   options={[
-                    { value: '', label: 'Tip artikla' },
                     { value: 'unit', label: 'Kosovni artikel' },
                     { value: 'sheet', label: 'Ploščni material' },
                     { value: 'linear', label: 'Dolžinski material' },
@@ -919,6 +922,16 @@ export default function AdminItemEditorPage({
             </IconButton>
             <IconButton
               type="button"
+              aria-label="Dodaj različico"
+              title="Dodaj različico"
+              tone="neutral"
+              disabled={!isTableEditable}
+              onClick={() => setDraft((current) => ({ ...current, variants: [...current.variants, createVariant({ sort: current.variants.length + 1 })] }))}
+            >
+              <PlusIcon />
+            </IconButton>
+            <IconButton
+              type="button"
               aria-label="Shrani tabelo artikla"
               title="Shrani"
               tone="neutral"
@@ -947,7 +960,7 @@ export default function AdminItemEditorPage({
           <p className="text-xs text-slate-500">Dodaj do tri čipe (Dolžina, Širina, Fi, Debelina). Vse mere naj bodo v milimetrih.</p>
           <div className="flex items-start gap-3">
             <div className="relative w-1/2 min-w-[300px]">
-              <div className={`flex min-h-9 flex-wrap items-center gap-1 rounded-md border border-slate-300 px-2 py-1 pr-11 ${isGeneratorLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : 'bg-white'}`}>
+              <div className={`flex h-9 flex-nowrap items-center gap-1 overflow-x-auto rounded-md border border-slate-300 px-2 py-1 pr-11 ${isGeneratorLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : 'bg-white'}`}>
                 {generatorChips.map((chip) => (
                   <span key={chip.dimension} className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs text-slate-700">
                     <button
@@ -1042,10 +1055,10 @@ export default function AdminItemEditorPage({
               {draft.variants.map((variant, index) => (
                 <tr key={variant.id} className="h-8 border-t border-slate-100 align-middle">
                   <td className="px-2 py-1.5 text-center"><AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} disabled={!isTableEditable} /></td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isBulkMaterial} className={`${compactTableNumberInputClassName} !w-14 text-right ${isBulkMaterial ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.length ?? ''} onChange={(event) => updateVariant(index, { length: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isBulkMaterial ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-14 items-center justify-end">{variant.length ?? '—'}</span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isBulkMaterial} className={`${compactTableNumberInputClassName} !w-12 text-right ${isBulkMaterial ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.width ?? ''} onChange={(event) => updateVariant(index, { width: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isBulkMaterial ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-12 items-center justify-end">{variant.width ?? '—'}</span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isBulkMaterial} className={`${compactTableNumberInputClassName} !w-14 text-right ${isBulkMaterial ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.thickness ?? ''} onChange={(event) => updateVariant(index, { thickness: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isBulkMaterial ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-14 items-center justify-end">{variant.thickness ?? '—'}</span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-12 text-right`} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-12 items-center justify-end">{sideSettings.weightPerUnit || '—'}</span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isBulkMaterial} className={`${compactTableNumberInputClassName} !w-auto !max-w-[7ch] text-right ${isBulkMaterial ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.length ?? ''} onChange={(event) => updateVariant(index, { length: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isBulkMaterial ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 max-w-[7ch] items-center justify-end">{variant.length ?? '—'}</span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isBulkMaterial} className={`${compactTableNumberInputClassName} !w-auto !max-w-[8ch] text-right ${isBulkMaterial ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.width ?? ''} onChange={(event) => updateVariant(index, { width: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isBulkMaterial ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 max-w-[8ch] items-center justify-end">{variant.width ?? '—'}</span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isBulkMaterial} className={`${compactTableNumberInputClassName} !w-auto !max-w-[8ch] text-right ${isBulkMaterial ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.thickness ?? ''} onChange={(event) => updateVariant(index, { thickness: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isBulkMaterial ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 max-w-[8ch] items-center justify-end">{variant.thickness ?? '—'}</span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-auto !max-w-[6ch] text-right`} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 max-w-[6ch] items-center justify-end">{sideSettings.weightPerUnit || '—'}</span></span>}</td>
                   <td className="px-2 py-1.5 text-center">
                     {isTableEditable ? (
                       <div className="inline-flex h-5 w-[52px] items-center justify-center gap-0.5">
@@ -1062,12 +1075,12 @@ export default function AdminItemEditorPage({
                       <span className="inline-flex h-5 w-[52px] items-center justify-center">{sideSettings.thicknessTolerance ? `±${sideSettings.thicknessTolerance}` : '—'}</span>
                     )}
                   </td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-14 text-right`} value={variant.price} onChange={(event) => updateVariant(index, { price: Number(event.target.value) || 0 })} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-14 items-center justify-end">{formatCurrency(variant.price)}</span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="decimal" min={0} max={99.9} step={0.1} className={`${compactTableNumberInputClassName} !mt-0 !w-12 text-right`} value={variant.discountPct} onChange={(event) => updateVariant(index, { discountPct: Math.min(99.9, Math.max(0, Number(event.target.value) || 0)) })} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-12 items-center justify-end">{variant.discountPct}</span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-auto !max-w-[6ch] text-right`} value={variant.price} onChange={(event) => updateVariant(index, { price: Number(event.target.value) || 0 })} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 max-w-[6ch] items-center justify-end">{formatCurrency(variant.price)}</span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="decimal" min={0} max={99.9} step={0.1} className={`${compactTableNumberInputClassName} !mt-0 !w-auto !max-w-[8ch] text-right`} value={variant.discountPct} onChange={(event) => updateVariant(index, { discountPct: Math.min(99.9, Math.max(0, Number(event.target.value) || 0)) })} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 max-w-[8ch] items-center justify-end">{variant.discountPct}</span></span>}</td>
                   <td className="px-2 py-1.5 text-right"><span className="inline-flex h-5 items-center justify-end">{formatCurrency(computeSalePrice(variant.price, variant.discountPct))}</span></td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="numeric" className={`${compactTableNumberInputClassName} !mt-0 !w-12 text-right`} value={variant.stock} onChange={(event) => updateVariant(index, { stock: Number(event.target.value) || 0 })} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-12 items-center justify-end">{variant.stock}</span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="numeric" className={`${compactTableNumberInputClassName} !mt-0 !w-auto !max-w-[6ch] text-right`} value={variant.stock} onChange={(event) => updateVariant(index, { stock: Number(event.target.value) || 0 })} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 max-w-[6ch] items-center justify-end">{variant.stock}</span></span>}</td>
                   <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableNumberInputClassName} !mt-0 !w-10 text-center`} value={sideSettings.moq} onChange={(event) => setSideSettings((current) => ({ ...current, moq: Number(event.target.value) || 1 }))} /> : <span className="inline-flex h-5 w-10 items-center justify-center">{sideSettings.moq}</span>}</td>
-                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input className={`${orderLikeEditableInputClassName} !mt-0 !h-5 !w-[132px] text-center`} value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} /> : <span className="inline-flex h-5 w-[132px] items-center justify-center overflow-hidden text-ellipsis whitespace-nowrap text-center">{variant.sku || '—'}</span>}</td>
+                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input className={`${orderLikeEditableInputClassName} !mt-0 !h-5 !w-auto !max-w-[8ch] text-center`} value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} /> : <span className="inline-flex h-5 max-w-[8ch] items-center justify-center overflow-hidden text-ellipsis whitespace-nowrap text-center">{variant.sku || '—'}</span>}</td>
                   <td className="px-1 py-1.5 text-center">
                     <div className="inline-flex justify-center">
                       <ActiveStateChip
@@ -1096,7 +1109,6 @@ export default function AdminItemEditorPage({
             </tbody>
           </table>
         </div>
-        <Button type="button" variant="ghost" size="toolbar" disabled={!isTableEditable} className="mt-3" onClick={() => setDraft((current) => ({ ...current, variants: [...current.variants, createVariant({ sort: current.variants.length + 1 })] }))}><PlusIcon />Dodaj različico</Button>
       </section>
     </div>
   );

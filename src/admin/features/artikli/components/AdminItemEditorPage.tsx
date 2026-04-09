@@ -468,7 +468,9 @@ export default function AdminItemEditorPage({
   const isTableEditable = tableEditorMode === 'edit';
   const isMediaEditable = mediaMode === 'edit';
   const isBulkMaterial = articleType === 'bulk';
+  const isLinearMaterial = articleType === 'linear';
   const isDimensionLockActive = isBulkMaterial;
+  const isThicknessLockActive = isBulkMaterial || isLinearMaterial;
   const isGeneratorLocked = !isTableEditable || isDimensionLockActive;
   const generatorUnitLabel = articleType === 'sheet' ? 'na m²' : articleType === 'bulk' ? 'na kg' : articleType === 'unit' ? 'na kos' : articleType === 'linear' ? 'na m' : 'na enoto';
   const hasSelectedVariants = variantSelections.size > 0;
@@ -493,6 +495,23 @@ export default function AdminItemEditorPage({
     return activeDimensions.reduce((total, values) => total * values.length, 1);
   }, [generatorByDimension]);
 
+  useEffect(() => {
+    if (!isLinearMaterial) return;
+    setGeneratorChips((current) => current.filter((chip) => chip.dimension !== 'thickness'));
+    if (generatorInput.trim()) {
+      const normalizedPrefix = generatorInput
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '')
+        .split(':')[0]
+        ?.trim();
+      if (normalizedPrefix === 'debelina' || normalizedPrefix === 'v' || normalizedPrefix === 'h') {
+        setGeneratorInput('');
+      }
+    }
+  }, [isLinearMaterial, generatorInput]);
+
   const save = (asDraft = false) => {
     if (!draft.name.trim()) {
       toast.error('Naziv je obvezen.');
@@ -514,22 +533,26 @@ export default function AdminItemEditorPage({
     const widths = generatorByDimension.get('width') ?? [];
     const lengths = generatorByDimension.get('length') ?? [];
     const thicknesses = generatorByDimension.get('thickness') ?? [];
+    const shouldUseThickness = !isLinearMaterial;
+    const thicknessValues = shouldUseThickness ? thicknesses : [0];
 
-    if (widths.length === 0 || lengths.length === 0 || thicknesses.length === 0) {
-      toast.error('Najprej dodajte Dolžino, Širino in Debelino.');
+    if (widths.length === 0 || lengths.length === 0 || (shouldUseThickness && thicknesses.length === 0)) {
+      toast.error(shouldUseThickness ? 'Najprej dodajte Dolžino, Širino in Debelino.' : 'Najprej dodajte Dolžino in Širino/fi.');
       return;
     }
 
     const generated: Variant[] = [];
     const parsedGeneratorPrice = Number(generatorPriceInput.replace(',', '.'));
     const nextPrice = Number.isFinite(parsedGeneratorPrice) ? parsedGeneratorPrice : 0;
-    widths.forEach((width) => lengths.forEach((length) => thicknesses.forEach((thickness) => {
+    widths.forEach((width) => lengths.forEach((length) => thicknessValues.forEach((thickness) => {
       generated.push(createVariant({
-        label: `${width} × ${length} × ${thickness} mm`,
+        label: shouldUseThickness ? `${width} × ${length} × ${thickness} mm` : `${width} × ${length} mm`,
         width,
         length,
         thickness,
-        sku: `${toSlug(draft.name || 'artikel').toUpperCase()}-${width}${length}${thickness}`,
+        sku: shouldUseThickness
+          ? `${toSlug(draft.name || 'artikel').toUpperCase()}-${width}${length}${thickness}`
+          : `${toSlug(draft.name || 'artikel').toUpperCase()}-${width}${length}`,
         price: nextPrice,
         discountPct: draft.defaultDiscountPct,
         sort: generated.length + 1
@@ -562,6 +585,9 @@ export default function AdminItemEditorPage({
     const parts = rawValues.split(',').map((entry) => entry.trim()).filter(Boolean);
     if (parts.length === 0) return { error: 'Dodajte vsaj eno številčno vrednost.' };
     if (parts.length > 5) return { error: `${generatorDimensionLabels[dimension]} podpira največ 5 vrednosti.` };
+    if (isLinearMaterial && dimension === 'thickness') {
+      return { error: 'Za dolžinski material Debelina ni dovoljena.' };
+    }
 
     const parsedValues: number[] = [];
     const duplicateGuard = new Set<number>();
@@ -659,10 +685,10 @@ export default function AdminItemEditorPage({
                       value={draft.name}
                       onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
                       placeholder="Naziv artikla"
-                      className="inline-flex h-[1.45em] min-w-[14ch] items-center rounded-md border border-slate-300 bg-white px-1.5 py-0 font-inherit text-inherit leading-none tracking-tight text-slate-900 shadow-none outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+                      className="inline-flex h-10 min-w-[14ch] items-center rounded-md border border-slate-300 bg-white px-1.5 text-lg font-semibold leading-none tracking-tight text-slate-900 shadow-none outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
                     />
                   ) : (
-                    <span className="inline-flex h-[1.45em] min-w-[14ch] items-center px-1.5">{draft.name.trim() || 'Naziv artikla'}</span>
+                    <span className="inline-flex h-10 min-w-[14ch] items-center px-1.5 text-lg font-semibold leading-none tracking-tight">{draft.name.trim() || 'Naziv artikla'}</span>
                   )}
                 </span>
               </h1>
@@ -956,9 +982,9 @@ export default function AdminItemEditorPage({
         </div>
         <div className="mb-3 space-y-2">
           <p className="text-xs text-slate-500">
-            Vnesi mere za vsako dimenzijo posebej, npr. <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">Dolžina: 10,20</span>. Podprte dimenzije: Dolžina, Širina/fi in Debelina, največ 5 vrednosti na dimenzijo. Generiranje ustvari kartezični produkt vseh mer in na tej osnovi pripravi različice.
+            Vnesi mere za vsako dimenzijo posebej, npr. <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">Dolžina: 10,20</span>. Podprte dimenzije: Dolžina, Širina/fi in Debelina (pri dolžinskem materialu Debelina ni dovoljena), največ 5 vrednosti na dimenzijo. Generiranje ustvari kartezični produkt vseh mer in na tej osnovi pripravi različice.
           </p>
-          <p className="text-xs text-slate-500">Dodaj do tri čipe (Dolžina, Širina, Fi, Debelina). Vse mere naj bodo v milimetrih.</p>
+          <p className="text-xs text-slate-500">Dodaj do tri čipe (Dolžina, Širina, Fi, Debelina). Za dolžinski material je Debelina zaklenjena. Vse mere naj bodo v milimetrih.</p>
           <div className="flex items-start gap-3">
             <div className="relative w-1/2 min-w-[300px]">
               <div className={`flex h-9 flex-nowrap items-center gap-1 overflow-hidden rounded-md border border-slate-300 px-2 py-1 pr-11 ${isGeneratorLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : 'bg-white'}`}>
@@ -1075,7 +1101,7 @@ export default function AdminItemEditorPage({
                   <td className="px-2 py-1.5 text-center"><AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} disabled={!isTableEditable} /></td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isDimensionLockActive} className={`${compactTableNumberInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.length ?? ''} onChange={(event) => updateVariant(index, { length: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.length ?? '—'}</span></span>}</td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isDimensionLockActive} className={`${compactTableNumberInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.width ?? ''} onChange={(event) => updateVariant(index, { width: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.width ?? '—'}</span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isDimensionLockActive} className={`${compactTableNumberInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.thickness ?? ''} onChange={(event) => updateVariant(index, { thickness: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.thickness ?? '—'}</span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isThicknessLockActive} className={`${compactTableNumberInputClassName} !w-[7ch] text-right ${isThicknessLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.thickness ?? ''} onChange={(event) => updateVariant(index, { thickness: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.thickness ?? '—'}</span></span>}</td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-[7ch] text-right`} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-[7ch] items-center justify-end">{sideSettings.weightPerUnit || '—'}</span></span>}</td>
                   <td className="px-2 py-1.5 text-center">
                     {isTableEditable ? (

@@ -412,7 +412,7 @@ export default function AdminItemEditorPage({
   const [documents, setDocuments] = useState<Array<{ name: string; size: string }>>([]);
   const [editorMode, setEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
   const [tableEditorMode, setTableEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
-  const [articleType, setArticleType] = useState<'unit' | 'sheet' | 'bulk' | ''>('');
+  const [articleType, setArticleType] = useState<'unit' | 'sheet' | 'bulk' | 'linear' | ''>('');
   const [mediaTab, setMediaTab] = useState<MediaTab>('slike');
   const [mediaMode, setMediaMode] = useState<'read' | 'edit'>('read');
   const [mediaImagesSaved, setMediaImagesSaved] = useState<string[]>(draft.images);
@@ -466,7 +466,7 @@ export default function AdminItemEditorPage({
   const isMediaEditable = mediaMode === 'edit';
   const isBulkMaterial = articleType === 'bulk';
   const isGeneratorLocked = !isTableEditable || isBulkMaterial;
-  const generatorUnitLabel = articleType === 'sheet' ? 'na m²' : articleType === 'bulk' ? 'na kg' : articleType === 'unit' ? 'na kos' : 'na enoto';
+  const generatorUnitLabel = articleType === 'sheet' ? 'na m²' : articleType === 'bulk' ? 'na kg' : articleType === 'unit' ? 'na kos' : articleType === 'linear' ? 'na m' : 'na enoto';
   const hasSelectedVariants = variantSelections.size > 0;
   const allVariantsSelected = draft.variants.length > 0 && draft.variants.every((variant) => variantSelections.has(variant.id));
   const generatorDimensionLabels: Record<GeneratorDimension, string> = {
@@ -539,20 +539,22 @@ export default function AdminItemEditorPage({
   const parseGeneratorEntry = (value: string): { dimension: GeneratorDimension; values: number[] } | { error: string } => {
     const normalized = value.trim();
     if (!normalized) return { error: 'Vnos ne sme biti prazen.' };
-    const match = normalized.match(/^(dolzina|dolžina|sirina(?:\/fi)?|širina(?:\/fi)?|fi|debelina)\s*:?\s*(.+)$/i);
+    const match = normalized.match(/^(dolzina|dolžina|d|sirina(?:\/fi)?|širina(?:\/fi)?|fi|s|š|debelina|v|h)\s*:?\s*(.+)$/i);
     if (!match) return { error: 'Uporabite Dolžina/Širina/fi/Debelina + vrednosti.' };
     const prefix = match[1]
       .toLowerCase()
       .normalize('NFD')
       .replace(/\p{Diacritic}/gu, '');
-    const rawValues = (match[2] ?? '').trim();
+    const rawValues = (match[2] ?? '').trim().replace(/:/g, ',');
     if (!rawValues) return { error: 'Dodajte vsaj eno številčno vrednost.' };
 
-    const dimension: GeneratorDimension = prefix.startsWith('dol')
+    const dimension: GeneratorDimension = (prefix.startsWith('dol') || prefix === 'd')
       ? 'length'
-      : (prefix.startsWith('sir') || prefix.startsWith('fi'))
+      : (prefix.startsWith('sir') || prefix.startsWith('fi') || prefix === 's')
         ? 'width'
-        : 'thickness';
+        : (prefix.startsWith('deb') || prefix === 'v' || prefix === 'h')
+          ? 'thickness'
+          : 'thickness';
     const parts = rawValues.split(',').map((entry) => entry.trim()).filter(Boolean);
     if (parts.length === 0) return { error: 'Dodajte vsaj eno številčno vrednost.' };
     if (parts.length > 5) return { error: `${generatorDimensionLabels[dimension]} podpira največ 5 vrednosti.` };
@@ -664,11 +666,12 @@ export default function AdminItemEditorPage({
                 <NeutralDropdownChip
                   value={articleType}
                   editable={isEditable}
-                  onChange={(value) => setArticleType(value as 'unit' | 'sheet' | 'bulk' | '')}
+                  onChange={(value) => setArticleType(value as 'unit' | 'sheet' | 'bulk' | 'linear' | '')}
                   options={[
                     { value: '', label: 'Tip artikla' },
                     { value: 'unit', label: 'Kosovni artikel' },
                     { value: 'sheet', label: 'Ploščni material' },
+                    { value: 'linear', label: 'Dolžinski material' },
                     { value: 'bulk', label: 'Sipki material' }
                   ]}
                 />
@@ -717,7 +720,7 @@ export default function AdminItemEditorPage({
                         </label>
                       </div>
                     ) : isEditable ? (
-                      <input className={orderLikeEditableInputClassName} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
+                      <input className={inputClass} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
                     ) : (
                       <p className="text-sm text-slate-700">{field.value || field.placeholder}</p>
                     )}
@@ -753,7 +756,8 @@ export default function AdminItemEditorPage({
                 value={mediaTab}
                 onChange={(value) => setMediaTab(value as MediaTab)}
                 size="compact"
-                tabClassName="!font-['Inter',system-ui,sans-serif] !text-lg !font-semibold !tracking-tight"
+                tone="muted-control"
+                tabClassName="!font-['Inter',system-ui,sans-serif] !tracking-[0]"
                 tabs={[
                   { value: 'slike', label: 'Slike' },
                   { value: 'video', label: 'Video' }
@@ -986,8 +990,8 @@ export default function AdminItemEditorPage({
               </div>
               <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">{combinationCount}</span>
             </div>
-            <label className="mt-1 inline-flex items-center gap-2 text-xs text-slate-600">
-              <span className="font-semibold text-slate-700">Cena:</span>
+            <label className="ml-auto mt-0.5 inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+              <span>Cena:</span>
               <span className="relative inline-flex items-center">
                 <input
                   type="number"
@@ -995,9 +999,9 @@ export default function AdminItemEditorPage({
                   value={generatorPriceInput}
                   disabled={!isTableEditable}
                   onChange={(event) => setGeneratorPriceInput(event.target.value)}
-                  className={`${compactTableNumberInputClassName} !w-28 !pr-12 text-right ${!isTableEditable ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`}
+                  className={`${inputClass} !h-9 !w-40 !pr-16 text-right text-sm ${!isTableEditable ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`}
                 />
-                <span className="pointer-events-none absolute right-2 text-[10px] text-slate-500">{generatorUnitLabel}</span>
+                <span className="pointer-events-none absolute right-3 text-xs font-medium text-slate-500">{generatorUnitLabel}</span>
               </span>
             </label>
           </div>
@@ -1018,9 +1022,9 @@ export default function AdminItemEditorPage({
                     disabled={!isTableEditable}
                   />
                 </th>
-                <th className="px-2 py-2 text-center">Dolžina</th>
-                <th className="px-2 py-2 text-center">Širina/fi</th>
-                <th className="px-2 py-2 text-center">Debelina</th>
+                <th className="px-2 py-2 text-right">Dolžina</th>
+                <th className="px-2 py-2 text-right">Širina/fi</th>
+                <th className="px-2 py-2 text-right">Debelina</th>
                 <th className="px-2 py-2 text-right">Teža (g)</th>
                 <th className="px-2 py-2 text-center">Toleranca</th>
                 <th className="px-2 py-2 text-right">Cena</th>
@@ -1031,17 +1035,17 @@ export default function AdminItemEditorPage({
                 <th className="px-2 py-2 text-center">SKU</th>
                 <th className="px-1 py-2 text-center">Status</th>
                 <th className="px-1 py-2 text-center">Opomba</th>
-                <th className="px-2 py-2 text-center">Sort</th>
+                <th className="px-2 py-2 text-center">Mesto</th>
               </tr>
             </thead>
             <tbody>
               {draft.variants.map((variant, index) => (
                 <tr key={variant.id} className="h-8 border-t border-slate-100 align-middle">
                   <td className="px-2 py-1.5 text-center"><AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} disabled={!isTableEditable} /></td>
-                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" disabled={isBulkMaterial} className={`${compactTableNumberInputClassName} !w-10 text-center ${isBulkMaterial ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.length ?? ''} onChange={(event) => updateVariant(index, { length: Number(event.target.value) || 0 })} /> : <span className={`inline-flex h-5 w-10 items-center justify-center ${isBulkMaterial ? 'text-slate-500' : ''}`}>{variant.length ?? '—'}</span>}</td>
-                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" disabled={isBulkMaterial} className={`${compactTableNumberInputClassName} !w-10 text-center ${isBulkMaterial ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.width ?? ''} onChange={(event) => updateVariant(index, { width: Number(event.target.value) || 0 })} /> : <span className={`inline-flex h-5 w-10 items-center justify-center ${isBulkMaterial ? 'text-slate-500' : ''}`}>{variant.width ?? '—'}</span>}</td>
-                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" disabled={isBulkMaterial} className={`${compactTableNumberInputClassName} !w-10 text-center ${isBulkMaterial ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.thickness ?? ''} onChange={(event) => updateVariant(index, { thickness: Number(event.target.value) || 0 })} /> : <span className={`inline-flex h-5 w-10 items-center justify-center ${isBulkMaterial ? 'text-slate-500' : ''}`}>{variant.thickness ?? '—'}</span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-14 text-right`} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-14 items-center justify-end">{sideSettings.weightPerUnit || '—'}</span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isBulkMaterial} className={`${compactTableNumberInputClassName} !w-14 text-right ${isBulkMaterial ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.length ?? ''} onChange={(event) => updateVariant(index, { length: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isBulkMaterial ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-14 items-center justify-end">{variant.length ?? '—'}</span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isBulkMaterial} className={`${compactTableNumberInputClassName} !w-12 text-right ${isBulkMaterial ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.width ?? ''} onChange={(event) => updateVariant(index, { width: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isBulkMaterial ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-12 items-center justify-end">{variant.width ?? '—'}</span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isBulkMaterial} className={`${compactTableNumberInputClassName} !w-14 text-right ${isBulkMaterial ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.thickness ?? ''} onChange={(event) => updateVariant(index, { thickness: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isBulkMaterial ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-14 items-center justify-end">{variant.thickness ?? '—'}</span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-12 text-right`} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-12 items-center justify-end">{sideSettings.weightPerUnit || '—'}</span></span>}</td>
                   <td className="px-2 py-1.5 text-center">
                     {isTableEditable ? (
                       <div className="inline-flex h-5 w-[52px] items-center justify-center gap-0.5">

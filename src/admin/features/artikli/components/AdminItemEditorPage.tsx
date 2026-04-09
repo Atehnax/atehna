@@ -42,12 +42,14 @@ function ActiveStateChip({
   active,
   editable,
   onChange,
-  chipClassName
+  chipClassName,
+  menuPlacement = 'bottom'
 }: {
   active: boolean;
   editable: boolean;
   onChange: (next: boolean) => void;
   chipClassName?: string;
+  menuPlacement?: 'top' | 'bottom';
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -89,7 +91,7 @@ function ActiveStateChip({
       </button>
 
       {editable && isOpen ? (
-        <div role="menu" className="absolute left-0 top-8 z-30 min-w-[130px]">
+        <div role="menu" className={`absolute left-0 z-40 min-w-[130px] ${menuPlacement === 'top' ? 'bottom-full mb-1' : 'top-8'}`}>
           <MenuPanel>
             <MenuItem onClick={() => { onChange(true); setIsOpen(false); }}>Aktiven</MenuItem>
             <MenuItem onClick={() => { onChange(false); setIsOpen(false); }}>Neaktiven</MenuItem>
@@ -177,12 +179,14 @@ function TagStateChip({
   value,
   editable,
   onChange,
-  chipClassName
+  chipClassName,
+  menuPlacement = 'bottom'
 }: {
   value: VariantTag;
   editable: boolean;
   onChange: (next: VariantTag) => void;
   chipClassName?: string;
+  menuPlacement?: 'top' | 'bottom';
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -225,7 +229,7 @@ function TagStateChip({
       </button>
 
       {editable && isOpen ? (
-        <div role="menu" className="absolute left-0 top-8 z-30 min-w-[130px]">
+        <div role="menu" className={`absolute left-0 z-40 min-w-[130px] ${menuPlacement === 'top' ? 'bottom-full mb-1' : 'top-8'}`}>
           <MenuPanel>
             <MenuItem onClick={() => { onChange('novo'); setIsOpen(false); }}>Novo</MenuItem>
             <MenuItem onClick={() => { onChange('akcija'); setIsOpen(false); }}>V akciji</MenuItem>
@@ -861,15 +865,15 @@ export default function AdminItemEditorPage({
             >
               <TrashCanIcon />
             </IconButton>
-            <Button type="button" variant="primary" size="toolbar" onClick={generateVariants}>Generiraj različice</Button>
+            <Button type="button" variant="primary" size="toolbar" className="!h-8 !rounded-lg !px-3 !text-xs" onClick={generateVariants}>Generiraj različice</Button>
           </div>
         </div>
         <div className="mb-3 space-y-2">
           <p className="text-xs text-slate-500">
-            Vnesi mere za vsako dimenzijo posebej, npr. <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">Dolžina: 10,20</span>. Oznake nastavi v spodnji tabeli (mm/cm). Podprte dimenzije: Dolžina, Širina/fi in Debelina, največ 5 vrednosti na dimenzijo. Generiranje ustvari kartezični produkt vseh mer in na tej osnovi pripravi različice.
+            Vnesi mere za vsako dimenzijo posebej, npr. <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">Dolžina: 10,20</span>. Podprte dimenzije: Dolžina, Širina/fi in Debelina, največ 5 vrednosti na dimenzijo. Generiranje ustvari kartezični produkt vseh mer in na tej osnovi pripravi različice.
           </p>
           <div className="flex items-center justify-between text-xs">
-            <p className="text-xs text-slate-500">Dodajte do tri čipe (Dolžina, Širina/fi, Debelina).</p>
+            <p className="text-xs text-slate-500">Dodaj do tri čipe (Dolžina, Širina, Fi, Debelina). Vse mere naj bodo v milimetrih.</p>
             <span className="font-semibold text-slate-700">Kombinacij: {combinationCount}</span>
           </div>
           <div className="flex min-h-9 flex-wrap items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1">
@@ -946,7 +950,7 @@ export default function AdminItemEditorPage({
             </thead>
             <tbody>
               {draft.variants.map((variant, index) => (
-                <tr key={variant.id} className="border-t border-slate-100 align-middle">
+                <tr key={variant.id} className="h-8 border-t border-slate-100 align-middle">
                   <td className="px-2 py-1.5 text-center"><AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} disabled={!isTableEditable} /></td>
                   <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" className={`${compactTableNumberInputClassName} !w-10 text-center`} value={variant.length ?? ''} onChange={(event) => updateVariant(index, { length: Number(event.target.value) || 0 })} /> : <span className="inline-flex h-5 w-10 items-center justify-center">{variant.length ?? '—'}</span>}</td>
                   <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" className={`${compactTableNumberInputClassName} !w-10 text-center`} value={variant.width ?? ''} onChange={(event) => updateVariant(index, { width: Number(event.target.value) || 0 })} /> : <span className="inline-flex h-5 w-10 items-center justify-center">{variant.width ?? '—'}</span>}</td>
@@ -971,7 +975,7 @@ export default function AdminItemEditorPage({
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <input type="number" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-14 text-right`} value={variant.price} onChange={(event) => updateVariant(index, { price: Number(event.target.value) || 0 })} /> : <span className="inline-flex h-5 w-14 items-center justify-end">{formatCurrency(variant.price)}</span>}</td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <input type="number" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-14 text-right`} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} /> : <span className="inline-flex h-5 w-14 items-center justify-end">{sideSettings.weightPerUnit || '—'}</span>}</td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <input type="number" inputMode="decimal" min={0} max={99.9} step={0.1} className={`${compactTableNumberInputClassName} !mt-0 !w-12 text-right`} value={variant.discountPct} onChange={(event) => updateVariant(index, { discountPct: Math.min(99.9, Math.max(0, Number(event.target.value) || 0)) })} /> : <span className="inline-flex h-5 w-12 items-center justify-end">{variant.discountPct}</span>}</td>
-                  <td className="px-2 py-1.5 text-right">{formatCurrency(computeSalePrice(variant.price, variant.discountPct))}</td>
+                  <td className="px-2 py-1.5 text-right"><span className="inline-flex h-5 items-center justify-end">{formatCurrency(computeSalePrice(variant.price, variant.discountPct))}</span></td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableNumberInputClassName} !mt-0 !w-12 text-right`} value={variant.stock} onChange={(event) => updateVariant(index, { stock: Number(event.target.value) || 0 })} /> : <span className="inline-flex h-5 w-12 items-center justify-end">{variant.stock}</span>}</td>
                   <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableNumberInputClassName} !mt-0 !w-10 text-center`} value={sideSettings.moq} onChange={(event) => setSideSettings((current) => ({ ...current, moq: Number(event.target.value) || 1 }))} /> : <span className="inline-flex h-5 w-10 items-center justify-center">{sideSettings.moq}</span>}</td>
                   <td className="px-1 py-1.5 text-center">
@@ -980,6 +984,7 @@ export default function AdminItemEditorPage({
                         active={variant.active}
                         editable={isTableEditable}
                         chipClassName="!h-5 !min-w-[94px] !px-1.5 !text-[10px]"
+                        menuPlacement="top"
                         onChange={(next) => updateVariant(index, { active: next })}
                       />
                     </div>
@@ -990,6 +995,7 @@ export default function AdminItemEditorPage({
                         value={getVariantTag(variant.id)}
                         editable={isTableEditable}
                         chipClassName="!h-5 !min-w-[94px] !px-1.5 !text-[10px]"
+                        menuPlacement="top"
                         onChange={(next) => setVariantTag(variant.id, next)}
                       />
                     </div>

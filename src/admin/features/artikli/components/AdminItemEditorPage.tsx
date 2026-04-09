@@ -984,10 +984,17 @@ export default function AdminItemEditorPage({
           <p className="text-xs text-slate-500">
             Vnesi mere za vsako dimenzijo posebej, npr. <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">Dolžina: 10,20</span>. Podprte dimenzije: Dolžina, Širina/fi in Debelina (pri dolžinskem materialu Debelina ni dovoljena), največ 5 vrednosti na dimenzijo. Generiranje ustvari kartezični produkt vseh mer in na tej osnovi pripravi različice.
           </p>
-          <div className="rounded-md border border-slate-300 bg-[color:var(--ui-neutral-bg)] px-3 py-2 text-sm text-slate-700">
-            Dodaj do tri tipe (Dolžina, Širina, Fi, Debelina). Vse mere naj bodo v milimetrih.
+          <div className="flex items-center gap-3 rounded-xl border border-slate-300 bg-[color:var(--ui-neutral-bg)] px-4 py-3 text-slate-700">
+            <span
+              aria-hidden
+              className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-black bg-white text-sm font-semibold leading-none text-black"
+            >
+              i
+            </span>
+            <span className="text-sm font-medium text-slate-700">
+              Dodaj do tri tipe (Dolžina, Širina, Fi, Debelina). Vse mere naj bodo v milimetrih.
+            </span>
           </div>
-          <h3 className="text-sm font-semibold text-slate-700">Dodaj dimenzije z merami</h3>
           <div className="flex items-start gap-3">
             <div className="relative w-1/2 min-w-[300px]">
               <div className={`flex h-9 flex-nowrap items-center gap-1 overflow-hidden rounded-md border border-slate-300 px-2 py-1 pr-11 ${isGeneratorLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : 'bg-white'}`}>

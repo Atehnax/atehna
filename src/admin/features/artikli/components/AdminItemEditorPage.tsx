@@ -117,7 +117,7 @@ function NeutralDropdownChip({
   }, [isOpen]);
 
   return (
-    <div className="relative mt-0.5">
+    <div className="relative">
       <button
         type="button"
         onClick={() => {
@@ -148,6 +148,62 @@ function NeutralDropdownChip({
                 {option.label}
               </MenuItem>
             ))}
+          </MenuPanel>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function TagStateChip({
+  value,
+  editable,
+  onChange
+}: {
+  value: VariantTag;
+  editable: boolean;
+  onChange: (next: VariantTag) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const label = value === 'novo' ? 'Novo' : 'V akciji';
+  const variant = value === 'novo' ? 'info' : 'warning';
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onDocClick = () => setIsOpen(false);
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick, { once: true });
+    document.addEventListener('keydown', onEscape);
+    return () => {
+      document.removeEventListener('keydown', onEscape);
+    };
+  }, [isOpen]);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => {
+          if (!editable) return;
+          setIsOpen((current) => !current);
+        }}
+        className="relative block rounded-full focus:outline-none"
+        aria-haspopup={editable ? 'menu' : undefined}
+        aria-expanded={editable ? isOpen : undefined}
+      >
+        {editable ? <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span> : null}
+        <span className="block">
+          <Chip variant={variant}>{label}</Chip>
+        </span>
+      </button>
+
+      {editable && isOpen ? (
+        <div role="menu" className="absolute left-0 top-8 z-30 min-w-[130px]">
+          <MenuPanel>
+            <MenuItem onClick={() => { onChange('novo'); setIsOpen(false); }}>Novo</MenuItem>
+            <MenuItem onClick={() => { onChange('akcija'); setIsOpen(false); }}>V akciji</MenuItem>
           </MenuPanel>
         </div>
       ) : null}
@@ -212,7 +268,6 @@ export default function AdminItemEditorPage({
   const [editorMode, setEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
   const [articleType, setArticleType] = useState<'unit' | 'sheet' | 'bulk'>('unit');
   const [mediaTab, setMediaTab] = useState<MediaTab>('slike');
-  const [videoInputMode, setVideoInputMode] = useState<'upload' | 'youtube'>('youtube');
   const [uploadedVideo, setUploadedVideo] = useState<{ name: string; url: string } | null>(null);
   const [dimensionsLocked, setDimensionsLocked] = useState(true);
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>({});
@@ -329,7 +384,7 @@ export default function AdminItemEditorPage({
     <div className="mx-auto max-w-7xl space-y-4 font-['Inter',system-ui,sans-serif]">
       <div className="text-xs text-slate-500"><Link href="/admin/artikli" className="hover:underline">Artikli</Link> › {mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</div>
 
-      <div className="grid items-stretch gap-6 lg:grid-cols-[7fr_13fr]">
+      <div className="grid items-stretch gap-6 lg:grid-cols-[2fr_3fr]">
         <div className="space-y-4">
           <section className="h-full rounded-xl border border-slate-200 bg-white p-4">
             <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -341,7 +396,7 @@ export default function AdminItemEditorPage({
                       value={draft.name}
                       onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
                       placeholder="Naziv artikla"
-                      className="h-[1.45em] min-w-[14ch] rounded-md border border-slate-300 bg-white px-1.5 py-0 font-inherit text-inherit leading-none tracking-tight text-slate-900 shadow-none outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0"
+                      className="h-[1.45em] min-w-[14ch] rounded-md border border-slate-300 bg-white px-1.5 py-0 text-lg font-semibold leading-none tracking-tight text-slate-900 shadow-none outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0"
                     />
                   ) : (
                     <span className="inline-flex h-[1.45em] min-w-[14ch] items-center px-1.5">{draft.name.trim() || 'Naziv artikla'}</span>
@@ -379,8 +434,8 @@ export default function AdminItemEditorPage({
                 {[
                   { title: 'Blagovna znamka', value: sideSettings.brand, placeholder: 'AluCraft', onChange: (value: string) => setSideSettings((current) => ({ ...current, brand: value })) },
                   { title: 'Material', value: sideSettings.material, placeholder: 'Aluminij', onChange: (value: string) => setSideSettings((current) => ({ ...current, material: value })) },
-                  { title: 'Oblika', value: sideSettings.surface, placeholder: 'pravokotna', onChange: (value: string) => setSideSettings((current) => ({ ...current, surface: value })) },
-                  { title: 'Barva', value: sideSettings.color, placeholder: 'srebrna', onChange: (value: string) => setSideSettings((current) => ({ ...current, color: value })) },
+                  { title: 'Oblika', value: sideSettings.surface, placeholder: 'Pravokotna', onChange: (value: string) => setSideSettings((current) => ({ ...current, surface: value })) },
+                  { title: 'Barva', value: sideSettings.color, placeholder: 'Srebrna', onChange: (value: string) => setSideSettings((current) => ({ ...current, color: value })) },
                   { title: 'Tehnični list', value: documents.map((doc) => doc.name).join(', '), placeholder: 'Dodajte dokument', onChange: () => {} },
                   { title: 'Kratek URL', value: draft.slug, placeholder: toSlug(draft.name || 'naziv-artikla'), onChange: (value: string) => setDraft((current) => ({ ...current, slug: value })) }
                 ].map((field) => (
@@ -400,9 +455,8 @@ export default function AdminItemEditorPage({
                           }}
                         />
                         <label htmlFor="tech-sheet-upload-inline">
-                          <Button type="button" variant="default" size="toolbar" disabled={!isEditable}>Dodaj dokument</Button>
+                          <Button type="button" variant="default" size="toolbar" className="whitespace-nowrap" disabled={!isEditable}>Dodaj dokument</Button>
                         </label>
-                        <span className="text-xs text-slate-600">{field.value || field.placeholder}</span>
                       </div>
                     ) : isEditable ? (
                       <input className={orderLikeEditableInputClassName} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
@@ -440,6 +494,7 @@ export default function AdminItemEditorPage({
               value={mediaTab}
               onChange={(value) => setMediaTab(value as MediaTab)}
               size="compact"
+              tabClassName="font-['Inter',system-ui,sans-serif] text-lg font-semibold tracking-tight"
               tabs={[
                 { value: 'slike', label: 'Slike' },
                 { value: 'video', label: 'Video' }
@@ -463,43 +518,36 @@ export default function AdminItemEditorPage({
               </div>
             ) : (
               <div className="mt-3 space-y-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <Button type="button" variant={videoInputMode === 'upload' ? 'primary' : 'default'} size="toolbar" onClick={() => setVideoInputMode('upload')}>Naloži video</Button>
-                  <Button type="button" variant={videoInputMode === 'youtube' ? 'primary' : 'default'} size="toolbar" onClick={() => setVideoInputMode('youtube')}>YouTube povezava</Button>
+                <div className="space-y-1">
+                  <label className="text-xs text-slate-600">Video datoteka</label>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    disabled={!isEditable}
+                    className="block w-full text-xs text-slate-700 file:mr-2 file:rounded-md file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs file:font-semibold"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (!file) return;
+                      setUploadedVideo({ name: file.name, url: URL.createObjectURL(file) });
+                    }}
+                  />
+                  {uploadedVideo ? <video controls className="mt-2 w-full rounded-lg border border-slate-200"><source src={uploadedVideo.url} /></video> : <p className="text-xs text-slate-500">Noben video ni naložen.</p>}
                 </div>
-                {videoInputMode === 'upload' ? (
-                  <div className="space-y-1">
-                    <label className="text-xs text-slate-600">Video datoteka</label>
-                    <input
-                      type="file"
-                      accept="video/*"
-                      disabled={!isEditable}
-                      className="block w-full text-xs text-slate-700 file:mr-2 file:rounded-md file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs file:font-semibold"
-                      onChange={(event) => {
-                        const file = event.target.files?.[0];
-                        if (!file) return;
-                        setUploadedVideo({ name: file.name, url: URL.createObjectURL(file) });
-                      }}
+                <div className="space-y-1">
+                  <label className="text-xs text-slate-600">YouTube URL</label>
+                  <input className={inputClass} value={sideSettings.videoUrl} onChange={(event) => setSideSettings((current) => ({ ...current, videoUrl: event.target.value }))} placeholder="https://www.youtube.com/watch?v=..." />
+                  {sideSettings.videoUrl.includes('youtube.com') || sideSettings.videoUrl.includes('youtu.be') ? (
+                    <iframe
+                      title="YouTube video predogled"
+                      className="h-52 w-full rounded-lg border border-slate-200"
+                      src={sideSettings.videoUrl
+                        .replace('watch?v=', 'embed/')
+                        .replace('youtu.be/', 'youtube.com/embed/')}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
                     />
-                    {uploadedVideo ? <video controls className="mt-2 w-full rounded-lg border border-slate-200"><source src={uploadedVideo.url} /></video> : <p className="text-xs text-slate-500">Noben video ni naložen.</p>}
-                  </div>
-                ) : (
-                  <div className="space-y-1">
-                    <label className="text-xs text-slate-600">YouTube URL</label>
-                    <input className={inputClass} value={sideSettings.videoUrl} onChange={(event) => setSideSettings((current) => ({ ...current, videoUrl: event.target.value }))} placeholder="https://www.youtube.com/watch?v=..." />
-                    {sideSettings.videoUrl.includes('youtube.com') || sideSettings.videoUrl.includes('youtu.be') ? (
-                      <iframe
-                        title="YouTube video predogled"
-                        className="h-52 w-full rounded-lg border border-slate-200"
-                        src={sideSettings.videoUrl
-                          .replace('watch?v=', 'embed/')
-                          .replace('youtu.be/', 'youtube.com/embed/')}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
-                    ) : <p className="text-xs text-slate-500">Vnesite YouTube povezavo za predogled.</p>}
-                  </div>
-                )}
+                  ) : <p className="text-xs text-slate-500">Vnesite YouTube povezavo za predogled.</p>}
+                </div>
               </div>
             )}
           </div>
@@ -508,7 +556,7 @@ export default function AdminItemEditorPage({
 
       <section className="rounded-xl border border-slate-200 bg-white p-4">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-2xl font-semibold">Uredi artikle</h2>
+          <h2 className="text-lg font-semibold tracking-tight">Uredi artikel</h2>
           <div className="flex items-center gap-2">
             <IconButton
               type="button"
@@ -582,22 +630,23 @@ export default function AdminItemEditorPage({
                   <td className="px-2 py-2 text-right">{formatCurrency(computeSalePrice(variant.price, variant.discountPct))}</td>
                   <td className="px-2 py-2 text-right">{isEditable ? <input type="number" className={`${inputClass} !h-8 text-right`} value={variant.stock} onChange={(event) => updateVariant(index, { stock: Number(event.target.value) || 0 })} /> : <span className="inline-flex min-h-8 items-center justify-end">{variant.stock}</span>}</td>
                   <td className="px-2 py-2 text-center">{isEditable ? <input type="number" className={`${inputClass} !h-8 text-center`} value={sideSettings.moq} onChange={(event) => setSideSettings((current) => ({ ...current, moq: Number(event.target.value) || 1 }))} /> : <span className="inline-flex min-h-8 items-center justify-center">{sideSettings.moq}</span>}</td>
-                  <td className="px-2 py-2 text-center"><Chip variant={variant.active ? 'success' : 'warning'}>{statusLabel(variant.active)}</Chip></td>
                   <td className="px-2 py-2 text-center">
-                    {isEditable ? (
-                      <div className="inline-flex gap-1">
-                        <button type="button" onClick={() => setVariantTag(variant.id, 'novo')}>
-                          <Chip variant="info" className={getVariantTag(variant.id) === 'novo' ? '' : 'opacity-60'}>Novo</Chip>
-                        </button>
-                        <button type="button" onClick={() => setVariantTag(variant.id, 'akcija')}>
-                          <Chip variant="warning" className={getVariantTag(variant.id) === 'akcija' ? '' : 'opacity-60'}>V akciji</Chip>
-                        </button>
-                      </div>
-                    ) : (
-                      <Chip variant={getVariantTag(variant.id) === 'novo' ? 'info' : 'warning'}>
-                        {getVariantTag(variant.id) === 'novo' ? 'Novo' : 'V akciji'}
-                      </Chip>
-                    )}
+                    <div className="inline-flex justify-center">
+                      <ActiveStateChip
+                        active={variant.active}
+                        editable={isEditable}
+                        onChange={(next) => updateVariant(index, { active: next })}
+                      />
+                    </div>
+                  </td>
+                  <td className="px-2 py-2 text-center">
+                    <div className="inline-flex justify-center">
+                      <TagStateChip
+                        value={getVariantTag(variant.id)}
+                        editable={isEditable}
+                        onChange={(next) => setVariantTag(variant.id, next)}
+                      />
+                    </div>
                   </td>
                   <td className="px-2 py-2 text-center">{isEditable ? <input type="number" className={`${inputClass} !h-8 text-center`} value={variant.sort} onChange={(event) => updateVariant(index, { sort: Number(event.target.value) || 1 })} /> : <span className="inline-flex min-h-8 items-center justify-center">{variant.sort}</span>}</td>
                 </tr>

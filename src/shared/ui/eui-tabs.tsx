@@ -13,9 +13,10 @@ type EuiTabsProps = {
   tabs: EuiTabItem[];
   className?: string;
   size?: 'default' | 'compact';
+  tabClassName?: string;
 };
 
-export default function EuiTabs({ value, onChange, tabs, className, size = 'default' }: EuiTabsProps) {
+export default function EuiTabs({ value, onChange, tabs, className, size = 'default', tabClassName }: EuiTabsProps) {
   const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
     if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
     event.preventDefault();
@@ -42,7 +43,7 @@ export default function EuiTabs({ value, onChange, tabs, className, size = 'defa
             tabIndex={active ? 0 : -1}
             onClick={() => onChange(tab.value)}
             onKeyDown={(event) => onKeyDown(event, tabs.findIndex((entry) => entry.value === tab.value))}
-            className={`relative z-10 border-b-2 bg-transparent ${size === 'compact' ? 'pb-1.5 text-sm' : 'pb-2 text-base'} leading-none font-['Inter',system-ui,sans-serif] font-semibold transition ${
+            className={`relative z-10 border-b-2 bg-transparent ${size === 'compact' ? 'pb-1.5 text-sm' : 'pb-2 text-base'} leading-none font-['Inter',system-ui,sans-serif] font-semibold transition ${tabClassName ?? ''} ${
               active
                 ? 'border-[#1982bf] text-[#1982bf]'
                 : 'border-transparent text-black hover:text-[#1982bf] active:text-[#1982bf]'

@@ -961,7 +961,7 @@ export default function AdminItemEditorPage({
           <p className="text-xs text-slate-500">Dodaj do tri čipe (Dolžina, Širina, Fi, Debelina). Vse mere naj bodo v milimetrih.</p>
           <div className="flex items-start gap-3">
             <div className="relative w-1/2 min-w-[300px]">
-              <div className={`flex h-9 flex-nowrap items-center gap-1 overflow-x-auto rounded-md border border-slate-300 px-2 py-1 pr-11 ${isGeneratorLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : 'bg-white'}`}>
+              <div className={`flex h-9 flex-nowrap items-center gap-1 overflow-hidden rounded-md border border-slate-300 px-2 py-1 pr-11 ${isGeneratorLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : 'bg-white'}`}>
                 {generatorChips.map((chip) => (
                   <span key={chip.dimension} className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs text-slate-700">
                     <button
@@ -987,7 +987,7 @@ export default function AdminItemEditorPage({
                   </span>
                 ))}
                 <input
-                  className={`h-6 min-w-[140px] flex-1 border-0 bg-transparent text-xs outline-none focus:ring-0 ${isGeneratorLocked ? 'cursor-not-allowed text-slate-500' : 'text-slate-900'}`}
+                  className={`h-6 min-w-0 flex-1 border-0 bg-transparent text-xs outline-none focus:ring-0 ${isGeneratorLocked ? 'cursor-not-allowed text-slate-500' : 'text-slate-900'}`}
                   value={generatorInput}
                   disabled={isGeneratorLocked}
                   onChange={(event) => {

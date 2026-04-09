@@ -263,7 +263,7 @@ export default function AdminCategoryBreadcrumbPicker({
                   }
                 }
               }}
-              placeholder="Išči po poti kategorij"
+              placeholder="Išči po naslovu kategorije"
               aria-label="Išči kategorijo"
               className="h-8 w-full rounded-md border-0 bg-transparent px-2 text-xs text-slate-700 outline-none focus:outline-none focus:ring-0"
             />
@@ -309,7 +309,6 @@ export default function AdminCategoryBreadcrumbPicker({
               >
                 <span className="min-w-0">
                   <span className="block truncate font-medium">{entry.title}</span>
-                  <span className="block truncate text-[11px] text-slate-500">{entry.fullPath}</span>
                 </span>
                 <span className="shrink-0 text-[10px] text-slate-400">{entry.isLeaf ? 'končna' : 'odpri'}</span>
               </button>

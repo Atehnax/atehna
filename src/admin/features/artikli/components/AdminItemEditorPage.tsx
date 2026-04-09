@@ -43,7 +43,15 @@ type VideoEntry = { id: string; source: 'upload' | 'youtube'; label: string; pre
 type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document';
 
 function SideInputIcon({ icon }: { icon: SideFieldIcon }) {
-  const iconProps = { className: 'h-5 w-5 text-slate-500', strokeWidth: 2, fill: 'none', viewBox: '0 0 24 24' };
+  const iconProps = {
+    className: 'h-5 w-5 shrink-0 text-slate-500',
+    stroke: 'currentColor',
+    strokeWidth: 2,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    fill: 'none',
+    viewBox: '0 0 24 24'
+  };
 
   if (icon === 'brand') return <svg {...iconProps}><path d="M3 7V3h4l11 11-4 4L3 7Z" /><path d="m9 8 1-1" /></svg>;
   if (icon === 'material') return <svg {...iconProps}><path d="m12 4 8 4-8 4-8-4 8-4Z" /><path d="m4 12 8 4 8-4" /><path d="m4 16 8 4 8-4" /></svg>;
@@ -730,7 +738,7 @@ export default function AdminItemEditorPage({
             </div>
             <div className="mb-1 grid grid-cols-[minmax(0,1fr)] items-start gap-3 px-2.5">
               <AdminCategoryBreadcrumbPicker
-                className="col-span-1 rounded-lg bg-[color:var(--ui-neutral-bg)] px-2 py-1"
+                className="col-span-1 rounded-lg bg-slate-50 px-2 py-1"
                 value={selectedCategoryPath}
                 onChange={selectCategoryPath}
                 categoryPaths={categoryPaths}
@@ -1021,7 +1029,7 @@ export default function AdminItemEditorPage({
           <p className="text-xs text-slate-500">
             Vnesi mere za vsako dimenzijo posebej, npr. <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">Dolžina: 10,20</span>. Podprte dimenzije: Dolžina, Širina/fi in Debelina (pri dolžinskem materialu Debelina ni dovoljena), največ 5 vrednosti na dimenzijo. Generiranje ustvari kartezični produkt vseh mer in na tej osnovi pripravi različice.
           </p>
-          <div className="flex items-center gap-3 rounded-xl border border-slate-300 bg-[color:var(--ui-neutral-bg)] px-4 py-3 text-slate-700">
+          <div className="flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-700">
             <span
               aria-hidden
               className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-black bg-white text-sm font-semibold leading-none text-black"

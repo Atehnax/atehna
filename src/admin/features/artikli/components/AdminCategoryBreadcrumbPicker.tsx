@@ -181,7 +181,7 @@ export default function AdminCategoryBreadcrumbPicker({
             label: placeholder,
             isCurrent: false,
             onClick: disabled ? undefined : () => setIsOpen(true),
-            labelClassName: 'font-semibold text-slate-900'
+            labelClassName: `font-semibold text-slate-900 ${disabled ? '' : 'underline decoration-slate-900/70 underline-offset-2'}`
           }
         ]
       : [

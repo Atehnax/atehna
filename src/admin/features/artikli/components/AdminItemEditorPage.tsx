@@ -41,11 +41,13 @@ type VideoEntry = { id: string; source: 'upload' | 'youtube'; label: string; pre
 function ActiveStateChip({
   active,
   editable,
-  onChange
+  onChange,
+  chipClassName
 }: {
   active: boolean;
   editable: boolean;
   onChange: (next: boolean) => void;
+  chipClassName?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -82,7 +84,7 @@ function ActiveStateChip({
       >
         {editable ? <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span> : null}
         <span className="block">
-          <Chip variant={active ? 'success' : 'warning'}>{label}</Chip>
+          <Chip variant={active ? 'success' : 'warning'} className={chipClassName}>{label}</Chip>
         </span>
       </button>
 
@@ -174,11 +176,13 @@ function NeutralDropdownChip({
 function TagStateChip({
   value,
   editable,
-  onChange
+  onChange,
+  chipClassName
 }: {
   value: VariantTag;
   editable: boolean;
   onChange: (next: VariantTag) => void;
+  chipClassName?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -216,7 +220,7 @@ function TagStateChip({
       >
         {editable ? <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span> : null}
         <span className="block">
-          <Chip variant={variant}>{label}</Chip>
+          <Chip variant={variant} className={chipClassName}>{label}</Chip>
         </span>
       </button>
 
@@ -963,7 +967,7 @@ export default function AdminItemEditorPage({
                       <span className="inline-flex h-5 w-[52px] items-center justify-center">{sideSettings.thicknessTolerance ? `±${sideSettings.thicknessTolerance}` : '—'}</span>
                     )}
                   </td>
-                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input className={`${orderLikeEditableInputClassName} !mt-0 !h-5`} value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} /> : <span className="inline-flex h-5 items-center">{variant.sku || '—'}</span>}</td>
+                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input className={`${orderLikeEditableInputClassName} !mt-0 !h-5 !w-[132px]`} value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} /> : <span className="inline-flex h-5 w-[132px] items-center overflow-hidden text-ellipsis whitespace-nowrap">{variant.sku || '—'}</span>}</td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <input type="number" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-14 text-right`} value={variant.price} onChange={(event) => updateVariant(index, { price: Number(event.target.value) || 0 })} /> : <span className="inline-flex h-5 w-14 items-center justify-end">{formatCurrency(variant.price)}</span>}</td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <input type="number" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-14 text-right`} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} /> : <span className="inline-flex h-5 w-14 items-center justify-end">{sideSettings.weightPerUnit || '—'}</span>}</td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <input type="number" inputMode="decimal" min={0} max={99.9} step={0.1} className={`${compactTableNumberInputClassName} !mt-0 !w-12 text-right`} value={variant.discountPct} onChange={(event) => updateVariant(index, { discountPct: Math.min(99.9, Math.max(0, Number(event.target.value) || 0)) })} /> : <span className="inline-flex h-5 w-12 items-center justify-end">{variant.discountPct}</span>}</td>
@@ -975,6 +979,7 @@ export default function AdminItemEditorPage({
                       <ActiveStateChip
                         active={variant.active}
                         editable={isTableEditable}
+                        chipClassName="!h-5 !min-w-[94px] !px-1.5 !text-[10px]"
                         onChange={(next) => updateVariant(index, { active: next })}
                       />
                     </div>
@@ -984,6 +989,7 @@ export default function AdminItemEditorPage({
                       <TagStateChip
                         value={getVariantTag(variant.id)}
                         editable={isTableEditable}
+                        chipClassName="!h-5 !min-w-[94px] !px-1.5 !text-[10px]"
                         onChange={(next) => setVariantTag(variant.id, next)}
                       />
                     </div>

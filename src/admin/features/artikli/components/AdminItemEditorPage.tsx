@@ -468,7 +468,8 @@ export default function AdminItemEditorPage({
   const isTableEditable = tableEditorMode === 'edit';
   const isMediaEditable = mediaMode === 'edit';
   const isBulkMaterial = articleType === 'bulk';
-  const isGeneratorLocked = !isTableEditable || isBulkMaterial;
+  const isDimensionLockActive = isBulkMaterial;
+  const isGeneratorLocked = !isTableEditable || isDimensionLockActive;
   const generatorUnitLabel = articleType === 'sheet' ? 'na m²' : articleType === 'bulk' ? 'na kg' : articleType === 'unit' ? 'na kos' : articleType === 'linear' ? 'na m' : 'na enoto';
   const hasSelectedVariants = variantSelections.size > 0;
   const allVariantsSelected = draft.variants.length > 0 && draft.variants.every((variant) => variantSelections.has(variant.id));
@@ -542,7 +543,7 @@ export default function AdminItemEditorPage({
   const parseGeneratorEntry = (value: string): { dimension: GeneratorDimension; values: number[] } | { error: string } => {
     const normalized = value.trim();
     if (!normalized) return { error: 'Vnos ne sme biti prazen.' };
-    const match = normalized.match(/^(dolzina|dolžina|d|sirina(?:\/fi)?|širina(?:\/fi)?|fi|s|š|debelina|v|h)\s*:?\s*(.+)$/i);
+    const match = normalized.match(/^(dolzina|dolžina|sirina(?:\/fi)?|širina(?:\/fi)?|debelina|fi|d|s|š|v|h)\s*:?\s*(.+)$/i);
     if (!match) return { error: 'Uporabite Dolžina/Širina/fi/Debelina + vrednosti.' };
     const prefix = match[1]
       .toLowerCase()
@@ -962,10 +963,10 @@ export default function AdminItemEditorPage({
             <div className="relative w-1/2 min-w-[300px]">
               <div className={`flex h-9 flex-nowrap items-center gap-1 overflow-x-auto rounded-md border border-slate-300 px-2 py-1 pr-11 ${isGeneratorLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : 'bg-white'}`}>
                 {generatorChips.map((chip) => (
-                  <span key={chip.dimension} className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs text-slate-700">
+                  <span key={chip.dimension} className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs text-slate-700">
                     <button
                       type="button"
-                      className="hover:text-slate-900 disabled:cursor-not-allowed disabled:text-slate-400"
+                      className="whitespace-nowrap hover:text-slate-900 disabled:cursor-not-allowed disabled:text-slate-400"
                       disabled={isGeneratorLocked}
                       onClick={() => {
                         setGeneratorInput(`${generatorDimensionLabels[chip.dimension]}: ${chip.values.join(',')}`);
@@ -1024,6 +1025,23 @@ export default function AdminItemEditorPage({
         </div>
         <div className="relative overflow-x-auto overflow-y-visible rounded-lg border border-slate-200">
           <table className="min-w-full text-[11px] leading-4">
+            <colgroup>
+              <col style={{ width: '4%' }} />
+              <col style={{ width: '6%' }} />
+              <col style={{ width: '6%' }} />
+              <col style={{ width: '6%' }} />
+              <col style={{ width: '5%' }} />
+              <col style={{ width: '6%' }} />
+              <col style={{ width: '6%' }} />
+              <col style={{ width: '6%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '6%' }} />
+              <col style={{ width: '6%' }} />
+              <col style={{ width: '14%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '4%' }} />
+            </colgroup>
             <thead className="bg-slate-50">
               <tr>
                 <th className="px-2 py-2 text-center">
@@ -1055,9 +1073,9 @@ export default function AdminItemEditorPage({
               {draft.variants.map((variant, index) => (
                 <tr key={variant.id} className="h-8 border-t border-slate-100 align-middle">
                   <td className="px-2 py-1.5 text-center"><AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} disabled={!isTableEditable} /></td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isBulkMaterial} className={`${compactTableNumberInputClassName} !w-auto !max-w-[7ch] text-right ${isBulkMaterial ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.length ?? ''} onChange={(event) => updateVariant(index, { length: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isBulkMaterial ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 max-w-[7ch] items-center justify-end">{variant.length ?? '—'}</span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isBulkMaterial} className={`${compactTableNumberInputClassName} !w-auto !max-w-[8ch] text-right ${isBulkMaterial ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.width ?? ''} onChange={(event) => updateVariant(index, { width: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isBulkMaterial ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 max-w-[8ch] items-center justify-end">{variant.width ?? '—'}</span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isBulkMaterial} className={`${compactTableNumberInputClassName} !w-auto !max-w-[8ch] text-right ${isBulkMaterial ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.thickness ?? ''} onChange={(event) => updateVariant(index, { thickness: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isBulkMaterial ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 max-w-[8ch] items-center justify-end">{variant.thickness ?? '—'}</span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isDimensionLockActive} className={`${compactTableNumberInputClassName} !w-auto !max-w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.length ?? ''} onChange={(event) => updateVariant(index, { length: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 max-w-[7ch] items-center justify-end">{variant.length ?? '—'}</span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isDimensionLockActive} className={`${compactTableNumberInputClassName} !w-auto !max-w-[8ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.width ?? ''} onChange={(event) => updateVariant(index, { width: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 max-w-[8ch] items-center justify-end">{variant.width ?? '—'}</span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isDimensionLockActive} className={`${compactTableNumberInputClassName} !w-auto !max-w-[8ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.thickness ?? ''} onChange={(event) => updateVariant(index, { thickness: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 max-w-[8ch] items-center justify-end">{variant.thickness ?? '—'}</span></span>}</td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-auto !max-w-[6ch] text-right`} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 max-w-[6ch] items-center justify-end">{sideSettings.weightPerUnit || '—'}</span></span>}</td>
                   <td className="px-2 py-1.5 text-center">
                     {isTableEditable ? (

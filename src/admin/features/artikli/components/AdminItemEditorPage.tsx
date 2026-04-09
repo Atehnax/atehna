@@ -12,7 +12,6 @@ import { PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/
 import { useToast } from '@/shared/ui/toast';
 import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
-import EuiTabs from '@/shared/ui/eui-tabs';
 import {
   buildFamiliesFromSeed,
   computeSalePrice,
@@ -26,10 +25,13 @@ import {
 } from '@/admin/features/artikli/lib/familyModel';
 import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/AdminCategoryBreadcrumbPicker';
 
-const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0';
+const inputClass = 'h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-[14px] text-slate-800 outline-none transition focus:border-[#1982bf] focus:ring-0';
 const numberInputClass = '[-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
-const orderLikeEditableInputClassName = 'mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0';
-const compactTableNumberInputClassName = `h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-[11px] leading-4 text-slate-900 outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0 ${numberInputClass}`;
+const orderLikeEditableInputClassName = 'mt-0.5 h-8 w-full rounded-[10px] border border-slate-200 bg-white px-2 text-[13px] leading-4 text-slate-900 outline-none transition focus:border-[#1982bf] focus:outline-none focus:ring-0';
+const compactTableNumberInputClassName = `h-8 w-full rounded-[10px] border border-slate-200 bg-white px-2 text-[13px] leading-4 text-slate-900 outline-none transition focus:border-[#1982bf] focus:outline-none focus:ring-0 ${numberInputClass}`;
+const sectionPanelClass = 'rounded-2xl border border-slate-200 bg-white p-5';
+const pageActionButtonClass = 'inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-[14px] font-semibold text-slate-700 transition hover:border-slate-300';
+const primaryActionButtonClass = 'inline-flex h-10 items-center gap-2 rounded-xl border border-[#1982bf] bg-[#1982bf] px-4 text-[14px] font-semibold text-white transition hover:bg-[#166d9f]';
 
 type EditorMode = 'create' | 'edit';
 type CreateType = 'simple' | 'variants';
@@ -356,6 +358,29 @@ function VisibilityChip({
   );
 }
 
+function ToggleSwitch({
+  checked,
+  onChange,
+  disabled
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-7 w-12 items-center rounded-full border transition ${checked ? 'border-[#1982bf] bg-[#1982bf]' : 'border-slate-300 bg-slate-200'} ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+    >
+      <span className={`inline-block h-5 w-5 rounded-full bg-white transition ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
+    </button>
+  );
+}
+
 export default function AdminItemEditorPage({
   seedItems,
   articleId,
@@ -670,14 +695,14 @@ export default function AdminItemEditorPage({
 
   const getVariantTag = (variantId: string): VariantTag => variantTags[variantId] ?? 'novo';
   return (
-    <div className="mx-auto max-w-7xl space-y-4 font-['Inter',system-ui,sans-serif]">
+    <div className="mx-auto max-w-7xl space-y-4 bg-slate-50 px-5 py-5 font-['Inter',system-ui,sans-serif]">
       <div className="text-xs text-slate-500"><Link href="/admin/artikli" className="hover:underline">Artikli</Link> › {mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</div>
 
-      <div className="grid items-stretch gap-6 lg:grid-cols-2">
-        <div className="space-y-4">
-          <section className="h-full rounded-xl border border-slate-200 bg-white p-4">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <h1 className="flex min-h-10 flex-nowrap items-center gap-1 whitespace-nowrap text-lg font-semibold tracking-tight text-slate-900">
+      <div className="grid items-stretch gap-4 lg:grid-cols-2">
+        <div className="space-y-3">
+          <section className={`${sectionPanelClass} h-full`}>
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <h1 className="flex min-h-10 flex-nowrap items-center gap-1 whitespace-nowrap text-[20px] font-semibold tracking-tight text-slate-900">
                 <span className="inline-flex h-10 items-center gap-0">
                   {isEditable ? (
                     <input
@@ -685,17 +710,18 @@ export default function AdminItemEditorPage({
                       value={draft.name}
                       onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
                       placeholder="Naziv artikla"
-                      className="inline-flex h-10 min-w-[14ch] items-center rounded-md border border-slate-300 bg-white px-1.5 text-lg font-semibold leading-none tracking-tight text-slate-900 shadow-none outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+                      className="inline-flex h-10 min-w-[14ch] items-center rounded-xl border border-slate-200 bg-white px-2.5 text-[20px] font-semibold leading-none tracking-tight text-slate-900 shadow-none outline-none transition focus:border-[#1982bf] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
                     />
                   ) : (
-                    <span className="inline-flex h-10 min-w-[14ch] items-center px-1.5 text-lg font-semibold leading-none tracking-tight">{draft.name.trim() || 'Naziv artikla'}</span>
+                    <span className="inline-flex h-10 min-w-[14ch] items-center px-1.5 text-[20px] font-semibold leading-none tracking-tight">{draft.name.trim() || 'Naziv artikla'}</span>
                   )}
                 </span>
               </h1>
-              <div className="ml-auto flex items-center gap-1.5">
+              <div className="ml-auto flex items-center gap-2">
                 <NeutralDropdownChip
                   value={articleType}
                   editable={isEditable}
+                  chipClassName="!h-10 !min-w-[170px] !rounded-xl !border !border-slate-200 !bg-[#eef2f7] !px-4 !text-[14px] !font-semibold !text-slate-700"
                   placeholderLabel="Tip artikla"
                   onChange={(value) => setArticleType(value as 'unit' | 'sheet' | 'bulk' | 'linear' | '')}
                   options={[
@@ -705,23 +731,28 @@ export default function AdminItemEditorPage({
                     { value: 'bulk', label: 'Sipki material' }
                   ]}
                 />
-                <ActiveStateChip active={draft.active} editable={isEditable} onChange={(next) => setDraft((current) => ({ ...current, active: next }))} />
-                <IconButton type="button" tone="neutral" onClick={() => setEditorMode((current) => (current === 'read' ? 'edit' : 'read'))} aria-label="Uredi artikel" title="Uredi"><PencilIcon /></IconButton>
-                <IconButton type="button" tone="neutral" onClick={() => save(false)} aria-label="Shrani artikel" title="Shrani" disabled={!isEditable}><SaveIcon /></IconButton>
+                <ActiveStateChip
+                  active={draft.active}
+                  editable={isEditable}
+                  chipClassName="!h-10 !min-w-[150px] !rounded-xl !px-4 !text-[14px] !font-semibold"
+                  onChange={(next) => setDraft((current) => ({ ...current, active: next }))}
+                />
+                <IconButton type="button" tone="neutral" size="md" onClick={() => setEditorMode((current) => (current === 'read' ? 'edit' : 'read'))} aria-label="Uredi artikel" title="Uredi"><PencilIcon /></IconButton>
+                <IconButton type="button" tone="neutral" size="md" onClick={() => save(false)} aria-label="Shrani artikel" title="Shrani" disabled={!isEditable}><SaveIcon /></IconButton>
                 <button type="button" className={buttonTokenClasses.closeX} onClick={deleteItem} aria-label="Izbriši artikel" title="Izbriši"><TrashCanIcon /></button>
               </div>
             </div>
-            <div className="mb-1 grid grid-cols-[minmax(0,1fr)] items-start gap-3 px-2.5">
+            <div className="mb-4 rounded-xl bg-slate-50 px-3 py-2.5">
               <AdminCategoryBreadcrumbPicker
-                className="col-span-1"
+                className="col-span-1 text-[15px]"
                 value={selectedCategoryPath}
                 onChange={selectCategoryPath}
                 categoryPaths={categoryPaths}
                 disabled={!isEditable}
               />
             </div>
-            <div className="grid grid-cols-2 gap-3 px-2.5">
-              <div className="col-span-2 grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2 grid grid-cols-2 gap-4">
                 {[
                   { title: 'Blagovna znamka', value: sideSettings.brand, placeholder: 'AluCraft', onChange: (value: string) => setSideSettings((current) => ({ ...current, brand: value })) },
                   { title: 'Material', value: sideSettings.material, placeholder: 'Aluminij', onChange: (value: string) => setSideSettings((current) => ({ ...current, material: value })) },
@@ -730,10 +761,10 @@ export default function AdminItemEditorPage({
                   { title: 'Tehnični list', value: documents.map((doc) => doc.name).join(', '), placeholder: 'Dodajte dokument', onChange: () => {} },
                   { title: 'Kratek URL', value: draft.slug, placeholder: toSlug(draft.name || 'naziv-artikla'), onChange: (value: string) => setDraft((current) => ({ ...current, slug: value })) }
                 ].map((field) => (
-                  <div key={field.title} className="min-h-10 px-2.5">
-                    <p className="text-sm font-semibold text-slate-700">{field.title}</p>
+                  <div key={field.title} className="min-h-10">
+                    <p className="mb-1.5 text-[14px] font-medium text-slate-700">{field.title}</p>
                     {field.title === 'Tehnični list' ? (
-                      <div className="mt-0.5 flex items-center gap-2">
+                      <div className="mt-0.5 flex items-center gap-2 rounded-xl border border-dashed border-[#9cc8e3] bg-[#f3f9fd] p-2.5">
                         <input
                           type="file"
                           className="hidden"
@@ -746,30 +777,30 @@ export default function AdminItemEditorPage({
                           }}
                         />
                         <label htmlFor="tech-sheet-upload-inline">
-                          <Button type="button" variant="default" size="toolbar" className="whitespace-nowrap" disabled={!isEditable}>Dodaj dokument</Button>
+                          <Button type="button" variant="default" size="toolbar" className="!h-10 whitespace-nowrap !rounded-xl !text-sm" disabled={!isEditable}>Dodaj dokument</Button>
                         </label>
                       </div>
                     ) : isEditable ? (
                       <input className={inputClass} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
                     ) : (
-                      <p className="text-sm text-slate-700">{field.value || field.placeholder}</p>
+                      <p className="flex h-10 items-center rounded-xl border border-slate-200 px-3 text-[14px] text-slate-700">{field.value || field.placeholder}</p>
                     )}
                   </div>
                 ))}
               </div>
-              <div className="col-span-2 space-y-1">
-                <label className="text-sm font-semibold text-slate-700">Opis</label>
+              <div className="col-span-2 space-y-1.5">
+                <label className="text-[14px] font-medium text-slate-700">Opis</label>
                 {isEditable ? (
                   <>
                     <textarea
                       placeholder="Opis artikla..."
-                      className={`${inputClass} !h-28 py-2`}
+                      className={`${inputClass} !h-40 py-2.5`}
                       value={draft.description}
                       onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
                     />
                   </>
                 ) : (
-                  <p className="min-h-10 rounded-md border border-transparent px-0 py-1 text-sm text-slate-700">
+                  <p className="min-h-40 rounded-xl border border-slate-200 px-3 py-2.5 text-[14px] text-slate-700">
                     {draft.description.trim() || '[Opis artikla]'}
                   </p>
                 )}
@@ -779,131 +810,186 @@ export default function AdminItemEditorPage({
 
         </div>
 
-        <aside className="h-full rounded-xl border border-slate-200 bg-white p-4">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <EuiTabs
-                value={mediaTab}
-                onChange={(value) => setMediaTab(value as MediaTab)}
-                size="compact"
-                tone="muted-control"
-                tabClassName="!font-['Inter',system-ui,sans-serif] !tracking-[0]"
-                tabs={[
-                  { value: 'slike', label: 'Slike' },
-                  { value: 'video', label: 'Video' }
-                ]}
-              />
-              <div className="flex items-center justify-end gap-1.5">
-              <IconButton type="button" tone="neutral" aria-label="Uredi medije" title="Uredi" onClick={() => setMediaMode((current) => (current === 'read' ? 'edit' : 'read'))}><PencilIcon /></IconButton>
-              <IconButton type="button" tone="neutral" aria-label="Shrani medije" title="Shrani" onClick={saveVideoEntries} disabled={!isMediaEditable}><SaveIcon /></IconButton>
-              <IconButton
-                type="button"
-                tone={(mediaTab === 'video' ? videoSelections.size : selectedImageIndexes.size) > 0 ? 'danger' : 'neutral'}
-                aria-label="Izbriši medije"
-                title="Izbriši"
-                disabled={!isMediaEditable || (mediaTab === 'video' ? videoSelections.size === 0 : selectedImageIndexes.size === 0)}
-                onClick={() => {
-                  if (mediaTab === 'video') {
-                    const selected = new Set(videoSelections);
-                    setVideoEntriesDraft((current) => current.filter((entry) => !selected.has(entry.id)));
-                    setVideoSelections(new Set());
-                    return;
-                  }
-                  const selected = new Set(selectedImageIndexes);
-                  setMediaImagesDraft((current) => current.filter((_, index) => !selected.has(index)));
-                  setSelectedImageIndexes(new Set());
-                }}
-              >
-                <TrashCanIcon />
-              </IconButton>
+        <aside className={`${sectionPanelClass} h-full`}>
+          <div className="space-y-3.5">
+            <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
+              <div className="flex items-center gap-1">
+                {([
+                  { value: 'slike', label: 'Slike', icon: '🖼️' },
+                  { value: 'video', label: 'Video', icon: '▶️' }
+                ] as const).map((tab) => (
+                  <button
+                    key={tab.value}
+                    type="button"
+                    onClick={() => setMediaTab(tab.value)}
+                    className={`relative inline-flex h-10 items-center gap-2 rounded-t-xl px-4 text-[15px] font-semibold transition ${mediaTab === tab.value ? 'text-[#1982bf]' : 'text-slate-600 hover:text-slate-800'}`}
+                  >
+                    <span className="text-sm">{tab.icon}</span>
+                    {tab.label}
+                    {mediaTab === tab.value ? <span className="absolute inset-x-0 -bottom-[11px] h-[3px] rounded-full bg-[#1982bf]" /> : null}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center justify-end gap-2">
+                <button type="button" className={pageActionButtonClass} aria-label="Uredi medije" onClick={() => setMediaMode((current) => (current === 'read' ? 'edit' : 'read'))}>
+                  <PencilIcon />
+                  Uredi
+                </button>
+                <button
+                  type="button"
+                  className={`${pageActionButtonClass} border-rose-200 text-rose-600`}
+                  aria-label="Izbriši medije"
+                  disabled={!isMediaEditable || (mediaTab === 'video' ? videoSelections.size === 0 : selectedImageIndexes.size === 0)}
+                  onClick={() => {
+                    if (mediaTab === 'video') {
+                      const selected = new Set(videoSelections);
+                      setVideoEntriesDraft((current) => current.filter((entry) => !selected.has(entry.id)));
+                      setVideoSelections(new Set());
+                      return;
+                    }
+                    const selected = new Set(selectedImageIndexes);
+                    setMediaImagesDraft((current) => current.filter((_, index) => !selected.has(index)));
+                    setSelectedImageIndexes(new Set());
+                  }}
+                >
+                  <TrashCanIcon />
+                  Izbriši
+                </button>
+                <button type="button" className={primaryActionButtonClass} aria-label="Shrani medije" onClick={saveVideoEntries} disabled={!isMediaEditable}>
+                  <SaveIcon />
+                  Shrani
+                </button>
               </div>
             </div>
             {mediaTab === 'slike' ? (
-              <div className="mt-3 space-y-3">
-                <p className="text-sm text-slate-500">Galerija artikla. Prva slika je glavna.</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {mediaImagesDraft.map((img, index) => <div key={`${img}-${index}`} className="relative overflow-hidden rounded-lg border border-slate-200"><Image src={img} alt={`Slika ${index + 1}`} width={180} height={120} unoptimized className="h-24 w-full object-cover" />{isMediaEditable ? <div className="absolute left-1 top-1"><AdminCheckbox checked={selectedImageIndexes.has(index)} onChange={() => setSelectedImageIndexes((current) => { const next = new Set(current); if (next.has(index)) next.delete(index); else next.add(index); return next; })} /></div> : null}</div>)}
-                  <label className={`flex h-24 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 text-sm text-slate-500 ${isMediaEditable ? 'cursor-pointer hover:border-[#2f66dd]' : 'cursor-not-allowed opacity-60'}`}>Dodaj slike<input disabled={!isMediaEditable} type="file" className="hidden" multiple accept="image/*" onChange={(event) => {
+              <div className="mt-1 space-y-3.5">
+                <p className="text-[13px] text-slate-500">Galerija slik. Prva slika je glavna.</p>
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                  <div className="space-y-3 rounded-xl border border-slate-200 p-3.5">
+                    <label className={`flex h-44 flex-col items-center justify-center rounded-xl border border-dashed border-[#9cc8e3] bg-[#f3f9fd] text-center text-[14px] text-slate-600 ${isMediaEditable ? 'cursor-pointer hover:border-[#1982bf]' : 'cursor-not-allowed opacity-60'}`}>
+                      <span className="mb-1 text-2xl text-[#1982bf]">↑</span>
+                      <span className="text-[16px] font-semibold text-[#1982bf]">Dodaj slike</span>
+                      <span className="mt-1 text-[13px] text-slate-500">Povleci datoteke sem ali klikni za nalaganje.</span>
+                      <span className="text-[13px] text-slate-500">JPG, PNG ali WEBP do 10 MB.</span>
+                      <input disabled={!isMediaEditable} type="file" className="hidden" multiple accept="image/*" onChange={(event) => {
                     const urls = Array.from(event.target.files ?? []).map((file) => URL.createObjectURL(file));
                     setMediaImagesDraft((current) => [...current, ...urls]);
-                  }} /></label>
-                </div>
-                <label className="inline-flex items-center gap-2 text-sm"><AdminCheckbox checked={sideSettings.showGallery} onChange={(event) => setSideSettings((current) => ({ ...current, showGallery: event.target.checked }))} />Prikaži galerijo na strani izdelka</label>
-                <label className="inline-flex items-center gap-2 text-sm"><AdminCheckbox checked={sideSettings.autoSquareCrop} onChange={(event) => setSideSettings((current) => ({ ...current, autoSquareCrop: event.target.checked }))} />Samodejno obreži na kvadrat (1:1)</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs text-slate-600">Postavitev</label>
-                    <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
-                      {([
-                        { key: 'grid', icon: <span className="grid grid-cols-2 gap-0.5">{Array.from({ length: 4 }).map((_, idx) => <span key={idx} className="h-1.5 w-1.5 rounded-[2px] border border-current" />)}</span> },
-                        { key: 'slider', icon: <span className="inline-flex gap-0.5">{Array.from({ length: 2 }).map((_, idx) => <span key={idx} className="h-3 w-1.5 rounded-[2px] border border-current" />)}</span> },
-                        { key: 'list', icon: <span className="inline-flex flex-col gap-0.5">{Array.from({ length: 3 }).map((_, idx) => <span key={idx} className="h-1 w-4 rounded-[2px] border border-current" />)}</span> }
-                      ] as const).map((modeOption) => (
-                        <button
-                          key={modeOption.key}
-                          type="button"
-                          aria-label={`Postavitev ${modeOption.key}`}
-                          className={`inline-flex h-9 w-9 items-center justify-center rounded-md border transition ${sideSettings.galleryMode === modeOption.key ? 'border-[#6f95ff] bg-[#edf2ff] text-[#3e67d6]' : 'border-transparent bg-transparent text-slate-400 hover:text-slate-600'}`}
-                          onClick={() => setSideSettings((current) => ({ ...current, galleryMode: modeOption.key }))}
-                        >
-                          {modeOption.icon}
-                        </button>
-                      ))}
+                  }} />
+                    </label>
+                    <div className="space-y-1.5">
+                      <p className="text-[16px] font-semibold text-slate-900">Predogled / Postavitev</p>
+                      <div className="inline-flex rounded-xl border border-slate-200 p-1">
+                        {([
+                          { key: 'grid', icon: <span className="grid grid-cols-2 gap-0.5">{Array.from({ length: 4 }).map((_, idx) => <span key={idx} className="h-1.5 w-1.5 rounded-[2px] border border-current" />)}</span>, label: 'Mreža' },
+                          { key: 'slider', icon: <span className="inline-flex gap-0.5">{Array.from({ length: 2 }).map((_, idx) => <span key={idx} className="h-3 w-1.5 rounded-[2px] border border-current" />)}</span>, label: 'Drsni trak' },
+                          { key: 'list', icon: <span className="inline-flex flex-col gap-0.5">{Array.from({ length: 3 }).map((_, idx) => <span key={idx} className="h-1 w-4 rounded-[2px] border border-current" />)}</span>, label: 'Seznam' }
+                        ] as const).map((modeOption) => (
+                          <button
+                            key={modeOption.key}
+                            type="button"
+                            aria-label={`Postavitev ${modeOption.key}`}
+                            className={`inline-flex h-10 min-w-24 items-center justify-center gap-2 rounded-lg border px-3 text-[13px] transition ${sideSettings.galleryMode === modeOption.key ? 'border-[#6f95ff] bg-[#edf2ff] text-[#1982bf]' : 'border-transparent bg-transparent text-slate-500 hover:text-slate-700'}`}
+                            onClick={() => setSideSettings((current) => ({ ...current, galleryMode: modeOption.key }))}
+                          >
+                            {modeOption.icon}
+                            <span>{modeOption.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {mediaImagesDraft.map((img, index) => <div key={`${img}-${index}`} className={`relative overflow-hidden rounded-xl border ${selectedImageIndexes.has(index) ? 'border-[#1982bf]' : 'border-slate-200'}`}><Image src={img} alt={`Slika ${index + 1}`} width={180} height={120} unoptimized className="h-20 w-full object-cover" />{isMediaEditable ? <div className="absolute left-1 top-1"><AdminCheckbox checked={selectedImageIndexes.has(index)} onChange={() => setSelectedImageIndexes((current) => { const next = new Set(current); if (next.has(index)) next.delete(index); else next.add(index); return next; })} /></div> : null}</div>)}
+                    </div>
+                    <p className="text-[13px] text-slate-500">Povleci in spusti slike za spremembo vrstnega reda.</p>
+                  </div>
+                  <div className="space-y-3 rounded-xl border border-slate-200 p-3.5">
+                    <h3 className="text-[16px] font-semibold leading-none text-slate-900">Prikaz</h3>
+                    <p className="text-[13px] text-slate-500">Nastavi, kako se galerija obnaša na strani izdelka.</p>
+                    <div className="flex items-center justify-between gap-2.5 rounded-xl border border-slate-200 p-3 text-[14px]">
+                      <div className="flex items-center gap-3">
+                        <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#ecf3ff] text-[#1982bf]">👁️</span>
+                        <div>
+                          <p className="font-semibold text-slate-900">Prikaži galerijo na strani izdelka</p>
+                          <p className="text-[13px] text-slate-500">Kupci si bodo lahko ogledali slike.</p>
+                        </div>
+                      </div>
+                      <ToggleSwitch checked={sideSettings.showGallery} onChange={(next) => setSideSettings((current) => ({ ...current, showGallery: next }))} />
+                    </div>
+                    <div className="flex items-center justify-between gap-2.5 rounded-xl border border-slate-200 p-3 text-[14px]">
+                      <div className="flex items-center gap-3">
+                        <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#ecf3ff] text-[#1982bf]">✂️</span>
+                        <div>
+                          <p className="font-semibold text-slate-900">Samodejno obreži na kvadrat (1:1)</p>
+                          <p className="text-[13px] text-slate-500">Vse slike bodo prikazane v kvadratnem razmerju.</p>
+                        </div>
+                      </div>
+                      <ToggleSwitch checked={sideSettings.autoSquareCrop} onChange={(next) => setSideSettings((current) => ({ ...current, autoSquareCrop: next }))} />
+                    </div>
+                    <div className="space-y-1.5 border-t border-slate-200 pt-3">
+                      <label className="text-[14px] font-medium text-slate-800">Fokus slike</label>
+                      <select className={inputClass} value={sideSettings.imageFocus} onChange={(event) => setSideSettings((current) => ({ ...current, imageFocus: event.target.value }))}>
+                        <option value="center">Center</option>
+                        <option value="top">Zgoraj</option>
+                        <option value="bottom">Spodaj</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5 border-t border-slate-200 pt-3">
+                      <label className="text-[14px] font-medium text-slate-800">Alt besedilo</label>
+                      <div className="rounded-xl border border-slate-200 bg-white p-2">
+                        <textarea
+                          className="h-24 w-full resize-none border-0 bg-transparent px-2 text-[14px] text-slate-700 outline-none"
+                          value={sideSettings.imageAltText}
+                          onChange={(event) => setSideSettings((current) => ({ ...current, imageAltText: event.target.value.slice(0, 125) }))}
+                          placeholder={`${draft.name || 'Artikel'} - različice`}
+                        />
+                        <p className="text-right text-xs text-slate-500">{sideSettings.imageAltText.length} / 125</p>
+                      </div>
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs text-slate-600">Fokus slike</label>
-                    <select className={inputClass} value={sideSettings.imageFocus} onChange={(event) => setSideSettings((current) => ({ ...current, imageFocus: event.target.value }))}>
-                      <option value="center">Center</option>
-                      <option value="top">Zgoraj</option>
-                      <option value="bottom">Spodaj</option>
-                    </select>
-                  </div>
                 </div>
-                <div className="space-y-1"><label className="text-xs text-slate-600">Alt besedilo</label><input className={inputClass} value={sideSettings.imageAltText} onChange={(event) => setSideSettings((current) => ({ ...current, imageAltText: event.target.value }))} placeholder={`${draft.name || 'Artikel'} - različice`} /></div>
               </div>
             ) : (
-              <div className="mt-3 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+              <div className="mt-2 space-y-3 rounded-xl border border-slate-200 p-3.5">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div className="space-y-2">
                     <div className="space-y-1">
-                      <label className="text-xs text-slate-600">YouTube URL</label>
+                      <label className="text-[14px] font-medium text-slate-700">YouTube URL</label>
                       <div className="flex gap-2">
                         <input className={inputClass} value={youtubeInput} disabled={!isMediaEditable} onChange={(event) => setYoutubeInput(event.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
-                        <Button type="button" variant="default" size="toolbar" disabled={!isMediaEditable} onClick={addYoutubeVideo}>Dodaj</Button>
+                        <Button type="button" variant="default" size="toolbar" className="!h-10 !rounded-xl !text-sm" disabled={!isMediaEditable} onClick={addYoutubeVideo}>Dodaj</Button>
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs text-slate-600">Video datoteka</label>
+                      <label className="text-[14px] font-medium text-slate-700">Video datoteka</label>
                       <input
                         type="file"
                         accept="video/*"
                         disabled={!isMediaEditable}
-                        className="block w-full text-xs text-slate-700 file:mr-2 file:rounded-md file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs file:font-semibold"
+                        className="block w-full text-xs text-slate-700 file:mr-2 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-xs file:font-semibold"
                         onChange={(event) => {
                           const file = event.target.files?.[0];
                           if (!file) return;
                           setUploadedVideo({ name: file.name, url: URL.createObjectURL(file) });
                         }}
                       />
-                      <Button type="button" variant="default" size="toolbar" disabled={!isMediaEditable || !uploadedVideo} onClick={addUploadedVideo}>Dodaj video</Button>
+                      <Button type="button" variant="default" size="toolbar" className="!h-10 !rounded-xl !text-sm" disabled={!isMediaEditable || !uploadedVideo} onClick={addUploadedVideo}>Dodaj video</Button>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-xs text-slate-600">Predogled</p>
+                    <p className="text-[14px] font-medium text-slate-700">Predogled</p>
                     <div className="grid grid-cols-2 gap-2">
                       {(videoEntriesDraft.length ? videoEntriesDraft : videoEntriesSaved).slice(0, 4).map((entry) => (
                         entry.source === 'youtube' ? (
-                          <iframe key={entry.id} title={`Predogled ${entry.id}`} className="h-16 w-full rounded border border-slate-200" src={entry.previewUrl} />
+                          <iframe key={entry.id} title={`Predogled ${entry.id}`} className="h-20 w-full rounded-xl border border-slate-200" src={entry.previewUrl} />
                         ) : (
-                          <video key={entry.id} controls className="h-16 w-full rounded border border-slate-200 object-cover"><source src={entry.previewUrl} /></video>
+                          <video key={entry.id} controls className="h-20 w-full rounded-xl border border-slate-200 object-cover"><source src={entry.previewUrl} /></video>
                         )
                       ))}
                     </div>
                   </div>
                 </div>
-                <div className="overflow-hidden rounded-lg border border-slate-200">
-                  <table className="min-w-full text-xs">
+                <div className="overflow-hidden rounded-xl border border-slate-200">
+                  <table className="min-w-full text-sm">
                     <thead className="bg-slate-50">
                       <tr>
                         <th className="px-2 py-1.5 text-center" />
@@ -934,15 +1020,16 @@ export default function AdminItemEditorPage({
         </aside>
       </div>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold tracking-tight">Uredi artikel</h2>
+      <section className={`${sectionPanelClass} space-y-3.5`}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-[20px] font-semibold tracking-tight text-slate-900">Uredi artikel</h2>
           <div className="flex items-center gap-2">
             <IconButton
               type="button"
               aria-label="Uredi tabelo artikla"
               title={isTableEditable ? 'Zaključi urejanje' : 'Uredi'}
               tone="neutral"
+              size="md"
               onClick={() => setTableEditorMode((current) => (current === 'read' ? 'edit' : 'read'))}
             >
               <PencilIcon />
@@ -952,6 +1039,7 @@ export default function AdminItemEditorPage({
               aria-label="Dodaj različico"
               title="Dodaj različico"
               tone="neutral"
+              size="md"
               disabled={!isTableEditable}
               onClick={() => setDraft((current) => ({ ...current, variants: [...current.variants, createVariant({ sort: current.variants.length + 1 })] }))}
             >
@@ -962,6 +1050,7 @@ export default function AdminItemEditorPage({
               aria-label="Shrani tabelo artikla"
               title="Shrani"
               tone="neutral"
+              size="md"
               disabled={!isTableEditable}
               onClick={() => setTableEditorMode('read')}
             >
@@ -972,24 +1061,29 @@ export default function AdminItemEditorPage({
               aria-label="Odstrani izbrane različice"
               title="Izbriši izbrane"
               tone={hasSelectedVariants ? 'danger' : 'neutral'}
+              size="md"
               disabled={!isTableEditable || !hasSelectedVariants}
               onClick={deleteSelectedVariants}
             >
               <TrashCanIcon />
             </IconButton>
-            <Button type="button" variant="primary" size="toolbar" className="!h-8 !rounded-lg !px-3 !text-xs" onClick={generateVariants}>Generiraj različice</Button>
+            <Button type="button" variant="primary" size="toolbar" className="!h-10 !rounded-xl !bg-[#1982bf] !px-4 !text-[14px] !font-semibold hover:!bg-[#166d9f]" onClick={generateVariants}>Generiraj različice</Button>
           </div>
         </div>
-        <div className="mb-3 space-y-2">
-          <p className="text-xs text-slate-500">
+        <div className="space-y-2">
+          <p className="text-[13px] text-slate-500">
             Vnesi mere za vsako dimenzijo posebej, npr. <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">Dolžina: 10,20</span>. Podprte dimenzije: Dolžina, Širina/fi in Debelina (pri dolžinskem materialu Debelina ni dovoljena), največ 5 vrednosti na dimenzijo. Generiranje ustvari kartezični produkt vseh mer in na tej osnovi pripravi različice.
           </p>
-          <p className="text-xs text-slate-500">Dodaj do tri čipe (Dolžina, Širina, Fi, Debelina). Za dolžinski material je Debelina zaklenjena. Vse mere naj bodo v milimetrih.</p>
+          <p className="text-[13px] text-slate-500">Dodaj do tri čipe (Dolžina, Širina, Fi, Debelina). Za dolžinski material je Debelina zaklenjena. Vse mere naj bodo v milimetrih.</p>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] text-slate-700">
+            Dodaj do tri tipe (Dolžina, Širina, Fi, Debelina). Vse mere naj bodo v milimetrih.
+          </div>
           <div className="flex items-start gap-3">
             <div className="relative w-1/2 min-w-[300px]">
-              <div className={`flex h-9 flex-nowrap items-center gap-1 overflow-hidden rounded-md border border-slate-300 px-2 py-1 pr-11 ${isGeneratorLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : 'bg-white'}`}>
+              <label className="mb-1.5 block text-[14px] font-medium text-slate-800">Dodaj dimenzije</label>
+              <div className={`flex h-10 flex-nowrap items-center gap-1 overflow-hidden rounded-xl border border-slate-200 px-2.5 py-1 pr-11 ${isGeneratorLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : 'bg-white'}`}>
                 {generatorChips.map((chip) => (
-                  <span key={chip.dimension} className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs text-slate-700">
+                  <span key={chip.dimension} className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs text-slate-700">
                     <button
                       type="button"
                       className="whitespace-nowrap hover:text-slate-900 disabled:cursor-not-allowed disabled:text-slate-400"
@@ -1013,7 +1107,7 @@ export default function AdminItemEditorPage({
                   </span>
                 ))}
                 <input
-                  className={`h-6 min-w-0 flex-1 border-0 bg-transparent text-xs outline-none focus:ring-0 ${isGeneratorLocked ? 'cursor-not-allowed text-slate-500' : 'text-slate-900'}`}
+                  className={`h-7 min-w-0 flex-1 border-0 bg-transparent text-[14px] outline-none focus:ring-0 ${isGeneratorLocked ? 'cursor-not-allowed text-slate-500' : 'text-slate-900'}`}
                   value={generatorInput}
                   disabled={isGeneratorLocked}
                   onChange={(event) => {
@@ -1028,10 +1122,10 @@ export default function AdminItemEditorPage({
                   }}
                 />
               </div>
-              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">{combinationCount}</span>
+              <span className="pointer-events-none absolute right-3 top-[70%] -translate-y-1/2 text-xs font-medium text-slate-500">{combinationCount}</span>
             </div>
-            <label className="ml-auto mt-0.5 inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
-              <span>Cena:</span>
+            <label className="ml-auto mt-6 inline-flex items-center gap-2 text-[14px] font-medium text-slate-700">
+              <span>Cena</span>
               <span className="relative inline-flex items-center">
                 <input
                   type="number"
@@ -1039,7 +1133,7 @@ export default function AdminItemEditorPage({
                   value={generatorPriceInput}
                   disabled={!isTableEditable}
                   onChange={(event) => setGeneratorPriceInput(event.target.value)}
-                  className={`${inputClass} !h-9 !w-40 !pr-16 text-right text-sm ${!isTableEditable ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`}
+                  className={`${inputClass} !h-10 !w-44 !pr-16 text-right text-sm ${!isTableEditable ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`}
                 />
                 <span className="pointer-events-none absolute right-3 text-xs font-medium text-slate-500">{generatorUnitLabel}</span>
               </span>
@@ -1049,8 +1143,8 @@ export default function AdminItemEditorPage({
             {generatorError ? <span className="text-rose-600">{generatorError}</span> : null}
           </div>
         </div>
-        <div className="relative overflow-x-auto overflow-y-visible rounded-lg border border-slate-200">
-          <table className="min-w-full text-[11px] leading-4">
+        <div className="relative overflow-x-auto overflow-y-visible rounded-2xl border border-slate-200">
+          <table className="min-w-full text-[13px] leading-4">
             <colgroup>
               <col style={{ width: '4%' }} />
               <col style={{ width: '6%' }} />
@@ -1068,7 +1162,7 @@ export default function AdminItemEditorPage({
               <col style={{ width: '9%' }} />
               <col style={{ width: '4%' }} />
             </colgroup>
-            <thead className="bg-slate-50">
+            <thead className="bg-slate-50 text-[12px] font-semibold text-slate-700">
               <tr>
                 <th className="px-2 py-2 text-center">
                   <AdminCheckbox
@@ -1097,8 +1191,8 @@ export default function AdminItemEditorPage({
             </thead>
             <tbody>
               {draft.variants.map((variant, index) => (
-                <tr key={variant.id} className="h-8 border-t border-slate-100 align-middle">
-                  <td className="px-2 py-1.5 text-center"><AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} disabled={!isTableEditable} /></td>
+                <tr key={variant.id} className="h-14 border-t border-slate-100 align-middle">
+                  <td className="px-2 py-2 text-center"><AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} disabled={!isTableEditable} /></td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isDimensionLockActive} className={`${compactTableNumberInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.length ?? ''} onChange={(event) => updateVariant(index, { length: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.length ?? '—'}</span></span>}</td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isDimensionLockActive} className={`${compactTableNumberInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.width ?? ''} onChange={(event) => updateVariant(index, { width: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.width ?? '—'}</span></span>}</td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isThicknessLockActive} className={`${compactTableNumberInputClassName} !w-[7ch] text-right ${isThicknessLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.thickness ?? ''} onChange={(event) => updateVariant(index, { thickness: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.thickness ?? '—'}</span></span>}</td>
@@ -1124,7 +1218,7 @@ export default function AdminItemEditorPage({
                   <td className="px-2 py-1.5 text-right"><span className="inline-flex h-5 items-center justify-end">{formatCurrency(computeSalePrice(variant.price, variant.discountPct))}</span></td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="numeric" className={`${compactTableNumberInputClassName} !mt-0 !w-auto !max-w-[6ch] text-right`} value={variant.stock} onChange={(event) => updateVariant(index, { stock: Number(event.target.value) || 0 })} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 max-w-[6ch] items-center justify-end">{variant.stock}</span></span>}</td>
                   <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableNumberInputClassName} !mt-0 !w-10 text-center`} value={sideSettings.moq} onChange={(event) => setSideSettings((current) => ({ ...current, moq: Number(event.target.value) || 1 }))} /> : <span className="inline-flex h-5 w-10 items-center justify-center">{sideSettings.moq}</span>}</td>
-                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input className={`${orderLikeEditableInputClassName} !mt-0 !h-5 !w-[20ch] text-center`} value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} /> : <span className="inline-flex h-5 w-[20ch] items-center justify-center overflow-hidden text-ellipsis whitespace-nowrap text-center">{variant.sku || '—'}</span>}</td>
+                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input className={`${orderLikeEditableInputClassName} !mt-0 !h-8 !w-[20ch] text-center`} value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} /> : <span className="inline-flex h-8 w-[20ch] items-center justify-center overflow-hidden text-ellipsis whitespace-nowrap text-center">{variant.sku || '—'}</span>}</td>
                   <td className="px-1 py-1.5 text-center">
                     <div className="inline-flex justify-center">
                       <ActiveStateChip
@@ -1152,6 +1246,13 @@ export default function AdminItemEditorPage({
               ))}
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white px-5 py-3">
+        <div className="flex items-center justify-between">
+          <Button type="button" variant="default" size="toolbar" className="!h-10 !rounded-xl !px-6 !text-[14px] !font-semibold" onClick={() => { setEditorMode('read'); setTableEditorMode('read'); setMediaMode('read'); }}>Prekliči</Button>
+          <Button type="button" variant="primary" size="toolbar" className="!h-10 !rounded-xl !bg-[#1982bf] !px-8 !text-[14px] !font-semibold hover:!bg-[#166d9f]" onClick={() => save(false)}>Shrani</Button>
         </div>
       </section>
     </div>

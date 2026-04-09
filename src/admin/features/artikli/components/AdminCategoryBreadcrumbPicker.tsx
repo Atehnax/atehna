@@ -20,6 +20,8 @@ const normalizeSearch = (value: string) =>
     .replace(/\p{Diacritic}/gu, '')
     .trim();
 
+const isSlugLikeTitle = (value: string) => /^[a-z0-9]+(?:-[a-z0-9]+)+$/.test(value.trim().toLowerCase());
+
 const toPathParts = (value: string) =>
   value
     .split('/')
@@ -110,7 +112,10 @@ export default function AdminCategoryBreadcrumbPicker({
 
     return childKeys
       .map((childKey) => categoryIndex.entryMap.get(childKey))
-      .filter((entry): entry is CategoryNodeEntry => Boolean(entry))
+      .filter((entry): entry is CategoryNodeEntry => {
+        if (!entry) return false;
+        return !isSlugLikeTitle(entry.title);
+      })
       .sort((a, b) => a.title.localeCompare(b.title, 'sl'));
   }, [categoryIndex.childrenByParent, categoryIndex.entryMap, drillPath]);
 
@@ -120,9 +125,9 @@ export default function AdminCategoryBreadcrumbPicker({
 
     return categoryIndex.entries
       .filter((entry) => {
+        if (isSlugLikeTitle(entry.title)) return false;
         const normalizedTitle = normalizeSearch(entry.title);
-        const normalizedPath = normalizeSearch(entry.fullPath);
-        return normalizedTitle.includes(normalizedQuery) || normalizedPath.includes(normalizedQuery);
+        return normalizedTitle.includes(normalizedQuery);
       })
       .slice(0, 60);
   }, [categoryIndex.entries, drillChildren, query]);
@@ -181,7 +186,7 @@ export default function AdminCategoryBreadcrumbPicker({
             label: placeholder,
             isCurrent: false,
             onClick: disabled ? undefined : () => setIsOpen(true),
-            labelClassName: 'font-semibold text-slate-900'
+            labelClassName: `font-semibold text-slate-900 ${disabled ? '' : 'underline decoration-slate-900/70 underline-offset-2'}`
           }
         ]
       : [
@@ -264,7 +269,7 @@ export default function AdminCategoryBreadcrumbPicker({
                   }
                 }
               }}
-              placeholder="Išči po poti kategorij"
+              placeholder="Išči po naslovu kategorije"
               aria-label="Išči kategorijo"
               className="h-8 w-full rounded-md border-0 bg-transparent px-2 text-xs text-slate-700 outline-none focus:outline-none focus:ring-0"
             />
@@ -310,7 +315,6 @@ export default function AdminCategoryBreadcrumbPicker({
               >
                 <span className="min-w-0">
                   <span className="block truncate font-medium">{entry.title}</span>
-                  <span className="block truncate text-[11px] text-slate-500">{entry.fullPath}</span>
                 </span>
                 <span className="shrink-0 text-[10px] text-slate-400">{entry.isLeaf ? 'končna' : 'odpri'}</span>
               </button>

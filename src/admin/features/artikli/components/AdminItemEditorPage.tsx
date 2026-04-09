@@ -33,7 +33,6 @@ type EditorMode = 'create' | 'edit';
 type CreateType = 'simple' | 'variants';
 type MediaTab = 'slike' | 'video';
 type VariantTag = 'novo' | 'akcija' | 'zadnji-kosi';
-type VariantMeasure = 'mm' | 'cm';
 type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 type VideoEntry = { id: string; source: 'upload' | 'youtube'; label: string; previewUrl: string; visible: boolean };
@@ -356,7 +355,6 @@ export default function AdminItemEditorPage({
   const [videoEntriesSaved, setVideoEntriesSaved] = useState<VideoEntry[]>([]);
   const [videoSelections, setVideoSelections] = useState<Set<string>>(new Set());
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>({});
-  const [variantMeasures, setVariantMeasures] = useState<Record<string, VariantMeasure>>({});
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() =>
     (draft.category || '')
       .split('/')
@@ -401,7 +399,7 @@ export default function AdminItemEditorPage({
   const allVariantsSelected = draft.variants.length > 0 && draft.variants.every((variant) => variantSelections.has(variant.id));
   const generatorDimensionLabels: Record<GeneratorDimension, string> = {
     length: 'Dolžina',
-    width: 'Širina',
+    width: 'Širina/fi',
     thickness: 'Debelina'
   };
   const generatorByDimension = useMemo(() => {
@@ -412,11 +410,11 @@ export default function AdminItemEditorPage({
     return map;
   }, [generatorChips]);
   const combinationCount = useMemo(() => {
-    const lengthValues = generatorByDimension.get('length') ?? [];
-    const widthValues = generatorByDimension.get('width') ?? [];
-    const thicknessValues = generatorByDimension.get('thickness') ?? [];
-    if (!lengthValues.length || !widthValues.length || !thicknessValues.length) return 0;
-    return lengthValues.length * widthValues.length * thicknessValues.length;
+    const activeDimensions = (['length', 'width', 'thickness'] as const)
+      .map((dimension) => generatorByDimension.get(dimension) ?? [])
+      .filter((values) => values.length > 0);
+    if (activeDimensions.length < 2) return 0;
+    return activeDimensions.reduce((total, values) => total * values.length, 1);
   }, [generatorByDimension]);
 
   const save = (asDraft = false) => {
@@ -466,8 +464,8 @@ export default function AdminItemEditorPage({
   const parseGeneratorEntry = (value: string): { dimension: GeneratorDimension; values: number[] } | { error: string } => {
     const normalized = value.trim();
     if (!normalized) return { error: 'Vnos ne sme biti prazen.' };
-    const match = normalized.match(/^(dolzina|dolžina|sirina|širina|debelina)\s*:?\s*(.+)$/i);
-    if (!match) return { error: 'Uporabite Dolžina/Širina/Debelina + vrednosti.' };
+    const match = normalized.match(/^(dolzina|dolžina|sirina(?:\/fi)?|širina(?:\/fi)?|fi|debelina)\s*:?\s*(.+)$/i);
+    if (!match) return { error: 'Uporabite Dolžina/Širina/fi/Debelina + vrednosti.' };
     const prefix = match[1]
       .toLowerCase()
       .normalize('NFD')
@@ -475,7 +473,11 @@ export default function AdminItemEditorPage({
     const rawValues = (match[2] ?? '').trim();
     if (!rawValues) return { error: 'Dodajte vsaj eno številčno vrednost.' };
 
-    const dimension: GeneratorDimension = prefix.startsWith('dol') ? 'length' : prefix.startsWith('sir') ? 'width' : 'thickness';
+    const dimension: GeneratorDimension = prefix.startsWith('dol')
+      ? 'length'
+      : (prefix.startsWith('sir') || prefix.startsWith('fi'))
+        ? 'width'
+        : 'thickness';
     const parts = rawValues.split(',').map((entry) => entry.trim()).filter(Boolean);
     if (parts.length === 0) return { error: 'Dodajte vsaj eno številčno vrednost.' };
     if (parts.length > 5) return { error: `${generatorDimensionLabels[dimension]} podpira največ 5 vrednosti.` };
@@ -560,8 +562,6 @@ export default function AdminItemEditorPage({
   };
 
   const getVariantTag = (variantId: string): VariantTag => variantTags[variantId] ?? 'novo';
-  const getVariantMeasure = (variantId: string): VariantMeasure => variantMeasures[variantId] ?? 'mm';
-
   return (
     <div className="mx-auto max-w-7xl space-y-4 font-['Inter',system-ui,sans-serif]">
       <div className="text-xs text-slate-500"><Link href="/admin/artikli" className="hover:underline">Artikli</Link> › {mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</div>
@@ -861,10 +861,10 @@ export default function AdminItemEditorPage({
         </div>
         <div className="mb-3 space-y-2">
           <p className="text-xs text-slate-500">
-            Vnesi mere za vsako dimenzijo posebej, npr. <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">Dolžina: 10,20</span> Oznake nastavi v spodnji tabeli (mm/cm). Podprte dimenzije: Dolžina, Širina in Debelina, največ 5 vrednosti na dimenzijo. Generiranje ustvari kartezični produkt vseh mer in na tej osnovi pripravi različice.
+            Vnesi mere za vsako dimenzijo posebej, npr. <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">Dolžina: 10,20</span>. Oznake nastavi v spodnji tabeli (mm/cm). Podprte dimenzije: Dolžina, Širina/fi in Debelina, največ 5 vrednosti na dimenzijo. Generiranje ustvari kartezični produkt vseh mer in na tej osnovi pripravi različice.
           </p>
           <div className="flex items-center justify-between text-xs">
-            <p className="text-xs text-slate-500">Dodajte do tri čipe (Dolžina, Širina, Debelina).</p>
+            <p className="text-xs text-slate-500">Dodajte do tri čipe (Dolžina, Širina/fi, Debelina).</p>
             <span className="font-semibold text-slate-700">Kombinacij: {combinationCount}</span>
           </div>
           <div className="flex min-h-9 flex-wrap items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1">
@@ -924,9 +924,8 @@ export default function AdminItemEditorPage({
                   />
                 </th>
                 <th className="px-2 py-2 text-center">Dolžina</th>
-                <th className="px-2 py-2 text-center">Širina</th>
+                <th className="px-2 py-2 text-center">Širina/fi</th>
                 <th className="px-2 py-2 text-center">Debelina</th>
-                <th className="px-2 py-2 text-center">Oznaka</th>
                 <th className="px-2 py-2 text-center">Toleranca</th>
                 <th className="px-2 py-2 text-center">SKU</th>
                 <th className="px-2 py-2 text-right">Cena</th>
@@ -947,9 +946,6 @@ export default function AdminItemEditorPage({
                   <td className="px-2 py-2 text-center">{isTableEditable ? <input type="number" className={`${inputClass} ${numberInputClass} !h-8 !w-10 text-center`} value={variant.length ?? ''} onChange={(event) => updateVariant(index, { length: Number(event.target.value) || 0 })} /> : <span className="inline-flex w-10 justify-center">{variant.length ?? '—'}</span>}</td>
                   <td className="px-2 py-2 text-center">{isTableEditable ? <input type="number" className={`${inputClass} ${numberInputClass} !h-8 !w-10 text-center`} value={variant.width ?? ''} onChange={(event) => updateVariant(index, { width: Number(event.target.value) || 0 })} /> : <span className="inline-flex w-10 justify-center">{variant.width ?? '—'}</span>}</td>
                   <td className="px-2 py-2 text-center">{isTableEditable ? <input type="number" className={`${inputClass} ${numberInputClass} !h-8 !w-10 text-center`} value={variant.thickness ?? ''} onChange={(event) => updateVariant(index, { thickness: Number(event.target.value) || 0 })} /> : <span className="inline-flex w-10 justify-center">{variant.thickness ?? '—'}</span>}</td>
-                  <td className="px-2 py-2 text-center">
-                    <div className="inline-flex justify-center"><NeutralDropdownChip value={getVariantMeasure(variant.id)} editable={isTableEditable} chipClassName="!min-w-[46px]" onChange={(next) => setVariantMeasures((current) => ({ ...current, [variant.id]: next as VariantMeasure }))} options={[{ value: 'mm', label: 'mm' }, { value: 'cm', label: 'cm' }]} /></div>
-                  </td>
                   <td className="px-2 py-2 text-center">
                     {isTableEditable ? (
                       <div className="inline-flex items-center gap-1">

@@ -2,7 +2,8 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/shared/ui/button';
 import { Chip } from '@/shared/ui/badge';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
@@ -28,7 +29,7 @@ import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/A
 const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0';
 const numberInputClass = '[-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 const orderLikeEditableInputClassName = 'mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0';
-const compactTableNumberInputClassName = `${orderLikeEditableInputClassName} ${numberInputClass}`;
+const compactTableNumberInputClassName = `h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-[11px] leading-4 text-slate-900 outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0 ${numberInputClass}`;
 
 type EditorMode = 'create' | 'edit';
 type CreateType = 'simple' | 'variants';
@@ -52,29 +53,50 @@ function ActiveStateChip({
   menuPlacement?: 'top' | 'bottom';
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const label = active ? 'Aktiven' : 'Neaktiven';
+
+  const updateMenuPosition = useCallback(() => {
+    if (!triggerRef.current) return;
+    const triggerRect = triggerRef.current.getBoundingClientRect();
+    const menuWidth = Math.max(130, menuRef.current?.offsetWidth ?? 130);
+    const left = Math.min(Math.max(8, triggerRect.left), window.innerWidth - menuWidth - 8);
+    const top = menuPlacement === 'top' ? triggerRect.top - 6 : triggerRect.bottom + 6;
+    setMenuPosition({ top, left });
+  }, [menuPlacement]);
 
   useEffect(() => {
     if (!isOpen) return;
+    updateMenuPosition();
     const onDocClick = (event: MouseEvent) => {
-      if (rootRef.current?.contains(event.target as Node)) return;
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
       setIsOpen(false);
     };
     const onEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setIsOpen(false);
     };
+    const onWindowChange = () => updateMenuPosition();
     document.addEventListener('mousedown', onDocClick);
     document.addEventListener('keydown', onEscape);
+    window.addEventListener('resize', onWindowChange);
+    window.addEventListener('scroll', onWindowChange, true);
     return () => {
       document.removeEventListener('mousedown', onDocClick);
       document.removeEventListener('keydown', onEscape);
+      window.removeEventListener('resize', onWindowChange);
+      window.removeEventListener('scroll', onWindowChange, true);
     };
-  }, [isOpen]);
+  }, [isOpen, updateMenuPosition]);
 
   return (
     <div ref={rootRef} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => {
           if (!editable) return;
@@ -90,14 +112,22 @@ function ActiveStateChip({
         </span>
       </button>
 
-      {editable && isOpen ? (
-        <div role="menu" className={`absolute left-0 z-40 min-w-[130px] ${menuPlacement === 'top' ? 'bottom-full mb-1' : 'top-8'}`}>
-          <MenuPanel>
-            <MenuItem onClick={() => { onChange(true); setIsOpen(false); }}>Aktiven</MenuItem>
-            <MenuItem onClick={() => { onChange(false); setIsOpen(false); }}>Neaktiven</MenuItem>
-          </MenuPanel>
-        </div>
-      ) : null}
+      {editable && isOpen && menuPosition && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              ref={menuRef}
+              role="menu"
+              className={`fixed z-[1000] min-w-[130px] ${menuPlacement === 'top' ? '-translate-y-full' : ''}`}
+              style={{ top: menuPosition.top, left: menuPosition.left }}
+            >
+              <MenuPanel>
+                <MenuItem onClick={() => { onChange(true); setIsOpen(false); }}>Aktiven</MenuItem>
+                <MenuItem onClick={() => { onChange(false); setIsOpen(false); }}>Neaktiven</MenuItem>
+              </MenuPanel>
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }
@@ -189,30 +219,51 @@ function TagStateChip({
   menuPlacement?: 'top' | 'bottom';
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const label = value === 'novo' ? 'Novo' : value === 'akcija' ? 'V akciji' : 'Zadnji kosi';
   const variant = value === 'novo' ? 'info' : value === 'akcija' ? 'warning' : 'purple';
 
+  const updateMenuPosition = useCallback(() => {
+    if (!triggerRef.current) return;
+    const triggerRect = triggerRef.current.getBoundingClientRect();
+    const menuWidth = Math.max(130, menuRef.current?.offsetWidth ?? 130);
+    const left = Math.min(Math.max(8, triggerRect.left), window.innerWidth - menuWidth - 8);
+    const top = menuPlacement === 'top' ? triggerRect.top - 6 : triggerRect.bottom + 6;
+    setMenuPosition({ top, left });
+  }, [menuPlacement]);
+
   useEffect(() => {
     if (!isOpen) return;
+    updateMenuPosition();
     const onDocClick = (event: MouseEvent) => {
-      if (rootRef.current?.contains(event.target as Node)) return;
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
       setIsOpen(false);
     };
     const onEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setIsOpen(false);
     };
+    const onWindowChange = () => updateMenuPosition();
     document.addEventListener('mousedown', onDocClick);
     document.addEventListener('keydown', onEscape);
+    window.addEventListener('resize', onWindowChange);
+    window.addEventListener('scroll', onWindowChange, true);
     return () => {
       document.removeEventListener('mousedown', onDocClick);
       document.removeEventListener('keydown', onEscape);
+      window.removeEventListener('resize', onWindowChange);
+      window.removeEventListener('scroll', onWindowChange, true);
     };
-  }, [isOpen]);
+  }, [isOpen, updateMenuPosition]);
 
   return (
     <div ref={rootRef} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => {
           if (!editable) return;
@@ -228,15 +279,23 @@ function TagStateChip({
         </span>
       </button>
 
-      {editable && isOpen ? (
-        <div role="menu" className={`absolute left-0 z-40 min-w-[130px] ${menuPlacement === 'top' ? 'bottom-full mb-1' : 'top-8'}`}>
-          <MenuPanel>
-            <MenuItem onClick={() => { onChange('novo'); setIsOpen(false); }}>Novo</MenuItem>
-            <MenuItem onClick={() => { onChange('akcija'); setIsOpen(false); }}>V akciji</MenuItem>
-            <MenuItem onClick={() => { onChange('zadnji-kosi'); setIsOpen(false); }}>Zadnji kosi</MenuItem>
-          </MenuPanel>
-        </div>
-      ) : null}
+      {editable && isOpen && menuPosition && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              ref={menuRef}
+              role="menu"
+              className={`fixed z-[1000] min-w-[130px] ${menuPlacement === 'top' ? '-translate-y-full' : ''}`}
+              style={{ top: menuPosition.top, left: menuPosition.left }}
+            >
+              <MenuPanel>
+                <MenuItem onClick={() => { onChange('novo'); setIsOpen(false); }}>Novo</MenuItem>
+                <MenuItem onClick={() => { onChange('akcija'); setIsOpen(false); }}>V akciji</MenuItem>
+                <MenuItem onClick={() => { onChange('zadnji-kosi'); setIsOpen(false); }}>Zadnji kosi</MenuItem>
+              </MenuPanel>
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }
@@ -587,7 +646,7 @@ export default function AdminItemEditorPage({
                       value={draft.name}
                       onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
                       placeholder="Naziv artikla"
-                      className="h-[1.45em] min-w-[14ch] rounded-md border border-slate-300 bg-white px-1.5 py-0 text-lg font-semibold leading-none tracking-tight text-slate-900 shadow-none outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0"
+                      className="h-[1.45em] min-w-[14ch] rounded-md border border-slate-300 bg-white px-1.5 py-0 text-[inherit] font-[inherit] leading-[inherit] [letter-spacing:inherit] text-slate-900 shadow-none outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0"
                     />
                   ) : (
                     <span className="inline-flex h-[1.45em] min-w-[14ch] items-center px-1.5">{draft.name.trim() || 'Naziv artikla'}</span>

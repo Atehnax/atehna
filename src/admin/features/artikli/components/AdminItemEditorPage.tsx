@@ -12,7 +12,6 @@ import { PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/
 import { useToast } from '@/shared/ui/toast';
 import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
-import EuiTabs from '@/shared/ui/eui-tabs';
 import {
   buildFamiliesFromSeed,
   computeSalePrice,
@@ -31,6 +30,8 @@ const numberInputClass = '[-moz-appearance:textfield] [&::-webkit-inner-spin-but
 const orderLikeEditableInputClassName = 'mt-0.5 h-8 w-full rounded-[10px] border border-slate-200 bg-white px-2 text-[13px] leading-4 text-slate-900 outline-none transition focus:border-[#1982bf] focus:outline-none focus:ring-0';
 const compactTableNumberInputClassName = `h-8 w-full rounded-[10px] border border-slate-200 bg-white px-2 text-[13px] leading-4 text-slate-900 outline-none transition focus:border-[#1982bf] focus:outline-none focus:ring-0 ${numberInputClass}`;
 const sectionPanelClass = 'rounded-2xl border border-slate-200 bg-white p-5';
+const pageActionButtonClass = 'inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-[14px] font-semibold text-slate-700 transition hover:border-slate-300';
+const primaryActionButtonClass = 'inline-flex h-10 items-center gap-2 rounded-xl border border-[#1982bf] bg-[#1982bf] px-4 text-[14px] font-semibold text-white transition hover:bg-[#166d9f]';
 
 type EditorMode = 'create' | 'edit';
 type CreateType = 'simple' | 'variants';
@@ -354,6 +355,29 @@ function VisibilityChip({
         </div>
       ) : null}
     </div>
+  );
+}
+
+function ToggleSwitch({
+  checked,
+  onChange,
+  disabled
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-7 w-12 items-center rounded-full border transition ${checked ? 'border-[#1982bf] bg-[#1982bf]' : 'border-slate-300 bg-slate-200'} ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+    >
+      <span className={`inline-block h-5 w-5 rounded-full bg-white transition ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
+    </button>
   );
 }
 
@@ -697,6 +721,7 @@ export default function AdminItemEditorPage({
                 <NeutralDropdownChip
                   value={articleType}
                   editable={isEditable}
+                  chipClassName="!h-10 !min-w-[170px] !rounded-xl !border !border-slate-200 !bg-[#eef2f7] !px-4 !text-[14px] !font-semibold !text-slate-700"
                   placeholderLabel="Tip artikla"
                   onChange={(value) => setArticleType(value as 'unit' | 'sheet' | 'bulk' | 'linear' | '')}
                   options={[
@@ -706,9 +731,14 @@ export default function AdminItemEditorPage({
                     { value: 'bulk', label: 'Sipki material' }
                   ]}
                 />
-                <ActiveStateChip active={draft.active} editable={isEditable} onChange={(next) => setDraft((current) => ({ ...current, active: next }))} />
-                <IconButton type="button" tone="neutral" onClick={() => setEditorMode((current) => (current === 'read' ? 'edit' : 'read'))} aria-label="Uredi artikel" title="Uredi"><PencilIcon /></IconButton>
-                <IconButton type="button" tone="neutral" onClick={() => save(false)} aria-label="Shrani artikel" title="Shrani" disabled={!isEditable}><SaveIcon /></IconButton>
+                <ActiveStateChip
+                  active={draft.active}
+                  editable={isEditable}
+                  chipClassName="!h-10 !min-w-[150px] !rounded-xl !px-4 !text-[14px] !font-semibold"
+                  onChange={(next) => setDraft((current) => ({ ...current, active: next }))}
+                />
+                <IconButton type="button" tone="neutral" size="md" onClick={() => setEditorMode((current) => (current === 'read' ? 'edit' : 'read'))} aria-label="Uredi artikel" title="Uredi"><PencilIcon /></IconButton>
+                <IconButton type="button" tone="neutral" size="md" onClick={() => save(false)} aria-label="Shrani artikel" title="Shrani" disabled={!isEditable}><SaveIcon /></IconButton>
                 <button type="button" className={buttonTokenClasses.closeX} onClick={deleteItem} aria-label="Izbriši artikel" title="Izbriši"><TrashCanIcon /></button>
               </div>
             </div>
@@ -783,40 +813,52 @@ export default function AdminItemEditorPage({
         <aside className={`${sectionPanelClass} h-full`}>
           <div className="space-y-3.5">
             <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
-              <EuiTabs
-                value={mediaTab}
-                onChange={(value) => setMediaTab(value as MediaTab)}
-                size="compact"
-                tone="muted-control"
-                tabClassName="!font-['Inter',system-ui,sans-serif] !tracking-[0]"
-                tabs={[
-                  { value: 'slike', label: 'Slike' },
-                  { value: 'video', label: 'Video' }
-                ]}
-              />
-              <div className="flex items-center justify-end gap-1.5">
-              <IconButton type="button" tone="neutral" aria-label="Uredi medije" title="Uredi" onClick={() => setMediaMode((current) => (current === 'read' ? 'edit' : 'read'))}><PencilIcon /></IconButton>
-              <IconButton type="button" tone="neutral" aria-label="Shrani medije" title="Shrani" onClick={saveVideoEntries} disabled={!isMediaEditable}><SaveIcon /></IconButton>
-              <IconButton
-                type="button"
-                tone={(mediaTab === 'video' ? videoSelections.size : selectedImageIndexes.size) > 0 ? 'danger' : 'neutral'}
-                aria-label="Izbriši medije"
-                title="Izbriši"
-                disabled={!isMediaEditable || (mediaTab === 'video' ? videoSelections.size === 0 : selectedImageIndexes.size === 0)}
-                onClick={() => {
-                  if (mediaTab === 'video') {
-                    const selected = new Set(videoSelections);
-                    setVideoEntriesDraft((current) => current.filter((entry) => !selected.has(entry.id)));
-                    setVideoSelections(new Set());
-                    return;
-                  }
-                  const selected = new Set(selectedImageIndexes);
-                  setMediaImagesDraft((current) => current.filter((_, index) => !selected.has(index)));
-                  setSelectedImageIndexes(new Set());
-                }}
-              >
-                <TrashCanIcon />
-              </IconButton>
+              <div className="flex items-center gap-1">
+                {([
+                  { value: 'slike', label: 'Slike', icon: '🖼️' },
+                  { value: 'video', label: 'Video', icon: '▶️' }
+                ] as const).map((tab) => (
+                  <button
+                    key={tab.value}
+                    type="button"
+                    onClick={() => setMediaTab(tab.value)}
+                    className={`relative inline-flex h-10 items-center gap-2 rounded-t-xl px-4 text-[15px] font-semibold transition ${mediaTab === tab.value ? 'text-[#1982bf]' : 'text-slate-600 hover:text-slate-800'}`}
+                  >
+                    <span className="text-sm">{tab.icon}</span>
+                    {tab.label}
+                    {mediaTab === tab.value ? <span className="absolute inset-x-0 -bottom-[11px] h-[3px] rounded-full bg-[#1982bf]" /> : null}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center justify-end gap-2">
+                <button type="button" className={pageActionButtonClass} aria-label="Uredi medije" onClick={() => setMediaMode((current) => (current === 'read' ? 'edit' : 'read'))}>
+                  <PencilIcon />
+                  Uredi
+                </button>
+                <button
+                  type="button"
+                  className={`${pageActionButtonClass} border-rose-200 text-rose-600`}
+                  aria-label="Izbriši medije"
+                  disabled={!isMediaEditable || (mediaTab === 'video' ? videoSelections.size === 0 : selectedImageIndexes.size === 0)}
+                  onClick={() => {
+                    if (mediaTab === 'video') {
+                      const selected = new Set(videoSelections);
+                      setVideoEntriesDraft((current) => current.filter((entry) => !selected.has(entry.id)));
+                      setVideoSelections(new Set());
+                      return;
+                    }
+                    const selected = new Set(selectedImageIndexes);
+                    setMediaImagesDraft((current) => current.filter((_, index) => !selected.has(index)));
+                    setSelectedImageIndexes(new Set());
+                  }}
+                >
+                  <TrashCanIcon />
+                  Izbriši
+                </button>
+                <button type="button" className={primaryActionButtonClass} aria-label="Shrani medije" onClick={saveVideoEntries} disabled={!isMediaEditable}>
+                  <SaveIcon />
+                  Shrani
+                </button>
               </div>
             </div>
             {mediaTab === 'slike' ? (
@@ -858,18 +900,31 @@ export default function AdminItemEditorPage({
                     <div className="grid grid-cols-4 gap-2">
                       {mediaImagesDraft.map((img, index) => <div key={`${img}-${index}`} className={`relative overflow-hidden rounded-xl border ${selectedImageIndexes.has(index) ? 'border-[#1982bf]' : 'border-slate-200'}`}><Image src={img} alt={`Slika ${index + 1}`} width={180} height={120} unoptimized className="h-20 w-full object-cover" />{isMediaEditable ? <div className="absolute left-1 top-1"><AdminCheckbox checked={selectedImageIndexes.has(index)} onChange={() => setSelectedImageIndexes((current) => { const next = new Set(current); if (next.has(index)) next.delete(index); else next.add(index); return next; })} /></div> : null}</div>)}
                     </div>
+                    <p className="text-[13px] text-slate-500">Povleci in spusti slike za spremembo vrstnega reda.</p>
                   </div>
                   <div className="space-y-3 rounded-xl border border-slate-200 p-3.5">
                     <h3 className="text-[16px] font-semibold leading-none text-slate-900">Prikaz</h3>
                     <p className="text-[13px] text-slate-500">Nastavi, kako se galerija obnaša na strani izdelka.</p>
-                    <label className="flex items-center gap-2.5 rounded-xl border border-slate-200 p-3 text-[14px]">
-                      <AdminCheckbox checked={sideSettings.showGallery} onChange={(event) => setSideSettings((current) => ({ ...current, showGallery: event.target.checked }))} />
-                      <span>Prikaži galerijo na strani izdelka</span>
-                    </label>
-                    <label className="flex items-center gap-2.5 rounded-xl border border-slate-200 p-3 text-[14px]">
-                      <AdminCheckbox checked={sideSettings.autoSquareCrop} onChange={(event) => setSideSettings((current) => ({ ...current, autoSquareCrop: event.target.checked }))} />
-                      <span>Samodejno obreži na kvadrat (1:1)</span>
-                    </label>
+                    <div className="flex items-center justify-between gap-2.5 rounded-xl border border-slate-200 p-3 text-[14px]">
+                      <div className="flex items-center gap-3">
+                        <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#ecf3ff] text-[#1982bf]">👁️</span>
+                        <div>
+                          <p className="font-semibold text-slate-900">Prikaži galerijo na strani izdelka</p>
+                          <p className="text-[13px] text-slate-500">Kupci si bodo lahko ogledali slike.</p>
+                        </div>
+                      </div>
+                      <ToggleSwitch checked={sideSettings.showGallery} onChange={(next) => setSideSettings((current) => ({ ...current, showGallery: next }))} />
+                    </div>
+                    <div className="flex items-center justify-between gap-2.5 rounded-xl border border-slate-200 p-3 text-[14px]">
+                      <div className="flex items-center gap-3">
+                        <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#ecf3ff] text-[#1982bf]">✂️</span>
+                        <div>
+                          <p className="font-semibold text-slate-900">Samodejno obreži na kvadrat (1:1)</p>
+                          <p className="text-[13px] text-slate-500">Vse slike bodo prikazane v kvadratnem razmerju.</p>
+                        </div>
+                      </div>
+                      <ToggleSwitch checked={sideSettings.autoSquareCrop} onChange={(next) => setSideSettings((current) => ({ ...current, autoSquareCrop: next }))} />
+                    </div>
                     <div className="space-y-1.5 border-t border-slate-200 pt-3">
                       <label className="text-[14px] font-medium text-slate-800">Fokus slike</label>
                       <select className={inputClass} value={sideSettings.imageFocus} onChange={(event) => setSideSettings((current) => ({ ...current, imageFocus: event.target.value }))}>
@@ -880,7 +935,15 @@ export default function AdminItemEditorPage({
                     </div>
                     <div className="space-y-1.5 border-t border-slate-200 pt-3">
                       <label className="text-[14px] font-medium text-slate-800">Alt besedilo</label>
-                      <input className={inputClass} value={sideSettings.imageAltText} onChange={(event) => setSideSettings((current) => ({ ...current, imageAltText: event.target.value }))} placeholder={`${draft.name || 'Artikel'} - različice`} />
+                      <div className="rounded-xl border border-slate-200 bg-white p-2">
+                        <textarea
+                          className="h-24 w-full resize-none border-0 bg-transparent px-2 text-[14px] text-slate-700 outline-none"
+                          value={sideSettings.imageAltText}
+                          onChange={(event) => setSideSettings((current) => ({ ...current, imageAltText: event.target.value.slice(0, 125) }))}
+                          placeholder={`${draft.name || 'Artikel'} - različice`}
+                        />
+                        <p className="text-right text-xs text-slate-500">{sideSettings.imageAltText.length} / 125</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -966,6 +1029,7 @@ export default function AdminItemEditorPage({
               aria-label="Uredi tabelo artikla"
               title={isTableEditable ? 'Zaključi urejanje' : 'Uredi'}
               tone="neutral"
+              size="md"
               onClick={() => setTableEditorMode((current) => (current === 'read' ? 'edit' : 'read'))}
             >
               <PencilIcon />
@@ -975,6 +1039,7 @@ export default function AdminItemEditorPage({
               aria-label="Dodaj različico"
               title="Dodaj različico"
               tone="neutral"
+              size="md"
               disabled={!isTableEditable}
               onClick={() => setDraft((current) => ({ ...current, variants: [...current.variants, createVariant({ sort: current.variants.length + 1 })] }))}
             >
@@ -985,6 +1050,7 @@ export default function AdminItemEditorPage({
               aria-label="Shrani tabelo artikla"
               title="Shrani"
               tone="neutral"
+              size="md"
               disabled={!isTableEditable}
               onClick={() => setTableEditorMode('read')}
             >
@@ -995,6 +1061,7 @@ export default function AdminItemEditorPage({
               aria-label="Odstrani izbrane različice"
               title="Izbriši izbrane"
               tone={hasSelectedVariants ? 'danger' : 'neutral'}
+              size="md"
               disabled={!isTableEditable || !hasSelectedVariants}
               onClick={deleteSelectedVariants}
             >

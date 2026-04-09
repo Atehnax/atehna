@@ -18,7 +18,6 @@ import {
   createFamily,
   createVariant,
   formatCurrency,
-  statusLabel,
   toSlug,
   type ProductFamily,
   type SeedItemTuple,
@@ -49,6 +48,7 @@ function ActiveStateChip({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const label = active ? 'Aktiven' : 'Neaktiven';
 
   useEffect(() => {
     if (!isOpen) return;
@@ -81,7 +81,7 @@ function ActiveStateChip({
       >
         {editable ? <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span> : null}
         <span className="block">
-          <Chip variant={active ? 'success' : 'warning'}>{statusLabel(active)}</Chip>
+          <Chip variant={active ? 'success' : 'warning'}>{label}</Chip>
         </span>
       </button>
 
@@ -101,12 +101,14 @@ function NeutralDropdownChip({
   value,
   editable,
   options,
-  onChange
+  onChange,
+  chipClassName
 }: {
   value: string;
   editable: boolean;
   options: Array<{ value: string; label: string }>;
   onChange: (next: string) => void;
+  chipClassName?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -143,7 +145,7 @@ function NeutralDropdownChip({
       >
         {editable ? <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span> : null}
         <span className="block">
-          <Chip variant="neutral" className="min-w-[124px]">{selectedOption?.label ?? ''}</Chip>
+          <Chip variant="neutral" className={`min-w-[124px] ${chipClassName ?? ''}`}>{selectedOption?.label ?? ''}</Chip>
         </span>
       </button>
 
@@ -780,13 +782,9 @@ export default function AdminItemEditorPage({
                     <div className="grid grid-cols-2 gap-2">
                       {(videoEntriesDraft.length ? videoEntriesDraft : videoEntriesSaved).slice(0, 4).map((entry) => (
                         entry.source === 'youtube' ? (
-                          <button key={entry.id} type="button" className="block" onClick={() => window.open(entry.label, '_blank', 'noopener,noreferrer')}>
-                            <iframe title={`Predogled ${entry.id}`} className="h-16 w-full rounded border border-slate-200" src={entry.previewUrl} />
-                          </button>
+                          <iframe key={entry.id} title={`Predogled ${entry.id}`} className="h-16 w-full rounded border border-slate-200" src={entry.previewUrl} />
                         ) : (
-                          <button key={entry.id} type="button" className="block" onClick={() => window.open(entry.previewUrl, '_blank', 'noopener,noreferrer')}>
-                            <video className="h-16 w-full rounded border border-slate-200 object-cover"><source src={entry.previewUrl} /></video>
-                          </button>
+                          <video key={entry.id} controls className="h-16 w-full rounded border border-slate-200 object-cover"><source src={entry.previewUrl} /></video>
                         )
                       ))}
                     </div>
@@ -878,7 +876,7 @@ export default function AdminItemEditorPage({
                 <button
                   type="button"
                   aria-label={`Odstrani ${generatorDimensionLabels[chip.dimension]}`}
-                  className="text-slate-500 hover:text-slate-700"
+                  className="text-slate-500 transition hover:text-rose-600 active:text-rose-700"
                   onClick={() => setGeneratorChips((current) => current.filter((entry) => entry.dimension !== chip.dimension))}
                 >
                   ×
@@ -902,9 +900,7 @@ export default function AdminItemEditorPage({
             />
           </div>
           <div className="text-xs">
-            <span className={generatorError ? 'text-rose-600' : 'text-slate-500'}>
-              {generatorError || 'Podprte dimenzije so pripravljene za generiranje.'}
-            </span>
+            {generatorError ? <span className="text-rose-600">{generatorError}</span> : null}
           </div>
         </div>
         <div className="relative overflow-x-auto overflow-y-visible rounded-lg border border-slate-200">
@@ -945,13 +941,15 @@ export default function AdminItemEditorPage({
                   <td className="px-2 py-2 text-center">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 !w-16 text-center`} value={variant.width ?? ''} onChange={(event) => updateVariant(index, { width: Number(event.target.value) || 0 })} /> : (variant.width ?? '—')}</td>
                   <td className="px-2 py-2 text-center">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 !w-16 text-center`} value={variant.thickness ?? ''} onChange={(event) => updateVariant(index, { thickness: Number(event.target.value) || 0 })} /> : (variant.thickness ?? '—')}</td>
                   <td className="px-2 py-2 text-center">
-                    <div className="inline-flex justify-center"><NeutralDropdownChip value={getVariantMeasure(variant.id)} editable={isTableEditable} onChange={(next) => setVariantMeasures((current) => ({ ...current, [variant.id]: next as VariantMeasure }))} options={[{ value: 'mm', label: 'mm' }, { value: 'cm', label: 'cm' }]} /></div>
+                    <div className="inline-flex justify-center"><NeutralDropdownChip value={getVariantMeasure(variant.id)} editable={isTableEditable} chipClassName="!min-w-[52px]" onChange={(next) => setVariantMeasures((current) => ({ ...current, [variant.id]: next as VariantMeasure }))} options={[{ value: 'mm', label: 'mm' }, { value: 'cm', label: 'cm' }]} /></div>
                   </td>
                   <td className="px-2 py-2 text-center">
                     {isTableEditable ? (
                       <div className="inline-flex items-center gap-1">
                         <span className="text-slate-500">±</span>
                         <input
+                          type="number"
+                          inputMode="decimal"
                           className={`${inputClass} !h-8 !w-16 text-center`}
                           value={sideSettings.thicknessTolerance}
                           onChange={(event) => setSideSettings((current) => ({ ...current, thicknessTolerance: event.target.value }))}
@@ -962,12 +960,12 @@ export default function AdminItemEditorPage({
                     )}
                   </td>
                   <td className="px-2 py-2 text-center">{isTableEditable ? <input className={`${inputClass} !h-8`} value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} /> : <span className="inline-flex min-h-8 items-center">{variant.sku || '—'}</span>}</td>
-                  <td className="px-2 py-2 text-right">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 !w-20 text-right`} value={variant.price} onChange={(event) => updateVariant(index, { price: Number(event.target.value) || 0 })} /> : <span className="inline-flex min-h-8 items-center justify-end">{formatCurrency(variant.price)}</span>}</td>
-                  <td className="px-2 py-2 text-right">{isTableEditable ? <input className={`${inputClass} !h-8 !w-20 text-right`} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} /> : <span className="inline-flex min-h-8 items-center justify-end">{sideSettings.weightPerUnit || '—'}</span>}</td>
-                  <td className="px-2 py-2 text-right">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 !w-20 text-right`} value={variant.discountPct} onChange={(event) => updateVariant(index, { discountPct: Number(event.target.value) || 0 })} /> : <span className="inline-flex min-h-8 items-center justify-end">{variant.discountPct}</span>}</td>
+                  <td className="px-2 py-2 text-right">{isTableEditable ? <input type="number" inputMode="decimal" className={`${inputClass} !h-8 !w-16 text-right`} value={variant.price} onChange={(event) => updateVariant(index, { price: Number(event.target.value) || 0 })} /> : <span className="inline-flex min-h-8 items-center justify-end">{formatCurrency(variant.price)}</span>}</td>
+                  <td className="px-2 py-2 text-right">{isTableEditable ? <input type="number" inputMode="decimal" className={`${inputClass} !h-8 !w-16 text-right`} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} /> : <span className="inline-flex min-h-8 items-center justify-end">{sideSettings.weightPerUnit || '—'}</span>}</td>
+                  <td className="px-2 py-2 text-right">{isTableEditable ? <input type="number" inputMode="decimal" className={`${inputClass} !h-8 !w-16 text-right`} value={variant.discountPct} onChange={(event) => updateVariant(index, { discountPct: Number(event.target.value) || 0 })} /> : <span className="inline-flex min-h-8 items-center justify-end">{variant.discountPct}</span>}</td>
                   <td className="px-2 py-2 text-right">{formatCurrency(computeSalePrice(variant.price, variant.discountPct))}</td>
-                  <td className="px-2 py-2 text-right">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 !w-20 text-right`} value={variant.stock} onChange={(event) => updateVariant(index, { stock: Number(event.target.value) || 0 })} /> : <span className="inline-flex min-h-8 items-center justify-end">{variant.stock}</span>}</td>
-                  <td className="px-2 py-2 text-center">{isTableEditable ? <input type="number" className={`${inputClass} !h-8 !w-20 text-center`} value={sideSettings.moq} onChange={(event) => setSideSettings((current) => ({ ...current, moq: Number(event.target.value) || 1 }))} /> : <span className="inline-flex min-h-8 items-center justify-center">{sideSettings.moq}</span>}</td>
+                  <td className="px-2 py-2 text-right">{isTableEditable ? <input type="number" inputMode="numeric" className={`${inputClass} !h-8 !w-16 text-right`} value={variant.stock} onChange={(event) => updateVariant(index, { stock: Number(event.target.value) || 0 })} /> : <span className="inline-flex min-h-8 items-center justify-end">{variant.stock}</span>}</td>
+                  <td className="px-2 py-2 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${inputClass} !h-8 !w-16 text-center`} value={sideSettings.moq} onChange={(event) => setSideSettings((current) => ({ ...current, moq: Number(event.target.value) || 1 }))} /> : <span className="inline-flex min-h-8 items-center justify-center">{sideSettings.moq}</span>}</td>
                   <td className="px-2 py-2 text-center">
                     <div className="inline-flex justify-center">
                       <ActiveStateChip

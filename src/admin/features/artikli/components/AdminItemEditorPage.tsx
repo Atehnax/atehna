@@ -382,6 +382,7 @@ export default function AdminItemEditorPage({
   });
   const [variantSelections, setVariantSelections] = useState<Set<string>>(new Set());
   const [generatorInput, setGeneratorInput] = useState('');
+  const [generatorPriceInput, setGeneratorPriceInput] = useState('');
   const [generatorChips, setGeneratorChips] = useState<GeneratorChip[]>([]);
   const [generatorError, setGeneratorError] = useState<string | null>(null);
   const [sideSettings, setSideSettings] = useState({
@@ -465,6 +466,7 @@ export default function AdminItemEditorPage({
   const isMediaEditable = mediaMode === 'edit';
   const isBulkMaterial = articleType === 'bulk';
   const isGeneratorLocked = !isTableEditable || isBulkMaterial;
+  const generatorUnitLabel = articleType === 'sheet' ? 'na m²' : articleType === 'bulk' ? 'na kg' : articleType === 'unit' ? 'na kos' : 'na enoto';
   const hasSelectedVariants = variantSelections.size > 0;
   const allVariantsSelected = draft.variants.length > 0 && draft.variants.every((variant) => variantSelections.has(variant.id));
   const generatorDimensionLabels: Record<GeneratorDimension, string> = {
@@ -515,6 +517,8 @@ export default function AdminItemEditorPage({
     }
 
     const generated: Variant[] = [];
+    const parsedGeneratorPrice = Number(generatorPriceInput.replace(',', '.'));
+    const nextPrice = Number.isFinite(parsedGeneratorPrice) ? parsedGeneratorPrice : 0;
     widths.forEach((width) => lengths.forEach((length) => thicknesses.forEach((thickness) => {
       generated.push(createVariant({
         label: `${width} × ${length} × ${thickness} mm`,
@@ -522,6 +526,7 @@ export default function AdminItemEditorPage({
         length,
         thickness,
         sku: `${toSlug(draft.name || 'artikel').toUpperCase()}-${width}${length}${thickness}`,
+        price: nextPrice,
         discountPct: draft.defaultDiscountPct,
         sort: generated.length + 1
       }));
@@ -935,50 +940,66 @@ export default function AdminItemEditorPage({
           <p className="text-xs text-slate-500">
             Vnesi mere za vsako dimenzijo posebej, npr. <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">Dolžina: 10,20</span>. Podprte dimenzije: Dolžina, Širina/fi in Debelina, največ 5 vrednosti na dimenzijo. Generiranje ustvari kartezični produkt vseh mer in na tej osnovi pripravi različice.
           </p>
-          <div className="flex items-center justify-between text-xs">
-            <p className="text-xs text-slate-500">Dodaj do tri čipe (Dolžina, Širina, Fi, Debelina). Vse mere naj bodo v milimetrih.</p>
-            <span className="font-semibold text-slate-700">Kombinacij: {combinationCount}</span>
-          </div>
-	          <div className={`flex min-h-9 flex-wrap items-center gap-1 rounded-md border border-slate-300 px-2 py-1 ${isGeneratorLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : 'bg-white'}`}>
-            {generatorChips.map((chip) => (
-              <span key={chip.dimension} className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs text-slate-700">
-                <button
-                  type="button"
-                  className="hover:text-slate-900 disabled:cursor-not-allowed disabled:text-slate-400"
+          <p className="text-xs text-slate-500">Dodaj do tri čipe (Dolžina, Širina, Fi, Debelina). Vse mere naj bodo v milimetrih.</p>
+          <div className="flex items-start gap-3">
+            <div className="relative w-1/2 min-w-[300px]">
+              <div className={`flex min-h-9 flex-wrap items-center gap-1 rounded-md border border-slate-300 px-2 py-1 pr-11 ${isGeneratorLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : 'bg-white'}`}>
+                {generatorChips.map((chip) => (
+                  <span key={chip.dimension} className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs text-slate-700">
+                    <button
+                      type="button"
+                      className="hover:text-slate-900 disabled:cursor-not-allowed disabled:text-slate-400"
+                      disabled={isGeneratorLocked}
+                      onClick={() => {
+                        setGeneratorInput(`${generatorDimensionLabels[chip.dimension]}: ${chip.values.join(',')}`);
+                        setGeneratorChips((current) => current.filter((entry) => entry.dimension !== chip.dimension));
+                      }}
+                    >
+                      {`${generatorDimensionLabels[chip.dimension]}: ${chip.values.join(', ')}`}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Odstrani ${generatorDimensionLabels[chip.dimension]}`}
+                      className="text-slate-500 transition hover:text-rose-600 active:text-rose-700 disabled:cursor-not-allowed disabled:text-slate-400"
+                      disabled={isGeneratorLocked}
+                      onClick={() => setGeneratorChips((current) => current.filter((entry) => entry.dimension !== chip.dimension))}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+                <input
+                  className={`h-6 min-w-[140px] flex-1 border-0 bg-transparent text-xs outline-none focus:ring-0 ${isGeneratorLocked ? 'cursor-not-allowed text-slate-500' : 'text-slate-900'}`}
+                  value={generatorInput}
                   disabled={isGeneratorLocked}
-                  onClick={() => {
-                    setGeneratorInput(`${generatorDimensionLabels[chip.dimension]}: ${chip.values.join(',')}`);
-                    setGeneratorChips((current) => current.filter((entry) => entry.dimension !== chip.dimension));
+                  onChange={(event) => {
+                    setGeneratorInput(event.target.value);
+                    if (generatorError) setGeneratorError(null);
                   }}
-                >
-                  {`${generatorDimensionLabels[chip.dimension]}: ${chip.values.join(', ')}`}
-                </button>
-                <button
-                  type="button"
-                  aria-label={`Odstrani ${generatorDimensionLabels[chip.dimension]}`}
-                  className="text-slate-500 transition hover:text-rose-600 active:text-rose-700 disabled:cursor-not-allowed disabled:text-slate-400"
-                  disabled={isGeneratorLocked}
-                  onClick={() => setGeneratorChips((current) => current.filter((entry) => entry.dimension !== chip.dimension))}
-                >
-                  ×
-                </button>
+                  placeholder={generatorChips.length > 0 ? '' : 'Dolžina: 10,20'}
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Enter') return;
+                    event.preventDefault();
+                    submitGeneratorEntry();
+                  }}
+                />
+              </div>
+              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">{combinationCount}</span>
+            </div>
+            <label className="mt-1 inline-flex items-center gap-2 text-xs text-slate-600">
+              <span className="font-semibold text-slate-700">Cena:</span>
+              <span className="relative inline-flex items-center">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={generatorPriceInput}
+                  disabled={!isTableEditable}
+                  onChange={(event) => setGeneratorPriceInput(event.target.value)}
+                  className={`${compactTableNumberInputClassName} !w-28 !pr-12 text-right ${!isTableEditable ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`}
+                />
+                <span className="pointer-events-none absolute right-2 text-[10px] text-slate-500">{generatorUnitLabel}</span>
               </span>
-            ))}
-            <input
-              className={`h-6 min-w-[180px] flex-1 border-0 bg-transparent text-xs outline-none focus:ring-0 ${isGeneratorLocked ? 'cursor-not-allowed text-slate-500' : 'text-slate-900'}`}
-              value={generatorInput}
-              disabled={isGeneratorLocked}
-              onChange={(event) => {
-                setGeneratorInput(event.target.value);
-                if (generatorError) setGeneratorError(null);
-              }}
-              placeholder={generatorChips.length > 0 ? '' : 'Dolžina: 10,20'}
-              onKeyDown={(event) => {
-                if (event.key !== 'Enter') return;
-                event.preventDefault();
-                submitGeneratorEntry();
-              }}
-            />
+            </label>
           </div>
           <div className="text-xs">
             {generatorError ? <span className="text-rose-600">{generatorError}</span> : null}
@@ -997,17 +1018,17 @@ export default function AdminItemEditorPage({
                     disabled={!isTableEditable}
                   />
                 </th>
-                <th className={`px-2 py-2 text-center ${isBulkMaterial ? 'bg-slate-100 text-slate-400' : ''}`}>Dolžina</th>
-                <th className={`px-2 py-2 text-center ${isBulkMaterial ? 'bg-slate-100 text-slate-400' : ''}`}>Širina/fi</th>
-                <th className={`px-2 py-2 text-center ${isBulkMaterial ? 'bg-slate-100 text-slate-400' : ''}`}>Debelina</th>
-                <th className="px-2 py-2 text-center">Toleranca</th>
-                <th className="px-2 py-2 text-center">SKU</th>
-                <th className="px-2 py-2 text-right">Cena</th>
+                <th className="px-2 py-2 text-center">Dolžina</th>
+                <th className="px-2 py-2 text-center">Širina/fi</th>
+                <th className="px-2 py-2 text-center">Debelina</th>
                 <th className="px-2 py-2 text-right">Teža (g)</th>
+                <th className="px-2 py-2 text-center">Toleranca</th>
+                <th className="px-2 py-2 text-right">Cena</th>
                 <th className="px-2 py-2 text-right">Popust %</th>
                 <th className="px-2 py-2 text-right">Akcijska cena</th>
                 <th className="px-2 py-2 text-right">Zaloga</th>
                 <th className="px-2 py-2 text-center">Min/nar.</th>
+                <th className="px-2 py-2 text-center">SKU</th>
                 <th className="px-1 py-2 text-center">Status</th>
                 <th className="px-1 py-2 text-center">Opomba</th>
                 <th className="px-2 py-2 text-center">Sort</th>
@@ -1017,9 +1038,10 @@ export default function AdminItemEditorPage({
               {draft.variants.map((variant, index) => (
                 <tr key={variant.id} className="h-8 border-t border-slate-100 align-middle">
                   <td className="px-2 py-1.5 text-center"><AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} disabled={!isTableEditable} /></td>
-                  <td className={`px-2 py-1.5 text-center ${isBulkMaterial ? 'bg-slate-100' : ''}`}>{isTableEditable ? <input type="number" disabled={isBulkMaterial} className={`${compactTableNumberInputClassName} !w-10 text-center ${isBulkMaterial ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.length ?? ''} onChange={(event) => updateVariant(index, { length: Number(event.target.value) || 0 })} /> : <span className={`inline-flex h-5 w-10 items-center justify-center ${isBulkMaterial ? 'text-slate-500' : ''}`}>{variant.length ?? '—'}</span>}</td>
-                  <td className={`px-2 py-1.5 text-center ${isBulkMaterial ? 'bg-slate-100' : ''}`}>{isTableEditable ? <input type="number" disabled={isBulkMaterial} className={`${compactTableNumberInputClassName} !w-10 text-center ${isBulkMaterial ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.width ?? ''} onChange={(event) => updateVariant(index, { width: Number(event.target.value) || 0 })} /> : <span className={`inline-flex h-5 w-10 items-center justify-center ${isBulkMaterial ? 'text-slate-500' : ''}`}>{variant.width ?? '—'}</span>}</td>
-                  <td className={`px-2 py-1.5 text-center ${isBulkMaterial ? 'bg-slate-100' : ''}`}>{isTableEditable ? <input type="number" disabled={isBulkMaterial} className={`${compactTableNumberInputClassName} !w-10 text-center ${isBulkMaterial ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.thickness ?? ''} onChange={(event) => updateVariant(index, { thickness: Number(event.target.value) || 0 })} /> : <span className={`inline-flex h-5 w-10 items-center justify-center ${isBulkMaterial ? 'text-slate-500' : ''}`}>{variant.thickness ?? '—'}</span>}</td>
+                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" disabled={isBulkMaterial} className={`${compactTableNumberInputClassName} !w-10 text-center ${isBulkMaterial ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.length ?? ''} onChange={(event) => updateVariant(index, { length: Number(event.target.value) || 0 })} /> : <span className={`inline-flex h-5 w-10 items-center justify-center ${isBulkMaterial ? 'text-slate-500' : ''}`}>{variant.length ?? '—'}</span>}</td>
+                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" disabled={isBulkMaterial} className={`${compactTableNumberInputClassName} !w-10 text-center ${isBulkMaterial ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.width ?? ''} onChange={(event) => updateVariant(index, { width: Number(event.target.value) || 0 })} /> : <span className={`inline-flex h-5 w-10 items-center justify-center ${isBulkMaterial ? 'text-slate-500' : ''}`}>{variant.width ?? '—'}</span>}</td>
+                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" disabled={isBulkMaterial} className={`${compactTableNumberInputClassName} !w-10 text-center ${isBulkMaterial ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.thickness ?? ''} onChange={(event) => updateVariant(index, { thickness: Number(event.target.value) || 0 })} /> : <span className={`inline-flex h-5 w-10 items-center justify-center ${isBulkMaterial ? 'text-slate-500' : ''}`}>{variant.thickness ?? '—'}</span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-14 text-right`} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-14 items-center justify-end">{sideSettings.weightPerUnit || '—'}</span></span>}</td>
                   <td className="px-2 py-1.5 text-center">
                     {isTableEditable ? (
                       <div className="inline-flex h-5 w-[52px] items-center justify-center gap-0.5">
@@ -1036,13 +1058,12 @@ export default function AdminItemEditorPage({
                       <span className="inline-flex h-5 w-[52px] items-center justify-center">{sideSettings.thicknessTolerance ? `±${sideSettings.thicknessTolerance}` : '—'}</span>
                     )}
                   </td>
-                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input className={`${orderLikeEditableInputClassName} !mt-0 !h-5 !w-[132px] text-center`} value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} /> : <span className="inline-flex h-5 w-[132px] items-center justify-center overflow-hidden text-ellipsis whitespace-nowrap text-center">{variant.sku || '—'}</span>}</td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-14 text-right`} value={variant.price} onChange={(event) => updateVariant(index, { price: Number(event.target.value) || 0 })} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-14 items-center justify-end">{formatCurrency(variant.price)}</span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-14 text-right`} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-14 items-center justify-end">{sideSettings.weightPerUnit || '—'}</span></span>}</td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="decimal" min={0} max={99.9} step={0.1} className={`${compactTableNumberInputClassName} !mt-0 !w-12 text-right`} value={variant.discountPct} onChange={(event) => updateVariant(index, { discountPct: Math.min(99.9, Math.max(0, Number(event.target.value) || 0)) })} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-12 items-center justify-end">{variant.discountPct}</span></span>}</td>
                   <td className="px-2 py-1.5 text-right"><span className="inline-flex h-5 items-center justify-end">{formatCurrency(computeSalePrice(variant.price, variant.discountPct))}</span></td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="numeric" className={`${compactTableNumberInputClassName} !mt-0 !w-12 text-right`} value={variant.stock} onChange={(event) => updateVariant(index, { stock: Number(event.target.value) || 0 })} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-12 items-center justify-end">{variant.stock}</span></span>}</td>
                   <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableNumberInputClassName} !mt-0 !w-10 text-center`} value={sideSettings.moq} onChange={(event) => setSideSettings((current) => ({ ...current, moq: Number(event.target.value) || 1 }))} /> : <span className="inline-flex h-5 w-10 items-center justify-center">{sideSettings.moq}</span>}</td>
+                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input className={`${orderLikeEditableInputClassName} !mt-0 !h-5 !w-[132px] text-center`} value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} /> : <span className="inline-flex h-5 w-[132px] items-center justify-center overflow-hidden text-ellipsis whitespace-nowrap text-center">{variant.sku || '—'}</span>}</td>
                   <td className="px-1 py-1.5 text-center">
                     <div className="inline-flex justify-center">
                       <ActiveStateChip

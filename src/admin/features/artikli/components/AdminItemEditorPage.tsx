@@ -172,7 +172,7 @@ function DescriptionRichEditor({
     content: value || '<p></p>',
     editorProps: {
       attributes: {
-        class: 'min-h-[100px] px-2.5 py-2 text-sm text-slate-900 focus:outline-none'
+        class: 'min-h-[100px] bg-slate-900 px-2.5 py-2 text-sm text-slate-100 focus:outline-none'
       }
     },
     onUpdate: ({ editor: nextEditor }) => onChange(nextEditor.getHTML())
@@ -191,10 +191,10 @@ function DescriptionRichEditor({
 
   if (!editor) return null;
 
-  const iconBtn = 'rounded p-1 text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50';
+  const iconBtn = 'rounded-sm p-1.5 text-slate-300 hover:bg-slate-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-50';
   return (
-    <div className="overflow-hidden rounded-md border border-slate-300 bg-white">
-      <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 px-2 py-1">
+    <div className="overflow-hidden rounded-md border border-slate-700 bg-slate-900">
+      <div className="flex flex-wrap items-center gap-1 border-b border-slate-700 px-2 py-1">
         <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleBold().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 5h4.5a3.5 3.5 0 1 1 0 7H8m0-7v7m0-7H6m2 7h6.5a3.5 3.5 0 1 1 0 7H8m0-7v7m0 0H6" /></svg></button>
         <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleItalic().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m8.874 19 6.143-14M6 19h6.33m-.66-14H18" /></svg></button>
         <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleUnderline().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 19h12M8 5v9a4 4 0 0 0 8 0V5M6 5h4m4 0h4" /></svg></button>
@@ -210,9 +210,39 @@ function DescriptionRichEditor({
         <button type="button" className={iconBtn} onClick={() => editor.chain().focus().setTextAlign('left').run()}>L</button>
         <button type="button" className={iconBtn} onClick={() => editor.chain().focus().setTextAlign('center').run()}>C</button>
         <button type="button" className={iconBtn} onClick={() => editor.chain().focus().setTextAlign('right').run()}>R</button>
-        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>H2</button>
-        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>H3</button>
-        <button type="button" className={iconBtn} onClick={() => { const color = window.prompt('Barva teksta', '#1e293b'); if (color) editor.chain().focus().setColor(color).run(); }}>A</button>
+        <select className="rounded-sm border border-slate-700 bg-slate-800 px-1.5 py-1 text-xs text-slate-200" onChange={(event) => {
+          const value = event.target.value;
+          if (value === 'p') editor.chain().focus().setParagraph().run();
+          if (value === 'h2') editor.chain().focus().toggleHeading({ level: 2 }).run();
+          if (value === 'h3') editor.chain().focus().toggleHeading({ level: 3 }).run();
+          if (value === 'h4') editor.chain().focus().toggleHeading({ level: 4 }).run();
+        }} defaultValue="p">
+          <option value="p">Format</option>
+          <option value="h2">Heading 2</option>
+          <option value="h3">Heading 3</option>
+          <option value="h4">Heading 4</option>
+        </select>
+        <select className="rounded-sm border border-slate-700 bg-slate-800 px-1.5 py-1 text-xs text-slate-200" onChange={(event) => editor.chain().focus().setMark('textStyle', { fontSize: event.target.value }).run()} defaultValue="16px">
+          <option value="12px">12px</option>
+          <option value="14px">14px</option>
+          <option value="16px">16px</option>
+          <option value="18px">18px</option>
+          <option value="24px">24px</option>
+        </select>
+        <select className="rounded-sm border border-slate-700 bg-slate-800 px-1.5 py-1 text-xs text-slate-200" onChange={(event) => editor.chain().focus().setFontFamily(event.target.value).run()} defaultValue="Inter, ui-sans-serif">
+          <option value="Inter, ui-sans-serif">Inter</option>
+          <option value="Arial, sans-serif">Arial</option>
+          <option value="'Courier New', monospace">Courier New</option>
+          <option value="Georgia, serif">Georgia</option>
+          <option value="Verdana, sans-serif">Verdana</option>
+        </select>
+        <input
+          type="color"
+          className="h-7 w-7 cursor-pointer rounded border border-slate-700 bg-slate-800"
+          onChange={(event) => editor.chain().focus().setColor(event.target.value).run()}
+          title="Text color"
+          defaultValue="#1e293b"
+        />
         <button type="button" className={iconBtn} onClick={() => { const url = window.prompt('Vnesi URL slike', 'https://placehold.co/600x400'); if (url) editor.chain().focus().setImage({ src: url }).run(); }}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg></button>
         <button type="button" className={iconBtn} onClick={() => { const url = window.prompt('Vnesi YouTube URL', 'https://www.youtube.com/watch?v=KaLxCiilHns'); if (url) editor.commands.setYoutubeVideo({ src: url, width: 640, height: 360 }); }}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="15" height="10" rx="2" /><path d="m22 8-5 4 5 4V8z" /></svg></button>
       </div>

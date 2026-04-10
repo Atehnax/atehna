@@ -42,9 +42,9 @@ type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 type VideoEntry = { id: string; source: 'upload' | 'youtube'; label: string; previewUrl: string; visible: boolean };
 type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'price';
 
-function SideInputIcon({ icon }: { icon: SideFieldIcon }) {
+function SideInputIcon({ icon, muted = false }: { icon: SideFieldIcon; muted?: boolean }) {
   const iconProps = {
-    className: 'h-[14px] w-[14px] shrink-0 text-slate-500',
+    className: `h-[14px] w-[14px] shrink-0 ${muted ? 'text-slate-400' : 'text-slate-500'}`,
     stroke: 'currentColor',
     strokeWidth: 2,
     strokeLinecap: 'round' as const,
@@ -58,6 +58,16 @@ function SideInputIcon({ icon }: { icon: SideFieldIcon }) {
       <svg {...iconProps}>
         <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
         <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />
+      </svg>
+    );
+  }
+  if (icon === 'name') {
+    return (
+      <svg {...iconProps}>
+        <path d="m15 16 2.536-7.328a1.02 1.02 1 0 1 .928 0L22 16" />
+        <path d="M15.697 14h5.606" />
+        <path d="m2 16 4.039-9.69a.5.5 0 0 1 .923 0L11 16" />
+        <path d="M3.304 13h6.392" />
       </svg>
     );
   }
@@ -767,13 +777,13 @@ export default function AdminItemEditorPage({
                 <span className="inline-flex h-10 items-center gap-0">
                   {isEditable ? (
                     <div className="inline-flex h-[30px] min-w-[14ch] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[10px] pr-2.5">
-                      <SideInputIcon icon="name" />
+                      <SideInputIcon icon="name" muted={draft.name.trim().length === 0} />
                       <input
                         aria-label="Naziv artikla"
                         value={draft.name}
                         onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
                         placeholder="Naziv artikla"
-                        className="h-full min-w-0 border-0 bg-transparent p-0 text-lg font-semibold leading-none tracking-tight text-slate-900 shadow-none outline-none transition focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+                        className="h-full min-w-0 border-0 bg-transparent p-0 text-sm font-semibold leading-none tracking-tight text-slate-900 shadow-none outline-none transition focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
                       />
                     </div>
                   ) : (
@@ -839,7 +849,7 @@ export default function AdminItemEditorPage({
                           className={`flex w-full cursor-pointer items-center rounded-xl border border-dashed border-blue-300 bg-blue-50/35 px-4 py-3 ${!isEditable ? 'cursor-not-allowed opacity-60' : ''}`}
                         >
                           <span className="mx-auto flex items-center gap-3 text-blue-600">
-                            <SideInputIcon icon="document" />
+                            <SideInputIcon icon="document" muted={documents.length === 0} />
                             <span className="leading-tight">
                               <span className="block text-sm font-semibold">Dodaj dokument</span>
                               <span className="block text-sm text-slate-500">PDF, DOC, XLSX do 10 MB</span>
@@ -850,14 +860,14 @@ export default function AdminItemEditorPage({
                     ) : field.title === 'Kratek URL' ? (
                       <div className="space-y-1">
                         <div className={compactSideInputWrapClassName}>
-                          <SideInputIcon icon="link" />
+                          <SideInputIcon icon="link" muted={field.value.trim().length === 0} />
                           <input className={compactSideInputClassName} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
                         </div>
                         <p className="text-sm text-slate-500">Uporablja se v povezavi izdelka.</p>
                       </div>
                     ) : isEditable ? (
                       <div className={compactSideInputWrapClassName}>
-                        <SideInputIcon icon={field.icon} />
+                        <SideInputIcon icon={field.icon} muted={field.value.trim().length === 0} />
                         <input className={compactSideInputClassName} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
                       </div>
                     ) : (
@@ -1093,21 +1103,29 @@ export default function AdminItemEditorPage({
           <p className="text-xs text-slate-500">
             Vnesi mere za vsako dimenzijo posebej, npr. <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">Dolžina: 10,20</span>. Podprte dimenzije: Dolžina, Širina/fi in Debelina (pri dolžinskem materialu Debelina ni dovoljena), največ 5 vrednosti na dimenzijo. Generiranje ustvari kartezični produkt vseh mer in na tej osnovi pripravi različice.
           </p>
-          <div className="flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-700">
-            <span
+          <div className="flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-slate-700">
+            <svg
               aria-hidden
-              className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-black bg-white text-sm font-semibold leading-none text-black"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-[14px] w-[14px] shrink-0 text-slate-500"
             >
-              i
-            </span>
-            <span className="text-sm font-medium text-slate-700">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 16v-4" />
+              <path d="M12 8h.01" />
+            </svg>
+            <span className="text-xs text-slate-500">
               Dodaj do tri tipe (Dolžina, Širina, Fi, Debelina). Vse mere naj bodo v milimetrih.
             </span>
           </div>
           <div className="flex items-start gap-3">
             <div className="relative w-1/2 min-w-[300px]">
               <div className={`flex h-[30px] flex-nowrap items-center gap-1 overflow-hidden rounded-md border border-slate-300 pl-[10px] pr-11 ${isGeneratorLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : 'bg-white'}`}>
-                <SideInputIcon icon="dimension" />
+                <SideInputIcon icon="dimension" muted={generatorInput.trim().length === 0 && generatorChips.length === 0} />
                 {generatorChips.map((chip) => (
                   <span key={chip.dimension} className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs text-slate-700">
                     <button
@@ -1153,7 +1171,7 @@ export default function AdminItemEditorPage({
             <label className="ml-auto mt-0.5 inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
               <span>Cena:</span>
               <span className={`relative inline-flex h-[30px] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[10px] pr-16 ${!isTableEditable ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`}>
-                <SideInputIcon icon="price" />
+                <SideInputIcon icon="price" muted={generatorPriceInput.trim().length === 0} />
                 <input
                   type="number"
                   inputMode="decimal"

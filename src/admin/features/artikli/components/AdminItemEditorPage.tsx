@@ -53,11 +53,53 @@ function SideInputIcon({ icon }: { icon: SideFieldIcon }) {
     viewBox: '0 0 24 24'
   };
 
-  if (icon === 'brand') return <svg {...iconProps}><path d="M3 7V3h4l11 11-4 4L3 7Z" /><path d="m9 8 1-1" /></svg>;
-  if (icon === 'material') return <svg {...iconProps}><path d="m12 4 8 4-8 4-8-4 8-4Z" /><path d="m4 12 8 4 8-4" /><path d="m4 16 8 4 8-4" /></svg>;
-  if (icon === 'shape') return <svg {...iconProps}><rect x="4" y="4" width="16" height="16" rx="3" /></svg>;
-  if (icon === 'color') return <svg {...iconProps}><circle cx="12" cy="12" r="9" /><circle cx="9" cy="9" r="1.2" /><circle cx="15" cy="9" r="1.2" /><circle cx="9" cy="15" r="1.2" /></svg>;
-  if (icon === 'link') return <svg {...iconProps}><path d="M10 13a5 5 0 0 1 0-7l1-1a5 5 0 0 1 7 7l-1 1" /><path d="M14 11a5 5 0 0 1 0 7l-1 1a5 5 0 0 1-7-7l1-1" /></svg>;
+  if (icon === 'brand') {
+    return (
+      <svg {...iconProps}>
+        <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
+        <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />
+      </svg>
+    );
+  }
+  if (icon === 'material') {
+    return (
+      <svg {...iconProps}>
+        <path d="M7 10H6a4 4 0 0 1-4-4 1 1 0 0 1 1-1h4" />
+        <path d="M7 5a1 1 0 0 1 1-1h13a1 1 0 0 1 1 1 7 7 0 0 1-7 7H8a1 1 0 0 1-1-1z" />
+        <path d="M9 12v5" />
+        <path d="M15 12v5" />
+        <path d="M5 20a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3 1 1 0 0 1-1 1H6a1 1 0 0 1-1-1" />
+      </svg>
+    );
+  }
+  if (icon === 'shape') {
+    return (
+      <svg {...iconProps}>
+        <path d="M8.3 10a.7.7 0 0 1-.626-1.079L11.4 3a.7.7 0 0 1 1.198-.043L16.3 8.9a.7.7 0 0 1-.572 1.1Z" />
+        <rect x="3" y="14" width="7" height="7" rx="1" />
+        <circle cx="17.5" cy="17.5" r="3.5" />
+      </svg>
+    );
+  }
+  if (icon === 'color') {
+    return (
+      <svg {...iconProps}>
+        <path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z" />
+        <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
+        <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
+        <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+        <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+      </svg>
+    );
+  }
+  if (icon === 'link') {
+    return (
+      <svg {...iconProps}>
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+      </svg>
+    );
+  }
   return <svg {...iconProps}><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5" /><path d="M10 12h6M10 16h6" /></svg>;
 }
 

@@ -524,7 +524,7 @@ export default function AdminItemEditorPage({
   const [videoSelections, setVideoSelections] = useState<Set<string>>(new Set());
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>({});
   const [descriptionPreviewMode, setDescriptionPreviewMode] = useState(false);
-  const descriptionEditorRef = useRef<HTMLDivElement>(null);
+  const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() =>
     (draft.category || '')
       .split('/')
@@ -535,12 +535,6 @@ export default function AdminItemEditorPage({
   useEffect(() => {
     setDraft((current) => ({ ...current, category: selectedCategoryPath.join(' / ') }));
   }, [selectedCategoryPath]);
-
-  useEffect(() => {
-    if (!descriptionEditorRef.current) return;
-    if (descriptionEditorRef.current.innerHTML === draft.description) return;
-    descriptionEditorRef.current.innerHTML = draft.description || '';
-  }, [draft.description]);
 
   useEffect(() => {
     let cancelled = false;
@@ -772,20 +766,23 @@ export default function AdminItemEditorPage({
     setVariantTags((current) => ({ ...current, [variantId]: tag }));
   };
 
-  const applyDescriptionFormat = (command: string, value?: string) => {
+  const applyDescriptionFormat = (prefix: string, suffix = '', placeholder = 'besedilo') => {
     if (!isEditable) return;
-    descriptionEditorRef.current?.focus();
-    document.execCommand(command, false, value);
-    const next = descriptionEditorRef.current?.innerHTML ?? '';
-    setDraft((current) => ({ ...current, description: next }));
-  };
+    const textarea = descriptionTextareaRef.current;
+    if (!textarea) return;
 
-  const insertDescriptionHtml = (html: string) => {
-    if (!isEditable) return;
-    descriptionEditorRef.current?.focus();
-    document.execCommand('insertHTML', false, html);
-    const next = descriptionEditorRef.current?.innerHTML ?? '';
-    setDraft((current) => ({ ...current, description: next }));
+    const start = textarea.selectionStart ?? 0;
+    const end = textarea.selectionEnd ?? 0;
+    const selected = draft.description.slice(start, end);
+    const wrapped = `${prefix}${selected || placeholder}${suffix}`;
+    const nextDescription = `${draft.description.slice(0, start)}${wrapped}${draft.description.slice(end)}`;
+    setDraft((current) => ({ ...current, description: nextDescription }));
+
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const cursor = start + wrapped.length;
+      textarea.setSelectionRange(cursor, cursor);
+    });
   };
 
   const getVariantTag = (variantId: string): VariantTag => variantTags[variantId] ?? 'novo';
@@ -907,61 +904,81 @@ export default function AdminItemEditorPage({
                   <>
                     <div className="overflow-hidden rounded-md border border-slate-300 bg-white">
                       <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 px-2 py-1">
-                        <button type="button" className="rounded px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('bold')}>B</button>
-                        <button type="button" className="rounded px-2 py-0.5 text-xs italic text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('italic')}>I</button>
-                        <button type="button" className="rounded px-2 py-0.5 text-xs underline text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('underline')}>U</button>
-                        <button type="button" className="rounded px-2 py-0.5 text-xs line-through text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('strikeThrough')}>S</button>
-                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('insertUnorderedList')}>• List</button>
-                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('insertOrderedList')}>1. List</button>
-                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('formatBlock', 'blockquote')}>“</button>
-                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('hiliteColor', '#FEF08A')}>Highlight</button>
-                        <button type="button" className="rounded px-2 py-0.5 font-mono text-xs text-slate-700 hover:bg-slate-100" onClick={() => insertDescriptionHtml('<code>koda</code>')}>{`</>`}</button>
-                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => { const url = window.prompt('Vnesi povezavo'); if (url) applyDescriptionFormat('createLink', url); }}>Link</button>
-                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('unlink')}>Unlink</button>
-                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('justifyLeft')}>L</button>
-                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('justifyCenter')}>C</button>
-                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('justifyRight')}>R</button>
-                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('formatBlock', 'h2')}>H2</button>
-                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('formatBlock', 'h3')}>H3</button>
-                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => { const url = window.prompt('Vnesi URL slike'); if (url) applyDescriptionFormat('insertImage', url); }}>Image</button>
+                        <button type="button" title="Bold" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('**', '**')}>
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 4h8a4 4 0 0 1 0 8H6zM6 12h9a4 4 0 0 1 0 8H6z" /></svg>
+                        </button>
+                        <button type="button" title="Italic" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('*', '*')}>
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 4h-9M14 20H5M15 4 9 20" /></svg>
+                        </button>
+                        <button type="button" title="Underline" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('<u>', '</u>')}>
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 4v6a6 6 0 0 0 12 0V4M4 20h16" /></svg>
+                        </button>
+                        <button type="button" title="Strike" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('~~', '~~')}>
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12h16M7 7c0-2 2-3 5-3s5 1 5 3-2 3-5 3-5 1-5 3 2 3 5 3 5-1 5-3" /></svg>
+                        </button>
+                        <button type="button" title="Bullets" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('- ', '', 'postavka')}>
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>
+                        </button>
+                        <button type="button" title="Ordered" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('1. ', '', 'postavka')}>
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 6h11M10 12h11M10 18h11M4 6h1v4M4 10h2M4 14h1a1 1 0 0 1 0 2H4m0 0h2" /></svg>
+                        </button>
+                        <button type="button" title="Quote" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('> ', '', 'citat')}>
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 11H6a4 4 0 0 1 4-4v4Zm8 0h-4a4 4 0 0 1 4-4v4Z" /></svg>
+                        </button>
+                        <button type="button" title="Highlight" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('<mark>', '</mark>')}>
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 11 6 6M12 4l8 8-8 8-8-8Z" /></svg>
+                        </button>
+                        <button type="button" title="Code" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('`', '`', 'koda')}>
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 4l-4 16" /></svg>
+                        </button>
+                        <button type="button" title="Link" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => { const url = window.prompt('Vnesi povezavo'); if (url) applyDescriptionFormat('[', `](${url})`, 'povezava'); }}>
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
+                        </button>
+                        <button type="button" title="Unlink" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('', '', 'odstrani povezavo ročno')}>
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m18 18-6-6M8.5 8.5l7 7M7 14a5 5 0 0 1 0-7l1-1a5 5 0 0 1 7 0M17 10a5 5 0 0 1 0 7l-1 1a5 5 0 0 1-7 0" /></svg>
+                        </button>
+                        <button type="button" title="H2" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('## ', '', 'Naslov')}>
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4v16M10 4v16M4 12h6M16 9l3-3 3 3M19 6v12" /></svg>
+                        </button>
+                        <button type="button" title="Image" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => { const url = window.prompt('Vnesi URL slike'); if (url) applyDescriptionFormat('![](', ')', url); }}>
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
+                        </button>
                         <button
                           type="button"
-                          className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100"
+                          title="Video"
+                          className="rounded p-1 text-slate-700 hover:bg-slate-100"
                           onClick={() => {
-                            const url = window.prompt('Vnesi URL videa (embed)');
-                            if (url) insertDescriptionHtml(`<iframe src="${url}" class="w-full min-h-[180px]" allowfullscreen></iframe>`);
+                            const url = window.prompt('Vnesi URL videa');
+                            if (url) applyDescriptionFormat('[Video](', ')', url);
                           }}
                         >
-                          Video
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="15" height="10" rx="2" /><path d="m22 8-5 4 5 4V8z" /></svg>
                         </button>
-                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('insertHorizontalRule')}>HR</button>
-                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => { const color = window.prompt('Vnesi barvo (hex ali ime)', '#1e293b'); if (color) applyDescriptionFormat('foreColor', color); }}>Color</button>
+                        <button type="button" title="Horizontal rule" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('\n---\n', '', '')}>
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h18" /></svg>
+                        </button>
+                        <button type="button" title="Text color" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => { const color = window.prompt('Vnesi barvo (hex ali ime)', '#1e293b'); if (color) applyDescriptionFormat(`<span style=\"color:${color}\">`, '</span>'); }}>
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 16 6-12 6 12M8 12h8M5 20h14" /></svg>
+                        </button>
                         <button type="button" className="ml-auto rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => setDescriptionPreviewMode((current) => !current)}>
                           {descriptionPreviewMode ? 'Uredi' : 'Predogled'}
                         </button>
                       </div>
                       {descriptionPreviewMode ? (
-                        <div
-                          className="min-h-[100px] w-full px-2.5 py-2 text-sm text-slate-900"
-                          dangerouslySetInnerHTML={{ __html: draft.description || '<span class="text-slate-400">Opis artikla...</span>' }}
-                        />
+                        <pre className="min-h-[100px] w-full whitespace-pre-wrap px-2.5 py-2 text-sm text-slate-900">{draft.description || 'Opis artikla...'}</pre>
                       ) : (
-                        <div
-                          ref={descriptionEditorRef}
-                          contentEditable
-                          suppressContentEditableWarning
-                          className="min-h-[100px] w-full px-2.5 py-2 text-sm text-slate-900 outline-none"
-                          data-placeholder="Opis artikla..."
-                          onInput={(event) => setDraft((current) => ({ ...current, description: (event.currentTarget as HTMLDivElement).innerHTML }))}
+                        <textarea
+                          ref={descriptionTextareaRef}
+                          className="min-h-[100px] w-full resize-y border-0 px-2.5 py-2 text-sm text-slate-900 outline-none focus:ring-0"
+                          placeholder="Opis artikla..."
+                          value={draft.description}
+                          onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
                         />
                       )}
                     </div>
                   </>
                 ) : (
-                  <div
-                    className="min-h-10 rounded-md border border-transparent px-0 py-1 text-sm text-slate-700"
-                    dangerouslySetInnerHTML={{ __html: draft.description.trim() || '[Opis artikla]' }}
-                  />
+                  <pre className="min-h-10 whitespace-pre-wrap rounded-md border border-transparent px-0 py-1 text-sm text-slate-700">{draft.description.trim() || '[Opis artikla]'}</pre>
                 )}
               </div>
             </div>

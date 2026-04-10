@@ -42,9 +42,9 @@ type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 type VideoEntry = { id: string; source: 'upload' | 'youtube'; label: string; previewUrl: string; visible: boolean };
 type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'price';
 
-function SideInputIcon({ icon, muted = false }: { icon: SideFieldIcon; muted?: boolean }) {
+function SideInputIcon({ icon, muted = false, className = '' }: { icon: SideFieldIcon; muted?: boolean; className?: string }) {
   const iconProps = {
-    className: `h-[14px] w-[14px] shrink-0 ${muted ? 'text-slate-400' : 'text-slate-500'}`,
+    className: `h-[14px] w-[14px] shrink-0 ${muted ? 'text-slate-400' : 'text-slate-500'} ${className}`.trim(),
     stroke: 'currentColor',
     strokeWidth: 2,
     strokeLinecap: 'round' as const,
@@ -523,6 +523,7 @@ export default function AdminItemEditorPage({
   const [videoEntriesSaved, setVideoEntriesSaved] = useState<VideoEntry[]>([]);
   const [videoSelections, setVideoSelections] = useState<Set<string>>(new Set());
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>({});
+  const descriptionEditorRef = useRef<HTMLDivElement>(null);
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() =>
     (draft.category || '')
       .split('/')
@@ -533,6 +534,12 @@ export default function AdminItemEditorPage({
   useEffect(() => {
     setDraft((current) => ({ ...current, category: selectedCategoryPath.join(' / ') }));
   }, [selectedCategoryPath]);
+
+  useEffect(() => {
+    if (!descriptionEditorRef.current) return;
+    if (descriptionEditorRef.current.innerHTML === draft.description) return;
+    descriptionEditorRef.current.innerHTML = draft.description || '';
+  }, [draft.description]);
 
   useEffect(() => {
     let cancelled = false;
@@ -764,6 +771,14 @@ export default function AdminItemEditorPage({
     setVariantTags((current) => ({ ...current, [variantId]: tag }));
   };
 
+  const applyDescriptionFormat = (command: 'bold' | 'italic' | 'underline' | 'insertUnorderedList') => {
+    if (!isEditable) return;
+    descriptionEditorRef.current?.focus();
+    document.execCommand(command);
+    const next = descriptionEditorRef.current?.innerHTML ?? '';
+    setDraft((current) => ({ ...current, description: next }));
+  };
+
   const getVariantTag = (variantId: string): VariantTag => variantTags[variantId] ?? 'novo';
   return (
     <div className="mx-auto max-w-7xl space-y-4 font-['Inter',system-ui,sans-serif]">
@@ -777,13 +792,13 @@ export default function AdminItemEditorPage({
                 <span className="inline-flex h-10 items-center gap-0">
                   {isEditable ? (
                     <div className="inline-flex h-[30px] min-w-[14ch] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[10px] pr-2.5">
-                      <SideInputIcon icon="name" muted={draft.name.trim().length === 0} />
+                      <SideInputIcon icon="name" className="h-4 w-4" muted={draft.name.trim().length === 0} />
                       <input
                         aria-label="Naziv artikla"
                         value={draft.name}
                         onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
                         placeholder="Naziv artikla"
-                        className="h-full min-w-0 border-0 bg-transparent p-0 text-sm font-semibold leading-none tracking-tight text-slate-900 shadow-none outline-none transition focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+                        className="h-full min-w-0 border-0 bg-transparent p-0 text-[15px] font-semibold leading-none tracking-tight text-slate-900 shadow-none outline-none transition focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
                       />
                     </div>
                   ) : (
@@ -795,13 +810,14 @@ export default function AdminItemEditorPage({
                 <NeutralDropdownChip
                   value={articleType}
                   editable={isEditable}
+                  chipClassName="!min-w-[131px]"
                   placeholderLabel="Tip artikla"
                   onChange={(value) => setArticleType(value as 'unit' | 'sheet' | 'bulk' | 'linear' | '')}
                   options={[
                     { value: 'unit', label: 'Kosovni artikel' },
-                    { value: 'sheet', label: 'Ploščni material' },
-                    { value: 'linear', label: 'Dolžinski material' },
-                    { value: 'bulk', label: 'Sipki material' }
+                    { value: 'sheet', label: 'Ploščni artikel' },
+                    { value: 'linear', label: 'Dolžinski artikel' },
+                    { value: 'bulk', label: 'Sipki artikel' }
                   ]}
                 />
                 <ActiveStateChip active={draft.active} editable={isEditable} onChange={(next) => setDraft((current) => ({ ...current, active: next }))} />
@@ -880,17 +896,28 @@ export default function AdminItemEditorPage({
                 <label className="text-sm font-semibold text-slate-700">Opis</label>
                 {isEditable ? (
                   <>
-                    <textarea
-                      placeholder="Opis artikla..."
-                      className={`${inputClass} !h-28 py-2`}
-                      value={draft.description}
-                      onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
-                    />
+                    <div className="overflow-hidden rounded-md border border-slate-300 bg-white">
+                      <div className="flex items-center gap-1 border-b border-slate-200 px-2 py-1">
+                        <button type="button" className="rounded px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('bold')}>B</button>
+                        <button type="button" className="rounded px-2 py-0.5 text-xs italic text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('italic')}>I</button>
+                        <button type="button" className="rounded px-2 py-0.5 text-xs underline text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('underline')}>U</button>
+                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('insertUnorderedList')}>•</button>
+                      </div>
+                      <div
+                        ref={descriptionEditorRef}
+                        contentEditable
+                        suppressContentEditableWarning
+                        className="min-h-[100px] w-full px-2.5 py-2 text-sm text-slate-900 outline-none"
+                        data-placeholder="Opis artikla..."
+                        onInput={(event) => setDraft((current) => ({ ...current, description: (event.currentTarget as HTMLDivElement).innerHTML }))}
+                      />
+                    </div>
                   </>
                 ) : (
-                  <p className="min-h-10 rounded-md border border-transparent px-0 py-1 text-sm text-slate-700">
-                    {draft.description.trim() || '[Opis artikla]'}
-                  </p>
+                  <div
+                    className="min-h-10 rounded-md border border-transparent px-0 py-1 text-sm text-slate-700"
+                    dangerouslySetInnerHTML={{ __html: draft.description.trim() || '[Opis artikla]' }}
+                  />
                 )}
               </div>
             </div>

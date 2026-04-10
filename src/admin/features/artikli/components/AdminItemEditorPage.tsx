@@ -40,7 +40,7 @@ type VariantTag = 'novo' | 'akcija' | 'zadnji-kosi';
 type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 type VideoEntry = { id: string; source: 'upload' | 'youtube'; label: string; previewUrl: string; visible: boolean };
-type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document';
+type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'price';
 
 function SideInputIcon({ icon }: { icon: SideFieldIcon }) {
   const iconProps = {
@@ -64,11 +64,9 @@ function SideInputIcon({ icon }: { icon: SideFieldIcon }) {
   if (icon === 'material') {
     return (
       <svg {...iconProps}>
-        <path d="M7 10H6a4 4 0 0 1-4-4 1 1 0 0 1 1-1h4" />
-        <path d="M7 5a1 1 0 0 1 1-1h13a1 1 0 0 1 1 1 7 7 0 0 1-7 7H8a1 1 0 0 1-1-1z" />
-        <path d="M9 12v5" />
-        <path d="M15 12v5" />
-        <path d="M5 20a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3 1 1 0 0 1-1 1H6a1 1 0 0 1-1-1" />
+        <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z" />
+        <path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12" />
+        <path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17" />
       </svg>
     );
   }
@@ -97,6 +95,30 @@ function SideInputIcon({ icon }: { icon: SideFieldIcon }) {
       <svg {...iconProps}>
         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
         <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+      </svg>
+    );
+  }
+  if (icon === 'dimension') {
+    return (
+      <svg {...iconProps}>
+        <path d="M10 15v-3" />
+        <path d="M14 15v-3" />
+        <path d="M18 15v-3" />
+        <path d="M2 8V4" />
+        <path d="M22 6H2" />
+        <path d="M22 8V4" />
+        <path d="M6 15v-3" />
+        <rect x="2" y="12" width="20" height="8" rx="2" />
+      </svg>
+    );
+  }
+  if (icon === 'price') {
+    return (
+      <svg {...iconProps}>
+        <path d="M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41L13.7 2.71a2.41 2.41 0 0 0-3.41 0Z" />
+        <path d="M9.2 9.2h.01" />
+        <path d="m14.5 9.5-5 5" />
+        <path d="M14.7 14.8h.01" />
       </svg>
     );
   }
@@ -1084,7 +1106,8 @@ export default function AdminItemEditorPage({
           </div>
           <div className="flex items-start gap-3">
             <div className="relative w-1/2 min-w-[300px]">
-              <div className={`flex h-9 flex-nowrap items-center gap-1 overflow-hidden rounded-md border border-slate-300 px-2 py-1 pr-11 ${isGeneratorLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : 'bg-white'}`}>
+              <div className={`flex h-[30px] flex-nowrap items-center gap-1 overflow-hidden rounded-md border border-slate-300 pl-[10px] pr-11 ${isGeneratorLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : 'bg-white'}`}>
+                <SideInputIcon icon="dimension" />
                 {generatorChips.map((chip) => (
                   <span key={chip.dimension} className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs text-slate-700">
                     <button
@@ -1110,7 +1133,7 @@ export default function AdminItemEditorPage({
                   </span>
                 ))}
                 <input
-                  className={`h-6 min-w-0 flex-1 border-0 bg-transparent text-xs outline-none focus:ring-0 ${isGeneratorLocked ? 'cursor-not-allowed text-slate-500' : 'text-slate-900'}`}
+                  className={`h-full min-w-0 flex-1 border-0 bg-transparent text-xs outline-none focus:ring-0 ${isGeneratorLocked ? 'cursor-not-allowed text-slate-500' : 'text-slate-900'}`}
                   value={generatorInput}
                   disabled={isGeneratorLocked}
                   onChange={(event) => {
@@ -1129,14 +1152,15 @@ export default function AdminItemEditorPage({
             </div>
             <label className="ml-auto mt-0.5 inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
               <span>Cena:</span>
-              <span className="relative inline-flex items-center">
+              <span className={`relative inline-flex h-[30px] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[10px] pr-16 ${!isTableEditable ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`}>
+                <SideInputIcon icon="price" />
                 <input
                   type="number"
                   inputMode="decimal"
                   value={generatorPriceInput}
                   disabled={!isTableEditable}
                   onChange={(event) => setGeneratorPriceInput(event.target.value)}
-                  className={`${inputClass} !h-9 !w-40 !pr-16 text-right text-sm ${!isTableEditable ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`}
+                  className={`h-full w-40 border-0 bg-transparent p-0 text-right text-sm outline-none focus:ring-0 ${!isTableEditable ? 'cursor-not-allowed text-slate-500' : 'text-slate-900'}`}
                 />
                 <span className="pointer-events-none absolute right-3 text-xs font-medium text-slate-500">{generatorUnitLabel}</span>
               </span>

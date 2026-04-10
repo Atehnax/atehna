@@ -4,6 +4,17 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { EditorContent, useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Highlight from '@tiptap/extension-highlight';
+import Underline from '@tiptap/extension-underline';
+import TiptapLink from '@tiptap/extension-link';
+import TextAlign from '@tiptap/extension-text-align';
+import TiptapImage from '@tiptap/extension-image';
+import Youtube from '@tiptap/extension-youtube';
+import { TextStyle } from '@tiptap/extension-text-style';
+import FontFamily from '@tiptap/extension-font-family';
+import Color from '@tiptap/extension-color';
 import { Button } from '@/shared/ui/button';
 import { Chip } from '@/shared/ui/badge';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
@@ -133,6 +144,81 @@ function SideInputIcon({ icon, muted = false, className = '' }: { icon: SideFiel
     );
   }
   return <svg {...iconProps}><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5" /><path d="M10 12h6M10 16h6" /></svg>;
+}
+
+function DescriptionRichEditor({
+  value,
+  editable,
+  onChange
+}: {
+  value: string;
+  editable: boolean;
+  onChange: (next: string) => void;
+}) {
+  const editor = useEditor({
+    editable,
+    extensions: [
+      StarterKit,
+      Highlight,
+      Underline,
+      TiptapLink.configure({ openOnClick: false, autolink: true, defaultProtocol: 'https' }),
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      TiptapImage,
+      Youtube,
+      TextStyle,
+      Color,
+      FontFamily
+    ],
+    content: value || '<p></p>',
+    editorProps: {
+      attributes: {
+        class: 'min-h-[100px] px-2.5 py-2 text-sm text-slate-900 focus:outline-none'
+      }
+    },
+    onUpdate: ({ editor: nextEditor }) => onChange(nextEditor.getHTML())
+  });
+
+  useEffect(() => {
+    if (!editor) return;
+    if (editor.getHTML() === value) return;
+    editor.commands.setContent(value || '<p></p>', { emitUpdate: false });
+  }, [editor, value]);
+
+  useEffect(() => {
+    if (!editor) return;
+    editor.setEditable(editable);
+  }, [editor, editable]);
+
+  if (!editor) return null;
+
+  const iconBtn = 'rounded p-1 text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50';
+  return (
+    <div className="overflow-hidden rounded-md border border-slate-300 bg-white">
+      <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 px-2 py-1">
+        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleBold().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 5h4.5a3.5 3.5 0 1 1 0 7H8m0-7v7m0-7H6m2 7h6.5a3.5 3.5 0 1 1 0 7H8m0-7v7m0 0H6" /></svg></button>
+        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleItalic().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m8.874 19 6.143-14M6 19h6.33m-.66-14H18" /></svg></button>
+        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleUnderline().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 19h12M8 5v9a4 4 0 0 0 8 0V5M6 5h4m4 0h4" /></svg></button>
+        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleStrike().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 6.2V5h12v1.2M7 19h6m.2-14-1.677 6.523M9.6 19l1.029-4M5 5l6.523 6.523M19 19l-7.477-7.477" /></svg></button>
+        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleHighlight().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 20H5.5v-3H19v3h-3M12 19l1.5 2 1.5-2M8 13l4-10 4 10" /></svg></button>
+        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleCode().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m8 8-4 4 4 4m8 0 4-4-4-4m-2-3-4 14" /></svg></button>
+        <button type="button" className={iconBtn} onClick={() => { const url = window.prompt('Vnesi povezavo', 'https://'); if (url) editor.chain().focus().toggleLink({ href: url }).run(); }}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13.2 9.8a3.4 3.4 0 0 0-4.8 0L5 13.2a3.4 3.4 0 0 0 4.8 4.8l.3-.3m-.3-4.5a3.4 3.4 0 0 0 4.8 0L18 9.8a3.4 3.4 0 0 0-4.8-4.8l-1 .96" /></svg></button>
+        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().unsetLink().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m18 18-6-6M8.5 8.5l7 7" /></svg></button>
+        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleBulletList().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 8h10M9 12h10M9 16h10M5 8h.01M5 12h.01M5 16h.01" /></svg></button>
+        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleOrderedList().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 6h8M12 12h8M12 18h8M4 16a2 2 0 1 1 3.3 1.5L4 20h5M4 5l2-1v6" /></svg></button>
+        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleBlockquote().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 11V8H5v3h5Zm0 0v2a4 4 0 0 1-4 4h-1m14-6V8h-5v3h5Zm0 0v2a4 4 0 0 1-4 4h-1" /></svg></button>
+        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().setHorizontalRule().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14" /></svg></button>
+        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().setTextAlign('left').run()}>L</button>
+        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().setTextAlign('center').run()}>C</button>
+        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().setTextAlign('right').run()}>R</button>
+        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>H2</button>
+        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>H3</button>
+        <button type="button" className={iconBtn} onClick={() => { const color = window.prompt('Barva teksta', '#1e293b'); if (color) editor.chain().focus().setColor(color).run(); }}>A</button>
+        <button type="button" className={iconBtn} onClick={() => { const url = window.prompt('Vnesi URL slike', 'https://placehold.co/600x400'); if (url) editor.chain().focus().setImage({ src: url }).run(); }}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg></button>
+        <button type="button" className={iconBtn} onClick={() => { const url = window.prompt('Vnesi YouTube URL', 'https://www.youtube.com/watch?v=KaLxCiilHns'); if (url) editor.commands.setYoutubeVideo({ src: url, width: 640, height: 360 }); }}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="15" height="10" rx="2" /><path d="m22 8-5 4 5 4V8z" /></svg></button>
+      </div>
+      <EditorContent editor={editor} />
+    </div>
+  );
 }
 
 function ActiveStateChip({
@@ -523,8 +609,6 @@ export default function AdminItemEditorPage({
   const [videoEntriesSaved, setVideoEntriesSaved] = useState<VideoEntry[]>([]);
   const [videoSelections, setVideoSelections] = useState<Set<string>>(new Set());
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>({});
-  const [descriptionPreviewMode, setDescriptionPreviewMode] = useState(false);
-  const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() =>
     (draft.category || '')
       .split('/')
@@ -766,111 +850,6 @@ export default function AdminItemEditorPage({
     setVariantTags((current) => ({ ...current, [variantId]: tag }));
   };
 
-  const applyDescriptionFormat = (prefix: string, suffix = '', placeholder = 'besedilo') => {
-    if (!isEditable) return;
-    const textarea = descriptionTextareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart ?? 0;
-    const end = textarea.selectionEnd ?? 0;
-    const selected = draft.description.slice(start, end);
-    const wrapped = `${prefix}${selected || placeholder}${suffix}`;
-    const nextDescription = `${draft.description.slice(0, start)}${wrapped}${draft.description.slice(end)}`;
-    setDraft((current) => ({ ...current, description: nextDescription }));
-
-    requestAnimationFrame(() => {
-      textarea.focus();
-      const cursor = start + wrapped.length;
-      textarea.setSelectionRange(cursor, cursor);
-    });
-  };
-
-  const buildDescriptionPreviewHtml = (raw: string) => {
-    const source = raw.trim();
-    if (!source) return '<span class="text-slate-400">Opis artikla...</span>';
-
-    const lines = source.split('\n');
-    const processed: string[] = [];
-    let inUl = false;
-    let inOl = false;
-
-    const closeLists = () => {
-      if (inUl) {
-        processed.push('</ul>');
-        inUl = false;
-      }
-      if (inOl) {
-        processed.push('</ol>');
-        inOl = false;
-      }
-    };
-
-    const inline = (text: string) =>
-      text
-        .replace(/`([^`]+)`/g, '<code class="rounded bg-slate-100 px-1">$1</code>')
-        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-        .replace(/~~([^~]+)~~/g, '<s>$1</s>')
-        .replace(/!\[\]\(([^)]+)\)/g, '<img src="$1" alt="" class="my-2 max-w-full rounded" />')
-        .replace(/\[Video\]\(([^)]+)\)/g, '<a href="$1" target="_blank" rel="noreferrer" class="text-blue-600 underline">Video</a>')
-        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer" class="text-blue-600 underline">$1</a>');
-
-    lines.forEach((line) => {
-      if (/^\s*$/.test(line)) {
-        closeLists();
-        processed.push('<p class="my-2"></p>');
-        return;
-      }
-      if (/^---+$/.test(line.trim())) {
-        closeLists();
-        processed.push('<hr class="my-3 border-slate-300" />');
-        return;
-      }
-      if (line.startsWith('### ')) {
-        closeLists();
-        processed.push(`<h3 class="mt-3 text-base font-semibold">${inline(line.slice(4))}</h3>`);
-        return;
-      }
-      if (line.startsWith('## ')) {
-        closeLists();
-        processed.push(`<h2 class="mt-3 text-lg font-semibold">${inline(line.slice(3))}</h2>`);
-        return;
-      }
-      if (line.startsWith('# ')) {
-        closeLists();
-        processed.push(`<h1 class="mt-3 text-xl font-semibold">${inline(line.slice(2))}</h1>`);
-        return;
-      }
-      if (line.startsWith('> ')) {
-        closeLists();
-        processed.push(`<blockquote class="my-2 border-l-2 border-slate-300 pl-3 text-slate-600">${inline(line.slice(2))}</blockquote>`);
-        return;
-      }
-      if (/^- /.test(line)) {
-        if (!inUl) {
-          closeLists();
-          processed.push('<ul class="my-2 list-disc pl-5">');
-          inUl = true;
-        }
-        processed.push(`<li>${inline(line.replace(/^- /, ''))}</li>`);
-        return;
-      }
-      if (/^\d+\.\s/.test(line)) {
-        if (!inOl) {
-          closeLists();
-          processed.push('<ol class="my-2 list-decimal pl-5">');
-          inOl = true;
-        }
-        processed.push(`<li>${inline(line.replace(/^\d+\.\s/, ''))}</li>`);
-        return;
-      }
-      closeLists();
-      processed.push(`<p class="my-2">${inline(line)}</p>`);
-    });
-    closeLists();
-    return processed.join('');
-  };
-
   const getVariantTag = (variantId: string): VariantTag => variantTags[variantId] ?? 'novo';
   return (
     <div className="mx-auto max-w-7xl space-y-4 font-['Inter',system-ui,sans-serif]">
@@ -987,91 +966,9 @@ export default function AdminItemEditorPage({
               <div className="col-span-2 space-y-1">
                 <label className="text-sm font-semibold text-slate-700">Opis</label>
                 {isEditable ? (
-                  <>
-                    <div className="overflow-hidden rounded-md border border-slate-300 bg-white">
-                      <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 px-2 py-1">
-                        <button type="button" title="Bold" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('**', '**')}>
-                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 4h8a4 4 0 0 1 0 8H6zM6 12h9a4 4 0 0 1 0 8H6z" /></svg>
-                        </button>
-                        <button type="button" title="Italic" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('*', '*')}>
-                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 4h-9M14 20H5M15 4 9 20" /></svg>
-                        </button>
-                        <button type="button" title="Underline" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('<u>', '</u>')}>
-                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 4v6a6 6 0 0 0 12 0V4M4 20h16" /></svg>
-                        </button>
-                        <button type="button" title="Strike" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('~~', '~~')}>
-                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12h16M7 7c0-2 2-3 5-3s5 1 5 3-2 3-5 3-5 1-5 3 2 3 5 3 5-1 5-3" /></svg>
-                        </button>
-                        <button type="button" title="Bullets" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('- ', '', 'postavka')}>
-                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>
-                        </button>
-                        <button type="button" title="Ordered" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('1. ', '', 'postavka')}>
-                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 6h11M10 12h11M10 18h11M4 6h1v4M4 10h2M4 14h1a1 1 0 0 1 0 2H4m0 0h2" /></svg>
-                        </button>
-                        <button type="button" title="Quote" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('> ', '', 'citat')}>
-                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 11H6a4 4 0 0 1 4-4v4Zm8 0h-4a4 4 0 0 1 4-4v4Z" /></svg>
-                        </button>
-                        <button type="button" title="Highlight" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('<mark>', '</mark>')}>
-                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 11 6 6M12 4l8 8-8 8-8-8Z" /></svg>
-                        </button>
-                        <button type="button" title="Code" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('`', '`', 'koda')}>
-                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 4l-4 16" /></svg>
-                        </button>
-                        <button type="button" title="Link" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => { const url = window.prompt('Vnesi povezavo'); if (url) applyDescriptionFormat('[', `](${url})`, 'povezava'); }}>
-                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
-                        </button>
-                        <button type="button" title="Unlink" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('', '', 'odstrani povezavo ročno')}>
-                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m18 18-6-6M8.5 8.5l7 7M7 14a5 5 0 0 1 0-7l1-1a5 5 0 0 1 7 0M17 10a5 5 0 0 1 0 7l-1 1a5 5 0 0 1-7 0" /></svg>
-                        </button>
-                        <button type="button" title="H2" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('## ', '', 'Naslov')}>
-                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4v16M10 4v16M4 12h6M16 9l3-3 3 3M19 6v12" /></svg>
-                        </button>
-                        <button type="button" title="Image" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => { const url = window.prompt('Vnesi URL slike'); if (url) applyDescriptionFormat('![](', ')', url); }}>
-                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
-                        </button>
-                        <button
-                          type="button"
-                          title="Video"
-                          className="rounded p-1 text-slate-700 hover:bg-slate-100"
-                          onClick={() => {
-                            const url = window.prompt('Vnesi URL videa');
-                            if (url) applyDescriptionFormat('[Video](', ')', url);
-                          }}
-                        >
-                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="15" height="10" rx="2" /><path d="m22 8-5 4 5 4V8z" /></svg>
-                        </button>
-                        <button type="button" title="Horizontal rule" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('\n---\n', '', '')}>
-                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h18" /></svg>
-                        </button>
-                        <button type="button" title="Text color" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => { const color = window.prompt('Vnesi barvo (hex ali ime)', '#1e293b'); if (color) applyDescriptionFormat(`<span style=\"color:${color}\">`, '</span>'); }}>
-                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 16 6-12 6 12M8 12h8M5 20h14" /></svg>
-                        </button>
-                        <button type="button" className="ml-auto rounded p-1 text-slate-700 hover:bg-slate-100" title={descriptionPreviewMode ? 'Uredi' : 'Predogled'} onClick={() => setDescriptionPreviewMode((current) => !current)}>
-                          {descriptionPreviewMode ? (
-                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-.722-3.25M2 8a10.645 10.645 0 0 0 20 0M20 15l-1.726-2.05M4 15l1.726-2.05M9 18l.722-3.25" /></svg>
-                          ) : (
-                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></svg>
-                          )}
-                        </button>
-                      </div>
-                      {descriptionPreviewMode ? (
-                        <div
-                          className="min-h-[100px] w-full px-2.5 py-2 text-sm text-slate-900"
-                          dangerouslySetInnerHTML={{ __html: buildDescriptionPreviewHtml(draft.description) }}
-                        />
-                      ) : (
-                        <textarea
-                          ref={descriptionTextareaRef}
-                          className="min-h-[100px] w-full resize-y border-0 px-2.5 py-2 text-sm text-slate-900 outline-none focus:ring-0"
-                          placeholder="Opis artikla..."
-                          value={draft.description}
-                          onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
-                        />
-                      )}
-                    </div>
-                  </>
+                  <DescriptionRichEditor value={draft.description} editable={isEditable} onChange={(next) => setDraft((current) => ({ ...current, description: next }))} />
                 ) : (
-                  <pre className="min-h-10 whitespace-pre-wrap rounded-md border border-transparent px-0 py-1 text-sm text-slate-700">{draft.description.trim() || '[Opis artikla]'}</pre>
+                  <div className="min-h-10 rounded-md border border-transparent px-0 py-1 text-sm text-slate-700" dangerouslySetInnerHTML={{ __html: draft.description.trim() || '[Opis artikla]' }} />
                 )}
               </div>
             </div>

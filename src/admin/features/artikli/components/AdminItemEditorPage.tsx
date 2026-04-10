@@ -146,7 +146,7 @@ function SideInputIcon({ icon, muted = false, className = '' }: { icon: SideFiel
   return <svg {...iconProps}><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5" /><path d="M10 12h6M10 16h6" /></svg>;
 }
 
-function DescriptionRichEditor({
+function FlowbiteWysiwygEditor({
   value,
   editable,
   onChange
@@ -191,12 +191,13 @@ function DescriptionRichEditor({
 
   if (!editor) return null;
 
-  const iconBtn = 'rounded-sm p-1.5 text-slate-300 hover:bg-slate-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-50';
+  const iconBtn = 'p-1.5 text-body rounded-sm cursor-pointer hover:text-heading hover:bg-neutral-quaternary disabled:cursor-not-allowed disabled:opacity-50';
   const divider = <span className="mx-1 h-4 w-px bg-slate-700" aria-hidden />;
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-900">
-      <div className="flex flex-wrap items-center gap-1 border-b border-slate-700 px-3 py-2">
-        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleBold().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 5h4.5a3.5 3.5 0 1 1 0 7H8m0-7v7m0-7H6m2 7h6.5a3.5 3.5 0 1 1 0 7H8m0-7v7m0 0H6" /></svg></button>
+    <div className="w-full overflow-hidden rounded-base border border-default-medium bg-neutral-secondary-medium">
+      <div className="p-2 border-b border-default-medium">
+        <div className="flex flex-wrap items-center gap-1">
+        <button id="toggleBoldButton" type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleBold().run()}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 5h4.5a3.5 3.5 0 1 1 0 7H8m0-7v7m0-7H6m2 7h6.5a3.5 3.5 0 1 1 0 7H8m0-7v7m0 0H6" /></svg><span className="sr-only">Bold</span></button>
         <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleItalic().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m8.874 19 6.143-14M6 19h6.33m-.66-14H18" /></svg></button>
         <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleUnderline().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 19h12M8 5v9a4 4 0 0 0 8 0V5M6 5h4m4 0h4" /></svg></button>
         <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleStrike().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 6.2V5h12v1.2M7 19h6m.2-14-1.677 6.523M9.6 19l1.029-4M5 5l6.523 6.523M19 19l-7.477-7.477" /></svg></button>
@@ -205,17 +206,18 @@ function DescriptionRichEditor({
         <button type="button" className={iconBtn} onClick={() => { const url = window.prompt('Vnesi povezavo', 'https://'); if (url) editor.chain().focus().toggleLink({ href: url }).run(); }}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13.2 9.8a3.4 3.4 0 0 0-4.8 0L5 13.2a3.4 3.4 0 0 0 4.8 4.8l.3-.3m-.3-4.5a3.4 3.4 0 0 0 4.8 0L18 9.8a3.4 3.4 0 0 0-4.8-4.8l-1 .96" /></svg></button>
         <button type="button" className={iconBtn} onClick={() => editor.chain().focus().unsetLink().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m18 18-6-6M8.5 8.5l7 7" /></svg></button>
         {divider}
-        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().setTextAlign('left').run()}>
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 6h8m-8 4h12M6 14h8m-8 4h12" /></svg>
+        <button id="toggleLeftAlignButton" type="button" className={iconBtn} onClick={() => editor.chain().focus().setTextAlign('left').run()}>
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 6h8m-8 4h12M6 14h8m-8 4h12" /></svg>
         </button>
-        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().setTextAlign('center').run()}>
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 6h8M6 10h12M8 14h8M6 18h12" /></svg>
+        <button id="toggleCenterAlignButton" type="button" className={iconBtn} onClick={() => editor.chain().focus().setTextAlign('center').run()}>
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 6h8M6 10h12M8 14h8M6 18h12" /></svg>
         </button>
-        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().setTextAlign('right').run()}>
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6h-8m8 4H6m12 4h-8m8 4H6" /></svg>
+        <button id="toggleRightAlignButton" type="button" className={iconBtn} onClick={() => editor.chain().focus().setTextAlign('right').run()}>
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6h-8m8 4H6m12 4h-8m8 4H6" /></svg>
         </button>
+        </div>
       </div>
-      <div className="flex flex-wrap items-center gap-1 px-3 py-2">
+      <div className="flex items-center gap-2 flex-wrap px-2 pt-2 border-b border-default-medium">
         <select className="rounded-xl border border-slate-600 bg-slate-700 px-3 py-1.5 text-sm text-slate-100" onChange={(event) => {
           const value = event.target.value;
           if (value === 'p') editor.chain().focus().setParagraph().run();
@@ -257,7 +259,9 @@ function DescriptionRichEditor({
           defaultValue="#1e293b"
         />
       </div>
-      <EditorContent editor={editor} />
+      <div className="px-4 py-2 bg-neutral-primary rounded-b-lg">
+        <EditorContent editor={editor} id="wysiwyg-example" />
+      </div>
     </div>
   );
 }
@@ -1007,7 +1011,7 @@ export default function AdminItemEditorPage({
               <div className="col-span-2 space-y-1">
                 <label className="text-sm font-semibold text-slate-700">Opis</label>
                 {isEditable ? (
-                  <DescriptionRichEditor value={draft.description} editable={isEditable} onChange={(next) => setDraft((current) => ({ ...current, description: next }))} />
+                  <FlowbiteWysiwygEditor value={draft.description} editable={isEditable} onChange={(next) => setDraft((current) => ({ ...current, description: next }))} />
                 ) : (
                   <div className="min-h-10 rounded-md border border-transparent px-0 py-1 text-sm text-slate-700" dangerouslySetInnerHTML={{ __html: draft.description.trim() || '[Opis artikla]' }} />
                 )}

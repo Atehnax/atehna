@@ -177,7 +177,7 @@ function OpisRichTextEditor({
       content: initialContentRef.current,
       editorProps: {
         attributes: {
-          class: `min-h-[180px] w-full bg-white px-5 py-4 text-base text-slate-800 outline-none ${!editable ? 'cursor-default' : ''}`
+          class: `min-h-[180px] w-full bg-white px-5 py-4 text-[12px] font-['Inter',system-ui,sans-serif] text-slate-800 outline-none ${!editable ? 'cursor-default' : ''}`
         }
       },
       onUpdate: ({ editor: nextEditor }) => {
@@ -211,32 +211,56 @@ function OpisRichTextEditor({
     editor.commands.focus();
   };
 
+  const preventToolbarFocusLoss = (event: { preventDefault: () => void }) => event.preventDefault();
   const toolbarButtonClass = 'rounded-md p-2 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50';
   const divider = <span className="mx-1 h-8 w-px bg-slate-300" aria-hidden />;
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-300 bg-white">
       <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 bg-slate-100 px-4 py-2">
-        <button type="button" className={toolbarButtonClass} disabled={!editable} onClick={() => run((e) => e.chain().focus().toggleBold().run())} aria-label="Krepko"><svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 4h7a4 4 0 1 1 0 8H6zm0 8h8a4 4 0 1 1 0 8H6z" /></svg></button>
-        <button type="button" className={toolbarButtonClass} disabled={!editable} onClick={() => run((e) => e.chain().focus().toggleItalic().run())} aria-label="Ležeče"><svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 4h8M6 20h8M14 4l-4 16" /></svg></button>
-        <button type="button" className={toolbarButtonClass} disabled={!editable} onClick={() => run((e) => e.chain().focus().toggleUnderline().run())} aria-label="Podčrtano"><svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 20h12M8 4v7a4 4 0 0 0 8 0V4" /></svg></button>
+        <select
+          className="mr-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700"
+          defaultValue="paragraph"
+          onMouseDown={preventToolbarFocusLoss}
+          onChange={(event) => run((e) => {
+            const next = event.target.value;
+            if (next === 'paragraph') {
+              e.chain().focus().setParagraph().run();
+              return;
+            }
+            e.chain().focus().toggleHeading({ level: Number(next) as 1 | 2 | 3 }).run();
+          })}
+          disabled={!editable}
+          aria-label="Naslov"
+        >
+          <option value="paragraph">Odstavek</option>
+          <option value="1">Naslov 1</option>
+          <option value="2">Naslov 2</option>
+          <option value="3">Naslov 3</option>
+        </select>
+        <button type="button" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleBold().run())} aria-label="Krepko"><svg viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 4h7a4 4 0 1 1 0 8H6zm0 8h8a4 4 0 1 1 0 8H6z" /></svg></button>
+        <button type="button" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleItalic().run())} aria-label="Ležeče"><svg viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 4h8M6 20h8M14 4l-4 16" /></svg></button>
+        <button type="button" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleUnderline().run())} aria-label="Podčrtano"><svg viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 20h12M8 4v7a4 4 0 0 0 8 0V4" /></svg></button>
         {divider}
-        <button type="button" className={toolbarButtonClass} disabled={!editable} onClick={() => run((e) => e.chain().focus().toggleBulletList().run())} aria-label="Neurejen seznam"><svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" /></svg></button>
-        <button type="button" className={toolbarButtonClass} disabled={!editable} onClick={() => run((e) => e.chain().focus().toggleOrderedList().run())} aria-label="Urejen seznam"><svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 6h11M10 12h11M10 18h11M4 5h1v4M4 10h2M4 14h1.5a1.5 1.5 0 1 1 0 3H4m0 0h2" /></svg></button>
+        <button type="button" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleBulletList().run())} aria-label="Neurejen seznam"><svg viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" /></svg></button>
+        <button type="button" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleOrderedList().run())} aria-label="Urejen seznam"><svg viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 6h11M10 12h11M10 18h11M4 5h1v4M4 10h2M4 14h1.5a1.5 1.5 0 1 1 0 3H4m0 0h2" /></svg></button>
         {divider}
-        <button type="button" className={toolbarButtonClass} disabled={!editable} onClick={() => { const url = window.prompt('Vnesi URL', 'https://'); if (url) run((e) => e.chain().focus().toggleLink({ href: url }).run()); }} aria-label="Povezava"><svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7L13 18" /></svg></button>
-        <button type="button" className={toolbarButtonClass} disabled={!editable} onClick={() => { const url = window.prompt('Vnesi URL slike', 'https://'); if (url) run((e) => e.chain().focus().setImage({ src: url }).run()); }} aria-label="Slika"><svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="1.5" /><path d="m21 16-5-5-8 8" /></svg></button>
-        <button type="button" className={toolbarButtonClass} disabled={!editable} onClick={() => run((e) => e.chain().focus().toggleBlockquote().run())} aria-label="Citat"><svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 8H6v4h4v4H6M18 8h-4v4h4v4h-4" /></svg></button>
+        <button type="button" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => { const url = window.prompt('Vnesi URL', 'https://'); if (url) run((e) => e.chain().focus().toggleLink({ href: url }).run()); }} aria-label="Povezava"><svg viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7L13 18" /></svg></button>
+        <button type="button" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => { const url = window.prompt('Vnesi URL slike', 'https://'); if (url) run((e) => e.chain().focus().setImage({ src: url }).run()); }} aria-label="Slika"><svg viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="1.5" /><path d="m21 16-5-5-8 8" /></svg></button>
+        <button type="button" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleBlockquote().run())} aria-label="Citat"><svg viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 8H6v4h4v4H6M18 8h-4v4h4v4h-4" /></svg></button>
         {divider}
-        <button type="button" className={toolbarButtonClass} disabled={!editable} onClick={() => run((e) => e.chain().focus().setTextAlign('left').run())} aria-label="Poravnaj levo"><svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 6h12M4 10h16M4 14h12M4 18h16" /></svg></button>
-        <button type="button" className={toolbarButtonClass} disabled={!editable} onClick={() => run((e) => e.chain().focus().setTextAlign('center').run())} aria-label="Poravnaj sredinsko"><svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 6h12M4 10h16M6 14h12M4 18h16" /></svg></button>
-        <button type="button" className={toolbarButtonClass} disabled={!editable} onClick={() => run((e) => e.chain().focus().setTextAlign('right').run())} aria-label="Poravnaj desno"><svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 6h12M4 10h16M8 14h12M4 18h16" /></svg></button>
+        <button type="button" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().setTextAlign('left').run())} aria-label="Poravnaj levo"><svg viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 6h12M4 10h16M4 14h12M4 18h16" /></svg></button>
+        <button type="button" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().setTextAlign('center').run())} aria-label="Poravnaj sredinsko"><svg viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 6h12M4 10h16M6 14h12M4 18h16" /></svg></button>
+        <button type="button" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().setTextAlign('right').run())} aria-label="Poravnaj desno"><svg viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 6h12M4 10h16M8 14h12M4 18h16" /></svg></button>
         <span className="ml-auto flex items-center gap-1">
-          <button type="button" className={toolbarButtonClass} disabled={!editable} onClick={() => run((e) => e.chain().focus().undo().run())} aria-label="Razveljavi"><svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 14 4 9l5-5" /><path d="M4 9h9a7 7 0 1 1 0 14h-1" /></svg></button>
-          <button type="button" className={toolbarButtonClass} disabled={!editable} onClick={() => run((e) => e.chain().focus().redo().run())} aria-label="Ponovi"><svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 14 5-5-5-5" /><path d="M20 9h-9a7 7 0 1 0 0 14h1" /></svg></button>
+          <button type="button" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().undo().run())} aria-label="Razveljavi"><svg viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 14 4 9l5-5" /><path d="M4 9h9a7 7 0 1 1 0 14h-1" /></svg></button>
+          <button type="button" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().redo().run())} aria-label="Ponovi"><svg viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 14 5-5-5-5" /><path d="M20 9h-9a7 7 0 1 0 0 14h1" /></svg></button>
         </span>
       </div>
-      <div ref={editorHostRef} />
+      <div
+        ref={editorHostRef}
+        className="[&_.ProseMirror]:min-h-[180px] [&_.ProseMirror]:px-5 [&_.ProseMirror]:py-4 [&_.ProseMirror]:text-[12px] [&_.ProseMirror]:font-['Inter',system-ui,sans-serif] [&_.ProseMirror]:leading-5 [&_.ProseMirror]:text-slate-800 [&_.ProseMirror]:outline-none [&_.ProseMirror_h1]:text-2xl [&_.ProseMirror_h1]:font-semibold [&_.ProseMirror_h2]:text-xl [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h3]:text-lg [&_.ProseMirror_h3]:font-semibold [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5 [&_.ProseMirror_li]:my-1 [&_.ProseMirror_blockquote]:my-2 [&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-slate-300 [&_.ProseMirror_blockquote]:pl-3 [&_.ProseMirror_blockquote]:italic [&_.ProseMirror_p]:my-1"
+      />
       <div className="flex justify-end border-t border-slate-200 px-4 py-2 text-sm text-slate-400">{textLength} / 5000</div>
     </div>
   );

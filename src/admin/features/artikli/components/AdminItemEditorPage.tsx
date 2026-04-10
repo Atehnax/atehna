@@ -523,6 +523,7 @@ export default function AdminItemEditorPage({
   const [videoEntriesSaved, setVideoEntriesSaved] = useState<VideoEntry[]>([]);
   const [videoSelections, setVideoSelections] = useState<Set<string>>(new Set());
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>({});
+  const [descriptionPreviewMode, setDescriptionPreviewMode] = useState(false);
   const descriptionEditorRef = useRef<HTMLDivElement>(null);
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() =>
     (draft.category || '')
@@ -771,10 +772,18 @@ export default function AdminItemEditorPage({
     setVariantTags((current) => ({ ...current, [variantId]: tag }));
   };
 
-  const applyDescriptionFormat = (command: 'bold' | 'italic' | 'underline' | 'insertUnorderedList') => {
+  const applyDescriptionFormat = (command: string, value?: string) => {
     if (!isEditable) return;
     descriptionEditorRef.current?.focus();
-    document.execCommand(command);
+    document.execCommand(command, false, value);
+    const next = descriptionEditorRef.current?.innerHTML ?? '';
+    setDraft((current) => ({ ...current, description: next }));
+  };
+
+  const insertDescriptionHtml = (html: string) => {
+    if (!isEditable) return;
+    descriptionEditorRef.current?.focus();
+    document.execCommand('insertHTML', false, html);
     const next = descriptionEditorRef.current?.innerHTML ?? '';
     setDraft((current) => ({ ...current, description: next }));
   };
@@ -897,20 +906,55 @@ export default function AdminItemEditorPage({
                 {isEditable ? (
                   <>
                     <div className="overflow-hidden rounded-md border border-slate-300 bg-white">
-                      <div className="flex items-center gap-1 border-b border-slate-200 px-2 py-1">
+                      <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 px-2 py-1">
                         <button type="button" className="rounded px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('bold')}>B</button>
                         <button type="button" className="rounded px-2 py-0.5 text-xs italic text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('italic')}>I</button>
                         <button type="button" className="rounded px-2 py-0.5 text-xs underline text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('underline')}>U</button>
-                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('insertUnorderedList')}>•</button>
+                        <button type="button" className="rounded px-2 py-0.5 text-xs line-through text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('strikeThrough')}>S</button>
+                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('insertUnorderedList')}>• List</button>
+                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('insertOrderedList')}>1. List</button>
+                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('formatBlock', 'blockquote')}>“</button>
+                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('hiliteColor', '#FEF08A')}>Highlight</button>
+                        <button type="button" className="rounded px-2 py-0.5 font-mono text-xs text-slate-700 hover:bg-slate-100" onClick={() => insertDescriptionHtml('<code>koda</code>')}>{`</>`}</button>
+                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => { const url = window.prompt('Vnesi povezavo'); if (url) applyDescriptionFormat('createLink', url); }}>Link</button>
+                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('unlink')}>Unlink</button>
+                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('justifyLeft')}>L</button>
+                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('justifyCenter')}>C</button>
+                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('justifyRight')}>R</button>
+                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('formatBlock', 'h2')}>H2</button>
+                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('formatBlock', 'h3')}>H3</button>
+                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => { const url = window.prompt('Vnesi URL slike'); if (url) applyDescriptionFormat('insertImage', url); }}>Image</button>
+                        <button
+                          type="button"
+                          className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100"
+                          onClick={() => {
+                            const url = window.prompt('Vnesi URL videa (embed)');
+                            if (url) insertDescriptionHtml(`<iframe src="${url}" class="w-full min-h-[180px]" allowfullscreen></iframe>`);
+                          }}
+                        >
+                          Video
+                        </button>
+                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => applyDescriptionFormat('insertHorizontalRule')}>HR</button>
+                        <button type="button" className="rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => { const color = window.prompt('Vnesi barvo (hex ali ime)', '#1e293b'); if (color) applyDescriptionFormat('foreColor', color); }}>Color</button>
+                        <button type="button" className="ml-auto rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => setDescriptionPreviewMode((current) => !current)}>
+                          {descriptionPreviewMode ? 'Uredi' : 'Predogled'}
+                        </button>
                       </div>
-                      <div
-                        ref={descriptionEditorRef}
-                        contentEditable
-                        suppressContentEditableWarning
-                        className="min-h-[100px] w-full px-2.5 py-2 text-sm text-slate-900 outline-none"
-                        data-placeholder="Opis artikla..."
-                        onInput={(event) => setDraft((current) => ({ ...current, description: (event.currentTarget as HTMLDivElement).innerHTML }))}
-                      />
+                      {descriptionPreviewMode ? (
+                        <div
+                          className="min-h-[100px] w-full px-2.5 py-2 text-sm text-slate-900"
+                          dangerouslySetInnerHTML={{ __html: draft.description || '<span class="text-slate-400">Opis artikla...</span>' }}
+                        />
+                      ) : (
+                        <div
+                          ref={descriptionEditorRef}
+                          contentEditable
+                          suppressContentEditableWarning
+                          className="min-h-[100px] w-full px-2.5 py-2 text-sm text-slate-900 outline-none"
+                          data-placeholder="Opis artikla..."
+                          onInput={(event) => setDraft((current) => ({ ...current, description: (event.currentTarget as HTMLDivElement).innerHTML }))}
+                        />
+                      )}
                     </div>
                   </>
                 ) : (

@@ -172,7 +172,8 @@ function OpisRichTextEditor({
   const editorRef = useRef<Editor | null>(null);
   const onChangeRef = useRef(onChange);
   const initialContentRef = useRef(value || '<p></p>');
-  const [expanded, setExpanded] = useState(false);
+  const [fontSizeOpen, setFontSizeOpen] = useState(false);
+  const [selectedFontSize, setSelectedFontSize] = useState('12px');
   const [textLength, setTextLength] = useState(0);
 
   useEffect(() => {
@@ -223,6 +224,13 @@ function OpisRichTextEditor({
     }
   }, [value]);
 
+  useEffect(() => {
+    if (!fontSizeOpen) return;
+    const handleDocClick = () => setFontSizeOpen(false);
+    document.addEventListener('click', handleDocClick);
+    return () => document.removeEventListener('click', handleDocClick);
+  }, [fontSizeOpen]);
+
   const run = (action: (editor: Editor) => void) => {
     const editor = editorRef.current;
     if (!editor || !editable) return;
@@ -231,34 +239,49 @@ function OpisRichTextEditor({
   };
 
   const preventToolbarFocusLoss = (event: { preventDefault: () => void }) => event.preventDefault();
+  const fontSizes = ['12px', '14px', '16px', '18px'] as const;
   const toolbarButtonClass = 'rounded-sm p-1 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50';
   const toolbarIconClass = 'h-4 w-4';
   const divider = <span className="mx-1 h-8 w-px bg-slate-300" aria-hidden />;
 
   return (
-    <div className="overflow-hidden rounded-md border border-slate-300 bg-white">
+    <div className="overflow-hidden rounded-[4px] border border-slate-300 bg-white">
       <div className="flex flex-wrap items-center gap-0.5 border-b border-slate-200 bg-slate-50 px-4 py-2">
         <div className="relative mr-1">
-          <select
-            className="appearance-none rounded-sm border border-slate-300 bg-white pl-2 pr-6 py-1 text-xs text-slate-700 shadow-sm"
-            defaultValue="12px"
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 rounded-sm border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100"
             onMouseDown={preventToolbarFocusLoss}
-            onChange={(event) => run((e) => {
-              e.chain().focus().setMark('textStyle', { fontSize: event.target.value }).run();
-            })}
+            onClick={() => setFontSizeOpen((current) => !current)}
             disabled={!editable}
             aria-label="Velikost pisave"
           >
-            <option value="12px">12px</option>
-            <option value="14px">14px</option>
-            <option value="16px">16px</option>
-            <option value="18px">18px</option>
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+            <span>{selectedFontSize}</span>
+            <ChevronDown className={`h-3.5 w-3.5 text-slate-500 transition ${fontSizeOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {fontSizeOpen && editable ? (
+            <div className="absolute left-0 top-[calc(100%+4px)] z-10 min-w-[88px] overflow-hidden rounded-md border border-slate-300 bg-white shadow-lg">
+              {fontSizes.map((size) => (
+                <button
+                  key={size}
+                  type="button"
+                  className={`block w-full px-2 py-1 text-left text-xs ${size === selectedFontSize ? 'bg-slate-100 text-slate-900' : 'text-slate-700 hover:bg-slate-50'}`}
+                  onMouseDown={preventToolbarFocusLoss}
+                  onClick={() => {
+                    setSelectedFontSize(size);
+                    run((e) => e.chain().focus().setMark('textStyle', { fontSize: size }).run());
+                    setFontSizeOpen(false);
+                  }}
+                >
+                  {size}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
-        <button type="button" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleBold().run())} aria-label="Krepko"><Bold className={toolbarIconClass} /></button>
-        <button type="button" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleItalic().run())} aria-label="Ležeče"><Italic className={toolbarIconClass} /></button>
-        <button type="button" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleUnderline().run())} aria-label="Podčrtano"><UnderlineIcon className={toolbarIconClass} /></button>
+        <button type="button" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleBold().run())} aria-label="Krepko"><Bold size={16} strokeWidth={2.1} className={toolbarIconClass} /></button>
+        <button type="button" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleItalic().run())} aria-label="Ležeče"><Italic size={16} strokeWidth={2.1} className={toolbarIconClass} /></button>
+        <button type="button" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleUnderline().run())} aria-label="Podčrtano"><UnderlineIcon size={16} strokeWidth={2.1} className={toolbarIconClass} /></button>
         {divider}
         <button type="button" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleBulletList().run())} aria-label="Neurejen seznam"><List className={toolbarIconClass} /></button>
         <button type="button" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleOrderedList().run())} aria-label="Urejen seznam"><ListOrdered className={toolbarIconClass} /></button>
@@ -282,25 +305,20 @@ function OpisRichTextEditor({
           <button type="button" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().redo().run())} aria-label="Ponovi"><Redo2 className={toolbarIconClass} /></button>
         </span>
       </div>
-      <div className="relative">
+      <div className="relative resize-y overflow-auto">
         <div
           ref={editorHostRef}
-          className={`${expanded ? '[&_.ProseMirror]:min-h-[210px]' : '[&_.ProseMirror]:min-h-[110px]'} [&_.ProseMirror]:px-5 [&_.ProseMirror]:py-4 [&_.ProseMirror]:text-[12px] [&_.ProseMirror]:font-['Inter',system-ui,sans-serif] [&_.ProseMirror]:leading-5 [&_.ProseMirror]:text-slate-800 [&_.ProseMirror]:outline-none [&_.ProseMirror_h1]:text-2xl [&_.ProseMirror_h1]:font-semibold [&_.ProseMirror_h2]:text-xl [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h3]:text-lg [&_.ProseMirror_h3]:font-semibold [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5 [&_.ProseMirror_li]:my-1 [&_.ProseMirror_blockquote]:my-2 [&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-slate-300 [&_.ProseMirror_blockquote]:pl-3 [&_.ProseMirror_blockquote]:italic [&_.ProseMirror_p]:my-1 [&_.ProseMirror_a]:text-blue-600 [&_.ProseMirror_a]:underline`}
+          className="[&_.ProseMirror]:min-h-[110px] [&_.ProseMirror]:px-5 [&_.ProseMirror]:py-4 [&_.ProseMirror]:text-[12px] [&_.ProseMirror]:font-['Inter',system-ui,sans-serif] [&_.ProseMirror]:leading-5 [&_.ProseMirror]:text-slate-800 [&_.ProseMirror]:outline-none [&_.ProseMirror_h1]:text-2xl [&_.ProseMirror_h1]:font-semibold [&_.ProseMirror_h2]:text-xl [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h3]:text-lg [&_.ProseMirror_h3]:font-semibold [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5 [&_.ProseMirror_li]:my-1 [&_.ProseMirror_blockquote]:my-2 [&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-slate-300 [&_.ProseMirror_blockquote]:pl-3 [&_.ProseMirror_blockquote]:italic [&_.ProseMirror_p]:my-1 [&_.ProseMirror_a]:text-blue-600 [&_.ProseMirror_a]:underline"
         />
-        <button
-          type="button"
-          aria-label={expanded ? 'Skrči višino urejevalnika' : 'Razširi višino urejevalnika'}
-          className="absolute bottom-2 right-2 rounded-sm p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-          onClick={() => setExpanded((current) => !current)}
-        >
+        <span className="pointer-events-none absolute bottom-1.5 right-1.5 text-slate-300">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-4 w-4">
             <path d="M7 13 3 17" />
             <path d="M11 13 7 17" />
             <path d="M15 13 11 17" />
           </svg>
-        </button>
+        </span>
       </div>
-      <div className="flex justify-end px-4 py-2 text-[11px] text-slate-400">{textLength} / 5000</div>
+      <div className="flex justify-end px-4 py-2 text-sm text-slate-400">{textLength} / 5000</div>
     </div>
   );
 }

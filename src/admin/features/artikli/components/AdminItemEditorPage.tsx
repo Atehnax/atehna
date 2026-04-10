@@ -30,7 +30,7 @@ const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2
 const numberInputClass = '[-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 const orderLikeEditableInputClassName = 'mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0';
 const compactTableNumberInputClassName = `h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-[11px] leading-4 text-slate-900 outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0 ${numberInputClass}`;
-const compactSideInputWrapClassName = 'mt-0.5 flex h-[30px] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[5px] pr-3';
+const compactSideInputWrapClassName = 'mt-0.5 flex h-[30px] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[10px] pr-3';
 const compactSideInputClassName = 'h-full w-full border-0 bg-transparent p-0 text-sm text-slate-900 outline-none focus:ring-0';
 
 type EditorMode = 'create' | 'edit';
@@ -44,7 +44,7 @@ type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' 
 
 function SideInputIcon({ icon }: { icon: SideFieldIcon }) {
   const iconProps = {
-    className: 'h-[18px] w-[18px] shrink-0 text-slate-500',
+    className: 'h-[14px] w-[14px] shrink-0 text-slate-500',
     stroke: 'currentColor',
     strokeWidth: 2,
     strokeLinecap: 'round' as const,
@@ -744,7 +744,7 @@ export default function AdminItemEditorPage({
               <h1 className="flex min-h-10 flex-nowrap items-center gap-1 whitespace-nowrap text-lg font-semibold tracking-tight text-slate-900">
                 <span className="inline-flex h-10 items-center gap-0">
                   {isEditable ? (
-                    <div className="inline-flex h-[30px] min-w-[14ch] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[5px] pr-2.5">
+                    <div className="inline-flex h-[30px] min-w-[14ch] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[10px] pr-2.5">
                       <SideInputIcon icon="name" />
                       <input
                         aria-label="Naziv artikla"

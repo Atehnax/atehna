@@ -192,9 +192,10 @@ function DescriptionRichEditor({
   if (!editor) return null;
 
   const iconBtn = 'rounded-sm p-1.5 text-slate-300 hover:bg-slate-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-50';
+  const divider = <span className="mx-1 h-4 w-px bg-slate-700" aria-hidden />;
   return (
-    <div className="overflow-hidden rounded-md border border-slate-700 bg-slate-900">
-      <div className="flex flex-wrap items-center gap-1 border-b border-slate-700 px-2 py-1">
+    <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-900">
+      <div className="flex flex-wrap items-center gap-1 border-b border-slate-700 px-3 py-2">
         <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleBold().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 5h4.5a3.5 3.5 0 1 1 0 7H8m0-7v7m0-7H6m2 7h6.5a3.5 3.5 0 1 1 0 7H8m0-7v7m0 0H6" /></svg></button>
         <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleItalic().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m8.874 19 6.143-14M6 19h6.33m-.66-14H18" /></svg></button>
         <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleUnderline().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 19h12M8 5v9a4 4 0 0 0 8 0V5M6 5h4m4 0h4" /></svg></button>
@@ -203,14 +204,13 @@ function DescriptionRichEditor({
         <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleCode().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m8 8-4 4 4 4m8 0 4-4-4-4m-2-3-4 14" /></svg></button>
         <button type="button" className={iconBtn} onClick={() => { const url = window.prompt('Vnesi povezavo', 'https://'); if (url) editor.chain().focus().toggleLink({ href: url }).run(); }}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13.2 9.8a3.4 3.4 0 0 0-4.8 0L5 13.2a3.4 3.4 0 0 0 4.8 4.8l.3-.3m-.3-4.5a3.4 3.4 0 0 0 4.8 0L18 9.8a3.4 3.4 0 0 0-4.8-4.8l-1 .96" /></svg></button>
         <button type="button" className={iconBtn} onClick={() => editor.chain().focus().unsetLink().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m18 18-6-6M8.5 8.5l7 7" /></svg></button>
-        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleBulletList().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 8h10M9 12h10M9 16h10M5 8h.01M5 12h.01M5 16h.01" /></svg></button>
-        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleOrderedList().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 6h8M12 12h8M12 18h8M4 16a2 2 0 1 1 3.3 1.5L4 20h5M4 5l2-1v6" /></svg></button>
-        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleBlockquote().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 11V8H5v3h5Zm0 0v2a4 4 0 0 1-4 4h-1m14-6V8h-5v3h5Zm0 0v2a4 4 0 0 1-4 4h-1" /></svg></button>
-        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().setHorizontalRule().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14" /></svg></button>
+        {divider}
         <button type="button" className={iconBtn} onClick={() => editor.chain().focus().setTextAlign('left').run()}>L</button>
         <button type="button" className={iconBtn} onClick={() => editor.chain().focus().setTextAlign('center').run()}>C</button>
         <button type="button" className={iconBtn} onClick={() => editor.chain().focus().setTextAlign('right').run()}>R</button>
-        <select className="rounded-sm border border-slate-700 bg-slate-800 px-1.5 py-1 text-xs text-slate-200" onChange={(event) => {
+      </div>
+      <div className="flex flex-wrap items-center gap-1 px-3 py-2">
+        <select className="rounded-xl border border-slate-600 bg-slate-700 px-3 py-1.5 text-sm text-slate-100" onChange={(event) => {
           const value = event.target.value;
           if (value === 'p') editor.chain().focus().setParagraph().run();
           if (value === 'h2') editor.chain().focus().toggleHeading({ level: 2 }).run();
@@ -222,6 +222,13 @@ function DescriptionRichEditor({
           <option value="h3">Heading 3</option>
           <option value="h4">Heading 4</option>
         </select>
+        {divider}
+        <button type="button" className={iconBtn} onClick={() => { const url = window.prompt('Vnesi URL slike', 'https://placehold.co/600x400'); if (url) editor.chain().focus().setImage({ src: url }).run(); }}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg></button>
+        <button type="button" className={iconBtn} onClick={() => { const url = window.prompt('Vnesi YouTube URL', 'https://www.youtube.com/watch?v=KaLxCiilHns'); if (url) editor.commands.setYoutubeVideo({ src: url, width: 640, height: 360 }); }}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="15" height="10" rx="2" /><path d="m22 8-5 4 5 4V8z" /></svg></button>
+        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleBulletList().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 8h10M9 12h10M9 16h10M5 8h.01M5 12h.01M5 16h.01" /></svg></button>
+        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleOrderedList().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 6h8M12 12h8M12 18h8M4 16a2 2 0 1 1 3.3 1.5L4 20h5M4 5l2-1v6" /></svg></button>
+        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().toggleBlockquote().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 11V8H5v3h5Zm0 0v2a4 4 0 0 1-4 4h-1m14-6V8h-5v3h5Zm0 0v2a4 4 0 0 1-4 4h-1" /></svg></button>
+        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().setHorizontalRule().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14" /></svg></button>
         <select className="rounded-sm border border-slate-700 bg-slate-800 px-1.5 py-1 text-xs text-slate-200" onChange={(event) => editor.chain().focus().setMark('textStyle', { fontSize: event.target.value }).run()} defaultValue="16px">
           <option value="12px">12px</option>
           <option value="14px">14px</option>
@@ -243,8 +250,6 @@ function DescriptionRichEditor({
           title="Text color"
           defaultValue="#1e293b"
         />
-        <button type="button" className={iconBtn} onClick={() => { const url = window.prompt('Vnesi URL slike', 'https://placehold.co/600x400'); if (url) editor.chain().focus().setImage({ src: url }).run(); }}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg></button>
-        <button type="button" className={iconBtn} onClick={() => { const url = window.prompt('Vnesi YouTube URL', 'https://www.youtube.com/watch?v=KaLxCiilHns'); if (url) editor.commands.setYoutubeVideo({ src: url, width: 640, height: 360 }); }}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="15" height="10" rx="2" /><path d="m22 8-5 4 5 4V8z" /></svg></button>
       </div>
       <EditorContent editor={editor} />
     </div>

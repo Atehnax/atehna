@@ -160,6 +160,7 @@ function OpisRichTextEditor({
   const onChangeRef = useRef(onChange);
   const initialContentRef = useRef(value || '<p></p>');
   const [textLength, setTextLength] = useState(0);
+  const [openMenu, setOpenMenu] = useState<null | 'size' | 'font' | 'color'>(null);
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -212,6 +213,13 @@ function OpisRichTextEditor({
     }
   }, [value]);
 
+  useEffect(() => {
+    if (!openMenu) return;
+    const closeMenu = () => setOpenMenu(null);
+    document.addEventListener('click', closeMenu);
+    return () => document.removeEventListener('click', closeMenu);
+  }, [openMenu]);
+
   const run = (action: (editor: Editor) => void) => {
     const editor = editorRef.current;
     if (!editor || !editable) return;
@@ -224,35 +232,58 @@ function OpisRichTextEditor({
   const toolbarIconClass = 'h-4 w-4';
   const toolbarIconLargeClass = 'h-[18px] w-[18px]';
   const toolbarIconAlignClass = 'h-5 w-5';
-  const toolbarIconSmallClass = 'h-3.5 w-3.5';
+  const toolbarIconSmallClass = 'h-[13px] w-[13px]';
+  const toolbarIconTinyClass = 'h-3.5 w-3.5';
   const divider = <span className="mx-1 h-6 w-px bg-slate-300" aria-hidden />;
+  const fontSizeOptions = ['12px', '14px', '16px', '18px'] as const;
+  const fontFamilyOptions = ['Inter', 'Arial', 'Georgia', 'Verdana'] as const;
+  const colorSwatches = ['#e11d48', '#f97316', '#eab308', '#22c55e', '#0ea5e9', '#6366f1', '#a855f7', '#ec4899', '#111827', '#475569', '#94a3b8', '#ffffff'] as const;
 
   return (
     <div className="relative resize-y overflow-auto rounded-lg border border-slate-300 bg-white">
       <div className="flex flex-nowrap items-center gap-0.5 border-b border-slate-200 bg-slate-50 px-3 py-2">
         <button type="button" title="Krepko" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleBold().run())} aria-label="Bold"><span className="inline-block w-4 text-center text-base font-bold leading-none">B</span></button>
-        <button type="button" title="Ležeče" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleItalic().run())} aria-label="Italic"><span className="inline-block w-4 text-center text-base italic leading-none">I</span></button>
+        <button type="button" title="Ležeče" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleItalic().run())} aria-label="Italic"><svg className={toolbarIconClass} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 4h8M6 16h8M12 4l-4 12" /></svg></button>
         <button type="button" title="Podčrtano" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleUnderline().run())} aria-label="Underline"><span className="inline-block w-4 text-center text-base underline leading-none">U</span></button>
         {divider}
         <button type="button" title="Točkovni seznam" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleBulletList().run())} aria-label="Bullet list"><svg className={toolbarIconLargeClass} viewBox="0 0 20 20" fill="currentColor"><path d="M3 5.75A.75.75 0 1 1 4.5 5.75.75.75 0 0 1 3 5.75Zm0 4.25A.75.75 0 1 1 4.5 10 .75.75 0 0 1 3 10Zm0 4.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0ZM7 5h10v1.5H7V5Zm0 4.25h10v1.5H7v-1.5Zm0 4.25h10V15H7v-1.5Z" /></svg></button>
         <button type="button" title="Oštevilčen seznam" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleOrderedList().run())} aria-label="Ordered list"><svg className={toolbarIconLargeClass} viewBox="0 0 20 20" fill="currentColor"><path d="M3.5 5h1v4h-1V7.3l-.7.3L2.5 6.8 3.5 6.3V5Zm3.5 0h10v1.5H7V5Zm0 4.25h10v1.5H7v-1.5Zm0 4.25h10V15H7v-1.5Zm-3.5-.15a1.9 1.9 0 0 1 1.9 1.9c0 .42-.13.79-.43 1.12-.23.26-.56.48-1 .63H5.5V18H2.5v-1.08l1.32-1.1c.2-.17.34-.3.41-.4a.66.66 0 0 0 .12-.39.63.63 0 0 0-.2-.48.81.81 0 0 0-.54-.17c-.34 0-.67.11-.99.33L2 13.9a2.4 2.4 0 0 1 1.5-.55Z" /></svg></button>
         {divider}
-        <button type="button" title="Velikost besedila" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => {
-          const size = window.prompt('Velikost besedila (px)', '12');
-          if (!size) return;
-          run((e) => e.chain().focus().setMark('textStyle', { fontSize: `${size}px` }).run());
-        }} aria-label="Text size"><svg className={toolbarIconClass} viewBox="0 0 20 20" fill="currentColor"><path d="M3 4h14v2H11v10H9V6H3V4Z" /></svg></button>
-        <button type="button" title="Pisava" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => {
-          const family = window.prompt('Pisava (npr. Inter, Arial, Georgia)', 'Inter');
-          if (!family) return;
-          run((e) => e.chain().focus().setFontFamily(family).run());
-        }} aria-label="Font family"><svg className={toolbarIconLargeClass} viewBox="0 0 20 20" fill="currentColor"><path d="m11.3 4.5 4.2 11h-2.1l-.8-2.4H8.2l-.8 2.4H5.3l4.2-11h1.8Zm.7 6.8-1.6-4.7-1.6 4.7H12Z" /></svg></button>
-        <button type="button" title="Barva besedila" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => {
-          const color = window.prompt('Barva besedila (hex)', '#1e293b');
-          if (!color) return;
-          run((e) => e.chain().focus().setColor(color).run());
-        }} aria-label="Text color"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m11 10 3 3"/><path d="M6.5 21A3.5 3.5 0 1 0 3 17.5a2.62 2.62 0 0 1-.708 1.792A1 1 0 0 0 3 21z"/><path d="M9.969 17.031 21.378 5.624a1 1 0 0 0-3.002-3.002L6.967 14.031"/></svg></button>
-        <button type="button" title="Označi besedilo" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleHighlight({ color: '#fde68a' }).run())} aria-label="Highlight"><svg className={toolbarIconClass} viewBox="0 0 20 20" fill="currentColor"><path d="M6 16h8v1.5H6V16Zm3.8-12.2 4.4 4.4-6.8 6.8H3V10.6l6.8-6.8Zm-5.3 9.7h2.2l5.7-5.7-2.2-2.2-5.7 5.7v2.2Z" /></svg></button>
+        <div className="relative">
+          <button type="button" title="Velikost besedila" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); setOpenMenu((current) => current === 'size' ? null : 'size'); }} aria-label="Text size"><svg className={toolbarIconClass} viewBox="0 0 20 20" fill="currentColor"><path d="M3 4h14v2H11v10H9V6H3V4Z" /></svg></button>
+          {openMenu === 'size' && editable ? (
+            <div className="absolute left-0 top-[calc(100%+4px)] z-20 min-w-[90px] rounded-md border border-slate-300 bg-white p-1 shadow-lg">
+              {fontSizeOptions.map((size) => (
+                <button key={size} type="button" className="block w-full rounded px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100" onClick={() => { run((e) => e.chain().focus().setMark('textStyle', { fontSize: size }).run()); setOpenMenu(null); }}>{size}</button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+        <div className="relative">
+          <button type="button" title="Pisava" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); setOpenMenu((current) => current === 'font' ? null : 'font'); }} aria-label="Font family"><svg className={toolbarIconLargeClass} viewBox="0 0 20 20" fill="currentColor"><path d="m11.3 4.5 4.2 11h-2.1l-.8-2.4H8.2l-.8 2.4H5.3l4.2-11h1.8Zm.7 6.8-1.6-4.7-1.6 4.7H12Z" /></svg></button>
+          {openMenu === 'font' && editable ? (
+            <div className="absolute left-0 top-[calc(100%+4px)] z-20 min-w-[120px] rounded-md border border-slate-300 bg-white p-1 shadow-lg">
+              {fontFamilyOptions.map((font) => (
+                <button key={font} type="button" className="block w-full rounded px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100" onClick={() => { run((e) => e.chain().focus().setFontFamily(font).run()); setOpenMenu(null); }}>{font}</button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+        <div className="relative">
+          <button type="button" title="Barva besedila" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); setOpenMenu((current) => current === 'color' ? null : 'color'); }} aria-label="Text color"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconTinyClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m11 10 3 3"/><path d="M6.5 21A3.5 3.5 0 1 0 3 17.5a2.62 2.62 0 0 1-.708 1.792A1 1 0 0 0 3 21z"/><path d="M9.969 17.031 21.378 5.624a1 1 0 0 0-3.002-3.002L6.967 14.031"/></svg></button>
+          {openMenu === 'color' && editable ? (
+            <div className="absolute left-0 top-[calc(100%+4px)] z-20 w-[180px] rounded-md border border-slate-300 bg-slate-900 p-2 shadow-lg">
+              <p className="mb-2 text-xs text-slate-200">Izberi barvo</p>
+              <div className="grid grid-cols-6 gap-1.5">
+                {colorSwatches.map((color) => (
+                  <button key={color} type="button" className="h-5 w-5 rounded-sm border border-white/20" style={{ backgroundColor: color }} onClick={() => { run((e) => e.chain().focus().setColor(color).run()); setOpenMenu(null); }} />
+                ))}
+              </div>
+              <button type="button" className="mt-2 w-full rounded border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:bg-slate-800" onClick={() => { run((e) => e.chain().focus().unsetColor().run()); setOpenMenu(null); }}>Ponastavi barvo</button>
+            </div>
+          ) : null}
+        </div>
+        <button type="button" title="Označi besedilo" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleHighlight({ color: '#fde68a' }).run())} aria-label="Highlight"><svg className={toolbarIconLargeClass} viewBox="0 0 20 20" fill="currentColor"><path d="M6 16h8v1.5H6V16Zm3.8-12.2 4.4 4.4-6.8 6.8H3V10.6l6.8-6.8Zm-5.3 9.7h2.2l5.7-5.7-2.2-2.2-5.7 5.7v2.2Z" /></svg></button>
         <button type="button" title="Vodoravna črta" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().setHorizontalRule().run())} aria-label="Horizontal rule"><svg className={toolbarIconClass} viewBox="0 0 20 20" fill="currentColor"><path d="M3 9.25h14v1.5H3v-1.5Z" /></svg></button>
         {divider}
         <button type="button" title="Povezava" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => {

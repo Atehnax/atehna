@@ -4,17 +4,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Editor } from '@tiptap/core';
-import StarterKit from '@tiptap/starter-kit';
-import Highlight from '@tiptap/extension-highlight';
-import Underline from '@tiptap/extension-underline';
-import TiptapLink from '@tiptap/extension-link';
-import TextAlign from '@tiptap/extension-text-align';
-import TiptapImage from '@tiptap/extension-image';
-import Youtube from '@tiptap/extension-youtube';
-import { TextStyle } from '@tiptap/extension-text-style';
-import FontFamily from '@tiptap/extension-font-family';
-import Color from '@tiptap/extension-color';
 import { Button } from '@/shared/ui/button';
 import { Chip } from '@/shared/ui/badge';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
@@ -144,133 +133,6 @@ function SideInputIcon({ icon, muted = false, className = '' }: { icon: SideFiel
     );
   }
   return <svg {...iconProps}><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5" /><path d="M10 12h6M10 16h6" /></svg>;
-}
-
-function FlowbiteWysiwygEditor({
-  value,
-  editable,
-  onChange
-}: {
-  value: string;
-  editable: boolean;
-  onChange: (next: string) => void;
-}) {
-  const editorRef = useRef<HTMLDivElement>(null);
-  const editorInstanceRef = useRef<Editor | null>(null);
-  const initialValueRef = useRef(value);
-  const onChangeRef = useRef(onChange);
-
-  useEffect(() => {
-    onChangeRef.current = onChange;
-  }, [onChange]);
-
-  useEffect(() => {
-    if (!editorRef.current) return;
-    const editor = new Editor({
-      element: editorRef.current,
-      editable,
-      extensions: [
-        StarterKit,
-        TextStyle,
-        Color,
-        FontFamily,
-        Highlight,
-        Underline,
-        TiptapLink.configure({ openOnClick: false, autolink: true, defaultProtocol: 'https' }),
-        TextAlign.configure({ types: ['heading', 'paragraph'] }),
-        TiptapImage,
-        Youtube
-      ],
-      content: initialValueRef.current || '<p></p>',
-      editorProps: {
-        attributes: {
-          class: 'block min-h-[100px] w-full border-0 bg-neutral-primary px-0 text-sm text-body focus:outline-none focus:ring-0'
-        }
-      },
-      onUpdate: ({ editor: nextEditor }) => onChangeRef.current(nextEditor.getHTML())
-    });
-    editorInstanceRef.current = editor;
-
-    return () => {
-      editor.destroy();
-      editorInstanceRef.current = null;
-    };
-  }, [editable]);
-
-  useEffect(() => {
-    const editor = editorInstanceRef.current;
-    if (!editor) return;
-    if (editor.getHTML() === (value || '<p></p>')) return;
-    editor.commands.setContent(value || '<p></p>', { emitUpdate: false });
-  }, [value]);
-
-  useEffect(() => {
-    editorInstanceRef.current?.setEditable(editable);
-  }, [editable]);
-
-  const runCommand = (action: (editor: Editor) => void) => {
-    const editor = editorInstanceRef.current;
-    if (!editor || !editable) return;
-    action(editor);
-    editor.commands.focus();
-  };
-
-  const iconBtn = 'p-1.5 text-body rounded-sm cursor-pointer hover:text-heading hover:bg-neutral-quaternary disabled:cursor-not-allowed disabled:opacity-50';
-  const divider = <span className="mx-1 h-4 w-px bg-slate-700" aria-hidden />;
-
-  return (
-    <div className="w-full overflow-hidden rounded-base border border-default-medium bg-neutral-secondary-medium">
-      <div className="p-2 border-b border-default-medium">
-        <div className="flex flex-wrap items-center gap-1">
-          <button id="toggleBoldButton" type="button" className={iconBtn} onClick={() => runCommand((e) => e.chain().focus().toggleBold().run())}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 5h4.5a3.5 3.5 0 1 1 0 7H8m0-7v7m0-7H6m2 7h6.5a3.5 3.5 0 1 1 0 7H8m0-7v7m0 0H6" /></svg><span className="sr-only">Bold</span></button>
-          <button id="toggleItalicButton" type="button" className={iconBtn} onClick={() => runCommand((e) => e.chain().focus().toggleItalic().run())}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m8.874 19 6.143-14M6 19h6.33m-.66-14H18" /></svg></button>
-          <button id="toggleUnderlineButton" type="button" className={iconBtn} onClick={() => runCommand((e) => e.chain().focus().toggleUnderline().run())}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 19h12M8 5v9a4 4 0 0 0 8 0V5M6 5h4m4 0h4" /></svg></button>
-          <button id="toggleStrikeButton" type="button" className={iconBtn} onClick={() => runCommand((e) => e.chain().focus().toggleStrike().run())}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 6.2V5h12v1.2M7 19h6m.2-14-1.677 6.523M9.6 19l1.029-4M5 5l6.523 6.523M19 19l-7.477-7.477" /></svg></button>
-          <button id="toggleHighlightButton" type="button" className={iconBtn} onClick={() => runCommand((e) => e.chain().focus().toggleHighlight({ color: '#ffc078' }).run())}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 20H5.5v-3H19v3h-3M12 19l1.5 2 1.5-2M8 13l4-10 4 10" /></svg></button>
-          <button id="toggleCodeButton" type="button" className={iconBtn} onClick={() => runCommand((e) => e.chain().focus().toggleCode().run())}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m8 8-4 4 4 4m8 0 4-4-4-4m-2-3-4 14" /></svg></button>
-          <button id="toggleLinkButton" type="button" className={iconBtn} onClick={() => { const url = window.prompt('Enter URL', 'https://flowbite.com'); if (url) runCommand((e) => e.chain().focus().toggleLink({ href: url }).run()); }}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13.213 9.787a3.391 3.391 0 0 0-4.795 0l-3.425 3.426a3.39 3.39 0 0 0 4.795 4.794l.321-.304m-.321-4.49a3.39 3.39 0 0 0 4.795 0l3.424-3.426a3.39 3.39 0 0 0-4.794-4.795l-1.028.961" /></svg></button>
-          <button id="removeLinkButton" type="button" className={iconBtn} onClick={() => runCommand((e) => e.chain().focus().unsetLink().run())}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m18 18-6-6M8.5 8.5l7 7" /></svg></button>
-          {divider}
-          <button id="toggleLeftAlignButton" type="button" className={iconBtn} onClick={() => runCommand((e) => e.chain().focus().setTextAlign('left').run())}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 6h8m-8 4h12M6 14h8m-8 4h12" /></svg></button>
-          <button id="toggleCenterAlignButton" type="button" className={iconBtn} onClick={() => runCommand((e) => e.chain().focus().setTextAlign('center').run())}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 6h8M6 10h12M8 14h8M6 18h12" /></svg></button>
-          <button id="toggleRightAlignButton" type="button" className={iconBtn} onClick={() => runCommand((e) => e.chain().focus().setTextAlign('right').run())}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6h-8m8 4H6m12 4h-8m8 4H6" /></svg></button>
-        </div>
-      </div>
-      <div className="flex items-center gap-2 flex-wrap px-2 pt-2 border-b border-default-medium">
-        <select className="rounded-xl border border-slate-600 bg-slate-700 px-3 py-1.5 text-sm text-slate-100" onChange={(event) => runCommand((e) => {
-          const value = event.target.value.toLowerCase();
-          if (value === 'p') e.chain().focus().setParagraph().run();
-          else e.chain().focus().toggleHeading({ level: Number(value.replace('h', '')) as 1 | 2 | 3 }).run();
-        })} defaultValue="P">
-          <option value="P">Format</option>
-          <option value="H1">Heading 1</option>
-          <option value="H2">Heading 2</option>
-          <option value="H3">Heading 3</option>
-        </select>
-        {divider}
-        <button id="addImageButton" type="button" className={iconBtn} onClick={() => { const url = window.prompt('Enter image URL', 'https://placehold.co/600x400'); if (url) runCommand((e) => e.chain().focus().setImage({ src: url }).run()); }}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg></button>
-        <button id="addVideoButton" type="button" className={iconBtn} onClick={() => { const url = window.prompt('Enter YouTube URL', 'https://www.youtube.com/watch?v=KaLxCiilHns'); if (url) runCommand((e) => e.commands.setYoutubeVideo({ src: url, width: 640, height: 480 })); }}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="15" height="10" rx="2" /><path d="m22 8-5 4 5 4V8z" /></svg></button>
-        <button id="toggleListButton" type="button" className={iconBtn} onClick={() => runCommand((e) => e.chain().focus().toggleBulletList().run())}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 8h10M9 12h10M9 16h10M5 8h.01M5 12h.01M5 16h.01" /></svg></button>
-        <button id="toggleOrderedListButton" type="button" className={iconBtn} onClick={() => runCommand((e) => e.chain().focus().toggleOrderedList().run())}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 6h8M12 12h8M12 18h8M4 16a2 2 0 1 1 3.3 1.5L4 20h5M4 5l2-1v6" /></svg></button>
-        <button id="toggleBlockquoteButton" type="button" className={iconBtn} onClick={() => runCommand((e) => e.chain().focus().toggleBlockquote().run())}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 11V8H5v3h5Zm0 0v2a4 4 0 0 1-4 4h-1m14-6V8h-5v3h5Zm0 0v2a4 4 0 0 1-4 4h-1" /></svg></button>
-        <button id="toggleHRButton" type="button" className={iconBtn} onClick={() => runCommand((e) => e.chain().focus().setHorizontalRule().run())}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14" /></svg></button>
-        <select className="rounded-sm border border-slate-700 bg-slate-800 px-1.5 py-1 text-xs text-slate-200" onChange={(event) => runCommand((e) => e.chain().focus().setMark('textStyle', { fontSize: event.target.value }).run())} defaultValue="16px">
-          <option value="2">12px</option><option value="3">16px</option><option value="4">18px</option><option value="5">24px</option>
-        </select>
-        <select className="rounded-sm border border-slate-700 bg-slate-800 px-1.5 py-1 text-xs text-slate-200" onChange={(event) => runCommand((e) => e.chain().focus().setFontFamily(event.target.value).run())} defaultValue="Inter">
-          <option value="Inter">Inter</option><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Verdana">Verdana</option>
-        </select>
-        <input type="color" className="h-7 w-7 cursor-pointer rounded border border-slate-700 bg-slate-800" onChange={(event) => runCommand((e) => e.chain().focus().setColor(event.target.value).run())} defaultValue="#1e293b" />
-      </div>
-      <div className="px-4 py-2 bg-neutral-primary rounded-b-lg">
-        <div
-          id="wysiwyg-example"
-          ref={editorRef}
-          className="block min-h-[100px] w-full border-0 bg-neutral-primary px-0 text-sm text-body focus:outline-none focus:ring-0"
-        />
-      </div>
-    </div>
-  );
 }
 
 function ActiveStateChip({
@@ -1017,11 +879,13 @@ export default function AdminItemEditorPage({
               </div>
               <div className="col-span-2 space-y-1">
                 <label className="text-sm font-semibold text-slate-700">Opis</label>
-                {isEditable ? (
-                  <FlowbiteWysiwygEditor value={draft.description} editable={isEditable} onChange={(next) => setDraft((current) => ({ ...current, description: next }))} />
-                ) : (
-                  <div className="min-h-10 rounded-md border border-transparent px-0 py-1 text-sm text-slate-700" dangerouslySetInnerHTML={{ __html: draft.description.trim() || '[Opis artikla]' }} />
-                )}
+                <textarea
+                  className={`${inputClass} min-h-[120px] py-2 ${!isEditable ? 'bg-slate-50 text-slate-700' : ''}`}
+                  value={draft.description}
+                  disabled={!isEditable}
+                  onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
+                  placeholder="[Opis artikla]"
+                />
               </div>
             </div>
           </section>

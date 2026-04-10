@@ -205,9 +205,15 @@ function DescriptionRichEditor({
         <button type="button" className={iconBtn} onClick={() => { const url = window.prompt('Vnesi povezavo', 'https://'); if (url) editor.chain().focus().toggleLink({ href: url }).run(); }}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13.2 9.8a3.4 3.4 0 0 0-4.8 0L5 13.2a3.4 3.4 0 0 0 4.8 4.8l.3-.3m-.3-4.5a3.4 3.4 0 0 0 4.8 0L18 9.8a3.4 3.4 0 0 0-4.8-4.8l-1 .96" /></svg></button>
         <button type="button" className={iconBtn} onClick={() => editor.chain().focus().unsetLink().run()}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m18 18-6-6M8.5 8.5l7 7" /></svg></button>
         {divider}
-        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().setTextAlign('left').run()}>L</button>
-        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().setTextAlign('center').run()}>C</button>
-        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().setTextAlign('right').run()}>R</button>
+        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().setTextAlign('left').run()}>
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 6h8m-8 4h12M6 14h8m-8 4h12" /></svg>
+        </button>
+        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().setTextAlign('center').run()}>
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 6h8M6 10h12M8 14h8M6 18h12" /></svg>
+        </button>
+        <button type="button" className={iconBtn} onClick={() => editor.chain().focus().setTextAlign('right').run()}>
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6h-8m8 4H6m12 4h-8m8 4H6" /></svg>
+        </button>
       </div>
       <div className="flex flex-wrap items-center gap-1 px-3 py-2">
         <select className="rounded-xl border border-slate-600 bg-slate-700 px-3 py-1.5 text-sm text-slate-100" onChange={(event) => {

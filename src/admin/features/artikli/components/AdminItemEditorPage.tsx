@@ -785,6 +785,92 @@ export default function AdminItemEditorPage({
     });
   };
 
+  const buildDescriptionPreviewHtml = (raw: string) => {
+    const source = raw.trim();
+    if (!source) return '<span class="text-slate-400">Opis artikla...</span>';
+
+    const lines = source.split('\n');
+    const processed: string[] = [];
+    let inUl = false;
+    let inOl = false;
+
+    const closeLists = () => {
+      if (inUl) {
+        processed.push('</ul>');
+        inUl = false;
+      }
+      if (inOl) {
+        processed.push('</ol>');
+        inOl = false;
+      }
+    };
+
+    const inline = (text: string) =>
+      text
+        .replace(/`([^`]+)`/g, '<code class="rounded bg-slate-100 px-1">$1</code>')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        .replace(/~~([^~]+)~~/g, '<s>$1</s>')
+        .replace(/!\[\]\(([^)]+)\)/g, '<img src="$1" alt="" class="my-2 max-w-full rounded" />')
+        .replace(/\[Video\]\(([^)]+)\)/g, '<a href="$1" target="_blank" rel="noreferrer" class="text-blue-600 underline">Video</a>')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer" class="text-blue-600 underline">$1</a>');
+
+    lines.forEach((line) => {
+      if (/^\s*$/.test(line)) {
+        closeLists();
+        processed.push('<p class="my-2"></p>');
+        return;
+      }
+      if (/^---+$/.test(line.trim())) {
+        closeLists();
+        processed.push('<hr class="my-3 border-slate-300" />');
+        return;
+      }
+      if (line.startsWith('### ')) {
+        closeLists();
+        processed.push(`<h3 class="mt-3 text-base font-semibold">${inline(line.slice(4))}</h3>`);
+        return;
+      }
+      if (line.startsWith('## ')) {
+        closeLists();
+        processed.push(`<h2 class="mt-3 text-lg font-semibold">${inline(line.slice(3))}</h2>`);
+        return;
+      }
+      if (line.startsWith('# ')) {
+        closeLists();
+        processed.push(`<h1 class="mt-3 text-xl font-semibold">${inline(line.slice(2))}</h1>`);
+        return;
+      }
+      if (line.startsWith('> ')) {
+        closeLists();
+        processed.push(`<blockquote class="my-2 border-l-2 border-slate-300 pl-3 text-slate-600">${inline(line.slice(2))}</blockquote>`);
+        return;
+      }
+      if (/^- /.test(line)) {
+        if (!inUl) {
+          closeLists();
+          processed.push('<ul class="my-2 list-disc pl-5">');
+          inUl = true;
+        }
+        processed.push(`<li>${inline(line.replace(/^- /, ''))}</li>`);
+        return;
+      }
+      if (/^\d+\.\s/.test(line)) {
+        if (!inOl) {
+          closeLists();
+          processed.push('<ol class="my-2 list-decimal pl-5">');
+          inOl = true;
+        }
+        processed.push(`<li>${inline(line.replace(/^\d+\.\s/, ''))}</li>`);
+        return;
+      }
+      closeLists();
+      processed.push(`<p class="my-2">${inline(line)}</p>`);
+    });
+    closeLists();
+    return processed.join('');
+  };
+
   const getVariantTag = (variantId: string): VariantTag => variantTags[variantId] ?? 'novo';
   return (
     <div className="mx-auto max-w-7xl space-y-4 font-['Inter',system-ui,sans-serif]">
@@ -960,12 +1046,19 @@ export default function AdminItemEditorPage({
                         <button type="button" title="Text color" className="rounded p-1 text-slate-700 hover:bg-slate-100" onClick={() => { const color = window.prompt('Vnesi barvo (hex ali ime)', '#1e293b'); if (color) applyDescriptionFormat(`<span style=\"color:${color}\">`, '</span>'); }}>
                           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 16 6-12 6 12M8 12h8M5 20h14" /></svg>
                         </button>
-                        <button type="button" className="ml-auto rounded px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-100" onClick={() => setDescriptionPreviewMode((current) => !current)}>
-                          {descriptionPreviewMode ? 'Uredi' : 'Predogled'}
+                        <button type="button" className="ml-auto rounded p-1 text-slate-700 hover:bg-slate-100" title={descriptionPreviewMode ? 'Uredi' : 'Predogled'} onClick={() => setDescriptionPreviewMode((current) => !current)}>
+                          {descriptionPreviewMode ? (
+                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-.722-3.25M2 8a10.645 10.645 0 0 0 20 0M20 15l-1.726-2.05M4 15l1.726-2.05M9 18l.722-3.25" /></svg>
+                          ) : (
+                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></svg>
+                          )}
                         </button>
                       </div>
                       {descriptionPreviewMode ? (
-                        <pre className="min-h-[100px] w-full whitespace-pre-wrap px-2.5 py-2 text-sm text-slate-900">{draft.description || 'Opis artikla...'}</pre>
+                        <div
+                          className="min-h-[100px] w-full px-2.5 py-2 text-sm text-slate-900"
+                          dangerouslySetInnerHTML={{ __html: buildDescriptionPreviewHtml(draft.description) }}
+                        />
                       ) : (
                         <textarea
                           ref={descriptionTextareaRef}

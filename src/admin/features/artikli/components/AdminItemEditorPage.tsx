@@ -161,6 +161,8 @@ function OpisRichTextEditor({
   const initialContentRef = useRef(value || '<p></p>');
   const [textLength, setTextLength] = useState(0);
   const [openMenu, setOpenMenu] = useState<null | 'size' | 'font' | 'color'>(null);
+  const [customFontSize, setCustomFontSize] = useState('');
+  const [customColor, setCustomColor] = useState('#1e293b');
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -231,12 +233,12 @@ function OpisRichTextEditor({
   const toolbarButtonClass = 'rounded p-1.5 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50';
   const toolbarIconClass = 'h-4 w-4';
   const toolbarIconLargeClass = 'h-[18px] w-[18px]';
-  const toolbarIconAlignClass = 'h-5 w-5';
+  const toolbarIconAlignClass = 'h-4 w-4';
   const toolbarIconSmallClass = 'h-[13px] w-[13px]';
   const toolbarIconTinyClass = 'h-3.5 w-3.5';
   const toolbarIconHighlightClass = 'h-3.5 w-3.5';
   const divider = <span className="mx-1 h-6 w-px bg-slate-300" aria-hidden />;
-  const fontSizeOptions = ['12px', '14px', '16px', '18px'] as const;
+  const fontSizeOptions = ['10px', '12px', '14px', '18px', '24px', '36px'] as const;
   const fontFamilyOptions = ['Inter', 'Arial', 'Georgia', 'Verdana'] as const;
   const colorSwatches = ['#e11d48', '#f97316', '#eab308', '#22c55e', '#0ea5e9', '#6366f1', '#a855f7', '#ec4899', '#111827', '#475569', '#94a3b8', '#ffffff'] as const;
 
@@ -251,19 +253,34 @@ function OpisRichTextEditor({
         <button type="button" title="Oštevilčen seznam" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleOrderedList().run())} aria-label="Ordered list"><svg className={toolbarIconLargeClass} viewBox="0 0 20 20" fill="currentColor"><path d="M3.5 5h1v4h-1V7.3l-.7.3L2.5 6.8 3.5 6.3V5Zm3.5 0h10v1.5H7V5Zm0 4.25h10v1.5H7v-1.5Zm0 4.25h10V15H7v-1.5Zm-3.5-.15a1.9 1.9 0 0 1 1.9 1.9c0 .42-.13.79-.43 1.12-.23.26-.56.48-1 .63H5.5V18H2.5v-1.08l1.32-1.1c.2-.17.34-.3.41-.4a.66.66 0 0 0 .12-.39.63.63 0 0 0-.2-.48.81.81 0 0 0-.54-.17c-.34 0-.67.11-.99.33L2 13.9a2.4 2.4 0 0 1 1.5-.55Z" /></svg></button>
         {divider}
         <div className="relative">
-          <button type="button" title="Velikost besedila" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); setOpenMenu((current) => current === 'size' ? null : 'size'); }} aria-label="Text size"><svg className={toolbarIconClass} viewBox="0 0 20 20" fill="currentColor"><path d="M3 4h14v2H11v10H9V6H3V4Z" /></svg></button>
+          <button type="button" title="Velikost besedila" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); setOpenMenu((current) => current === 'size' ? null : 'size'); }} aria-label="Text size"><span className="inline-flex items-end leading-none"><span className="text-base font-semibold">T</span><span className="-ml-0.5 text-xs font-semibold">T</span></span></button>
           {openMenu === 'size' && editable ? (
-            <div className="absolute left-0 top-[calc(100%+4px)] z-20 min-w-[90px] rounded-md border border-slate-300 bg-white p-1 shadow-lg">
+            <div className="absolute left-0 top-[calc(100%+4px)] z-20 min-w-[140px] rounded-md border border-slate-300 bg-white p-1 shadow-lg" onClick={(event) => event.stopPropagation()}>
               {fontSizeOptions.map((size) => (
                 <button key={size} type="button" className="block w-full rounded px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100" onClick={() => { run((e) => e.chain().focus().setMark('textStyle', { fontSize: size }).run()); setOpenMenu(null); }}>{size}</button>
               ))}
+              <div className="mt-1 flex items-center gap-1 border-t border-slate-200 pt-1">
+                <input className="h-7 w-full rounded border border-slate-300 px-1.5 text-xs text-slate-700" value={customFontSize} onChange={(event) => setCustomFontSize(event.target.value)} placeholder="npr. 20" />
+                <button
+                  type="button"
+                  className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-700 hover:bg-slate-200"
+                  onClick={() => {
+                    const parsed = Number(customFontSize);
+                    if (!Number.isFinite(parsed) || parsed <= 0) return;
+                    run((e) => e.chain().focus().setMark('textStyle', { fontSize: `${parsed}px` }).run());
+                    setOpenMenu(null);
+                  }}
+                >
+                  OK
+                </button>
+              </div>
             </div>
           ) : null}
         </div>
         <div className="relative">
           <button type="button" title="Pisava" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); setOpenMenu((current) => current === 'font' ? null : 'font'); }} aria-label="Font family"><svg className={toolbarIconLargeClass} viewBox="0 0 20 20" fill="currentColor"><path d="m11.3 4.5 4.2 11h-2.1l-.8-2.4H8.2l-.8 2.4H5.3l4.2-11h1.8Zm.7 6.8-1.6-4.7-1.6 4.7H12Z" /></svg></button>
           {openMenu === 'font' && editable ? (
-            <div className="absolute left-0 top-[calc(100%+4px)] z-20 min-w-[120px] rounded-md border border-slate-300 bg-white p-1 shadow-lg">
+            <div className="absolute left-0 top-[calc(100%+4px)] z-20 min-w-[120px] rounded-md border border-slate-300 bg-white p-1 shadow-lg" onClick={(event) => event.stopPropagation()}>
               {fontFamilyOptions.map((font) => (
                 <button key={font} type="button" className="block w-full rounded px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100" onClick={() => { run((e) => e.chain().focus().setFontFamily(font).run()); setOpenMenu(null); }}>{font}</button>
               ))}
@@ -273,12 +290,17 @@ function OpisRichTextEditor({
         <div className="relative">
           <button type="button" title="Barva besedila" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); setOpenMenu((current) => current === 'color' ? null : 'color'); }} aria-label="Text color"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconTinyClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m11 10 3 3"/><path d="M6.5 21A3.5 3.5 0 1 0 3 17.5a2.62 2.62 0 0 1-.708 1.792A1 1 0 0 0 3 21z"/><path d="M9.969 17.031 21.378 5.624a1 1 0 0 0-3.002-3.002L6.967 14.031"/></svg></button>
           {openMenu === 'color' && editable ? (
-            <div className="absolute left-0 top-[calc(100%+4px)] z-20 w-[180px] rounded-md border border-slate-300 bg-slate-900 p-2 shadow-lg">
+            <div className="absolute left-0 top-[calc(100%+4px)] z-20 w-[200px] rounded-md border border-slate-300 bg-slate-900 p-2 shadow-lg" onClick={(event) => event.stopPropagation()}>
               <p className="mb-2 text-xs text-slate-200">Izberi barvo</p>
               <div className="grid grid-cols-6 gap-1.5">
                 {colorSwatches.map((color) => (
-                  <button key={color} type="button" className="h-5 w-5 rounded-sm border border-white/20" style={{ backgroundColor: color }} onClick={() => { run((e) => e.chain().focus().setColor(color).run()); setOpenMenu(null); }} />
+                  <button key={color} type="button" className="h-5 w-5 rounded-sm border border-white/20" style={{ backgroundColor: color }} onClick={() => { setCustomColor(color); run((e) => e.chain().focus().setColor(color).run()); setOpenMenu(null); }} />
                 ))}
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <input type="color" className="h-8 w-8 cursor-pointer rounded border border-slate-500 bg-transparent" value={customColor} onChange={(event) => setCustomColor(event.target.value)} />
+                <input className="h-8 w-full rounded border border-slate-600 bg-slate-800 px-2 text-xs text-slate-100" value={customColor} onChange={(event) => setCustomColor(event.target.value)} placeholder="#1e293b" />
+                <button type="button" className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:bg-slate-800" onClick={() => { run((e) => e.chain().focus().setColor(customColor).run()); setOpenMenu(null); }}>Nastavi</button>
               </div>
               <button type="button" className="mt-2 w-full rounded border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:bg-slate-800" onClick={() => { run((e) => e.chain().focus().unsetColor().run()); setOpenMenu(null); }}>Ponastavi barvo</button>
             </div>
@@ -302,13 +324,13 @@ function OpisRichTextEditor({
         <button type="button" title="Poravnaj desno" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().setTextAlign('right').run())} aria-label="Align right"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconAlignClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 5H3"/><path d="M21 12H9"/><path d="M21 19H7"/></svg></button>
         <button type="button" title="Poravnaj obojestransko" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().setTextAlign('justify').run())} aria-label="Align justify"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconAlignClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5h18"/><path d="M3 12h18"/><path d="M3 19h18"/></svg></button>
       </div>
-      <div className="relative overflow-auto">
+      <div className="relative overflow-auto pb-8">
         <div
           ref={editorHostRef}
           className="[&_.ProseMirror]:min-h-[140px] [&_.ProseMirror]:px-4 [&_.ProseMirror]:py-3 [&_.ProseMirror]:text-sm [&_.ProseMirror]:text-slate-800 [&_.ProseMirror]:outline-none [&_.ProseMirror]:prose [&_.ProseMirror]:prose-slate [&_.ProseMirror]:max-w-none [&_.ProseMirror_h1]:text-xl [&_.ProseMirror_h2]:text-lg [&_.ProseMirror_h3]:text-base [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5 [&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-slate-300 [&_.ProseMirror_blockquote]:pl-3 [&_.ProseMirror_a]:text-blue-600 [&_.ProseMirror_a]:underline"
         />
+        <div className="pointer-events-none absolute bottom-2 right-6 text-xs text-slate-400">{textLength} / 5000</div>
       </div>
-      <div className="flex justify-end px-4 py-2 text-xs text-slate-400">{textLength} / 5000</div>
     </div>
   );
 }

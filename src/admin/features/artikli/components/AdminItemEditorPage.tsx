@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Editor } from '@tiptap/core';
+import { Editor, Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TiptapLink from '@tiptap/extension-link';
@@ -161,8 +161,8 @@ function OpisRichTextEditor({
   const initialContentRef = useRef(value || '<p></p>');
   const [textLength, setTextLength] = useState(0);
   const [openMenu, setOpenMenu] = useState<null | 'size' | 'font' | 'color'>(null);
-  const [customFontSize, setCustomFontSize] = useState('');
   const [customColor, setCustomColor] = useState('#1e293b');
+  const [fontSizeValue, setFontSizeValue] = useState('');
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -170,6 +170,27 @@ function OpisRichTextEditor({
 
   useEffect(() => {
     if (!editorHostRef.current) return;
+    const FontSize = Extension.create({
+      name: 'fontSize',
+      addGlobalAttributes() {
+        return [
+          {
+            types: ['textStyle'],
+            attributes: {
+              fontSize: {
+                default: null,
+                parseHTML: (element: HTMLElement) => element.style.fontSize || null,
+                renderHTML: (attributes: { fontSize?: string | null }) =>
+                  attributes.fontSize
+                    ? { style: `font-size: ${attributes.fontSize}` }
+                    : {}
+              }
+            }
+          }
+        ];
+      }
+    });
+
     const editor = new Editor({
       element: editorHostRef.current,
       editable,
@@ -177,6 +198,7 @@ function OpisRichTextEditor({
         StarterKit,
         Underline,
         TextStyle,
+        FontSize,
         Highlight.configure({ multicolor: true }),
         Color,
         FontFamily,
@@ -191,7 +213,7 @@ function OpisRichTextEditor({
           class: `w-full bg-white px-5 py-4 text-[12px] font-['Inter',system-ui,sans-serif] text-slate-800 outline-none ${!editable ? 'cursor-default' : ''}`
         }
       },
-      onUpdate: ({ editor: nextEditor }) => {
+      onUpdate: ({ editor: nextEditor }: { editor: Editor }) => {
         onChangeRef.current(nextEditor.getHTML());
         setTextLength(nextEditor.getText().length);
       }
@@ -228,25 +250,46 @@ function OpisRichTextEditor({
     action(editor);
     editor.commands.focus();
   };
+  const applyFontSize = (rawValue: string) => {
+    const parsed = Number(rawValue);
+    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    run((e) => e.chain().focus().setMark('textStyle', { fontSize: `${parsed}px` }).run());
+  };
+  const applyColor = (nextColor: string) => {
+    const normalized = nextColor.trim();
+    if (!normalized) return;
+    setCustomColor(normalized);
+    run((e) => e.chain().focus().setColor(normalized).run());
+  };
 
   const preventToolbarFocusLoss = (event: { preventDefault: () => void }) => event.preventDefault();
   const toolbarButtonClass = 'rounded p-1.5 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50';
   const toolbarIconClass = 'h-4 w-4';
+  const toolbarIconItalicClass = 'h-[18px] w-[18px]';
   const toolbarIconLargeClass = 'h-[18px] w-[18px]';
   const toolbarIconAlignClass = 'h-4 w-4';
-  const toolbarIconSmallClass = 'h-[13px] w-[13px]';
+  const toolbarIconSmallClass = 'h-[11.7px] w-[11.7px]';
   const toolbarIconTinyClass = 'h-3.5 w-3.5';
   const toolbarIconHighlightClass = 'h-3.5 w-3.5';
   const divider = <span className="mx-1 h-6 w-px bg-slate-300" aria-hidden />;
-  const fontSizeOptions = ['10px', '12px', '14px', '18px', '24px', '36px'] as const;
-  const fontFamilyOptions = ['Inter', 'Arial', 'Georgia', 'Verdana'] as const;
-  const colorSwatches = ['#e11d48', '#f97316', '#eab308', '#22c55e', '#0ea5e9', '#6366f1', '#a855f7', '#ec4899', '#111827', '#475569', '#94a3b8', '#ffffff'] as const;
+  const fontFamilyOptions = [
+    { label: 'Inter', value: 'Inter, system-ui, sans-serif' },
+    { label: 'Arial', value: 'Arial, sans-serif' },
+    { label: 'Helvetica', value: 'Helvetica, Arial, sans-serif' },
+    { label: 'Georgia', value: 'Georgia, serif' },
+    { label: 'Times New Roman', value: '"Times New Roman", Times, serif' },
+    { label: 'Verdana', value: 'Verdana, sans-serif' },
+    { label: 'Tahoma', value: 'Tahoma, sans-serif' },
+    { label: 'Trebuchet MS', value: '"Trebuchet MS", sans-serif' },
+    { label: 'Courier New', value: '"Courier New", Courier, monospace' },
+    { label: 'system-ui', value: 'system-ui, sans-serif' }
+  ] as const;
 
   return (
-    <div className="relative resize-y overflow-auto rounded-lg border border-slate-300 bg-white">
+    <div className="relative flex h-[150px] min-h-[130px] resize-y flex-col overflow-auto rounded-lg border border-slate-300 bg-white">
       <div className="flex flex-nowrap items-center gap-0.5 border-b border-slate-200 bg-slate-50 px-3 py-2">
         <button type="button" title="Krepko" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleBold().run())} aria-label="Bold"><span className="inline-block w-4 text-center text-base font-bold leading-none">B</span></button>
-        <button type="button" title="Ležeče" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleItalic().run())} aria-label="Italic"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" x2="10" y1="4" y2="4"/><line x1="14" x2="5" y1="20" y2="20"/><line x1="15" x2="9" y1="4" y2="20"/></svg></button>
+        <button type="button" title="Ležeče" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleItalic().run())} aria-label="Italic"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconItalicClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" x2="10" y1="4" y2="4"/><line x1="14" x2="5" y1="20" y2="20"/><line x1="15" x2="9" y1="4" y2="20"/></svg></button>
         <button type="button" title="Podčrtano" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleUnderline().run())} aria-label="Underline"><span className="inline-block w-4 text-center text-base underline leading-none">U</span></button>
         {divider}
         <button type="button" title="Točkovni seznam" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleBulletList().run())} aria-label="Bullet list"><svg className={toolbarIconLargeClass} viewBox="0 0 20 20" fill="currentColor"><path d="M3 5.75A.75.75 0 1 1 4.5 5.75.75.75 0 0 1 3 5.75Zm0 4.25A.75.75 0 1 1 4.5 10 .75.75 0 0 1 3 10Zm0 4.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0ZM7 5h10v1.5H7V5Zm0 4.25h10v1.5H7v-1.5Zm0 4.25h10V15H7v-1.5Z" /></svg></button>
@@ -255,55 +298,61 @@ function OpisRichTextEditor({
         <div className="relative">
           <button type="button" title="Velikost besedila" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); setOpenMenu((current) => current === 'size' ? null : 'size'); }} aria-label="Text size"><span className="inline-flex items-end leading-none"><span className="text-base font-semibold">T</span><span className="-ml-0.5 text-xs font-semibold">T</span></span></button>
           {openMenu === 'size' && editable ? (
-            <div className="absolute left-0 top-[calc(100%+4px)] z-20 min-w-[140px] rounded-md border border-slate-300 bg-white p-1 shadow-lg" onClick={(event) => event.stopPropagation()}>
-              {fontSizeOptions.map((size) => (
-                <button key={size} type="button" className="block w-full rounded px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100" onClick={() => { run((e) => e.chain().focus().setMark('textStyle', { fontSize: size }).run()); setOpenMenu(null); }}>{size}</button>
-              ))}
-              <div className="mt-1 flex items-center gap-1 border-t border-slate-200 pt-1">
-                <input className="h-7 w-full rounded border border-slate-300 px-1.5 text-xs text-slate-700" value={customFontSize} onChange={(event) => setCustomFontSize(event.target.value)} placeholder="npr. 20" />
-                <button
-                  type="button"
-                  className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-700 hover:bg-slate-200"
-                  onClick={() => {
-                    const parsed = Number(customFontSize);
-                    if (!Number.isFinite(parsed) || parsed <= 0) return;
-                    run((e) => e.chain().focus().setMark('textStyle', { fontSize: `${parsed}px` }).run());
-                    setOpenMenu(null);
+            <MenuPanel className="absolute left-0 top-[calc(100%+4px)] z-20 min-w-[160px] p-2 shadow-lg">
+              <div onClick={(event) => event.stopPropagation()}>
+              <div className="grid grid-cols-2 items-center overflow-hidden rounded-md border border-slate-300">
+                <input
+                  type="number"
+                  min={1}
+                  className="h-8 w-full border-0 px-2 text-xs text-slate-700 outline-none focus:ring-0"
+                  value={fontSizeValue}
+                  onChange={(event) => {
+                    setFontSizeValue(event.target.value);
+                    applyFontSize(event.target.value);
                   }}
-                >
-                  OK
-                </button>
+                  placeholder="16"
+                />
+                <span className="inline-flex h-8 items-center justify-center border-l border-slate-300 bg-slate-50 text-xs text-slate-500">px</span>
               </div>
-            </div>
+              </div>
+            </MenuPanel>
           ) : null}
         </div>
         <div className="relative">
           <button type="button" title="Pisava" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); setOpenMenu((current) => current === 'font' ? null : 'font'); }} aria-label="Font family"><svg className={toolbarIconLargeClass} viewBox="0 0 20 20" fill="currentColor"><path d="m11.3 4.5 4.2 11h-2.1l-.8-2.4H8.2l-.8 2.4H5.3l4.2-11h1.8Zm.7 6.8-1.6-4.7-1.6 4.7H12Z" /></svg></button>
           {openMenu === 'font' && editable ? (
-            <div className="absolute left-0 top-[calc(100%+4px)] z-20 min-w-[120px] rounded-md border border-slate-300 bg-white p-1 shadow-lg" onClick={(event) => event.stopPropagation()}>
+            <MenuPanel className="absolute left-0 top-[calc(100%+4px)] z-20 min-w-[180px] shadow-lg">
+              <div onClick={(event) => event.stopPropagation()}>
               {fontFamilyOptions.map((font) => (
-                <button key={font} type="button" className="block w-full rounded px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-100" onClick={() => { run((e) => e.chain().focus().setFontFamily(font).run()); setOpenMenu(null); }}>{font}</button>
+                <MenuItem key={font.value} className="h-8 text-xs" onClick={() => { run((e) => e.chain().focus().setFontFamily(font.value).run()); setOpenMenu(null); }}>
+                  <span style={{ fontFamily: font.value }}>{font.label}</span>
+                </MenuItem>
               ))}
-            </div>
+              </div>
+            </MenuPanel>
           ) : null}
         </div>
         <div className="relative">
           <button type="button" title="Barva besedila" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); setOpenMenu((current) => current === 'color' ? null : 'color'); }} aria-label="Text color"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconTinyClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m11 10 3 3"/><path d="M6.5 21A3.5 3.5 0 1 0 3 17.5a2.62 2.62 0 0 1-.708 1.792A1 1 0 0 0 3 21z"/><path d="M9.969 17.031 21.378 5.624a1 1 0 0 0-3.002-3.002L6.967 14.031"/></svg></button>
           {openMenu === 'color' && editable ? (
-            <div className="absolute left-0 top-[calc(100%+4px)] z-20 w-[200px] rounded-md border border-slate-300 bg-slate-900 p-2 shadow-lg" onClick={(event) => event.stopPropagation()}>
-              <p className="mb-2 text-xs text-slate-200">Izberi barvo</p>
-              <div className="grid grid-cols-6 gap-1.5">
-                {colorSwatches.map((color) => (
-                  <button key={color} type="button" className="h-5 w-5 rounded-sm border border-white/20" style={{ backgroundColor: color }} onClick={() => { setCustomColor(color); run((e) => e.chain().focus().setColor(color).run()); setOpenMenu(null); }} />
-                ))}
+            <MenuPanel className="absolute left-0 top-[calc(100%+4px)] z-20 w-[240px] p-2 shadow-lg">
+              <div onClick={(event) => event.stopPropagation()}>
+              <div className="grid grid-cols-2 items-center gap-2">
+                <input
+                  type="color"
+                  className="h-8 w-full cursor-pointer rounded border border-slate-300 bg-transparent"
+                  value={customColor}
+                  onChange={(event) => applyColor(event.target.value)}
+                />
+                <input
+                  className="h-8 w-full rounded border border-slate-300 px-2 text-xs text-slate-700 outline-none focus:ring-0"
+                  value={customColor}
+                  onChange={(event) => applyColor(event.target.value)}
+                  placeholder="#1e293b"
+                />
               </div>
-              <div className="mt-2 flex items-center gap-2">
-                <input type="color" className="h-8 w-8 cursor-pointer rounded border border-slate-500 bg-transparent" value={customColor} onChange={(event) => setCustomColor(event.target.value)} />
-                <input className="h-8 w-full rounded border border-slate-600 bg-slate-800 px-2 text-xs text-slate-100" value={customColor} onChange={(event) => setCustomColor(event.target.value)} placeholder="#1e293b" />
-                <button type="button" className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:bg-slate-800" onClick={() => { run((e) => e.chain().focus().setColor(customColor).run()); setOpenMenu(null); }}>Nastavi</button>
               </div>
-              <button type="button" className="mt-2 w-full rounded border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:bg-slate-800" onClick={() => { run((e) => e.chain().focus().unsetColor().run()); setOpenMenu(null); }}>Ponastavi barvo</button>
-            </div>
+            </MenuPanel>
           ) : null}
         </div>
         <button type="button" title="Označi besedilo" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleHighlight({ color: '#fde68a' }).run())} aria-label="Highlight"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconHighlightClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg></button>
@@ -324,12 +373,12 @@ function OpisRichTextEditor({
         <button type="button" title="Poravnaj desno" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().setTextAlign('right').run())} aria-label="Align right"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconAlignClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 5H3"/><path d="M21 12H9"/><path d="M21 19H7"/></svg></button>
         <button type="button" title="Poravnaj obojestransko" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().setTextAlign('justify').run())} aria-label="Align justify"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconAlignClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5h18"/><path d="M3 12h18"/><path d="M3 19h18"/></svg></button>
       </div>
-      <div className="relative overflow-auto pb-8">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
         <div
           ref={editorHostRef}
-          className="[&_.ProseMirror]:min-h-[140px] [&_.ProseMirror]:px-4 [&_.ProseMirror]:py-3 [&_.ProseMirror]:text-sm [&_.ProseMirror]:text-slate-800 [&_.ProseMirror]:outline-none [&_.ProseMirror]:prose [&_.ProseMirror]:prose-slate [&_.ProseMirror]:max-w-none [&_.ProseMirror_h1]:text-xl [&_.ProseMirror_h2]:text-lg [&_.ProseMirror_h3]:text-base [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5 [&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-slate-300 [&_.ProseMirror_blockquote]:pl-3 [&_.ProseMirror_a]:text-blue-600 [&_.ProseMirror_a]:underline"
+          className="min-h-0 flex-1 overflow-auto [&_.ProseMirror]:min-h-[112px] [&_.ProseMirror]:px-4 [&_.ProseMirror]:py-3 [&_.ProseMirror]:text-sm [&_.ProseMirror]:text-slate-800 [&_.ProseMirror]:outline-none [&_.ProseMirror]:prose [&_.ProseMirror]:prose-slate [&_.ProseMirror]:max-w-none [&_.ProseMirror_h1]:text-xl [&_.ProseMirror_h2]:text-lg [&_.ProseMirror_h3]:text-base [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5 [&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-slate-300 [&_.ProseMirror_blockquote]:pl-3 [&_.ProseMirror_a]:text-blue-600 [&_.ProseMirror_a]:underline"
         />
-        <div className="pointer-events-none absolute bottom-2 right-6 text-xs text-slate-400">{textLength} / 5000</div>
+        <div className="pointer-events-none ml-auto px-4 pb-2 text-xs text-slate-400">{textLength} / 5000</div>
       </div>
     </div>
   );
@@ -1028,10 +1077,10 @@ export default function AdminItemEditorPage({
                   { title: 'Oblika', value: sideSettings.surface, placeholder: 'Pravokotna', icon: 'shape' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, surface: value })) },
                   { title: 'Barva', value: sideSettings.color, placeholder: 'Srebrna', icon: 'color' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, color: value })) },
                   { title: 'Tehnični list', value: documents.map((doc) => doc.name).join(', '), placeholder: 'Dodajte dokument', icon: 'document' as SideFieldIcon, onChange: () => {} },
-                  { title: 'Kratek URL', value: draft.slug, placeholder: toSlug(draft.name || 'naziv-artikla'), icon: 'link' as SideFieldIcon, onChange: (value: string) => setDraft((current) => ({ ...current, slug: value })) }
+                  { title: 'URL', value: draft.slug, placeholder: toSlug(draft.name || 'naziv-artikla'), icon: 'link' as SideFieldIcon, onChange: (value: string) => setDraft((current) => ({ ...current, slug: value })) }
                 ].map((field) => (
                   <div key={field.title} className="min-h-10 px-2.5">
-                    <p className="text-sm font-semibold text-slate-700">{field.title}</p>
+                    <p className="text-sm font-semibold text-slate-900">{field.title}</p>
                     {field.title === 'Tehnični list' ? (
                       <div className="mt-0.5 flex items-center gap-2">
                         <input
@@ -1058,10 +1107,10 @@ export default function AdminItemEditorPage({
                           </span>
                         </label>
                       </div>
-                    ) : field.title === 'Kratek URL' ? (
+                    ) : field.title === 'URL' ? (
                       <div className="space-y-1">
                         <div className={compactSideInputWrapClassName}>
-                          <SideInputIcon icon="link" muted={field.value.trim().length === 0} />
+                          <SideInputIcon icon="link" className="h-[12.5px] w-[12.5px]" muted={field.value.trim().length === 0} />
                           <input className={compactSideInputClassName} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
                         </div>
                         <p className="text-sm text-slate-500">Uporablja se v povezavi izdelka.</p>
@@ -1078,7 +1127,7 @@ export default function AdminItemEditorPage({
                 ))}
               </div>
               <div className="col-span-2 space-y-1">
-                <label className="text-sm font-semibold text-slate-700">Opis</label>
+                <label className="text-sm font-semibold text-slate-900">Opis</label>
                 <OpisRichTextEditor value={draft.description} editable={isEditable} onChange={(next) => setDraft((current) => ({ ...current, description: next }))} />
               </div>
             </div>
@@ -1241,7 +1290,7 @@ export default function AdminItemEditorPage({
         </aside>
       </div>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-4">
+      <section className="rounded-xl border border-slate-200 bg-white px-4 pb-5 pt-4">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold tracking-tight">Uredi artikel</h2>
           <div className="flex items-center gap-2">

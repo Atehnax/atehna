@@ -52,6 +52,72 @@ type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 type VideoEntry = { id: string; source: 'upload' | 'youtube'; label: string; previewUrl: string; visible: boolean };
 type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'price';
+type RgbColor = { r: number; g: number; b: number };
+type HslColor = { h: number; s: number; l: number };
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const normalizeHexColor = (raw: string) => {
+  const cleaned = raw.trim().replace(/^#/, '');
+  if (/^[\da-fA-F]{3}$/.test(cleaned)) {
+    return `#${cleaned.split('').map((char) => `${char}${char}`).join('').toUpperCase()}`;
+  }
+  if (/^[\da-fA-F]{6}$/.test(cleaned)) {
+    return `#${cleaned.toUpperCase()}`;
+  }
+  return null;
+};
+const hexToRgb = (raw: string): RgbColor | null => {
+  const normalized = normalizeHexColor(raw);
+  if (!normalized) return null;
+  const value = normalized.replace('#', '');
+  return {
+    r: Number.parseInt(value.slice(0, 2), 16),
+    g: Number.parseInt(value.slice(2, 4), 16),
+    b: Number.parseInt(value.slice(4, 6), 16)
+  };
+};
+const rgbToHex = ({ r, g, b }: RgbColor) => `#${[r, g, b].map((channel) => clamp(Math.round(channel), 0, 255).toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+const rgbToHsl = ({ r, g, b }: RgbColor): HslColor => {
+  const red = r / 255;
+  const green = g / 255;
+  const blue = b / 255;
+  const max = Math.max(red, green, blue);
+  const min = Math.min(red, green, blue);
+  const delta = max - min;
+  let h = 0;
+  if (delta !== 0) {
+    if (max === red) h = ((green - blue) / delta) % 6;
+    else if (max === green) h = (blue - red) / delta + 2;
+    else h = (red - green) / delta + 4;
+  }
+  h = Math.round(h * 60);
+  if (h < 0) h += 360;
+  const l = (max + min) / 2;
+  const s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
+  return { h, s: Math.round(s * 100), l: Math.round(l * 100) };
+};
+const hslToRgb = ({ h, s, l }: HslColor): RgbColor => {
+  const hue = ((h % 360) + 360) % 360;
+  const sat = clamp(s, 0, 100) / 100;
+  const light = clamp(l, 0, 100) / 100;
+  const c = (1 - Math.abs(2 * light - 1)) * sat;
+  const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
+  const m = light - c / 2;
+  let rPrime = 0;
+  let gPrime = 0;
+  let bPrime = 0;
+  if (hue < 60) [rPrime, gPrime, bPrime] = [c, x, 0];
+  else if (hue < 120) [rPrime, gPrime, bPrime] = [x, c, 0];
+  else if (hue < 180) [rPrime, gPrime, bPrime] = [0, c, x];
+  else if (hue < 240) [rPrime, gPrime, bPrime] = [0, x, c];
+  else if (hue < 300) [rPrime, gPrime, bPrime] = [x, 0, c];
+  else [rPrime, gPrime, bPrime] = [c, 0, x];
+  return {
+    r: Math.round((rPrime + m) * 255),
+    g: Math.round((gPrime + m) * 255),
+    b: Math.round((bPrime + m) * 255)
+  };
+};
 
 function SideInputIcon({ icon, muted = false, className = '' }: { icon: SideFieldIcon; muted?: boolean; className?: string }) {
   const iconProps = {
@@ -306,6 +372,25 @@ function OpisRichTextEditor({
     setCustomColor(normalized);
     run((e) => e.chain().setColor(normalized).run(), { focusEditor: false });
   };
+  const parsedRgb = hexToRgb(customColor) ?? { r: 30, g: 41, b: 59 };
+  const parsedHsl = rgbToHsl(parsedRgb);
+  const updateRgbChannel = (channel: keyof RgbColor, rawValue: string) => {
+    const parsed = Number(rawValue);
+    if (!Number.isFinite(parsed)) return;
+    const nextRgb = { ...parsedRgb, [channel]: clamp(parsed, 0, 255) };
+    const nextHex = rgbToHex(nextRgb);
+    applyColor(nextHex);
+  };
+  const updateHslChannel = (channel: keyof HslColor, rawValue: string) => {
+    const parsed = Number(rawValue);
+    if (!Number.isFinite(parsed)) return;
+    const bounds: Record<keyof HslColor, [number, number]> = { h: [0, 360], s: [0, 100], l: [0, 100] };
+    const [min, max] = bounds[channel];
+    const nextHsl = { ...parsedHsl, [channel]: clamp(parsed, min, max) };
+    const nextHex = rgbToHex(hslToRgb(nextHsl));
+    applyColor(nextHex);
+  };
+  const inlineSnippetClass = 'rounded bg-rose-100/90 px-1 py-0.5 font-mono text-[11px] text-rose-500';
 
   const preventToolbarFocusLoss = (event: { preventDefault: () => void }) => event.preventDefault();
   const toolbarButtonClass = 'rounded p-1.5 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50';
@@ -383,21 +468,41 @@ function OpisRichTextEditor({
         <div className="relative">
           <button ref={colorTriggerRef} type="button" title="Barva besedila" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); setOpenMenu((current) => current === 'color' ? null : 'color'); }} aria-label="Text color"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconTinyClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m11 10 3 3"/><path d="M6.5 21A3.5 3.5 0 1 0 3 17.5a2.62 2.62 0 0 1-.708 1.792A1 1 0 0 0 3 21z"/><path d="M9.969 17.031 21.378 5.624a1 1 0 0 0-3.002-3.002L6.967 14.031"/></svg></button>
           {openMenu === 'color' && editable && menuPosition ? createPortal(
-            <MenuPanel ref={colorMenuRef} className="fixed z-[90] w-[120px] p-2 shadow-lg" style={menuPosition}>
+            <MenuPanel ref={colorMenuRef} className="fixed z-[90] w-[210px] p-2 shadow-lg" style={menuPosition}>
               <div onMouseDown={(event) => event.stopPropagation()}>
-              <div className="grid grid-cols-1 items-center gap-2">
+              <div className="grid grid-cols-1 items-center gap-1.5">
                 <input
                   type="color"
                   className="h-8 w-full cursor-pointer rounded border border-slate-300 bg-transparent"
                   value={customColor}
                   onChange={(event) => applyColor(event.target.value)}
                 />
-                <input
-                  className="h-8 w-full rounded border border-slate-300 px-2 text-xs text-slate-700 outline-none focus:ring-0"
-                  value={customColor}
-                  onChange={(event) => applyColor(event.target.value)}
-                  placeholder="#1e293b"
-                />
+                <div className="grid grid-cols-[30px_1fr] items-center gap-1">
+                  <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">HEX</span>
+                  <input
+                    className="h-6 w-full rounded border border-slate-300 px-1.5 text-[11px] text-slate-700 outline-none focus:ring-0"
+                    value={customColor}
+                    onChange={(event) => {
+                      const rawValue = event.target.value;
+                      setCustomColor(rawValue);
+                      const normalized = normalizeHexColor(rawValue);
+                      if (normalized) applyColor(normalized);
+                    }}
+                    placeholder="#1E293B"
+                  />
+                </div>
+                <div className="grid grid-cols-[30px_1fr_1fr_1fr] items-center gap-1">
+                  <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">RGB</span>
+                  <input type="number" min={0} max={255} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedRgb.r} onChange={(event) => updateRgbChannel('r', event.target.value)} />
+                  <input type="number" min={0} max={255} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedRgb.g} onChange={(event) => updateRgbChannel('g', event.target.value)} />
+                  <input type="number" min={0} max={255} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedRgb.b} onChange={(event) => updateRgbChannel('b', event.target.value)} />
+                </div>
+                <div className="grid grid-cols-[30px_1fr_1fr_1fr] items-center gap-1">
+                  <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">HSL</span>
+                  <input type="number" min={0} max={360} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedHsl.h} onChange={(event) => updateHslChannel('h', event.target.value)} />
+                  <input type="number" min={0} max={100} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedHsl.s} onChange={(event) => updateHslChannel('s', event.target.value)} />
+                  <input type="number" min={0} max={100} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedHsl.l} onChange={(event) => updateHslChannel('l', event.target.value)} />
+                </div>
               </div>
               </div>
             </MenuPanel>,
@@ -1388,7 +1493,7 @@ export default function AdminItemEditorPage({
         <div className="mb-3 space-y-2">
           <h3 className="text-sm font-semibold text-slate-800">Dimenzije</h3>
           <p className="text-xs text-slate-500">
-            Vnesi vrednosti za vsako dimenzijo posebej, na primer <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">Dolžina: 10,20</span>. Podprte so Dolžina, Širina/fi in Debelina, razen pri dolžinskih artiklih, kjer Debelina ni dovoljena. Za posamezno dimenzijo lahko dodaš največ 5 vrednosti. Ob generiranju se na podlagi vseh vnesenih kombinacij ustvarijo različice.
+            Vnesi vrednosti za vsako dimenzijo posebej, na primer <span className={inlineSnippetClass}>Dolžina: 10,20</span>. Podprte so Dolžina, Širina/fi in Debelina, razen pri dolžinskih artiklih, kjer Debelina ni dovoljena. Za posamezno dimenzijo lahko dodaš največ 5 vrednosti. Ob generiranju se na podlagi vseh vnesenih kombinacij ustvarijo različice.
           </p>
           <div className="flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-slate-700">
             <svg
@@ -1406,7 +1511,7 @@ export default function AdminItemEditorPage({
               <path d="M12 8h.01" />
             </svg>
             <span className="text-xs text-slate-500">
-              Dodaj do tri dimenzije v milimetrih. Vnosne bližnjice: <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">d:</span>, <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">š:</span>, <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">h:</span>, <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">v:</span>
+              Dodaj do tri dimenzije v milimetrih. Vnosne bližnjice: <span className={inlineSnippetClass}>d:</span>, <span className={inlineSnippetClass}>š:</span>, <span className={inlineSnippetClass}>h:</span>, <span className={inlineSnippetClass}>v:</span>
             </span>
           </div>
           <div className="pt-2">

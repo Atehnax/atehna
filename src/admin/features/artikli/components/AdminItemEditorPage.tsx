@@ -36,6 +36,7 @@ import {
   type Variant
 } from '@/admin/features/artikli/lib/familyModel';
 import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/AdminCategoryBreadcrumbPicker';
+import OpisColorPopover from '@/admin/features/artikli/components/OpisColorPopover';
 
 const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0';
 const numberInputClass = '[-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
@@ -53,40 +54,6 @@ type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 type VideoEntry = { id: string; source: 'upload' | 'youtube'; label: string; previewUrl: string; visible: boolean };
 type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'price';
-type RgbColor = { r: number; g: number; b: number };
-type HslColor = { h: number; s: number; l: number };
-
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-const normalizeHexColor = (raw: string) => {
-  const cleaned = raw.trim().replace(/^#/, '');
-  if (/^[\da-fA-F]{3}$/.test(cleaned)) return `#${cleaned.split('').map((char) => `${char}${char}`).join('').toUpperCase()}`;
-  if (/^[\da-fA-F]{6}$/.test(cleaned)) return `#${cleaned.toUpperCase()}`;
-  return null;
-};
-const hexToRgb = (raw: string): RgbColor | null => {
-  const normalized = normalizeHexColor(raw);
-  if (!normalized) return null;
-  const hex = normalized.replace('#', '');
-  return { r: Number.parseInt(hex.slice(0, 2), 16), g: Number.parseInt(hex.slice(2, 4), 16), b: Number.parseInt(hex.slice(4, 6), 16) };
-};
-const rgbToHex = ({ r, g, b }: RgbColor) => `#${[r, g, b].map((v) => clamp(Math.round(v), 0, 255).toString(16).padStart(2, '0')).join('').toUpperCase()}`;
-const rgbToHsl = ({ r, g, b }: RgbColor): HslColor => {
-  const rn = r / 255; const gn = g / 255; const bn = b / 255;
-  const max = Math.max(rn, gn, bn); const min = Math.min(rn, gn, bn); const d = max - min;
-  let h = 0;
-  if (d !== 0) h = max === rn ? ((gn - bn) / d) % 6 : max === gn ? (bn - rn) / d + 2 : (rn - gn) / d + 4;
-  h = Math.round(h * 60); if (h < 0) h += 360;
-  const l = (max + min) / 2;
-  const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
-  return { h, s: Math.round(s * 100), l: Math.round(l * 100) };
-};
-const hslToRgb = ({ h, s, l }: HslColor): RgbColor => {
-  const hue = ((h % 360) + 360) % 360; const sat = clamp(s, 0, 100) / 100; const light = clamp(l, 0, 100) / 100;
-  const c = (1 - Math.abs(2 * light - 1)) * sat; const x = c * (1 - Math.abs(((hue / 60) % 2) - 1)); const m = light - c / 2;
-  let rp = 0; let gp = 0; let bp = 0;
-  if (hue < 60) [rp, gp, bp] = [c, x, 0]; else if (hue < 120) [rp, gp, bp] = [x, c, 0]; else if (hue < 180) [rp, gp, bp] = [0, c, x]; else if (hue < 240) [rp, gp, bp] = [0, x, c]; else if (hue < 300) [rp, gp, bp] = [x, 0, c]; else [rp, gp, bp] = [c, 0, x];
-  return { r: Math.round((rp + m) * 255), g: Math.round((gp + m) * 255), b: Math.round((bp + m) * 255) };
-};
 
 function SideInputIcon({ icon, muted = false, className = '' }: { icon: SideFieldIcon; muted?: boolean; className?: string }) {
   const iconProps = {
@@ -197,7 +164,6 @@ function OpisRichTextEditor({
   const colorTriggerRef = useRef<HTMLButtonElement>(null);
   const sizeMenuRef = useRef<HTMLDivElement>(null);
   const fontMenuRef = useRef<HTMLDivElement>(null);
-  const colorMenuRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Editor | null>(null);
   const onChangeRef = useRef(onChange);
   const initialContentRef = useRef(value || '<p></p>');
@@ -283,7 +249,7 @@ function OpisRichTextEditor({
   const getMenuRefs = useCallback((menu: 'size' | 'font' | 'color') => {
     if (menu === 'size') return { trigger: sizeTriggerRef.current, panel: sizeMenuRef.current };
     if (menu === 'font') return { trigger: fontTriggerRef.current, panel: fontMenuRef.current };
-    return { trigger: colorTriggerRef.current, panel: colorMenuRef.current };
+    return { trigger: colorTriggerRef.current, panel: null };
   }, []);
 
   const updateMenuPosition = useCallback(() => {
@@ -291,7 +257,7 @@ function OpisRichTextEditor({
     const refs = getMenuRefs(openMenu);
     if (!refs.trigger) return;
     const rect = refs.trigger.getBoundingClientRect();
-    const panelWidth = refs.panel?.offsetWidth ?? (openMenu === 'color' ? 220 : 90);
+    const panelWidth = refs.panel?.offsetWidth ?? (openMenu === 'color' ? 228 : 90);
     const left = Math.min(Math.max(8, rect.left), window.innerWidth - panelWidth - 8);
     const top = Math.min(rect.bottom + 6, window.innerHeight - 8);
     setMenuPosition({ top, left });
@@ -340,15 +306,6 @@ function OpisRichTextEditor({
     if (!normalized) return;
     setCustomColor(normalized);
     run((e) => e.chain().setColor(normalized).run(), { focusEditor: false });
-  };
-  const parsedRgb = hexToRgb(customColor) ?? { r: 30, g: 41, b: 59 };
-  const parsedHsl = rgbToHsl(parsedRgb);
-  const updateHslChannel = (channel: keyof HslColor, rawValue: string) => {
-    const parsed = Number(rawValue);
-    if (!Number.isFinite(parsed)) return;
-    const bounds: Record<keyof HslColor, [number, number]> = { h: [0, 360], s: [0, 100], l: [0, 100] };
-    const [min, max] = bounds[channel];
-    applyColor(rgbToHex(hslToRgb({ ...parsedHsl, [channel]: clamp(parsed, min, max) })));
   };
   const preventToolbarFocusLoss = (event: { preventDefault: () => void }) => event.preventDefault();
   const toolbarButtonClass = 'rounded p-1.5 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50';
@@ -433,35 +390,13 @@ function OpisRichTextEditor({
             onMouseDown={preventToolbarFocusLoss}
             onClick={(event) => {
               event.stopPropagation();
-              setOpenMenu('color');
-              const picker = document.getElementById('opis-native-color-picker') as (HTMLInputElement & { showPicker?: () => void }) | null;
-              if (picker) {
-                if (typeof picker.showPicker === 'function') picker.showPicker();
-                else picker.click();
-              }
+              setOpenMenu((current) => current === 'color' ? null : 'color');
             }}
             aria-label="Text color"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconTinyClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m11 10 3 3"/><path d="M6.5 21A3.5 3.5 0 1 0 3 17.5a2.62 2.62 0 0 1-.708 1.792A1 1 0 0 0 3 21z"/><path d="M9.969 17.031 21.378 5.624a1 1 0 0 0-3.002-3.002L6.967 14.031"/></svg>
           </button>
-          <input id="opis-native-color-picker" type="color" className="sr-only" value={customColor} onChange={(event) => applyColor(event.target.value)} tabIndex={-1} aria-hidden />
-          {openMenu === 'color' && editable && menuPosition ? createPortal(
-            <MenuPanel ref={colorMenuRef} className="fixed z-[90] w-[220px] p-2 shadow-lg" style={menuPosition}>
-              <div onMouseDown={(event) => event.stopPropagation()} className="space-y-1">
-                <div className="grid grid-cols-[28px_1fr] items-center gap-1">
-                  <span className="text-[9px] font-medium uppercase tracking-wide text-slate-500">HEX</span>
-                  <input autoFocus className={`${orderLikeEditableInputClassName} !mt-0 !h-5 !px-1.5 !text-[10px]`} value={customColor} onChange={(event) => { const normalized = normalizeHexColor(event.target.value); setCustomColor(event.target.value); if (normalized) applyColor(normalized); }} />
-                </div>
-                <div className="grid grid-cols-[28px_1fr_1fr_1fr] items-center gap-1">
-                  <span className="text-[9px] font-medium uppercase tracking-wide text-slate-500">HSL</span>
-                  <input type="number" min={0} max={360} className={`${compactTableNumberInputClassName} !mt-0 !h-5 !w-full !px-1 !text-[10px]`} value={parsedHsl.h} onChange={(event) => updateHslChannel('h', event.target.value)} />
-                  <input type="number" min={0} max={100} className={`${compactTableNumberInputClassName} !mt-0 !h-5 !w-full !px-1 !text-[10px]`} value={parsedHsl.s} onChange={(event) => updateHslChannel('s', event.target.value)} />
-                  <input type="number" min={0} max={100} className={`${compactTableNumberInputClassName} !mt-0 !h-5 !w-full !px-1 !text-[10px]`} value={parsedHsl.l} onChange={(event) => updateHslChannel('l', event.target.value)} />
-                </div>
-              </div>
-            </MenuPanel>,
-            document.body
-          ) : null}
+          <OpisColorPopover open={openMenu === 'color' && editable} anchorRef={colorTriggerRef} color={customColor} onChange={applyColor} onClose={() => setOpenMenu(null)} />
         </div>
         <button type="button" title="Označi besedilo" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleHighlight({ color: '#fde68a' }).run())} aria-label="Highlight"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconHighlightClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg></button>
         <button type="button" title="Vodoravna črta" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().setHorizontalRule().run())} aria-label="Horizontal rule"><svg className={toolbarIconClass} viewBox="0 0 20 20" fill="currentColor"><path d="M3 9.25h14v1.5H3v-1.5Z" /></svg></button>

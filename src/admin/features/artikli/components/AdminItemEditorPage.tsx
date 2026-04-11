@@ -238,7 +238,6 @@ function OpisRichTextEditor({
   const [customColor, setCustomColor] = useState('#1e293b');
   const [fontSizeValue, setFontSizeValue] = useState('');
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
-  const [isColorWindowOpen, setIsColorWindowOpen] = useState(false);
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -357,10 +356,6 @@ function OpisRichTextEditor({
     };
   }, [getMenuRefs, openMenu, updateMenuPosition]);
 
-  useEffect(() => {
-    if (openMenu !== 'color') setIsColorWindowOpen(false);
-  }, [openMenu]);
-
   const run = (action: (editor: Editor) => void, options?: { focusEditor?: boolean }) => {
     const editor = editorRef.current;
     if (!editor || !editable) return;
@@ -472,54 +467,42 @@ function OpisRichTextEditor({
         <div className="relative">
           <button ref={colorTriggerRef} type="button" title="Barva besedila" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); setOpenMenu((current) => current === 'color' ? null : 'color'); }} aria-label="Text color"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconTinyClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m11 10 3 3"/><path d="M6.5 21A3.5 3.5 0 1 0 3 17.5a2.62 2.62 0 0 1-.708 1.792A1 1 0 0 0 3 21z"/><path d="M9.969 17.031 21.378 5.624a1 1 0 0 0-3.002-3.002L6.967 14.031"/></svg></button>
           {openMenu === 'color' && editable && menuPosition ? createPortal(
-            <MenuPanel ref={colorMenuRef} className="fixed z-[90] w-[74px] p-2 shadow-lg" style={menuPosition}>
-              <div onMouseDown={(event) => event.stopPropagation()} className="relative">
-                <button
-                  type="button"
-                  className="h-8 w-full rounded border border-slate-300 bg-white p-1"
-                  onClick={() => setIsColorWindowOpen((current) => !current)}
-                  aria-label="Open color picker details"
-                >
-                  <span className="block h-full w-full rounded border border-slate-300" style={{ backgroundColor: customColor }} />
-                </button>
-                {isColorWindowOpen ? (
-                  <div className="absolute left-[calc(100%+8px)] top-0 z-10 w-[210px] rounded-md border border-slate-300 bg-white p-2 shadow-lg">
-                    <div className="grid grid-cols-1 items-center gap-1.5">
-                      <input
-                        type="color"
-                        className="h-8 w-full cursor-pointer rounded border border-slate-300 bg-transparent"
-                        value={customColor}
-                        onChange={(event) => applyColor(event.target.value)}
-                      />
-                      <div className="grid grid-cols-[30px_1fr] items-center gap-1">
-                        <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">HEX</span>
-                        <input
-                          className="h-6 w-full rounded border border-slate-300 px-1.5 text-[11px] text-slate-700 outline-none focus:ring-0"
-                          value={customColor}
-                          onChange={(event) => {
-                            const rawValue = event.target.value;
-                            setCustomColor(rawValue);
-                            const normalized = normalizeHexColor(rawValue);
-                            if (normalized) applyColor(normalized);
-                          }}
-                          placeholder="#1E293B"
-                        />
-                      </div>
-                      <div className="grid grid-cols-[30px_1fr_1fr_1fr] items-center gap-1">
-                        <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">RGB</span>
-                        <input type="number" min={0} max={255} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedRgb.r} onChange={(event) => updateRgbChannel('r', event.target.value)} />
-                        <input type="number" min={0} max={255} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedRgb.g} onChange={(event) => updateRgbChannel('g', event.target.value)} />
-                        <input type="number" min={0} max={255} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedRgb.b} onChange={(event) => updateRgbChannel('b', event.target.value)} />
-                      </div>
-                      <div className="grid grid-cols-[30px_1fr_1fr_1fr] items-center gap-1">
-                        <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">HSL</span>
-                        <input type="number" min={0} max={360} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedHsl.h} onChange={(event) => updateHslChannel('h', event.target.value)} />
-                        <input type="number" min={0} max={100} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedHsl.s} onChange={(event) => updateHslChannel('s', event.target.value)} />
-                        <input type="number" min={0} max={100} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedHsl.l} onChange={(event) => updateHslChannel('l', event.target.value)} />
-                      </div>
-                    </div>
+            <MenuPanel ref={colorMenuRef} className="fixed z-[90] w-[210px] p-2 shadow-lg" style={menuPosition}>
+              <div onMouseDown={(event) => event.stopPropagation()}>
+                <div className="grid grid-cols-1 items-center gap-1.5">
+                  <input
+                    type="color"
+                    className="h-8 w-full cursor-pointer rounded border border-slate-300 bg-transparent"
+                    value={customColor}
+                    onChange={(event) => applyColor(event.target.value)}
+                  />
+                  <div className="grid grid-cols-[30px_1fr] items-center gap-1">
+                    <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">HEX</span>
+                    <input
+                      className="h-6 w-full rounded border border-slate-300 px-1.5 text-[11px] text-slate-700 outline-none focus:ring-0"
+                      value={customColor}
+                      onChange={(event) => {
+                        const rawValue = event.target.value;
+                        setCustomColor(rawValue);
+                        const normalized = normalizeHexColor(rawValue);
+                        if (normalized) applyColor(normalized);
+                      }}
+                      placeholder="#1E293B"
+                    />
                   </div>
-                ) : null}
+                  <div className="grid grid-cols-[30px_1fr_1fr_1fr] items-center gap-1">
+                    <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">RGB</span>
+                    <input type="number" min={0} max={255} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedRgb.r} onChange={(event) => updateRgbChannel('r', event.target.value)} />
+                    <input type="number" min={0} max={255} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedRgb.g} onChange={(event) => updateRgbChannel('g', event.target.value)} />
+                    <input type="number" min={0} max={255} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedRgb.b} onChange={(event) => updateRgbChannel('b', event.target.value)} />
+                  </div>
+                  <div className="grid grid-cols-[30px_1fr_1fr_1fr] items-center gap-1">
+                    <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">HSL</span>
+                    <input type="number" min={0} max={360} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedHsl.h} onChange={(event) => updateHslChannel('h', event.target.value)} />
+                    <input type="number" min={0} max={100} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedHsl.s} onChange={(event) => updateHslChannel('s', event.target.value)} />
+                    <input type="number" min={0} max={100} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedHsl.l} onChange={(event) => updateHslChannel('l', event.target.value)} />
+                  </div>
+                </div>
               </div>
             </MenuPanel>,
             document.body

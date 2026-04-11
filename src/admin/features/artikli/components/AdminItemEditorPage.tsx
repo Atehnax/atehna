@@ -289,22 +289,22 @@ function OpisRichTextEditor({
     };
   }, [getMenuRefs, openMenu, updateMenuPosition]);
 
-  const run = (action: (editor: Editor) => void) => {
+  const run = (action: (editor: Editor) => void, options?: { focusEditor?: boolean }) => {
     const editor = editorRef.current;
     if (!editor || !editable) return;
     action(editor);
-    editor.commands.focus();
+    if (options?.focusEditor ?? true) editor.commands.focus();
   };
   const applyFontSize = (rawValue: string) => {
     const parsed = Number(rawValue);
     if (!Number.isFinite(parsed) || parsed <= 0) return;
-    run((e) => e.chain().focus().setMark('textStyle', { fontSize: `${parsed}px` }).run());
+    run((e) => e.chain().setMark('textStyle', { fontSize: `${parsed}px` }).run(), { focusEditor: false });
   };
   const applyColor = (nextColor: string) => {
     const normalized = nextColor.trim();
     if (!normalized) return;
     setCustomColor(normalized);
-    run((e) => e.chain().focus().setColor(normalized).run());
+    run((e) => e.chain().setColor(normalized).run(), { focusEditor: false });
   };
 
   const preventToolbarFocusLoss = (event: { preventDefault: () => void }) => event.preventDefault();
@@ -344,9 +344,9 @@ function OpisRichTextEditor({
         <div className="relative">
           <button ref={sizeTriggerRef} type="button" title="Velikost besedila" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); setOpenMenu((current) => current === 'size' ? null : 'size'); }} aria-label="Text size"><svg className={toolbarIconTextSizeClass} viewBox="0 0 36 36" fill="currentColor" aria-hidden="true"><path d="M21,9.08A1.13,1.13,0,0,0,19.86,8H4.62a1.1,1.1,0,1,0,0,2.19H11V27a1.09,1.09,0,0,0,2.17,0V10.19h6.69A1.14,1.14,0,0,0,21,9.08Z" /><path d="M30.67,15H21.15a1.1,1.1,0,1,0,0,2.19H25V26.5a1.09,1.09,0,0,0,2.17,0V17.23h3.54a1.1,1.1,0,1,0,0-2.19Z" /></svg></button>
           {openMenu === 'size' && editable && menuPosition ? createPortal(
-            <MenuPanel ref={sizeMenuRef} className="fixed z-[90] w-[80px] p-2 shadow-lg" style={menuPosition}>
+            <MenuPanel ref={sizeMenuRef} className="fixed z-[90] w-[100px] p-2 shadow-lg" style={menuPosition}>
               <div onMouseDown={(event) => event.stopPropagation()}>
-              <div className="grid grid-cols-2 items-center overflow-hidden rounded-md border border-slate-300">
+              <div className="grid grid-cols-[1.25fr_1fr] items-center overflow-hidden rounded-md border border-slate-300">
                 <input
                   type="number"
                   min={1}
@@ -368,7 +368,7 @@ function OpisRichTextEditor({
         <div className="relative">
           <button ref={fontTriggerRef} type="button" title="Pisava" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); setOpenMenu((current) => current === 'font' ? null : 'font'); }} aria-label="Font family"><svg className={toolbarIconLargeClass} viewBox="0 0 20 20" fill="currentColor"><path d="m11.3 4.5 4.2 11h-2.1l-.8-2.4H8.2l-.8 2.4H5.3l4.2-11h1.8Zm.7 6.8-1.6-4.7-1.6 4.7H12Z" /></svg></button>
           {openMenu === 'font' && editable && menuPosition ? createPortal(
-            <MenuPanel ref={fontMenuRef} className="fixed z-[90] w-[90px] shadow-lg" style={menuPosition}>
+            <MenuPanel ref={fontMenuRef} className="fixed z-[90] w-[135px] shadow-lg" style={menuPosition}>
               <div onMouseDown={(event) => event.stopPropagation()}>
               {fontFamilyOptions.map((font) => (
                 <MenuItem key={font.value} className="h-8 text-[12px]" onClick={() => { run((e) => e.chain().focus().setFontFamily(font.value).run()); setOpenMenu(null); }}>
@@ -1388,7 +1388,7 @@ export default function AdminItemEditorPage({
         <div className="mb-3 space-y-2">
           <h3 className="text-sm font-semibold text-slate-800">Dimenzije</h3>
           <p className="text-xs text-slate-500">
-            Vnesi vrednosti za vsako dimenzijo posebej, na primer Dolžina: 10,20. Podprte so Dolžina, Širina/fi in Debelina, razen pri dolžinskih artiklih, kjer Debelina ni dovoljena. Za posamezno dimenzijo lahko dodaš največ 5 vrednosti. Ob generiranju se na podlagi vseh vnesenih kombinacij ustvarijo različice.
+            Vnesi vrednosti za vsako dimenzijo posebej, na primer <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">Dolžina: 10,20</span>. Podprte so Dolžina, Širina/fi in Debelina, razen pri dolžinskih artiklih, kjer Debelina ni dovoljena. Za posamezno dimenzijo lahko dodaš največ 5 vrednosti. Ob generiranju se na podlagi vseh vnesenih kombinacij ustvarijo različice.
           </p>
           <div className="flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-slate-700">
             <svg
@@ -1406,13 +1406,13 @@ export default function AdminItemEditorPage({
               <path d="M12 8h.01" />
             </svg>
             <span className="text-xs text-slate-500">
-              Dodaj do tri dimenzije v milimetrih. Vnosne bližnjice: d:, š:, h:, v:
+              Dodaj do tri dimenzije v milimetrih. Vnosne bližnjice: <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">d:</span>, <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">š:</span>, <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">h:</span>, <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">v:</span>
             </span>
           </div>
           <div className="pt-2">
             <div className="flex items-start gap-3">
             <div className="relative w-1/2 min-w-[300px]">
-              <div className={`flex h-[30px] flex-nowrap items-center gap-1 overflow-hidden rounded-md border border-slate-300 pl-[10px] pr-11 ${isGeneratorLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : 'bg-white'}`}>
+              <div className={`flex h-[30px] flex-nowrap items-center gap-2 overflow-hidden rounded-md border border-slate-300 pl-[10px] pr-11 ${isGeneratorLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : 'bg-white'}`}>
                 <SideInputIcon icon="dimension" muted={generatorInput.trim().length === 0 && generatorChips.length === 0} />
                 {generatorChips.map((chip) => (
                   <span key={chip.dimension} className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs text-slate-700">

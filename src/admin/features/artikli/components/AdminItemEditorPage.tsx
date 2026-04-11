@@ -1142,7 +1142,7 @@ export default function AdminItemEditorPage({
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <h1 className="flex min-h-10 flex-nowrap items-center gap-1 whitespace-nowrap text-lg font-semibold tracking-tight text-slate-900">
                 <span className="inline-flex h-10 items-center gap-0">
-                  <div className={`inline-flex h-[30px] min-w-[14ch] items-center gap-2 rounded-md border border-slate-300 pl-[10px] pr-2.5 ${isEditable ? 'bg-white' : 'bg-[color:var(--ui-neutral-bg)] text-slate-500'}`}>
+                  <div className={`inline-flex h-[34px] min-w-[14ch] items-center gap-2 rounded-md border border-slate-300 pl-[10px] pr-2.5 ${isEditable ? 'bg-white' : 'bg-[color:var(--ui-neutral-bg)] text-slate-500'}`}>
                     <SideInputIcon icon="name" className="h-4 w-4" muted={draft.name.trim().length === 0} />
                     <input
                       aria-label="Naziv artikla"
@@ -1150,8 +1150,7 @@ export default function AdminItemEditorPage({
                       disabled={!isEditable}
                       onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
                       placeholder="Naziv artikla"
-                      style={{ fontSize: '21px' }}
-                      className={`h-full min-w-0 border-0 bg-transparent p-0 font-semibold leading-none tracking-tight shadow-none outline-none transition placeholder:text-[19px] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none ${isEditable ? 'text-slate-900 placeholder:text-slate-400' : 'cursor-not-allowed text-slate-500 placeholder:text-slate-400'}`}
+                      className={`h-full min-w-0 border-0 bg-transparent p-0 text-[17px] font-semibold leading-tight tracking-tight shadow-none outline-none transition placeholder:text-[17px] placeholder:font-semibold focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none ${isEditable ? 'text-slate-900 placeholder:text-slate-400' : 'cursor-not-allowed text-slate-500 placeholder:text-slate-400'}`}
                     />
                   </div>
                 </span>

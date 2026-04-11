@@ -43,7 +43,7 @@ const orderLikeEditableInputClassName = 'mt-0.5 h-5 w-full rounded-md border bor
 const compactTableNumberInputClassName = `h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-[11px] leading-4 text-slate-900 outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0 ${numberInputClass}`;
 const compactSideInputWrapClassName = 'mt-0.5 flex h-[30px] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[10px] pr-3';
 const compactSideInputClassName = 'h-full w-full border-0 bg-transparent p-0 text-sm text-slate-900 outline-none focus:ring-0';
-const inlineSnippetClass = 'rounded bg-rose-100/90 px-1 py-0.5 font-mono text-[11px] text-rose-500';
+const inlineSnippetClass = 'rounded bg-[#1982bf1a] px-1 py-0.5 font-mono text-[11px] text-[#1982bf]';
 
 type EditorMode = 'create' | 'edit';
 type CreateType = 'simple' | 'variants';
@@ -238,6 +238,7 @@ function OpisRichTextEditor({
   const [customColor, setCustomColor] = useState('#1e293b');
   const [fontSizeValue, setFontSizeValue] = useState('');
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+  const [isColorWindowOpen, setIsColorWindowOpen] = useState(false);
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -356,6 +357,10 @@ function OpisRichTextEditor({
     };
   }, [getMenuRefs, openMenu, updateMenuPosition]);
 
+  useEffect(() => {
+    if (openMenu !== 'color') setIsColorWindowOpen(false);
+  }, [openMenu]);
+
   const run = (action: (editor: Editor) => void, options?: { focusEditor?: boolean }) => {
     const editor = editorRef.current;
     if (!editor || !editable) return;
@@ -467,42 +472,54 @@ function OpisRichTextEditor({
         <div className="relative">
           <button ref={colorTriggerRef} type="button" title="Barva besedila" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); setOpenMenu((current) => current === 'color' ? null : 'color'); }} aria-label="Text color"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconTinyClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m11 10 3 3"/><path d="M6.5 21A3.5 3.5 0 1 0 3 17.5a2.62 2.62 0 0 1-.708 1.792A1 1 0 0 0 3 21z"/><path d="M9.969 17.031 21.378 5.624a1 1 0 0 0-3.002-3.002L6.967 14.031"/></svg></button>
           {openMenu === 'color' && editable && menuPosition ? createPortal(
-            <MenuPanel ref={colorMenuRef} className="fixed z-[90] w-[210px] p-2 shadow-lg" style={menuPosition}>
-              <div onMouseDown={(event) => event.stopPropagation()}>
-              <div className="grid grid-cols-1 items-center gap-1.5">
-                <input
-                  type="color"
-                  className="h-8 w-full cursor-pointer rounded border border-slate-300 bg-transparent"
-                  value={customColor}
-                  onChange={(event) => applyColor(event.target.value)}
-                />
-                <div className="grid grid-cols-[30px_1fr] items-center gap-1">
-                  <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">HEX</span>
-                  <input
-                    className="h-6 w-full rounded border border-slate-300 px-1.5 text-[11px] text-slate-700 outline-none focus:ring-0"
-                    value={customColor}
-                    onChange={(event) => {
-                      const rawValue = event.target.value;
-                      setCustomColor(rawValue);
-                      const normalized = normalizeHexColor(rawValue);
-                      if (normalized) applyColor(normalized);
-                    }}
-                    placeholder="#1E293B"
-                  />
-                </div>
-                <div className="grid grid-cols-[30px_1fr_1fr_1fr] items-center gap-1">
-                  <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">RGB</span>
-                  <input type="number" min={0} max={255} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedRgb.r} onChange={(event) => updateRgbChannel('r', event.target.value)} />
-                  <input type="number" min={0} max={255} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedRgb.g} onChange={(event) => updateRgbChannel('g', event.target.value)} />
-                  <input type="number" min={0} max={255} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedRgb.b} onChange={(event) => updateRgbChannel('b', event.target.value)} />
-                </div>
-                <div className="grid grid-cols-[30px_1fr_1fr_1fr] items-center gap-1">
-                  <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">HSL</span>
-                  <input type="number" min={0} max={360} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedHsl.h} onChange={(event) => updateHslChannel('h', event.target.value)} />
-                  <input type="number" min={0} max={100} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedHsl.s} onChange={(event) => updateHslChannel('s', event.target.value)} />
-                  <input type="number" min={0} max={100} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedHsl.l} onChange={(event) => updateHslChannel('l', event.target.value)} />
-                </div>
-              </div>
+            <MenuPanel ref={colorMenuRef} className="fixed z-[90] w-[74px] p-2 shadow-lg" style={menuPosition}>
+              <div onMouseDown={(event) => event.stopPropagation()} className="relative">
+                <button
+                  type="button"
+                  className="h-8 w-full rounded border border-slate-300 bg-white p-1"
+                  onClick={() => setIsColorWindowOpen((current) => !current)}
+                  aria-label="Open color picker details"
+                >
+                  <span className="block h-full w-full rounded border border-slate-300" style={{ backgroundColor: customColor }} />
+                </button>
+                {isColorWindowOpen ? (
+                  <div className="absolute left-[calc(100%+8px)] top-0 z-10 w-[210px] rounded-md border border-slate-300 bg-white p-2 shadow-lg">
+                    <div className="grid grid-cols-1 items-center gap-1.5">
+                      <input
+                        type="color"
+                        className="h-8 w-full cursor-pointer rounded border border-slate-300 bg-transparent"
+                        value={customColor}
+                        onChange={(event) => applyColor(event.target.value)}
+                      />
+                      <div className="grid grid-cols-[30px_1fr] items-center gap-1">
+                        <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">HEX</span>
+                        <input
+                          className="h-6 w-full rounded border border-slate-300 px-1.5 text-[11px] text-slate-700 outline-none focus:ring-0"
+                          value={customColor}
+                          onChange={(event) => {
+                            const rawValue = event.target.value;
+                            setCustomColor(rawValue);
+                            const normalized = normalizeHexColor(rawValue);
+                            if (normalized) applyColor(normalized);
+                          }}
+                          placeholder="#1E293B"
+                        />
+                      </div>
+                      <div className="grid grid-cols-[30px_1fr_1fr_1fr] items-center gap-1">
+                        <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">RGB</span>
+                        <input type="number" min={0} max={255} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedRgb.r} onChange={(event) => updateRgbChannel('r', event.target.value)} />
+                        <input type="number" min={0} max={255} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedRgb.g} onChange={(event) => updateRgbChannel('g', event.target.value)} />
+                        <input type="number" min={0} max={255} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedRgb.b} onChange={(event) => updateRgbChannel('b', event.target.value)} />
+                      </div>
+                      <div className="grid grid-cols-[30px_1fr_1fr_1fr] items-center gap-1">
+                        <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">HSL</span>
+                        <input type="number" min={0} max={360} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedHsl.h} onChange={(event) => updateHslChannel('h', event.target.value)} />
+                        <input type="number" min={0} max={100} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedHsl.s} onChange={(event) => updateHslChannel('s', event.target.value)} />
+                        <input type="number" min={0} max={100} className={`h-6 rounded border border-slate-300 px-1 text-[10px] text-slate-700 outline-none focus:ring-0 ${numberInputClass}`} value={parsedHsl.l} onChange={(event) => updateHslChannel('l', event.target.value)} />
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </MenuPanel>,
             document.body

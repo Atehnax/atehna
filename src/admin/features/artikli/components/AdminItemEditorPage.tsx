@@ -1101,7 +1101,7 @@ export default function AdminItemEditorPage({
                       disabled={!isEditable}
                       onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
                       placeholder="Naziv artikla"
-                      className={`h-full min-w-0 border-0 bg-transparent p-0 text-[16px] font-semibold leading-none tracking-tight shadow-none outline-none transition focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none ${isEditable ? 'text-slate-900' : 'cursor-not-allowed text-slate-500'}`}
+                      className={`h-full min-w-0 border-0 bg-transparent p-0 text-[17px] font-semibold leading-none tracking-tight shadow-none outline-none transition focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none ${isEditable ? 'text-slate-900' : 'cursor-not-allowed text-slate-500'}`}
                     />
                   </div>
                 </span>
@@ -1126,8 +1126,8 @@ export default function AdminItemEditorPage({
                 <button type="button" className={buttonTokenClasses.closeX} onClick={deleteItem} aria-label="Izbriši artikel" title="Izbriši"><TrashCanIcon /></button>
               </div>
             </div>
-            <div className="mx-[-1rem] mb-5 grid grid-cols-[minmax(0,1fr)] items-start border-y border-slate-200 bg-slate-50/80 px-4 py-3">
-              <div className="col-span-1 px-1">
+            <div className="mx-[-1rem] mb-5 grid grid-cols-[minmax(0,1fr)] items-center border-y border-slate-200 bg-slate-50/80 px-4 py-2.5">
+              <div className="col-span-1 flex min-h-8 items-center px-1">
                 <AdminCategoryBreadcrumbPicker
                   className="rounded-md bg-transparent px-1 py-0.5"
                   value={selectedCategoryPath}
@@ -1407,7 +1407,7 @@ export default function AdminItemEditorPage({
           <p className="text-xs text-slate-500">
             Vnesi vrednosti (v mm) za vsako dimenzijo posebej, na primer: <span className={inlineSnippetClass}>Dolžina: 10,20</span>. Podprte so Dolžina, Širina/fi in Debelina, razen pri dolžinskih artiklih, kjer Debelina ni dovoljena. Za posamezno dimenzijo lahko dodaš največ pet vrednosti. Ob generiranju se na podlagi vseh vnesenih kombinacij ustvarijo različice.
           </p>
-          <div className="flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-slate-700">
+          <div className="flex h-9 w-[32%] min-w-[360px] items-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-slate-700">
             <svg
               aria-hidden
               viewBox="0 0 24 24"
@@ -1422,7 +1422,7 @@ export default function AdminItemEditorPage({
               <path d="M12 16v-4" />
               <path d="M12 8h.01" />
             </svg>
-            <span className="w-[16%] min-w-[170px] whitespace-nowrap text-[11px] text-slate-500">
+            <span className="inline-flex items-center whitespace-nowrap text-[11px] leading-none text-slate-500">
               Dodaj do tri dimenzije. Vnosne bližnjice: <span className={inlineSnippetClass}>d:</span>, <span className={inlineSnippetClass}>š:</span>, <span className={inlineSnippetClass}>fi:</span>, <span className={inlineSnippetClass}>h:</span>, <span className={inlineSnippetClass}>v:</span>
             </span>
           </div>

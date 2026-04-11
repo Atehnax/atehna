@@ -263,10 +263,18 @@ function OpisRichTextEditor({
     setMenuPosition({ top, left });
   }, [getMenuRefs, openMenu]);
 
+  const positionMenuForTrigger = useCallback((menu: 'size' | 'font' | 'color', trigger: HTMLElement | null) => {
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    const estimatedWidth = menu === 'size' ? 100 : menu === 'font' ? 135 : 228;
+    const left = Math.min(Math.max(8, rect.left), window.innerWidth - estimatedWidth - 8);
+    const top = Math.min(rect.bottom + 6, window.innerHeight - 8);
+    setMenuPosition({ top, left });
+  }, []);
+
   useEffect(() => {
     if (!openMenu) return;
     updateMenuPosition();
-    const animationFrame = window.requestAnimationFrame(updateMenuPosition);
     const onDocMouseDown = (event: MouseEvent) => {
       const target = event.target as Node;
       const refs = getMenuRefs(openMenu);
@@ -282,7 +290,6 @@ function OpisRichTextEditor({
     window.addEventListener('resize', onWindowChange);
     window.addEventListener('scroll', onWindowChange, true);
     return () => {
-      window.cancelAnimationFrame(animationFrame);
       document.removeEventListener('mousedown', onDocMouseDown);
       document.removeEventListener('keydown', onDocKeyDown);
       window.removeEventListener('resize', onWindowChange);
@@ -342,7 +349,7 @@ function OpisRichTextEditor({
         <button type="button" title="Oštevilčen seznam" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleOrderedList().run())} aria-label="Ordered list"><svg className={toolbarIconLargeClass} viewBox="0 0 20 20" fill="currentColor"><path d="M3.5 5h1v4h-1V7.3l-.7.3L2.5 6.8 3.5 6.3V5Zm3.5 0h10v1.5H7V5Zm0 4.25h10v1.5H7v-1.5Zm0 4.25h10V15H7v-1.5Zm-3.5-.15a1.9 1.9 0 0 1 1.9 1.9c0 .42-.13.79-.43 1.12-.23.26-.56.48-1 .63H5.5V18H2.5v-1.08l1.32-1.1c.2-.17.34-.3.41-.4a.66.66 0 0 0 .12-.39.63.63 0 0 0-.2-.48.81.81 0 0 0-.54-.17c-.34 0-.67.11-.99.33L2 13.9a2.4 2.4 0 0 1 1.5-.55Z" /></svg></button>
         {divider}
         <div className="relative">
-          <button ref={sizeTriggerRef} type="button" title="Velikost besedila" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); setOpenMenu((current) => current === 'size' ? null : 'size'); }} aria-label="Text size"><svg className={toolbarIconTextSizeClass} viewBox="0 0 36 36" fill="currentColor" aria-hidden="true"><path d="M21,9.08A1.13,1.13,0,0,0,19.86,8H4.62a1.1,1.1,0,1,0,0,2.19H11V27a1.09,1.09,0,0,0,2.17,0V10.19h6.69A1.14,1.14,0,0,0,21,9.08Z" /><path d="M30.67,15H21.15a1.1,1.1,0,1,0,0,2.19H25V26.5a1.09,1.09,0,0,0,2.17,0V17.23h3.54a1.1,1.1,0,1,0,0-2.19Z" /></svg></button>
+          <button ref={sizeTriggerRef} type="button" title="Velikost besedila" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); const next = openMenu === 'size' ? null : 'size'; if (next) positionMenuForTrigger(next, event.currentTarget); setOpenMenu(next); }} aria-label="Text size"><svg className={toolbarIconTextSizeClass} viewBox="0 0 36 36" fill="currentColor" aria-hidden="true"><path d="M21,9.08A1.13,1.13,0,0,0,19.86,8H4.62a1.1,1.1,0,1,0,0,2.19H11V27a1.09,1.09,0,0,0,2.17,0V10.19h6.69A1.14,1.14,0,0,0,21,9.08Z" /><path d="M30.67,15H21.15a1.1,1.1,0,1,0,0,2.19H25V26.5a1.09,1.09,0,0,0,2.17,0V17.23h3.54a1.1,1.1,0,1,0,0-2.19Z" /></svg></button>
           {openMenu === 'size' && editable && menuPosition ? createPortal(
             <MenuPanel ref={sizeMenuRef} className="fixed z-[90] w-[100px] p-2 shadow-lg" style={menuPosition}>
               <div onMouseDown={(event) => event.stopPropagation()}>
@@ -366,7 +373,7 @@ function OpisRichTextEditor({
           ) : null}
         </div>
         <div className="relative">
-          <button ref={fontTriggerRef} type="button" title="Pisava" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); setOpenMenu((current) => current === 'font' ? null : 'font'); }} aria-label="Font family"><svg className={toolbarIconLargeClass} viewBox="0 0 20 20" fill="currentColor"><path d="m11.3 4.5 4.2 11h-2.1l-.8-2.4H8.2l-.8 2.4H5.3l4.2-11h1.8Zm.7 6.8-1.6-4.7-1.6 4.7H12Z" /></svg></button>
+          <button ref={fontTriggerRef} type="button" title="Pisava" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); const next = openMenu === 'font' ? null : 'font'; if (next) positionMenuForTrigger(next, event.currentTarget); setOpenMenu(next); }} aria-label="Font family"><svg className={toolbarIconLargeClass} viewBox="0 0 20 20" fill="currentColor"><path d="m11.3 4.5 4.2 11h-2.1l-.8-2.4H8.2l-.8 2.4H5.3l4.2-11h1.8Zm.7 6.8-1.6-4.7-1.6 4.7H12Z" /></svg></button>
           {openMenu === 'font' && editable && menuPosition ? createPortal(
             <MenuPanel ref={fontMenuRef} className="fixed z-[90] w-[135px] shadow-lg" style={menuPosition}>
               <div onMouseDown={(event) => event.stopPropagation()}>
@@ -390,7 +397,9 @@ function OpisRichTextEditor({
             onMouseDown={preventToolbarFocusLoss}
             onClick={(event) => {
               event.stopPropagation();
-              setOpenMenu((current) => current === 'color' ? null : 'color');
+              const next = openMenu === 'color' ? null : 'color';
+              if (next) positionMenuForTrigger(next, event.currentTarget);
+              setOpenMenu(next);
             }}
             aria-label="Text color"
           >
@@ -1104,9 +1113,9 @@ export default function AdminItemEditorPage({
                 <button type="button" className={buttonTokenClasses.closeX} onClick={deleteItem} aria-label="Izbriši artikel" title="Izbriši"><TrashCanIcon /></button>
               </div>
             </div>
-            <div className="mb-1 grid grid-cols-[minmax(0,1fr)] items-start gap-3 px-2.5">
+            <div className="mb-1 grid grid-cols-[minmax(0,1fr)] items-start gap-3">
               <AdminCategoryBreadcrumbPicker
-                className="col-span-1 rounded-lg bg-slate-50 px-2 py-1"
+                className="col-span-1 rounded-none bg-slate-50 px-2.5 py-1"
                 value={selectedCategoryPath}
                 onChange={selectCategoryPath}
                 categoryPaths={categoryPaths}
@@ -1142,11 +1151,11 @@ export default function AdminItemEditorPage({
                           htmlFor="tech-sheet-upload-inline"
                           className={`flex w-full cursor-pointer items-center rounded-xl border border-dashed border-blue-300 bg-blue-50/35 px-4 py-3 ${!isEditable ? 'cursor-not-allowed opacity-60' : ''}`}
                         >
-                          <span className="mx-auto flex items-center gap-3 text-blue-600">
-                            <SideInputIcon icon="document" muted={documents.length === 0} />
+                          <span className="mx-auto flex items-center gap-1 text-blue-600">
+                            <SideInputIcon icon="document" muted={false} className="text-blue-600" />
                             <span className="leading-tight">
                               <span className="block text-sm font-semibold">Dodaj dokument</span>
-                              <span className="block text-sm text-slate-500">PDF, DOC, XLSX do 10 MB</span>
+                              <span className="block text-xs text-slate-500">PDF, DOC, XLSX do 10 MB</span>
                             </span>
                           </span>
                         </label>
@@ -1157,7 +1166,7 @@ export default function AdminItemEditorPage({
                           <SideInputIcon icon="link" className="h-[12.5px] w-[12.5px]" muted={field.value.trim().length === 0} />
                           <input className={compactSideInputClassName} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
                         </div>
-                        <p className="text-sm text-slate-500">Uporablja se v povezavi izdelka.</p>
+                        <p className="text-xs text-slate-500">Uporablja se v povezavi izdelka.</p>
                       </div>
                     ) : isEditable ? (
                       <div className={compactSideInputWrapClassName}>
@@ -1383,7 +1392,7 @@ export default function AdminItemEditorPage({
         <div className="mb-3 space-y-2">
           <h3 className="text-sm font-semibold text-slate-800">Dimenzije</h3>
           <p className="text-xs text-slate-500">
-            Vnesi vrednosti (v mm) za vsako dimenzijo posebej, na primer <span className={inlineSnippetClass}>Dolžina: 10,20</span>. Podprte so Dolžina, Širina/fi in Debelina, razen pri dolžinskih artiklih, kjer Debelina ni dovoljena. Za posamezno dimenzijo lahko dodaš največ pet vrednosti. Ob generiranju se na podlagi vseh vnesenih kombinacij ustvarijo različice.
+            Vnesi vrednosti (v mm) za vsako dimenzijo posebej, na primer: <span className={inlineSnippetClass}>Dolžina: 10,20</span>. Podprte so Dolžina, Širina/fi in Debelina, razen pri dolžinskih artiklih, kjer Debelina ni dovoljena. Za posamezno dimenzijo lahko dodaš največ pet vrednosti. Ob generiranju se na podlagi vseh vnesenih kombinacij ustvarijo različice.
           </p>
           <div className="flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-slate-700">
             <svg

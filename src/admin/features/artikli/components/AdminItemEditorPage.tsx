@@ -477,7 +477,6 @@ function OpisRichTextEditor({
             <MenuPanel ref={colorMenuRef} className="fixed z-[90] w-[210px] p-2 shadow-lg" style={menuPosition}>
               <div onMouseDown={(event) => event.stopPropagation()}>
                 <div className="grid grid-cols-1 items-center gap-1.5">
-                  <span className="h-5 w-full rounded border border-slate-300" style={{ backgroundColor: customColor }} />
                   <div className="grid grid-cols-[30px_1fr] items-center gap-1">
                     <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">HEX</span>
                     <input
@@ -970,6 +969,7 @@ export default function AdminItemEditorPage({
   const isMediaEditable = mediaMode === 'edit';
   const isBulkMaterial = articleType === 'bulk';
   const isLinearMaterial = articleType === 'linear';
+  const isToleranceLocked = articleType === 'unit';
   const isDimensionLockActive = isBulkMaterial;
   const isThicknessLockActive = isBulkMaterial || isLinearMaterial;
   const isGeneratorLocked = !isTableEditable || isDimensionLockActive;
@@ -1495,7 +1495,7 @@ export default function AdminItemEditorPage({
         <div className="mb-3 space-y-2">
           <h3 className="text-sm font-semibold text-slate-800">Dimenzije</h3>
           <p className="text-xs text-slate-500">
-            Vnesi vrednosti za vsako dimenzijo posebej, na primer <span className={inlineSnippetClass}>Dolžina: 10,20</span>. Podprte so Dolžina, Širina/fi in Debelina, razen pri dolžinskih artiklih, kjer Debelina ni dovoljena. Za posamezno dimenzijo lahko dodaš največ 5 vrednosti. Ob generiranju se na podlagi vseh vnesenih kombinacij ustvarijo različice.
+            Vnesi vrednosti (v mm) za vsako dimenzijo posebej, na primer <span className={inlineSnippetClass}>Dolžina: 10,20</span>. Podprte so Dolžina, Širina/fi in Debelina, razen pri dolžinskih artiklih, kjer Debelina ni dovoljena. Za posamezno dimenzijo lahko dodaš največ pet vrednosti. Ob generiranju se na podlagi vseh vnesenih kombinacij ustvarijo različice.
           </p>
           <div className="flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-slate-700">
             <svg
@@ -1512,8 +1512,8 @@ export default function AdminItemEditorPage({
               <path d="M12 16v-4" />
               <path d="M12 8h.01" />
             </svg>
-            <span className="text-xs text-slate-500">
-              Dodaj do tri dimenzije v milimetrih. Vnosne bližnjice: <span className={inlineSnippetClass}>d:</span>, <span className={inlineSnippetClass}>š:</span>, <span className={inlineSnippetClass}>h:</span>, <span className={inlineSnippetClass}>v:</span>
+            <span className="w-1/2 text-xs text-slate-500">
+              Dodaj do tri dimenzije. Vnosne bližnjice: <span className={inlineSnippetClass}>d:</span>, <span className={inlineSnippetClass}>š:</span>, <span className={inlineSnippetClass}>h:</span>, <span className={inlineSnippetClass}>v:</span>
             </span>
           </div>
           <div className="pt-2">
@@ -1645,9 +1645,13 @@ export default function AdminItemEditorPage({
                         <input
                           type="number"
                           inputMode="decimal"
-                          className={`${compactTableNumberInputClassName} !mt-0 !w-10 text-center`}
+                          disabled={isToleranceLocked}
+                          className={`${compactTableNumberInputClassName} !mt-0 !w-10 text-center ${isToleranceLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`}
                           value={sideSettings.thicknessTolerance}
-                          onChange={(event) => setSideSettings((current) => ({ ...current, thicknessTolerance: event.target.value }))}
+                          onChange={(event) => {
+                            if (isToleranceLocked) return;
+                            setSideSettings((current) => ({ ...current, thicknessTolerance: event.target.value }));
+                          }}
                         />
                       </div>
                     ) : (

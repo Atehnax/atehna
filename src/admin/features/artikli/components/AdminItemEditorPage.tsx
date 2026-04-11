@@ -1096,7 +1096,7 @@ export default function AdminItemEditorPage({
                       disabled={!isEditable}
                       onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
                       placeholder="Naziv artikla"
-                      style={{ fontSize: '18px' }}
+                      style={{ fontSize: '19px' }}
                       className={`h-full min-w-0 border-0 bg-transparent p-0 font-semibold leading-none tracking-tight shadow-none outline-none transition focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none ${isEditable ? 'text-slate-900' : 'cursor-not-allowed text-slate-500'}`}
                     />
                   </div>
@@ -1160,7 +1160,7 @@ export default function AdminItemEditorPage({
                         />
                         <label
                           htmlFor="tech-sheet-upload-inline"
-                          className={`flex w-full cursor-pointer items-center rounded-xl border border-dashed border-blue-300 bg-[#e8f2f8] px-4 py-2.5 ${isEditable ? 'hover:bg-[#d1e6f2]' : 'cursor-not-allowed opacity-60'}`}
+                          className={`flex w-full cursor-pointer items-center rounded-xl border border-dashed border-blue-300 bg-[#f5f8ff] px-4 py-2.5 ${isEditable ? 'hover:bg-[#edf3ff]' : 'cursor-not-allowed opacity-60'}`}
                         >
                           <span className="mx-auto inline-flex flex-col items-start gap-0.5 text-blue-600">
                             <span className="inline-flex items-center gap-1">

@@ -1456,8 +1456,9 @@ export default function AdminItemEditorPage({
           <p className="text-xs text-slate-500">
             Vnesi vrednosti (v mm) za vsako dimenzijo posebej, na primer: <span className={inlineSnippetClass}>Dolžina: 10,20</span>. Podprte so Dolžina, Širina/fi in Debelina, razen pri dolžinskih artiklih, kjer Debelina ni dovoljena. Za posamezno dimenzijo lahko dodaš največ pet vrednosti. Ob generiranju se na podlagi vseh vnesenih kombinacij ustvarijo različice.
           </p>
-          <p className="whitespace-nowrap text-xs font-semibold leading-5 text-slate-700">
-            Dodaj do tri dimenzije. Vnosne bližnjice: <span className={inlineSnippetClass}>d:</span>, <span className={inlineSnippetClass}>š:</span>, <span className={inlineSnippetClass}>fi:</span>, <span className={inlineSnippetClass}>h:</span>, <span className={inlineSnippetClass}>v:</span>
+          <p className="whitespace-nowrap text-xs leading-5 text-slate-700">
+            <span className="font-semibold">Dodaj do tri dimenzije. Vnosne bližnjice:</span>{' '}
+            <span className={`${inlineSnippetClass} !font-normal`}>d:</span>, <span className={`${inlineSnippetClass} !font-normal`}>š:</span>, <span className={`${inlineSnippetClass} !font-normal`}>fi:</span>, <span className={`${inlineSnippetClass} !font-normal`}>h:</span>, <span className={`${inlineSnippetClass} !font-normal`}>v:</span>
           </p>
           <div className="pt-2">
             <div className="flex items-start gap-3">

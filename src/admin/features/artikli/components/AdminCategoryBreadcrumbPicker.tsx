@@ -215,14 +215,14 @@ export default function AdminCategoryBreadcrumbPicker({
         ];
 
   return (
-    <div ref={containerRef} className={`relative space-y-1 ${className}`.trim()}>
+    <div ref={containerRef} className={`relative ${className}`.trim()}>
       <label className="sr-only">Kategorija</label>
       <div
-        className="flex min-h-7 w-full items-center text-left"
+        className="flex h-full min-h-7 w-full items-center text-left"
         role="group"
         aria-label="Izbira poti kategorije"
       >
-        <span className="min-w-0 truncate text-sm text-slate-700" onClick={() => {
+        <span className="min-w-0 truncate text-sm leading-none text-slate-700" onClick={() => {
           if (disabled || isOpen || value.length === 0) return;
           setDrillPath(value);
           setQuery('');

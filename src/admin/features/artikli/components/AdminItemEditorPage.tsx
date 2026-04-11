@@ -340,7 +340,7 @@ function OpisRichTextEditor({
 
   return (
     <div className={`relative flex h-[150px] min-h-[130px] resize-y flex-col overflow-hidden rounded-lg border border-slate-300 ${editable ? 'bg-white' : 'bg-[color:var(--ui-neutral-bg)]'}`}>
-      <div ref={toolbarRef} className={`flex flex-nowrap items-center gap-0.5 border-b border-slate-200 px-3 py-2 ${editable ? 'bg-slate-50' : 'bg-slate-100/80 text-slate-400'}`}>
+      <div ref={toolbarRef} className="flex flex-nowrap items-center gap-0.5 border-b border-slate-200 bg-slate-50 px-3 py-2">
         <button type="button" title="Krepko" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleBold().run())} aria-label="Bold"><span className="inline-block w-4 text-center text-base font-bold leading-none">B</span></button>
         <button type="button" title="Ležeče" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleItalic().run())} aria-label="Italic"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconItalicClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" x2="10" y1="4" y2="4"/><line x1="14" x2="5" y1="20" y2="20"/><line x1="15" x2="9" y1="4" y2="20"/></svg></button>
         <button type="button" title="Podčrtano" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleUnderline().run())} aria-label="Underline"><span className="inline-block w-4 text-center text-base underline leading-none">U</span></button>
@@ -1170,7 +1170,7 @@ export default function AdminItemEditorPage({
                           <span className="mx-auto flex items-center gap-1 text-blue-600">
                             <SideInputIcon icon="document" muted={false} className="!text-blue-600" />
                             <span className="leading-tight">
-                              <span className="block text-sm font-semibold">Dodaj dokument</span>
+                              <span className="inline-block text-sm font-semibold">Dodaj dokument</span>
                               <span className="block text-xs text-slate-500">PDF, DOC, XLSX do 10 MB</span>
                             </span>
                           </span>
@@ -1408,25 +1408,11 @@ export default function AdminItemEditorPage({
           <p className="text-xs text-slate-500">
             Vnesi vrednosti (v mm) za vsako dimenzijo posebej, na primer: <span className={inlineSnippetClass}>Dolžina: 10,20</span>. Podprte so Dolžina, Širina/fi in Debelina, razen pri dolžinskih artiklih, kjer Debelina ni dovoljena. Za posamezno dimenzijo lahko dodaš največ pet vrednosti. Ob generiranju se na podlagi vseh vnesenih kombinacij ustvarijo različice.
           </p>
-          <div className="flex h-8 w-[29%] min-w-[330px] items-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-3 text-slate-700">
-            <svg
-              aria-hidden
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-[14px] w-[14px] shrink-0 text-slate-500"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 16v-4" />
-              <path d="M12 8h.01" />
-            </svg>
-            <span className="inline-flex items-center whitespace-nowrap text-[11px] leading-tight text-slate-500">
-              Dodaj do tri dimenzije. Vnosne bližnjice: <span className={inlineSnippetClass}>d:</span>, <span className={inlineSnippetClass}>š:</span>, <span className={inlineSnippetClass}>fi:</span>, <span className={inlineSnippetClass}>h:</span>, <span className={inlineSnippetClass}>v:</span>
-            </span>
-          </div>
+          <p className="text-xs font-semibold leading-5 text-slate-700">
+            Dodaj do tri dimenzije.
+            <br />
+            Vnosne bližnjice: <span className="font-bold">d:</span>, <span className="font-bold">š:</span>, <span className="font-bold">fi:</span>, <span className="font-bold">h:</span>, <span className="font-bold">v:</span>
+          </p>
           <div className="pt-2">
             <div className="flex items-start gap-3">
             <div className="relative w-1/2 min-w-[300px]">

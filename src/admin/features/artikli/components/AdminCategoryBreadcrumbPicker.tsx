@@ -186,7 +186,7 @@ export default function AdminCategoryBreadcrumbPicker({
             label: placeholder,
             isCurrent: false,
             onClick: disabled ? undefined : () => setIsOpen(true),
-            labelClassName: `font-semibold text-slate-900 ${disabled ? '' : 'underline decoration-slate-900/70 underline-offset-2'}`
+            labelClassName: `font-semibold ${disabled ? 'text-slate-900' : 'text-[#1982bf] underline decoration-[#1982bf]/70 underline-offset-2'}`
           }
         ]
       : [
@@ -222,16 +222,19 @@ export default function AdminCategoryBreadcrumbPicker({
         role="group"
         aria-label="Izbira poti kategorije"
       >
-        <span className="min-w-0 truncate text-[15px] leading-5 text-slate-700" onClick={() => {
+        <span className="min-w-0 truncate text-sm text-slate-700" onClick={() => {
           if (disabled || isOpen || value.length === 0) return;
           setDrillPath(value);
           setQuery('');
           setIsOpen(true);
         }}>
-          <AdminBreadcrumbPath
-            items={breadcrumbItems}
-            className="truncate whitespace-nowrap text-[15px] font-medium text-slate-700"
-          />
+          <span className="inline-flex items-center gap-1">
+            <AdminBreadcrumbPath
+              items={breadcrumbItems}
+              className="truncate whitespace-nowrap text-sm text-slate-700"
+            />
+            {!disabled ? <span className="text-slate-400">›</span> : null}
+          </span>
         </span>
       </div>
 

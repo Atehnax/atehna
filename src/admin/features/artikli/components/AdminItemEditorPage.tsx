@@ -1160,7 +1160,7 @@ export default function AdminItemEditorPage({
                         />
                         <label
                           htmlFor="tech-sheet-upload-inline"
-                          className={`flex w-full cursor-pointer items-center rounded-xl border border-dashed border-blue-300 bg-blue-50/35 px-4 py-2.5 ${!isEditable ? 'cursor-not-allowed opacity-60' : ''}`}
+                          className={`flex w-full cursor-pointer items-center rounded-xl border border-dashed border-blue-300 bg-[#e8f2f8] px-4 py-2.5 ${isEditable ? 'hover:bg-[#d1e6f2]' : 'cursor-not-allowed opacity-60'}`}
                         >
                           <span className="mx-auto inline-flex flex-col items-start gap-0.5 text-blue-600">
                             <span className="inline-flex items-center gap-1">
@@ -1404,7 +1404,7 @@ export default function AdminItemEditorPage({
             Vnesi vrednosti (v mm) za vsako dimenzijo posebej, na primer: <span className={inlineSnippetClass}>Dolžina: 10,20</span>. Podprte so Dolžina, Širina/fi in Debelina, razen pri dolžinskih artiklih, kjer Debelina ni dovoljena. Za posamezno dimenzijo lahko dodaš največ pet vrednosti. Ob generiranju se na podlagi vseh vnesenih kombinacij ustvarijo različice.
           </p>
           <p className="whitespace-nowrap text-xs font-semibold leading-5 text-slate-700">
-            Dodaj do tri dimenzije. Vnosne bližnjice: <span className="font-normal">d:</span>, <span className="font-normal">š:</span>, <span className="font-normal">fi:</span>, <span className="font-normal">h:</span>, <span className="font-normal">v:</span>
+            Dodaj do tri dimenzije. Vnosne bližnjice: <span className={inlineSnippetClass}>d:</span>, <span className={inlineSnippetClass}>š:</span>, <span className={inlineSnippetClass}>fi:</span>, <span className={inlineSnippetClass}>h:</span>, <span className={inlineSnippetClass}>v:</span>
           </p>
           <div className="pt-2">
             <div className="flex items-start gap-3">

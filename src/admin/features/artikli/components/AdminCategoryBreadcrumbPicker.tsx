@@ -222,7 +222,7 @@ export default function AdminCategoryBreadcrumbPicker({
         role="group"
         aria-label="Izbira poti kategorije"
       >
-        <span className="min-w-0 truncate text-sm leading-none text-slate-700" onClick={() => {
+        <span className="min-w-0 truncate text-[15px] leading-5 text-slate-700" onClick={() => {
           if (disabled || isOpen || value.length === 0) return;
           setDrillPath(value);
           setQuery('');
@@ -230,7 +230,7 @@ export default function AdminCategoryBreadcrumbPicker({
         }}>
           <AdminBreadcrumbPath
             items={breadcrumbItems}
-            className="truncate whitespace-nowrap text-sm text-slate-700"
+            className="truncate whitespace-nowrap text-[15px] font-medium text-slate-700"
           />
         </span>
       </div>

@@ -1167,7 +1167,7 @@ export default function AdminItemEditorPage({
                               <SideInputIcon icon="document" muted={false} className="!text-blue-600" />
                               <span className="inline-block text-sm font-semibold leading-none">Dodaj dokument</span>
                             </span>
-                            <span className="pl-5 text-[11px] leading-tight text-slate-500">PDF, DOC, XLSX do 10 MB</span>
+                            <span className="text-center text-[11px] leading-tight text-slate-500">PDF, DOC, XLSX do 10 MB</span>
                           </span>
                         </label>
                       </div>
@@ -1404,7 +1404,7 @@ export default function AdminItemEditorPage({
             Vnesi vrednosti (v mm) za vsako dimenzijo posebej, na primer: <span className={inlineSnippetClass}>Dolžina: 10,20</span>. Podprte so Dolžina, Širina/fi in Debelina, razen pri dolžinskih artiklih, kjer Debelina ni dovoljena. Za posamezno dimenzijo lahko dodaš največ pet vrednosti. Ob generiranju se na podlagi vseh vnesenih kombinacij ustvarijo različice.
           </p>
           <p className="whitespace-nowrap text-xs font-semibold leading-5 text-slate-700">
-            Dodaj do tri dimenzije. Vnosne bližnjice: <span className="font-bold">d:</span>, <span className="font-bold">š:</span>, <span className="font-bold">fi:</span>, <span className="font-bold">h:</span>, <span className="font-bold">v:</span>
+            Dodaj do tri dimenzije. Vnosne bližnjice: <span className={inlineSnippetClass}>d:</span>, <span className={inlineSnippetClass}>š:</span>, <span className={inlineSnippetClass}>fi:</span>, <span className={inlineSnippetClass}>h:</span>, <span className={inlineSnippetClass}>v:</span>
           </p>
           <div className="pt-2">
             <div className="flex items-start gap-3">

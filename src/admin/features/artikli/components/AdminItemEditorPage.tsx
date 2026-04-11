@@ -1150,8 +1150,8 @@ export default function AdminItemEditorPage({
                       disabled={!isEditable}
                       onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
                       placeholder="Naziv artikla"
-                      style={{ fontSize: '19px' }}
-                      className={`h-full min-w-0 border-0 bg-transparent p-0 font-semibold leading-none tracking-tight shadow-none outline-none transition focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none ${isEditable ? 'text-slate-900' : 'cursor-not-allowed text-slate-500'}`}
+                      style={{ fontSize: '21px' }}
+                      className={`h-full min-w-0 border-0 bg-transparent p-0 font-semibold leading-none tracking-tight shadow-none outline-none transition placeholder:text-[19px] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none ${isEditable ? 'text-slate-900 placeholder:text-slate-400' : 'cursor-not-allowed text-slate-500 placeholder:text-slate-400'}`}
                     />
                   </div>
                 </span>

@@ -36,6 +36,7 @@ import {
   type Variant
 } from '@/admin/features/artikli/lib/familyModel';
 import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/AdminCategoryBreadcrumbPicker';
+import OpisColorPopover from '@/admin/features/artikli/components/OpisColorPopover';
 
 const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0';
 const numberInputClass = '[-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
@@ -43,6 +44,7 @@ const orderLikeEditableInputClassName = 'mt-0.5 h-5 w-full rounded-md border bor
 const compactTableNumberInputClassName = `h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-[11px] leading-4 text-slate-900 outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0 ${numberInputClass}`;
 const compactSideInputWrapClassName = 'mt-0.5 flex h-[30px] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[10px] pr-3';
 const compactSideInputClassName = 'h-full w-full border-0 bg-transparent p-0 text-sm text-slate-900 outline-none focus:ring-0';
+const inlineSnippetClass = 'rounded bg-[#1982bf1a] px-1 py-0.5 font-mono text-[11px] text-[#1982bf]';
 
 type EditorMode = 'create' | 'edit';
 type CreateType = 'simple' | 'variants';
@@ -156,6 +158,12 @@ function OpisRichTextEditor({
   onChange: (next: string) => void;
 }) {
   const editorHostRef = useRef<HTMLDivElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const sizeTriggerRef = useRef<HTMLButtonElement>(null);
+  const fontTriggerRef = useRef<HTMLButtonElement>(null);
+  const colorTriggerRef = useRef<HTMLButtonElement>(null);
+  const sizeMenuRef = useRef<HTMLDivElement>(null);
+  const fontMenuRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Editor | null>(null);
   const onChangeRef = useRef(onChange);
   const initialContentRef = useRef(value || '<p></p>');
@@ -163,6 +171,7 @@ function OpisRichTextEditor({
   const [openMenu, setOpenMenu] = useState<null | 'size' | 'font' | 'color'>(null);
   const [customColor, setCustomColor] = useState('#1e293b');
   const [fontSizeValue, setFontSizeValue] = useState('');
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -237,38 +246,75 @@ function OpisRichTextEditor({
     }
   }, [value]);
 
+  const getMenuRefs = useCallback((menu: 'size' | 'font' | 'color') => {
+    if (menu === 'size') return { trigger: sizeTriggerRef.current, panel: sizeMenuRef.current };
+    if (menu === 'font') return { trigger: fontTriggerRef.current, panel: fontMenuRef.current };
+    return { trigger: colorTriggerRef.current, panel: null };
+  }, []);
+
+  const updateMenuPosition = useCallback(() => {
+    if (!openMenu) return;
+    const refs = getMenuRefs(openMenu);
+    if (!refs.trigger) return;
+    const rect = refs.trigger.getBoundingClientRect();
+    const panelWidth = refs.panel?.offsetWidth ?? (openMenu === 'color' ? 228 : 90);
+    const left = Math.min(Math.max(8, rect.left), window.innerWidth - panelWidth - 8);
+    const top = Math.min(rect.bottom + 6, window.innerHeight - 8);
+    setMenuPosition({ top, left });
+  }, [getMenuRefs, openMenu]);
+
   useEffect(() => {
     if (!openMenu) return;
-    const closeMenu = () => setOpenMenu(null);
-    document.addEventListener('click', closeMenu);
-    return () => document.removeEventListener('click', closeMenu);
-  }, [openMenu]);
+    updateMenuPosition();
+    const animationFrame = window.requestAnimationFrame(updateMenuPosition);
+    const onDocMouseDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const refs = getMenuRefs(openMenu);
+      if (toolbarRef.current?.contains(target) || refs.trigger?.contains(target) || refs.panel?.contains(target)) return;
+      setOpenMenu(null);
+    };
+    const onDocKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenMenu(null);
+    };
+    const onWindowChange = () => updateMenuPosition();
+    document.addEventListener('mousedown', onDocMouseDown);
+    document.addEventListener('keydown', onDocKeyDown);
+    window.addEventListener('resize', onWindowChange);
+    window.addEventListener('scroll', onWindowChange, true);
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      document.removeEventListener('mousedown', onDocMouseDown);
+      document.removeEventListener('keydown', onDocKeyDown);
+      window.removeEventListener('resize', onWindowChange);
+      window.removeEventListener('scroll', onWindowChange, true);
+    };
+  }, [getMenuRefs, openMenu, updateMenuPosition]);
 
-  const run = (action: (editor: Editor) => void) => {
+  const run = (action: (editor: Editor) => void, options?: { focusEditor?: boolean }) => {
     const editor = editorRef.current;
     if (!editor || !editable) return;
     action(editor);
-    editor.commands.focus();
+    if (options?.focusEditor ?? true) editor.commands.focus();
   };
   const applyFontSize = (rawValue: string) => {
     const parsed = Number(rawValue);
     if (!Number.isFinite(parsed) || parsed <= 0) return;
-    run((e) => e.chain().focus().setMark('textStyle', { fontSize: `${parsed}px` }).run());
+    run((e) => e.chain().setMark('textStyle', { fontSize: `${parsed}px` }).run(), { focusEditor: false });
   };
   const applyColor = (nextColor: string) => {
     const normalized = nextColor.trim();
     if (!normalized) return;
     setCustomColor(normalized);
-    run((e) => e.chain().focus().setColor(normalized).run());
+    run((e) => e.chain().setColor(normalized).run(), { focusEditor: false });
   };
-
   const preventToolbarFocusLoss = (event: { preventDefault: () => void }) => event.preventDefault();
   const toolbarButtonClass = 'rounded p-1.5 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50';
   const toolbarIconClass = 'h-4 w-4';
-  const toolbarIconItalicClass = 'h-[18px] w-[18px]';
+  const toolbarIconItalicClass = 'h-[14px] w-[14px]';
+  const toolbarIconTextSizeClass = 'h-[17.6px] w-[17.6px]';
   const toolbarIconLargeClass = 'h-[18px] w-[18px]';
   const toolbarIconAlignClass = 'h-4 w-4';
-  const toolbarIconSmallClass = 'h-[11.7px] w-[11.7px]';
+  const toolbarIconSmallClass = 'h-[13.6px] w-[13.6px]';
   const toolbarIconTinyClass = 'h-3.5 w-3.5';
   const toolbarIconHighlightClass = 'h-3.5 w-3.5';
   const divider = <span className="mx-1 h-6 w-px bg-slate-300" aria-hidden />;
@@ -286,8 +332,8 @@ function OpisRichTextEditor({
   ] as const;
 
   return (
-    <div className="relative flex h-[150px] min-h-[130px] resize-y flex-col overflow-auto rounded-lg border border-slate-300 bg-white">
-      <div className="flex flex-nowrap items-center gap-0.5 border-b border-slate-200 bg-slate-50 px-3 py-2">
+    <div className="relative flex h-[150px] min-h-[130px] resize-y flex-col overflow-hidden rounded-lg border border-slate-300 bg-white">
+      <div ref={toolbarRef} className="flex flex-nowrap items-center gap-0.5 border-b border-slate-200 bg-slate-50 px-3 py-2">
         <button type="button" title="Krepko" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleBold().run())} aria-label="Bold"><span className="inline-block w-4 text-center text-base font-bold leading-none">B</span></button>
         <button type="button" title="Ležeče" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleItalic().run())} aria-label="Italic"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconItalicClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" x2="10" y1="4" y2="4"/><line x1="14" x2="5" y1="20" y2="20"/><line x1="15" x2="9" y1="4" y2="20"/></svg></button>
         <button type="button" title="Podčrtano" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleUnderline().run())} aria-label="Underline"><span className="inline-block w-4 text-center text-base underline leading-none">U</span></button>
@@ -296,15 +342,15 @@ function OpisRichTextEditor({
         <button type="button" title="Oštevilčen seznam" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleOrderedList().run())} aria-label="Ordered list"><svg className={toolbarIconLargeClass} viewBox="0 0 20 20" fill="currentColor"><path d="M3.5 5h1v4h-1V7.3l-.7.3L2.5 6.8 3.5 6.3V5Zm3.5 0h10v1.5H7V5Zm0 4.25h10v1.5H7v-1.5Zm0 4.25h10V15H7v-1.5Zm-3.5-.15a1.9 1.9 0 0 1 1.9 1.9c0 .42-.13.79-.43 1.12-.23.26-.56.48-1 .63H5.5V18H2.5v-1.08l1.32-1.1c.2-.17.34-.3.41-.4a.66.66 0 0 0 .12-.39.63.63 0 0 0-.2-.48.81.81 0 0 0-.54-.17c-.34 0-.67.11-.99.33L2 13.9a2.4 2.4 0 0 1 1.5-.55Z" /></svg></button>
         {divider}
         <div className="relative">
-          <button type="button" title="Velikost besedila" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); setOpenMenu((current) => current === 'size' ? null : 'size'); }} aria-label="Text size"><span className="inline-flex items-end leading-none"><span className="text-base font-semibold">T</span><span className="-ml-0.5 text-xs font-semibold">T</span></span></button>
-          {openMenu === 'size' && editable ? (
-            <MenuPanel className="absolute left-0 top-[calc(100%+4px)] z-20 min-w-[160px] p-2 shadow-lg">
-              <div onClick={(event) => event.stopPropagation()}>
-              <div className="grid grid-cols-2 items-center overflow-hidden rounded-md border border-slate-300">
+          <button ref={sizeTriggerRef} type="button" title="Velikost besedila" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); setOpenMenu((current) => current === 'size' ? null : 'size'); }} aria-label="Text size"><svg className={toolbarIconTextSizeClass} viewBox="0 0 36 36" fill="currentColor" aria-hidden="true"><path d="M21,9.08A1.13,1.13,0,0,0,19.86,8H4.62a1.1,1.1,0,1,0,0,2.19H11V27a1.09,1.09,0,0,0,2.17,0V10.19h6.69A1.14,1.14,0,0,0,21,9.08Z" /><path d="M30.67,15H21.15a1.1,1.1,0,1,0,0,2.19H25V26.5a1.09,1.09,0,0,0,2.17,0V17.23h3.54a1.1,1.1,0,1,0,0-2.19Z" /></svg></button>
+          {openMenu === 'size' && editable && menuPosition ? createPortal(
+            <MenuPanel ref={sizeMenuRef} className="fixed z-[90] w-[100px] p-2 shadow-lg" style={menuPosition}>
+              <div onMouseDown={(event) => event.stopPropagation()}>
+              <div className="grid grid-cols-[1.25fr_1fr] items-center overflow-hidden rounded-md border border-slate-300">
                 <input
                   type="number"
                   min={1}
-                  className="h-8 w-full border-0 px-2 text-xs text-slate-700 outline-none focus:ring-0"
+                  className={`h-8 w-full border-0 px-2 text-xs text-slate-700 outline-none focus:ring-0 ${numberInputClass}`}
                   value={fontSizeValue}
                   onChange={(event) => {
                     setFontSizeValue(event.target.value);
@@ -315,45 +361,42 @@ function OpisRichTextEditor({
                 <span className="inline-flex h-8 items-center justify-center border-l border-slate-300 bg-slate-50 text-xs text-slate-500">px</span>
               </div>
               </div>
-            </MenuPanel>
+            </MenuPanel>,
+            document.body
           ) : null}
         </div>
         <div className="relative">
-          <button type="button" title="Pisava" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); setOpenMenu((current) => current === 'font' ? null : 'font'); }} aria-label="Font family"><svg className={toolbarIconLargeClass} viewBox="0 0 20 20" fill="currentColor"><path d="m11.3 4.5 4.2 11h-2.1l-.8-2.4H8.2l-.8 2.4H5.3l4.2-11h1.8Zm.7 6.8-1.6-4.7-1.6 4.7H12Z" /></svg></button>
-          {openMenu === 'font' && editable ? (
-            <MenuPanel className="absolute left-0 top-[calc(100%+4px)] z-20 min-w-[180px] shadow-lg">
-              <div onClick={(event) => event.stopPropagation()}>
+          <button ref={fontTriggerRef} type="button" title="Pisava" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); setOpenMenu((current) => current === 'font' ? null : 'font'); }} aria-label="Font family"><svg className={toolbarIconLargeClass} viewBox="0 0 20 20" fill="currentColor"><path d="m11.3 4.5 4.2 11h-2.1l-.8-2.4H8.2l-.8 2.4H5.3l4.2-11h1.8Zm.7 6.8-1.6-4.7-1.6 4.7H12Z" /></svg></button>
+          {openMenu === 'font' && editable && menuPosition ? createPortal(
+            <MenuPanel ref={fontMenuRef} className="fixed z-[90] w-[135px] shadow-lg" style={menuPosition}>
+              <div onMouseDown={(event) => event.stopPropagation()}>
               {fontFamilyOptions.map((font) => (
-                <MenuItem key={font.value} className="h-8 text-xs" onClick={() => { run((e) => e.chain().focus().setFontFamily(font.value).run()); setOpenMenu(null); }}>
-                  <span style={{ fontFamily: font.value }}>{font.label}</span>
+                <MenuItem key={font.value} className="h-8 text-[12px]" onClick={() => { run((e) => e.chain().focus().setFontFamily(font.value).run()); setOpenMenu(null); }}>
+                  <span className="text-[12px]" style={{ fontFamily: font.value }}>{font.label}</span>
                 </MenuItem>
               ))}
               </div>
-            </MenuPanel>
+            </MenuPanel>,
+            document.body
           ) : null}
         </div>
         <div className="relative">
-          <button type="button" title="Barva besedila" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); setOpenMenu((current) => current === 'color' ? null : 'color'); }} aria-label="Text color"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconTinyClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m11 10 3 3"/><path d="M6.5 21A3.5 3.5 0 1 0 3 17.5a2.62 2.62 0 0 1-.708 1.792A1 1 0 0 0 3 21z"/><path d="M9.969 17.031 21.378 5.624a1 1 0 0 0-3.002-3.002L6.967 14.031"/></svg></button>
-          {openMenu === 'color' && editable ? (
-            <MenuPanel className="absolute left-0 top-[calc(100%+4px)] z-20 w-[240px] p-2 shadow-lg">
-              <div onClick={(event) => event.stopPropagation()}>
-              <div className="grid grid-cols-2 items-center gap-2">
-                <input
-                  type="color"
-                  className="h-8 w-full cursor-pointer rounded border border-slate-300 bg-transparent"
-                  value={customColor}
-                  onChange={(event) => applyColor(event.target.value)}
-                />
-                <input
-                  className="h-8 w-full rounded border border-slate-300 px-2 text-xs text-slate-700 outline-none focus:ring-0"
-                  value={customColor}
-                  onChange={(event) => applyColor(event.target.value)}
-                  placeholder="#1e293b"
-                />
-              </div>
-              </div>
-            </MenuPanel>
-          ) : null}
+          <button
+            ref={colorTriggerRef}
+            type="button"
+            title="Barva besedila"
+            className={toolbarButtonClass}
+            disabled={!editable}
+            onMouseDown={preventToolbarFocusLoss}
+            onClick={(event) => {
+              event.stopPropagation();
+              setOpenMenu((current) => current === 'color' ? null : 'color');
+            }}
+            aria-label="Text color"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconTinyClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m11 10 3 3"/><path d="M6.5 21A3.5 3.5 0 1 0 3 17.5a2.62 2.62 0 0 1-.708 1.792A1 1 0 0 0 3 21z"/><path d="M9.969 17.031 21.378 5.624a1 1 0 0 0-3.002-3.002L6.967 14.031"/></svg>
+          </button>
+          <OpisColorPopover open={openMenu === 'color' && editable} anchorRef={colorTriggerRef} color={customColor} onChange={applyColor} onClose={() => setOpenMenu(null)} />
         </div>
         <button type="button" title="Označi besedilo" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleHighlight({ color: '#fde68a' }).run())} aria-label="Highlight"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconHighlightClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg></button>
         <button type="button" title="Vodoravna črta" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().setHorizontalRule().run())} aria-label="Horizontal rule"><svg className={toolbarIconClass} viewBox="0 0 20 20" fill="currentColor"><path d="M3 9.25h14v1.5H3v-1.5Z" /></svg></button>
@@ -376,7 +419,7 @@ function OpisRichTextEditor({
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
         <div
           ref={editorHostRef}
-          className="min-h-0 flex-1 overflow-auto [&_.ProseMirror]:min-h-[112px] [&_.ProseMirror]:px-4 [&_.ProseMirror]:py-3 [&_.ProseMirror]:text-sm [&_.ProseMirror]:text-slate-800 [&_.ProseMirror]:outline-none [&_.ProseMirror]:prose [&_.ProseMirror]:prose-slate [&_.ProseMirror]:max-w-none [&_.ProseMirror_h1]:text-xl [&_.ProseMirror_h2]:text-lg [&_.ProseMirror_h3]:text-base [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5 [&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-slate-300 [&_.ProseMirror_blockquote]:pl-3 [&_.ProseMirror_a]:text-blue-600 [&_.ProseMirror_a]:underline"
+          className="min-h-0 flex-1 overflow-x-hidden overflow-y-hidden [&_.ProseMirror]:min-h-[112px] [&_.ProseMirror]:px-4 [&_.ProseMirror]:py-3 [&_.ProseMirror]:text-sm [&_.ProseMirror]:text-slate-800 [&_.ProseMirror]:outline-none [&_.ProseMirror]:prose [&_.ProseMirror]:prose-slate [&_.ProseMirror]:max-w-none [&_.ProseMirror_h1]:text-xl [&_.ProseMirror_h2]:text-lg [&_.ProseMirror_h3]:text-base [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5 [&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-slate-300 [&_.ProseMirror_blockquote]:pl-3 [&_.ProseMirror_a]:text-blue-600 [&_.ProseMirror_a]:underline"
         />
         <div className="pointer-events-none ml-auto px-4 pb-2 text-xs text-slate-400">{textLength} / 5000</div>
       </div>
@@ -814,6 +857,7 @@ export default function AdminItemEditorPage({
   const isMediaEditable = mediaMode === 'edit';
   const isBulkMaterial = articleType === 'bulk';
   const isLinearMaterial = articleType === 'linear';
+  const isToleranceLocked = articleType === 'unit';
   const isDimensionLockActive = isBulkMaterial;
   const isThicknessLockActive = isBulkMaterial || isLinearMaterial;
   const isGeneratorLocked = !isTableEditable || isDimensionLockActive;
@@ -1337,8 +1381,9 @@ export default function AdminItemEditorPage({
           </div>
         </div>
         <div className="mb-3 space-y-2">
+          <h3 className="text-sm font-semibold text-slate-800">Dimenzije</h3>
           <p className="text-xs text-slate-500">
-            Vnesi mere za vsako dimenzijo posebej, npr. <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">Dolžina: 10,20</span>. Podprte dimenzije: Dolžina, Širina/fi in Debelina (pri dolžinskem materialu Debelina ni dovoljena), največ 5 vrednosti na dimenzijo. Generiranje ustvari kartezični produkt vseh mer in na tej osnovi pripravi različice.
+            Vnesi vrednosti (v mm) za vsako dimenzijo posebej, na primer <span className={inlineSnippetClass}>Dolžina: 10,20</span>. Podprte so Dolžina, Širina/fi in Debelina, razen pri dolžinskih artiklih, kjer Debelina ni dovoljena. Za posamezno dimenzijo lahko dodaš največ pet vrednosti. Ob generiranju se na podlagi vseh vnesenih kombinacij ustvarijo različice.
           </p>
           <div className="flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-slate-700">
             <svg
@@ -1355,13 +1400,14 @@ export default function AdminItemEditorPage({
               <path d="M12 16v-4" />
               <path d="M12 8h.01" />
             </svg>
-            <span className="text-xs text-slate-500">
-              Dodaj do tri tipe (Dolžina, Širina, Fi, Debelina). Vse mere naj bodo v milimetrih.
+            <span className="w-1/2 text-xs text-slate-500">
+              Dodaj do tri dimenzije. Vnosne bližnjice: <span className={inlineSnippetClass}>d:</span>, <span className={inlineSnippetClass}>š:</span>, <span className={inlineSnippetClass}>h:</span>, <span className={inlineSnippetClass}>v:</span>
             </span>
           </div>
-          <div className="flex items-start gap-3">
+          <div className="pt-2">
+            <div className="flex items-start gap-3">
             <div className="relative w-1/2 min-w-[300px]">
-              <div className={`flex h-[30px] flex-nowrap items-center gap-1 overflow-hidden rounded-md border border-slate-300 pl-[10px] pr-11 ${isGeneratorLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : 'bg-white'}`}>
+              <div className={`flex h-[30px] flex-nowrap items-center gap-2 overflow-hidden rounded-md border border-slate-300 pl-[10px] pr-11 ${isGeneratorLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : 'bg-white'}`}>
                 <SideInputIcon icon="dimension" muted={generatorInput.trim().length === 0 && generatorChips.length === 0} />
                 {generatorChips.map((chip) => (
                   <span key={chip.dimension} className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs text-slate-700">
@@ -1420,6 +1466,7 @@ export default function AdminItemEditorPage({
                 <span className="pointer-events-none absolute right-3 text-xs font-medium text-slate-500">{generatorUnitLabel}</span>
               </span>
             </label>
+          </div>
           </div>
           <div className="text-xs">
             {generatorError ? <span className="text-rose-600">{generatorError}</span> : null}
@@ -1486,9 +1533,13 @@ export default function AdminItemEditorPage({
                         <input
                           type="number"
                           inputMode="decimal"
-                          className={`${compactTableNumberInputClassName} !mt-0 !w-10 text-center`}
+                          disabled={isToleranceLocked}
+                          className={`${compactTableNumberInputClassName} !mt-0 !w-10 text-center ${isToleranceLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`}
                           value={sideSettings.thicknessTolerance}
-                          onChange={(event) => setSideSettings((current) => ({ ...current, thicknessTolerance: event.target.value }))}
+                          onChange={(event) => {
+                            if (isToleranceLocked) return;
+                            setSideSettings((current) => ({ ...current, thicknessTolerance: event.target.value }));
+                          }}
                         />
                       </div>
                     ) : (

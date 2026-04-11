@@ -1121,14 +1121,16 @@ export default function AdminItemEditorPage({
                 <button type="button" className={buttonTokenClasses.closeX} onClick={deleteItem} aria-label="Izbriši artikel" title="Izbriši"><TrashCanIcon /></button>
               </div>
             </div>
-            <div className="mb-1 grid grid-cols-[minmax(0,1fr)] items-start gap-3">
-              <AdminCategoryBreadcrumbPicker
-                className="col-span-1 rounded-none bg-slate-50 px-2.5 py-1"
-                value={selectedCategoryPath}
-                onChange={selectCategoryPath}
-                categoryPaths={categoryPaths}
-                disabled={!isEditable}
-              />
+            <div className="mb-4 grid grid-cols-[minmax(0,1fr)] items-start gap-3">
+              <div className="col-span-1 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+                <AdminCategoryBreadcrumbPicker
+                  className="rounded-md bg-transparent px-1 py-0.5"
+                  value={selectedCategoryPath}
+                  onChange={selectCategoryPath}
+                  categoryPaths={categoryPaths}
+                  disabled={!isEditable}
+                />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3 px-2.5">
               <div className="col-span-2 grid grid-cols-2 gap-3">
@@ -1415,13 +1417,13 @@ export default function AdminItemEditorPage({
               <path d="M12 16v-4" />
               <path d="M12 8h.01" />
             </svg>
-            <span className="w-[15%] min-w-[170px] text-xs text-slate-500">
-              Dodaj do tri dimenzije. Vnosne bližnjice: <span className={inlineSnippetClass}>d:</span>, <span className={inlineSnippetClass}>š:</span>, <span className={inlineSnippetClass}>h:</span>, <span className={inlineSnippetClass}>v:</span>
+            <span className="w-[16%] min-w-[170px] whitespace-nowrap text-[11px] text-slate-500">
+              Dodaj do tri dimenzije. Vnosne bližnjice: <span className={inlineSnippetClass}>d:</span>, <span className={inlineSnippetClass}>š:</span>, <span className={inlineSnippetClass}>fi:</span>, <span className={inlineSnippetClass}>h:</span>, <span className={inlineSnippetClass}>v:</span>
             </span>
           </div>
           <div className="pt-2">
             <div className="flex items-start gap-3">
-            <div className="relative w-[15%] min-w-[220px]">
+            <div className="relative w-1/2 min-w-[300px]">
               <div className={`flex h-[30px] flex-nowrap items-center gap-2 overflow-hidden rounded-md border border-slate-300 pl-[10px] pr-11 ${isGeneratorLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : 'bg-white'}`}>
                 <SideInputIcon icon="dimension" muted={generatorInput.trim().length === 0 && generatorChips.length === 0} />
                 {generatorChips.map((chip) => (

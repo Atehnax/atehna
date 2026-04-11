@@ -230,6 +230,7 @@ function OpisRichTextEditor({
   const sizeMenuRef = useRef<HTMLDivElement>(null);
   const fontMenuRef = useRef<HTMLDivElement>(null);
   const colorMenuRef = useRef<HTMLDivElement>(null);
+  const colorHexInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<Editor | null>(null);
   const onChangeRef = useRef(onChange);
   const initialContentRef = useRef(value || '<p></p>');
@@ -356,6 +357,12 @@ function OpisRichTextEditor({
     };
   }, [getMenuRefs, openMenu, updateMenuPosition]);
 
+  useEffect(() => {
+    if (openMenu !== 'color') return;
+    const frame = window.requestAnimationFrame(() => colorHexInputRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [openMenu]);
+
   const run = (action: (editor: Editor) => void, options?: { focusEditor?: boolean }) => {
     const editor = editorRef.current;
     if (!editor || !editable) return;
@@ -470,15 +477,11 @@ function OpisRichTextEditor({
             <MenuPanel ref={colorMenuRef} className="fixed z-[90] w-[210px] p-2 shadow-lg" style={menuPosition}>
               <div onMouseDown={(event) => event.stopPropagation()}>
                 <div className="grid grid-cols-1 items-center gap-1.5">
-                  <input
-                    type="color"
-                    className="h-8 w-full cursor-pointer rounded border border-slate-300 bg-transparent"
-                    value={customColor}
-                    onChange={(event) => applyColor(event.target.value)}
-                  />
+                  <span className="h-5 w-full rounded border border-slate-300" style={{ backgroundColor: customColor }} />
                   <div className="grid grid-cols-[30px_1fr] items-center gap-1">
                     <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">HEX</span>
                     <input
+                      ref={colorHexInputRef}
                       className="h-6 w-full rounded border border-slate-300 px-1.5 text-[11px] text-slate-700 outline-none focus:ring-0"
                       value={customColor}
                       onChange={(event) => {

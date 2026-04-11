@@ -343,11 +343,6 @@ function OpisRichTextEditor({
   };
   const parsedRgb = hexToRgb(customColor) ?? { r: 30, g: 41, b: 59 };
   const parsedHsl = rgbToHsl(parsedRgb);
-  const updateRgbChannel = (channel: keyof RgbColor, rawValue: string) => {
-    const parsed = Number(rawValue);
-    if (!Number.isFinite(parsed)) return;
-    applyColor(rgbToHex({ ...parsedRgb, [channel]: clamp(parsed, 0, 255) }));
-  };
   const updateHslChannel = (channel: keyof HslColor, rawValue: string) => {
     const parsed = Number(rawValue);
     if (!Number.isFinite(parsed)) return;
@@ -438,24 +433,24 @@ function OpisRichTextEditor({
             onMouseDown={preventToolbarFocusLoss}
             onClick={(event) => {
               event.stopPropagation();
-              setOpenMenu((current) => current === 'color' ? null : 'color');
+              setOpenMenu('color');
+              const picker = document.getElementById('opis-native-color-picker') as (HTMLInputElement & { showPicker?: () => void }) | null;
+              if (picker) {
+                if (typeof picker.showPicker === 'function') picker.showPicker();
+                else picker.click();
+              }
             }}
             aria-label="Text color"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconTinyClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m11 10 3 3"/><path d="M6.5 21A3.5 3.5 0 1 0 3 17.5a2.62 2.62 0 0 1-.708 1.792A1 1 0 0 0 3 21z"/><path d="M9.969 17.031 21.378 5.624a1 1 0 0 0-3.002-3.002L6.967 14.031"/></svg>
           </button>
+          <input id="opis-native-color-picker" type="color" className="sr-only" value={customColor} onChange={(event) => applyColor(event.target.value)} tabIndex={-1} aria-hidden />
           {openMenu === 'color' && editable && menuPosition ? createPortal(
             <MenuPanel ref={colorMenuRef} className="fixed z-[90] w-[220px] p-2 shadow-lg" style={menuPosition}>
               <div onMouseDown={(event) => event.stopPropagation()} className="space-y-1">
                 <div className="grid grid-cols-[28px_1fr] items-center gap-1">
                   <span className="text-[9px] font-medium uppercase tracking-wide text-slate-500">HEX</span>
                   <input autoFocus className={`${orderLikeEditableInputClassName} !mt-0 !h-5 !px-1.5 !text-[10px]`} value={customColor} onChange={(event) => { const normalized = normalizeHexColor(event.target.value); setCustomColor(event.target.value); if (normalized) applyColor(normalized); }} />
-                </div>
-                <div className="grid grid-cols-[28px_1fr_1fr_1fr] items-center gap-1">
-                  <span className="text-[9px] font-medium uppercase tracking-wide text-slate-500">RGB</span>
-                  <input type="number" min={0} max={255} className={`${compactTableNumberInputClassName} !mt-0 !h-5 !w-full !px-1 !text-[10px]`} value={parsedRgb.r} onChange={(event) => updateRgbChannel('r', event.target.value)} />
-                  <input type="number" min={0} max={255} className={`${compactTableNumberInputClassName} !mt-0 !h-5 !w-full !px-1 !text-[10px]`} value={parsedRgb.g} onChange={(event) => updateRgbChannel('g', event.target.value)} />
-                  <input type="number" min={0} max={255} className={`${compactTableNumberInputClassName} !mt-0 !h-5 !w-full !px-1 !text-[10px]`} value={parsedRgb.b} onChange={(event) => updateRgbChannel('b', event.target.value)} />
                 </div>
                 <div className="grid grid-cols-[28px_1fr_1fr_1fr] items-center gap-1">
                   <span className="text-[9px] font-medium uppercase tracking-wide text-slate-500">HSL</span>

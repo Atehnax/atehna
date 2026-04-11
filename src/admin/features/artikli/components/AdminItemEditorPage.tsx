@@ -861,6 +861,17 @@ export default function AdminItemEditorPage({
     setSelectedCategoryPath(path);
   };
 
+  useEffect(() => {
+    if (articleType !== 'unit') return;
+    const parsedPrice = Number(generatorPriceInput.replace(',', '.'));
+    if (!Number.isFinite(parsedPrice)) return;
+    setDraft((current) => {
+      const nextVariants = current.variants.map((variant) => (variant.price === parsedPrice ? variant : { ...variant, price: parsedPrice }));
+      const changed = nextVariants.some((variant, index) => variant !== current.variants[index]);
+      return changed ? { ...current, variants: nextVariants } : current;
+    });
+  }, [articleType, generatorPriceInput]);
+
   const isEditable = editorMode === 'edit';
   const isTableEditable = tableEditorMode === 'edit';
   const isMediaEditable = mediaMode === 'edit';
@@ -1077,20 +1088,17 @@ export default function AdminItemEditorPage({
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <h1 className="flex min-h-10 flex-nowrap items-center gap-1 whitespace-nowrap text-lg font-semibold tracking-tight text-slate-900">
                 <span className="inline-flex h-10 items-center gap-0">
-                  {isEditable ? (
-                    <div className="inline-flex h-[30px] min-w-[14ch] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[10px] pr-2.5">
-                      <SideInputIcon icon="name" className="h-4 w-4" muted={draft.name.trim().length === 0} />
-                      <input
-                        aria-label="Naziv artikla"
-                        value={draft.name}
-                        onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
-                        placeholder="Naziv artikla"
-                        className="h-full min-w-0 border-0 bg-transparent p-0 text-[15px] font-semibold leading-none tracking-tight text-slate-900 shadow-none outline-none transition focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
-                      />
-                    </div>
-                  ) : (
-                    <span className="inline-flex h-10 min-w-[14ch] items-center px-1.5 text-lg font-semibold leading-none tracking-tight">{draft.name.trim() || 'Naziv artikla'}</span>
-                  )}
+                  <div className={`inline-flex h-[30px] min-w-[14ch] items-center gap-2 rounded-md border border-slate-300 pl-[10px] pr-2.5 ${isEditable ? 'bg-white' : 'bg-[color:var(--ui-neutral-bg)] text-slate-500'}`}>
+                    <SideInputIcon icon="name" className="h-4 w-4" muted={draft.name.trim().length === 0} />
+                    <input
+                      aria-label="Naziv artikla"
+                      value={draft.name}
+                      disabled={!isEditable}
+                      onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
+                      placeholder="Naziv artikla"
+                      className={`h-full min-w-0 border-0 bg-transparent p-0 text-[16px] font-semibold leading-none tracking-tight shadow-none outline-none transition focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none ${isEditable ? 'text-slate-900' : 'cursor-not-allowed text-slate-500'}`}
+                    />
+                  </div>
                 </span>
               </h1>
               <div className="ml-auto flex items-center gap-1.5">
@@ -1149,7 +1157,7 @@ export default function AdminItemEditorPage({
                         />
                         <label
                           htmlFor="tech-sheet-upload-inline"
-                          className={`flex w-full cursor-pointer items-center rounded-xl border border-dashed border-blue-300 bg-blue-50/35 px-4 py-3 ${!isEditable ? 'cursor-not-allowed opacity-60' : ''}`}
+                          className={`flex w-full cursor-pointer items-center rounded-xl border border-dashed border-blue-300 bg-blue-50/35 px-4 py-2.5 ${!isEditable ? 'cursor-not-allowed opacity-60' : ''}`}
                         >
                           <span className="mx-auto flex items-center gap-1 text-blue-600">
                             <SideInputIcon icon="document" muted={false} className="text-blue-600" />
@@ -1162,19 +1170,17 @@ export default function AdminItemEditorPage({
                       </div>
                     ) : field.title === 'URL' ? (
                       <div className="space-y-1">
-                        <div className={compactSideInputWrapClassName}>
+                        <div className={`${compactSideInputWrapClassName} ${isEditable ? '' : '!bg-[color:var(--ui-neutral-bg)] text-slate-500'}`}>
                           <SideInputIcon icon="link" className="h-[12.5px] w-[12.5px]" muted={field.value.trim().length === 0} />
-                          <input className={compactSideInputClassName} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
+                          <input disabled={!isEditable} className={`${compactSideInputClassName} ${isEditable ? '' : 'cursor-not-allowed text-slate-500'}`} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
                         </div>
                         <p className="text-xs text-slate-500">Uporablja se v povezavi izdelka.</p>
                       </div>
-                    ) : isEditable ? (
-                      <div className={compactSideInputWrapClassName}>
-                        <SideInputIcon icon={field.icon} muted={field.value.trim().length === 0} />
-                        <input className={compactSideInputClassName} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
-                      </div>
                     ) : (
-                      <p className="text-sm text-slate-700">{field.value || field.placeholder}</p>
+                      <div className={`${compactSideInputWrapClassName} ${isEditable ? '' : '!bg-[color:var(--ui-neutral-bg)] text-slate-500'}`}>
+                        <SideInputIcon icon={field.icon} muted={field.value.trim().length === 0} />
+                        <input disabled={!isEditable} className={`${compactSideInputClassName} ${isEditable ? '' : 'cursor-not-allowed text-slate-500'}`} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
+                      </div>
                     )}
                   </div>
                 ))}
@@ -1409,13 +1415,13 @@ export default function AdminItemEditorPage({
               <path d="M12 16v-4" />
               <path d="M12 8h.01" />
             </svg>
-            <span className="w-1/2 text-xs text-slate-500">
+            <span className="w-[15%] min-w-[170px] text-xs text-slate-500">
               Dodaj do tri dimenzije. Vnosne bližnjice: <span className={inlineSnippetClass}>d:</span>, <span className={inlineSnippetClass}>š:</span>, <span className={inlineSnippetClass}>h:</span>, <span className={inlineSnippetClass}>v:</span>
             </span>
           </div>
           <div className="pt-2">
             <div className="flex items-start gap-3">
-            <div className="relative w-1/2 min-w-[300px]">
+            <div className="relative w-[15%] min-w-[220px]">
               <div className={`flex h-[30px] flex-nowrap items-center gap-2 overflow-hidden rounded-md border border-slate-300 pl-[10px] pr-11 ${isGeneratorLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : 'bg-white'}`}>
                 <SideInputIcon icon="dimension" muted={generatorInput.trim().length === 0 && generatorChips.length === 0} />
                 {generatorChips.map((chip) => (

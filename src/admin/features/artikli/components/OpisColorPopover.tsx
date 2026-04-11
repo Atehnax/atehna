@@ -80,7 +80,7 @@ export default function OpisColorPopover({
 
   return createPortal(
     <div ref={panelRef} className="fixed z-[100] w-[228px] rounded-md border border-slate-300 bg-white p-2 shadow-lg" style={position} onMouseDown={(event) => event.stopPropagation()}>
-      <HexColorPicker color={colord(color).isValid() ? color : '#1e293b'} onChange={(next) => onChange(next.toUpperCase())} className="opis-color-picker" />
+      <HexColorPicker color={colord(color).isValid() ? color : '#1e293b'} onChange={(next: string) => onChange(next.toUpperCase())} className="opis-color-picker" />
       <div className="mt-2 space-y-1.5">
         <div className="grid grid-cols-[32px_1fr] items-center gap-1.5">
           <span className="text-[12px] text-slate-500">HEX</span>
@@ -88,10 +88,18 @@ export default function OpisColorPopover({
             ref={hexInputRef}
             className={compactInputClass}
             value={hexDraft}
+            autoComplete="off"
             onChange={(event) => {
               const next = event.target.value;
               setHexDraft(next);
-              const normalized = colord(next);
+            }}
+            onBlur={() => {
+              const normalized = colord(hexDraft);
+              if (normalized.isValid()) onChange(normalized.toHex().toUpperCase());
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter') return;
+              const normalized = colord(hexDraft);
               if (normalized.isValid()) onChange(normalized.toHex().toUpperCase());
             }}
           />

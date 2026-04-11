@@ -239,7 +239,7 @@ export default function AdminCategoryBreadcrumbPicker({
       </div>
 
       {isOpen ? (
-        <div className="absolute z-30 mt-1 w-full rounded-md border border-slate-200 bg-white p-2 shadow-lg">
+        <div className="absolute left-0 top-full z-30 mt-1 w-[150%] rounded-md border border-slate-200 bg-white p-2 shadow-lg">
           <div className="rounded-md border border-slate-300 bg-white transition-colors focus-within:border-[#3e67d6]">
             <input
               autoFocus

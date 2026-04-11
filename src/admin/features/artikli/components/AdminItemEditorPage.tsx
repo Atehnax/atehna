@@ -1133,7 +1133,7 @@ export default function AdminItemEditorPage({
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 px-2.5">
+            <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2 grid grid-cols-2 gap-3">
                 {[
                   { title: 'Blagovna znamka', value: sideSettings.brand, placeholder: 'AluCraft', icon: 'brand' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, brand: value })) },
@@ -1143,7 +1143,7 @@ export default function AdminItemEditorPage({
                   { title: 'Tehnični list', value: documents.map((doc) => doc.name).join(', '), placeholder: 'Dodajte dokument', icon: 'document' as SideFieldIcon, onChange: () => {} },
                   { title: 'URL', value: draft.slug, placeholder: toSlug(draft.name || 'naziv-artikla'), icon: 'link' as SideFieldIcon, onChange: (value: string) => setDraft((current) => ({ ...current, slug: value })) }
                 ].map((field) => (
-                  <div key={field.title} className="min-h-10 px-2.5">
+                  <div key={field.title} className="min-h-10">
                     <p className="text-sm font-semibold text-slate-900">{field.title}</p>
                     {field.title === 'Tehnični list' ? (
                       <div className="mt-0.5 flex items-center gap-2">
@@ -1172,12 +1172,12 @@ export default function AdminItemEditorPage({
                         </label>
                       </div>
                     ) : field.title === 'URL' ? (
-                      <div className="space-y-1">
+                      <div className="mt-0.5 flex min-h-[52px] flex-col justify-end">
                         <div className={`${compactSideInputWrapClassName} ${isEditable ? '' : '!bg-[color:var(--ui-neutral-bg)] text-slate-500'}`}>
                           <SideInputIcon icon="link" className="h-[12.5px] w-[12.5px]" muted={field.value.trim().length === 0} />
                           <input disabled={!isEditable} className={`${compactSideInputClassName} ${isEditable ? '' : 'cursor-not-allowed text-slate-500'}`} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
                         </div>
-                        <p className="text-[11px] text-slate-500">Uporablja se v povezavi izdelka.</p>
+                        <p className="mt-1 text-[11px] text-slate-500">URL povezava do artikla.</p>
                       </div>
                     ) : (
                       <div className={`${compactSideInputWrapClassName} ${isEditable ? '' : '!bg-[color:var(--ui-neutral-bg)] text-slate-500'}`}>
@@ -1188,7 +1188,7 @@ export default function AdminItemEditorPage({
                   </div>
                 ))}
               </div>
-              <div className="col-span-2 space-y-1 px-2.5 pt-0.5">
+              <div className="col-span-2 space-y-1 pt-0.5">
                 <label className="text-sm font-semibold text-slate-900">Opis</label>
                 <OpisRichTextEditor value={draft.description} editable={isEditable} onChange={(next) => setDraft((current) => ({ ...current, description: next }))} />
               </div>
@@ -1404,7 +1404,7 @@ export default function AdminItemEditorPage({
             Vnesi vrednosti (v mm) za vsako dimenzijo posebej, na primer: <span className={inlineSnippetClass}>Dolžina: 10,20</span>. Podprte so Dolžina, Širina/fi in Debelina, razen pri dolžinskih artiklih, kjer Debelina ni dovoljena. Za posamezno dimenzijo lahko dodaš največ pet vrednosti. Ob generiranju se na podlagi vseh vnesenih kombinacij ustvarijo različice.
           </p>
           <p className="whitespace-nowrap text-xs font-semibold leading-5 text-slate-700">
-            Dodaj do tri dimenzije. Vnosne bližnjice: <span className={inlineSnippetClass}>d:</span>, <span className={inlineSnippetClass}>š:</span>, <span className={inlineSnippetClass}>fi:</span>, <span className={inlineSnippetClass}>h:</span>, <span className={inlineSnippetClass}>v:</span>
+            Dodaj do tri dimenzije. Vnosne bližnjice: <span className="font-normal">d:</span>, <span className="font-normal">š:</span>, <span className="font-normal">fi:</span>, <span className="font-normal">h:</span>, <span className="font-normal">v:</span>
           </p>
           <div className="pt-2">
             <div className="flex items-start gap-3">

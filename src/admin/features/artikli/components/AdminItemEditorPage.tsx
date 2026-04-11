@@ -430,11 +430,6 @@ function OpisRichTextEditor({
           ref={editorHostRef}
           className={`min-h-0 flex-1 overflow-x-hidden overflow-y-hidden [&_.ProseMirror]:min-h-[112px] [&_.ProseMirror]:px-4 [&_.ProseMirror]:py-3 [&_.ProseMirror]:text-sm [&_.ProseMirror]:outline-none [&_.ProseMirror]:prose [&_.ProseMirror]:max-w-none [&_.ProseMirror_h1]:text-xl [&_.ProseMirror_h2]:text-lg [&_.ProseMirror_h3]:text-base [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5 [&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-slate-300 [&_.ProseMirror_blockquote]:pl-3 [&_.ProseMirror_a]:text-blue-600 [&_.ProseMirror_a]:underline ${editable ? '[&_.ProseMirror]:text-slate-800 [&_.ProseMirror]:prose-slate' : 'cursor-not-allowed [&_.ProseMirror]:bg-[color:var(--ui-neutral-bg)] [&_.ProseMirror]:text-slate-500 [&_.ProseMirror]:prose-slate'}`}
         />
-        {!editable ? (
-          <div className="pointer-events-none absolute right-3 top-2 inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white/80 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-500">
-            Zaklenjeno
-          </div>
-        ) : null}
         <div className={`pointer-events-none ml-auto px-4 pb-2 text-xs ${editable ? 'text-slate-400' : 'text-slate-500'}`}>{textLength} / 5000</div>
       </div>
     </div>
@@ -1167,12 +1162,12 @@ export default function AdminItemEditorPage({
                           htmlFor="tech-sheet-upload-inline"
                           className={`flex w-full cursor-pointer items-center rounded-xl border border-dashed border-blue-300 bg-blue-50/35 px-4 py-2.5 ${!isEditable ? 'cursor-not-allowed opacity-60' : ''}`}
                         >
-                          <span className="mx-auto flex items-center gap-1 text-blue-600">
-                            <SideInputIcon icon="document" muted={false} className="!text-blue-600" />
-                            <span className="leading-tight">
-                              <span className="inline-block text-sm font-semibold">Dodaj dokument</span>
-                              <span className="block text-xs text-slate-500">PDF, DOC, XLSX do 10 MB</span>
+                          <span className="mx-auto inline-flex flex-col items-start gap-0.5 text-blue-600">
+                            <span className="inline-flex items-center gap-1">
+                              <SideInputIcon icon="document" muted={false} className="!text-blue-600" />
+                              <span className="inline-block text-sm font-semibold leading-none">Dodaj dokument</span>
                             </span>
+                            <span className="pl-5 text-[11px] leading-tight text-slate-500">PDF, DOC, XLSX do 10 MB</span>
                           </span>
                         </label>
                       </div>
@@ -1182,7 +1177,7 @@ export default function AdminItemEditorPage({
                           <SideInputIcon icon="link" className="h-[12.5px] w-[12.5px]" muted={field.value.trim().length === 0} />
                           <input disabled={!isEditable} className={`${compactSideInputClassName} ${isEditable ? '' : 'cursor-not-allowed text-slate-500'}`} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
                         </div>
-                        <p className="text-xs text-slate-500">Uporablja se v povezavi izdelka.</p>
+                        <p className="text-[11px] text-slate-500">Uporablja se v povezavi izdelka.</p>
                       </div>
                     ) : (
                       <div className={`${compactSideInputWrapClassName} ${isEditable ? '' : '!bg-[color:var(--ui-neutral-bg)] text-slate-500'}`}>
@@ -1408,10 +1403,8 @@ export default function AdminItemEditorPage({
           <p className="text-xs text-slate-500">
             Vnesi vrednosti (v mm) za vsako dimenzijo posebej, na primer: <span className={inlineSnippetClass}>Dolžina: 10,20</span>. Podprte so Dolžina, Širina/fi in Debelina, razen pri dolžinskih artiklih, kjer Debelina ni dovoljena. Za posamezno dimenzijo lahko dodaš največ pet vrednosti. Ob generiranju se na podlagi vseh vnesenih kombinacij ustvarijo različice.
           </p>
-          <p className="text-xs font-semibold leading-5 text-slate-700">
-            Dodaj do tri dimenzije.
-            <br />
-            Vnosne bližnjice: <span className="font-bold">d:</span>, <span className="font-bold">š:</span>, <span className="font-bold">fi:</span>, <span className="font-bold">h:</span>, <span className="font-bold">v:</span>
+          <p className="whitespace-nowrap text-xs font-semibold leading-5 text-slate-700">
+            Dodaj do tri dimenzije. Vnosne bližnjice: <span className="font-bold">d:</span>, <span className="font-bold">š:</span>, <span className="font-bold">fi:</span>, <span className="font-bold">h:</span>, <span className="font-bold">v:</span>
           </p>
           <div className="pt-2">
             <div className="flex items-start gap-3">

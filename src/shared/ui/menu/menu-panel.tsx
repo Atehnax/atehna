@@ -1,12 +1,16 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties } from 'react';
+import { forwardRef, type ReactNode } from 'react';
 
 type MenuPanelProps = {
   className?: string;
   children: ReactNode;
+  style?: CSSProperties;
 };
 
 const classNames = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ');
 
-export default function MenuPanel({ className, children }: MenuPanelProps) {
-  return <div className={classNames('rounded-md border border-slate-300 bg-white p-1 shadow-sm', className)}>{children}</div>;
-}
+const MenuPanel = forwardRef<HTMLDivElement, MenuPanelProps>(function MenuPanel({ className, children, style }, ref) {
+  return <div ref={ref} style={style} className={classNames('rounded-md border border-slate-300 bg-white p-1 shadow-sm', className)}>{children}</div>;
+});
+
+export default MenuPanel;

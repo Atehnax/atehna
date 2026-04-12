@@ -186,7 +186,7 @@ export default function AdminCategoryBreadcrumbPicker({
             label: placeholder,
             isCurrent: false,
             onClick: disabled ? undefined : () => setIsOpen(true),
-            labelClassName: `font-semibold text-slate-900 ${disabled ? '' : 'underline decoration-slate-900/70 underline-offset-2'}`
+            labelClassName: `font-semibold ${disabled ? 'text-slate-900' : 'text-[#1982bf] underline decoration-[#1982bf]/70 underline-offset-2'}`
           }
         ]
       : [
@@ -215,10 +215,10 @@ export default function AdminCategoryBreadcrumbPicker({
         ];
 
   return (
-    <div ref={containerRef} className={`relative space-y-1 ${className}`.trim()}>
+    <div ref={containerRef} className={`relative ${className}`.trim()}>
       <label className="sr-only">Kategorija</label>
       <div
-        className="flex min-h-7 w-full items-center text-left"
+        className="flex h-full min-h-7 w-full items-center text-left"
         role="group"
         aria-label="Izbira poti kategorije"
       >
@@ -228,15 +228,18 @@ export default function AdminCategoryBreadcrumbPicker({
           setQuery('');
           setIsOpen(true);
         }}>
-          <AdminBreadcrumbPath
-            items={breadcrumbItems}
-            className="truncate whitespace-nowrap text-sm text-slate-700"
-          />
+          <span className="inline-flex items-center gap-1">
+            <AdminBreadcrumbPath
+              items={breadcrumbItems}
+              className="truncate whitespace-nowrap text-sm text-slate-700"
+            />
+            {!disabled ? <span className="text-slate-400">›</span> : null}
+          </span>
         </span>
       </div>
 
       {isOpen ? (
-        <div className="absolute z-30 mt-1 w-full rounded-md border border-slate-200 bg-white p-2 shadow-lg">
+        <div className="absolute left-0 top-full z-30 mt-1 w-[150%] rounded-md border border-slate-200 bg-white p-2 shadow-lg">
           <div className="rounded-md border border-slate-300 bg-white transition-colors focus-within:border-[#3e67d6]">
             <input
               autoFocus

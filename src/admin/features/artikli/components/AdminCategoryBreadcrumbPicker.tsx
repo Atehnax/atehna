@@ -200,7 +200,7 @@ export default function AdminCategoryBreadcrumbPicker({
             label: placeholder,
             isCurrent: false,
             onClick: disabled ? undefined : () => setIsOpen(true),
-            labelClassName: `font-semibold ${disabled ? 'text-slate-900' : 'text-[#1982bf] underline decoration-[#1982bf]/70 underline-offset-2'}`
+            labelClassName: `font-semibold ${disabled ? 'text-slate-900' : 'text-[#1982bf]'}`
           }
         ]
       : [
@@ -221,6 +221,7 @@ export default function AdminCategoryBreadcrumbPicker({
             const isUserExpanded = expandedCollapsedSegments.has(index);
             const isExpanded = isUserExpanded || shouldShowNeighbor;
             const showCollapsedToken = isCollapsed && !isExpanded;
+            const isFocused = focusedSegmentIndex === index;
             return {
               label: showCollapsedToken ? '··' : segment,
               key: `${segment}-${index}`,
@@ -231,13 +232,16 @@ export default function AdminCategoryBreadcrumbPicker({
                   ? undefined
                   : () => {
                       setFocusedSegmentIndex(index);
-                      if (showCollapsedToken) {
-                        setExpandedCollapsedSegments((current) => {
-                          const next = new Set(current);
+                      setExpandedCollapsedSegments((current) => {
+                        if (showCollapsedToken) {
+                          const next = new Set(Array.from(current).filter((item) => Math.abs(item - index) <= 1));
                           if (next.has(index)) next.delete(index);
                           else next.add(index);
                           return next;
-                        });
+                        }
+                        return new Set(Array.from(current).filter((item) => Math.abs(item - index) === 1));
+                      });
+                      if (showCollapsedToken) {
                         return;
                       }
                       setDrillPath(displayedPath.slice(0, index + 1));
@@ -246,12 +250,14 @@ export default function AdminCategoryBreadcrumbPicker({
                     },
               labelClassName:
                 index === displayedPath.length - 1
-                  ? 'inline-block max-w-[260px] truncate align-bottom font-semibold text-[#1982bf]'
+                  ? `inline-block max-w-[260px] truncate align-bottom font-semibold text-[#1982bf] ${isFocused ? 'underline decoration-[#1982bf]/70 underline-offset-2' : ''}`.trim()
                   : isUserExpanded
                     ? 'underline decoration-slate-500/70 underline-offset-2'
                   : showCollapsedToken
                     ? 'text-slate-500'
-                    : undefined
+                    : isFocused
+                      ? 'underline decoration-slate-500/70 underline-offset-2'
+                      : undefined
             };
           })
         ];

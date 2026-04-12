@@ -29,6 +29,7 @@ const toPathParts = (value: string) =>
     .filter(Boolean);
 
 const pathKeyFromParts = (path: string[]) => path.join(' / ');
+const CATEGORY_PICKER_MENU_BASE_WIDTH_PX = 470;
 
 const buildCategoryIndex = (paths: string[]) => {
   const childrenByParent = new Map<string, Set<string>>();
@@ -97,6 +98,9 @@ export default function AdminCategoryBreadcrumbPicker({
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [drillPath, setDrillPath] = useState<string[]>(value);
+  const [focusedSegmentIndex, setFocusedSegmentIndex] = useState<number | null>(null);
+  const [expandedCollapsedSegments, setExpandedCollapsedSegments] = useState<Set<number>>(new Set());
+  const [menuWidthPx, setMenuWidthPx] = useState<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
   const allPaths = useMemo(() => {
@@ -137,6 +141,18 @@ export default function AdminCategoryBreadcrumbPicker({
   }, [value]);
 
   useEffect(() => {
+    if (!isOpen) {
+      setFocusedSegmentIndex(null);
+      setExpandedCollapsedSegments(new Set());
+      setMenuWidthPx(null);
+      return;
+    }
+    if (menuWidthPx !== null) return;
+    const nextWidth = Math.max(320, Math.min(window.innerWidth - 24, CATEGORY_PICKER_MENU_BASE_WIDTH_PX));
+    if (nextWidth > 0) setMenuWidthPx(nextWidth);
+  }, [isOpen, menuWidthPx]);
+
+  useEffect(() => {
     if (!isOpen) return;
 
     const handleOutsideClick = (event: MouseEvent) => {
@@ -168,8 +184,13 @@ export default function AdminCategoryBreadcrumbPicker({
     setQuery('');
   };
 
+  const displayedPath = value.length > 0 ? value : isOpen ? drillPath : value;
+
+  const isCollapsibleIndex = (index: number) =>
+    displayedPath.length >= 4 && index > 0 && index < displayedPath.length - 2;
+
   const breadcrumbItems =
-    value.length === 0
+    displayedPath.length === 0
       ? [
           {
             key: 'categories-root',
@@ -186,7 +207,7 @@ export default function AdminCategoryBreadcrumbPicker({
             label: placeholder,
             isCurrent: false,
             onClick: disabled ? undefined : () => setIsOpen(true),
-            labelClassName: `font-semibold ${disabled ? 'text-slate-900' : 'text-[#1982bf] underline decoration-[#1982bf]/70 underline-offset-2'}`
+            labelClassName: `font-semibold ${disabled ? 'text-slate-900' : 'text-[#1982bf]'}`
           }
         ]
       : [
@@ -200,18 +221,50 @@ export default function AdminCategoryBreadcrumbPicker({
               setIsOpen(true);
             }
           },
-          ...value.map((segment, index) => ({
-            label: segment,
-            key: `${segment}-${index}`,
-            title: value.slice(0, index + 1).join(' / '),
-            isCurrent: false,
-            onClick: disabled ? undefined : () => {
-              setDrillPath(value.slice(0, index + 1));
-              setQuery('');
-              setIsOpen(true);
-            },
-            labelClassName: index === value.length - 1 ? 'inline-block max-w-[260px] truncate align-bottom font-semibold text-slate-900' : undefined
-          }))
+          ...displayedPath.map((segment, index) => {
+            const isCollapsed = isCollapsibleIndex(index);
+            const isFocused = focusedSegmentIndex === index;
+            const shouldShowNeighbor =
+              focusedSegmentIndex !== null && Math.abs(focusedSegmentIndex - index) === 1 && isCollapsed;
+            const isUserExpanded = expandedCollapsedSegments.has(index);
+            const isExpanded = isUserExpanded || shouldShowNeighbor;
+            const showCollapsedToken = isCollapsed && !isExpanded && !isFocused;
+            return {
+              label: showCollapsedToken ? '··' : segment,
+              key: `${segment}-${index}`,
+              title: displayedPath.slice(0, index + 1).join(' / '),
+              isCurrent: false,
+              onClick:
+                disabled
+                  ? undefined
+                  : () => {
+                      setFocusedSegmentIndex(index);
+                      setExpandedCollapsedSegments((current) => {
+                        if (showCollapsedToken) {
+                          const next = new Set(Array.from(current).filter((item) => Math.abs(item - index) <= 1));
+                          if (next.has(index)) next.delete(index);
+                          else next.add(index);
+                          return next;
+                        }
+                        return new Set(Array.from(current).filter((item) => Math.abs(item - index) === 1));
+                      });
+                      if (showCollapsedToken) {
+                        return;
+                      }
+                      setDrillPath(displayedPath.slice(0, index + 1));
+                      setQuery('');
+                      setIsOpen(true);
+                    },
+              labelClassName:
+                index === displayedPath.length - 1
+                  ? `inline-block max-w-[260px] truncate align-bottom font-semibold text-[#1982bf] ${isFocused ? 'underline decoration-[#1982bf]/70 underline-offset-2' : ''}`.trim()
+                  : showCollapsedToken
+                    ? 'text-slate-500'
+                    : isFocused
+                      ? 'underline decoration-slate-500/70 underline-offset-2'
+                      : undefined
+            };
+          })
         ];
 
   return (
@@ -222,9 +275,11 @@ export default function AdminCategoryBreadcrumbPicker({
         role="group"
         aria-label="Izbira poti kategorije"
       >
-        <span className="min-w-0 truncate text-sm text-slate-700" onClick={() => {
-          if (disabled || isOpen || value.length === 0) return;
-          setDrillPath(value);
+        <span className="min-w-0 truncate text-sm text-slate-700" onClick={(event) => {
+          if (disabled || isOpen || displayedPath.length === 0) return;
+          const target = event.target as HTMLElement;
+          if (target.closest('button')) return;
+          setDrillPath(displayedPath);
           setQuery('');
           setIsOpen(true);
         }}>
@@ -239,7 +294,10 @@ export default function AdminCategoryBreadcrumbPicker({
       </div>
 
       {isOpen ? (
-        <div className="absolute left-0 top-full z-30 mt-1 w-[150%] rounded-md border border-slate-200 bg-white p-2 shadow-lg">
+        <div
+          className="absolute left-0 top-full z-30 mt-1 rounded-md border border-slate-200 bg-white p-2 shadow-lg"
+          style={{ width: menuWidthPx ? `${menuWidthPx}px` : `${CATEGORY_PICKER_MENU_BASE_WIDTH_PX}px` }}
+        >
           <div className="rounded-md border border-slate-300 bg-white transition-colors focus-within:border-[#3e67d6]">
             <input
               autoFocus

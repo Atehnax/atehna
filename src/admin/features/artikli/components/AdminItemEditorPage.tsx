@@ -56,6 +56,7 @@ type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 type VideoEntry = { id: string; source: 'upload' | 'youtube'; label: string; previewUrl: string; visible: boolean };
 type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'price';
+const MEDIA_SLOT_COUNT = 10;
 
 function SideInputIcon({ icon, muted = false, className = '' }: { icon: SideFieldIcon; muted?: boolean; className?: string }) {
   const iconProps = {
@@ -882,6 +883,10 @@ export default function AdminItemEditorPage({
   const [mediaImagesSaved, setMediaImagesSaved] = useState<string[]>(draft.images);
   const [mediaImagesDraft, setMediaImagesDraft] = useState<string[]>(draft.images);
   const [selectedImageIndexes, setSelectedImageIndexes] = useState<Set<number>>(new Set());
+  const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
+  const [draggedVariantId, setDraggedVariantId] = useState<string | null>(null);
+  const [draggedVariantImageSlot, setDraggedVariantImageSlot] = useState<number | null>(null);
+  const [imageMeta, setImageMeta] = useState<Record<string, { width: number; height: number; type: string }>>({});
   const [uploadedVideo, setUploadedVideo] = useState<{ name: string; url: string } | null>(null);
   const [youtubeInput, setYoutubeInput] = useState('');
   const [videoEntriesDraft, setVideoEntriesDraft] = useState<VideoEntry[]>([]);
@@ -1142,6 +1147,102 @@ export default function AdminItemEditorPage({
   };
 
   const getVariantTag = (variantId: string): VariantTag => variantTags[variantId] ?? 'novo';
+
+  useEffect(() => {
+    mediaImagesDraft.forEach((url) => {
+      if (!url || imageMeta[url]) return;
+      const probe = new window.Image();
+      probe.onload = () => {
+        const match = url.match(/\.([a-zA-Z0-9]+)(?:$|\?)/);
+        const extension = match?.[1]?.toUpperCase() ?? 'IMG';
+        setImageMeta((current) => ({ ...current, [url]: { width: probe.width, height: probe.height, type: extension } }));
+      };
+      probe.src = url;
+    });
+  }, [imageMeta, mediaImagesDraft]);
+
+  useEffect(() => {
+    setSelectedImageIndexes((current) => new Set(Array.from(current).filter((index) => index >= 0 && index < mediaImagesDraft.length)));
+  }, [mediaImagesDraft.length]);
+
+  const updateImageAtSlot = (slotIndex: number, imageUrl: string) => {
+    setMediaImagesDraft((current) => {
+      const next = [...current];
+      if (slotIndex < next.length) {
+        next[slotIndex] = imageUrl;
+        return next.slice(0, MEDIA_SLOT_COUNT);
+      }
+      while (next.length < slotIndex) next.push('');
+      next.push(imageUrl);
+      return next.filter(Boolean).slice(0, MEDIA_SLOT_COUNT);
+    });
+  };
+
+  const moveImageSlot = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return;
+    setMediaImagesDraft((current) => {
+      const next = [...current];
+      const image = next[fromIndex];
+      if (!image) return current;
+      next.splice(fromIndex, 1);
+      next.splice(Math.min(toIndex, next.length), 0, image);
+      return next.slice(0, MEDIA_SLOT_COUNT);
+    });
+    setDraft((current) => ({
+      ...current,
+      variants: current.variants.map((variant) => {
+        const assignments = [...(variant.imageAssignments ?? [])];
+        const fromPos = assignments.indexOf(fromIndex);
+        const toPos = assignments.indexOf(toIndex);
+        if (fromPos !== -1) assignments[fromPos] = toIndex;
+        if (toPos !== -1) assignments[toPos] = fromIndex;
+        return { ...variant, imageAssignments: assignments };
+      })
+    }));
+  };
+
+  const removeImageSlot = (slotIndex: number) => {
+    setMediaImagesDraft((current) => current.filter((_, index) => index !== slotIndex).slice(0, MEDIA_SLOT_COUNT));
+    setDraft((current) => ({
+      ...current,
+      variants: current.variants.map((variant) => ({
+        ...variant,
+        imageAssignments: (variant.imageAssignments ?? [])
+          .filter((slot) => slot !== slotIndex)
+          .map((slot) => (slot > slotIndex ? slot - 1 : slot))
+      }))
+    }));
+  };
+
+  const removeSelectedImageSlots = (selected: Set<number>) => {
+    const sorted = Array.from(selected).sort((a, b) => b - a);
+    sorted.forEach((slotIndex) => removeImageSlot(slotIndex));
+  };
+
+  const assignImageToVariant = (variantIndex: number, slotIndex: number) => {
+    const slotImage = mediaImagesDraft[slotIndex];
+    if (!slotImage) return;
+    const variant = draft.variants[variantIndex];
+    if (!variant) return;
+    const currentAssignments = variant.imageAssignments ?? [];
+    if (currentAssignments.includes(slotIndex)) return;
+    updateVariant(variantIndex, { imageAssignments: [...currentAssignments, slotIndex], imageOverride: slotImage });
+  };
+
+  const reorderVariantAssignment = (variantIndex: number, fromSlot: number, toSlot: number) => {
+    const variant = draft.variants[variantIndex];
+    if (!variant) return;
+    const assignments = [...(variant.imageAssignments ?? [])];
+    const fromIndex = assignments.indexOf(fromSlot);
+    const toIndex = assignments.indexOf(toSlot);
+    if (fromIndex === -1 || toIndex === -1) return;
+    assignments.splice(fromIndex, 1);
+    assignments.splice(toIndex, 0, fromSlot);
+    updateVariant(variantIndex, {
+      imageAssignments: assignments,
+      imageOverride: assignments.length > 0 ? mediaImagesDraft[assignments[0]] ?? null : null
+    });
+  };
   return (
     <div className="mx-auto max-w-7xl space-y-4 font-['Inter',system-ui,sans-serif]">
       <div className="text-xs text-slate-500"><Link href="/admin/artikli" className="hover:underline">Artikli</Link> › {mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</div>
@@ -1290,7 +1391,7 @@ export default function AdminItemEditorPage({
                     return;
                   }
                   const selected = new Set(selectedImageIndexes);
-                  setMediaImagesDraft((current) => current.filter((_, index) => !selected.has(index)));
+                  removeSelectedImageSlots(selected);
                   setSelectedImageIndexes(new Set());
                 }}
               >
@@ -1299,21 +1400,80 @@ export default function AdminItemEditorPage({
               </div>
             </div>
             {mediaTab === 'slike' ? (
-              <div className="mt-3 space-y-3">
+              <div className="mt-3 space-y-2">
                 <p className="text-sm text-slate-500">Galerija artikla. Prva slika je glavna.</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {mediaImagesDraft.map((img, index) => <div key={`${img}-${index}`} className="relative overflow-hidden rounded-lg border border-slate-200"><Image src={img} alt={`Slika ${index + 1}`} width={180} height={120} unoptimized className="h-24 w-full object-cover" />{isMediaEditable ? <div className="absolute left-1 top-1"><AdminCheckbox checked={selectedImageIndexes.has(index)} onChange={() => setSelectedImageIndexes((current) => { const next = new Set(current); if (next.has(index)) next.delete(index); else next.add(index); return next; })} /></div> : null}</div>)}
-                  <label className={`flex h-24 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 text-sm text-slate-500 ${isMediaEditable ? 'cursor-pointer hover:border-[#2f66dd]' : 'cursor-not-allowed opacity-60'}`}>Dodaj slike<input disabled={!isMediaEditable} type="file" className="hidden" multiple accept="image/*" onChange={(event) => {
-                    const urls = Array.from(event.target.files ?? []).map((file) => URL.createObjectURL(file));
-                    setMediaImagesDraft((current) => [...current, ...urls]);
-                  }} /></label>
+                <div className="grid grid-cols-5 gap-2">
+                  {Array.from({ length: MEDIA_SLOT_COUNT }).map((_, index) => {
+                    const img = mediaImagesDraft[index];
+                    return (
+                      <div
+                        key={`slot-${index}`}
+                        className={`relative aspect-square overflow-hidden rounded-lg border ${img ? 'border-slate-300' : 'border-dashed border-slate-300 bg-slate-50'} ${isMediaEditable && img ? 'cursor-grab' : ''}`}
+                        draggable={Boolean(isMediaEditable && img)}
+                        onDragStart={() => {
+                          if (!img) return;
+                          setDraggedImageIndex(index);
+                        }}
+                        onDragOver={(event) => {
+                          if (!isMediaEditable) return;
+                          event.preventDefault();
+                        }}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          if (!isMediaEditable || draggedImageIndex === null) return;
+                          moveImageSlot(draggedImageIndex, index);
+                          setDraggedImageIndex(null);
+                        }}
+                      >
+                        {img ? (
+                          <Image src={img} alt={`Slika ${index + 1}`} width={220} height={220} unoptimized className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-[11px] text-slate-400">Prazna reža {index + 1}</div>
+                        )}
+                        {img && isMediaEditable ? (
+                          <div className="absolute left-1 top-1 rounded bg-white/90 p-0.5">
+                            <AdminCheckbox checked={selectedImageIndexes.has(index)} onChange={() => setSelectedImageIndexes((current) => {
+                              const next = new Set(current);
+                              if (next.has(index)) next.delete(index); else next.add(index);
+                              return next;
+                            })} />
+                          </div>
+                        ) : null}
+                        <div className="absolute inset-x-1 bottom-1 flex items-center gap-1">
+                          <label className={`inline-flex h-6 flex-1 items-center justify-center rounded bg-white/90 text-[11px] font-medium text-slate-700 ${isMediaEditable ? 'cursor-pointer hover:bg-white' : 'cursor-not-allowed opacity-60'}`}>
+                            {img ? 'Zamenjaj' : 'Naloži'}
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept="image/*"
+                              disabled={!isMediaEditable}
+                              onChange={(event) => {
+                                const file = event.target.files?.[0];
+                                if (!file) return;
+                                updateImageAtSlot(index, URL.createObjectURL(file));
+                              }}
+                            />
+                          </label>
+                          {img ? (
+                            <button
+                              type="button"
+                              disabled={!isMediaEditable}
+                              className={`inline-flex h-6 w-6 items-center justify-center rounded bg-rose-50 text-rose-600 ${isMediaEditable ? 'hover:bg-rose-100' : 'cursor-not-allowed opacity-60'}`}
+                              onClick={() => removeImageSlot(index)}
+                              aria-label={`Odstrani sliko ${index + 1}`}
+                            >
+                              ×
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <label className="inline-flex items-center gap-2 text-sm"><AdminCheckbox checked={sideSettings.showGallery} onChange={(event) => setSideSettings((current) => ({ ...current, showGallery: event.target.checked }))} />Prikaži galerijo na strani izdelka</label>
-                <label className="inline-flex items-center gap-2 text-sm"><AdminCheckbox checked={sideSettings.autoSquareCrop} onChange={(event) => setSideSettings((current) => ({ ...current, autoSquareCrop: event.target.checked }))} />Samodejno obreži na kvadrat (1:1)</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs text-slate-600">Postavitev</label>
-                    <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+                <div className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2">
+                  <div className="inline-flex flex-col gap-1">
+                    <span className="text-[11px] text-slate-600">Predogled / Postavitev</span>
+                    <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5">
                       {([
                         { key: 'grid', icon: <span className="grid grid-cols-2 gap-0.5">{Array.from({ length: 4 }).map((_, idx) => <span key={idx} className="h-1.5 w-1.5 rounded-[2px] border border-current" />)}</span> },
                         { key: 'slider', icon: <span className="inline-flex gap-0.5">{Array.from({ length: 2 }).map((_, idx) => <span key={idx} className="h-3 w-1.5 rounded-[2px] border border-current" />)}</span> },
@@ -1323,7 +1483,7 @@ export default function AdminItemEditorPage({
                           key={modeOption.key}
                           type="button"
                           aria-label={`Postavitev ${modeOption.key}`}
-                          className={`inline-flex h-9 w-9 items-center justify-center rounded-md border transition ${sideSettings.galleryMode === modeOption.key ? 'border-[#6f95ff] bg-[#edf2ff] text-[#3e67d6]' : 'border-transparent bg-transparent text-slate-400 hover:text-slate-600'}`}
+                          className={`inline-flex h-7 w-7 items-center justify-center rounded-md border transition ${sideSettings.galleryMode === modeOption.key ? 'border-[#6f95ff] bg-[#edf2ff] text-[#3e67d6]' : 'border-transparent bg-transparent text-slate-400 hover:text-slate-600'}`}
                           onClick={() => setSideSettings((current) => ({ ...current, galleryMode: modeOption.key }))}
                         >
                           {modeOption.icon}
@@ -1331,16 +1491,112 @@ export default function AdminItemEditorPage({
                       ))}
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs text-slate-600">Fokus slike</label>
-                    <select className={inputClass} value={sideSettings.imageFocus} onChange={(event) => setSideSettings((current) => ({ ...current, imageFocus: event.target.value }))}>
-                      <option value="center">Center</option>
-                      <option value="top">Zgoraj</option>
-                      <option value="bottom">Spodaj</option>
-                    </select>
+                  <div className="inline-flex flex-col gap-1">
+                    <span className="text-[11px] text-slate-600">Prikaz</span>
+                    <div className="inline-flex items-center gap-3 text-xs">
+                      <label className="inline-flex items-center gap-1.5"><AdminCheckbox checked={sideSettings.showGallery} onChange={(event) => setSideSettings((current) => ({ ...current, showGallery: event.target.checked }))} />Galerija</label>
+                      <label className="inline-flex items-center gap-1.5"><AdminCheckbox checked={sideSettings.autoSquareCrop} onChange={(event) => setSideSettings((current) => ({ ...current, autoSquareCrop: event.target.checked }))} />Kvadrat 1:1</label>
+                    </div>
+                  </div>
+                  <div className="ml-auto flex min-w-[280px] flex-1 flex-wrap items-end gap-2">
+                    <div className="min-w-[140px] flex-1">
+                      <label className="mb-1 block text-[11px] text-slate-600">Fokus slike</label>
+                      <select className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-xs" value={sideSettings.imageFocus} onChange={(event) => setSideSettings((current) => ({ ...current, imageFocus: event.target.value }))}>
+                        <option value="center">Center</option>
+                        <option value="top">Zgoraj</option>
+                        <option value="bottom">Spodaj</option>
+                      </select>
+                    </div>
+                    <div className="min-w-[180px] flex-[1.4]">
+                      <label className="mb-1 block text-[11px] text-slate-600">Alt besedilo</label>
+                      <input className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-900 outline-none focus:border-[#3e67d6]" value={sideSettings.imageAltText} onChange={(event) => setSideSettings((current) => ({ ...current, imageAltText: event.target.value }))} placeholder={`${draft.name || 'Artikel'} - različice`} />
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-1"><label className="text-xs text-slate-600">Alt besedilo</label><input className={inputClass} value={sideSettings.imageAltText} onChange={(event) => setSideSettings((current) => ({ ...current, imageAltText: event.target.value }))} placeholder={`${draft.name || 'Artikel'} - različice`} /></div>
+                <div className="overflow-hidden rounded-lg border border-slate-200">
+                  <table className="min-w-full text-xs">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="px-2 py-1.5 text-left">SKU</th>
+                        <th className="px-2 py-1.5 text-left">Image type</th>
+                        <th className="px-2 py-1.5 text-left">Image dimensions</th>
+                        <th className="px-2 py-1.5 text-left">Images</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {draft.variants.map((variant, variantIndex) => {
+                        const assignedSlots = variant.imageAssignments ?? [];
+                        const primaryAssigned = assignedSlots[0] ?? 0;
+                        const primaryUrl = mediaImagesDraft[primaryAssigned] ?? '';
+                        const meta = imageMeta[primaryUrl];
+                        return (
+                          <tr
+                            key={`variant-media-${variant.id}`}
+                            className="border-t border-slate-100"
+                            onDragOver={(event) => {
+                              if (!isMediaEditable) return;
+                              event.preventDefault();
+                            }}
+                            onDrop={(event) => {
+                              event.preventDefault();
+                              if (!isMediaEditable || draggedImageIndex === null) return;
+                              assignImageToVariant(variantIndex, draggedImageIndex);
+                              setDraggedImageIndex(null);
+                            }}
+                          >
+                            <td className="px-2 py-1.5">{variant.sku || '—'}</td>
+                            <td className="px-2 py-1.5">{meta?.type ?? (primaryUrl ? 'IMG' : '—')}</td>
+                            <td className="px-2 py-1.5">{meta ? `${meta.width}×${meta.height}` : '—'}</td>
+                            <td className="px-2 py-1.5">
+                              <div className="flex flex-wrap gap-1">
+                                {assignedSlots.map((slot) => {
+                                  const slotImage = mediaImagesDraft[slot];
+                                  if (!slotImage) return null;
+                                  return (
+                                    <div
+                                      key={`${variant.id}-${slot}`}
+                                      className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-1 py-0.5"
+                                      draggable={isMediaEditable}
+                                      onDragStart={() => {
+                                        setDraggedVariantId(variant.id);
+                                        setDraggedVariantImageSlot(slot);
+                                      }}
+                                      onDragOver={(event) => {
+                                        if (!isMediaEditable) return;
+                                        event.preventDefault();
+                                      }}
+                                      onDrop={(event) => {
+                                        event.preventDefault();
+                                        if (!isMediaEditable || draggedVariantId !== variant.id || draggedVariantImageSlot === null) return;
+                                        reorderVariantAssignment(variantIndex, draggedVariantImageSlot, slot);
+                                        setDraggedVariantId(null);
+                                        setDraggedVariantImageSlot(null);
+                                      }}
+                                    >
+                                      <Image src={slotImage} alt={`SKU ${variant.sku}`} width={20} height={20} unoptimized className="h-5 w-5 rounded object-cover" />
+                                      <span className="max-w-[84px] truncate text-[11px] text-slate-600">Slika {slot + 1}</span>
+                                      <button
+                                        type="button"
+                                        disabled={!isMediaEditable}
+                                        className="text-slate-400 hover:text-rose-600"
+                                        onClick={() => updateVariant(variantIndex, {
+                                          imageAssignments: assignedSlots.filter((value) => value !== slot),
+                                          imageOverride: assignedSlots.length > 1 ? mediaImagesDraft[assignedSlots.find((value) => value !== slot) ?? 0] ?? null : null
+                                        })}
+                                      >
+                                        ×
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ) : (
               <div className="mt-3 space-y-3">

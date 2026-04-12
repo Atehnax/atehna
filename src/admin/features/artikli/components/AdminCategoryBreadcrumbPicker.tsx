@@ -218,7 +218,8 @@ export default function AdminCategoryBreadcrumbPicker({
             const isCollapsed = isCollapsibleIndex(index);
             const shouldShowNeighbor =
               focusedSegmentIndex !== null && Math.abs(focusedSegmentIndex - index) === 1 && isCollapsed;
-            const isExpanded = expandedCollapsedSegments.has(index) || shouldShowNeighbor;
+            const isUserExpanded = expandedCollapsedSegments.has(index);
+            const isExpanded = isUserExpanded || shouldShowNeighbor;
             const showCollapsedToken = isCollapsed && !isExpanded;
             return {
               label: showCollapsedToken ? '··' : segment,
@@ -245,7 +246,9 @@ export default function AdminCategoryBreadcrumbPicker({
                     },
               labelClassName:
                 index === displayedPath.length - 1
-                  ? 'inline-block max-w-[260px] truncate align-bottom font-semibold text-[#1982bf] underline decoration-[#1982bf]/70 underline-offset-2'
+                  ? 'inline-block max-w-[260px] truncate align-bottom font-semibold text-[#1982bf]'
+                  : isUserExpanded
+                    ? 'underline decoration-slate-500/70 underline-offset-2'
                   : showCollapsedToken
                     ? 'text-slate-500'
                     : undefined

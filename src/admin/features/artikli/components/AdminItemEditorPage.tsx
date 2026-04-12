@@ -51,7 +51,7 @@ const inlineSnippetClass = 'rounded bg-[#1982bf1a] px-1 py-0.5 font-mono text-[1
 type EditorMode = 'create' | 'edit';
 type CreateType = 'simple' | 'variants';
 type MediaTab = 'slike' | 'video';
-type VariantTag = 'novo' | 'akcija' | 'zadnji-kosi';
+type VariantTag = 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
 type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 type VideoEntry = { id: string; source: 'upload' | 'youtube'; label: string; previewUrl: string; visible: boolean };
@@ -560,7 +560,7 @@ function ActiveStateChip({
       >
         {editable ? <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span> : null}
         <span className="block">
-          <Chip variant={active ? 'success' : 'warning'} className={chipClassName}>{label}</Chip>
+          <Chip variant={active ? 'success' : 'neutral'} className={chipClassName}>{label}</Chip>
         </span>
       </button>
 
@@ -678,8 +678,16 @@ function TagStateChip({
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const label = value === 'novo' ? 'Novo' : value === 'akcija' ? 'V akciji' : 'Zadnji kosi';
-  const variant = value === 'novo' ? 'info' : value === 'akcija' ? 'warning' : 'purple';
+  const label =
+    value === 'novo'
+      ? 'Novo'
+      : value === 'akcija'
+        ? 'V akciji'
+        : value === 'ni-na-zalogi'
+          ? 'Ni na zalogi'
+          : 'Zadnji kosi';
+  const variant = value === 'novo' ? 'info' : value === 'akcija' ? 'danger' : value === 'ni-na-zalogi' ? 'neutral' : 'purple';
+  const emphasisClassName = value === 'akcija' ? '!border-rose-200 !bg-rose-50 !text-rose-700' : '';
 
   const updateMenuPosition = useCallback(() => {
     if (!triggerRef.current) return;
@@ -730,7 +738,7 @@ function TagStateChip({
       >
         {editable ? <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span> : null}
         <span className="block">
-          <Chip variant={variant} className={chipClassName}>{label}</Chip>
+          <Chip variant={variant} className={`${chipClassName ?? ''} ${emphasisClassName}`.trim()}>{label}</Chip>
         </span>
       </button>
 
@@ -746,6 +754,7 @@ function TagStateChip({
                 <MenuItem onClick={() => { onChange('novo'); setIsOpen(false); }}>Novo</MenuItem>
                 <MenuItem onClick={() => { onChange('akcija'); setIsOpen(false); }}>V akciji</MenuItem>
                 <MenuItem onClick={() => { onChange('zadnji-kosi'); setIsOpen(false); }}>Zadnji kosi</MenuItem>
+                <MenuItem onClick={() => { onChange('ni-na-zalogi'); setIsOpen(false); }}>Ni na zalogi</MenuItem>
               </MenuPanel>
             </div>,
             document.body
@@ -1143,8 +1152,7 @@ export default function AdminItemEditorPage({
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <h1 className="flex min-h-10 flex-nowrap items-center gap-1 whitespace-nowrap text-lg font-semibold tracking-tight text-slate-900">
                 <span className="inline-flex h-10 items-center gap-0">
-                  <div className={`inline-flex h-[36px] min-w-[14ch] items-center gap-2 rounded-md border border-slate-300 pl-[10px] pr-2.5 ${isEditable ? 'bg-white' : 'bg-[color:var(--ui-neutral-bg)] text-slate-500'}`}>
-                    <SideInputIcon icon="name" className="h-4 w-4" muted={draft.name.trim().length === 0} />
+                  <div className={`inline-flex h-[36px] min-w-[16ch] items-center gap-2 rounded-md border border-slate-300 pl-[10px] pr-2.5 ${isEditable ? 'bg-white' : 'bg-[color:var(--ui-neutral-bg)] text-slate-500'}`}>
                     <input
                       aria-label="Naziv artikla"
                       value={draft.name}

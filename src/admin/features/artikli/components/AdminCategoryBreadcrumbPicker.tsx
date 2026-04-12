@@ -168,6 +168,16 @@ export default function AdminCategoryBreadcrumbPicker({
     setQuery('');
   };
 
+  const shortenedValueSegments =
+    value.length >= 4
+      ? [
+          value[0],
+          `${'../'.repeat(Math.max(1, value.length - 3))}`,
+          value[value.length - 2],
+          value[value.length - 1]
+        ]
+      : value;
+
   const breadcrumbItems =
     value.length === 0
       ? [
@@ -200,18 +210,29 @@ export default function AdminCategoryBreadcrumbPicker({
               setIsOpen(true);
             }
           },
-          ...value.map((segment, index) => ({
-            label: segment,
-            key: `${segment}-${index}`,
-            title: value.slice(0, index + 1).join(' / '),
-            isCurrent: false,
-            onClick: disabled ? undefined : () => {
-              setDrillPath(value.slice(0, index + 1));
-              setQuery('');
-              setIsOpen(true);
-            },
-            labelClassName: index === value.length - 1 ? 'inline-block max-w-[260px] truncate align-bottom font-semibold text-slate-900' : undefined
-          }))
+          ...shortenedValueSegments.map((segment, index) => {
+            const targetIndex = value.length >= 4 && index > 1 ? value.length - (shortenedValueSegments.length - index) : index;
+            return {
+              label: segment,
+              key: `${segment}-${index}`,
+              title: value.length >= 4 && index === 1 ? value.join(' / ') : value.slice(0, targetIndex + 1).join(' / '),
+              isCurrent: false,
+              onClick:
+                disabled || (value.length >= 4 && index === 1)
+                  ? undefined
+                  : () => {
+                      setDrillPath(value.slice(0, targetIndex + 1));
+                      setQuery('');
+                      setIsOpen(true);
+                    },
+              labelClassName:
+                index === shortenedValueSegments.length - 1
+                  ? 'inline-block max-w-[260px] truncate align-bottom font-semibold text-slate-900'
+                  : value.length >= 4 && index === 1
+                    ? 'text-slate-500'
+                    : undefined
+            };
+          })
         ];
 
   return (

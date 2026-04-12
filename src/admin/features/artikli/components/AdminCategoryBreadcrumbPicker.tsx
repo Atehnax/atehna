@@ -251,8 +251,6 @@ export default function AdminCategoryBreadcrumbPicker({
               labelClassName:
                 index === displayedPath.length - 1
                   ? `inline-block max-w-[260px] truncate align-bottom font-semibold text-[#1982bf] ${isFocused ? 'underline decoration-[#1982bf]/70 underline-offset-2' : ''}`.trim()
-                  : isUserExpanded
-                    ? 'underline decoration-slate-500/70 underline-offset-2'
                   : showCollapsedToken
                     ? 'text-slate-500'
                     : isFocused

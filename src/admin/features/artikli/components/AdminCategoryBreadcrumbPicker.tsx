@@ -29,6 +29,7 @@ const toPathParts = (value: string) =>
     .filter(Boolean);
 
 const pathKeyFromParts = (path: string[]) => path.join(' / ');
+const CATEGORY_PICKER_MENU_BASE_WIDTH_PX = 470;
 
 const buildCategoryIndex = (paths: string[]) => {
   const childrenByParent = new Map<string, Set<string>>();
@@ -146,9 +147,8 @@ export default function AdminCategoryBreadcrumbPicker({
       setMenuWidthPx(null);
       return;
     }
-    if (!containerRef.current) return;
     if (menuWidthPx !== null) return;
-    const nextWidth = Math.round(containerRef.current.getBoundingClientRect().width * 2.25);
+    const nextWidth = Math.max(320, Math.min(window.innerWidth - 24, CATEGORY_PICKER_MENU_BASE_WIDTH_PX));
     if (nextWidth > 0) setMenuWidthPx(nextWidth);
   }, [isOpen, menuWidthPx]);
 
@@ -296,7 +296,7 @@ export default function AdminCategoryBreadcrumbPicker({
       {isOpen ? (
         <div
           className="absolute left-0 top-full z-30 mt-1 rounded-md border border-slate-200 bg-white p-2 shadow-lg"
-          style={{ width: menuWidthPx ? `${menuWidthPx}px` : '225%' }}
+          style={{ width: menuWidthPx ? `${menuWidthPx}px` : `${CATEGORY_PICKER_MENU_BASE_WIDTH_PX}px` }}
         >
           <div className="rounded-md border border-slate-300 bg-white transition-colors focus-within:border-[#3e67d6]">
             <input

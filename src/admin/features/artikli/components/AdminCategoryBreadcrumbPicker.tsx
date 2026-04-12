@@ -143,13 +143,14 @@ export default function AdminCategoryBreadcrumbPicker({
     if (!isOpen) {
       setFocusedSegmentIndex(null);
       setExpandedCollapsedSegments(new Set());
+      setMenuWidthPx(null);
       return;
     }
     if (!containerRef.current) return;
-    if (menuWidthPx !== null && drillPath.length > 1) return;
-    const nextWidth = Math.round(containerRef.current.getBoundingClientRect().width * 1.5);
+    if (menuWidthPx !== null) return;
+    const nextWidth = Math.round(containerRef.current.getBoundingClientRect().width * 2.25);
     if (nextWidth > 0) setMenuWidthPx(nextWidth);
-  }, [drillPath.length, isOpen, menuWidthPx]);
+  }, [isOpen, menuWidthPx]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -295,7 +296,7 @@ export default function AdminCategoryBreadcrumbPicker({
       {isOpen ? (
         <div
           className="absolute left-0 top-full z-30 mt-1 rounded-md border border-slate-200 bg-white p-2 shadow-lg"
-          style={{ width: menuWidthPx ? `${menuWidthPx}px` : '150%' }}
+          style={{ width: menuWidthPx ? `${menuWidthPx}px` : '225%' }}
         >
           <div className="rounded-md border border-slate-300 bg-white transition-colors focus-within:border-[#3e67d6]">
             <input

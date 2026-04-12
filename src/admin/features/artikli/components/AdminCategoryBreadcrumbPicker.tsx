@@ -97,6 +97,8 @@ export default function AdminCategoryBreadcrumbPicker({
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [drillPath, setDrillPath] = useState<string[]>(value);
+  const [focusedSegmentIndex, setFocusedSegmentIndex] = useState<number | null>(null);
+  const [expandedCollapsedSegments, setExpandedCollapsedSegments] = useState<Set<number>>(new Set());
   const [activeIndex, setActiveIndex] = useState(0);
 
   const allPaths = useMemo(() => {
@@ -137,6 +139,13 @@ export default function AdminCategoryBreadcrumbPicker({
   }, [value]);
 
   useEffect(() => {
+    if (!isOpen) {
+      setFocusedSegmentIndex(null);
+      setExpandedCollapsedSegments(new Set());
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
     if (!isOpen) return;
 
     const handleOutsideClick = (event: MouseEvent) => {
@@ -168,18 +177,13 @@ export default function AdminCategoryBreadcrumbPicker({
     setQuery('');
   };
 
-  const shortenedValueSegments =
-    value.length >= 4
-      ? [
-          value[0],
-          Array.from({ length: Math.max(1, value.length - 3) }, () => '…').join(' '),
-          value[value.length - 2],
-          value[value.length - 1]
-        ]
-      : value;
+  const displayedPath = isOpen ? drillPath : value;
+
+  const isCollapsibleIndex = (index: number) =>
+    displayedPath.length >= 4 && index > 0 && index < displayedPath.length - 2;
 
   const breadcrumbItems =
-    value.length === 0
+    displayedPath.length === 0
       ? [
           {
             key: 'categories-root',
@@ -210,25 +214,39 @@ export default function AdminCategoryBreadcrumbPicker({
               setIsOpen(true);
             }
           },
-          ...shortenedValueSegments.map((segment, index) => {
-            const targetIndex = value.length >= 4 && index > 1 ? value.length - (shortenedValueSegments.length - index) : index;
+          ...displayedPath.map((segment, index) => {
+            const isCollapsed = isCollapsibleIndex(index);
+            const shouldShowNeighbor =
+              focusedSegmentIndex !== null && Math.abs(focusedSegmentIndex - index) === 1 && isCollapsed;
+            const isExpanded = expandedCollapsedSegments.has(index) || shouldShowNeighbor;
+            const showCollapsedToken = isCollapsed && !isExpanded;
             return {
-              label: segment,
+              label: showCollapsedToken ? '··' : segment,
               key: `${segment}-${index}`,
-              title: value.length >= 4 && index === 1 ? value.join(' / ') : value.slice(0, targetIndex + 1).join(' / '),
+              title: displayedPath.slice(0, index + 1).join(' / '),
               isCurrent: false,
               onClick:
-                disabled || (value.length >= 4 && index === 1)
+                disabled
                   ? undefined
                   : () => {
-                      setDrillPath(value.slice(0, targetIndex + 1));
+                      setFocusedSegmentIndex(index);
+                      if (showCollapsedToken) {
+                        setExpandedCollapsedSegments((current) => {
+                          const next = new Set(current);
+                          if (next.has(index)) next.delete(index);
+                          else next.add(index);
+                          return next;
+                        });
+                        return;
+                      }
+                      setDrillPath(displayedPath.slice(0, index + 1));
                       setQuery('');
                       setIsOpen(true);
                     },
               labelClassName:
-                index === shortenedValueSegments.length - 1
+                index === displayedPath.length - 1
                   ? 'inline-block max-w-[260px] truncate align-bottom font-semibold text-slate-900'
-                  : value.length >= 4 && index === 1
+                  : showCollapsedToken
                     ? 'text-slate-500'
                     : undefined
             };
@@ -244,10 +262,10 @@ export default function AdminCategoryBreadcrumbPicker({
         aria-label="Izbira poti kategorije"
       >
         <span className="min-w-0 truncate text-sm text-slate-700" onClick={(event) => {
-          if (disabled || isOpen || value.length === 0) return;
+          if (disabled || isOpen || displayedPath.length === 0) return;
           const target = event.target as HTMLElement;
           if (target.closest('button')) return;
-          setDrillPath(value);
+          setDrillPath(displayedPath);
           setQuery('');
           setIsOpen(true);
         }}>

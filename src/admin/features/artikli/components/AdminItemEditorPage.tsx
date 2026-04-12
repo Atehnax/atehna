@@ -1152,7 +1152,7 @@ export default function AdminItemEditorPage({
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <h1 className="flex min-h-10 flex-nowrap items-center gap-1 whitespace-nowrap text-lg font-semibold tracking-tight text-slate-900">
                 <span className="inline-flex h-10 items-center gap-0">
-                  <div className={`inline-flex h-[36px] min-w-[17ch] items-center gap-2 rounded-md border border-slate-300 pl-[10px] pr-2.5 ${isEditable ? 'bg-white' : 'bg-[color:var(--ui-neutral-bg)] text-slate-500'}`}>
+                  <div className={`inline-flex h-[36px] w-[20ch] min-w-[20ch] items-center gap-2 rounded-md border border-slate-300 pl-[10px] pr-2.5 ${isEditable ? 'bg-white' : 'bg-[color:var(--ui-neutral-bg)] text-slate-500'}`}>
                     <input
                       aria-label="Naziv artikla"
                       value={draft.name}

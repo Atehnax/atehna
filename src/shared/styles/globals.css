@@ -272,7 +272,7 @@ input[type='radio'] {
 .admin-scope .euiTextArea,
 .admin-scope .euiSelect,
 .admin-scope .euiSelect__button,
-.admin-scope input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='color']):not([type='submit']):not([type='button']):not([type='reset']),
+.admin-scope input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='color']):not([type='submit']):not([type='button']):not([type='reset']):not(.admin-item-name-input),
 .admin-scope select,
 .admin-scope textarea {
   font-family: "Inter", system-ui, sans-serif !important;
@@ -288,6 +288,18 @@ input.admin-item-name-input,
   line-height: 1.75rem !important;
   letter-spacing: -0.025em !important;
   color: rgb(15 23 42) !important;
+}
+
+input.admin-item-name-input:placeholder-shown,
+input.admin-item-name-input:not(:placeholder-shown),
+.admin-scope input.admin-item-name-input:placeholder-shown,
+.admin-scope input.admin-item-name-input:not(:placeholder-shown),
+.admin-scope h1 input[aria-label='Naziv artikla']:placeholder-shown,
+.admin-scope h1 input[aria-label='Naziv artikla']:not(:placeholder-shown) {
+  font-size: 1.125rem !important;
+  font-weight: 600 !important;
+  line-height: 1.75rem !important;
+  letter-spacing: -0.025em !important;
 }
 
 input.admin-item-name-input::placeholder,

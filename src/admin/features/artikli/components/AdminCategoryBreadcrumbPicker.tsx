@@ -177,7 +177,7 @@ export default function AdminCategoryBreadcrumbPicker({
     setQuery('');
   };
 
-  const displayedPath = isOpen ? drillPath : value;
+  const displayedPath = value.length > 0 ? value : isOpen ? drillPath : value;
 
   const isCollapsibleIndex = (index: number) =>
     displayedPath.length >= 4 && index > 0 && index < displayedPath.length - 2;
@@ -245,7 +245,7 @@ export default function AdminCategoryBreadcrumbPicker({
                     },
               labelClassName:
                 index === displayedPath.length - 1
-                  ? 'inline-block max-w-[260px] truncate align-bottom font-semibold text-slate-900'
+                  ? 'inline-block max-w-[260px] truncate align-bottom font-semibold text-[#1982bf] underline decoration-[#1982bf]/70 underline-offset-2'
                   : showCollapsedToken
                     ? 'text-slate-500'
                     : undefined

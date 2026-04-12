@@ -279,7 +279,9 @@ input[type='radio'] {
   font-size: 11px !important;
 }
 
-.admin-scope input.admin-item-name-input {
+input.admin-item-name-input,
+.admin-scope input.admin-item-name-input,
+.admin-scope h1 input[aria-label='Naziv artikla'] {
   font-family: "Inter", system-ui, sans-serif !important;
   font-size: 1.125rem !important;
   font-weight: 600 !important;
@@ -288,7 +290,9 @@ input[type='radio'] {
   color: rgb(15 23 42) !important;
 }
 
-.admin-scope input.admin-item-name-input::placeholder {
+input.admin-item-name-input::placeholder,
+.admin-scope input.admin-item-name-input::placeholder,
+.admin-scope h1 input[aria-label='Naziv artikla']::placeholder {
   font-size: 1.125rem !important;
   font-weight: 600 !important;
   line-height: 1.75rem !important;
@@ -297,7 +301,9 @@ input[type='radio'] {
   opacity: 1 !important;
 }
 
-.admin-scope input.admin-item-name-input:disabled {
+input.admin-item-name-input:disabled,
+.admin-scope input.admin-item-name-input:disabled,
+.admin-scope h1 input[aria-label='Naziv artikla']:disabled {
   color: rgb(15 23 42) !important;
 }
 

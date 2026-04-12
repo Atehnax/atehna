@@ -172,7 +172,7 @@ export default function AdminCategoryBreadcrumbPicker({
     value.length >= 4
       ? [
           value[0],
-          `${'../'.repeat(Math.max(1, value.length - 3))}`,
+          Array.from({ length: Math.max(1, value.length - 3) }, () => '…').join(' '),
           value[value.length - 2],
           value[value.length - 1]
         ]
@@ -243,8 +243,10 @@ export default function AdminCategoryBreadcrumbPicker({
         role="group"
         aria-label="Izbira poti kategorije"
       >
-        <span className="min-w-0 truncate text-sm text-slate-700" onClick={() => {
+        <span className="min-w-0 truncate text-sm text-slate-700" onClick={(event) => {
           if (disabled || isOpen || value.length === 0) return;
+          const target = event.target as HTMLElement;
+          if (target.closest('button')) return;
           setDrillPath(value);
           setQuery('');
           setIsOpen(true);

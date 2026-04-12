@@ -223,12 +223,12 @@ export default function AdminCategoryBreadcrumbPicker({
           },
           ...displayedPath.map((segment, index) => {
             const isCollapsed = isCollapsibleIndex(index);
+            const isFocused = focusedSegmentIndex === index;
             const shouldShowNeighbor =
               focusedSegmentIndex !== null && Math.abs(focusedSegmentIndex - index) === 1 && isCollapsed;
             const isUserExpanded = expandedCollapsedSegments.has(index);
             const isExpanded = isUserExpanded || shouldShowNeighbor;
-            const showCollapsedToken = isCollapsed && !isExpanded;
-            const isFocused = focusedSegmentIndex === index;
+            const showCollapsedToken = isCollapsed && !isExpanded && !isFocused;
             return {
               label: showCollapsedToken ? '··' : segment,
               key: `${segment}-${index}`,

@@ -99,6 +99,7 @@ export default function AdminCategoryBreadcrumbPicker({
   const [drillPath, setDrillPath] = useState<string[]>(value);
   const [focusedSegmentIndex, setFocusedSegmentIndex] = useState<number | null>(null);
   const [expandedCollapsedSegments, setExpandedCollapsedSegments] = useState<Set<number>>(new Set());
+  const [menuWidthPx, setMenuWidthPx] = useState<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
   const allPaths = useMemo(() => {
@@ -142,8 +143,13 @@ export default function AdminCategoryBreadcrumbPicker({
     if (!isOpen) {
       setFocusedSegmentIndex(null);
       setExpandedCollapsedSegments(new Set());
+      return;
     }
-  }, [isOpen]);
+    if (!containerRef.current) return;
+    if (menuWidthPx !== null && drillPath.length > 1) return;
+    const nextWidth = Math.round(containerRef.current.getBoundingClientRect().width * 1.5);
+    if (nextWidth > 0) setMenuWidthPx(nextWidth);
+  }, [drillPath.length, isOpen, menuWidthPx]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -287,7 +293,10 @@ export default function AdminCategoryBreadcrumbPicker({
       </div>
 
       {isOpen ? (
-        <div className="absolute left-0 top-full z-30 mt-1 w-[150%] rounded-md border border-slate-200 bg-white p-2 shadow-lg">
+        <div
+          className="absolute left-0 top-full z-30 mt-1 rounded-md border border-slate-200 bg-white p-2 shadow-lg"
+          style={{ width: menuWidthPx ? `${menuWidthPx}px` : '150%' }}
+        >
           <div className="rounded-md border border-slate-300 bg-white transition-colors focus-within:border-[#3e67d6]">
             <input
               autoFocus

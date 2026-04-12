@@ -279,6 +279,28 @@ input[type='radio'] {
   font-size: 11px !important;
 }
 
+.admin-scope input.admin-item-name-input {
+  font-family: "Inter", system-ui, sans-serif !important;
+  font-size: 1.125rem !important;
+  font-weight: 600 !important;
+  line-height: 1.75rem !important;
+  letter-spacing: -0.025em !important;
+  color: rgb(15 23 42) !important;
+}
+
+.admin-scope input.admin-item-name-input::placeholder {
+  font-size: 1.125rem !important;
+  font-weight: 600 !important;
+  line-height: 1.75rem !important;
+  letter-spacing: -0.025em !important;
+  color: rgb(148 163 184) !important;
+  opacity: 1 !important;
+}
+
+.admin-scope input.admin-item-name-input:disabled {
+  color: rgb(15 23 42) !important;
+}
+
 [data-floating-field] input:-webkit-autofill,
 [data-floating-field] textarea:-webkit-autofill,
 [data-floating-field] select:-webkit-autofill,

@@ -1620,18 +1620,6 @@ export default function AdminItemEditorPage({
             <path d="M3 3 21 21" />
           </svg>
         )
-      },
-      {
-        key: 'move',
-        label: 'premakni',
-        tone: 'light' as const,
-        icon: (
-          <svg viewBox="0 0 24 24" className={compact ? 'h-3 w-3' : 'h-4 w-4'} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <circle cx="9" cy="6.5" r="1.1" /><circle cx="9" cy="12" r="1.1" /><circle cx="9" cy="17.5" r="1.1" />
-            <circle cx="15" cy="6.5" r="1.1" /><circle cx="15" cy="12" r="1.1" /><circle cx="15" cy="17.5" r="1.1" />
-          </svg>
-        ),
-        dragHandle: true
       }
     ];
 
@@ -1641,13 +1629,12 @@ export default function AdminItemEditorPage({
           <button
             key={`${slotIndex}-${action.key}`}
             type="button"
-            className={`inline-flex items-center justify-center rounded-md border px-0 leading-none shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${compact ? 'h-[20px] min-w-[1.3rem]' : 'h-[25px] min-w-[1.6rem]'} ${action.tone === 'danger' ? 'border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'} ${action.dragHandle ? 'cursor-grab active:cursor-grabbing' : ''}`}
+            className={`inline-flex items-center justify-center rounded-md border px-0 leading-none shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${compact ? 'h-[20px] min-w-[1.3rem]' : 'h-[25px] min-w-[1.6rem]'} ${action.tone === 'danger' ? 'border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'}`}
             onPointerDown={(event) => {
-              if (action.dragHandle) return;
               event.stopPropagation();
               event.preventDefault();
             }}
-            onClick={action.dragHandle ? undefined : action.onClick}
+            onClick={action.onClick}
             aria-label={action.label}
             title={action.label}
           >
@@ -1854,7 +1841,21 @@ export default function AdminItemEditorPage({
                     )
                   ) : (
                     <div className="grid h-full grid-cols-5 grid-rows-2 gap-2">
-                      <div className="group relative col-span-2 row-span-2 overflow-hidden rounded-lg border border-slate-300">
+                      <div
+                        className={`group relative col-span-2 row-span-2 overflow-hidden rounded-lg border border-slate-300 ${isMediaEditable ? 'cursor-grab' : ''}`}
+                        draggable={Boolean(isMediaEditable)}
+                        onDragStart={() => setDraggedImageIndex(0)}
+                        onDragOver={(event) => {
+                          if (!isMediaEditable) return;
+                          event.preventDefault();
+                        }}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          if (!isMediaEditable || draggedImageIndex === null) return;
+                          moveImageSlot(draggedImageIndex, 0);
+                          setDraggedImageIndex(null);
+                        }}
+                      >
                         <Image src={mediaImagesDraft[0]} alt="Glavna slika" width={1200} height={1200} unoptimized sizes="(max-width: 1280px) 36vw, 420px" className="h-full w-full object-cover" />
                         {renderImageActionButtons(0)}
                       </div>
@@ -1877,7 +1878,7 @@ export default function AdminItemEditorPage({
                               }}
                               onDrop={(event) => {
                                 event.preventDefault();
-                                if (!isMediaEditable || draggedImageIndex === null || draggedImageIndex === 0) return;
+                                if (!isMediaEditable || draggedImageIndex === null) return;
                                 moveImageSlot(draggedImageIndex, slotIndex);
                                 setDraggedImageIndex(null);
                               }}

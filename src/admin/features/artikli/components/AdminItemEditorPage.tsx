@@ -162,7 +162,7 @@ function ImageUploadFrameIcon({ className = '' }: { className?: string }) {
     <svg viewBox="0 0 64 48" aria-hidden className={className}>
       <rect x="9" y="8" width="46" height="32" rx="4" fill="#b9d3ea" />
       <path d="M9 28.5 20.5 20l7.5 5.6L42.5 14 55 25v15H9V28.5Z" fill="#74addb" />
-      <circle cx="20.5" cy="17.5" r="4.5" fill="#eef5fb" />
+      <circle cx="20.5" cy="15.5" r="4.5" fill="#eef5fb" />
       <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H10v2H7.5A1.5 1.5 0 0 0 6 7.5V10H4V6.5Z" fill="#74addb" />
       <path d="M60 6.5A2.5 2.5 0 0 0 57.5 4H54v2h2.5A1.5 1.5 0 0 1 58 7.5V10h2V6.5Z" fill="#74addb" />
       <path d="M4 41.5A2.5 2.5 0 0 0 6.5 44H10v-2H7.5A1.5 1.5 0 0 1 6 40.5V38H4v3.5Z" fill="#74addb" />

@@ -49,6 +49,27 @@ const compactSideInputWrapClassName = 'mt-0.5 flex h-[30px] items-center gap-2 r
 const compactSideInputClassName = 'h-full w-full border-0 bg-transparent p-0 text-sm text-slate-900 outline-none focus:ring-0';
 const articleNameInputClassName = 'admin-item-name-input h-full w-full min-w-0 border-0 bg-transparent p-0 shadow-none outline-none transition focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none disabled:cursor-not-allowed';
 const inlineSnippetClass = 'rounded bg-[#1982bf1a] px-1 py-0.5 font-mono text-[11px] text-[#1982bf]';
+const mimeTypeToImageExtension: Record<string, string> = {
+  'image/jpeg': 'JPG',
+  'image/jpg': 'JPG',
+  'image/png': 'PNG',
+  'image/webp': 'WEBP',
+  'image/gif': 'GIF',
+  'image/svg+xml': 'SVG',
+  'image/avif': 'AVIF',
+  'image/bmp': 'BMP',
+  'image/tiff': 'TIFF'
+};
+
+function inferImageExtensionLabel({ mimeType, fileName, url }: { mimeType?: string; fileName?: string; url?: string }) {
+  const mimeLabel = mimeType ? mimeTypeToImageExtension[mimeType.toLowerCase()] : undefined;
+  if (mimeLabel) return mimeLabel;
+  const fromName = fileName?.match(/\.([a-zA-Z0-9]+)$/)?.[1]?.toUpperCase();
+  if (fromName) return fromName;
+  const fromUrl = url?.match(/\.([a-zA-Z0-9]+)(?:$|\?)/)?.[1]?.toUpperCase();
+  if (fromUrl) return fromUrl;
+  return 'IMG';
+}
 
 type EditorMode = 'create' | 'edit';
 type CreateType = 'simple' | 'variants';
@@ -1067,6 +1088,7 @@ export default function AdminItemEditorPage({
   const [draggedVariantImageSlot, setDraggedVariantImageSlot] = useState<number | null>(null);
   const [imageMeta, setImageMeta] = useState<Record<string, { width: number; height: number; type: string }>>({});
   const localBlobUrlsRef = useRef<Set<string>>(new Set());
+  const imageTypeHintsRef = useRef<Record<string, string>>({});
   const suppressImageClickAfterDragRef = useRef(false);
   const uppyRef = useRef<Uppy | null>(null);
   const uploadPlanRef = useRef<{ startSlot: number; nextOffset: number; maxFiles: number }>({ startSlot: 0, nextOffset: 0, maxFiles: 1 });
@@ -1353,11 +1375,13 @@ export default function AdminItemEditorPage({
     if (!localBlobUrlsRef.current.has(url)) return;
     URL.revokeObjectURL(url);
     localBlobUrlsRef.current.delete(url);
+    delete imageTypeHintsRef.current[url];
   }, []);
 
   useEffect(() => () => {
     localBlobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
     localBlobUrlsRef.current.clear();
+    imageTypeHintsRef.current = {};
   }, []);
 
   useEffect(() => {
@@ -1365,8 +1389,7 @@ export default function AdminItemEditorPage({
       if (!url || imageMeta[url]) return;
       const probe = new window.Image();
       probe.onload = () => {
-        const match = url.match(/\.([a-zA-Z0-9]+)(?:$|\?)/);
-        const extension = match?.[1]?.toUpperCase() ?? 'IMG';
+        const extension = imageTypeHintsRef.current[url] ?? inferImageExtensionLabel({ url });
         setImageMeta((current) => ({ ...current, [url]: { width: probe.width, height: probe.height, type: extension } }));
       };
       probe.src = url;
@@ -1443,7 +1466,9 @@ export default function AdminItemEditorPage({
         if (!Number.isFinite(targetSlot)) return;
         const blob = file.data;
         if (!(blob instanceof Blob)) return;
-        updateImageAtSlotRef.current(Math.max(0, Math.min(MEDIA_SLOT_COUNT - 1, targetSlot)), createLocalImageUrl(blob));
+        const localImageUrl = createLocalImageUrl(blob);
+        imageTypeHintsRef.current[localImageUrl] = inferImageExtensionLabel({ mimeType: file.type, fileName: file.name });
+        updateImageAtSlotRef.current(Math.max(0, Math.min(MEDIA_SLOT_COUNT - 1, targetSlot)), localImageUrl);
       });
       fileIDs.forEach((fileID) => {
         if (uppy.getFile(fileID)) uppy.removeFile(fileID);
@@ -2001,8 +2026,7 @@ export default function AdminItemEditorPage({
                         const assignedImageDetails = assignedSlots.flatMap((slot) => {
                           const url = mediaImagesDraft[slot];
                           if (!url) return [];
-                          const inferredType = url.match(/\.([a-zA-Z0-9]+)(?:$|\?)/)?.[1]?.toUpperCase();
-                          const typeLabel = imageMeta[url]?.type ?? inferredType ?? 'IMG';
+                          const typeLabel = imageMeta[url]?.type ?? imageTypeHintsRef.current[url] ?? inferImageExtensionLabel({ url });
                           const dimensionLabel = imageMeta[url] ? `${imageMeta[url].width}x${imageMeta[url].height}` : '—';
                           return [{ typeLabel, dimensionLabel }];
                         });

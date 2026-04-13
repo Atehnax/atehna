@@ -1979,35 +1979,6 @@ export default function AdminItemEditorPage({
                     </div>
                   )}
                 </div>
-                <div className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2">
-                  <div className="inline-flex flex-col gap-1">
-                    <span className="text-[11px] text-slate-600">Predogled / Postavitev</span>
-                    <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5">
-                      {([
-                        { key: 'grid', icon: <span className="grid grid-cols-2 gap-0.5">{Array.from({ length: 4 }).map((_, idx) => <span key={idx} className="h-1.5 w-1.5 rounded-[2px] border border-current" />)}</span> },
-                        { key: 'slider', icon: <span className="inline-flex gap-0.5">{Array.from({ length: 2 }).map((_, idx) => <span key={idx} className="h-3 w-1.5 rounded-[2px] border border-current" />)}</span> },
-                        { key: 'list', icon: <span className="inline-flex flex-col gap-0.5">{Array.from({ length: 3 }).map((_, idx) => <span key={idx} className="h-1 w-4 rounded-[2px] border border-current" />)}</span> }
-                      ] as const).map((modeOption) => (
-                        <button
-                          key={modeOption.key}
-                          type="button"
-                          aria-label={`Postavitev ${modeOption.key}`}
-                          className={`inline-flex h-7 w-7 items-center justify-center rounded-md border transition ${sideSettings.galleryMode === modeOption.key ? 'border-[#6f95ff] bg-[#edf2ff] text-[#3e67d6]' : 'border-transparent bg-transparent text-slate-400 hover:text-slate-600'}`}
-                          onClick={() => setSideSettings((current) => ({ ...current, galleryMode: modeOption.key }))}
-                        >
-                          {modeOption.icon}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="inline-flex flex-col gap-1">
-                    <span className="text-[11px] text-slate-600">Prikaz</span>
-                    <div className="inline-flex items-center gap-3 text-xs">
-                      <label className="inline-flex items-center gap-1.5"><AdminCheckbox checked={sideSettings.showGallery} onChange={(event) => setSideSettings((current) => ({ ...current, showGallery: event.target.checked }))} />Galerija</label>
-                      <label className="inline-flex items-center gap-1.5"><AdminCheckbox checked={sideSettings.autoSquareCrop} onChange={(event) => setSideSettings((current) => ({ ...current, autoSquareCrop: event.target.checked }))} />Kvadrat 1:1</label>
-                    </div>
-                  </div>
-                </div>
                 <div className="overflow-hidden rounded-lg border border-slate-200">
                   <table className="min-w-full text-xs">
                     <thead className="bg-slate-50">

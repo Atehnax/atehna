@@ -2001,14 +2001,13 @@ export default function AdminItemEditorPage({
                         const assignedImageUrls = assignedSlots
                           .map((slot) => mediaImagesDraft[slot])
                           .filter((url): url is string => Boolean(url));
-                        const assignedImageTypes = Array.from(
-                          new Set(
-                            assignedImageUrls.map((url) => {
-                              const inferredType = url.match(/\.([a-zA-Z0-9]+)(?:$|\?)/)?.[1]?.toUpperCase();
-                              return imageMeta[url]?.type ?? inferredType ?? 'IMG';
-                            })
-                          )
-                        );
+                        const assignedImageTypeLabels = assignedSlots.flatMap((slot) => {
+                          const url = mediaImagesDraft[slot];
+                          if (!url) return [];
+                          const inferredType = url.match(/\.([a-zA-Z0-9]+)(?:$|\?)/)?.[1]?.toUpperCase();
+                          const typeLabel = imageMeta[url]?.type ?? inferredType ?? 'IMG';
+                          return [`Slika ${slot + 1}: ${typeLabel}`];
+                        });
                         const primaryUrl = assignedImageUrls[0] ?? '';
                         const meta = imageMeta[primaryUrl];
                         return (
@@ -2027,7 +2026,7 @@ export default function AdminItemEditorPage({
                             }}
                           >
                             <td className="px-2 py-1.5">{variant.sku || '—'}</td>
-                            <td className="px-2 py-1.5 text-center">{assignedImageTypes.length ? assignedImageTypes.join(', ') : '—'}</td>
+                            <td className="px-2 py-1.5 text-center">{assignedImageTypeLabels.length ? assignedImageTypeLabels.join(', ') : '—'}</td>
                             <td className="px-2 py-1.5 text-center">{primaryUrl && meta ? `${meta.width}×${meta.height}` : '—'}</td>
                             <td className="px-2 py-1.5">
                               <div className="flex flex-wrap gap-1">
@@ -2037,7 +2036,7 @@ export default function AdminItemEditorPage({
                                   return (
                                     <div
                                       key={`${variant.id}-${slot}`}
-                                      className="inline-flex h-[18px] items-center gap-1 rounded-md border border-slate-200 bg-white px-1"
+                                      className="inline-flex h-[18px] items-center gap-1 overflow-hidden rounded-md border border-slate-200 bg-white px-1"
                                       draggable={isMediaEditable}
                                       onDragStart={() => {
                                         setDraggedVariantId(variant.id);
@@ -2055,7 +2054,7 @@ export default function AdminItemEditorPage({
                                         setDraggedVariantImageSlot(null);
                                       }}
                                     >
-                                      <Image src={slotImage} alt={`SKU ${variant.sku}`} width={20} height={20} unoptimized className="h-5 w-5 rounded object-cover" />
+                                      <Image src={slotImage} alt={`SKU ${variant.sku}`} width={16} height={16} unoptimized className="h-4 w-4 shrink-0 rounded object-cover" />
                                       <span className="max-w-[84px] truncate text-[11px] text-slate-600">Slika {slot + 1}</span>
                                       <button
                                         type="button"

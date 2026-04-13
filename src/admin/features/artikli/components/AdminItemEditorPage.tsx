@@ -1111,6 +1111,8 @@ export default function AdminItemEditorPage({
   const [youtubeInput, setYoutubeInput] = useState('');
   const [videoDraft, setVideoDraft] = useState<VideoState | null>(null);
   const [videoDragActive, setVideoDragActive] = useState(false);
+  const [videoMoveMode, setVideoMoveMode] = useState(false);
+  const [videoAssignedVariantId, setVideoAssignedVariantId] = useState<string | null>(null);
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>({});
   const [editingImageSlot, setEditingImageSlot] = useState<number | null>(null);
   const [imageSettings, setImageSettings] = useState<Record<number, { altText: string; focusX: number; focusY: number }>>({});
@@ -1124,6 +1126,24 @@ export default function AdminItemEditorPage({
   useEffect(() => {
     setDraft((current) => ({ ...current, category: selectedCategoryPath.join(' / ') }));
   }, [selectedCategoryPath]);
+
+  useEffect(() => {
+    if (!videoDraft) {
+      if (videoAssignedVariantId !== null) setVideoAssignedVariantId(null);
+      if (videoMoveMode) setVideoMoveMode(false);
+      return;
+    }
+    if (!draft.variants.length) {
+      if (videoAssignedVariantId !== null) setVideoAssignedVariantId(null);
+      return;
+    }
+    const hasAssignedVariant = videoAssignedVariantId
+      ? draft.variants.some((variant) => variant.id === videoAssignedVariantId)
+      : false;
+    if (!hasAssignedVariant) {
+      setVideoAssignedVariantId(draft.variants[0].id);
+    }
+  }, [draft.variants, videoAssignedVariantId, videoDraft, videoMoveMode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1315,40 +1335,45 @@ export default function AdminItemEditorPage({
     setGeneratorInput('');
   };
 
-  const addYoutubeVideo = () => {
-    const value = youtubeInput.trim();
-    if (!value) return;
+  const resolveYoutubeEmbedUrl = (rawUrl: string) => {
+    const value = rawUrl.trim();
+    if (!value) return null;
     const normalized = value.toLowerCase();
-    if (!normalized.includes('youtube.com') && !normalized.includes('youtu.be')) {
-      toast.error('Vnesite veljavno YouTube povezavo.');
-      return;
-    }
-    let previewUrl = value;
+    if (!normalized.includes('youtube.com') && !normalized.includes('youtu.be')) return null;
     try {
       const parsed = new URL(value);
       if (parsed.hostname.includes('youtu.be')) {
         const videoId = parsed.pathname.replace('/', '').trim();
-        if (!videoId) throw new Error('missing-video-id');
-        previewUrl = `https://www.youtube.com/embed/${videoId}`;
-      } else if (parsed.hostname.includes('youtube.com')) {
-        if (parsed.pathname === '/watch') {
-          const videoId = parsed.searchParams.get('v');
-          if (!videoId) throw new Error('missing-video-id');
-          previewUrl = `https://www.youtube.com/embed/${videoId}`;
-        } else if (parsed.pathname.startsWith('/embed/')) {
-          previewUrl = `${parsed.origin}${parsed.pathname}`;
-        } else {
-          throw new Error('unsupported-youtube-format');
-        }
-      } else {
-        throw new Error('unsupported-host');
+        if (!videoId) return null;
+        return `https://www.youtube.com/embed/${videoId}`;
       }
+      if (!parsed.hostname.includes('youtube.com')) return null;
+      if (parsed.pathname === '/watch') {
+        const videoId = parsed.searchParams.get('v');
+        if (!videoId) return null;
+        return `https://www.youtube.com/embed/${videoId}`;
+      }
+      if (parsed.pathname.startsWith('/embed/')) {
+        return `${parsed.origin}${parsed.pathname}`;
+      }
+      return null;
     } catch {
-      toast.error('Vnesite veljavno YouTube povezavo.');
-      return;
+      return null;
+    }
+  };
+
+  const submitYoutubeVideo = (rawUrl: string, options: { showError?: boolean } = {}) => {
+    const value = rawUrl.trim();
+    if (!value) return false;
+    const previewUrl = resolveYoutubeEmbedUrl(value);
+    if (!previewUrl) {
+      if (options.showError) toast.error('Vnesite veljavno YouTube povezavo.');
+      return false;
     }
     setVideoDraft({ source: 'youtube', label: value, previewUrl });
     setYoutubeInput('');
+    setVideoMoveMode(false);
+    return true;
   };
 
   const saveVideoEntries = () => {
@@ -1369,6 +1394,7 @@ export default function AdminItemEditorPage({
       return;
     }
     setVideoDraft({ source: 'upload', label: file.name, previewUrl: URL.createObjectURL(file) });
+    setVideoMoveMode(false);
   };
 
   const updateVariant = (index: number, updates: Partial<Variant>) => {
@@ -1888,6 +1914,8 @@ export default function AdminItemEditorPage({
                   if (mediaTab === 'video') {
                     setVideoDraft(null);
                     setYoutubeInput('');
+                    setVideoMoveMode(false);
+                    setVideoAssignedVariantId(null);
                     return;
                   }
                   const selected = new Set(selectedImageIndexes);
@@ -2168,10 +2196,16 @@ export default function AdminItemEditorPage({
                       <div className="absolute inset-y-0 right-2 z-20 flex flex-col items-end justify-start gap-1.5 pt-2 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
                         {[
                           { key: 'remove', label: 'Odstrani', tone: 'danger' as const, onClick: () => setVideoDraft(null), icon: <span aria-hidden className="text-sm leading-none">✕</span> },
-                          { key: 'replace', label: 'Zamenjaj video', tone: 'light' as const, onClick: () => document.getElementById('video-upload-input')?.click(), icon: <CloudUploadIcon className="h-[14px] w-[14px]" /> },
-                          { key: 'edit', label: 'Uredi', tone: 'light' as const, onClick: () => toast.info('Urejanje videa bo na voljo kmalu.'), icon: <PencilIcon className="h-[13px] w-[13px]" /> },
-                          { key: 'hide', label: 'Skrij', tone: 'light' as const, onClick: () => toast.info('Skrivanje videa bo na voljo kmalu.'), icon: <span className="text-[11px]">👁</span> },
-                          { key: 'move', label: 'Premakni', tone: 'light' as const, onClick: () => toast.info('Premikanje videa bo na voljo kmalu.'), icon: <span className="text-[11px]">↕</span> }
+                          {
+                            key: 'move',
+                            label: 'Premakni',
+                            tone: 'light' as const,
+                            onClick: () => {
+                              setVideoMoveMode(true);
+                              toast.info('Izberite ciljno celico v stolpcu Video.');
+                            },
+                            icon: <span className="text-[11px]">↕</span>
+                          }
                         ].map((action) => (
                           <button
                             key={action.key}
@@ -2183,6 +2217,10 @@ export default function AdminItemEditorPage({
                             }}
                             onClick={(event) => {
                               event.stopPropagation();
+                              if (action.key === 'remove') {
+                                setVideoAssignedVariantId(null);
+                                setVideoMoveMode(false);
+                              }
                               action.onClick();
                             }}
                             aria-label={action.label}
@@ -2242,26 +2280,24 @@ export default function AdminItemEditorPage({
                             value={youtubeInput}
                             disabled={!isMediaEditable}
                             onChange={(event) => setYoutubeInput(event.target.value)}
+                            onPaste={(event) => {
+                              const pastedText = event.clipboardData.getData('text');
+                              const didEmbed = submitYoutubeVideo(pastedText);
+                              if (didEmbed) {
+                                event.preventDefault();
+                              }
+                            }}
+                            onBlur={() => {
+                              if (!youtubeInput.trim()) return;
+                              void submitYoutubeVideo(youtubeInput, { showError: true });
+                            }}
                             onKeyDown={(event) => {
                               if (event.key !== 'Enter') return;
                               event.preventDefault();
-                              addYoutubeVideo();
+                              submitYoutubeVideo(youtubeInput, { showError: true });
                             }}
                             placeholder="https://youtube.com/watch?v=..."
                           />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="toolbar"
-                            className="h-[26px] shrink-0 px-2 text-[11px]"
-                            disabled={!isMediaEditable}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              addYoutubeVideo();
-                            }}
-                          >
-                            Dodaj povezavo
-                          </Button>
                         </div>
                       </div>
                     </div>
@@ -2277,21 +2313,31 @@ export default function AdminItemEditorPage({
                       </tr>
                     </thead>
                     <tbody>
-                      {draft.variants.map((variant) => (
+                      {draft.variants.map((variant) => {
+                        const hasVideoInCell = Boolean(videoDraft) && videoAssignedVariantId === variant.id;
+                        const canPlaceHere = Boolean(videoDraft) && isMediaEditable && videoMoveMode;
+                        return (
                         <tr key={`variant-video-${variant.id}`} className="border-t border-slate-100">
                           <td className="px-2 py-1.5">{variant.sku || '—'}</td>
-                          <td className="px-2 py-1.5 text-center">{videoDraft ? (videoDraft.source === 'youtube' ? 'YouTube' : 'Upload') : '—'}</td>
+                          <td className="px-2 py-1.5 text-center">{hasVideoInCell ? (videoDraft?.source === 'youtube' ? 'YouTube' : 'Upload') : '—'}</td>
                           <td className="px-2 py-1.5 text-left">
-                            {videoDraft ? (
-                              <div className="inline-flex h-[18px] items-center gap-1 overflow-hidden rounded-md border border-slate-200 bg-white px-1">
-                                <span className="max-w-[120px] truncate text-[11px] text-slate-600">{videoDraft.label}</span>
-                              </div>
-                            ) : (
-                              '—'
-                            )}
+                            <button
+                              type="button"
+                              disabled={!canPlaceHere && !hasVideoInCell}
+                              className={`inline-flex h-[18px] items-center gap-1 overflow-hidden rounded-md border px-1 text-[11px] transition ${hasVideoInCell ? 'border-slate-200 bg-white text-slate-600' : canPlaceHere ? 'border-[#9cb8ea] bg-[#f0f6ff] text-[#2f7dc5] hover:bg-[#e6f0ff]' : 'border-transparent bg-transparent text-slate-400'}`}
+                              onClick={() => {
+                                if (!canPlaceHere) return;
+                                setVideoAssignedVariantId(variant.id);
+                                setVideoMoveMode(false);
+                              }}
+                            >
+                              {hasVideoInCell ? (
+                                <span className="max-w-[120px] truncate">{videoDraft?.label}</span>
+                              ) : canPlaceHere ? 'Postavi video' : '—'}
+                            </button>
                           </td>
                         </tr>
-                      ))}
+                      )})}
                     </tbody>
                   </table>
                 </div>

@@ -2195,7 +2195,11 @@ export default function AdminItemEditorPage({
                     </div>
                   ) : (
                     <div
-                      className={`relative flex h-full w-full flex-col items-center justify-center rounded-lg border-2 border-dashed bg-[#f7f9fe] px-5 py-3 text-center transition ${videoDragActive ? 'border-[#4f8bff] bg-[#edf3ff]' : 'border-[#9cb8ea]'} ${isMediaEditable ? '' : 'cursor-not-allowed opacity-60'}`}
+                      className={`relative flex h-full w-full flex-col items-center justify-between rounded-lg border-2 border-dashed bg-[#f7f9fe] px-5 pb-4 pt-3 text-center transition ${videoDragActive ? 'border-[#4f8bff] bg-[#edf3ff]' : 'border-[#9cb8ea]'} ${isMediaEditable ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
+                      onClick={() => {
+                        if (!isMediaEditable) return;
+                        document.getElementById('video-upload-input')?.click();
+                      }}
                       onDragEnter={(event) => {
                         if (!isMediaEditable) return;
                         event.preventDefault();
@@ -2220,30 +2224,21 @@ export default function AdminItemEditorPage({
                         handleVideoFileSelect(event.dataTransfer.files?.[0]);
                       }}
                     >
-                      <VideoUploadFrameIcon className="h-[72px] w-[72px] text-[#74addb]" />
-                      <div className="mt-1 flex flex-col items-center justify-center leading-tight">
-                        <span className="text-base font-semibold text-slate-800">Naloži video</span>
-                        <span className="mt-1 text-xs font-medium text-slate-500">(največ 100 MB)</span>
-                      </div>
-                      <div className="mt-3 flex w-full max-w-[340px] flex-col gap-2.5">
-                        <Button
-                          type="button"
-                          variant="default"
-                          size="toolbar"
-                          className="h-9 w-full justify-center"
-                          disabled={!isMediaEditable}
-                          onClick={() => document.getElementById('video-upload-input')?.click()}
-                        >
-                          Izberi video
-                        </Button>
-                        <div className="flex w-full items-center gap-2">
-                          <span className="h-px flex-1 bg-[#d5e2f5]" />
-                          <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-400">ali</span>
-                          <span className="h-px flex-1 bg-[#d5e2f5]" />
+                      <div className="flex flex-1 flex-col items-center justify-center">
+                        <VideoUploadFrameIcon className="h-[72px] w-[72px] text-[#74addb]" />
+                        <div className="mt-1 flex flex-col items-center justify-center leading-tight">
+                          <span className="text-base font-semibold text-slate-800">Naloži video</span>
+                          <span className="mt-1 text-xs font-medium text-slate-500">(največ 100 MB)</span>
                         </div>
-                        <div className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white p-1">
+                      </div>
+                      <div className="mt-3 w-full max-w-[340px] pb-1">
+                        <div
+                          className="flex h-[30px] items-center gap-1 rounded-md border border-slate-200 bg-white px-1"
+                          onClick={(event) => event.stopPropagation()}
+                          onPointerDown={(event) => event.stopPropagation()}
+                        >
                           <input
-                            className="h-8 w-full border-0 bg-transparent px-2 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:ring-0"
+                            className="h-full w-full border-0 bg-transparent px-1.5 text-xs text-slate-800 outline-none placeholder:text-slate-400 focus:ring-0"
                             value={youtubeInput}
                             disabled={!isMediaEditable}
                             onChange={(event) => setYoutubeInput(event.target.value)}
@@ -2252,9 +2247,21 @@ export default function AdminItemEditorPage({
                               event.preventDefault();
                               addYoutubeVideo();
                             }}
-                            placeholder="Prilepi YouTube povezavo"
+                            placeholder="https://youtube.com/watch?v=..."
                           />
-                          <Button type="button" variant="ghost" size="toolbar" className="h-8 shrink-0 px-2.5 text-xs" disabled={!isMediaEditable} onClick={addYoutubeVideo}>Dodaj povezavo</Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="toolbar"
+                            className="h-[26px] shrink-0 px-2 text-[11px]"
+                            disabled={!isMediaEditable}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              addYoutubeVideo();
+                            }}
+                          >
+                            Dodaj povezavo
+                          </Button>
                         </div>
                       </div>
                     </div>

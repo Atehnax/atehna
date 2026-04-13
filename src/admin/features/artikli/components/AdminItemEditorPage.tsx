@@ -1652,9 +1652,8 @@ export default function AdminItemEditorPage({
                         />
                         <label
                           htmlFor="tech-sheet-upload-inline"
-                          className={`relative flex w-full cursor-pointer items-center rounded-xl bg-[#f7f7fc] px-4 py-2.5 text-blue-500 ${isEditable ? 'hover:bg-[#f1f4fb]' : 'cursor-not-allowed opacity-60'}`}
+                          className={`relative flex w-full items-center rounded-xl border-2 border-dashed border-[#9cb8ea] bg-[#f7f9fe] px-4 py-2.5 text-blue-500 transition ${isEditable ? 'cursor-pointer hover:border-[#4f8bff] hover:bg-[#edf3ff]' : 'cursor-not-allowed opacity-60'}`}
                         >
-                          <CalmDashedOutline className="rounded-xl" />
                           <span className="mx-auto inline-flex flex-col items-start gap-0.5 text-blue-600">
                             <span className="inline-flex items-center gap-1">
                               <SideInputIcon icon="document" muted={false} className="!text-blue-600" />

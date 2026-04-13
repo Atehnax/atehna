@@ -157,6 +157,20 @@ function CloudUploadIcon({ className = '' }: { className?: string }) {
   );
 }
 
+function ImageUploadFrameIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 48" aria-hidden className={className}>
+      <rect x="9" y="8" width="46" height="32" rx="4" fill="#b9d3ea" />
+      <path d="M9 28.5 20.5 20l7.5 5.6L42.5 14 55 25v15H9V28.5Z" fill="#74addb" />
+      <circle cx="20.5" cy="17.5" r="4.5" fill="#eef5fb" />
+      <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H10v2H7.5A1.5 1.5 0 0 0 6 7.5V10H4V6.5Z" fill="#74addb" />
+      <path d="M60 6.5A2.5 2.5 0 0 0 57.5 4H54v2h2.5A1.5 1.5 0 0 1 58 7.5V10h2V6.5Z" fill="#74addb" />
+      <path d="M4 41.5A2.5 2.5 0 0 0 6.5 44H10v-2H7.5A1.5 1.5 0 0 1 6 40.5V38H4v3.5Z" fill="#74addb" />
+      <path d="M60 41.5A2.5 2.5 0 0 1 57.5 44H54v-2h2.5a1.5 1.5 0 0 0 1.5-1.5V38h2v3.5Z" fill="#74addb" />
+    </svg>
+  );
+}
+
 function UppyDropzoneField({
   uppy,
   disabled,
@@ -1650,7 +1664,10 @@ export default function AdminItemEditorPage({
               event.stopPropagation();
               event.preventDefault();
             }}
-            onClick={action.onClick}
+            onClick={(event) => {
+              event.stopPropagation();
+              action.onClick();
+            }}
             aria-label={action.label}
             title={action.label}
           >
@@ -1841,7 +1858,7 @@ export default function AdminItemEditorPage({
                         className="flex h-full w-full items-center justify-center rounded-lg text-blue-600"
                       >
                         <span className="flex flex-col items-center justify-center gap-2 text-center">
-                          <CloudUploadIcon className="h-14 w-14 text-[#2f7dc5]" />
+                          <ImageUploadFrameIcon className="h-14 w-14 text-[#2f7dc5]" />
                           <span className="text-base font-semibold text-slate-800">Naloži sliko</span>
                           <span className="text-xs font-medium text-slate-500">(največ 2 MB)</span>
                         </span>
@@ -1849,7 +1866,7 @@ export default function AdminItemEditorPage({
                     ) : (
                       <div className={`relative flex h-full w-full items-center justify-center rounded-lg bg-[#f7f9fe] text-blue-600 ${isMediaEditable ? '' : 'cursor-not-allowed opacity-60'}`}>
                         <span className="flex flex-col items-center justify-center gap-2 text-center">
-                          <CloudUploadIcon className="h-14 w-14 text-[#2f7dc5]" />
+                          <ImageUploadFrameIcon className="h-14 w-14 text-[#2f7dc5]" />
                           <span className="text-base font-semibold text-slate-800">Naloži sliko</span>
                           <span className="text-xs font-medium text-slate-500">(največ 2 MB)</span>
                         </span>
@@ -1943,7 +1960,7 @@ export default function AdminItemEditorPage({
                                 onPrepareAddFiles={(files) => prepareDropzoneUploadPlan(slotIndex, true, files)}
                                 className="flex h-full items-center justify-center rounded-lg text-blue-600"
                               >
-                                <span className="text-4xl font-light leading-none text-[#2f7dc5]">+</span>
+                                <span className="inline-flex h-full w-full items-center justify-center text-4xl font-light leading-none text-[#2f7dc5]">+</span>
                               </UppyDropzoneField>
                             ) : (
                               <div key={`slot-${slotIndex}`} className={`relative flex h-full items-center justify-center rounded-lg bg-[#f7f9fe] text-blue-600 ${isMediaEditable ? '' : 'cursor-not-allowed opacity-60'}`}>
@@ -1953,7 +1970,7 @@ export default function AdminItemEditorPage({
                           );
                         }
 
-                        return <div key={`slot-${slotIndex}`} className="relative rounded-lg bg-[#f7f7fc] text-slate-300"><CalmDashedOutline /></div>;
+                        return <div key={`slot-${slotIndex}`} className="relative h-full rounded-lg border-2 border-dashed border-[#d7e3f7] bg-[#f7f9fe] opacity-70" />;
                       })}
                     </div>
                   )}

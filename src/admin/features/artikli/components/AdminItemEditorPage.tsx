@@ -2293,7 +2293,7 @@ export default function AdminItemEditorPage({
                           onPointerDown={(event) => event.stopPropagation()}
                         >
                           <input
-                            className="h-full w-full border-0 bg-transparent px-1.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:ring-0"
+                            className="h-full w-full border-0 bg-transparent px-1.5 text-sm text-slate-500 outline-none placeholder:font-normal placeholder:text-slate-400 focus:ring-0"
                             value={youtubeInput}
                             disabled={!isMediaEditable}
                             onChange={(event) => setYoutubeInput(event.target.value)}

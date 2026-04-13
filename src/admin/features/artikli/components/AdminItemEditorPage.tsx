@@ -77,7 +77,7 @@ type MediaTab = 'slike' | 'video';
 type VariantTag = 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
 type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
-type VideoEntry = { id: string; source: 'upload' | 'youtube'; label: string; previewUrl: string; visible: boolean };
+type VideoState = { source: 'upload' | 'youtube'; label: string; previewUrl: string };
 type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'price';
 const MEDIA_SLOT_COUNT = 7;
 const GALLERY_SMALL_SLOT_COUNT = 6;
@@ -188,6 +188,19 @@ function ImageUploadFrameIcon({ className = '' }: { className?: string }) {
       <path d="M60 6.5A2.5 2.5 0 0 0 57.5 4H54v2h2.5A1.5 1.5 0 0 1 58 7.5V10h2V6.5Z" fill="#74addb" />
       <path d="M4 41.5A2.5 2.5 0 0 0 6.5 44H10v-2H7.5A1.5 1.5 0 0 1 6 40.5V38H4v3.5Z" fill="#74addb" />
       <path d="M60 41.5A2.5 2.5 0 0 1 57.5 44H54v-2h2.5a1.5 1.5 0 0 0 1.5-1.5V38h2v3.5Z" fill="#74addb" />
+    </svg>
+  );
+}
+
+function VideoUploadFrameIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 48" aria-hidden className={className}>
+      <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H10v2H7.5A1.5 1.5 0 0 0 6 7.5V10H4V6.5Z" fill="currentColor" />
+      <path d="M60 6.5A2.5 2.5 0 0 0 57.5 4H54v2h2.5A1.5 1.5 0 0 1 58 7.5V10h2V6.5Z" fill="currentColor" />
+      <path d="M4 41.5A2.5 2.5 0 0 0 6.5 44H10v-2H7.5A1.5 1.5 0 0 1 6 40.5V38H4v3.5Z" fill="currentColor" />
+      <path d="M60 41.5A2.5 2.5 0 0 1 57.5 44H54v-2h2.5a1.5 1.5 0 0 0 1.5-1.5V38h2v3.5Z" fill="currentColor" />
+      <rect x="9" y="8" width="46" height="32" rx="4" fill="currentColor" opacity="0.9" />
+      <path d="M27 18.2c0-1.7 1.8-2.8 3.3-2l11.5 6.4c1.6.9 1.6 3.1 0 4L30.3 33c-1.5.9-3.3-.2-3.3-2V18.2Z" fill="#f8fafc" />
     </svg>
   );
 }
@@ -1095,11 +1108,8 @@ export default function AdminItemEditorPage({
   const mediaUploadInputRef = useRef<HTMLInputElement>(null);
   const mediaUploadContextRef = useRef<{ slotIndex: number; multiple: boolean }>({ slotIndex: 0, multiple: true });
   const updateImageAtSlotRef = useRef<(slotIndex: number, imageUrl: string) => void>(() => {});
-  const [uploadedVideo, setUploadedVideo] = useState<{ name: string; url: string } | null>(null);
   const [youtubeInput, setYoutubeInput] = useState('');
-  const [videoEntriesDraft, setVideoEntriesDraft] = useState<VideoEntry[]>([]);
-  const [videoEntriesSaved, setVideoEntriesSaved] = useState<VideoEntry[]>([]);
-  const [videoSelections, setVideoSelections] = useState<Set<string>>(new Set());
+  const [videoDraft, setVideoDraft] = useState<VideoState | null>(null);
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>({});
   const [editingImageSlot, setEditingImageSlot] = useState<number | null>(null);
   const [imageSettings, setImageSettings] = useState<Record<number, { altText: string; focusX: number; focusY: number }>>({});
@@ -1307,32 +1317,57 @@ export default function AdminItemEditorPage({
   const addYoutubeVideo = () => {
     const value = youtubeInput.trim();
     if (!value) return;
-    if (!value.includes('youtube.com') && !value.includes('youtu.be')) {
+    const normalized = value.toLowerCase();
+    if (!normalized.includes('youtube.com') && !normalized.includes('youtu.be')) {
       toast.error('Vnesite veljavno YouTube povezavo.');
       return;
     }
-    const previewUrl = value.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/');
-    setVideoEntriesDraft((current) => [
-      ...current,
-      { id: `video-${Date.now()}`, source: 'youtube', label: value, previewUrl, visible: true }
-    ]);
+    let previewUrl = value;
+    try {
+      const parsed = new URL(value);
+      if (parsed.hostname.includes('youtu.be')) {
+        const videoId = parsed.pathname.replace('/', '').trim();
+        if (!videoId) throw new Error('missing-video-id');
+        previewUrl = `https://www.youtube.com/embed/${videoId}`;
+      } else if (parsed.hostname.includes('youtube.com')) {
+        if (parsed.pathname === '/watch') {
+          const videoId = parsed.searchParams.get('v');
+          if (!videoId) throw new Error('missing-video-id');
+          previewUrl = `https://www.youtube.com/embed/${videoId}`;
+        } else if (parsed.pathname.startsWith('/embed/')) {
+          previewUrl = `${parsed.origin}${parsed.pathname}`;
+        } else {
+          throw new Error('unsupported-youtube-format');
+        }
+      } else {
+        throw new Error('unsupported-host');
+      }
+    } catch {
+      toast.error('Vnesite veljavno YouTube povezavo.');
+      return;
+    }
+    setVideoDraft({ source: 'youtube', label: value, previewUrl });
     setYoutubeInput('');
   };
 
-  const addUploadedVideo = () => {
-    if (!uploadedVideo) return;
-    setVideoEntriesDraft((current) => [
-      ...current,
-      { id: `video-${Date.now()}`, source: 'upload', label: uploadedVideo.name, previewUrl: uploadedVideo.url, visible: true }
-    ]);
-    setUploadedVideo(null);
-  };
-
   const saveVideoEntries = () => {
-    setVideoEntriesSaved(videoEntriesDraft);
     setMediaImagesSaved(mediaImagesDraft);
     setDraft((current) => ({ ...current, images: mediaImagesDraft }));
     toast.success('Video spremembe shranjene lokalno.');
+  };
+
+  const handleVideoFileSelect = (file?: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith('video/')) {
+      toast.error('Izberite veljavno video datoteko.');
+      return;
+    }
+    const maxBytes = 100 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      toast.error('Video je prevelik. Dovoljena velikost je največ 100 MB.');
+      return;
+    }
+    setVideoDraft({ source: 'upload', label: file.name, previewUrl: URL.createObjectURL(file) });
   };
 
   const updateVariant = (index: number, updates: Partial<Variant>) => {
@@ -1844,15 +1879,14 @@ export default function AdminItemEditorPage({
               <IconButton type="button" tone="neutral" aria-label="Shrani medije" title="Shrani" onClick={saveVideoEntries} disabled={!isMediaEditable}><SaveIcon /></IconButton>
               <IconButton
                 type="button"
-                tone={(mediaTab === 'video' ? videoSelections.size : selectedImageIndexes.size) > 0 ? 'danger' : 'neutral'}
+                tone={(mediaTab === 'video' ? Boolean(videoDraft) : selectedImageIndexes.size > 0) ? 'danger' : 'neutral'}
                 aria-label="Izbriši medije"
                 title="Izbriši"
-                disabled={!isMediaEditable || (mediaTab === 'video' ? videoSelections.size === 0 : selectedImageIndexes.size === 0)}
+                disabled={!isMediaEditable || (mediaTab === 'video' ? !videoDraft : selectedImageIndexes.size === 0)}
                 onClick={() => {
                   if (mediaTab === 'video') {
-                    const selected = new Set(videoSelections);
-                    setVideoEntriesDraft((current) => current.filter((entry) => !selected.has(entry.id)));
-                    setVideoSelections(new Set());
+                    setVideoDraft(null);
+                    setYoutubeInput('');
                     return;
                   }
                   const selected = new Set(selectedImageIndexes);
@@ -2102,66 +2136,113 @@ export default function AdminItemEditorPage({
                 </div>
               </div>
             ) : (
-              <div className="mt-3 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <div className="space-y-1">
-                      <label className="text-xs text-slate-600">YouTube URL</label>
-                      <div className="flex gap-2">
-                        <input className={inputClass} value={youtubeInput} disabled={!isMediaEditable} onChange={(event) => setYoutubeInput(event.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
-                        <Button type="button" variant="default" size="toolbar" disabled={!isMediaEditable} onClick={addYoutubeVideo}>Dodaj</Button>
+              <div className="mt-3 space-y-2">
+                <input
+                  id="video-upload-input"
+                  type="file"
+                  accept="video/*"
+                  disabled={!isMediaEditable}
+                  className="hidden"
+                  onChange={(event) => {
+                    handleVideoFileSelect(event.target.files?.[0]);
+                    event.currentTarget.value = '';
+                  }}
+                />
+                <div className="h-[11.5rem]">
+                  {videoDraft ? (
+                    <div className="group relative h-full overflow-hidden rounded-lg border border-slate-300 bg-black">
+                      {videoDraft.source === 'youtube' ? (
+                        <iframe
+                          title="Predogled videa"
+                          className="h-full w-full"
+                          src={videoDraft.previewUrl}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <video controls className="h-full w-full object-contain">
+                          <source src={videoDraft.previewUrl} />
+                        </video>
+                      )}
+                      <div className="absolute inset-y-0 right-2 z-20 flex flex-col items-end justify-start gap-1.5 pt-2 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+                        {[
+                          { key: 'remove', label: 'Odstrani', tone: 'danger' as const, onClick: () => setVideoDraft(null), icon: <span aria-hidden className="text-sm leading-none">✕</span> },
+                          { key: 'replace', label: 'Zamenjaj video', tone: 'light' as const, onClick: () => document.getElementById('video-upload-input')?.click(), icon: <CloudUploadIcon className="h-[14px] w-[14px]" /> },
+                          { key: 'edit', label: 'Uredi', tone: 'light' as const, onClick: () => toast.info('Urejanje videa bo na voljo kmalu.'), icon: <PencilIcon className="h-[13px] w-[13px]" /> },
+                          { key: 'hide', label: 'Skrij', tone: 'light' as const, onClick: () => toast.info('Skrivanje videa bo na voljo kmalu.'), icon: <span className="text-[11px]">👁</span> },
+                          { key: 'move', label: 'Premakni', tone: 'light' as const, onClick: () => toast.info('Premikanje videa bo na voljo kmalu.'), icon: <span className="text-[11px]">↕</span> }
+                        ].map((action) => (
+                          <button
+                            key={action.key}
+                            type="button"
+                            className={`inline-flex h-[25px] min-w-[1.6rem] items-center justify-center rounded-md border px-0 leading-none shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${action.tone === 'danger' ? 'border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'}`}
+                            onPointerDown={(event) => {
+                              event.stopPropagation();
+                              event.preventDefault();
+                            }}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              action.onClick();
+                            }}
+                            aria-label={action.label}
+                            title={action.label}
+                          >
+                            <span className="inline-flex h-full w-full items-center justify-center">{action.icon}</span>
+                          </button>
+                        ))}
                       </div>
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-xs text-slate-600">Video datoteka</label>
-                      <input
-                        type="file"
-                        accept="video/*"
-                        disabled={!isMediaEditable}
-                        className="block w-full text-xs text-slate-700 file:mr-2 file:rounded-md file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs file:font-semibold"
-                        onChange={(event) => {
-                          const file = event.target.files?.[0];
-                          if (!file) return;
-                          setUploadedVideo({ name: file.name, url: URL.createObjectURL(file) });
-                        }}
-                      />
-                      <Button type="button" variant="default" size="toolbar" disabled={!isMediaEditable || !uploadedVideo} onClick={addUploadedVideo}>Dodaj video</Button>
+                  ) : (
+                    <div className={`relative flex h-full w-full flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-[#9cb8ea] bg-[#f7f9fe] px-4 py-3 text-center text-blue-600 ${isMediaEditable ? '' : 'cursor-not-allowed opacity-60'}`}>
+                      <VideoUploadFrameIcon className="h-[84px] w-[84px] text-[#74addb]" />
+                      <div className="flex flex-col items-center justify-center leading-tight">
+                        <span className="text-base font-semibold text-slate-800">Naloži video</span>
+                        <span className="mt-1 text-xs font-medium text-slate-500">(največ 100 MB)</span>
+                      </div>
+                      <div className="flex w-full max-w-[340px] flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="file"
+                            accept="video/*"
+                            disabled={!isMediaEditable}
+                            className="block w-full text-xs text-slate-700 file:mr-2 file:rounded-md file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs file:font-semibold"
+                            onChange={(event) => {
+                              handleVideoFileSelect(event.target.files?.[0]);
+                              event.currentTarget.value = '';
+                            }}
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <input className={inputClass} value={youtubeInput} disabled={!isMediaEditable} onChange={(event) => setYoutubeInput(event.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
+                          <Button type="button" variant="default" size="toolbar" disabled={!isMediaEditable} onClick={addYoutubeVideo}>Povezava</Button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-xs text-slate-600">Predogled</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {(videoEntriesDraft.length ? videoEntriesDraft : videoEntriesSaved).slice(0, 4).map((entry) => (
-                        entry.source === 'youtube' ? (
-                          <iframe key={entry.id} title={`Predogled ${entry.id}`} className="h-16 w-full rounded border border-slate-200" src={entry.previewUrl} />
-                        ) : (
-                          <video key={entry.id} controls className="h-16 w-full rounded border border-slate-200 object-cover"><source src={entry.previewUrl} /></video>
-                        )
-                      ))}
-                    </div>
-                  </div>
+                  )}
                 </div>
                 <div className="overflow-hidden rounded-lg border border-slate-200">
                   <table className="min-w-full text-xs">
                     <thead className="bg-slate-50">
                       <tr>
-                        <th className="px-2 py-1.5 text-center" />
-                        <th className="px-2 py-1.5 text-left">Vir videa</th>
-                        <th className="px-2 py-1.5 text-center">Status</th>
+                        <th className="px-2 py-1.5 text-left">SKU</th>
+                        <th className="px-2 py-1.5 text-center">Tip</th>
+                        <th className="px-2 py-1.5 text-left">Video</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {videoEntriesDraft.map((entry) => (
-                        <tr key={entry.id} className="border-t border-slate-100">
-                          <td className="px-2 py-1.5 text-center">
-                            <AdminCheckbox checked={videoSelections.has(entry.id)} disabled={!isMediaEditable} onChange={() => setVideoSelections((current) => {
-                              const next = new Set(current);
-                              if (next.has(entry.id)) next.delete(entry.id); else next.add(entry.id);
-                              return next;
-                            })} />
+                      {draft.variants.map((variant) => (
+                        <tr key={`variant-video-${variant.id}`} className="border-t border-slate-100">
+                          <td className="px-2 py-1.5">{variant.sku || '—'}</td>
+                          <td className="px-2 py-1.5 text-center">{videoDraft ? (videoDraft.source === 'youtube' ? 'YouTube' : 'Upload') : '—'}</td>
+                          <td className="px-2 py-1.5 text-left">
+                            {videoDraft ? (
+                              <div className="inline-flex h-[18px] items-center gap-1 overflow-hidden rounded-md border border-slate-200 bg-white px-1">
+                                <span className="max-w-[120px] truncate text-[11px] text-slate-600">{videoDraft.label}</span>
+                              </div>
+                            ) : (
+                              '—'
+                            )}
                           </td>
-                          <td className="px-2 py-1.5">{entry.source === 'youtube' ? 'YouTube povezava' : 'Naložen video'}</td>
-                          <td className="px-2 py-1.5 text-center"><VisibilityChip visible={entry.visible} editable={isMediaEditable} onChange={(next) => setVideoEntriesDraft((current) => current.map((video) => video.id === entry.id ? { ...video, visible: next } : video))} /></td>
                         </tr>
                       ))}
                     </tbody>

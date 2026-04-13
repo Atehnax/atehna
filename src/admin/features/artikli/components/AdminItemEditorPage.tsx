@@ -62,6 +62,7 @@ const GALLERY_SMALL_SLOT_COUNT = 6;
 function CalmDashedOutline({ className = '' }: { className?: string }) {
   const frameRef = useRef<SVGSVGElement>(null);
   const [frameSize, setFrameSize] = useState({ width: 0, height: 0 });
+  const [cornerRadius, setCornerRadius] = useState(8);
 
   useEffect(() => {
     const host = frameRef.current;
@@ -70,6 +71,9 @@ function CalmDashedOutline({ className = '' }: { className?: string }) {
     const sync = () => {
       const rect = parent.getBoundingClientRect();
       setFrameSize({ width: Math.max(0, rect.width), height: Math.max(0, rect.height) });
+      const parentStyles = window.getComputedStyle(parent);
+      const radius = Number.parseFloat(parentStyles.borderTopLeftRadius || '8');
+      setCornerRadius(Number.isFinite(radius) ? radius : 8);
     };
     sync();
     const observer = new ResizeObserver(sync);
@@ -79,12 +83,13 @@ function CalmDashedOutline({ className = '' }: { className?: string }) {
 
   const width = Math.max(0, Math.round(frameSize.width));
   const height = Math.max(0, Math.round(frameSize.height));
-  const cornerRadius = 8;
-  const inset = 1;
+  const strokeWidth = 1.5;
+  const inset = strokeWidth / 2;
   const innerWidth = Math.max(0, width - inset * 2);
   const innerHeight = Math.max(0, height - inset * 2);
-  const cornerArc = Math.PI * 2 * cornerRadius;
-  const linearPerimeter = Math.max(0, 2 * (innerWidth + innerHeight - cornerRadius * 4));
+  const effectiveRadius = Math.max(0, cornerRadius - inset);
+  const cornerArc = Math.PI * 2 * effectiveRadius;
+  const linearPerimeter = Math.max(0, 2 * (innerWidth + innerHeight - effectiveRadius * 4));
   const perimeter = linearPerimeter + cornerArc;
   const dashLength = 6;
   const gapLength = 10;
@@ -99,11 +104,11 @@ function CalmDashedOutline({ className = '' }: { className?: string }) {
           y={inset}
           width={innerWidth}
           height={innerHeight}
-          rx={cornerRadius}
-          ry={cornerRadius}
+          rx={effectiveRadius}
+          ry={effectiveRadius}
           fill="none"
           stroke="currentColor"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
           strokeDasharray={`${dashLength} ${gapLength}`}
           strokeDashoffset={dashOffset}
           strokeLinecap="butt"

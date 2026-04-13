@@ -1092,10 +1092,7 @@ export default function AdminItemEditorPage({
   const [tableEditorMode, setTableEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
   const [articleType, setArticleType] = useState<'unit' | 'sheet' | 'bulk' | 'linear' | ''>('');
   const [mediaTab, setMediaTab] = useState<MediaTab>('slike');
-  const [mediaMode, setMediaMode] = useState<'read' | 'edit'>('read');
-  const [mediaImagesSaved, setMediaImagesSaved] = useState<string[]>(draft.images);
   const [mediaImagesDraft, setMediaImagesDraft] = useState<string[]>(draft.images);
-  const [selectedImageIndexes, setSelectedImageIndexes] = useState<Set<number>>(new Set());
   const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
   const [draggedVariantId, setDraggedVariantId] = useState<string | null>(null);
   const [draggedVariantImageSlot, setDraggedVariantImageSlot] = useState<number | null>(null);
@@ -1113,6 +1110,7 @@ export default function AdminItemEditorPage({
   const [videoDragActive, setVideoDragActive] = useState(false);
   const [videoMoveMode, setVideoMoveMode] = useState(false);
   const [videoAssignedVariantId, setVideoAssignedVariantId] = useState<string | null>(null);
+  const [pendingMediaRemoval, setPendingMediaRemoval] = useState<{ type: 'image'; slotIndex: number } | { type: 'video' } | null>(null);
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>({});
   const [editingImageSlot, setEditingImageSlot] = useState<number | null>(null);
   const [imageSettings, setImageSettings] = useState<Record<number, { altText: string; focusX: number; focusY: number }>>({});
@@ -1184,7 +1182,7 @@ export default function AdminItemEditorPage({
 
   const isEditable = editorMode === 'edit';
   const isTableEditable = tableEditorMode === 'edit';
-  const isMediaEditable = mediaMode === 'edit';
+  const isMediaEditable = true;
   const isBulkMaterial = articleType === 'bulk';
   const isLinearMaterial = articleType === 'linear';
   const isToleranceLocked = articleType === 'unit';
@@ -1376,12 +1374,6 @@ export default function AdminItemEditorPage({
     return true;
   };
 
-  const saveVideoEntries = () => {
-    setMediaImagesSaved(mediaImagesDraft);
-    setDraft((current) => ({ ...current, images: mediaImagesDraft }));
-    toast.success('Video spremembe shranjene lokalno.');
-  };
-
   const handleVideoFileSelect = (file?: File | null) => {
     if (!file) return;
     if (!file.type.startsWith('video/')) {
@@ -1457,10 +1449,6 @@ export default function AdminItemEditorPage({
       probe.src = url;
     });
   }, [imageMeta, mediaImagesDraft]);
-
-  useEffect(() => {
-    setSelectedImageIndexes((current) => new Set(Array.from(current).filter((index) => index >= 0 && index < mediaImagesDraft.length)));
-  }, [mediaImagesDraft.length]);
 
   useEffect(() => {
     if (editingImageSlot === null) return;
@@ -1669,27 +1657,28 @@ export default function AdminItemEditorPage({
   };
 
   const requestRemoveImageSlot = (slotIndex: number) => {
-    const shouldRemove = window.confirm('Ali želite odstraniti to sliko?');
-    if (!shouldRemove) return;
-    removeImageSlot(slotIndex);
-  };
-
-  const requestRemoveSelectedImages = (selected: Set<number>) => {
-    if (!selected.size) return false;
-    const shouldRemove = window.confirm('Ali želite odstraniti izbrane slike?');
-    if (!shouldRemove) return false;
-    removeSelectedImageSlots(selected);
-    return true;
+    setPendingMediaRemoval({ type: 'image', slotIndex });
   };
 
   const requestRemoveVideo = () => {
     if (!videoDraft) return;
-    const shouldRemove = window.confirm('Ali želite odstraniti video?');
-    if (!shouldRemove) return;
+    setPendingMediaRemoval({ type: 'video' });
+  };
+
+  const closePendingMediaRemoval = () => setPendingMediaRemoval(null);
+
+  const confirmPendingMediaRemoval = () => {
+    if (!pendingMediaRemoval) return;
+    if (pendingMediaRemoval.type === 'image') {
+      removeImageSlot(pendingMediaRemoval.slotIndex);
+      setPendingMediaRemoval(null);
+      return;
+    }
     setVideoDraft(null);
     setYoutubeInput('');
     setVideoMoveMode(false);
     setVideoAssignedVariantId(null);
+    setPendingMediaRemoval(null);
   };
 
   const assignImageToVariant = (variantIndex: number, slotIndex: number) => {
@@ -1925,28 +1914,6 @@ export default function AdminItemEditorPage({
                   { value: 'video', label: 'Video' }
                 ]}
               />
-              <div className="flex items-center justify-end gap-1.5">
-              <IconButton type="button" tone="neutral" aria-label="Uredi medije" title="Uredi" onClick={() => setMediaMode((current) => (current === 'read' ? 'edit' : 'read'))}><PencilIcon /></IconButton>
-              <IconButton type="button" tone="neutral" aria-label="Shrani medije" title="Shrani" onClick={saveVideoEntries} disabled={!isMediaEditable}><SaveIcon /></IconButton>
-              <IconButton
-                type="button"
-                tone={(mediaTab === 'video' ? Boolean(videoDraft) : selectedImageIndexes.size > 0) ? 'danger' : 'neutral'}
-                aria-label="Izbriši medije"
-                title="Izbriši"
-                disabled={!isMediaEditable || (mediaTab === 'video' ? !videoDraft : selectedImageIndexes.size === 0)}
-                onClick={() => {
-                  if (mediaTab === 'video') {
-                    requestRemoveVideo();
-                    return;
-                  }
-                  const selected = new Set(selectedImageIndexes);
-                  const didRemove = requestRemoveSelectedImages(selected);
-                  if (didRemove) setSelectedImageIndexes(new Set());
-                }}
-              >
-                <TrashCanIcon />
-              </IconButton>
-              </div>
             </div>
             {mediaTab === 'slike' ? (
               <div className="mt-3 space-y-2">
@@ -2596,6 +2563,26 @@ export default function AdminItemEditorPage({
           </table>
         </div>
       </section>
+      <Dialog
+        open={pendingMediaRemoval !== null}
+        onOpenChange={(open) => {
+          if (!open) closePendingMediaRemoval();
+        }}
+        title={pendingMediaRemoval?.type === 'image' ? 'Odstrani sliko' : 'Odstrani video'}
+        panelClassName="max-w-xs"
+        footer={(
+          <div className="mt-3 flex justify-end gap-2">
+            <Button type="button" variant="ghost" size="toolbar" onClick={closePendingMediaRemoval}>Prekliči</Button>
+            <Button type="button" variant="danger" size="toolbar" onClick={confirmPendingMediaRemoval}>Odstrani</Button>
+          </div>
+        )}
+      >
+        <p className="mt-2 text-sm text-slate-600">
+          {pendingMediaRemoval?.type === 'image'
+            ? 'Ali res želite odstraniti izbrano sliko?'
+            : 'Ali res želite odstraniti izbrani video?'}
+        </p>
+      </Dialog>
       {editingImageSlot !== null && mediaImagesDraft[editingImageSlot]
         ? createPortal(
           <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-slate-900/40 p-4">

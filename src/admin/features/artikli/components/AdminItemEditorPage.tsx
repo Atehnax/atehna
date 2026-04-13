@@ -1408,7 +1408,7 @@ export default function AdminItemEditorPage({
                     return (
                       <div
                         key={`slot-${index}`}
-                        className={`relative aspect-square overflow-hidden rounded-lg border ${img ? 'border-slate-300' : 'border-dashed border-slate-300 bg-slate-50'} ${isMediaEditable && img ? 'cursor-grab' : ''}`}
+                        className={`relative aspect-square overflow-hidden rounded-lg border ${img ? 'border-slate-300' : 'border-transparent bg-transparent'} ${isMediaEditable && img ? 'cursor-grab' : ''}`}
                         draggable={Boolean(isMediaEditable && img)}
                         onDragStart={() => {
                           if (!img) return;

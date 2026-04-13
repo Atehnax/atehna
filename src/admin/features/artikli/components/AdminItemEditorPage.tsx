@@ -1574,13 +1574,14 @@ export default function AdminItemEditorPage({
   };
 
   const renderImageActionButtons = (slotIndex: number) => {
+    const compact = slotIndex !== 0;
     const actions = [
       {
         key: 'remove',
         label: 'odstrani',
         tone: 'danger' as const,
         onClick: () => removeImageSlot(slotIndex),
-        icon: <span aria-hidden className="text-sm leading-none">✕</span>
+        icon: <span aria-hidden className={`${compact ? 'text-[11px]' : 'text-sm'} leading-none`}>✕</span>
       },
       {
         key: 'replace',
@@ -1588,7 +1589,7 @@ export default function AdminItemEditorPage({
         tone: 'light' as const,
         onClick: () => openUppyFilePicker(slotIndex, false),
         icon: (
-          <svg viewBox="0 0 24 24" className="block h-[17.6px] w-[17.6px] shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <svg viewBox="0 0 24 24" className={`block shrink-0 ${compact ? 'h-3.5 w-3.5' : 'h-[17.6px] w-[17.6px]'}`} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <rect x="3" y="4" width="18" height="16" rx="2.8" />
             <path d="m6.5 15.5 3.7-3.8a1 1 0 0 1 1.42 0L15 15l2-2a1 1 0 0 1 1.42 0l2.08 2.08" />
             <circle cx="15.5" cy="9.3" r="1.5" />
@@ -1601,7 +1602,7 @@ export default function AdminItemEditorPage({
         tone: 'light' as const,
         onClick: () => toast.info('Urejanje slike bo na voljo kmalu.'),
         icon: (
-          <svg viewBox="0 0 20 20" className="block h-[15.4px] w-[15.4px] shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+          <svg viewBox="0 0 20 20" className={`block shrink-0 ${compact ? 'h-3 w-3' : 'h-[15.4px] w-[15.4px]'}`} fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
             <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
             <path d="M11.5 4.5l3 3" />
           </svg>
@@ -1613,7 +1614,7 @@ export default function AdminItemEditorPage({
         tone: 'light' as const,
         onClick: () => toast.info('Skrivanje slike bo na voljo kmalu.'),
         icon: (
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <svg viewBox="0 0 24 24" className={compact ? 'h-3 w-3' : 'h-4 w-4'} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M1.5 12s3.75-6.75 10.5-6.75S22.5 12 22.5 12s-3.75 6.75-10.5 6.75S1.5 12 1.5 12Z" />
             <circle cx="12" cy="12" r="3" />
             <path d="M3 3 21 21" />
@@ -1625,7 +1626,7 @@ export default function AdminItemEditorPage({
         label: 'premakni',
         tone: 'light' as const,
         icon: (
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <svg viewBox="0 0 24 24" className={compact ? 'h-3 w-3' : 'h-4 w-4'} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <circle cx="9" cy="6.5" r="1.1" /><circle cx="9" cy="12" r="1.1" /><circle cx="9" cy="17.5" r="1.1" />
             <circle cx="15" cy="6.5" r="1.1" /><circle cx="15" cy="12" r="1.1" /><circle cx="15" cy="17.5" r="1.1" />
           </svg>
@@ -1635,12 +1636,12 @@ export default function AdminItemEditorPage({
     ];
 
     return (
-      <div className="absolute inset-y-0 right-2 z-20 flex flex-col items-end justify-center gap-1.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+      <div className={`absolute inset-y-0 right-2 z-20 flex flex-col items-end justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 ${compact ? 'gap-1' : 'gap-1.5'}`}>
         {actions.map((action) => (
           <button
             key={`${slotIndex}-${action.key}`}
             type="button"
-            className={`inline-flex h-[25px] min-w-[1.6rem] items-center justify-center rounded-md border px-0 leading-none shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${action.tone === 'danger' ? 'border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'} ${action.dragHandle ? 'cursor-grab active:cursor-grabbing' : ''}`}
+            className={`inline-flex items-center justify-center rounded-md border px-0 leading-none shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${compact ? 'h-[20px] min-w-[1.3rem]' : 'h-[25px] min-w-[1.6rem]'} ${action.tone === 'danger' ? 'border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'} ${action.dragHandle ? 'cursor-grab active:cursor-grabbing' : ''}`}
             onPointerDown={(event) => {
               if (action.dragHandle) return;
               event.stopPropagation();

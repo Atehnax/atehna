@@ -56,7 +56,8 @@ type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 type VideoEntry = { id: string; source: 'upload' | 'youtube'; label: string; previewUrl: string; visible: boolean };
 type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'price';
-const MEDIA_SLOT_COUNT = 10;
+const MEDIA_SLOT_COUNT = 7;
+const GALLERY_SMALL_SLOT_COUNT = 6;
 
 function SideInputIcon({ icon, muted = false, className = '' }: { icon: SideFieldIcon; muted?: boolean; className?: string }) {
   const iconProps = {
@@ -1401,89 +1402,113 @@ export default function AdminItemEditorPage({
             </div>
             {mediaTab === 'slike' ? (
               <div className="mt-3 space-y-2">
-                <p className="text-sm text-slate-500">Galerija artikla. Prva slika je glavna.</p>
-                <div className="grid grid-cols-5 gap-2">
-                  {Array.from({ length: MEDIA_SLOT_COUNT }).map((_, index) => {
-                    const img = mediaImagesDraft[index];
-                    return (
-                      <div
-                        key={`slot-${index}`}
-                        className={`relative aspect-square overflow-hidden rounded-lg border ${img ? 'border-slate-300' : 'border-transparent bg-transparent'} ${isMediaEditable && img ? 'cursor-grab' : ''}`}
-                        draggable={Boolean(isMediaEditable && img)}
-                        onDragStart={() => {
-                          if (!img) return;
-                          setDraggedImageIndex(index);
+                <div className="h-56">
+                  {mediaImagesDraft.length === 0 ? (
+                    <label className={`flex h-full w-full items-center justify-center rounded-lg border border-dashed border-blue-400 bg-[#f5f8ff] text-blue-600 ${isMediaEditable ? 'cursor-pointer hover:bg-[#edf3ff]' : 'cursor-not-allowed opacity-60'}`}>
+                      <span className="text-5xl leading-none">+</span>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        disabled={!isMediaEditable}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          if (!file) return;
+                          updateImageAtSlot(0, URL.createObjectURL(file));
                         }}
-                        onDragOver={(event) => {
-                          if (!isMediaEditable) return;
-                          event.preventDefault();
-                        }}
-                        onDrop={(event) => {
-                          event.preventDefault();
-                          if (!isMediaEditable || draggedImageIndex === null) return;
-                          moveImageSlot(draggedImageIndex, index);
-                          setDraggedImageIndex(null);
-                        }}
-                      >
-                        {img ? (
-                          <Image src={img} alt={`Slika ${index + 1}`} width={220} height={220} unoptimized className="h-full w-full object-cover" />
-                        ) : (
-                          <label
-                            className={`absolute inset-0 flex items-center justify-center rounded-lg border border-dashed border-blue-400 bg-[#f5f8ff] text-blue-600 ${isMediaEditable ? 'cursor-pointer hover:bg-[#edf3ff]' : 'cursor-not-allowed opacity-60'}`}
-                          >
-                            <span className="text-4xl leading-none">+</span>
-                            <input
-                              type="file"
-                              className="hidden"
-                              accept="image/*"
-                              disabled={!isMediaEditable}
-                              onChange={(event) => {
-                                const file = event.target.files?.[0];
-                                if (!file) return;
-                                updateImageAtSlot(index, URL.createObjectURL(file));
-                              }}
-                            />
-                          </label>
-                        )}
-                        {img && isMediaEditable ? (
+                      />
+                    </label>
+                  ) : (
+                    <div className="grid h-full grid-cols-5 grid-rows-2 gap-2">
+                      <div className="group relative col-span-2 row-span-2 overflow-hidden rounded-lg border border-slate-300">
+                        <Image src={mediaImagesDraft[0]} alt="Glavna slika" width={360} height={360} unoptimized className="h-full w-full object-cover" />
+                        {isMediaEditable ? (
                           <div className="absolute left-1 top-1 rounded bg-white/90 p-0.5">
-                            <AdminCheckbox checked={selectedImageIndexes.has(index)} onChange={() => setSelectedImageIndexes((current) => {
+                            <AdminCheckbox checked={selectedImageIndexes.has(0)} onChange={() => setSelectedImageIndexes((current) => {
                               const next = new Set(current);
-                              if (next.has(index)) next.delete(index); else next.add(index);
+                              if (next.has(0)) next.delete(0); else next.add(0);
                               return next;
                             })} />
                           </div>
                         ) : null}
-                        {img ? (
-                          <div className="absolute inset-x-1 bottom-1 flex items-center gap-1">
-                            <label className={`inline-flex h-6 flex-1 items-center justify-center rounded bg-white/90 text-[11px] font-medium text-slate-700 ${isMediaEditable ? 'cursor-pointer hover:bg-white' : 'cursor-not-allowed opacity-60'}`}>
-                              Zamenjaj
-                              <input
-                                type="file"
-                                className="hidden"
-                                accept="image/*"
-                                disabled={!isMediaEditable}
-                                onChange={(event) => {
-                                  const file = event.target.files?.[0];
-                                  if (!file) return;
-                                  updateImageAtSlot(index, URL.createObjectURL(file));
-                                }}
-                              />
-                            </label>
-                            <button
-                              type="button"
-                              disabled={!isMediaEditable}
-                              className={`inline-flex h-6 w-6 items-center justify-center rounded bg-rose-50 text-rose-600 ${isMediaEditable ? 'hover:bg-rose-100' : 'cursor-not-allowed opacity-60'}`}
-                              onClick={() => removeImageSlot(index)}
-                              aria-label={`Odstrani sliko ${index + 1}`}
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ) : null}
+                        <div className="absolute inset-x-1 bottom-1 flex items-center gap-1">
+                          <label className={`inline-flex h-6 flex-1 items-center justify-center rounded bg-white/90 text-[11px] font-medium text-slate-700 ${isMediaEditable ? 'cursor-pointer hover:bg-white' : 'cursor-not-allowed opacity-60'}`}>
+                            Zamenjaj
+                            <input type="file" className="hidden" accept="image/*" disabled={!isMediaEditable} onChange={(event) => {
+                              const file = event.target.files?.[0];
+                              if (!file) return;
+                              updateImageAtSlot(0, URL.createObjectURL(file));
+                            }} />
+                          </label>
+                          <button type="button" disabled={!isMediaEditable} className={`inline-flex h-6 w-6 items-center justify-center rounded bg-rose-50 text-rose-600 ${isMediaEditable ? 'hover:bg-rose-100' : 'cursor-not-allowed opacity-60'}`} onClick={() => removeImageSlot(0)} aria-label="Odstrani glavno sliko">×</button>
+                        </div>
                       </div>
-                    );
-                  })}
+                      {Array.from({ length: GALLERY_SMALL_SLOT_COUNT }).map((_, smallIndex) => {
+                        const slotIndex = smallIndex + 1;
+                        const slotImage = mediaImagesDraft[slotIndex];
+                        const nextUploadSlot = Math.min(mediaImagesDraft.length, MEDIA_SLOT_COUNT - 1);
+                        const isActiveUploadSlot = !slotImage && mediaImagesDraft.length < MEDIA_SLOT_COUNT && slotIndex === nextUploadSlot;
+
+                        if (slotImage) {
+                          return (
+                            <div
+                              key={`slot-${slotIndex}`}
+                              className={`relative overflow-hidden rounded-lg border border-slate-300 ${isMediaEditable ? 'cursor-grab' : ''}`}
+                              draggable={Boolean(isMediaEditable)}
+                              onDragStart={() => setDraggedImageIndex(slotIndex)}
+                              onDragOver={(event) => {
+                                if (!isMediaEditable) return;
+                                event.preventDefault();
+                              }}
+                              onDrop={(event) => {
+                                event.preventDefault();
+                                if (!isMediaEditable || draggedImageIndex === null || draggedImageIndex === 0) return;
+                                moveImageSlot(draggedImageIndex, slotIndex);
+                                setDraggedImageIndex(null);
+                              }}
+                            >
+                              <Image src={slotImage} alt={`Slika ${slotIndex + 1}`} width={180} height={180} unoptimized className="h-full w-full object-cover" />
+                              {isMediaEditable ? (
+                                <div className="absolute left-1 top-1 rounded bg-white/90 p-0.5">
+                                  <AdminCheckbox checked={selectedImageIndexes.has(slotIndex)} onChange={() => setSelectedImageIndexes((current) => {
+                                    const next = new Set(current);
+                                    if (next.has(slotIndex)) next.delete(slotIndex); else next.add(slotIndex);
+                                    return next;
+                                  })} />
+                                </div>
+                              ) : null}
+                              <div className="absolute inset-x-1 bottom-1 flex items-center gap-1">
+                                <label className={`inline-flex h-6 flex-1 items-center justify-center rounded bg-white/90 text-[11px] font-medium text-slate-700 ${isMediaEditable ? 'cursor-pointer hover:bg-white' : 'cursor-not-allowed opacity-60'}`}>
+                                  Zamenjaj
+                                  <input type="file" className="hidden" accept="image/*" disabled={!isMediaEditable} onChange={(event) => {
+                                    const file = event.target.files?.[0];
+                                    if (!file) return;
+                                    updateImageAtSlot(slotIndex, URL.createObjectURL(file));
+                                  }} />
+                                </label>
+                                <button type="button" disabled={!isMediaEditable} className={`inline-flex h-6 w-6 items-center justify-center rounded bg-rose-50 text-rose-600 ${isMediaEditable ? 'hover:bg-rose-100' : 'cursor-not-allowed opacity-60'}`} onClick={() => removeImageSlot(slotIndex)} aria-label={`Odstrani sliko ${slotIndex + 1}`}>×</button>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        if (isActiveUploadSlot) {
+                          return (
+                            <label key={`slot-${slotIndex}`} className={`flex h-full items-center justify-center rounded-lg border border-dashed border-blue-400 bg-[#f5f8ff] text-blue-600 ${isMediaEditable ? 'cursor-pointer hover:bg-[#edf3ff]' : 'cursor-not-allowed opacity-60'}`}>
+                              <span className="text-3xl leading-none">+</span>
+                              <input type="file" className="hidden" accept="image/*" disabled={!isMediaEditable} onChange={(event) => {
+                                const file = event.target.files?.[0];
+                                if (!file) return;
+                                updateImageAtSlot(slotIndex, URL.createObjectURL(file));
+                              }} />
+                            </label>
+                          );
+                        }
+
+                        return <div key={`slot-${slotIndex}`} className="rounded-lg border border-dashed border-slate-200 bg-slate-50/40" />;
+                      })}
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2">
                   <div className="inline-flex flex-col gap-1">

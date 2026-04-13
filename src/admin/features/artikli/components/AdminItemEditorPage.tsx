@@ -1998,18 +1998,16 @@ export default function AdminItemEditorPage({
                     <tbody>
                       {draft.variants.map((variant, variantIndex) => {
                         const assignedSlots = variant.imageAssignments ?? [];
-                        const assignedImageUrls = assignedSlots
-                          .map((slot) => mediaImagesDraft[slot])
-                          .filter((url): url is string => Boolean(url));
-                        const assignedImageTypeLabels = assignedSlots.flatMap((slot) => {
+                        const assignedImageDetails = assignedSlots.flatMap((slot) => {
                           const url = mediaImagesDraft[slot];
                           if (!url) return [];
                           const inferredType = url.match(/\.([a-zA-Z0-9]+)(?:$|\?)/)?.[1]?.toUpperCase();
                           const typeLabel = imageMeta[url]?.type ?? inferredType ?? 'IMG';
-                          return [`Slika ${slot + 1}: ${typeLabel}`];
+                          const dimensionLabel = imageMeta[url] ? `${imageMeta[url].width}x${imageMeta[url].height}` : '—';
+                          return [{ typeLabel, dimensionLabel }];
                         });
-                        const primaryUrl = assignedImageUrls[0] ?? '';
-                        const meta = imageMeta[primaryUrl];
+                        const assignedImageTypes = assignedImageDetails.map((entry) => entry.typeLabel);
+                        const assignedImageDimensions = assignedImageDetails.map((entry) => entry.dimensionLabel);
                         return (
                           <tr
                             key={`variant-media-${variant.id}`}
@@ -2026,8 +2024,8 @@ export default function AdminItemEditorPage({
                             }}
                           >
                             <td className="px-2 py-1.5">{variant.sku || '—'}</td>
-                            <td className="px-2 py-1.5 text-center">{assignedImageTypeLabels.length ? assignedImageTypeLabels.join(', ') : '—'}</td>
-                            <td className="px-2 py-1.5 text-center">{primaryUrl && meta ? `${meta.width}×${meta.height}` : '—'}</td>
+                            <td className="px-2 py-1.5 text-center">{assignedImageTypes.length ? assignedImageTypes.join(', ') : '—'}</td>
+                            <td className="px-2 py-1.5 text-center">{assignedImageDimensions.length ? assignedImageDimensions.join(', ') : '—'}</td>
                             <td className="px-2 py-1.5">
                               <div className="flex flex-wrap gap-1">
                                 {assignedSlots.map((slot) => {

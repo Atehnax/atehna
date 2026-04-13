@@ -59,6 +59,14 @@ type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' 
 const MEDIA_SLOT_COUNT = 7;
 const GALLERY_SMALL_SLOT_COUNT = 6;
 
+function CalmDashedOutline({ className = '' }: { className?: string }) {
+  return (
+    <svg className={`pointer-events-none absolute inset-0 h-full w-full ${className}`} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
+      <rect x="1" y="1" width="98" height="98" rx="8" ry="8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="8 7" />
+    </svg>
+  );
+}
+
 function SideInputIcon({ icon, muted = false, className = '' }: { icon: SideFieldIcon; muted?: boolean; className?: string }) {
   const iconProps = {
     className: `h-[14px] w-[14px] shrink-0 ${muted ? 'text-slate-400' : 'text-slate-500'} ${className}`.trim(),
@@ -888,6 +896,7 @@ export default function AdminItemEditorPage({
   const [draggedVariantId, setDraggedVariantId] = useState<string | null>(null);
   const [draggedVariantImageSlot, setDraggedVariantImageSlot] = useState<number | null>(null);
   const [imageMeta, setImageMeta] = useState<Record<string, { width: number; height: number; type: string }>>({});
+  const localBlobUrlsRef = useRef<Set<string>>(new Set());
   const [uploadedVideo, setUploadedVideo] = useState<{ name: string; url: string } | null>(null);
   const [youtubeInput, setYoutubeInput] = useState('');
   const [videoEntriesDraft, setVideoEntriesDraft] = useState<VideoEntry[]>([]);
@@ -1149,6 +1158,24 @@ export default function AdminItemEditorPage({
 
   const getVariantTag = (variantId: string): VariantTag => variantTags[variantId] ?? 'novo';
 
+  const createLocalImageUrl = (file: File) => {
+    const url = URL.createObjectURL(file);
+    localBlobUrlsRef.current.add(url);
+    return url;
+  };
+
+  const revokeLocalImageUrl = (url: string) => {
+    if (!url.startsWith('blob:')) return;
+    if (!localBlobUrlsRef.current.has(url)) return;
+    URL.revokeObjectURL(url);
+    localBlobUrlsRef.current.delete(url);
+  };
+
+  useEffect(() => () => {
+    localBlobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    localBlobUrlsRef.current.clear();
+  }, []);
+
   useEffect(() => {
     mediaImagesDraft.forEach((url) => {
       if (!url || imageMeta[url]) return;
@@ -1170,6 +1197,8 @@ export default function AdminItemEditorPage({
     setMediaImagesDraft((current) => {
       const next = [...current];
       if (slotIndex < next.length) {
+        const previous = next[slotIndex];
+        if (previous && previous !== imageUrl) revokeLocalImageUrl(previous);
         next[slotIndex] = imageUrl;
         return next.slice(0, MEDIA_SLOT_COUNT);
       }
@@ -1203,7 +1232,11 @@ export default function AdminItemEditorPage({
   };
 
   const removeImageSlot = (slotIndex: number) => {
-    setMediaImagesDraft((current) => current.filter((_, index) => index !== slotIndex).slice(0, MEDIA_SLOT_COUNT));
+    setMediaImagesDraft((current) => {
+      const imageToRemove = current[slotIndex];
+      if (imageToRemove) revokeLocalImageUrl(imageToRemove);
+      return current.filter((_, index) => index !== slotIndex).slice(0, MEDIA_SLOT_COUNT);
+    });
     setDraft((current) => ({
       ...current,
       variants: current.variants.map((variant) => ({
@@ -1324,8 +1357,9 @@ export default function AdminItemEditorPage({
                         />
                         <label
                           htmlFor="tech-sheet-upload-inline"
-                          className={`flex w-full cursor-pointer items-center rounded-xl border border-dashed border-blue-300 bg-[#f5f8ff] px-4 py-2.5 ${isEditable ? 'hover:bg-[#edf3ff]' : 'cursor-not-allowed opacity-60'}`}
+                          className={`relative flex w-full cursor-pointer items-center rounded-xl bg-[#f7f7fc] px-4 py-2.5 text-blue-500 ${isEditable ? 'hover:bg-[#f1f4fb]' : 'cursor-not-allowed opacity-60'}`}
                         >
+                          <CalmDashedOutline className="rounded-xl" />
                           <span className="mx-auto inline-flex flex-col items-start gap-0.5 text-blue-600">
                             <span className="inline-flex items-center gap-1">
                               <SideInputIcon icon="document" muted={false} className="!text-blue-600" />
@@ -1404,7 +1438,8 @@ export default function AdminItemEditorPage({
               <div className="mt-3 space-y-2">
                 <div className="h-56">
                   {mediaImagesDraft.length === 0 ? (
-                    <label className={`flex h-full w-full items-center justify-center rounded-lg border border-dashed border-blue-400 bg-[#f5f8ff] text-blue-600 ${isMediaEditable ? 'cursor-pointer hover:bg-[#edf3ff]' : 'cursor-not-allowed opacity-60'}`}>
+                    <label className={`relative flex h-full w-full items-center justify-center rounded-lg bg-[#f7f7fc] text-blue-600 ${isMediaEditable ? 'cursor-pointer hover:bg-[#f1f4fb]' : 'cursor-not-allowed opacity-60'}`}>
+                      <CalmDashedOutline />
                       <span className="text-5xl leading-none">+</span>
                       <input
                         type="file"
@@ -1414,14 +1449,14 @@ export default function AdminItemEditorPage({
                         onChange={(event) => {
                           const file = event.target.files?.[0];
                           if (!file) return;
-                          updateImageAtSlot(0, URL.createObjectURL(file));
+                          updateImageAtSlot(0, createLocalImageUrl(file));
                         }}
                       />
                     </label>
                   ) : (
                     <div className="grid h-full grid-cols-5 grid-rows-2 gap-2">
                       <div className="group relative col-span-2 row-span-2 overflow-hidden rounded-lg border border-slate-300">
-                        <Image src={mediaImagesDraft[0]} alt="Glavna slika" width={360} height={360} unoptimized className="h-full w-full object-cover" />
+                        <Image src={mediaImagesDraft[0]} alt="Glavna slika" width={1200} height={1200} unoptimized sizes="(max-width: 1280px) 36vw, 420px" className="h-full w-full object-cover" />
                         {isMediaEditable ? (
                           <div className="absolute left-1 top-1 rounded bg-white/90 p-0.5">
                             <AdminCheckbox checked={selectedImageIndexes.has(0)} onChange={() => setSelectedImageIndexes((current) => {
@@ -1437,7 +1472,7 @@ export default function AdminItemEditorPage({
                             <input type="file" className="hidden" accept="image/*" disabled={!isMediaEditable} onChange={(event) => {
                               const file = event.target.files?.[0];
                               if (!file) return;
-                              updateImageAtSlot(0, URL.createObjectURL(file));
+                              updateImageAtSlot(0, createLocalImageUrl(file));
                             }} />
                           </label>
                           <button type="button" disabled={!isMediaEditable} className={`inline-flex h-6 w-6 items-center justify-center rounded bg-rose-50 text-rose-600 ${isMediaEditable ? 'hover:bg-rose-100' : 'cursor-not-allowed opacity-60'}`} onClick={() => removeImageSlot(0)} aria-label="Odstrani glavno sliko">×</button>
@@ -1467,7 +1502,7 @@ export default function AdminItemEditorPage({
                                 setDraggedImageIndex(null);
                               }}
                             >
-                              <Image src={slotImage} alt={`Slika ${slotIndex + 1}`} width={180} height={180} unoptimized className="h-full w-full object-cover" />
+                              <Image src={slotImage} alt={`Slika ${slotIndex + 1}`} width={720} height={720} unoptimized sizes="(max-width: 1280px) 18vw, 180px" className="h-full w-full object-cover" />
                               {isMediaEditable ? (
                                 <div className="absolute left-1 top-1 rounded bg-white/90 p-0.5">
                                   <AdminCheckbox checked={selectedImageIndexes.has(slotIndex)} onChange={() => setSelectedImageIndexes((current) => {
@@ -1483,7 +1518,7 @@ export default function AdminItemEditorPage({
                                   <input type="file" className="hidden" accept="image/*" disabled={!isMediaEditable} onChange={(event) => {
                                     const file = event.target.files?.[0];
                                     if (!file) return;
-                                    updateImageAtSlot(slotIndex, URL.createObjectURL(file));
+                                    updateImageAtSlot(slotIndex, createLocalImageUrl(file));
                                   }} />
                                 </label>
                                 <button type="button" disabled={!isMediaEditable} className={`inline-flex h-6 w-6 items-center justify-center rounded bg-rose-50 text-rose-600 ${isMediaEditable ? 'hover:bg-rose-100' : 'cursor-not-allowed opacity-60'}`} onClick={() => removeImageSlot(slotIndex)} aria-label={`Odstrani sliko ${slotIndex + 1}`}>×</button>
@@ -1494,18 +1529,19 @@ export default function AdminItemEditorPage({
 
                         if (isActiveUploadSlot) {
                           return (
-                            <label key={`slot-${slotIndex}`} className={`flex h-full items-center justify-center rounded-lg border border-dashed border-blue-400 bg-[#f5f8ff] text-blue-600 ${isMediaEditable ? 'cursor-pointer hover:bg-[#edf3ff]' : 'cursor-not-allowed opacity-60'}`}>
+                            <label key={`slot-${slotIndex}`} className={`relative flex h-full items-center justify-center rounded-lg bg-[#f7f7fc] text-blue-600 ${isMediaEditable ? 'cursor-pointer hover:bg-[#f1f4fb]' : 'cursor-not-allowed opacity-60'}`}>
+                              <CalmDashedOutline />
                               <span className="text-3xl leading-none">+</span>
                               <input type="file" className="hidden" accept="image/*" disabled={!isMediaEditable} onChange={(event) => {
                                 const file = event.target.files?.[0];
                                 if (!file) return;
-                                updateImageAtSlot(slotIndex, URL.createObjectURL(file));
+                                updateImageAtSlot(slotIndex, createLocalImageUrl(file));
                               }} />
                             </label>
                           );
                         }
 
-                        return <div key={`slot-${slotIndex}`} className="rounded-lg border border-dashed border-slate-200 bg-slate-50/40" />;
+                        return <div key={`slot-${slotIndex}`} className="relative rounded-lg bg-[#f7f7fc] text-slate-300"><CalmDashedOutline /></div>;
                       })}
                     </div>
                   )}

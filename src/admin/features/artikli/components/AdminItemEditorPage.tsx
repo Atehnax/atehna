@@ -2704,29 +2704,38 @@ export default function AdminItemEditorPage({
                   </div>
                   <div>
                     <label className="mb-1 block text-[11px] font-bold text-slate-600">Fokus slike</label>
-                    <div className="mt-2 inline-flex h-[100px] w-[100px] overflow-hidden rounded-md border border-slate-200 bg-slate-100">
-                      <div className="relative h-full w-full">
+                    <div className="mt-2 inline-flex h-[100px] w-[140px] items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-slate-100">
+                      <div className="relative h-full w-full p-1">
                         {(() => {
                           const focusRect = ensureImageSettings(editingImageSlot).focusRect;
                           if (!focusRect) {
                             return (
-                              <Image
-                                src={mediaImagesDraft[editingImageSlot]}
-                                alt={`Predogled sličice ${editingImageSlot + 1}`}
-                                fill
-                                unoptimized
-                                className="object-cover"
-                              />
+                              <div className="relative h-full w-full overflow-hidden rounded-sm">
+                                <Image
+                                  src={mediaImagesDraft[editingImageSlot]}
+                                  alt={`Predogled sličice ${editingImageSlot + 1}`}
+                                  fill
+                                  unoptimized
+                                  className="object-cover"
+                                />
+                              </div>
                             );
                           }
+                          const cropRatio = focusRect.width / focusRect.height;
+                          const frameRatio = 140 / 100;
+                          const previewWidthPct = cropRatio >= frameRatio ? 100 : (cropRatio / frameRatio) * 100;
+                          const previewHeightPct = cropRatio >= frameRatio ? (frameRatio / cropRatio) * 100 : 100;
                           const backgroundWidth = (100 / focusRect.width) * 100;
                           const backgroundHeight = (100 / focusRect.height) * 100;
                           const backgroundPosX = (focusRect.left / (100 - focusRect.width)) * 100;
                           const backgroundPosY = (focusRect.top / (100 - focusRect.height)) * 100;
                           return (
                             <div
-                              className="absolute inset-0 bg-no-repeat"
+                              className="absolute left-1/2 top-1/2 bg-no-repeat"
                               style={{
+                                width: `${previewWidthPct}%`,
+                                height: `${previewHeightPct}%`,
+                                transform: 'translate(-50%, -50%)',
                                 backgroundImage: `url(${mediaImagesDraft[editingImageSlot]})`,
                                 backgroundSize: `${backgroundWidth}% ${backgroundHeight}%`,
                                 backgroundPosition: `${Number.isFinite(backgroundPosX) ? backgroundPosX : 50}% ${Number.isFinite(backgroundPosY) ? backgroundPosY : 50}%`

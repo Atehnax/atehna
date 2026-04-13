@@ -2,9 +2,10 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Uppy from '@uppy/core';
+import { UppyContextProvider, useDropzone } from '@uppy/react';
 import { Editor, Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -153,6 +154,72 @@ function CloudUploadIcon({ className = '' }: { className?: string }) {
       <path fill="#fff" d="M30 31v-9h-6l8-9 8 9h-6v9z" />
       <rect x="27.5" y="30.5" width="9" height="3" rx="1.5" fill="#fff" />
     </svg>
+  );
+}
+
+function UppyDropzoneField({
+  uppy,
+  disabled,
+  onPrepareAddFiles,
+  className = '',
+  children
+}: {
+  uppy: Uppy;
+  disabled: boolean;
+  onPrepareAddFiles: (files: File[]) => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <UppyContextProvider uppy={uppy}>
+      <UppyDropzoneFieldInner disabled={disabled} onPrepareAddFiles={onPrepareAddFiles} className={className}>
+        {children}
+      </UppyDropzoneFieldInner>
+    </UppyContextProvider>
+  );
+}
+
+function UppyDropzoneFieldInner({
+  disabled,
+  onPrepareAddFiles,
+  className = '',
+  children
+}: {
+  disabled: boolean;
+  onPrepareAddFiles: (files: File[]) => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  const [dragActive, setDragActive] = useState(false);
+  const dropzone = useDropzone({
+    onDragEnter: () => setDragActive(true),
+    onDragLeave: () => setDragActive(false),
+    onDrop: (files) => {
+      setDragActive(false);
+      onPrepareAddFiles(files);
+    },
+    onFileInputChange: (files) => {
+      onPrepareAddFiles(files);
+    }
+  });
+
+  const rootProps = dropzone.getRootProps();
+  const inputProps = dropzone.getInputProps();
+  const interactionProps = disabled ? {} : rootProps;
+
+  return (
+    <div
+      {...interactionProps}
+      className={[
+        'relative border-2 border-dashed transition',
+        dragActive ? 'border-[#4f8bff] bg-[#edf3ff]' : 'border-[#9cb8ea] bg-[#f7f9fe]',
+        disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
+        className
+      ].join(' ')}
+    >
+      {disabled ? null : <input {...inputProps} className="hidden" />}
+      {children}
+    </div>
   );
 }
 
@@ -987,6 +1054,7 @@ export default function AdminItemEditorPage({
   const [imageMeta, setImageMeta] = useState<Record<string, { width: number; height: number; type: string }>>({});
   const localBlobUrlsRef = useRef<Set<string>>(new Set());
   const uppyRef = useRef<Uppy | null>(null);
+  const uploadPlanRef = useRef<{ startSlot: number; nextOffset: number; maxFiles: number }>({ startSlot: 0, nextOffset: 0, maxFiles: 1 });
   const mediaUploadInputRef = useRef<HTMLInputElement>(null);
   const mediaUploadContextRef = useRef<{ slotIndex: number; multiple: boolean }>({ slotIndex: 0, multiple: true });
   const updateImageAtSlotRef = useRef<(slotIndex: number, imageUrl: string) => void>(() => {});
@@ -1310,7 +1378,21 @@ export default function AdminItemEditorPage({
       autoProceed: false,
       restrictions: {
         allowedFileTypes: ['image/*'],
-        maxFileSize: 2 * 1024 * 1024
+        maxFileSize: 2 * 1024 * 1024,
+        maxNumberOfFiles: 1
+      },
+      onBeforeFileAdded: (file) => {
+        const plan = uploadPlanRef.current;
+        if (plan.nextOffset >= plan.maxFiles) return false;
+        const targetSlot = Math.min(MEDIA_SLOT_COUNT - 1, plan.startSlot + plan.nextOffset);
+        plan.nextOffset += 1;
+        return {
+          ...file,
+          meta: {
+            ...file.meta,
+            targetSlot
+          }
+        };
       }
     });
 
@@ -1320,6 +1402,9 @@ export default function AdminItemEditorPage({
 
     uppy.on('error', (error) => {
       toast.error(error.message || 'Pri nalaganju slik je prišlo do napake.');
+    });
+    uppy.on('files-added', () => {
+      void uppy.upload();
     });
 
     uppy.addUploader(async (fileIDs) => {
@@ -1366,24 +1451,26 @@ export default function AdminItemEditorPage({
 
     uppy.cancelAll();
     uppy.getFiles().forEach((file) => uppy.removeFile(file.id));
+    uploadPlanRef.current = { startSlot, nextOffset: 0, maxFiles };
+    uppy.setOptions({
+      restrictions: {
+        ...(uppy.opts.restrictions ?? {}),
+        maxNumberOfFiles: maxFiles
+      }
+    });
 
-    acceptedFiles.forEach((file, index) => {
-      const targetSlot = Math.min(MEDIA_SLOT_COUNT - 1, startSlot + index);
+    acceptedFiles.forEach((file) => {
       try {
         uppy.addFile({
           name: file.name,
           type: file.type,
-          data: file,
-          meta: { targetSlot }
+          data: file
         });
       } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Datoteke ni bilo mogoče dodati v vrsto.');
       }
     });
 
-    if (uppy.getFiles().length > 0) {
-      void uppy.upload();
-    }
   }, [isMediaEditable, toast]);
 
   const openUppyFilePicker = useCallback((slotIndex: number, allowMultiple: boolean) => {
@@ -1396,11 +1483,25 @@ export default function AdminItemEditorPage({
     input.click();
   }, [isMediaEditable]);
 
-  const handleUppyDrop = useCallback((event: DragEvent<HTMLElement>, slotIndex: number, allowMultiple: boolean) => {
+  const prepareDropzoneUploadPlan = useCallback((slotIndex: number, allowMultiple: boolean, files: File[]) => {
     if (!isMediaEditable) return;
-    event.preventDefault();
-    queueImageUpload(event.dataTransfer.files, slotIndex, allowMultiple);
-  }, [isMediaEditable, queueImageUpload]);
+    const uppy = uppyRef.current;
+    if (!uppy) return;
+    const remainingSlots = Math.max(0, MEDIA_SLOT_COUNT - slotIndex);
+    const maxFiles = Math.max(1, allowMultiple ? remainingSlots : 1);
+    if (files.length > maxFiles) {
+      toast.error(`Izberete lahko največ ${maxFiles} slik.`);
+    }
+    uppy.cancelAll();
+    uppy.getFiles().forEach((file) => uppy.removeFile(file.id));
+    uploadPlanRef.current = { startSlot: slotIndex, nextOffset: 0, maxFiles };
+    uppy.setOptions({
+      restrictions: {
+        ...(uppy.opts.restrictions ?? {}),
+        maxNumberOfFiles: maxFiles
+      }
+    });
+  }, [isMediaEditable, toast]);
 
   const moveImageSlot = (fromIndex: number, toIndex: number) => {
     if (fromIndex === toIndex) return;
@@ -1645,31 +1746,28 @@ export default function AdminItemEditorPage({
                 />
                 <div className="h-56">
                   {mediaImagesDraft.length === 0 ? (
-                    <div
-                      role="button"
-                      tabIndex={isMediaEditable ? 0 : -1}
-                      onDragOver={(event) => {
-                        if (!isMediaEditable) return;
-                        event.preventDefault();
-                      }}
-                      onDrop={(event) => handleUppyDrop(event, 0, true)}
-                      onClick={() => openUppyFilePicker(0, true)}
-                      onKeyDown={(event) => {
-                        if (!isMediaEditable) return;
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          openUppyFilePicker(0, true);
-                        }
-                      }}
-                      className={`relative flex h-full w-full items-center justify-center rounded-lg bg-[#f7f7fc] text-blue-600 ${isMediaEditable ? 'cursor-pointer hover:bg-[#f1f4fb]' : 'cursor-not-allowed opacity-60'}`}
-                    >
-                      <CalmDashedOutline />
-                      <span className="flex flex-col items-center justify-center gap-2 text-center">
-                        <CloudUploadIcon className="h-14 w-14 text-[#2f7dc5]" />
-                        <span className="text-base font-semibold text-slate-800">Povleci in spusti ali klikni sem</span>
-                        <span className="text-xs font-medium text-slate-500">za nalaganje slike (največ 2 MB)</span>
-                      </span>
-                    </div>
+                    uppyRef.current ? (
+                      <UppyDropzoneField
+                        uppy={uppyRef.current}
+                        disabled={!isMediaEditable}
+                        onPrepareAddFiles={(files) => prepareDropzoneUploadPlan(0, true, files)}
+                        className="flex h-full w-full items-center justify-center rounded-lg text-blue-600"
+                      >
+                        <span className="flex flex-col items-center justify-center gap-2 text-center">
+                          <CloudUploadIcon className="h-14 w-14 text-[#2f7dc5]" />
+                          <span className="text-base font-semibold text-slate-800">Povleci in spusti ali klikni sem</span>
+                          <span className="text-xs font-medium text-slate-500">za nalaganje slike (največ 2 MB)</span>
+                        </span>
+                      </UppyDropzoneField>
+                    ) : (
+                      <div className={`relative flex h-full w-full items-center justify-center rounded-lg bg-[#f7f9fe] text-blue-600 ${isMediaEditable ? '' : 'cursor-not-allowed opacity-60'}`}>
+                        <span className="flex flex-col items-center justify-center gap-2 text-center">
+                          <CloudUploadIcon className="h-14 w-14 text-[#2f7dc5]" />
+                          <span className="text-base font-semibold text-slate-800">Povleci in spusti ali klikni sem</span>
+                          <span className="text-xs font-medium text-slate-500">za nalaganje slike (največ 2 MB)</span>
+                        </span>
+                      </div>
+                    )
                   ) : (
                     <div className="grid h-full grid-cols-5 grid-rows-2 gap-2">
                       <div className="group relative col-span-2 row-span-2 overflow-hidden rounded-lg border border-slate-300">
@@ -1746,28 +1844,21 @@ export default function AdminItemEditorPage({
 
                         if (isActiveUploadSlot) {
                           return (
-                            <div
-                              key={`slot-${slotIndex}`}
-                              role="button"
-                              tabIndex={isMediaEditable ? 0 : -1}
-                              onDragOver={(event) => {
-                                if (!isMediaEditable) return;
-                                event.preventDefault();
-                              }}
-                              onDrop={(event) => handleUppyDrop(event, slotIndex, true)}
-                              onClick={() => openUppyFilePicker(slotIndex, true)}
-                              onKeyDown={(event) => {
-                                if (!isMediaEditable) return;
-                                if (event.key === 'Enter' || event.key === ' ') {
-                                  event.preventDefault();
-                                  openUppyFilePicker(slotIndex, true);
-                                }
-                              }}
-                              className={`relative flex h-full items-center justify-center rounded-lg bg-[#f7f7fc] text-blue-600 ${isMediaEditable ? 'cursor-pointer hover:bg-[#f1f4fb]' : 'cursor-not-allowed opacity-60'}`}
-                            >
-                              <CalmDashedOutline />
-                              <CloudUploadIcon className="h-8 w-8 text-[#2f7dc5]" />
-                            </div>
+                            uppyRef.current ? (
+                              <UppyDropzoneField
+                                key={`slot-${slotIndex}`}
+                                uppy={uppyRef.current}
+                                disabled={!isMediaEditable}
+                                onPrepareAddFiles={(files) => prepareDropzoneUploadPlan(slotIndex, true, files)}
+                                className="flex h-full items-center justify-center rounded-lg text-blue-600"
+                              >
+                                <CloudUploadIcon className="h-8 w-8 text-[#2f7dc5]" />
+                              </UppyDropzoneField>
+                            ) : (
+                              <div key={`slot-${slotIndex}`} className={`relative flex h-full items-center justify-center rounded-lg bg-[#f7f9fe] text-blue-600 ${isMediaEditable ? '' : 'cursor-not-allowed opacity-60'}`}>
+                                <CloudUploadIcon className="h-8 w-8 text-[#2f7dc5]" />
+                              </div>
+                            )
                           );
                         }
 

@@ -1053,6 +1053,7 @@ export default function AdminItemEditorPage({
   const [draggedVariantImageSlot, setDraggedVariantImageSlot] = useState<number | null>(null);
   const [imageMeta, setImageMeta] = useState<Record<string, { width: number; height: number; type: string }>>({});
   const localBlobUrlsRef = useRef<Set<string>>(new Set());
+  const suppressImageClickAfterDragRef = useRef(false);
   const uppyRef = useRef<Uppy | null>(null);
   const uploadPlanRef = useRef<{ startSlot: number; nextOffset: number; maxFiles: number }>({ startSlot: 0, nextOffset: 0, maxFiles: 1 });
   const mediaUploadInputRef = useRef<HTMLInputElement>(null);
@@ -1608,7 +1609,7 @@ export default function AdminItemEditorPage({
         label: 'Odstrani',
         tone: 'danger' as const,
         onClick: () => removeImageSlot(slotIndex),
-        icon: <span aria-hidden className={`${compact ? 'text-[9px]' : 'text-sm'} leading-none`}>✕</span>
+        icon: <span aria-hidden className={`${compact ? 'text-[11px]' : 'text-sm'} leading-none`}>✕</span>
       },
       {
         key: 'replace',
@@ -1616,22 +1617,10 @@ export default function AdminItemEditorPage({
         tone: 'light' as const,
         onClick: () => openUppyFilePicker(slotIndex, false),
         icon: (
-          <svg viewBox="0 0 24 24" className={`block shrink-0 ${compact ? 'h-[10px] w-[10px]' : 'h-[17.6px] w-[17.6px]'}`} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <svg viewBox="0 0 24 24" className={`block shrink-0 ${compact ? 'h-[12px] w-[12px]' : 'h-[17.6px] w-[17.6px]'}`} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <rect x="3" y="4" width="18" height="16" rx="2.8" />
             <path d="m6.5 15.5 3.7-3.8a1 1 0 0 1 1.42 0L15 15l2-2a1 1 0 0 1 1.42 0l2.08 2.08" />
             <circle cx="15.5" cy="9.3" r="1.5" />
-          </svg>
-        )
-      },
-      {
-        key: 'edit',
-        label: 'Uredi',
-        tone: 'light' as const,
-        onClick: () => setEditingImageSlot(slotIndex),
-        icon: (
-          <svg viewBox="0 0 20 20" className={`block shrink-0 ${compact ? 'h-[10px] w-[10px]' : 'h-[15.4px] w-[15.4px]'}`} fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
-            <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
-            <path d="M11.5 4.5l3 3" />
           </svg>
         )
       },
@@ -1641,7 +1630,7 @@ export default function AdminItemEditorPage({
         tone: 'light' as const,
         onClick: () => toast.info('Skrivanje slike bo na voljo kmalu.'),
         icon: (
-          <svg viewBox="0 0 24 24" className={compact ? 'h-[10px] w-[10px]' : 'h-4 w-4'} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <svg viewBox="0 0 24 24" className={compact ? 'h-[12px] w-[12px]' : 'h-4 w-4'} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M1.5 12s3.75-6.75 10.5-6.75S22.5 12 22.5 12s-3.75 6.75-10.5 6.75S1.5 12 1.5 12Z" />
             <circle cx="12" cy="12" r="3" />
             <path d="M3 3 21 21" />
@@ -1656,7 +1645,7 @@ export default function AdminItemEditorPage({
           <button
             key={`${slotIndex}-${action.key}`}
             type="button"
-            className={`inline-flex items-center justify-center rounded-md border px-0 leading-none shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${compact ? 'h-[16px] w-[16px]' : 'h-[25px] min-w-[1.6rem]'} ${action.tone === 'danger' ? 'border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'}`}
+            className={`inline-flex items-center justify-center rounded-md border px-0 leading-none shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${compact ? 'h-[20px] w-[20px]' : 'h-[25px] min-w-[1.6rem]'} ${action.tone === 'danger' ? 'border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'}`}
             onPointerDown={(event) => {
               event.stopPropagation();
               event.preventDefault();
@@ -1871,7 +1860,13 @@ export default function AdminItemEditorPage({
                       <div
                         className={`group relative col-span-2 row-span-2 overflow-hidden rounded-lg border border-slate-300 ${isMediaEditable ? 'cursor-grab' : ''}`}
                         draggable={Boolean(isMediaEditable)}
-                        onDragStart={() => setDraggedImageIndex(0)}
+                        onDragStart={() => {
+                          suppressImageClickAfterDragRef.current = true;
+                          setDraggedImageIndex(0);
+                        }}
+                        onDragEnd={() => {
+                          suppressImageClickAfterDragRef.current = false;
+                        }}
                         onDragOver={(event) => {
                           if (!isMediaEditable) return;
                           event.preventDefault();
@@ -1881,6 +1876,14 @@ export default function AdminItemEditorPage({
                           if (!isMediaEditable || draggedImageIndex === null) return;
                           moveImageSlot(draggedImageIndex, 0);
                           setDraggedImageIndex(null);
+                          suppressImageClickAfterDragRef.current = false;
+                        }}
+                        onClick={() => {
+                          if (suppressImageClickAfterDragRef.current) {
+                            suppressImageClickAfterDragRef.current = false;
+                            return;
+                          }
+                          setEditingImageSlot(0);
                         }}
                       >
                         <Image src={mediaImagesDraft[0]} alt="Glavna slika" width={1200} height={1200} unoptimized sizes="(max-width: 1280px) 36vw, 420px" className="h-full w-full object-cover" />
@@ -1898,7 +1901,13 @@ export default function AdminItemEditorPage({
                               key={`slot-${slotIndex}`}
                               className={`group relative overflow-hidden rounded-lg border border-slate-300 ${isMediaEditable ? 'cursor-grab' : ''}`}
                               draggable={Boolean(isMediaEditable)}
-                              onDragStart={() => setDraggedImageIndex(slotIndex)}
+                              onDragStart={() => {
+                                suppressImageClickAfterDragRef.current = true;
+                                setDraggedImageIndex(slotIndex);
+                              }}
+                              onDragEnd={() => {
+                                suppressImageClickAfterDragRef.current = false;
+                              }}
                               onDragOver={(event) => {
                                 if (!isMediaEditable) return;
                                 event.preventDefault();
@@ -1908,6 +1917,14 @@ export default function AdminItemEditorPage({
                                 if (!isMediaEditable || draggedImageIndex === null) return;
                                 moveImageSlot(draggedImageIndex, slotIndex);
                                 setDraggedImageIndex(null);
+                                suppressImageClickAfterDragRef.current = false;
+                              }}
+                              onClick={() => {
+                                if (suppressImageClickAfterDragRef.current) {
+                                  suppressImageClickAfterDragRef.current = false;
+                                  return;
+                                }
+                                setEditingImageSlot(slotIndex);
                               }}
                             >
                               <Image src={slotImage} alt={`Slika ${slotIndex + 1}`} width={720} height={720} unoptimized sizes="(max-width: 1280px) 18vw, 180px" className="h-full w-full object-cover" />
@@ -1926,7 +1943,7 @@ export default function AdminItemEditorPage({
                                 onPrepareAddFiles={(files) => prepareDropzoneUploadPlan(slotIndex, true, files)}
                                 className="flex h-full items-center justify-center rounded-lg text-blue-600"
                               >
-                                <CloudUploadIcon className="h-8 w-8 text-[#2f7dc5]" />
+                                <span className="text-4xl font-light leading-none text-[#2f7dc5]">+</span>
                               </UppyDropzoneField>
                             ) : (
                               <div key={`slot-${slotIndex}`} className={`relative flex h-full items-center justify-center rounded-lg bg-[#f7f9fe] text-blue-600 ${isMediaEditable ? '' : 'cursor-not-allowed opacity-60'}`}>
@@ -1983,8 +2000,8 @@ export default function AdminItemEditorPage({
                     <tbody>
                       {draft.variants.map((variant, variantIndex) => {
                         const assignedSlots = variant.imageAssignments ?? [];
-                        const primaryAssigned = assignedSlots[0] ?? 0;
-                        const primaryUrl = mediaImagesDraft[primaryAssigned] ?? '';
+                        const primaryAssigned = assignedSlots.find((slot) => Boolean(mediaImagesDraft[slot]));
+                        const primaryUrl = primaryAssigned !== undefined ? mediaImagesDraft[primaryAssigned] ?? '' : '';
                         const meta = imageMeta[primaryUrl];
                         return (
                           <tr
@@ -2002,8 +2019,8 @@ export default function AdminItemEditorPage({
                             }}
                           >
                             <td className="px-2 py-1.5">{variant.sku || '—'}</td>
-                            <td className="px-2 py-1.5 text-center">{meta?.type ?? (primaryUrl ? 'IMG' : '—')}</td>
-                            <td className="px-2 py-1.5 text-center">{meta ? `${meta.width}×${meta.height}` : '—'}</td>
+                            <td className="px-2 py-1.5 text-center">{primaryUrl ? (meta?.type ?? 'IMG') : '—'}</td>
+                            <td className="px-2 py-1.5 text-center">{primaryUrl && meta ? `${meta.width}×${meta.height}` : '—'}</td>
                             <td className="px-2 py-1.5">
                               <div className="flex flex-wrap gap-1">
                                 {assignedSlots.map((slot) => {

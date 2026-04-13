@@ -1608,7 +1608,7 @@ export default function AdminItemEditorPage({
         label: 'Odstrani',
         tone: 'danger' as const,
         onClick: () => removeImageSlot(slotIndex),
-        icon: <span aria-hidden className={`${compact ? 'text-[10px]' : 'text-sm'} leading-none`}>✕</span>
+        icon: <span aria-hidden className={`${compact ? 'text-[9px]' : 'text-sm'} leading-none`}>✕</span>
       },
       {
         key: 'replace',
@@ -1616,7 +1616,7 @@ export default function AdminItemEditorPage({
         tone: 'light' as const,
         onClick: () => openUppyFilePicker(slotIndex, false),
         icon: (
-          <svg viewBox="0 0 24 24" className={`block shrink-0 ${compact ? 'h-3 w-3' : 'h-[17.6px] w-[17.6px]'}`} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <svg viewBox="0 0 24 24" className={`block shrink-0 ${compact ? 'h-[10px] w-[10px]' : 'h-[17.6px] w-[17.6px]'}`} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <rect x="3" y="4" width="18" height="16" rx="2.8" />
             <path d="m6.5 15.5 3.7-3.8a1 1 0 0 1 1.42 0L15 15l2-2a1 1 0 0 1 1.42 0l2.08 2.08" />
             <circle cx="15.5" cy="9.3" r="1.5" />
@@ -1629,7 +1629,7 @@ export default function AdminItemEditorPage({
         tone: 'light' as const,
         onClick: () => setEditingImageSlot(slotIndex),
         icon: (
-          <svg viewBox="0 0 20 20" className={`block shrink-0 ${compact ? 'h-[11px] w-[11px]' : 'h-[15.4px] w-[15.4px]'}`} fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+          <svg viewBox="0 0 20 20" className={`block shrink-0 ${compact ? 'h-[10px] w-[10px]' : 'h-[15.4px] w-[15.4px]'}`} fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
             <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
             <path d="M11.5 4.5l3 3" />
           </svg>
@@ -1641,7 +1641,7 @@ export default function AdminItemEditorPage({
         tone: 'light' as const,
         onClick: () => toast.info('Skrivanje slike bo na voljo kmalu.'),
         icon: (
-          <svg viewBox="0 0 24 24" className={compact ? 'h-[11px] w-[11px]' : 'h-4 w-4'} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <svg viewBox="0 0 24 24" className={compact ? 'h-[10px] w-[10px]' : 'h-4 w-4'} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M1.5 12s3.75-6.75 10.5-6.75S22.5 12 22.5 12s-3.75 6.75-10.5 6.75S1.5 12 1.5 12Z" />
             <circle cx="12" cy="12" r="3" />
             <path d="M3 3 21 21" />
@@ -1656,7 +1656,7 @@ export default function AdminItemEditorPage({
           <button
             key={`${slotIndex}-${action.key}`}
             type="button"
-            className={`inline-flex items-center justify-center rounded-md border px-0 leading-none shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${compact ? 'h-[18px] w-[18px]' : 'h-[25px] min-w-[1.6rem]'} ${action.tone === 'danger' ? 'border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'}`}
+            className={`inline-flex items-center justify-center rounded-md border px-0 leading-none shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${compact ? 'h-[16px] w-[16px]' : 'h-[25px] min-w-[1.6rem]'} ${action.tone === 'danger' ? 'border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'}`}
             onPointerDown={(event) => {
               event.stopPropagation();
               event.preventDefault();
@@ -1941,46 +1941,6 @@ export default function AdminItemEditorPage({
                     </div>
                   )}
                 </div>
-                {editingImageSlot !== null && mediaImagesDraft[editingImageSlot] ? (
-                  <div className="rounded-lg border border-slate-200 bg-white p-2.5">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-xs font-semibold text-slate-700">Urejanje slike {editingImageSlot + 1}</span>
-                      <button type="button" className="text-xs text-slate-500 hover:text-slate-700" onClick={() => setEditingImageSlot(null)}>Zapri</button>
-                    </div>
-                    <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_220px]">
-                      <div
-                        className="relative aspect-square overflow-hidden rounded-md border border-slate-200 bg-slate-100"
-                        onClick={(event) => {
-                          const rect = event.currentTarget.getBoundingClientRect();
-                          const x = ((event.clientX - rect.left) / rect.width) * 100;
-                          const y = ((event.clientY - rect.top) / rect.height) * 100;
-                          updateImageSettings(editingImageSlot, { focusX: Math.max(0, Math.min(100, x)), focusY: Math.max(0, Math.min(100, y)) });
-                        }}
-                      >
-                        <Image src={mediaImagesDraft[editingImageSlot]} alt={`Urejanje slike ${editingImageSlot + 1}`} fill unoptimized className="object-cover" />
-                        <span
-                          className="pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white bg-[#3e67d6] shadow"
-                          style={{ left: `${ensureImageSettings(editingImageSlot).focusX}%`, top: `${ensureImageSettings(editingImageSlot).focusY}%` }}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <div>
-                          <label className="mb-1 block text-[11px] text-slate-600">Alt besedilo</label>
-                          <input
-                            className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-900 outline-none focus:border-[#3e67d6]"
-                            value={ensureImageSettings(editingImageSlot).altText}
-                            onChange={(event) => updateImageSettings(editingImageSlot, { altText: event.target.value })}
-                            placeholder={`Slika ${editingImageSlot + 1}`}
-                          />
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-[11px] text-slate-600">Fokus slike</label>
-                          <p className="text-[11px] text-slate-500">Kliknite na predogled, da nastavite fokus prikaza.</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
                 <div className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2">
                   <div className="inline-flex flex-col gap-1">
                     <span className="text-[11px] text-slate-600">Predogled / Postavitev</span>
@@ -2399,6 +2359,51 @@ export default function AdminItemEditorPage({
           </table>
         </div>
       </section>
+      {editingImageSlot !== null && mediaImagesDraft[editingImageSlot]
+        ? createPortal(
+          <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-slate-900/40 p-4">
+            <div className="w-full max-w-3xl rounded-xl border border-slate-200 bg-white p-3 shadow-2xl">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm font-semibold text-slate-800">Urejanje slike {editingImageSlot + 1}</span>
+                <button type="button" className="text-xs text-slate-500 hover:text-slate-700" onClick={() => setEditingImageSlot(null)}>Zapri</button>
+              </div>
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_240px]">
+                <div
+                  className="relative aspect-square overflow-hidden rounded-md border border-slate-200 bg-slate-100"
+                  onClick={(event) => {
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    const x = ((event.clientX - rect.left) / rect.width) * 100;
+                    const y = ((event.clientY - rect.top) / rect.height) * 100;
+                    updateImageSettings(editingImageSlot, { focusX: Math.max(0, Math.min(100, x)), focusY: Math.max(0, Math.min(100, y)) });
+                  }}
+                >
+                  <Image src={mediaImagesDraft[editingImageSlot]} alt={`Urejanje slike ${editingImageSlot + 1}`} fill unoptimized className="object-cover" />
+                  <span
+                    className="pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white bg-[#3e67d6] shadow"
+                    style={{ left: `${ensureImageSettings(editingImageSlot).focusX}%`, top: `${ensureImageSettings(editingImageSlot).focusY}%` }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <label className="mb-1 block text-[11px] text-slate-600">Alt besedilo</label>
+                    <input
+                      className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-900 outline-none focus:border-[#3e67d6]"
+                      value={ensureImageSettings(editingImageSlot).altText}
+                      onChange={(event) => updateImageSettings(editingImageSlot, { altText: event.target.value })}
+                      placeholder={`Slika ${editingImageSlot + 1}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[11px] text-slate-600">Fokus slike</label>
+                    <p className="text-[11px] text-slate-500">Kliknite na predogled, da nastavite fokus prikaza.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+        : null}
     </div>
   );
 }

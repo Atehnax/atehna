@@ -61,9 +61,7 @@ const GALLERY_SMALL_SLOT_COUNT = 6;
 
 function CalmDashedOutline({ className = '' }: { className?: string }) {
   return (
-    <svg className={`pointer-events-none absolute inset-0 h-full w-full ${className}`} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
-      <rect x="1" y="1" width="98" height="98" rx="8" ry="8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="16 12" />
-    </svg>
+    <span aria-hidden className={`pointer-events-none absolute inset-0 rounded-[inherit] border border-dashed border-current ${className}`} />
   );
 }
 

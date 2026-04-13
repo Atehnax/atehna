@@ -83,7 +83,7 @@ function CalmDashedOutline({ className = '' }: { className?: string }) {
 
   const width = Math.max(0, Math.round(frameSize.width));
   const height = Math.max(0, Math.round(frameSize.height));
-  const strokeWidth = 1.5;
+  const strokeWidth = 0.375;
   const inset = strokeWidth / 2;
   const innerWidth = Math.max(0, width - inset * 2);
   const innerHeight = Math.max(0, height - inset * 2);
@@ -116,7 +116,6 @@ function CalmDashedOutline({ className = '' }: { className?: string }) {
           strokeDashoffset={dashOffset}
           strokeLinecap="butt"
           strokeLinejoin="round"
-          shapeRendering="geometricPrecision"
           vectorEffect="non-scaling-stroke"
         />
       ) : null}

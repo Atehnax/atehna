@@ -78,9 +78,12 @@ type VariantTag = 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
 type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 type VideoState = { source: 'upload' | 'youtube'; label: string; previewUrl: string };
+type ThumbnailFocusRect = { left: number; top: number; width: number; height: number };
+type ImageSettings = { altText: string; focusX: number; focusY: number; focusRect: ThumbnailFocusRect };
 type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'price';
 const MEDIA_SLOT_COUNT = 7;
 const GALLERY_SMALL_SLOT_COUNT = 6;
+const DEFAULT_THUMBNAIL_FOCUS_RECT: ThumbnailFocusRect = { left: 20, top: 20, width: 60, height: 60 };
 
 function CalmDashedOutline({ className = '' }: { className?: string }) {
   const frameRef = useRef<SVGSVGElement>(null);
@@ -1113,7 +1116,8 @@ export default function AdminItemEditorPage({
   const [pendingMediaRemoval, setPendingMediaRemoval] = useState<{ type: 'image'; slotIndex: number } | { type: 'video' } | null>(null);
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>({});
   const [editingImageSlot, setEditingImageSlot] = useState<number | null>(null);
-  const [imageSettings, setImageSettings] = useState<Record<number, { altText: string; focusX: number; focusY: number }>>({});
+  const [imageSettings, setImageSettings] = useState<Record<number, ImageSettings>>({});
+  const [focusSelectionDraft, setFocusSelectionDraft] = useState<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() =>
     (draft.category || '')
       .split('/')
@@ -1124,6 +1128,10 @@ export default function AdminItemEditorPage({
   useEffect(() => {
     setDraft((current) => ({ ...current, category: selectedCategoryPath.join(' / ') }));
   }, [selectedCategoryPath]);
+
+  useEffect(() => {
+    setFocusSelectionDraft(null);
+  }, [editingImageSlot]);
 
   useEffect(() => {
     if (!videoDraft) {
@@ -1706,30 +1714,47 @@ export default function AdminItemEditorPage({
     });
   };
 
-  const ensureImageSettings = useCallback((slotIndex: number) => {
-    return imageSettings[slotIndex] ?? { altText: '', focusX: 50, focusY: 50 };
-  }, [imageSettings]);
-
-  const updateImageSettings = useCallback((slotIndex: number, updates: Partial<{ altText: string; focusX: number; focusY: number }>) => {
-    setImageSettings((current) => {
-      const previous = current[slotIndex] ?? { altText: '', focusX: 50, focusY: 50 };
-      return {
-        ...current,
-        [slotIndex]: { ...previous, ...updates }
-      };
-    });
+  const normalizeThumbnailFocusRect = useCallback((rawRect: ThumbnailFocusRect) => {
+    const minSizePct = 8;
+    const width = Math.max(minSizePct, Math.min(100, rawRect.width));
+    const height = Math.max(minSizePct, Math.min(100, rawRect.height));
+    const left = Math.max(0, Math.min(100 - width, rawRect.left));
+    const top = Math.max(0, Math.min(100 - height, rawRect.top));
+    return { left, top, width, height };
   }, []);
 
-  const getFocusPreviewFrame = useCallback((slotIndex: number) => {
-    const focus = ensureImageSettings(slotIndex);
-    const frameSizePct = 36;
-    const halfFrame = frameSizePct / 2;
-    return {
-      frameSizePct,
-      centerX: Math.min(100 - halfFrame, Math.max(halfFrame, focus.focusX)),
-      centerY: Math.min(100 - halfFrame, Math.max(halfFrame, focus.focusY))
-    };
-  }, [ensureImageSettings]);
+  const ensureImageSettings = useCallback((slotIndex: number): ImageSettings => {
+    const existing = imageSettings[slotIndex];
+    if (existing) {
+      return { ...existing, focusRect: normalizeThumbnailFocusRect(existing.focusRect ?? DEFAULT_THUMBNAIL_FOCUS_RECT) };
+    }
+    return { altText: '', focusX: 50, focusY: 50, focusRect: DEFAULT_THUMBNAIL_FOCUS_RECT };
+  }, [imageSettings, normalizeThumbnailFocusRect]);
+
+  const updateImageSettings = useCallback((slotIndex: number, updates: Partial<ImageSettings>) => {
+    setImageSettings((current) => {
+      const previous = current[slotIndex] ?? { altText: '', focusX: 50, focusY: 50, focusRect: DEFAULT_THUMBNAIL_FOCUS_RECT };
+      const nextFocusRect = updates.focusRect
+        ? normalizeThumbnailFocusRect(updates.focusRect)
+        : normalizeThumbnailFocusRect(previous.focusRect ?? DEFAULT_THUMBNAIL_FOCUS_RECT);
+      const merged = { ...previous, ...updates, focusRect: nextFocusRect };
+      return {
+        ...current,
+        [slotIndex]: merged
+      };
+    });
+  }, [normalizeThumbnailFocusRect]);
+
+  const getActiveFocusRect = useCallback((slotIndex: number) => {
+    if (focusSelectionDraft) {
+      const left = Math.min(focusSelectionDraft.startX, focusSelectionDraft.endX);
+      const top = Math.min(focusSelectionDraft.startY, focusSelectionDraft.endY);
+      const width = Math.abs(focusSelectionDraft.endX - focusSelectionDraft.startX);
+      const height = Math.abs(focusSelectionDraft.endY - focusSelectionDraft.startY);
+      return normalizeThumbnailFocusRect({ left, top, width, height });
+    }
+    return ensureImageSettings(slotIndex).focusRect;
+  }, [ensureImageSettings, focusSelectionDraft, normalizeThumbnailFocusRect]);
 
   const renderImageActionButtons = (slotIndex: number) => {
     const compact = slotIndex !== 0;
@@ -2604,33 +2629,68 @@ export default function AdminItemEditorPage({
               </div>
               <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_240px]">
                 <div
-                  className="relative aspect-square overflow-hidden rounded-md border border-slate-200 bg-slate-100"
-                  onClick={(event) => {
+                  className="relative aspect-square cursor-crosshair overflow-hidden rounded-md border border-slate-200 bg-slate-100"
+                  style={{ touchAction: 'none' }}
+                  onPointerDown={(event) => {
                     const rect = event.currentTarget.getBoundingClientRect();
-                    const x = ((event.clientX - rect.left) / rect.width) * 100;
-                    const y = ((event.clientY - rect.top) / rect.height) * 100;
-                    updateImageSettings(editingImageSlot, { focusX: Math.max(0, Math.min(100, x)), focusY: Math.max(0, Math.min(100, y)) });
+                    const pointX = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
+                    const pointY = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
+                    setFocusSelectionDraft({ startX: pointX, startY: pointY, endX: pointX, endY: pointY });
+                    event.currentTarget.setPointerCapture(event.pointerId);
                   }}
+                  onPointerMove={(event) => {
+                    if (!focusSelectionDraft) return;
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    const pointX = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
+                    const pointY = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
+                    setFocusSelectionDraft((current) => (current ? { ...current, endX: pointX, endY: pointY } : current));
+                  }}
+                  onPointerUp={(event) => {
+                    if (!focusSelectionDraft) return;
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    const pointX = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
+                    const pointY = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
+                    const left = Math.min(focusSelectionDraft.startX, pointX);
+                    const top = Math.min(focusSelectionDraft.startY, pointY);
+                    const width = Math.abs(pointX - focusSelectionDraft.startX);
+                    const height = Math.abs(pointY - focusSelectionDraft.startY);
+                    const previous = ensureImageSettings(editingImageSlot).focusRect;
+                    const nextRect = normalizeThumbnailFocusRect(width < 1 || height < 1
+                      ? {
+                        left: pointX - previous.width / 2,
+                        top: pointY - previous.height / 2,
+                        width: previous.width,
+                        height: previous.height
+                      }
+                      : { left, top, width, height });
+                    updateImageSettings(editingImageSlot, {
+                      focusRect: nextRect,
+                      focusX: nextRect.left + nextRect.width / 2,
+                      focusY: nextRect.top + nextRect.height / 2
+                    });
+                    setFocusSelectionDraft(null);
+                    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                      event.currentTarget.releasePointerCapture(event.pointerId);
+                    }
+                  }}
+                  onPointerCancel={() => setFocusSelectionDraft(null)}
+                  onLostPointerCapture={() => setFocusSelectionDraft(null)}
                 >
                   <Image src={mediaImagesDraft[editingImageSlot]} alt={`Urejanje slike ${editingImageSlot + 1}`} fill unoptimized className="object-cover" />
                   {(() => {
-                    const focusFrame = getFocusPreviewFrame(editingImageSlot);
+                    const focusRect = getActiveFocusRect(editingImageSlot);
                     return (
                       <span
-                        className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-md border-2 border-white/85 shadow-[0_0_0_1px_rgba(59,130,246,0.8)]"
+                        className="pointer-events-none absolute rounded-[2px] border border-slate-700 border-dashed bg-transparent"
                         style={{
-                          width: `${focusFrame.frameSizePct}%`,
-                          height: `${focusFrame.frameSizePct}%`,
-                          left: `${focusFrame.centerX}%`,
-                          top: `${focusFrame.centerY}%`
+                          left: `${focusRect.left}%`,
+                          top: `${focusRect.top}%`,
+                          width: `${focusRect.width}%`,
+                          height: `${focusRect.height}%`
                         }}
                       />
                     );
                   })()}
-                  <span
-                    className="pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white bg-[#3e67d6] shadow"
-                    style={{ left: `${ensureImageSettings(editingImageSlot).focusX}%`, top: `${ensureImageSettings(editingImageSlot).focusY}%` }}
-                  />
                 </div>
                 <div className="space-y-2">
                   <div>
@@ -2644,19 +2704,26 @@ export default function AdminItemEditorPage({
                   </div>
                   <div>
                     <label className="mb-1 block text-[11px] text-slate-600">Fokus slike</label>
-                    <p className="text-[11px] text-slate-500">Kliknite na predogled, da nastavite fokus prikaza.</p>
+                    <p className="text-[11px] text-slate-500">Povlecite pravokotnik na predogledu, da določite izrez sličice.</p>
                     <div className="mt-2 overflow-hidden rounded-md border border-slate-200 bg-slate-100">
                       <div className="relative aspect-square">
-                        <Image
-                          src={mediaImagesDraft[editingImageSlot]}
-                          alt={`Predogled sličice ${editingImageSlot + 1}`}
-                          fill
-                          unoptimized
-                          className="object-cover"
-                          style={{
-                            objectPosition: `${ensureImageSettings(editingImageSlot).focusX}% ${ensureImageSettings(editingImageSlot).focusY}%`
-                          }}
-                        />
+                        {(() => {
+                          const focusRect = ensureImageSettings(editingImageSlot).focusRect;
+                          const backgroundWidth = (100 / focusRect.width) * 100;
+                          const backgroundHeight = (100 / focusRect.height) * 100;
+                          const backgroundPosX = (focusRect.left / (100 - focusRect.width)) * 100;
+                          const backgroundPosY = (focusRect.top / (100 - focusRect.height)) * 100;
+                          return (
+                            <div
+                              className="absolute inset-0 bg-no-repeat"
+                              style={{
+                                backgroundImage: `url(${mediaImagesDraft[editingImageSlot]})`,
+                                backgroundSize: `${backgroundWidth}% ${backgroundHeight}%`,
+                                backgroundPosition: `${Number.isFinite(backgroundPosX) ? backgroundPosX : 50}% ${Number.isFinite(backgroundPosY) ? backgroundPosY : 50}%`
+                              }}
+                            />
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>

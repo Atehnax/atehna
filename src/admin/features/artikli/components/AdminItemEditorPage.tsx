@@ -1110,6 +1110,7 @@ export default function AdminItemEditorPage({
   const updateImageAtSlotRef = useRef<(slotIndex: number, imageUrl: string) => void>(() => {});
   const [youtubeInput, setYoutubeInput] = useState('');
   const [videoDraft, setVideoDraft] = useState<VideoState | null>(null);
+  const [videoDragActive, setVideoDragActive] = useState(false);
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>({});
   const [editingImageSlot, setEditingImageSlot] = useState<number | null>(null);
   const [imageSettings, setImageSettings] = useState<Record<number, { altText: string; focusX: number; focusY: number }>>({});
@@ -2193,28 +2194,67 @@ export default function AdminItemEditorPage({
                       </div>
                     </div>
                   ) : (
-                    <div className={`relative flex h-full w-full flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-[#9cb8ea] bg-[#f7f9fe] px-4 py-3 text-center text-blue-600 ${isMediaEditable ? '' : 'cursor-not-allowed opacity-60'}`}>
-                      <VideoUploadFrameIcon className="h-[84px] w-[84px] text-[#74addb]" />
-                      <div className="flex flex-col items-center justify-center leading-tight">
+                    <div
+                      className={`relative flex h-full w-full flex-col items-center justify-center rounded-lg border-2 border-dashed bg-[#f7f9fe] px-5 py-3 text-center transition ${videoDragActive ? 'border-[#4f8bff] bg-[#edf3ff]' : 'border-[#9cb8ea]'} ${isMediaEditable ? '' : 'cursor-not-allowed opacity-60'}`}
+                      onDragEnter={(event) => {
+                        if (!isMediaEditable) return;
+                        event.preventDefault();
+                        setVideoDragActive(true);
+                      }}
+                      onDragOver={(event) => {
+                        if (!isMediaEditable) return;
+                        event.preventDefault();
+                        setVideoDragActive(true);
+                      }}
+                      onDragLeave={(event) => {
+                        if (!isMediaEditable) return;
+                        event.preventDefault();
+                        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                          setVideoDragActive(false);
+                        }
+                      }}
+                      onDrop={(event) => {
+                        if (!isMediaEditable) return;
+                        event.preventDefault();
+                        setVideoDragActive(false);
+                        handleVideoFileSelect(event.dataTransfer.files?.[0]);
+                      }}
+                    >
+                      <VideoUploadFrameIcon className="h-[72px] w-[72px] text-[#74addb]" />
+                      <div className="mt-1 flex flex-col items-center justify-center leading-tight">
                         <span className="text-base font-semibold text-slate-800">Naloži video</span>
                         <span className="mt-1 text-xs font-medium text-slate-500">(največ 100 MB)</span>
                       </div>
-                      <div className="flex w-full max-w-[340px] flex-col gap-2">
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="file"
-                            accept="video/*"
-                            disabled={!isMediaEditable}
-                            className="block w-full text-xs text-slate-700 file:mr-2 file:rounded-md file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs file:font-semibold"
-                            onChange={(event) => {
-                              handleVideoFileSelect(event.target.files?.[0]);
-                              event.currentTarget.value = '';
-                            }}
-                          />
+                      <div className="mt-3 flex w-full max-w-[340px] flex-col gap-2.5">
+                        <Button
+                          type="button"
+                          variant="default"
+                          size="toolbar"
+                          className="h-9 w-full justify-center"
+                          disabled={!isMediaEditable}
+                          onClick={() => document.getElementById('video-upload-input')?.click()}
+                        >
+                          Izberi video
+                        </Button>
+                        <div className="flex w-full items-center gap-2">
+                          <span className="h-px flex-1 bg-[#d5e2f5]" />
+                          <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-400">ali</span>
+                          <span className="h-px flex-1 bg-[#d5e2f5]" />
                         </div>
-                        <div className="flex gap-2">
-                          <input className={inputClass} value={youtubeInput} disabled={!isMediaEditable} onChange={(event) => setYoutubeInput(event.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
-                          <Button type="button" variant="default" size="toolbar" disabled={!isMediaEditable} onClick={addYoutubeVideo}>Povezava</Button>
+                        <div className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white p-1">
+                          <input
+                            className="h-8 w-full border-0 bg-transparent px-2 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:ring-0"
+                            value={youtubeInput}
+                            disabled={!isMediaEditable}
+                            onChange={(event) => setYoutubeInput(event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key !== 'Enter') return;
+                              event.preventDefault();
+                              addYoutubeVideo();
+                            }}
+                            placeholder="Prilepi YouTube povezavo"
+                          />
+                          <Button type="button" variant="ghost" size="toolbar" className="h-8 shrink-0 px-2.5 text-xs" disabled={!isMediaEditable} onClick={addYoutubeVideo}>Dodaj povezavo</Button>
                         </div>
                       </div>
                     </div>

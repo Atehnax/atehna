@@ -1720,6 +1720,17 @@ export default function AdminItemEditorPage({
     });
   }, []);
 
+  const getFocusPreviewFrame = useCallback((slotIndex: number) => {
+    const focus = ensureImageSettings(slotIndex);
+    const frameSizePct = 36;
+    const halfFrame = frameSizePct / 2;
+    return {
+      frameSizePct,
+      centerX: Math.min(100 - halfFrame, Math.max(halfFrame, focus.focusX)),
+      centerY: Math.min(100 - halfFrame, Math.max(halfFrame, focus.focusY))
+    };
+  }, [ensureImageSettings]);
+
   const renderImageActionButtons = (slotIndex: number) => {
     const compact = slotIndex !== 0;
     const verticalAlignClass = compact ? 'justify-center' : 'justify-start pt-2';
@@ -2602,6 +2613,20 @@ export default function AdminItemEditorPage({
                   }}
                 >
                   <Image src={mediaImagesDraft[editingImageSlot]} alt={`Urejanje slike ${editingImageSlot + 1}`} fill unoptimized className="object-cover" />
+                  {(() => {
+                    const focusFrame = getFocusPreviewFrame(editingImageSlot);
+                    return (
+                      <span
+                        className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-md border-2 border-white/85 shadow-[0_0_0_1px_rgba(59,130,246,0.8)]"
+                        style={{
+                          width: `${focusFrame.frameSizePct}%`,
+                          height: `${focusFrame.frameSizePct}%`,
+                          left: `${focusFrame.centerX}%`,
+                          top: `${focusFrame.centerY}%`
+                        }}
+                      />
+                    );
+                  })()}
                   <span
                     className="pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white bg-[#3e67d6] shadow"
                     style={{ left: `${ensureImageSettings(editingImageSlot).focusX}%`, top: `${ensureImageSettings(editingImageSlot).focusY}%` }}
@@ -2620,6 +2645,20 @@ export default function AdminItemEditorPage({
                   <div>
                     <label className="mb-1 block text-[11px] text-slate-600">Fokus slike</label>
                     <p className="text-[11px] text-slate-500">Kliknite na predogled, da nastavite fokus prikaza.</p>
+                    <div className="mt-2 overflow-hidden rounded-md border border-slate-200 bg-slate-100">
+                      <div className="relative aspect-square">
+                        <Image
+                          src={mediaImagesDraft[editingImageSlot]}
+                          alt={`Predogled sličice ${editingImageSlot + 1}`}
+                          fill
+                          unoptimized
+                          className="object-cover"
+                          style={{
+                            objectPosition: `${ensureImageSettings(editingImageSlot).focusX}% ${ensureImageSettings(editingImageSlot).focusY}%`
+                          }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

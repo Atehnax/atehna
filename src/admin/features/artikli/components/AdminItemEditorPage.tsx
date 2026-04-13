@@ -62,7 +62,17 @@ const GALLERY_SMALL_SLOT_COUNT = 6;
 function CalmDashedOutline({ className = '' }: { className?: string }) {
   return (
     <svg className={`pointer-events-none absolute inset-0 h-full w-full ${className}`} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
-      <rect x="1" y="1" width="98" height="98" rx="8" ry="8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="8 7" />
+      <rect x="1" y="1" width="98" height="98" rx="8" ry="8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="16 12" />
+    </svg>
+  );
+}
+
+function CloudUploadIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 48" aria-hidden className={className}>
+      <path fill="currentColor" d="M17 40h30a11 11 0 0 0 1.5-21.9A17 17 0 0 0 16.2 13 12 12 0 0 0 17 40Z" />
+      <path fill="#fff" d="M30 31v-9h-6l8-9 8 9h-6v9z" />
+      <rect x="27.5" y="30.5" width="9" height="3" rx="1.5" fill="#fff" />
     </svg>
   );
 }
@@ -1440,7 +1450,11 @@ export default function AdminItemEditorPage({
                   {mediaImagesDraft.length === 0 ? (
                     <label className={`relative flex h-full w-full items-center justify-center rounded-lg bg-[#f7f7fc] text-blue-600 ${isMediaEditable ? 'cursor-pointer hover:bg-[#f1f4fb]' : 'cursor-not-allowed opacity-60'}`}>
                       <CalmDashedOutline />
-                      <span className="text-5xl leading-none">+</span>
+                      <span className="flex flex-col items-center justify-center gap-2 text-center">
+                        <CloudUploadIcon className="h-14 w-14 text-[#2f7dc5]" />
+                        <span className="text-base font-semibold text-slate-800">Povleci in spusti ali klikni sem</span>
+                        <span className="text-xs font-medium text-slate-500">za nalaganje slike (največ 2 MB)</span>
+                      </span>
                       <input
                         type="file"
                         className="hidden"
@@ -1531,7 +1545,7 @@ export default function AdminItemEditorPage({
                           return (
                             <label key={`slot-${slotIndex}`} className={`relative flex h-full items-center justify-center rounded-lg bg-[#f7f7fc] text-blue-600 ${isMediaEditable ? 'cursor-pointer hover:bg-[#f1f4fb]' : 'cursor-not-allowed opacity-60'}`}>
                               <CalmDashedOutline />
-                              <span className="text-3xl leading-none">+</span>
+                              <CloudUploadIcon className="h-8 w-8 text-[#2f7dc5]" />
                               <input type="file" className="hidden" accept="image/*" disabled={!isMediaEditable} onChange={(event) => {
                                 const file = event.target.files?.[0];
                                 if (!file) return;

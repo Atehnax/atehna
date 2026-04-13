@@ -80,22 +80,37 @@ function CalmDashedOutline({ className = '' }: { className?: string }) {
   const width = Math.max(0, Math.round(frameSize.width));
   const height = Math.max(0, Math.round(frameSize.height));
   const cornerRadius = 8;
+  const inset = 1;
+  const innerWidth = Math.max(0, width - inset * 2);
+  const innerHeight = Math.max(0, height - inset * 2);
+  const cornerArc = Math.PI * 2 * cornerRadius;
+  const linearPerimeter = Math.max(0, 2 * (innerWidth + innerHeight - cornerRadius * 4));
+  const perimeter = linearPerimeter + cornerArc;
+  const targetUnit = 14;
+  const cycleCount = Math.max(8, Math.round(perimeter / targetUnit) || 8);
+  const normalizedUnit = perimeter > 0 ? perimeter / cycleCount : targetUnit;
+  const dashLength = normalizedUnit * 0.42;
+  const gapLength = normalizedUnit - dashLength;
+  const dashOffset = normalizedUnit / 2;
 
   return (
     <svg ref={frameRef} aria-hidden className={`pointer-events-none absolute inset-0 h-full w-full ${className}`} viewBox={`0 0 ${Math.max(1, width)} ${Math.max(1, height)}`} preserveAspectRatio="none">
       {width > 0 && height > 0 ? (
         <rect
-          x="1"
-          y="1"
-          width={Math.max(0, width - 2)}
-          height={Math.max(0, height - 2)}
+          x={inset}
+          y={inset}
+          width={innerWidth}
+          height={innerHeight}
           rx={cornerRadius}
           ry={cornerRadius}
           fill="none"
           stroke="currentColor"
           strokeWidth="1.5"
-          strokeDasharray="6 8"
+          strokeDasharray={`${dashLength} ${gapLength}`}
+          strokeDashoffset={dashOffset}
           strokeLinecap="round"
+          strokeLinejoin="round"
+          shapeRendering="geometricPrecision"
           vectorEffect="non-scaling-stroke"
         />
       ) : null}

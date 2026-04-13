@@ -1400,7 +1400,7 @@ export default function AdminItemEditorPage({
       autoProceed: false,
       restrictions: {
         allowedFileTypes: ['image/*'],
-        maxFileSize: 2 * 1024 * 1024,
+        maxFileSize: 4 * 1024 * 1024,
         maxNumberOfFiles: 1
       },
       onBeforeFileAdded: (file) => {
@@ -1419,7 +1419,7 @@ export default function AdminItemEditorPage({
     });
 
     uppy.on('restriction-failed', (_file, error) => {
-      toast.error(error.message || 'Nalaganje ni uspelo. Dovoljene so le slike do 2 MB.');
+      toast.error(error.message || 'Nalaganje ni uspelo. Dovoljene so le slike do 4 MB.');
     });
 
     uppy.on('error', (error) => {
@@ -1858,17 +1858,17 @@ export default function AdminItemEditorPage({
                         className="flex h-full w-full items-center justify-center rounded-lg text-blue-600"
                       >
                         <span className="flex flex-col items-center justify-center gap-2 text-center">
-                          <ImageUploadFrameIcon className="h-14 w-14 text-[#2f7dc5]" />
+                          <ImageUploadFrameIcon className="h-[84px] w-[84px] text-[#2f7dc5]" />
                           <span className="text-base font-semibold text-slate-800">Naloži sliko</span>
-                          <span className="text-xs font-medium text-slate-500">(največ 2 MB)</span>
+                          <span className="text-xs font-medium text-slate-500">(največ 4 MB)</span>
                         </span>
                       </UppyDropzoneField>
                     ) : (
                       <div className={`relative flex h-full w-full items-center justify-center rounded-lg bg-[#f7f9fe] text-blue-600 ${isMediaEditable ? '' : 'cursor-not-allowed opacity-60'}`}>
                         <span className="flex flex-col items-center justify-center gap-2 text-center">
-                          <ImageUploadFrameIcon className="h-14 w-14 text-[#2f7dc5]" />
+                          <ImageUploadFrameIcon className="h-[84px] w-[84px] text-[#2f7dc5]" />
                           <span className="text-base font-semibold text-slate-800">Naloži sliko</span>
-                          <span className="text-xs font-medium text-slate-500">(največ 2 MB)</span>
+                          <span className="text-xs font-medium text-slate-500">(največ 4 MB)</span>
                         </span>
                       </div>
                     )
@@ -1960,7 +1960,11 @@ export default function AdminItemEditorPage({
                                 onPrepareAddFiles={(files) => prepareDropzoneUploadPlan(slotIndex, true, files)}
                                 className="flex h-full items-center justify-center rounded-lg text-blue-600"
                               >
-                                <span className="inline-flex h-full w-full items-center justify-center text-4xl font-light leading-none text-[#2f7dc5]">+</span>
+                                <span className="inline-flex h-full w-full items-center justify-center">
+                                  <svg viewBox="0 0 24 24" className="h-9 w-9 text-[#2f7dc5]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                                    <path d="M12 5v14M5 12h14" />
+                                  </svg>
+                                </span>
                               </UppyDropzoneField>
                             ) : (
                               <div key={`slot-${slotIndex}`} className={`relative flex h-full items-center justify-center rounded-lg bg-[#f7f9fe] text-blue-600 ${isMediaEditable ? '' : 'cursor-not-allowed opacity-60'}`}>

@@ -1323,10 +1323,16 @@ export default function AdminItemEditorPage({
 
   const deleteSelectedVariants = () => {
     if (!isTableEditable || !hasSelectedVariants) return;
-    setDraft((current) => ({
-      ...current,
-      variants: current.variants.filter((variant) => !variantSelections.has(variant.id))
-    }));
+    setDraft((current) => {
+      const remainingVariants = current.variants.filter((variant) => !variantSelections.has(variant.id));
+      return {
+        ...current,
+        variants: remainingVariants.map((variant, index) => ({
+          ...variant,
+          sort: index + 1
+        }))
+      };
+    });
     setVariantSelections(new Set());
   };
 

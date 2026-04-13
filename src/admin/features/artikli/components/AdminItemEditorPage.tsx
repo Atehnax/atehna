@@ -79,11 +79,10 @@ type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 type VideoState = { source: 'upload' | 'youtube'; label: string; previewUrl: string };
 type ThumbnailFocusRect = { left: number; top: number; width: number; height: number };
-type ImageSettings = { altText: string; focusX: number; focusY: number; focusRect: ThumbnailFocusRect };
+type ImageSettings = { altText: string; focusX: number; focusY: number; focusRect: ThumbnailFocusRect | null };
 type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'price';
 const MEDIA_SLOT_COUNT = 7;
 const GALLERY_SMALL_SLOT_COUNT = 6;
-const DEFAULT_THUMBNAIL_FOCUS_RECT: ThumbnailFocusRect = { left: 20, top: 20, width: 60, height: 60 };
 
 function CalmDashedOutline({ className = '' }: { className?: string }) {
   const frameRef = useRef<SVGSVGElement>(null);
@@ -1715,7 +1714,7 @@ export default function AdminItemEditorPage({
   };
 
   const normalizeThumbnailFocusRect = useCallback((rawRect: ThumbnailFocusRect) => {
-    const minSizePct = 8;
+    const minSizePct = 1;
     const width = Math.max(minSizePct, Math.min(100, rawRect.width));
     const height = Math.max(minSizePct, Math.min(100, rawRect.height));
     const left = Math.max(0, Math.min(100 - width, rawRect.left));
@@ -1726,17 +1725,17 @@ export default function AdminItemEditorPage({
   const ensureImageSettings = useCallback((slotIndex: number): ImageSettings => {
     const existing = imageSettings[slotIndex];
     if (existing) {
-      return { ...existing, focusRect: normalizeThumbnailFocusRect(existing.focusRect ?? DEFAULT_THUMBNAIL_FOCUS_RECT) };
+      return { ...existing, focusRect: existing.focusRect ? normalizeThumbnailFocusRect(existing.focusRect) : null };
     }
-    return { altText: '', focusX: 50, focusY: 50, focusRect: DEFAULT_THUMBNAIL_FOCUS_RECT };
+    return { altText: '', focusX: 50, focusY: 50, focusRect: null };
   }, [imageSettings, normalizeThumbnailFocusRect]);
 
   const updateImageSettings = useCallback((slotIndex: number, updates: Partial<ImageSettings>) => {
     setImageSettings((current) => {
-      const previous = current[slotIndex] ?? { altText: '', focusX: 50, focusY: 50, focusRect: DEFAULT_THUMBNAIL_FOCUS_RECT };
-      const nextFocusRect = updates.focusRect
-        ? normalizeThumbnailFocusRect(updates.focusRect)
-        : normalizeThumbnailFocusRect(previous.focusRect ?? DEFAULT_THUMBNAIL_FOCUS_RECT);
+      const previous = current[slotIndex] ?? { altText: '', focusX: 50, focusY: 50, focusRect: null };
+      const nextFocusRect = typeof updates.focusRect !== 'undefined'
+        ? (updates.focusRect ? normalizeThumbnailFocusRect(updates.focusRect) : null)
+        : (previous.focusRect ? normalizeThumbnailFocusRect(previous.focusRect) : null);
       const merged = { ...previous, ...updates, focusRect: nextFocusRect };
       return {
         ...current,
@@ -2625,7 +2624,7 @@ export default function AdminItemEditorPage({
             <div className="w-full max-w-3xl rounded-xl border border-slate-200 bg-white p-3 shadow-2xl">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-sm font-semibold text-slate-800">Urejanje slike {editingImageSlot + 1}</span>
-                <button type="button" className="text-xs text-slate-500 hover:text-slate-700" onClick={() => setEditingImageSlot(null)}>Zapri</button>
+                <Button type="button" variant="close-x" onClick={() => setEditingImageSlot(null)} aria-label="Zapri urejanje slike" title="Zapri">×</Button>
               </div>
               <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_240px]">
                 <div
@@ -2657,10 +2656,10 @@ export default function AdminItemEditorPage({
                     const previous = ensureImageSettings(editingImageSlot).focusRect;
                     const nextRect = normalizeThumbnailFocusRect(width < 1 || height < 1
                       ? {
-                        left: pointX - previous.width / 2,
-                        top: pointY - previous.height / 2,
-                        width: previous.width,
-                        height: previous.height
+                        left: pointX - (previous?.width ?? 30) / 2,
+                        top: pointY - (previous?.height ?? 30) / 2,
+                        width: previous?.width ?? 30,
+                        height: previous?.height ?? 30
                       }
                       : { left, top, width, height });
                     updateImageSettings(editingImageSlot, {
@@ -2679,6 +2678,7 @@ export default function AdminItemEditorPage({
                   <Image src={mediaImagesDraft[editingImageSlot]} alt={`Urejanje slike ${editingImageSlot + 1}`} fill unoptimized className="object-cover" />
                   {(() => {
                     const focusRect = getActiveFocusRect(editingImageSlot);
+                    if (!focusRect) return null;
                     return (
                       <span
                         className="pointer-events-none absolute rounded-[2px] border border-slate-700 border-dashed bg-transparent"
@@ -2694,7 +2694,7 @@ export default function AdminItemEditorPage({
                 </div>
                 <div className="space-y-2">
                   <div>
-                    <label className="mb-1 block text-[11px] text-slate-600">Alt besedilo</label>
+                    <label className="mb-1 block text-[11px] font-bold text-slate-600">Alt besedilo</label>
                     <input
                       className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-900 outline-none focus:border-[#3e67d6]"
                       value={ensureImageSettings(editingImageSlot).altText}
@@ -2703,12 +2703,22 @@ export default function AdminItemEditorPage({
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-[11px] text-slate-600">Fokus slike</label>
-                    <p className="text-[11px] text-slate-500">Povlecite pravokotnik na predogledu, da določite izrez sličice.</p>
-                    <div className="mt-2 overflow-hidden rounded-md border border-slate-200 bg-slate-100">
-                      <div className="relative aspect-square">
+                    <label className="mb-1 block text-[11px] font-bold text-slate-600">Fokus slike</label>
+                    <div className="mt-2 inline-flex h-[100px] w-[100px] overflow-hidden rounded-md border border-slate-200 bg-slate-100">
+                      <div className="relative h-full w-full">
                         {(() => {
                           const focusRect = ensureImageSettings(editingImageSlot).focusRect;
+                          if (!focusRect) {
+                            return (
+                              <Image
+                                src={mediaImagesDraft[editingImageSlot]}
+                                alt={`Predogled sličice ${editingImageSlot + 1}`}
+                                fill
+                                unoptimized
+                                className="object-cover"
+                              />
+                            );
+                          }
                           const backgroundWidth = (100 / focusRect.width) * 100;
                           const backgroundHeight = (100 / focusRect.height) * 100;
                           const backgroundPosX = (focusRect.left / (100 - focusRect.width)) * 100;

@@ -86,12 +86,10 @@ function CalmDashedOutline({ className = '' }: { className?: string }) {
   const cornerArc = Math.PI * 2 * cornerRadius;
   const linearPerimeter = Math.max(0, 2 * (innerWidth + innerHeight - cornerRadius * 4));
   const perimeter = linearPerimeter + cornerArc;
-  const targetUnit = 14;
-  const cycleCount = Math.max(8, Math.round(perimeter / targetUnit) || 8);
-  const normalizedUnit = perimeter > 0 ? perimeter / cycleCount : targetUnit;
-  const dashLength = normalizedUnit * 0.42;
-  const gapLength = normalizedUnit - dashLength;
-  const dashOffset = normalizedUnit / 2;
+  const dashLength = 6;
+  const gapLength = 10;
+  const dashUnit = dashLength + gapLength;
+  const dashOffset = perimeter > 0 ? (perimeter % dashUnit) / 2 : 0;
 
   return (
     <svg ref={frameRef} aria-hidden className={`pointer-events-none absolute inset-0 h-full w-full ${className}`} viewBox={`0 0 ${Math.max(1, width)} ${Math.max(1, height)}`} preserveAspectRatio="none">
@@ -108,7 +106,7 @@ function CalmDashedOutline({ className = '' }: { className?: string }) {
           strokeWidth="1.5"
           strokeDasharray={`${dashLength} ${gapLength}`}
           strokeDashoffset={dashOffset}
-          strokeLinecap="round"
+          strokeLinecap="butt"
           strokeLinejoin="round"
           shapeRendering="geometricPrecision"
           vectorEffect="non-scaling-stroke"

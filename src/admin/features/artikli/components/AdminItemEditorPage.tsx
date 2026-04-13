@@ -60,8 +60,46 @@ const MEDIA_SLOT_COUNT = 7;
 const GALLERY_SMALL_SLOT_COUNT = 6;
 
 function CalmDashedOutline({ className = '' }: { className?: string }) {
+  const frameRef = useRef<SVGSVGElement>(null);
+  const [frameSize, setFrameSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const host = frameRef.current;
+    if (!host?.parentElement) return;
+    const parent = host.parentElement;
+    const sync = () => {
+      const rect = parent.getBoundingClientRect();
+      setFrameSize({ width: Math.max(0, rect.width), height: Math.max(0, rect.height) });
+    };
+    sync();
+    const observer = new ResizeObserver(sync);
+    observer.observe(parent);
+    return () => observer.disconnect();
+  }, []);
+
+  const width = Math.max(0, Math.round(frameSize.width));
+  const height = Math.max(0, Math.round(frameSize.height));
+  const cornerRadius = 8;
+
   return (
-    <span aria-hidden className={`pointer-events-none absolute inset-0 rounded-[inherit] border border-dashed border-current ${className}`} />
+    <svg ref={frameRef} aria-hidden className={`pointer-events-none absolute inset-0 h-full w-full ${className}`} viewBox={`0 0 ${Math.max(1, width)} ${Math.max(1, height)}`} preserveAspectRatio="none">
+      {width > 0 && height > 0 ? (
+        <rect
+          x="1"
+          y="1"
+          width={Math.max(0, width - 2)}
+          height={Math.max(0, height - 2)}
+          rx={cornerRadius}
+          ry={cornerRadius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeDasharray="6 8"
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      ) : null}
+    </svg>
   );
 }
 

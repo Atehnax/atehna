@@ -25,6 +25,7 @@ export type Variant = {
   active: boolean;
   sort: number;
   imageOverride?: string | null;
+  imageAssignments?: number[];
 };
 
 export type ProductFamily = {
@@ -91,6 +92,7 @@ export const createVariant = (overrides: Partial<Variant> = {}): Variant => ({
   active: true,
   sort: 1,
   imageOverride: null,
+  imageAssignments: [],
   ...overrides
 });
 

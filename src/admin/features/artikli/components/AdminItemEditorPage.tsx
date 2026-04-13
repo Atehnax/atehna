@@ -81,8 +81,8 @@ function CalmDashedOutline({ className = '' }: { className?: string }) {
     return () => observer.disconnect();
   }, []);
 
-  const width = Math.max(0, Math.round(frameSize.width));
-  const height = Math.max(0, Math.round(frameSize.height));
+  const width = Math.max(0, frameSize.width);
+  const height = Math.max(0, frameSize.height);
   const strokeWidth = 1.125;
   const inset = strokeWidth / 2;
   const innerWidth = Math.max(0, width - inset * 2);

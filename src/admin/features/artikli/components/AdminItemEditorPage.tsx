@@ -84,23 +84,36 @@ function CalmDashedOutline({ className = '' }: { className?: string }) {
   const width = Math.max(0, frameSize.width);
   const height = Math.max(0, frameSize.height);
   const strokeWidth = 1.125;
-  const inset = strokeWidth / 2;
-  const innerWidth = Math.max(0, width - inset * 2);
-  const innerHeight = Math.max(0, height - inset * 2);
-  const effectiveRadius = Math.max(0, cornerRadius - inset);
-  const cornerArc = Math.PI * 2 * effectiveRadius;
-  const linearPerimeter = Math.max(0, 2 * (innerWidth + innerHeight - effectiveRadius * 4));
-  const perimeter = linearPerimeter + cornerArc;
-  const dashLength = 6;
+  const pathLength = 1000;
+  const targetDashLength = 6;
   const targetGapLength = 10;
-  const targetUnit = dashLength + targetGapLength;
+  const targetUnit = targetDashLength + targetGapLength;
+
+  const snapToGrid = (value: number) => Math.round(value * 8) / 8;
+  const inset = snapToGrid(strokeWidth / 2);
+  const innerWidth = Math.max(0, snapToGrid(width - inset * 2));
+  const innerHeight = Math.max(0, snapToGrid(height - inset * 2));
+  const effectiveRadius = Math.max(0, snapToGrid(cornerRadius - inset));
+  const perimeter = Math.max(
+    1,
+    2 * (innerWidth + innerHeight - effectiveRadius * 4) + (2 * Math.PI * effectiveRadius),
+  );
   const cycleCount = Math.max(1, Math.round(perimeter / targetUnit));
-  const normalizedUnit = perimeter > 0 ? perimeter / cycleCount : targetUnit;
-  const gapLength = Math.max(2, normalizedUnit - dashLength);
-  const dashOffset = 0;
+  const normalizedCycle = pathLength / cycleCount;
+  const dashRatio = targetDashLength / targetUnit;
+  const normalizedDashLength = normalizedCycle * dashRatio;
+  const normalizedGapLength = Math.max(1, normalizedCycle - normalizedDashLength);
+  const dashOffset = -(normalizedCycle / 2);
 
   return (
-    <svg ref={frameRef} aria-hidden className={`pointer-events-none absolute inset-0 h-full w-full ${className}`} viewBox={`0 0 ${Math.max(1, width)} ${Math.max(1, height)}`} preserveAspectRatio="none">
+    <svg
+      ref={frameRef}
+      aria-hidden
+      className={`pointer-events-none absolute inset-0 h-full w-full ${className}`}
+      width={Math.max(1, width)}
+      height={Math.max(1, height)}
+      viewBox={`0 0 ${Math.max(1, width)} ${Math.max(1, height)}`}
+    >
       {width > 0 && height > 0 ? (
         <rect
           x={inset}
@@ -112,11 +125,13 @@ function CalmDashedOutline({ className = '' }: { className?: string }) {
           fill="none"
           stroke="currentColor"
           strokeWidth={strokeWidth}
-          strokeDasharray={`${dashLength} ${gapLength}`}
+          pathLength={pathLength}
+          strokeDasharray={`${normalizedDashLength} ${normalizedGapLength}`}
           strokeDashoffset={dashOffset}
           strokeLinecap="butt"
           strokeLinejoin="round"
           vectorEffect="non-scaling-stroke"
+          shapeRendering="geometricPrecision"
         />
       ) : null}
     </svg>

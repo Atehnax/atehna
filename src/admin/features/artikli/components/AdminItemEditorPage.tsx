@@ -1668,6 +1668,30 @@ export default function AdminItemEditorPage({
     sorted.forEach((slotIndex) => removeImageSlot(slotIndex));
   };
 
+  const requestRemoveImageSlot = (slotIndex: number) => {
+    const shouldRemove = window.confirm('Ali želite odstraniti to sliko?');
+    if (!shouldRemove) return;
+    removeImageSlot(slotIndex);
+  };
+
+  const requestRemoveSelectedImages = (selected: Set<number>) => {
+    if (!selected.size) return false;
+    const shouldRemove = window.confirm('Ali želite odstraniti izbrane slike?');
+    if (!shouldRemove) return false;
+    removeSelectedImageSlots(selected);
+    return true;
+  };
+
+  const requestRemoveVideo = () => {
+    if (!videoDraft) return;
+    const shouldRemove = window.confirm('Ali želite odstraniti video?');
+    if (!shouldRemove) return;
+    setVideoDraft(null);
+    setYoutubeInput('');
+    setVideoMoveMode(false);
+    setVideoAssignedVariantId(null);
+  };
+
   const assignImageToVariant = (variantIndex: number, slotIndex: number) => {
     const slotImage = mediaImagesDraft[slotIndex];
     if (!slotImage) return;
@@ -1715,7 +1739,7 @@ export default function AdminItemEditorPage({
         key: 'remove',
         label: 'Odstrani',
         tone: 'danger' as const,
-        onClick: () => removeImageSlot(slotIndex),
+        onClick: () => requestRemoveImageSlot(slotIndex),
         icon: <span aria-hidden className={`${compact ? 'text-[11px]' : 'text-sm'} leading-none`}>✕</span>
       },
       {
@@ -1912,15 +1936,12 @@ export default function AdminItemEditorPage({
                 disabled={!isMediaEditable || (mediaTab === 'video' ? !videoDraft : selectedImageIndexes.size === 0)}
                 onClick={() => {
                   if (mediaTab === 'video') {
-                    setVideoDraft(null);
-                    setYoutubeInput('');
-                    setVideoMoveMode(false);
-                    setVideoAssignedVariantId(null);
+                    requestRemoveVideo();
                     return;
                   }
                   const selected = new Set(selectedImageIndexes);
-                  removeSelectedImageSlots(selected);
-                  setSelectedImageIndexes(new Set());
+                  const didRemove = requestRemoveSelectedImages(selected);
+                  if (didRemove) setSelectedImageIndexes(new Set());
                 }}
               >
                 <TrashCanIcon />
@@ -2195,7 +2216,7 @@ export default function AdminItemEditorPage({
                       )}
                       <div className="absolute inset-y-0 right-2 z-20 flex flex-col items-end justify-start gap-1.5 pt-2 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
                         {[
-                          { key: 'remove', label: 'Odstrani', tone: 'danger' as const, onClick: () => setVideoDraft(null), icon: <span aria-hidden className="text-sm leading-none">✕</span> },
+                          { key: 'remove', label: 'Odstrani', tone: 'danger' as const, onClick: requestRemoveVideo, icon: <span aria-hidden className="text-sm leading-none">✕</span> },
                           {
                             key: 'move',
                             label: 'Premakni',
@@ -2217,10 +2238,6 @@ export default function AdminItemEditorPage({
                             }}
                             onClick={(event) => {
                               event.stopPropagation();
-                              if (action.key === 'remove') {
-                                setVideoAssignedVariantId(null);
-                                setVideoMoveMode(false);
-                              }
                               action.onClick();
                             }}
                             aria-label={action.label}
@@ -2276,7 +2293,7 @@ export default function AdminItemEditorPage({
                           onPointerDown={(event) => event.stopPropagation()}
                         >
                           <input
-                            className="h-full w-full border-0 bg-transparent px-1.5 text-xs text-slate-800 outline-none placeholder:text-slate-400 focus:ring-0"
+                            className="h-full w-full border-0 bg-transparent px-1.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:ring-0"
                             value={youtubeInput}
                             disabled={!isMediaEditable}
                             onChange={(event) => setYoutubeInput(event.target.value)}

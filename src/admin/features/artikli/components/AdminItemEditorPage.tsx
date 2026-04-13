@@ -1117,6 +1117,7 @@ export default function AdminItemEditorPage({
   const [editingImageSlot, setEditingImageSlot] = useState<number | null>(null);
   const [imageSettings, setImageSettings] = useState<Record<number, ImageSettings>>({});
   const [focusSelectionDraft, setFocusSelectionDraft] = useState<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
+  const focusSelectionDraftRef = useRef<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() =>
     (draft.category || '')
       .split('/')
@@ -1130,6 +1131,7 @@ export default function AdminItemEditorPage({
 
   useEffect(() => {
     setFocusSelectionDraft(null);
+    focusSelectionDraftRef.current = null;
   }, [editingImageSlot]);
 
   useEffect(() => {
@@ -2634,25 +2636,30 @@ export default function AdminItemEditorPage({
                     const rect = event.currentTarget.getBoundingClientRect();
                     const pointX = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
                     const pointY = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
-                    setFocusSelectionDraft({ startX: pointX, startY: pointY, endX: pointX, endY: pointY });
+                    const initialDraft = { startX: pointX, startY: pointY, endX: pointX, endY: pointY };
+                    focusSelectionDraftRef.current = initialDraft;
+                    setFocusSelectionDraft(initialDraft);
                     event.currentTarget.setPointerCapture(event.pointerId);
                   }}
                   onPointerMove={(event) => {
-                    if (!focusSelectionDraft) return;
+                    if (!focusSelectionDraftRef.current) return;
                     const rect = event.currentTarget.getBoundingClientRect();
                     const pointX = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
                     const pointY = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
-                    setFocusSelectionDraft((current) => (current ? { ...current, endX: pointX, endY: pointY } : current));
+                    const nextDraft = { ...focusSelectionDraftRef.current, endX: pointX, endY: pointY };
+                    focusSelectionDraftRef.current = nextDraft;
+                    setFocusSelectionDraft(nextDraft);
                   }}
                   onPointerUp={(event) => {
-                    if (!focusSelectionDraft) return;
+                    const activeDraft = focusSelectionDraftRef.current;
+                    if (!activeDraft) return;
                     const rect = event.currentTarget.getBoundingClientRect();
                     const pointX = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
                     const pointY = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
-                    const left = Math.min(focusSelectionDraft.startX, pointX);
-                    const top = Math.min(focusSelectionDraft.startY, pointY);
-                    const width = Math.abs(pointX - focusSelectionDraft.startX);
-                    const height = Math.abs(pointY - focusSelectionDraft.startY);
+                    const left = Math.min(activeDraft.startX, pointX);
+                    const top = Math.min(activeDraft.startY, pointY);
+                    const width = Math.abs(pointX - activeDraft.startX);
+                    const height = Math.abs(pointY - activeDraft.startY);
                     const previous = ensureImageSettings(editingImageSlot).focusRect;
                     const nextRect = normalizeThumbnailFocusRect(width < 1 || height < 1
                       ? {
@@ -2667,13 +2674,20 @@ export default function AdminItemEditorPage({
                       focusX: nextRect.left + nextRect.width / 2,
                       focusY: nextRect.top + nextRect.height / 2
                     });
+                    focusSelectionDraftRef.current = null;
                     setFocusSelectionDraft(null);
                     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
                       event.currentTarget.releasePointerCapture(event.pointerId);
                     }
                   }}
-                  onPointerCancel={() => setFocusSelectionDraft(null)}
-                  onLostPointerCapture={() => setFocusSelectionDraft(null)}
+                  onPointerCancel={() => {
+                    focusSelectionDraftRef.current = null;
+                    setFocusSelectionDraft(null);
+                  }}
+                  onLostPointerCapture={() => {
+                    focusSelectionDraftRef.current = null;
+                    setFocusSelectionDraft(null);
+                  }}
                 >
                   <Image src={mediaImagesDraft[editingImageSlot]} alt={`Urejanje slike ${editingImageSlot + 1}`} fill unoptimized className="object-cover" />
                   {(() => {

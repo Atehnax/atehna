@@ -80,6 +80,7 @@ type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 type VideoState = { source: 'upload' | 'youtube'; label: string; previewUrl: string };
 type ThumbnailFocusRect = { left: number; top: number; width: number; height: number };
 type ImageSettings = { altText: string; focusX: number; focusY: number; focusRect: ThumbnailFocusRect | null };
+type FocusInteractionMode = 'create' | 'move' | 'resize-nw' | 'resize-ne' | 'resize-se' | 'resize-sw';
 type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'price';
 const MEDIA_SLOT_COUNT = 7;
 const GALLERY_SMALL_SLOT_COUNT = 6;
@@ -1118,6 +1119,7 @@ export default function AdminItemEditorPage({
   const [imageSettings, setImageSettings] = useState<Record<number, ImageSettings>>({});
   const [focusSelectionDraft, setFocusSelectionDraft] = useState<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
   const focusSelectionDraftRef = useRef<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
+  const focusInteractionRef = useRef<{ mode: FocusInteractionMode; startX: number; startY: number; originRect: ThumbnailFocusRect | null } | null>(null);
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() =>
     (draft.category || '')
       .split('/')
@@ -1132,6 +1134,7 @@ export default function AdminItemEditorPage({
   useEffect(() => {
     setFocusSelectionDraft(null);
     focusSelectionDraftRef.current = null;
+    focusInteractionRef.current = null;
   }, [editingImageSlot]);
 
   useEffect(() => {
@@ -1719,6 +1722,21 @@ export default function AdminItemEditorPage({
     const minSizePct = 1;
     const width = Math.max(minSizePct, Math.min(100, rawRect.width));
     const height = Math.max(minSizePct, Math.min(100, rawRect.height));
+    const left = Math.max(0, Math.min(100 - width, rawRect.left));
+    const top = Math.max(0, Math.min(100 - height, rawRect.top));
+    return { left, top, width, height };
+  }, []);
+
+  const toRectFromPoints = useCallback((startX: number, startY: number, endX: number, endY: number): ThumbnailFocusRect => ({
+    left: Math.min(startX, endX),
+    top: Math.min(startY, endY),
+    width: Math.abs(endX - startX),
+    height: Math.abs(endY - startY)
+  }), []);
+
+  const clampRectWithinBounds = useCallback((rawRect: ThumbnailFocusRect): ThumbnailFocusRect => {
+    const width = Math.max(0.1, Math.min(100, rawRect.width));
+    const height = Math.max(0.1, Math.min(100, rawRect.height));
     const left = Math.max(0, Math.min(100 - width, rawRect.left));
     const top = Math.max(0, Math.min(100 - height, rawRect.top));
     return { left, top, width, height };
@@ -2636,44 +2654,105 @@ export default function AdminItemEditorPage({
                     const rect = event.currentTarget.getBoundingClientRect();
                     const pointX = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
                     const pointY = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
-                    const initialDraft = { startX: pointX, startY: pointY, endX: pointX, endY: pointY };
-                    focusSelectionDraftRef.current = initialDraft;
-                    setFocusSelectionDraft(initialDraft);
+                    const target = event.target as HTMLElement;
+                    const action = target.dataset.focusAction as FocusInteractionMode | undefined;
+                    const existingRect = ensureImageSettings(editingImageSlot).focusRect;
+                    if (action && existingRect) {
+                      focusInteractionRef.current = { mode: action, startX: pointX, startY: pointY, originRect: existingRect };
+                      const initialDraft = {
+                        startX: existingRect.left,
+                        startY: existingRect.top,
+                        endX: existingRect.left + existingRect.width,
+                        endY: existingRect.top + existingRect.height
+                      };
+                      focusSelectionDraftRef.current = initialDraft;
+                      setFocusSelectionDraft(initialDraft);
+                    } else {
+                      focusInteractionRef.current = { mode: 'create', startX: pointX, startY: pointY, originRect: null };
+                      const initialDraft = { startX: pointX, startY: pointY, endX: pointX, endY: pointY };
+                      focusSelectionDraftRef.current = initialDraft;
+                      setFocusSelectionDraft(initialDraft);
+                    }
                     event.currentTarget.setPointerCapture(event.pointerId);
                   }}
                   onPointerMove={(event) => {
-                    if (!focusSelectionDraftRef.current) return;
+                    const interaction = focusInteractionRef.current;
+                    if (!interaction) return;
                     const rect = event.currentTarget.getBoundingClientRect();
                     const pointX = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
                     const pointY = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
-                    const nextDraft = { ...focusSelectionDraftRef.current, endX: pointX, endY: pointY };
+                    let nextRect: ThumbnailFocusRect | null = null;
+                    if (interaction.mode === 'create') {
+                      nextRect = clampRectWithinBounds(toRectFromPoints(interaction.startX, interaction.startY, pointX, pointY));
+                    } else if (interaction.mode === 'move' && interaction.originRect) {
+                      const deltaX = pointX - interaction.startX;
+                      const deltaY = pointY - interaction.startY;
+                      nextRect = clampRectWithinBounds({
+                        left: interaction.originRect.left + deltaX,
+                        top: interaction.originRect.top + deltaY,
+                        width: interaction.originRect.width,
+                        height: interaction.originRect.height
+                      });
+                    } else if (interaction.originRect) {
+                      const originLeft = interaction.originRect.left;
+                      const originTop = interaction.originRect.top;
+                      const originRight = interaction.originRect.left + interaction.originRect.width;
+                      const originBottom = interaction.originRect.top + interaction.originRect.height;
+                      let left = originLeft;
+                      let right = originRight;
+                      let top = originTop;
+                      let bottom = originBottom;
+                      if (interaction.mode === 'resize-nw') {
+                        left = pointX;
+                        top = pointY;
+                      } else if (interaction.mode === 'resize-ne') {
+                        right = pointX;
+                        top = pointY;
+                      } else if (interaction.mode === 'resize-se') {
+                        right = pointX;
+                        bottom = pointY;
+                      } else if (interaction.mode === 'resize-sw') {
+                        left = pointX;
+                        bottom = pointY;
+                      }
+                      nextRect = clampRectWithinBounds({
+                        left: Math.min(left, right),
+                        top: Math.min(top, bottom),
+                        width: Math.abs(right - left),
+                        height: Math.abs(bottom - top)
+                      });
+                    }
+                    if (!nextRect) return;
+                    const nextDraft = {
+                      startX: nextRect.left,
+                      startY: nextRect.top,
+                      endX: nextRect.left + nextRect.width,
+                      endY: nextRect.top + nextRect.height
+                    };
                     focusSelectionDraftRef.current = nextDraft;
                     setFocusSelectionDraft(nextDraft);
                   }}
                   onPointerUp={(event) => {
+                    const interaction = focusInteractionRef.current;
                     const activeDraft = focusSelectionDraftRef.current;
                     if (!activeDraft) return;
-                    const rect = event.currentTarget.getBoundingClientRect();
-                    const pointX = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
-                    const pointY = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
-                    const left = Math.min(activeDraft.startX, pointX);
-                    const top = Math.min(activeDraft.startY, pointY);
-                    const width = Math.abs(pointX - activeDraft.startX);
-                    const height = Math.abs(pointY - activeDraft.startY);
-                    const previous = ensureImageSettings(editingImageSlot).focusRect;
-                    const nextRect = normalizeThumbnailFocusRect(width < 1 || height < 1
-                      ? {
-                        left: pointX - (previous?.width ?? 30) / 2,
-                        top: pointY - (previous?.height ?? 30) / 2,
-                        width: previous?.width ?? 30,
-                        height: previous?.height ?? 30
+                    const createdRect = toRectFromPoints(activeDraft.startX, activeDraft.startY, activeDraft.endX, activeDraft.endY);
+                    if (interaction?.mode === 'create' && (createdRect.width < 1 || createdRect.height < 1)) {
+                      focusInteractionRef.current = null;
+                      focusSelectionDraftRef.current = null;
+                      setFocusSelectionDraft(null);
+                      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                        event.currentTarget.releasePointerCapture(event.pointerId);
                       }
-                      : { left, top, width, height });
+                      return;
+                    }
+                    const nextRect = normalizeThumbnailFocusRect(createdRect);
                     updateImageSettings(editingImageSlot, {
                       focusRect: nextRect,
                       focusX: nextRect.left + nextRect.width / 2,
                       focusY: nextRect.top + nextRect.height / 2
                     });
+                    focusInteractionRef.current = null;
                     focusSelectionDraftRef.current = null;
                     setFocusSelectionDraft(null);
                     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -2681,10 +2760,12 @@ export default function AdminItemEditorPage({
                     }
                   }}
                   onPointerCancel={() => {
+                    focusInteractionRef.current = null;
                     focusSelectionDraftRef.current = null;
                     setFocusSelectionDraft(null);
                   }}
                   onLostPointerCapture={() => {
+                    focusInteractionRef.current = null;
                     focusSelectionDraftRef.current = null;
                     setFocusSelectionDraft(null);
                   }}
@@ -2695,14 +2776,20 @@ export default function AdminItemEditorPage({
                     if (!focusRect) return null;
                     return (
                       <span
-                        className="pointer-events-none absolute rounded-[2px] border border-slate-700 border-dashed bg-transparent"
+                        data-focus-action="move"
+                        className="absolute rounded-[2px] border border-slate-700 border-dashed bg-transparent"
                         style={{
                           left: `${focusRect.left}%`,
                           top: `${focusRect.top}%`,
                           width: `${focusRect.width}%`,
                           height: `${focusRect.height}%`
                         }}
-                      />
+                      >
+                        <span data-focus-action="resize-nw" className="absolute -left-1.5 -top-1.5 h-3 w-3 cursor-nwse-resize rounded-sm border border-slate-600 bg-white shadow-sm" />
+                        <span data-focus-action="resize-ne" className="absolute -right-1.5 -top-1.5 h-3 w-3 cursor-nesw-resize rounded-sm border border-slate-600 bg-white shadow-sm" />
+                        <span data-focus-action="resize-se" className="absolute -bottom-1.5 -right-1.5 h-3 w-3 cursor-nwse-resize rounded-sm border border-slate-600 bg-white shadow-sm" />
+                        <span data-focus-action="resize-sw" className="absolute -bottom-1.5 -left-1.5 h-3 w-3 cursor-nesw-resize rounded-sm border border-slate-600 bg-white shadow-sm" />
+                      </span>
                     );
                   })()}
                 </div>

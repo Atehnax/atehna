@@ -1572,6 +1572,90 @@ export default function AdminItemEditorPage({
       imageOverride: assignments.length > 0 ? mediaImagesDraft[assignments[0]] ?? null : null
     });
   };
+
+  const renderImageActionButtons = (slotIndex: number) => {
+    const actions = [
+      {
+        key: 'remove',
+        label: 'odstrani',
+        tone: 'danger' as const,
+        onClick: () => removeImageSlot(slotIndex),
+        icon: <span aria-hidden className="text-sm leading-none">✕</span>
+      },
+      {
+        key: 'replace',
+        label: 'zamenjaj sliko',
+        tone: 'light' as const,
+        onClick: () => openUppyFilePicker(slotIndex, false),
+        icon: (
+          <svg viewBox="0 0 24 24" className="block h-[17.6px] w-[17.6px] shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <rect x="3" y="4" width="18" height="16" rx="2.8" />
+            <path d="m6.5 15.5 3.7-3.8a1 1 0 0 1 1.42 0L15 15l2-2a1 1 0 0 1 1.42 0l2.08 2.08" />
+            <circle cx="15.5" cy="9.3" r="1.5" />
+          </svg>
+        )
+      },
+      {
+        key: 'edit',
+        label: 'uredi',
+        tone: 'light' as const,
+        onClick: () => toast.info('Urejanje slike bo na voljo kmalu.'),
+        icon: (
+          <svg viewBox="0 0 20 20" className="block h-[15.4px] w-[15.4px] shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+            <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
+            <path d="M11.5 4.5l3 3" />
+          </svg>
+        )
+      },
+      {
+        key: 'hide',
+        label: 'skrij',
+        tone: 'light' as const,
+        onClick: () => toast.info('Skrivanje slike bo na voljo kmalu.'),
+        icon: (
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M1.5 12s3.75-6.75 10.5-6.75S22.5 12 22.5 12s-3.75 6.75-10.5 6.75S1.5 12 1.5 12Z" />
+            <circle cx="12" cy="12" r="3" />
+            <path d="M3 3 21 21" />
+          </svg>
+        )
+      },
+      {
+        key: 'move',
+        label: 'premakni',
+        tone: 'light' as const,
+        icon: (
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <circle cx="9" cy="6.5" r="1.1" /><circle cx="9" cy="12" r="1.1" /><circle cx="9" cy="17.5" r="1.1" />
+            <circle cx="15" cy="6.5" r="1.1" /><circle cx="15" cy="12" r="1.1" /><circle cx="15" cy="17.5" r="1.1" />
+          </svg>
+        ),
+        dragHandle: true
+      }
+    ];
+
+    return (
+      <div className="absolute inset-y-0 right-2 z-20 flex flex-col items-end justify-center gap-1.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+        {actions.map((action) => (
+          <button
+            key={`${slotIndex}-${action.key}`}
+            type="button"
+            className={`inline-flex h-[25px] min-w-[1.6rem] items-center justify-center rounded-md border px-0 leading-none shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${action.tone === 'danger' ? 'border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'} ${action.dragHandle ? 'cursor-grab active:cursor-grabbing' : ''}`}
+            onPointerDown={(event) => {
+              if (action.dragHandle) return;
+              event.stopPropagation();
+              event.preventDefault();
+            }}
+            onClick={action.dragHandle ? undefined : action.onClick}
+            aria-label={action.label}
+            title={action.label}
+          >
+            <span className="inline-flex h-full w-full items-center justify-center">{action.icon}</span>
+          </button>
+        ))}
+      </div>
+    );
+  };
   return (
     <div className="mx-auto max-w-7xl space-y-4 font-['Inter',system-ui,sans-serif]">
       <div className="text-xs text-slate-500"><Link href="/admin/artikli" className="hover:underline">Artikli</Link> › {mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</div>
@@ -1743,7 +1827,7 @@ export default function AdminItemEditorPage({
                     event.currentTarget.value = '';
                   }}
                 />
-                <div className="h-56">
+                <div className="h-[11.5rem]">
                   {mediaImagesDraft.length === 0 ? (
                     uppyRef.current ? (
                       <UppyDropzoneField
@@ -1754,16 +1838,16 @@ export default function AdminItemEditorPage({
                       >
                         <span className="flex flex-col items-center justify-center gap-2 text-center">
                           <CloudUploadIcon className="h-14 w-14 text-[#2f7dc5]" />
-                          <span className="text-base font-semibold text-slate-800">Povleci in spusti ali klikni sem</span>
-                          <span className="text-xs font-medium text-slate-500">za nalaganje slike (največ 2 MB)</span>
+                          <span className="text-base font-semibold text-slate-800">Naloži sliko</span>
+                          <span className="text-xs font-medium text-slate-500">(največ 2 MB)</span>
                         </span>
                       </UppyDropzoneField>
                     ) : (
                       <div className={`relative flex h-full w-full items-center justify-center rounded-lg bg-[#f7f9fe] text-blue-600 ${isMediaEditable ? '' : 'cursor-not-allowed opacity-60'}`}>
                         <span className="flex flex-col items-center justify-center gap-2 text-center">
                           <CloudUploadIcon className="h-14 w-14 text-[#2f7dc5]" />
-                          <span className="text-base font-semibold text-slate-800">Povleci in spusti ali klikni sem</span>
-                          <span className="text-xs font-medium text-slate-500">za nalaganje slike (največ 2 MB)</span>
+                          <span className="text-base font-semibold text-slate-800">Naloži sliko</span>
+                          <span className="text-xs font-medium text-slate-500">(največ 2 MB)</span>
                         </span>
                       </div>
                     )
@@ -1771,26 +1855,7 @@ export default function AdminItemEditorPage({
                     <div className="grid h-full grid-cols-5 grid-rows-2 gap-2">
                       <div className="group relative col-span-2 row-span-2 overflow-hidden rounded-lg border border-slate-300">
                         <Image src={mediaImagesDraft[0]} alt="Glavna slika" width={1200} height={1200} unoptimized sizes="(max-width: 1280px) 36vw, 420px" className="h-full w-full object-cover" />
-                        {isMediaEditable ? (
-                          <div className="absolute left-1 top-1 rounded bg-white/90 p-0.5">
-                            <AdminCheckbox checked={selectedImageIndexes.has(0)} onChange={() => setSelectedImageIndexes((current) => {
-                              const next = new Set(current);
-                              if (next.has(0)) next.delete(0); else next.add(0);
-                              return next;
-                            })} />
-                          </div>
-                        ) : null}
-                        <div className="absolute inset-x-1 bottom-1 flex items-center gap-1">
-                          <button
-                            type="button"
-                            className={`inline-flex h-6 flex-1 items-center justify-center rounded bg-white/90 text-[11px] font-medium text-slate-700 ${isMediaEditable ? 'cursor-pointer hover:bg-white' : 'cursor-not-allowed opacity-60'}`}
-                            disabled={!isMediaEditable}
-                            onClick={() => openUppyFilePicker(0, false)}
-                          >
-                            Zamenjaj
-                          </button>
-                          <button type="button" disabled={!isMediaEditable} className={`inline-flex h-6 w-6 items-center justify-center rounded bg-rose-50 text-rose-600 ${isMediaEditable ? 'hover:bg-rose-100' : 'cursor-not-allowed opacity-60'}`} onClick={() => removeImageSlot(0)} aria-label="Odstrani glavno sliko">×</button>
-                        </div>
+                        {renderImageActionButtons(0)}
                       </div>
                       {Array.from({ length: GALLERY_SMALL_SLOT_COUNT }).map((_, smallIndex) => {
                         const slotIndex = smallIndex + 1;
@@ -1802,7 +1867,7 @@ export default function AdminItemEditorPage({
                           return (
                             <div
                               key={`slot-${slotIndex}`}
-                              className={`relative overflow-hidden rounded-lg border border-slate-300 ${isMediaEditable ? 'cursor-grab' : ''}`}
+                              className={`group relative overflow-hidden rounded-lg border border-slate-300 ${isMediaEditable ? 'cursor-grab' : ''}`}
                               draggable={Boolean(isMediaEditable)}
                               onDragStart={() => setDraggedImageIndex(slotIndex)}
                               onDragOver={(event) => {
@@ -1817,26 +1882,7 @@ export default function AdminItemEditorPage({
                               }}
                             >
                               <Image src={slotImage} alt={`Slika ${slotIndex + 1}`} width={720} height={720} unoptimized sizes="(max-width: 1280px) 18vw, 180px" className="h-full w-full object-cover" />
-                              {isMediaEditable ? (
-                                <div className="absolute left-1 top-1 rounded bg-white/90 p-0.5">
-                                  <AdminCheckbox checked={selectedImageIndexes.has(slotIndex)} onChange={() => setSelectedImageIndexes((current) => {
-                                    const next = new Set(current);
-                                    if (next.has(slotIndex)) next.delete(slotIndex); else next.add(slotIndex);
-                                    return next;
-                                  })} />
-                                </div>
-                              ) : null}
-                              <div className="absolute inset-x-1 bottom-1 flex items-center gap-1">
-                                <button
-                                  type="button"
-                                  className={`inline-flex h-6 flex-1 items-center justify-center rounded bg-white/90 text-[11px] font-medium text-slate-700 ${isMediaEditable ? 'cursor-pointer hover:bg-white' : 'cursor-not-allowed opacity-60'}`}
-                                  disabled={!isMediaEditable}
-                                  onClick={() => openUppyFilePicker(slotIndex, false)}
-                                >
-                                  Zamenjaj
-                                </button>
-                                <button type="button" disabled={!isMediaEditable} className={`inline-flex h-6 w-6 items-center justify-center rounded bg-rose-50 text-rose-600 ${isMediaEditable ? 'hover:bg-rose-100' : 'cursor-not-allowed opacity-60'}`} onClick={() => removeImageSlot(slotIndex)} aria-label={`Odstrani sliko ${slotIndex + 1}`}>×</button>
-                              </div>
+                              {renderImageActionButtons(slotIndex)}
                             </div>
                           );
                         }
@@ -1914,9 +1960,9 @@ export default function AdminItemEditorPage({
                     <thead className="bg-slate-50">
                       <tr>
                         <th className="px-2 py-1.5 text-left">SKU</th>
-                        <th className="px-2 py-1.5 text-left">Image type</th>
-                        <th className="px-2 py-1.5 text-left">Image dimensions</th>
-                        <th className="px-2 py-1.5 text-left">Images</th>
+                        <th className="px-2 py-1.5 text-center">Tip</th>
+                        <th className="px-2 py-1.5 text-center">Dimenzije</th>
+                        <th className="px-2 py-1.5 text-left">Slike</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1941,8 +1987,8 @@ export default function AdminItemEditorPage({
                             }}
                           >
                             <td className="px-2 py-1.5">{variant.sku || '—'}</td>
-                            <td className="px-2 py-1.5">{meta?.type ?? (primaryUrl ? 'IMG' : '—')}</td>
-                            <td className="px-2 py-1.5">{meta ? `${meta.width}×${meta.height}` : '—'}</td>
+                            <td className="px-2 py-1.5 text-center">{meta?.type ?? (primaryUrl ? 'IMG' : '—')}</td>
+                            <td className="px-2 py-1.5 text-center">{meta ? `${meta.width}×${meta.height}` : '—'}</td>
                             <td className="px-2 py-1.5">
                               <div className="flex flex-wrap gap-1">
                                 {assignedSlots.map((slot) => {

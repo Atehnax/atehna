@@ -2,8 +2,9 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import Uppy from '@uppy/core';
 import { Editor, Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -985,6 +986,10 @@ export default function AdminItemEditorPage({
   const [draggedVariantImageSlot, setDraggedVariantImageSlot] = useState<number | null>(null);
   const [imageMeta, setImageMeta] = useState<Record<string, { width: number; height: number; type: string }>>({});
   const localBlobUrlsRef = useRef<Set<string>>(new Set());
+  const uppyRef = useRef<Uppy | null>(null);
+  const mediaUploadInputRef = useRef<HTMLInputElement>(null);
+  const mediaUploadContextRef = useRef<{ slotIndex: number; multiple: boolean }>({ slotIndex: 0, multiple: true });
+  const updateImageAtSlotRef = useRef<(slotIndex: number, imageUrl: string) => void>(() => {});
   const [uploadedVideo, setUploadedVideo] = useState<{ name: string; url: string } | null>(null);
   const [youtubeInput, setYoutubeInput] = useState('');
   const [videoEntriesDraft, setVideoEntriesDraft] = useState<VideoEntry[]>([]);
@@ -1246,18 +1251,18 @@ export default function AdminItemEditorPage({
 
   const getVariantTag = (variantId: string): VariantTag => variantTags[variantId] ?? 'novo';
 
-  const createLocalImageUrl = (file: File) => {
+  const createLocalImageUrl = useCallback((file: Blob) => {
     const url = URL.createObjectURL(file);
     localBlobUrlsRef.current.add(url);
     return url;
-  };
+  }, []);
 
-  const revokeLocalImageUrl = (url: string) => {
+  const revokeLocalImageUrl = useCallback((url: string) => {
     if (!url.startsWith('blob:')) return;
     if (!localBlobUrlsRef.current.has(url)) return;
     URL.revokeObjectURL(url);
     localBlobUrlsRef.current.delete(url);
-  };
+  }, []);
 
   useEffect(() => () => {
     localBlobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
@@ -1281,7 +1286,7 @@ export default function AdminItemEditorPage({
     setSelectedImageIndexes((current) => new Set(Array.from(current).filter((index) => index >= 0 && index < mediaImagesDraft.length)));
   }, [mediaImagesDraft.length]);
 
-  const updateImageAtSlot = (slotIndex: number, imageUrl: string) => {
+  const updateImageAtSlot = useCallback((slotIndex: number, imageUrl: string) => {
     setMediaImagesDraft((current) => {
       const next = [...current];
       if (slotIndex < next.length) {
@@ -1294,7 +1299,108 @@ export default function AdminItemEditorPage({
       next.push(imageUrl);
       return next.filter(Boolean).slice(0, MEDIA_SLOT_COUNT);
     });
-  };
+  }, [revokeLocalImageUrl]);
+
+  useEffect(() => {
+    updateImageAtSlotRef.current = updateImageAtSlot;
+  }, [updateImageAtSlot]);
+
+  useEffect(() => {
+    const uppy = new Uppy({
+      autoProceed: false,
+      restrictions: {
+        allowedFileTypes: ['image/*'],
+        maxFileSize: 2 * 1024 * 1024
+      }
+    });
+
+    uppy.on('restriction-failed', (_file, error) => {
+      toast.error(error.message || 'Nalaganje ni uspelo. Dovoljene so le slike do 2 MB.');
+    });
+
+    uppy.on('error', (error) => {
+      toast.error(error.message || 'Pri nalaganju slik je prišlo do napake.');
+    });
+
+    uppy.addUploader(async (fileIDs) => {
+      fileIDs.forEach((fileID) => {
+        const file = uppy.getFile(fileID);
+        if (!file) return;
+        const targetSlot = Number(file.meta?.targetSlot);
+        if (!Number.isFinite(targetSlot)) return;
+        const blob = file.data;
+        if (!(blob instanceof Blob)) return;
+        updateImageAtSlotRef.current(Math.max(0, Math.min(MEDIA_SLOT_COUNT - 1, targetSlot)), createLocalImageUrl(blob));
+      });
+      fileIDs.forEach((fileID) => {
+        if (uppy.getFile(fileID)) uppy.removeFile(fileID);
+      });
+    });
+
+    uppyRef.current = uppy;
+    return () => {
+      uppy.cancelAll();
+      uppy.destroy();
+      uppyRef.current = null;
+    };
+  }, [createLocalImageUrl, toast]);
+
+  const queueImageUpload = useCallback((files: FileList | File[] | null, startSlot: number, allowMultiple: boolean) => {
+    if (!isMediaEditable) return;
+    const uppy = uppyRef.current;
+    if (!uppy) return;
+    const queuedFiles = Array.from(files ?? []).filter((file): file is File => file instanceof File);
+    if (queuedFiles.length === 0) return;
+
+    const remainingSlots = Math.max(0, MEDIA_SLOT_COUNT - startSlot);
+    if (remainingSlots === 0) {
+      toast.error('Vse reže so že zapolnjene.');
+      return;
+    }
+
+    const maxFiles = Math.max(1, allowMultiple ? remainingSlots : 1);
+    const acceptedFiles = queuedFiles.slice(0, maxFiles);
+    if (queuedFiles.length > acceptedFiles.length) {
+      toast.error(`Izberete lahko največ ${maxFiles} slik.`);
+    }
+
+    uppy.cancelAll();
+    uppy.getFiles().forEach((file) => uppy.removeFile(file.id));
+
+    acceptedFiles.forEach((file, index) => {
+      const targetSlot = Math.min(MEDIA_SLOT_COUNT - 1, startSlot + index);
+      try {
+        uppy.addFile({
+          name: file.name,
+          type: file.type,
+          data: file,
+          meta: { targetSlot }
+        });
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Datoteke ni bilo mogoče dodati v vrsto.');
+      }
+    });
+
+    if (uppy.getFiles().length > 0) {
+      void uppy.upload();
+    }
+  }, [isMediaEditable, toast]);
+
+  const openUppyFilePicker = useCallback((slotIndex: number, allowMultiple: boolean) => {
+    if (!isMediaEditable) return;
+    mediaUploadContextRef.current = { slotIndex, multiple: allowMultiple };
+    const input = mediaUploadInputRef.current;
+    if (!input) return;
+    input.multiple = allowMultiple;
+    input.value = '';
+    input.click();
+  }, [isMediaEditable]);
+
+  const handleUppyDrop = useCallback((event: DragEvent<HTMLElement>, slotIndex: number, allowMultiple: boolean) => {
+    if (!isMediaEditable) return;
+    event.preventDefault();
+    queueImageUpload(event.dataTransfer.files, slotIndex, allowMultiple);
+  }, [isMediaEditable, queueImageUpload]);
 
   const moveImageSlot = (fromIndex: number, toIndex: number) => {
     if (fromIndex === toIndex) return;
@@ -1524,27 +1630,46 @@ export default function AdminItemEditorPage({
             </div>
             {mediaTab === 'slike' ? (
               <div className="mt-3 space-y-2">
+                <input
+                  ref={mediaUploadInputRef}
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  multiple
+                  disabled={!isMediaEditable}
+                  onChange={(event) => {
+                    const { slotIndex, multiple } = mediaUploadContextRef.current;
+                    queueImageUpload(event.target.files, slotIndex, multiple);
+                    event.currentTarget.value = '';
+                  }}
+                />
                 <div className="h-56">
                   {mediaImagesDraft.length === 0 ? (
-                    <label className={`relative flex h-full w-full items-center justify-center rounded-lg bg-[#f7f7fc] text-blue-600 ${isMediaEditable ? 'cursor-pointer hover:bg-[#f1f4fb]' : 'cursor-not-allowed opacity-60'}`}>
+                    <div
+                      role="button"
+                      tabIndex={isMediaEditable ? 0 : -1}
+                      onDragOver={(event) => {
+                        if (!isMediaEditable) return;
+                        event.preventDefault();
+                      }}
+                      onDrop={(event) => handleUppyDrop(event, 0, true)}
+                      onClick={() => openUppyFilePicker(0, true)}
+                      onKeyDown={(event) => {
+                        if (!isMediaEditable) return;
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          openUppyFilePicker(0, true);
+                        }
+                      }}
+                      className={`relative flex h-full w-full items-center justify-center rounded-lg bg-[#f7f7fc] text-blue-600 ${isMediaEditable ? 'cursor-pointer hover:bg-[#f1f4fb]' : 'cursor-not-allowed opacity-60'}`}
+                    >
                       <CalmDashedOutline />
                       <span className="flex flex-col items-center justify-center gap-2 text-center">
                         <CloudUploadIcon className="h-14 w-14 text-[#2f7dc5]" />
                         <span className="text-base font-semibold text-slate-800">Povleci in spusti ali klikni sem</span>
                         <span className="text-xs font-medium text-slate-500">za nalaganje slike (največ 2 MB)</span>
                       </span>
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                        disabled={!isMediaEditable}
-                        onChange={(event) => {
-                          const file = event.target.files?.[0];
-                          if (!file) return;
-                          updateImageAtSlot(0, createLocalImageUrl(file));
-                        }}
-                      />
-                    </label>
+                    </div>
                   ) : (
                     <div className="grid h-full grid-cols-5 grid-rows-2 gap-2">
                       <div className="group relative col-span-2 row-span-2 overflow-hidden rounded-lg border border-slate-300">
@@ -1559,14 +1684,14 @@ export default function AdminItemEditorPage({
                           </div>
                         ) : null}
                         <div className="absolute inset-x-1 bottom-1 flex items-center gap-1">
-                          <label className={`inline-flex h-6 flex-1 items-center justify-center rounded bg-white/90 text-[11px] font-medium text-slate-700 ${isMediaEditable ? 'cursor-pointer hover:bg-white' : 'cursor-not-allowed opacity-60'}`}>
+                          <button
+                            type="button"
+                            className={`inline-flex h-6 flex-1 items-center justify-center rounded bg-white/90 text-[11px] font-medium text-slate-700 ${isMediaEditable ? 'cursor-pointer hover:bg-white' : 'cursor-not-allowed opacity-60'}`}
+                            disabled={!isMediaEditable}
+                            onClick={() => openUppyFilePicker(0, false)}
+                          >
                             Zamenjaj
-                            <input type="file" className="hidden" accept="image/*" disabled={!isMediaEditable} onChange={(event) => {
-                              const file = event.target.files?.[0];
-                              if (!file) return;
-                              updateImageAtSlot(0, createLocalImageUrl(file));
-                            }} />
-                          </label>
+                          </button>
                           <button type="button" disabled={!isMediaEditable} className={`inline-flex h-6 w-6 items-center justify-center rounded bg-rose-50 text-rose-600 ${isMediaEditable ? 'hover:bg-rose-100' : 'cursor-not-allowed opacity-60'}`} onClick={() => removeImageSlot(0)} aria-label="Odstrani glavno sliko">×</button>
                         </div>
                       </div>
@@ -1605,14 +1730,14 @@ export default function AdminItemEditorPage({
                                 </div>
                               ) : null}
                               <div className="absolute inset-x-1 bottom-1 flex items-center gap-1">
-                                <label className={`inline-flex h-6 flex-1 items-center justify-center rounded bg-white/90 text-[11px] font-medium text-slate-700 ${isMediaEditable ? 'cursor-pointer hover:bg-white' : 'cursor-not-allowed opacity-60'}`}>
+                                <button
+                                  type="button"
+                                  className={`inline-flex h-6 flex-1 items-center justify-center rounded bg-white/90 text-[11px] font-medium text-slate-700 ${isMediaEditable ? 'cursor-pointer hover:bg-white' : 'cursor-not-allowed opacity-60'}`}
+                                  disabled={!isMediaEditable}
+                                  onClick={() => openUppyFilePicker(slotIndex, false)}
+                                >
                                   Zamenjaj
-                                  <input type="file" className="hidden" accept="image/*" disabled={!isMediaEditable} onChange={(event) => {
-                                    const file = event.target.files?.[0];
-                                    if (!file) return;
-                                    updateImageAtSlot(slotIndex, createLocalImageUrl(file));
-                                  }} />
-                                </label>
+                                </button>
                                 <button type="button" disabled={!isMediaEditable} className={`inline-flex h-6 w-6 items-center justify-center rounded bg-rose-50 text-rose-600 ${isMediaEditable ? 'hover:bg-rose-100' : 'cursor-not-allowed opacity-60'}`} onClick={() => removeImageSlot(slotIndex)} aria-label={`Odstrani sliko ${slotIndex + 1}`}>×</button>
                               </div>
                             </div>
@@ -1621,15 +1746,28 @@ export default function AdminItemEditorPage({
 
                         if (isActiveUploadSlot) {
                           return (
-                            <label key={`slot-${slotIndex}`} className={`relative flex h-full items-center justify-center rounded-lg bg-[#f7f7fc] text-blue-600 ${isMediaEditable ? 'cursor-pointer hover:bg-[#f1f4fb]' : 'cursor-not-allowed opacity-60'}`}>
+                            <div
+                              key={`slot-${slotIndex}`}
+                              role="button"
+                              tabIndex={isMediaEditable ? 0 : -1}
+                              onDragOver={(event) => {
+                                if (!isMediaEditable) return;
+                                event.preventDefault();
+                              }}
+                              onDrop={(event) => handleUppyDrop(event, slotIndex, true)}
+                              onClick={() => openUppyFilePicker(slotIndex, true)}
+                              onKeyDown={(event) => {
+                                if (!isMediaEditable) return;
+                                if (event.key === 'Enter' || event.key === ' ') {
+                                  event.preventDefault();
+                                  openUppyFilePicker(slotIndex, true);
+                                }
+                              }}
+                              className={`relative flex h-full items-center justify-center rounded-lg bg-[#f7f7fc] text-blue-600 ${isMediaEditable ? 'cursor-pointer hover:bg-[#f1f4fb]' : 'cursor-not-allowed opacity-60'}`}
+                            >
                               <CalmDashedOutline />
                               <CloudUploadIcon className="h-8 w-8 text-[#2f7dc5]" />
-                              <input type="file" className="hidden" accept="image/*" disabled={!isMediaEditable} onChange={(event) => {
-                                const file = event.target.files?.[0];
-                                if (!file) return;
-                                updateImageAtSlot(slotIndex, createLocalImageUrl(file));
-                              }} />
-                            </label>
+                            </div>
                           );
                         }
 

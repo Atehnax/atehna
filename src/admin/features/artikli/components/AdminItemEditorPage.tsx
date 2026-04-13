@@ -1428,20 +1428,10 @@ export default function AdminItemEditorPage({
                         {img ? (
                           <Image src={img} alt={`Slika ${index + 1}`} width={220} height={220} unoptimized className="h-full w-full object-cover" />
                         ) : (
-                          <div className="flex h-full items-center justify-center text-[11px] text-slate-400">Prazna reža {index + 1}</div>
-                        )}
-                        {img && isMediaEditable ? (
-                          <div className="absolute left-1 top-1 rounded bg-white/90 p-0.5">
-                            <AdminCheckbox checked={selectedImageIndexes.has(index)} onChange={() => setSelectedImageIndexes((current) => {
-                              const next = new Set(current);
-                              if (next.has(index)) next.delete(index); else next.add(index);
-                              return next;
-                            })} />
-                          </div>
-                        ) : null}
-                        <div className="absolute inset-x-1 bottom-1 flex items-center gap-1">
-                          <label className={`inline-flex h-6 flex-1 items-center justify-center rounded bg-white/90 text-[11px] font-medium text-slate-700 ${isMediaEditable ? 'cursor-pointer hover:bg-white' : 'cursor-not-allowed opacity-60'}`}>
-                            {img ? 'Zamenjaj' : 'Naloži'}
+                          <label
+                            className={`absolute inset-0 flex items-center justify-center rounded-lg border border-dashed border-blue-400 bg-[#f5f8ff] text-blue-600 ${isMediaEditable ? 'cursor-pointer hover:bg-[#edf3ff]' : 'cursor-not-allowed opacity-60'}`}
+                          >
+                            <span className="text-4xl leading-none">+</span>
                             <input
                               type="file"
                               className="hidden"
@@ -1454,7 +1444,32 @@ export default function AdminItemEditorPage({
                               }}
                             />
                           </label>
-                          {img ? (
+                        )}
+                        {img && isMediaEditable ? (
+                          <div className="absolute left-1 top-1 rounded bg-white/90 p-0.5">
+                            <AdminCheckbox checked={selectedImageIndexes.has(index)} onChange={() => setSelectedImageIndexes((current) => {
+                              const next = new Set(current);
+                              if (next.has(index)) next.delete(index); else next.add(index);
+                              return next;
+                            })} />
+                          </div>
+                        ) : null}
+                        {img ? (
+                          <div className="absolute inset-x-1 bottom-1 flex items-center gap-1">
+                            <label className={`inline-flex h-6 flex-1 items-center justify-center rounded bg-white/90 text-[11px] font-medium text-slate-700 ${isMediaEditable ? 'cursor-pointer hover:bg-white' : 'cursor-not-allowed opacity-60'}`}>
+                              Zamenjaj
+                              <input
+                                type="file"
+                                className="hidden"
+                                accept="image/*"
+                                disabled={!isMediaEditable}
+                                onChange={(event) => {
+                                  const file = event.target.files?.[0];
+                                  if (!file) return;
+                                  updateImageAtSlot(index, URL.createObjectURL(file));
+                                }}
+                              />
+                            </label>
                             <button
                               type="button"
                               disabled={!isMediaEditable}
@@ -1464,8 +1479,8 @@ export default function AdminItemEditorPage({
                             >
                               ×
                             </button>
-                          ) : null}
-                        </div>
+                          </div>
+                        ) : null}
                       </div>
                     );
                   })}

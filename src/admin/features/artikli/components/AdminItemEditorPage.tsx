@@ -2,8 +2,10 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import Uppy from '@uppy/core';
+import { UppyContextProvider, useDropzone } from '@uppy/react';
 import { Editor, Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -47,6 +49,27 @@ const compactSideInputWrapClassName = 'mt-0.5 flex h-[30px] items-center gap-2 r
 const compactSideInputClassName = 'h-full w-full border-0 bg-transparent p-0 text-sm text-slate-900 outline-none focus:ring-0';
 const articleNameInputClassName = 'admin-item-name-input h-full w-full min-w-0 border-0 bg-transparent p-0 shadow-none outline-none transition focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none disabled:cursor-not-allowed';
 const inlineSnippetClass = 'rounded bg-[#1982bf1a] px-1 py-0.5 font-mono text-[11px] text-[#1982bf]';
+const mimeTypeToImageExtension: Record<string, string> = {
+  'image/jpeg': 'JPG',
+  'image/jpg': 'JPG',
+  'image/png': 'PNG',
+  'image/webp': 'WEBP',
+  'image/gif': 'GIF',
+  'image/svg+xml': 'SVG',
+  'image/avif': 'AVIF',
+  'image/bmp': 'BMP',
+  'image/tiff': 'TIFF'
+};
+
+function inferImageExtensionLabel({ mimeType, fileName, url }: { mimeType?: string; fileName?: string; url?: string }) {
+  const mimeLabel = mimeType ? mimeTypeToImageExtension[mimeType.toLowerCase()] : undefined;
+  if (mimeLabel) return mimeLabel;
+  const fromName = fileName?.match(/\.([a-zA-Z0-9]+)$/)?.[1]?.toUpperCase();
+  if (fromName) return fromName;
+  const fromUrl = url?.match(/\.([a-zA-Z0-9]+)(?:$|\?)/)?.[1]?.toUpperCase();
+  if (fromUrl) return fromUrl;
+  return 'IMG';
+}
 
 type EditorMode = 'create' | 'edit';
 type CreateType = 'simple' | 'variants';
@@ -56,6 +79,184 @@ type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 type VideoEntry = { id: string; source: 'upload' | 'youtube'; label: string; previewUrl: string; visible: boolean };
 type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'price';
+const MEDIA_SLOT_COUNT = 7;
+const GALLERY_SMALL_SLOT_COUNT = 6;
+
+function CalmDashedOutline({ className = '' }: { className?: string }) {
+  const frameRef = useRef<SVGSVGElement>(null);
+  const [frameSize, setFrameSize] = useState({ width: 0, height: 0 });
+  const [cornerRadius, setCornerRadius] = useState(8);
+
+  useEffect(() => {
+    const host = frameRef.current;
+    if (!host?.parentElement) return;
+    const parent = host.parentElement;
+    const sync = () => {
+      const rect = parent.getBoundingClientRect();
+      setFrameSize({ width: Math.max(0, rect.width), height: Math.max(0, rect.height) });
+      const parentStyles = window.getComputedStyle(parent);
+      const radius = Number.parseFloat(parentStyles.borderTopLeftRadius || '8');
+      setCornerRadius(Number.isFinite(radius) ? radius : 8);
+    };
+    sync();
+    const observer = new ResizeObserver(sync);
+    observer.observe(parent);
+    return () => observer.disconnect();
+  }, []);
+
+  const width = Math.max(0, frameSize.width);
+  const height = Math.max(0, frameSize.height);
+  const devicePixelRatio = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+  const snapToDevicePixel = (value: number) => Math.round(value * devicePixelRatio) / devicePixelRatio;
+  const snappedWidth = Math.max(1, snapToDevicePixel(width));
+  const snappedHeight = Math.max(1, snapToDevicePixel(height));
+  const svgOffsetX = (width - snappedWidth) / 2;
+  const svgOffsetY = (height - snappedHeight) / 2;
+  const strokeWidth = 1.125;
+  const pathLength = 1000;
+  const targetDashLength = 6;
+  const targetGapLength = 10;
+  const targetUnit = targetDashLength + targetGapLength;
+
+  const snapToGrid = (value: number) => snapToDevicePixel(value);
+  const inset = snapToGrid(strokeWidth / 2);
+  const innerWidth = Math.max(0, snapToGrid(snappedWidth - inset * 2));
+  const innerHeight = Math.max(0, snapToGrid(snappedHeight - inset * 2));
+  const effectiveRadius = Math.max(0, snapToGrid(cornerRadius - inset));
+  const perimeter = Math.max(
+    1,
+    2 * (innerWidth + innerHeight - effectiveRadius * 4) + (2 * Math.PI * effectiveRadius),
+  );
+  const cycleCount = Math.max(1, Math.round(perimeter / targetUnit));
+  const normalizedCycle = pathLength / cycleCount;
+  const dashRatio = targetDashLength / targetUnit;
+  const normalizedDashLength = normalizedCycle * dashRatio;
+  const normalizedGapLength = Math.max(1, normalizedCycle - normalizedDashLength);
+  const dashOffset = -(normalizedCycle / 2);
+
+  return (
+    <svg
+      ref={frameRef}
+      aria-hidden
+      className={`pointer-events-none absolute ${className}`}
+      style={{ left: svgOffsetX, top: svgOffsetY }}
+      width={snappedWidth}
+      height={snappedHeight}
+      viewBox={`0 0 ${snappedWidth} ${snappedHeight}`}
+    >
+      {width > 0 && height > 0 ? (
+        <rect
+          x={inset}
+          y={inset}
+          width={innerWidth}
+          height={innerHeight}
+          rx={effectiveRadius}
+          ry={effectiveRadius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          pathLength={pathLength}
+          strokeDasharray={`${normalizedDashLength} ${normalizedGapLength}`}
+          strokeDashoffset={dashOffset}
+          strokeLinecap="butt"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+          shapeRendering="geometricPrecision"
+        />
+      ) : null}
+    </svg>
+  );
+}
+
+function CloudUploadIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 48" aria-hidden className={className}>
+      <path fill="currentColor" d="M17 40h30a11 11 0 0 0 1.5-21.9A17 17 0 0 0 16.2 13 12 12 0 0 0 17 40Z" />
+      <path fill="#fff" d="M30 31v-9h-6l8-9 8 9h-6v9z" />
+      <rect x="27.5" y="30.5" width="9" height="3" rx="1.5" fill="#fff" />
+    </svg>
+  );
+}
+
+function ImageUploadFrameIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 48" aria-hidden className={className}>
+      <rect x="9" y="8" width="46" height="32" rx="4" fill="#b9d3ea" />
+      <path d="M9 28.5 20.5 20l7.5 5.6L42.5 14 55 25v15H9V28.5Z" fill="#74addb" />
+      <circle cx="20.5" cy="13.5" r="4.5" fill="#eef5fb" />
+      <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H10v2H7.5A1.5 1.5 0 0 0 6 7.5V10H4V6.5Z" fill="#74addb" />
+      <path d="M60 6.5A2.5 2.5 0 0 0 57.5 4H54v2h2.5A1.5 1.5 0 0 1 58 7.5V10h2V6.5Z" fill="#74addb" />
+      <path d="M4 41.5A2.5 2.5 0 0 0 6.5 44H10v-2H7.5A1.5 1.5 0 0 1 6 40.5V38H4v3.5Z" fill="#74addb" />
+      <path d="M60 41.5A2.5 2.5 0 0 1 57.5 44H54v-2h2.5a1.5 1.5 0 0 0 1.5-1.5V38h2v3.5Z" fill="#74addb" />
+    </svg>
+  );
+}
+
+function UppyDropzoneField({
+  uppy,
+  disabled,
+  onPrepareAddFiles,
+  className = '',
+  children
+}: {
+  uppy: Uppy;
+  disabled: boolean;
+  onPrepareAddFiles: (files: File[]) => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <UppyContextProvider uppy={uppy}>
+      <UppyDropzoneFieldInner disabled={disabled} onPrepareAddFiles={onPrepareAddFiles} className={className}>
+        {children}
+      </UppyDropzoneFieldInner>
+    </UppyContextProvider>
+  );
+}
+
+function UppyDropzoneFieldInner({
+  disabled,
+  onPrepareAddFiles,
+  className = '',
+  children
+}: {
+  disabled: boolean;
+  onPrepareAddFiles: (files: File[]) => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  const [dragActive, setDragActive] = useState(false);
+  const dropzone = useDropzone({
+    onDragEnter: () => setDragActive(true),
+    onDragLeave: () => setDragActive(false),
+    onDrop: (files) => {
+      setDragActive(false);
+      onPrepareAddFiles(files);
+    },
+    onFileInputChange: (files) => {
+      onPrepareAddFiles(files);
+    }
+  });
+
+  const rootProps = dropzone.getRootProps();
+  const inputProps = dropzone.getInputProps();
+  const interactionProps = disabled ? {} : rootProps;
+
+  return (
+    <div
+      {...interactionProps}
+      className={[
+        'relative border-2 border-dashed transition',
+        dragActive ? 'border-[#4f8bff] bg-[#edf3ff]' : 'border-[#9cb8ea] bg-[#f7f9fe]',
+        disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
+        className
+      ].join(' ')}
+    >
+      {disabled ? null : <input {...inputProps} className="hidden" />}
+      {children}
+    </div>
+  );
+}
 
 function SideInputIcon({ icon, muted = false, className = '' }: { icon: SideFieldIcon; muted?: boolean; className?: string }) {
   const iconProps = {
@@ -882,12 +1083,26 @@ export default function AdminItemEditorPage({
   const [mediaImagesSaved, setMediaImagesSaved] = useState<string[]>(draft.images);
   const [mediaImagesDraft, setMediaImagesDraft] = useState<string[]>(draft.images);
   const [selectedImageIndexes, setSelectedImageIndexes] = useState<Set<number>>(new Set());
+  const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
+  const [draggedVariantId, setDraggedVariantId] = useState<string | null>(null);
+  const [draggedVariantImageSlot, setDraggedVariantImageSlot] = useState<number | null>(null);
+  const [imageMeta, setImageMeta] = useState<Record<string, { width: number; height: number; type: string }>>({});
+  const localBlobUrlsRef = useRef<Set<string>>(new Set());
+  const imageTypeHintsRef = useRef<Record<string, string>>({});
+  const suppressImageClickAfterDragRef = useRef(false);
+  const uppyRef = useRef<Uppy | null>(null);
+  const uploadPlanRef = useRef<{ startSlot: number; nextOffset: number; maxFiles: number }>({ startSlot: 0, nextOffset: 0, maxFiles: 1 });
+  const mediaUploadInputRef = useRef<HTMLInputElement>(null);
+  const mediaUploadContextRef = useRef<{ slotIndex: number; multiple: boolean }>({ slotIndex: 0, multiple: true });
+  const updateImageAtSlotRef = useRef<(slotIndex: number, imageUrl: string) => void>(() => {});
   const [uploadedVideo, setUploadedVideo] = useState<{ name: string; url: string } | null>(null);
   const [youtubeInput, setYoutubeInput] = useState('');
   const [videoEntriesDraft, setVideoEntriesDraft] = useState<VideoEntry[]>([]);
   const [videoEntriesSaved, setVideoEntriesSaved] = useState<VideoEntry[]>([]);
   const [videoSelections, setVideoSelections] = useState<Set<string>>(new Set());
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>({});
+  const [editingImageSlot, setEditingImageSlot] = useState<number | null>(null);
+  const [imageSettings, setImageSettings] = useState<Record<number, { altText: string; focusX: number; focusY: number }>>({});
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() =>
     (draft.category || '')
       .split('/')
@@ -1130,10 +1345,16 @@ export default function AdminItemEditorPage({
 
   const deleteSelectedVariants = () => {
     if (!isTableEditable || !hasSelectedVariants) return;
-    setDraft((current) => ({
-      ...current,
-      variants: current.variants.filter((variant) => !variantSelections.has(variant.id))
-    }));
+    setDraft((current) => {
+      const remainingVariants = current.variants.filter((variant) => !variantSelections.has(variant.id));
+      return {
+        ...current,
+        variants: remainingVariants.map((variant, index) => ({
+          ...variant,
+          sort: index + 1
+        }))
+      };
+    });
     setVariantSelections(new Set());
   };
 
@@ -1142,6 +1363,351 @@ export default function AdminItemEditorPage({
   };
 
   const getVariantTag = (variantId: string): VariantTag => variantTags[variantId] ?? 'novo';
+
+  const createLocalImageUrl = useCallback((file: Blob) => {
+    const url = URL.createObjectURL(file);
+    localBlobUrlsRef.current.add(url);
+    return url;
+  }, []);
+
+  const revokeLocalImageUrl = useCallback((url: string) => {
+    if (!url.startsWith('blob:')) return;
+    if (!localBlobUrlsRef.current.has(url)) return;
+    URL.revokeObjectURL(url);
+    localBlobUrlsRef.current.delete(url);
+    delete imageTypeHintsRef.current[url];
+  }, []);
+
+  useEffect(() => () => {
+    localBlobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    localBlobUrlsRef.current.clear();
+    imageTypeHintsRef.current = {};
+  }, []);
+
+  useEffect(() => {
+    mediaImagesDraft.forEach((url) => {
+      if (!url || imageMeta[url]) return;
+      const probe = new window.Image();
+      probe.onload = () => {
+        const extension = imageTypeHintsRef.current[url] ?? inferImageExtensionLabel({ url });
+        setImageMeta((current) => ({ ...current, [url]: { width: probe.width, height: probe.height, type: extension } }));
+      };
+      probe.src = url;
+    });
+  }, [imageMeta, mediaImagesDraft]);
+
+  useEffect(() => {
+    setSelectedImageIndexes((current) => new Set(Array.from(current).filter((index) => index >= 0 && index < mediaImagesDraft.length)));
+  }, [mediaImagesDraft.length]);
+
+  useEffect(() => {
+    if (editingImageSlot === null) return;
+    if (!mediaImagesDraft[editingImageSlot]) setEditingImageSlot(null);
+  }, [editingImageSlot, mediaImagesDraft]);
+
+  const updateImageAtSlot = useCallback((slotIndex: number, imageUrl: string) => {
+    setMediaImagesDraft((current) => {
+      const next = [...current];
+      if (slotIndex < next.length) {
+        const previous = next[slotIndex];
+        if (previous && previous !== imageUrl) revokeLocalImageUrl(previous);
+        next[slotIndex] = imageUrl;
+        return next.slice(0, MEDIA_SLOT_COUNT);
+      }
+      while (next.length < slotIndex) next.push('');
+      next.push(imageUrl);
+      return next.filter(Boolean).slice(0, MEDIA_SLOT_COUNT);
+    });
+  }, [revokeLocalImageUrl]);
+
+  useEffect(() => {
+    updateImageAtSlotRef.current = updateImageAtSlot;
+  }, [updateImageAtSlot]);
+
+  useEffect(() => {
+    const uppy = new Uppy({
+      autoProceed: false,
+      restrictions: {
+        allowedFileTypes: ['image/*'],
+        maxFileSize: 4 * 1024 * 1024,
+        maxNumberOfFiles: 1
+      },
+      onBeforeFileAdded: (file) => {
+        const plan = uploadPlanRef.current;
+        if (plan.nextOffset >= plan.maxFiles) return false;
+        const targetSlot = Math.min(MEDIA_SLOT_COUNT - 1, plan.startSlot + plan.nextOffset);
+        plan.nextOffset += 1;
+        return {
+          ...file,
+          meta: {
+            ...file.meta,
+            targetSlot
+          }
+        };
+      }
+    });
+
+    uppy.on('restriction-failed', (_file, error) => {
+      toast.error(error.message || 'Nalaganje ni uspelo. Dovoljene so le slike do 4 MB.');
+    });
+
+    uppy.on('error', (error) => {
+      toast.error(error.message || 'Pri nalaganju slik je prišlo do napake.');
+    });
+    uppy.on('files-added', () => {
+      void uppy.upload();
+    });
+
+    uppy.addUploader(async (fileIDs) => {
+      fileIDs.forEach((fileID) => {
+        const file = uppy.getFile(fileID);
+        if (!file) return;
+        const targetSlot = Number(file.meta?.targetSlot);
+        if (!Number.isFinite(targetSlot)) return;
+        const blob = file.data;
+        if (!(blob instanceof Blob)) return;
+        const localImageUrl = createLocalImageUrl(blob);
+        imageTypeHintsRef.current[localImageUrl] = inferImageExtensionLabel({ mimeType: file.type, fileName: file.name });
+        updateImageAtSlotRef.current(Math.max(0, Math.min(MEDIA_SLOT_COUNT - 1, targetSlot)), localImageUrl);
+      });
+      fileIDs.forEach((fileID) => {
+        if (uppy.getFile(fileID)) uppy.removeFile(fileID);
+      });
+    });
+
+    uppyRef.current = uppy;
+    return () => {
+      uppy.cancelAll();
+      uppy.destroy();
+      uppyRef.current = null;
+    };
+  }, [createLocalImageUrl, toast]);
+
+  const queueImageUpload = useCallback((files: FileList | File[] | null, startSlot: number, allowMultiple: boolean) => {
+    if (!isMediaEditable) return;
+    const uppy = uppyRef.current;
+    if (!uppy) return;
+    const queuedFiles = Array.from(files ?? []).filter((file): file is File => file instanceof File);
+    if (queuedFiles.length === 0) return;
+
+    const remainingSlots = Math.max(0, MEDIA_SLOT_COUNT - startSlot);
+    if (remainingSlots === 0) {
+      toast.error('Vse reže so že zapolnjene.');
+      return;
+    }
+
+    const maxFiles = Math.max(1, allowMultiple ? remainingSlots : 1);
+    const acceptedFiles = queuedFiles.slice(0, maxFiles);
+    if (queuedFiles.length > acceptedFiles.length) {
+      toast.error(`Izberete lahko največ ${maxFiles} slik.`);
+    }
+
+    uppy.cancelAll();
+    uppy.getFiles().forEach((file) => uppy.removeFile(file.id));
+    uploadPlanRef.current = { startSlot, nextOffset: 0, maxFiles };
+    uppy.setOptions({
+      restrictions: {
+        ...(uppy.opts.restrictions ?? {}),
+        maxNumberOfFiles: maxFiles
+      }
+    });
+
+    acceptedFiles.forEach((file) => {
+      try {
+        uppy.addFile({
+          name: file.name,
+          type: file.type,
+          data: file
+        });
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Datoteke ni bilo mogoče dodati v vrsto.');
+      }
+    });
+
+  }, [isMediaEditable, toast]);
+
+  const openUppyFilePicker = useCallback((slotIndex: number, allowMultiple: boolean) => {
+    if (!isMediaEditable) return;
+    mediaUploadContextRef.current = { slotIndex, multiple: allowMultiple };
+    const input = mediaUploadInputRef.current;
+    if (!input) return;
+    input.multiple = allowMultiple;
+    input.value = '';
+    input.click();
+  }, [isMediaEditable]);
+
+  const prepareDropzoneUploadPlan = useCallback((slotIndex: number, allowMultiple: boolean, files: File[]) => {
+    if (!isMediaEditable) return;
+    const uppy = uppyRef.current;
+    if (!uppy) return;
+    const remainingSlots = Math.max(0, MEDIA_SLOT_COUNT - slotIndex);
+    const maxFiles = Math.max(1, allowMultiple ? remainingSlots : 1);
+    if (files.length > maxFiles) {
+      toast.error(`Izberete lahko največ ${maxFiles} slik.`);
+    }
+    uppy.cancelAll();
+    uppy.getFiles().forEach((file) => uppy.removeFile(file.id));
+    uploadPlanRef.current = { startSlot: slotIndex, nextOffset: 0, maxFiles };
+    uppy.setOptions({
+      restrictions: {
+        ...(uppy.opts.restrictions ?? {}),
+        maxNumberOfFiles: maxFiles
+      }
+    });
+  }, [isMediaEditable, toast]);
+
+  const moveImageSlot = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return;
+    setMediaImagesDraft((current) => {
+      const next = [...current];
+      const image = next[fromIndex];
+      if (!image) return current;
+      next.splice(fromIndex, 1);
+      next.splice(Math.min(toIndex, next.length), 0, image);
+      return next.slice(0, MEDIA_SLOT_COUNT);
+    });
+    setDraft((current) => ({
+      ...current,
+      variants: current.variants.map((variant) => {
+        const assignments = [...(variant.imageAssignments ?? [])];
+        const fromPos = assignments.indexOf(fromIndex);
+        const toPos = assignments.indexOf(toIndex);
+        if (fromPos !== -1) assignments[fromPos] = toIndex;
+        if (toPos !== -1) assignments[toPos] = fromIndex;
+        return { ...variant, imageAssignments: assignments };
+      })
+    }));
+  };
+
+  const removeImageSlot = (slotIndex: number) => {
+    setMediaImagesDraft((current) => {
+      const imageToRemove = current[slotIndex];
+      if (imageToRemove) revokeLocalImageUrl(imageToRemove);
+      return current.filter((_, index) => index !== slotIndex).slice(0, MEDIA_SLOT_COUNT);
+    });
+    setDraft((current) => ({
+      ...current,
+      variants: current.variants.map((variant) => ({
+        ...variant,
+        imageAssignments: (variant.imageAssignments ?? [])
+          .filter((slot) => slot !== slotIndex)
+          .map((slot) => (slot > slotIndex ? slot - 1 : slot))
+      }))
+    }));
+    setEditingImageSlot((current) => {
+      if (current === null) return null;
+      if (current === slotIndex) return null;
+      return current > slotIndex ? current - 1 : current;
+    });
+  };
+
+  const removeSelectedImageSlots = (selected: Set<number>) => {
+    const sorted = Array.from(selected).sort((a, b) => b - a);
+    sorted.forEach((slotIndex) => removeImageSlot(slotIndex));
+  };
+
+  const assignImageToVariant = (variantIndex: number, slotIndex: number) => {
+    const slotImage = mediaImagesDraft[slotIndex];
+    if (!slotImage) return;
+    const variant = draft.variants[variantIndex];
+    if (!variant) return;
+    const currentAssignments = variant.imageAssignments ?? [];
+    if (currentAssignments.includes(slotIndex)) return;
+    updateVariant(variantIndex, { imageAssignments: [...currentAssignments, slotIndex], imageOverride: slotImage });
+  };
+
+  const reorderVariantAssignment = (variantIndex: number, fromSlot: number, toSlot: number) => {
+    const variant = draft.variants[variantIndex];
+    if (!variant) return;
+    const assignments = [...(variant.imageAssignments ?? [])];
+    const fromIndex = assignments.indexOf(fromSlot);
+    const toIndex = assignments.indexOf(toSlot);
+    if (fromIndex === -1 || toIndex === -1) return;
+    assignments.splice(fromIndex, 1);
+    assignments.splice(toIndex, 0, fromSlot);
+    updateVariant(variantIndex, {
+      imageAssignments: assignments,
+      imageOverride: assignments.length > 0 ? mediaImagesDraft[assignments[0]] ?? null : null
+    });
+  };
+
+  const ensureImageSettings = useCallback((slotIndex: number) => {
+    return imageSettings[slotIndex] ?? { altText: '', focusX: 50, focusY: 50 };
+  }, [imageSettings]);
+
+  const updateImageSettings = useCallback((slotIndex: number, updates: Partial<{ altText: string; focusX: number; focusY: number }>) => {
+    setImageSettings((current) => {
+      const previous = current[slotIndex] ?? { altText: '', focusX: 50, focusY: 50 };
+      return {
+        ...current,
+        [slotIndex]: { ...previous, ...updates }
+      };
+    });
+  }, []);
+
+  const renderImageActionButtons = (slotIndex: number) => {
+    const compact = slotIndex !== 0;
+    const verticalAlignClass = compact ? 'justify-center' : 'justify-start pt-2';
+    const actions = [
+      {
+        key: 'remove',
+        label: 'Odstrani',
+        tone: 'danger' as const,
+        onClick: () => removeImageSlot(slotIndex),
+        icon: <span aria-hidden className={`${compact ? 'text-[11px]' : 'text-sm'} leading-none`}>✕</span>
+      },
+      {
+        key: 'replace',
+        label: 'Zamenjaj sliko',
+        tone: 'light' as const,
+        onClick: () => openUppyFilePicker(slotIndex, false),
+        icon: (
+          <svg viewBox="0 0 24 24" className={`block shrink-0 ${compact ? 'h-[12px] w-[12px]' : 'h-[17.6px] w-[17.6px]'}`} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <rect x="3" y="4" width="18" height="16" rx="2.8" />
+            <path d="m6.5 15.5 3.7-3.8a1 1 0 0 1 1.42 0L15 15l2-2a1 1 0 0 1 1.42 0l2.08 2.08" />
+            <circle cx="15.5" cy="9.3" r="1.5" />
+          </svg>
+        )
+      },
+      {
+        key: 'hide',
+        label: 'Skrij',
+        tone: 'light' as const,
+        onClick: () => toast.info('Skrivanje slike bo na voljo kmalu.'),
+        icon: (
+          <svg viewBox="0 0 24 24" className={compact ? 'h-[12px] w-[12px]' : 'h-4 w-4'} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M1.5 12s3.75-6.75 10.5-6.75S22.5 12 22.5 12s-3.75 6.75-10.5 6.75S1.5 12 1.5 12Z" />
+            <circle cx="12" cy="12" r="3" />
+            <path d="M3 3 21 21" />
+          </svg>
+        )
+      }
+    ];
+
+    return (
+      <div className={`absolute inset-y-0 right-2 z-20 flex flex-col items-end opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 ${verticalAlignClass} ${compact ? 'gap-1' : 'gap-1.5'}`}>
+        {actions.map((action) => (
+          <button
+            key={`${slotIndex}-${action.key}`}
+            type="button"
+            className={`inline-flex items-center justify-center rounded-md border px-0 leading-none shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${compact ? 'h-[20px] w-[20px]' : 'h-[25px] min-w-[1.6rem]'} ${action.tone === 'danger' ? 'border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'}`}
+            onPointerDown={(event) => {
+              event.stopPropagation();
+              event.preventDefault();
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+              action.onClick();
+            }}
+            aria-label={action.label}
+            title={action.label}
+          >
+            <span className="inline-flex h-full w-full items-center justify-center">{action.icon}</span>
+          </button>
+        ))}
+      </div>
+    );
+  };
   return (
     <div className="mx-auto max-w-7xl space-y-4 font-['Inter',system-ui,sans-serif]">
       <div className="text-xs text-slate-500"><Link href="/admin/artikli" className="hover:underline">Artikli</Link> › {mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</div>
@@ -1222,7 +1788,7 @@ export default function AdminItemEditorPage({
                         />
                         <label
                           htmlFor="tech-sheet-upload-inline"
-                          className={`flex w-full cursor-pointer items-center rounded-xl border border-dashed border-blue-300 bg-[#f5f8ff] px-4 py-2.5 ${isEditable ? 'hover:bg-[#edf3ff]' : 'cursor-not-allowed opacity-60'}`}
+                          className={`relative flex w-full items-center rounded-xl border-2 border-dashed border-[#9cb8ea] bg-[#f7f9fe] px-4 py-2.5 text-blue-500 transition ${isEditable ? 'cursor-pointer hover:border-[#4f8bff] hover:bg-[#edf3ff]' : 'cursor-not-allowed opacity-60'}`}
                         >
                           <span className="mx-auto inline-flex flex-col items-start gap-0.5 text-blue-600">
                             <span className="inline-flex items-center gap-1">
@@ -1290,7 +1856,7 @@ export default function AdminItemEditorPage({
                     return;
                   }
                   const selected = new Set(selectedImageIndexes);
-                  setMediaImagesDraft((current) => current.filter((_, index) => !selected.has(index)));
+                  removeSelectedImageSlots(selected);
                   setSelectedImageIndexes(new Set());
                 }}
               >
@@ -1299,48 +1865,241 @@ export default function AdminItemEditorPage({
               </div>
             </div>
             {mediaTab === 'slike' ? (
-              <div className="mt-3 space-y-3">
-                <p className="text-sm text-slate-500">Galerija artikla. Prva slika je glavna.</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {mediaImagesDraft.map((img, index) => <div key={`${img}-${index}`} className="relative overflow-hidden rounded-lg border border-slate-200"><Image src={img} alt={`Slika ${index + 1}`} width={180} height={120} unoptimized className="h-24 w-full object-cover" />{isMediaEditable ? <div className="absolute left-1 top-1"><AdminCheckbox checked={selectedImageIndexes.has(index)} onChange={() => setSelectedImageIndexes((current) => { const next = new Set(current); if (next.has(index)) next.delete(index); else next.add(index); return next; })} /></div> : null}</div>)}
-                  <label className={`flex h-24 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 text-sm text-slate-500 ${isMediaEditable ? 'cursor-pointer hover:border-[#2f66dd]' : 'cursor-not-allowed opacity-60'}`}>Dodaj slike<input disabled={!isMediaEditable} type="file" className="hidden" multiple accept="image/*" onChange={(event) => {
-                    const urls = Array.from(event.target.files ?? []).map((file) => URL.createObjectURL(file));
-                    setMediaImagesDraft((current) => [...current, ...urls]);
-                  }} /></label>
-                </div>
-                <label className="inline-flex items-center gap-2 text-sm"><AdminCheckbox checked={sideSettings.showGallery} onChange={(event) => setSideSettings((current) => ({ ...current, showGallery: event.target.checked }))} />Prikaži galerijo na strani izdelka</label>
-                <label className="inline-flex items-center gap-2 text-sm"><AdminCheckbox checked={sideSettings.autoSquareCrop} onChange={(event) => setSideSettings((current) => ({ ...current, autoSquareCrop: event.target.checked }))} />Samodejno obreži na kvadrat (1:1)</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs text-slate-600">Postavitev</label>
-                    <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
-                      {([
-                        { key: 'grid', icon: <span className="grid grid-cols-2 gap-0.5">{Array.from({ length: 4 }).map((_, idx) => <span key={idx} className="h-1.5 w-1.5 rounded-[2px] border border-current" />)}</span> },
-                        { key: 'slider', icon: <span className="inline-flex gap-0.5">{Array.from({ length: 2 }).map((_, idx) => <span key={idx} className="h-3 w-1.5 rounded-[2px] border border-current" />)}</span> },
-                        { key: 'list', icon: <span className="inline-flex flex-col gap-0.5">{Array.from({ length: 3 }).map((_, idx) => <span key={idx} className="h-1 w-4 rounded-[2px] border border-current" />)}</span> }
-                      ] as const).map((modeOption) => (
-                        <button
-                          key={modeOption.key}
-                          type="button"
-                          aria-label={`Postavitev ${modeOption.key}`}
-                          className={`inline-flex h-9 w-9 items-center justify-center rounded-md border transition ${sideSettings.galleryMode === modeOption.key ? 'border-[#6f95ff] bg-[#edf2ff] text-[#3e67d6]' : 'border-transparent bg-transparent text-slate-400 hover:text-slate-600'}`}
-                          onClick={() => setSideSettings((current) => ({ ...current, galleryMode: modeOption.key }))}
-                        >
-                          {modeOption.icon}
-                        </button>
-                      ))}
+              <div className="mt-3 space-y-2">
+                <input
+                  ref={mediaUploadInputRef}
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  multiple
+                  disabled={!isMediaEditable}
+                  onChange={(event) => {
+                    const { slotIndex, multiple } = mediaUploadContextRef.current;
+                    queueImageUpload(event.target.files, slotIndex, multiple);
+                    event.currentTarget.value = '';
+                  }}
+                />
+                <div className="h-[11.5rem]">
+                  {mediaImagesDraft.length === 0 ? (
+                    uppyRef.current ? (
+                      <UppyDropzoneField
+                        uppy={uppyRef.current}
+                        disabled={!isMediaEditable}
+                        onPrepareAddFiles={(files) => prepareDropzoneUploadPlan(0, true, files)}
+                        className="flex h-full w-full items-center justify-center rounded-lg text-blue-600"
+                      >
+                        <span className="flex flex-col items-center justify-center gap-2 text-center">
+                          <ImageUploadFrameIcon className="h-[84px] w-[84px] text-[#2f7dc5]" />
+                          <span className="text-base font-semibold text-slate-800">Naloži sliko</span>
+                          <span className="text-xs font-medium text-slate-500">(največ 4 MB)</span>
+                        </span>
+                      </UppyDropzoneField>
+                    ) : (
+                      <div className={`relative flex h-full w-full items-center justify-center rounded-lg bg-[#f7f9fe] text-blue-600 ${isMediaEditable ? '' : 'cursor-not-allowed opacity-60'}`}>
+                        <span className="flex flex-col items-center justify-center gap-2 text-center">
+                          <ImageUploadFrameIcon className="h-[84px] w-[84px] text-[#2f7dc5]" />
+                          <span className="text-base font-semibold text-slate-800">Naloži sliko</span>
+                          <span className="text-xs font-medium text-slate-500">(največ 4 MB)</span>
+                        </span>
+                      </div>
+                    )
+                  ) : (
+                    <div className="grid h-full grid-cols-5 grid-rows-2 gap-2">
+                      <div
+                        className={`group relative col-span-2 row-span-2 overflow-hidden rounded-lg border border-slate-300 ${isMediaEditable ? 'cursor-grab' : ''}`}
+                        draggable={Boolean(isMediaEditable)}
+                        onDragStart={() => {
+                          suppressImageClickAfterDragRef.current = true;
+                          setDraggedImageIndex(0);
+                        }}
+                        onDragEnd={() => {
+                          suppressImageClickAfterDragRef.current = false;
+                        }}
+                        onDragOver={(event) => {
+                          if (!isMediaEditable) return;
+                          event.preventDefault();
+                        }}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          if (!isMediaEditable || draggedImageIndex === null) return;
+                          moveImageSlot(draggedImageIndex, 0);
+                          setDraggedImageIndex(null);
+                          suppressImageClickAfterDragRef.current = false;
+                        }}
+                        onClick={() => {
+                          if (suppressImageClickAfterDragRef.current) {
+                            suppressImageClickAfterDragRef.current = false;
+                            return;
+                          }
+                          setEditingImageSlot(0);
+                        }}
+                      >
+                        <Image src={mediaImagesDraft[0]} alt="Glavna slika" width={1200} height={1200} unoptimized sizes="(max-width: 1280px) 36vw, 420px" className="h-full w-full object-cover" />
+                        {renderImageActionButtons(0)}
+                      </div>
+                      {Array.from({ length: GALLERY_SMALL_SLOT_COUNT }).map((_, smallIndex) => {
+                        const slotIndex = smallIndex + 1;
+                        const slotImage = mediaImagesDraft[slotIndex];
+                        const nextUploadSlot = Math.min(mediaImagesDraft.length, MEDIA_SLOT_COUNT - 1);
+                        const isActiveUploadSlot = !slotImage && mediaImagesDraft.length < MEDIA_SLOT_COUNT && slotIndex === nextUploadSlot;
+
+                        if (slotImage) {
+                          return (
+                            <div
+                              key={`slot-${slotIndex}`}
+                              className={`group relative overflow-hidden rounded-lg border border-slate-300 ${isMediaEditable ? 'cursor-grab' : ''}`}
+                              draggable={Boolean(isMediaEditable)}
+                              onDragStart={() => {
+                                suppressImageClickAfterDragRef.current = true;
+                                setDraggedImageIndex(slotIndex);
+                              }}
+                              onDragEnd={() => {
+                                suppressImageClickAfterDragRef.current = false;
+                              }}
+                              onDragOver={(event) => {
+                                if (!isMediaEditable) return;
+                                event.preventDefault();
+                              }}
+                              onDrop={(event) => {
+                                event.preventDefault();
+                                if (!isMediaEditable || draggedImageIndex === null) return;
+                                moveImageSlot(draggedImageIndex, slotIndex);
+                                setDraggedImageIndex(null);
+                                suppressImageClickAfterDragRef.current = false;
+                              }}
+                              onClick={() => {
+                                if (suppressImageClickAfterDragRef.current) {
+                                  suppressImageClickAfterDragRef.current = false;
+                                  return;
+                                }
+                                setEditingImageSlot(slotIndex);
+                              }}
+                            >
+                              <Image src={slotImage} alt={`Slika ${slotIndex + 1}`} width={720} height={720} unoptimized sizes="(max-width: 1280px) 18vw, 180px" className="h-full w-full object-cover" />
+                              {renderImageActionButtons(slotIndex)}
+                            </div>
+                          );
+                        }
+
+                        if (isActiveUploadSlot) {
+                          return (
+                            uppyRef.current ? (
+                              <UppyDropzoneField
+                                key={`slot-${slotIndex}`}
+                                uppy={uppyRef.current}
+                                disabled={!isMediaEditable}
+                                onPrepareAddFiles={(files) => prepareDropzoneUploadPlan(slotIndex, true, files)}
+                                className="flex h-full items-center justify-center rounded-lg text-blue-600"
+                              >
+                                <span className="inline-flex h-full w-full items-center justify-center">
+                                  <svg viewBox="0 0 24 24" className="h-9 w-9 text-[#2f7dc5]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                                    <path d="M12 5v14M5 12h14" />
+                                  </svg>
+                                </span>
+                              </UppyDropzoneField>
+                            ) : (
+                              <div key={`slot-${slotIndex}`} className={`relative flex h-full items-center justify-center rounded-lg bg-[#f7f9fe] text-blue-600 ${isMediaEditable ? '' : 'cursor-not-allowed opacity-60'}`}>
+                                <CloudUploadIcon className="h-8 w-8 text-[#2f7dc5]" />
+                              </div>
+                            )
+                          );
+                        }
+
+                        return <div key={`slot-${slotIndex}`} className="relative h-full rounded-lg border-2 border-dashed border-[#d7e3f7] bg-[#f7f9fe] opacity-70" />;
+                      })}
                     </div>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs text-slate-600">Fokus slike</label>
-                    <select className={inputClass} value={sideSettings.imageFocus} onChange={(event) => setSideSettings((current) => ({ ...current, imageFocus: event.target.value }))}>
-                      <option value="center">Center</option>
-                      <option value="top">Zgoraj</option>
-                      <option value="bottom">Spodaj</option>
-                    </select>
-                  </div>
+                  )}
                 </div>
-                <div className="space-y-1"><label className="text-xs text-slate-600">Alt besedilo</label><input className={inputClass} value={sideSettings.imageAltText} onChange={(event) => setSideSettings((current) => ({ ...current, imageAltText: event.target.value }))} placeholder={`${draft.name || 'Artikel'} - različice`} /></div>
+                <div className="overflow-hidden rounded-lg border border-slate-200">
+                  <table className="min-w-full text-xs">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="px-2 py-1.5 text-left">SKU</th>
+                        <th className="px-2 py-1.5 text-center">Tip</th>
+                        <th className="px-2 py-1.5 text-center">Dimenzije</th>
+                        <th className="px-2 py-1.5 text-left">Slike</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {draft.variants.map((variant, variantIndex) => {
+                        const assignedSlots = variant.imageAssignments ?? [];
+                        const assignedImageDetails = assignedSlots.flatMap((slot) => {
+                          const url = mediaImagesDraft[slot];
+                          if (!url) return [];
+                          const typeLabel = imageMeta[url]?.type ?? imageTypeHintsRef.current[url] ?? inferImageExtensionLabel({ url });
+                          const dimensionLabel = imageMeta[url] ? `${imageMeta[url].width}x${imageMeta[url].height}` : '—';
+                          return [{ typeLabel, dimensionLabel }];
+                        });
+                        const assignedImageTypes = assignedImageDetails.map((entry) => entry.typeLabel);
+                        const assignedImageDimensions = assignedImageDetails.map((entry) => entry.dimensionLabel);
+                        return (
+                          <tr
+                            key={`variant-media-${variant.id}`}
+                            className="border-t border-slate-100"
+                            onDragOver={(event) => {
+                              if (!isMediaEditable) return;
+                              event.preventDefault();
+                            }}
+                            onDrop={(event) => {
+                              event.preventDefault();
+                              if (!isMediaEditable || draggedImageIndex === null) return;
+                              assignImageToVariant(variantIndex, draggedImageIndex);
+                              setDraggedImageIndex(null);
+                            }}
+                          >
+                            <td className="px-2 py-1.5">{variant.sku || '—'}</td>
+                            <td className="px-2 py-1.5 text-center">{assignedImageTypes.length ? assignedImageTypes.join(', ') : '—'}</td>
+                            <td className="px-2 py-1.5 text-center">{assignedImageDimensions.length ? assignedImageDimensions.join(', ') : '—'}</td>
+                            <td className="px-2 py-1.5">
+                              <div className="flex flex-wrap gap-1">
+                                {assignedSlots.map((slot) => {
+                                  const slotImage = mediaImagesDraft[slot];
+                                  if (!slotImage) return null;
+                                  return (
+                                    <div
+                                      key={`${variant.id}-${slot}`}
+                                      className="inline-flex h-[18px] items-center gap-1 overflow-hidden rounded-md border border-slate-200 bg-white px-1"
+                                      draggable={isMediaEditable}
+                                      onDragStart={() => {
+                                        setDraggedVariantId(variant.id);
+                                        setDraggedVariantImageSlot(slot);
+                                      }}
+                                      onDragOver={(event) => {
+                                        if (!isMediaEditable) return;
+                                        event.preventDefault();
+                                      }}
+                                      onDrop={(event) => {
+                                        event.preventDefault();
+                                        if (!isMediaEditable || draggedVariantId !== variant.id || draggedVariantImageSlot === null) return;
+                                        reorderVariantAssignment(variantIndex, draggedVariantImageSlot, slot);
+                                        setDraggedVariantId(null);
+                                        setDraggedVariantImageSlot(null);
+                                      }}
+                                    >
+                                      <Image src={slotImage} alt={`SKU ${variant.sku}`} width={16} height={16} unoptimized className="h-4 w-4 shrink-0 rounded object-cover" />
+                                      <span className="max-w-[84px] truncate text-[11px] text-slate-600">Slika {slot + 1}</span>
+                                      <button
+                                        type="button"
+                                        disabled={!isMediaEditable}
+                                        className="text-slate-400 hover:text-rose-600"
+                                        onClick={() => updateVariant(variantIndex, {
+                                          imageAssignments: assignedSlots.filter((value) => value !== slot),
+                                          imageOverride: assignedSlots.length > 1 ? mediaImagesDraft[assignedSlots.find((value) => value !== slot) ?? 0] ?? null : null
+                                        })}
+                                      >
+                                        ×
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ) : (
               <div className="mt-3 space-y-3">
@@ -1646,6 +2405,51 @@ export default function AdminItemEditorPage({
           </table>
         </div>
       </section>
+      {editingImageSlot !== null && mediaImagesDraft[editingImageSlot]
+        ? createPortal(
+          <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-slate-900/40 p-4">
+            <div className="w-full max-w-3xl rounded-xl border border-slate-200 bg-white p-3 shadow-2xl">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm font-semibold text-slate-800">Urejanje slike {editingImageSlot + 1}</span>
+                <button type="button" className="text-xs text-slate-500 hover:text-slate-700" onClick={() => setEditingImageSlot(null)}>Zapri</button>
+              </div>
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_240px]">
+                <div
+                  className="relative aspect-square overflow-hidden rounded-md border border-slate-200 bg-slate-100"
+                  onClick={(event) => {
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    const x = ((event.clientX - rect.left) / rect.width) * 100;
+                    const y = ((event.clientY - rect.top) / rect.height) * 100;
+                    updateImageSettings(editingImageSlot, { focusX: Math.max(0, Math.min(100, x)), focusY: Math.max(0, Math.min(100, y)) });
+                  }}
+                >
+                  <Image src={mediaImagesDraft[editingImageSlot]} alt={`Urejanje slike ${editingImageSlot + 1}`} fill unoptimized className="object-cover" />
+                  <span
+                    className="pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white bg-[#3e67d6] shadow"
+                    style={{ left: `${ensureImageSettings(editingImageSlot).focusX}%`, top: `${ensureImageSettings(editingImageSlot).focusY}%` }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <label className="mb-1 block text-[11px] text-slate-600">Alt besedilo</label>
+                    <input
+                      className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-900 outline-none focus:border-[#3e67d6]"
+                      value={ensureImageSettings(editingImageSlot).altText}
+                      onChange={(event) => updateImageSettings(editingImageSlot, { altText: event.target.value })}
+                      placeholder={`Slika ${editingImageSlot + 1}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[11px] text-slate-600">Fokus slike</label>
+                    <p className="text-[11px] text-slate-500">Kliknite na predogled, da nastavite fokus prikaza.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+        : null}
     </div>
   );
 }

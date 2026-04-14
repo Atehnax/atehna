@@ -1876,11 +1876,17 @@ export default function AdminItemEditorPage({
                           className={`relative flex w-full items-center rounded-[16px] border-2 border-dashed border-[#9cb8ea] bg-[#f3f5f9] px-4 py-2.5 transition ${isEditable ? 'cursor-pointer hover:border-[#4f8bff] hover:bg-[#edf3ff]' : 'cursor-not-allowed opacity-60'}`}
                         >
                           <span className="mx-auto inline-flex items-center gap-3">
-                            <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-[#2f8cc9] shadow-[inset_0_1px_0_rgba(255,255,255,0.24)]">
-                              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" aria-hidden>
-                                <path d="M6 3h8l4 4v14H6z" fill="#2f8cc9" />
-                                <path d="M14 3v4h4" stroke="#166fa9" strokeWidth="1.4" strokeLinejoin="round" />
-                                <path d="M8.5 11.2h7M8.5 14.4h7M8.5 17.6h4.8" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" />
+                            <span className="inline-flex h-9 w-9 items-center justify-center">
+                              <svg viewBox="0 0 64 64" className="h-8 w-8" fill="none" aria-hidden>
+                                <defs>
+                                  <linearGradient id="tech-doc-gradient" x1="6" y1="6" x2="58" y2="58" gradientUnits="userSpaceOnUse">
+                                    <stop stopColor="#43a6e8" />
+                                    <stop offset="1" stopColor="#1f7fc6" />
+                                  </linearGradient>
+                                </defs>
+                                <path d="M12 6h30l16 16v30a6 6 0 0 1-6 6H12a6 6 0 0 1-6-6V12a6 6 0 0 1 6-6Z" fill="url(#tech-doc-gradient)" />
+                                <path d="M42 6v12a4 4 0 0 0 4 4h12" stroke="#0f5f9f" strokeWidth="2.4" strokeLinejoin="round" />
+                                <path d="M16 30h32M16 40h24M16 50h18" stroke="#0d3960" strokeWidth="3.2" strokeLinecap="round" />
                               </svg>
                             </span>
                             <span className="inline-flex flex-col items-start gap-0.5">

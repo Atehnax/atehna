@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Cropper from 'cropperjs';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
-import { ActionUndoIcon, SaveIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { SaveIcon } from '@/shared/ui/icons/AdminActionIcons';
 
 type UploadedImageCropperModalProps = {
   imageUrl: string;
@@ -28,7 +28,6 @@ export default function UploadedImageCropperModal({
   const cropperRef = useRef<Cropper | null>(null);
   const previewUrlRef = useRef<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [renderSeed, setRenderSeed] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTool, setActiveTool] = useState<'crop' | 'transform'>('crop');
 
@@ -115,7 +114,7 @@ export default function UploadedImageCropperModal({
       cropper.destroy();
       cropperRef.current = null;
     };
-  }, [imageUrl, refreshCropperLayout, refreshPreview, renderSeed]);
+  }, [imageUrl, refreshCropperLayout, refreshPreview]);
 
   useEffect(() => () => {
     cleanupPreviewUrl();
@@ -142,10 +141,6 @@ export default function UploadedImageCropperModal({
     void refreshPreview();
   }, [refreshPreview]);
 
-  const resetEditor = useCallback(() => {
-    setRenderSeed((current) => current + 1);
-  }, []);
-
   const handleSave = useCallback(async () => {
     const cropper = cropperRef.current;
     const selection = cropper?.getCropperSelection();
@@ -170,6 +165,8 @@ export default function UploadedImageCropperModal({
     if (!cropperCanvas || !selection) return;
     cropperCanvas.$setAction('select');
     selection.hidden = false;
+    selection.movable = true;
+    selection.resizable = true;
     selection.$render();
     setActiveTool('crop');
   }, []);
@@ -182,20 +179,34 @@ export default function UploadedImageCropperModal({
   const toolButtonClassName = (isActive: boolean) => [
     '!h-9 !w-9 rounded-lg border transition',
     isActive
-      ? 'border-blue-400/80 bg-blue-500/20 text-white'
-      : 'border-white/15 bg-white/5 text-slate-100 hover:border-white/30 hover:bg-white/10'
+      ? 'border-[#3e67d6] bg-[#e9efff] text-[#2143a8]'
+      : 'border-slate-200 bg-white text-slate-700 hover:border-[#9cb8ea] hover:bg-[#f7f9fe]'
   ].join(' ');
 
   return (
-    <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-[#030712]/85 p-3 backdrop-blur-sm">
-      <div className="flex h-[min(95vh,1040px)] w-full max-w-[1600px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0a1020] shadow-[0_30px_120px_rgba(2,6,23,0.75)]">
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-          <h3 className="text-sm font-semibold tracking-wide text-slate-100">Urejanje slike {slotIndex + 1}</h3>
-          <Button type="button" variant="close-x" onClick={onCancel} aria-label="Zapri urejanje slike" title="Zapri">×</Button>
+    <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-slate-900/50 p-3">
+      <div className="flex h-[min(95vh,1040px)] w-full max-w-[1600px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_30px_90px_rgba(15,23,42,0.22)]">
+        <div className="flex items-center justify-between border-b border-slate-200 bg-[#f7f9fe] px-4 py-3">
+          <h3 className="text-sm font-semibold tracking-wide text-slate-800">Urejanje slike {slotIndex + 1}</h3>
+          <div className="flex items-center gap-2">
+            <IconButton
+              type="button"
+              tone="neutral"
+              size="sm"
+              className={toolButtonClassName(false)}
+              aria-label="Shrani"
+              title="Shrani"
+              onClick={() => void handleSave()}
+              disabled={isSaving}
+            >
+              <SaveIcon className="h-[15px] w-[15px]" />
+            </IconButton>
+            <Button type="button" variant="close-x" onClick={onCancel} aria-label="Zapri urejanje slike" title="Zapri">×</Button>
+          </div>
         </div>
         <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[minmax(0,1fr)_270px]">
-          <section className="relative min-h-0 overflow-hidden bg-[radial-gradient(circle_at_50%_12%,rgba(59,130,246,0.24),rgba(10,16,32,0.98)_60%)]">
-            <div className="absolute left-1/2 top-4 z-20 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-white/15 bg-[#0b1224]/80 px-2 py-1.5 backdrop-blur">
+          <section className="relative min-h-0 overflow-hidden bg-gradient-to-b from-[#f4f7ff] to-[#eef3fb]">
+            <div className="absolute left-1/2 top-4 z-20 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-slate-200 bg-white/95 px-2 py-1.5 shadow-sm">
               <IconButton
                 type="button"
                 tone="neutral"
@@ -244,9 +255,15 @@ export default function UploadedImageCropperModal({
                   <path d="M20 12h2" />
                 </svg>
               </IconButton>
+              <IconButton type="button" tone="neutral" size="sm" className={toolButtonClassName(false)} aria-label="Prekliči" title="Prekliči" onClick={onCancel}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-[17px] w-[17px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M9 14 4 9l5-5" />
+                  <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" />
+                </svg>
+              </IconButton>
             </div>
             <div className="h-full w-full p-5 pt-20">
-              <div className="relative h-full overflow-hidden rounded-xl border border-white/10 bg-black/25 shadow-inner">
+              <div className="relative h-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-inner">
                 <div ref={hostRef} className="h-full w-full [&>cropper-canvas]:!block [&>cropper-canvas]:!h-full [&>cropper-canvas]:!w-full" />
               </div>
             </div>
@@ -258,17 +275,22 @@ export default function UploadedImageCropperModal({
               className="pointer-events-none absolute left-0 top-0 h-full w-full opacity-0"
             />
           </section>
-          <aside className="flex min-h-0 flex-col border-l border-white/10 bg-[#0f172a]/80 p-3">
+          <aside className="flex min-h-0 flex-col border-l border-slate-200 bg-[#f8fbff] p-3">
             <div className="space-y-3">
-              <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">Alt besedilo</label>
+              <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">Alt besedilo</label>
               <input
-                className="h-9 w-full rounded-lg border border-white/15 bg-white/5 px-2.5 text-xs text-slate-100 outline-none placeholder:text-slate-500 focus:border-blue-400/70"
+                className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#3e67d6]"
                 value={altText}
                 onChange={(event) => onAltTextChange(event.target.value)}
                 placeholder={`Slika ${slotIndex + 1}`}
               />
-              <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">Predogled</label>
-              <div className="flex h-40 w-full items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-black/30 p-2">
+              <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">Predogled slike</label>
+              <div className="flex h-40 w-full items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white p-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={imageUrl} alt={`Polni predogled slike ${slotIndex + 1}`} className="max-h-full max-w-full object-contain" />
+              </div>
+              <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">Predogled prikazne sličice</label>
+              <div className="flex h-40 w-full items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white p-2">
                 {previewUrl ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img src={previewUrl} alt={previewLabel} className="max-h-full max-w-full object-contain" />
@@ -277,16 +299,8 @@ export default function UploadedImageCropperModal({
                 )}
               </div>
             </div>
-            <div className="mt-auto flex flex-wrap justify-end gap-2 border-t border-white/10 pt-3">
-              <Button type="button" variant="ghost" size="toolbar" onClick={resetEditor}>
-                <ActionUndoIcon className="h-[14px] w-[14px]" />
-                Ponastavi
-              </Button>
-              <Button type="button" variant="ghost" size="toolbar" onClick={onCancel}>Prekliči</Button>
-              <Button type="button" variant="primary" size="toolbar" onClick={() => void handleSave()} disabled={isSaving}>
-                <SaveIcon className="h-[14px] w-[14px]" />
-                {isSaving ? 'Shranjujem…' : 'Shrani'}
-              </Button>
+            <div className="mt-auto border-t border-slate-200 pt-3 text-[11px] text-slate-500">
+              Urejanje se shrani z gumbom zgoraj desno.
             </div>
           </aside>
         </div>

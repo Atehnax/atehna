@@ -102,13 +102,6 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
     setPage(1);
   }, [categoryFilter, discountFilter, mode, search, setPage, statusFilter]);
 
-  useEffect(() => {
-    if (!openFilter) return;
-    const close = () => setOpenFilter(null);
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [openFilter]);
-
   const exportVariantsCsv = () => {
     const headers = ['Družina', 'Različica', 'SKU', 'Cena', 'Popust', 'Akcijska cena', 'Zaloga', 'Status'];
     const csvRows = flatVariants.map(({ family, variant }) => [
@@ -218,12 +211,113 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
       >
         {mode === 'families' ? (
           <Table className="w-full table-fixed text-[12px]">
-            <THead><TR><TH className="w-10 px-2 text-center"><AdminCheckbox checked={familiesSelectedOnPage} onChange={() => setSelectedFamilyIds((current) => {
-              const next = new Set(current);
-              if (familiesSelectedOnPage) allVisibleFamilyIds.forEach((id) => next.delete(id));
-              else allVisibleFamilyIds.forEach((id) => next.add(id));
-              return next;
-            })} aria-label="Izberi vse družine" /></TH><TH>Družina</TH><TH><div className="relative inline-flex items-center gap-1">Kategorija<button type="button" className={HEADER_FILTER_BUTTON_CLASS} onClick={(event) => { event.stopPropagation(); setOpenFilter((current) => current === 'category' ? null : 'category'); }} aria-label="Filtriraj kategorijo"><ColumnFilterIcon className="!h-[12px] !w-[12px]" /></button>{openFilter === 'category' ? <div className="absolute left-0 top-5 z-20" onMouseDown={(event) => event.stopPropagation()}><MenuPanel className="w-44">{[{ value: 'all', label: 'Vse kategorije' }, ...categories.map((category) => ({ value: category, label: category }))].map((option) => <MenuItem key={option.value} onClick={() => { setCategoryFilter(option.value); setOpenFilter(null); }}>{option.label}</MenuItem>)}</MenuPanel></div> : null}</div></TH><TH className="text-center">Št. različic</TH><TH>Razpon cen</TH><TH><div className="relative inline-flex items-center gap-1">Popust<button type="button" className={HEADER_FILTER_BUTTON_CLASS} onClick={(event) => { event.stopPropagation(); setOpenFilter((current) => current === 'discount' ? null : 'discount'); }} aria-label="Filtriraj popust"><ColumnFilterIcon className="!h-[12px] !w-[12px]" /></button>{openFilter === 'discount' ? <div className="absolute left-0 top-5 z-20" onMouseDown={(event) => event.stopPropagation()}><MenuPanel className="w-40"><MenuItem onClick={() => { setDiscountFilter('all'); setOpenFilter(null); }}>Vsi</MenuItem><MenuItem onClick={() => { setDiscountFilter('yes'); setOpenFilter(null); }}>S popustom</MenuItem><MenuItem onClick={() => { setDiscountFilter('no'); setOpenFilter(null); }}>Brez popusta</MenuItem></MenuPanel></div> : null}</div></TH><TH><div className="relative inline-flex items-center gap-1">Status<button type="button" className={HEADER_FILTER_BUTTON_CLASS} onClick={(event) => { event.stopPropagation(); setOpenFilter((current) => current === 'status' ? null : 'status'); }} aria-label="Filtriraj status"><ColumnFilterIcon className="!h-[12px] !w-[12px]" /></button>{openFilter === 'status' ? <div className="absolute left-0 top-5 z-20" onMouseDown={(event) => event.stopPropagation()}><MenuPanel className="w-36"><MenuItem onClick={() => { setStatusFilter('all'); setOpenFilter(null); }}>Vsi</MenuItem><MenuItem onClick={() => { setStatusFilter('active'); setOpenFilter(null); }}>Aktiven</MenuItem><MenuItem onClick={() => { setStatusFilter('hidden'); setOpenFilter(null); }}>Skrit</MenuItem></MenuPanel></div> : null}</div></TH><TH className="w-20 text-center">Akcije</TH></TR></THead>
+            <THead>
+              <TR>
+                <TH className="w-10 px-2 text-center">
+                  <AdminCheckbox
+                    checked={familiesSelectedOnPage}
+                    onChange={() =>
+                      setSelectedFamilyIds((current) => {
+                        const next = new Set(current);
+                        if (familiesSelectedOnPage) allVisibleFamilyIds.forEach((id) => next.delete(id));
+                        else allVisibleFamilyIds.forEach((id) => next.add(id));
+                        return next;
+                      })
+                    }
+                    aria-label="Izberi vse družine"
+                  />
+                </TH>
+                <TH className="w-[30%]">Artikel</TH>
+                <TH className="w-[30%]">
+                  <div className="relative inline-flex items-center gap-1">
+                    Kategorija
+                    <button
+                      type="button"
+                      className={HEADER_FILTER_BUTTON_CLASS}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setOpenFilter((current) => (current === 'category' ? null : 'category'));
+                      }}
+                      aria-label="Filtriraj kategorijo"
+                    >
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                    {openFilter === 'category' ? (
+                      <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
+                        <MenuPanel className="w-44">
+                          {[{ value: 'all', label: 'Vse kategorije' }, ...categories.map((category) => ({ value: category, label: category }))].map(
+                            (option) => (
+                              <MenuItem
+                                key={option.value}
+                                onClick={() => {
+                                  setCategoryFilter(option.value);
+                                  setOpenFilter(null);
+                                }}
+                              >
+                                {option.label}
+                              </MenuItem>
+                            )
+                          )}
+                        </MenuPanel>
+                      </div>
+                    ) : null}
+                  </div>
+                </TH>
+                <TH className="text-center">Št. različic</TH>
+                <TH>Razpon cen</TH>
+                <TH className="text-center">
+                  <div className="relative inline-flex items-center gap-1">
+                    Popust
+                    <button
+                      type="button"
+                      className={HEADER_FILTER_BUTTON_CLASS}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setOpenFilter((current) => (current === 'discount' ? null : 'discount'));
+                      }}
+                      aria-label="Filtriraj popust"
+                    >
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                    {openFilter === 'discount' ? (
+                      <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
+                        <MenuPanel className="w-40">
+                          <MenuItem onClick={() => { setDiscountFilter('all'); setOpenFilter(null); }}>Vsi</MenuItem>
+                          <MenuItem onClick={() => { setDiscountFilter('yes'); setOpenFilter(null); }}>S popustom</MenuItem>
+                          <MenuItem onClick={() => { setDiscountFilter('no'); setOpenFilter(null); }}>Brez popusta</MenuItem>
+                        </MenuPanel>
+                      </div>
+                    ) : null}
+                  </div>
+                </TH>
+                <TH className="text-center">
+                  <div className="relative inline-flex items-center gap-1">
+                    Status
+                    <button
+                      type="button"
+                      className={HEADER_FILTER_BUTTON_CLASS}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setOpenFilter((current) => (current === 'status' ? null : 'status'));
+                      }}
+                      aria-label="Filtriraj status"
+                    >
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                    {openFilter === 'status' ? (
+                      <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
+                        <MenuPanel className="w-36">
+                          <MenuItem onClick={() => { setStatusFilter('all'); setOpenFilter(null); }}>Vsi</MenuItem>
+                          <MenuItem onClick={() => { setStatusFilter('active'); setOpenFilter(null); }}>Aktiven</MenuItem>
+                          <MenuItem onClick={() => { setStatusFilter('hidden'); setOpenFilter(null); }}>Skrit</MenuItem>
+                        </MenuPanel>
+                      </div>
+                    ) : null}
+                  </div>
+                </TH>
+                <TH className="w-20 text-center">Akcije</TH>
+              </TR>
+            </THead>
             <tbody>
               {pagedFamilies.map((family) => {
                 const isExpanded = expandedFamilyIds.has(family.id);
@@ -252,13 +346,13 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                       <td className="px-2 py-3 text-slate-600">{family.category}</td>
                       <td className="px-2 py-3 text-center">{visibleVariants.length}</td>
                       <td className="px-2 py-3">{formatPriceRange(minPrice, maxPrice)}</td>
-                      <td className="px-2 py-3 text-emerald-700">{family.defaultDiscountPct}%</td>
-                      <td className="px-2 py-3"><Chip variant={family.active ? 'success' : 'warning'}>{statusLabel(family.active)}</Chip></td>
+                      <td className="px-2 py-3 text-center text-emerald-700">{family.defaultDiscountPct}%</td>
+                      <td className="px-2 py-3 text-center"><Chip variant={family.active ? 'success' : 'warning'}>{statusLabel(family.active)}</Chip></td>
                       <td className="px-2 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'edit', label: 'Uredi', onSelect: () => (window.location.href = `/admin/artikli/${encodeURIComponent(family.id)}`) }]} /></td>
                     </tr>
-                    {isExpanded ? <tr className="border-t border-slate-100 bg-slate-50/70"><td /><td colSpan={7} className="p-0"><table className="w-full text-[12px]"><thead><tr className="border-b border-slate-200 text-slate-600"><th className="px-2 py-2" /><th className="px-2 py-2 text-left">Različica</th><th className="px-2 py-2 text-left">SKU</th><th className="px-2 py-2 text-left">Cena</th><th className="px-2 py-2 text-left">Popust</th><th className="px-2 py-2 text-left">Akcijska cena</th><th className="px-2 py-2 text-left">Zaloga</th><th className="px-2 py-2 text-left">Status</th></tr></thead><tbody>{visibleVariants.map((variant) => <tr key={variant.id} className="border-t border-slate-100"><td className="px-2 py-2 text-center"><AdminCheckbox checked={selectedVariantIds.has(variant.id)} onChange={() => setSelectedVariantIds((current) => {
+                    {isExpanded ? <tr className="border-t border-slate-100 bg-slate-50/70"><td /><td colSpan={7} className="p-0"><table className="w-full text-[12px]"><thead><tr className="border-b border-slate-200 text-slate-600"><th className="px-2 py-2" /><th className="px-2 py-2 text-left">Različica</th><th className="px-2 py-2 text-left">SKU</th><th className="px-2 py-2 text-right">Cena</th><th className="px-2 py-2 text-center">Popust</th><th className="px-2 py-2 text-right">Akcijska cena</th><th className="px-2 py-2 text-right">Zaloga</th><th className="px-2 py-2 text-center">Status</th></tr></thead><tbody>{visibleVariants.map((variant) => <tr key={variant.id} className="border-t border-slate-100"><td className="px-2 py-2 text-center"><AdminCheckbox checked={selectedVariantIds.has(variant.id)} onChange={() => setSelectedVariantIds((current) => {
                       const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next;
-                    })} /></td><td className="px-2 py-2 font-medium">{variantLabel(variant)}</td><td className="px-2 py-2">{variant.sku}</td><td className="px-2 py-2">{formatCurrency(variant.price)}</td><td className="px-2 py-2 text-emerald-700">{variant.discountPct}%</td><td className="px-2 py-2">{formatCurrency(computeSalePrice(variant.price, variant.discountPct))}</td><td className="px-2 py-2">{variant.stock}</td><td className="px-2 py-2"><Chip variant={variant.active ? 'success' : 'warning'}>{statusLabel(variant.active)}</Chip></td></tr>)}</tbody></table></td></tr> : null}
+                    })} /></td><td className="px-2 py-2 font-medium">{variantLabel(variant)}</td><td className="px-2 py-2">{variant.sku}</td><td className="px-2 py-2 text-right">{formatCurrency(variant.price)}</td><td className="px-2 py-2 text-center text-emerald-700">{variant.discountPct}%</td><td className="px-2 py-2 text-right">{formatCurrency(computeSalePrice(variant.price, variant.discountPct))}</td><td className="px-2 py-2 text-right">{variant.stock}</td><td className="px-2 py-2 text-center"><Chip variant={variant.active ? 'success' : 'warning'}>{statusLabel(variant.active)}</Chip></td></tr>)}</tbody></table></td></tr> : null}
                   </Fragment>
                 );
               })}
@@ -269,14 +363,14 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
             <THead>
               <TR>
                 <TH className="w-10 px-2 text-center">{' '}</TH>
-                <TH>Družina</TH>
+                <TH>Artikel</TH>
                 <TH>Različica</TH>
                 <TH>SKU</TH>
                 <TH>Cena</TH>
-                <TH>Popust</TH>
+                <TH className="text-center">Popust</TH>
                 <TH>Akcijska cena</TH>
                 <TH>Zaloga</TH>
-                <TH>Status</TH>
+                <TH className="text-center">Status</TH>
               </TR>
             </THead>
             <tbody>
@@ -303,10 +397,10 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                   <td className="px-2 py-2">{variantLabel(variant)}</td>
                   <td className="px-2 py-2">{variant.sku}</td>
                   <td className="px-2 py-2">{formatCurrency(variant.price)}</td>
-                  <td className="px-2 py-2 text-emerald-700">{variant.discountPct}%</td>
+                  <td className="px-2 py-2 text-center text-emerald-700">{variant.discountPct}%</td>
                   <td className="px-2 py-2">{formatCurrency(computeSalePrice(variant.price, variant.discountPct))}</td>
                   <td className="px-2 py-2">{variant.stock}</td>
-                  <td className="px-2 py-2">
+                  <td className="px-2 py-2 text-center">
                     <Chip variant={variant.active ? 'success' : 'warning'}>{statusLabel(variant.active)}</Chip>
                   </td>
                 </tr>

@@ -6,7 +6,7 @@ import { Chip } from '@/shared/ui/badge';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
-import { ColumnFilterIcon, DownloadIcon, OrdersTrashIcon, PencilIcon, SaveIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { ColumnFilterIcon, DownloadIcon, PencilIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActionsDropdown, Table, THead, TH, TR } from '@/shared/ui/table';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
@@ -246,7 +246,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                     </button>
                     {openFilter === 'category' ? (
                       <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
-                        <MenuPanel className="w-52">
+                        <MenuPanel className="w-64">
                           {[{ value: 'all', label: 'Vse kategorije' }, ...categories.map((category) => ({ value: category, label: category }))].map(
                             (option) => (
                               <MenuItem
@@ -525,7 +525,8 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                                           {
                                             key: 'delete',
                                             label: 'Izbriši',
-                                            icon: <OrdersTrashIcon />,
+                                            icon: <TrashCanIcon />,
+                                            className: 'text-rose-600 hover:!bg-rose-50 hover:!text-rose-600',
                                             onSelect: () => removeVariantRow(variant.id)
                                           }
                                         ]}

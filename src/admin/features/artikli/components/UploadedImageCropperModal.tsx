@@ -31,7 +31,6 @@ export default function UploadedImageCropperModal({
   const appliedCropBlobRef = useRef<Blob | null>(null);
   const [workingImageUrl, setWorkingImageUrl] = useState(imageUrl);
   const [livePreviewUrl, setLivePreviewUrl] = useState<string | null>(null);
-  const [renderSeed, setRenderSeed] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTool, setActiveTool] = useState<'crop' | 'transform'>('crop');
 
@@ -50,7 +49,10 @@ export default function UploadedImageCropperModal({
     appliedCropBlobRef.current = null;
     setWorkingImageUrl(imageUrl);
     setLivePreviewUrl(null);
-    setRenderSeed((current) => current + 1);
+    const cropperImage = cropperRef.current?.getCropperImage();
+    if (cropperImage) {
+      cropperImage.src = imageUrl;
+    }
   }, [imageUrl]);
 
   const refreshLivePreview = useCallback(async () => {
@@ -74,10 +76,8 @@ export default function UploadedImageCropperModal({
   }, []);
 
   const refreshCropperLayout = useCallback(() => {
-    const cropperImage = cropperRef.current?.getCropperImage();
     const cropperSelection = cropperRef.current?.getCropperSelection();
-    if (!cropperImage || !cropperSelection) return;
-    cropperImage.$center('contain');
+    if (!cropperSelection) return;
     cropperSelection.$center();
     cropperSelection.$render();
   }, []);
@@ -137,7 +137,7 @@ export default function UploadedImageCropperModal({
       cropper.destroy();
       cropperRef.current = null;
     };
-  }, [refreshCropperLayout, refreshLivePreview, renderSeed, workingImageUrl]);
+  }, [refreshCropperLayout, refreshLivePreview]);
 
   useEffect(() => () => {
     cleanupPreviewUrl();
@@ -192,6 +192,8 @@ export default function UploadedImageCropperModal({
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.92));
     if (!blob) return;
     const previewObjectUrl = URL.createObjectURL(blob);
+    const cropperImage = cropperRef.current?.getCropperImage();
+    const preservedTransform = cropperImage?.$getTransform() ?? null;
     if (workingImageObjectUrlRef.current) URL.revokeObjectURL(workingImageObjectUrlRef.current);
     workingImageObjectUrlRef.current = previewObjectUrl;
     appliedCropBlobRef.current = blob;
@@ -201,7 +203,14 @@ export default function UploadedImageCropperModal({
     }
     setLivePreviewUrl(null);
     setWorkingImageUrl(previewObjectUrl);
-    setRenderSeed((current) => current + 1);
+    if (cropperImage) {
+      cropperImage.src = previewObjectUrl;
+      void cropperImage.$ready(() => {
+        if (preservedTransform) {
+          cropperImage.$setTransform(preservedTransform);
+        }
+      });
+    }
     setActiveTool('crop');
   }, []);
 

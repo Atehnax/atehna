@@ -50,7 +50,9 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   const [selectedVariantIds, setSelectedVariantIds] = useState<Set<string>>(new Set());
   const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
   const [deletedVariantIds, setDeletedVariantIds] = useState<Set<string>>(new Set());
-  const [variantDrafts, setVariantDrafts] = useState<Record<string, { label: string; sku: string; price: number; discountPct: number; stock: number; active: boolean }>>({});
+  const [variantDrafts, setVariantDrafts] = useState<
+    Record<string, { label: string; sku: string; price: number; discountPct: number; stock: number; active: boolean; minOrder: number; note: string }>
+  >({});
   const [sortState, setSortState] = useState<SortState>(null);
   const [variantCountRange, setVariantCountRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [draftVariantCountRange, setDraftVariantCountRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
@@ -222,7 +224,9 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
         price: variant.price,
         discountPct: variant.discountPct,
         stock: variant.stock,
-        active: variant.active
+        active: variant.active,
+        minOrder: 1,
+        note: ''
       }
     }));
   };
@@ -556,6 +560,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                     ) : null}
                   </div>
                 </TH>
+                <TH className="text-center">Opombe</TH>
                 <TH className="w-20 text-center">Uredi</TH>
               </TR>
             </THead>
@@ -563,6 +568,8 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
               {pagedFamilies.map((row) => {
                 const { family, visibleVariants, minPrice, maxPrice, variantCount } = row;
                 const isExpanded = expandedFamilyIds.has(family.id);
+                const hasSubtable = visibleVariants.length > 1;
+                const primaryVariant = visibleVariants[0] ?? null;
                 return (
                   <Fragment key={family.id}>
                     <tr className={`border-t border-slate-100 bg-white ${adminTableRowToneClasses.hover}`}>
@@ -572,26 +579,28 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                         return next;
                       })} aria-label={`Izberi ${family.name}`} /></td>
                       <td className="px-2 py-3">
-                        <button type="button" className="inline-flex items-start gap-2 text-left" onClick={() => setExpandedFamilyIds((current) => {
+                        <button type="button" disabled={!hasSubtable} className="inline-flex items-start gap-2 text-left disabled:cursor-default" onClick={() => setExpandedFamilyIds((current) => {
+                          if (!hasSubtable) return current;
                           const next = new Set(current);
                           if (next.has(family.id)) next.delete(family.id); else next.add(family.id);
                           return next;
                         })}>
-                          <span className="mt-0.5 inline-flex h-4 w-4 items-center justify-center text-slate-500">{isExpanded ? '▾' : '▸'}</span>
+                          <span className="mt-0.5 inline-flex h-4 w-4 items-center justify-center text-slate-500">{hasSubtable ? (isExpanded ? '▾' : '▸') : ''}</span>
                           <span className="block text-sm font-semibold text-slate-900">{family.name}</span>
                         </button>
                       </td>
                       <td className="px-2 py-3 text-slate-600">{family.category}</td>
                       <td className="px-2 py-3 text-center">{variantCount}</td>
-                      <td className="px-2 py-3">{formatPriceRange(minPrice, maxPrice)}</td>
+                      <td className="px-2 py-3">{minPrice === maxPrice ? formatCurrency(minPrice) : formatPriceRange(minPrice, maxPrice)}</td>
                       <td className="px-2 py-3 text-center text-emerald-700">{family.defaultDiscountPct}%</td>
                       <td className="px-2 py-3 text-center"><Chip variant={family.active ? 'success' : 'warning'}>{statusLabel(family.active)}</Chip></td>
-                      <td className="px-2 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'edit', label: 'Uredi', onSelect: () => (window.location.href = `/admin/artikli/${encodeURIComponent(family.slug || family.id)}`) }]} /></td>
+                      <td className="px-2 py-3 text-center">{family.notes?.trim() ? family.notes : '—'}</td>
+                      <td className="px-2 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'quick-edit', label: 'Hitro urejanje', icon: <PencilIcon />, disabled: !primaryVariant || !hasSubtable, onSelect: () => { if (!primaryVariant || !hasSubtable) return; setExpandedFamilyIds((current) => new Set(current).add(family.id)); startVariantEdit(primaryVariant); } }, { key: 'edit', label: 'Uredi', onSelect: () => (window.location.href = `/admin/artikli/${encodeURIComponent(family.slug || family.id)}`) }]} /></td>
                     </tr>
-                    {isExpanded ? (
+                    {isExpanded && hasSubtable ? (
                       <tr className="border-t border-slate-100 bg-slate-50/70">
                         <td />
-                        <td colSpan={7} className="p-0">
+                        <td colSpan={8} className="p-0">
                           <table className="w-full text-[12px]">
                             <thead>
                               <tr className="border-b border-slate-200 text-slate-600">
@@ -602,7 +611,9 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                                 <th className="px-2 py-2 text-center">Popust</th>
                                 <th className="px-2 py-2 text-right">Akcijska cena</th>
                                 <th className="px-2 py-2 text-right">Zaloga</th>
+                                <th className="px-2 py-2 text-center">Min/nar.</th>
                                 <th className="px-2 py-2 text-center">Status</th>
+                                <th className="px-2 py-2 text-center">Opombe</th>
                                 <th className="px-2 py-2 text-center">Uredi</th>
                               </tr>
                             </thead>
@@ -615,7 +626,9 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                                   price: variant.price,
                                   discountPct: variant.discountPct,
                                   stock: variant.stock,
-                                  active: variant.active
+                                  active: variant.active,
+                                  minOrder: 1,
+                                  note: ''
                                 };
                                 const actionPrice = computeSalePrice(draft.price, draft.discountPct);
                                 return (
@@ -722,6 +735,23 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                                     </td>
                                     <td className="px-2 py-2 text-center">
                                       {isEditing ? (
+                                        <input
+                                          type="number"
+                                          className="h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-center text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                                          value={draft.minOrder}
+                                          onChange={(event) =>
+                                            setVariantDrafts((current) => ({
+                                              ...current,
+                                              [variant.id]: { ...draft, minOrder: Number(event.target.value) || 1 }
+                                            }))
+                                          }
+                                        />
+                                      ) : (
+                                        draft.minOrder
+                                      )}
+                                    </td>
+                                    <td className="px-2 py-2 text-center">
+                                      {isEditing ? (
                                         <select
                                           className="h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                                           value={draft.active ? 'active' : 'hidden'}
@@ -740,12 +770,28 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                                       )}
                                     </td>
                                     <td className="px-2 py-2 text-center">
+                                      {isEditing ? (
+                                        <input
+                                          className="h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                                          value={draft.note}
+                                          onChange={(event) =>
+                                            setVariantDrafts((current) => ({
+                                              ...current,
+                                              [variant.id]: { ...draft, note: event.target.value }
+                                            }))
+                                          }
+                                        />
+                                      ) : (
+                                        draft.note || '—'
+                                      )}
+                                    </td>
+                                    <td className="px-2 py-2 text-center">
                                       <RowActionsDropdown
                                         label={`Uredi ${variant.sku}`}
                                         items={[
                                           {
                                             key: 'edit',
-                                            label: 'Uredi',
+                                            label: 'Hitro urejanje',
                                             icon: <PencilIcon />,
                                             onSelect: () => startVariantEdit(variant)
                                           },

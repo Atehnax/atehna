@@ -30,6 +30,7 @@ export default function UploadedImageCropperModal({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [renderSeed, setRenderSeed] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [activeTool, setActiveTool] = useState<'crop' | 'transform'>('crop');
 
   const cleanupPreviewUrl = useCallback(() => {
     if (!previewUrlRef.current) return;
@@ -163,18 +164,92 @@ export default function UploadedImageCropperModal({
 
   const previewLabel = useMemo(() => `Predogled izreza za sliko ${slotIndex + 1}`, [slotIndex]);
 
-  const toolIconClassName = 'h-4 w-4';
+  const activateCropTool = useCallback(() => {
+    const cropperCanvas = cropperRef.current?.getCropperCanvas();
+    const selection = cropperRef.current?.getCropperSelection();
+    if (!cropperCanvas || !selection) return;
+    cropperCanvas.$setAction('select');
+    selection.hidden = false;
+    selection.$render();
+    setActiveTool('crop');
+  }, []);
+
+  const runTransformAction = useCallback((action: () => void) => {
+    action();
+    setActiveTool('transform');
+  }, []);
+
+  const toolButtonClassName = (isActive: boolean) => [
+    '!h-9 !w-9 rounded-lg border transition',
+    isActive
+      ? 'border-blue-400/80 bg-blue-500/20 text-white'
+      : 'border-white/15 bg-white/5 text-slate-100 hover:border-white/30 hover:bg-white/10'
+  ].join(' ');
 
   return (
-    <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-slate-900/60 p-4">
-      <div className="flex h-[min(92vh,980px)] w-full max-w-7xl flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-2xl">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-slate-800">Urejanje slike {slotIndex + 1}</h3>
+    <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-[#030712]/85 p-3 backdrop-blur-sm">
+      <div className="flex h-[min(95vh,1040px)] w-full max-w-[1600px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0a1020] shadow-[0_30px_120px_rgba(2,6,23,0.75)]">
+        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+          <h3 className="text-sm font-semibold tracking-wide text-slate-100">Urejanje slike {slotIndex + 1}</h3>
           <Button type="button" variant="close-x" onClick={onCancel} aria-label="Zapri urejanje slike" title="Zapri">×</Button>
         </div>
-        <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="relative min-h-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-950/5">
-            <div ref={hostRef} className="h-full w-full [&>cropper-canvas]:!block [&>cropper-canvas]:!h-full [&>cropper-canvas]:!w-full" />
+        <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[minmax(0,1fr)_270px]">
+          <section className="relative min-h-0 overflow-hidden bg-[radial-gradient(circle_at_50%_12%,rgba(59,130,246,0.24),rgba(10,16,32,0.98)_60%)]">
+            <div className="absolute left-1/2 top-4 z-20 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-white/15 bg-[#0b1224]/80 px-2 py-1.5 backdrop-blur">
+              <IconButton
+                type="button"
+                tone="neutral"
+                size="sm"
+                className={toolButtonClassName(activeTool === 'crop')}
+                aria-label="Vključi izrez"
+                title="Vključi izrez"
+                onClick={activateCropTool}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-[17px] w-[17px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M6 2v14a2 2 0 0 0 2 2h14" />
+                  <path d="M18 22V8a2 2 0 0 0-2-2H2" />
+                </svg>
+              </IconButton>
+              <IconButton type="button" tone="neutral" size="sm" className={toolButtonClassName(false)} aria-label="Zavrti levo" title="Zavrti levo" onClick={() => runTransformAction(() => applyRotate(-90))}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-[17px] w-[17px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M20 9V7a2 2 0 0 0-2-2h-6" />
+                  <path d="m15 2-3 3 3 3" />
+                  <path d="M20 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2" />
+                </svg>
+              </IconButton>
+              <IconButton type="button" tone="neutral" size="sm" className={toolButtonClassName(false)} aria-label="Zavrti desno" title="Zavrti desno" onClick={() => runTransformAction(() => applyRotate(90))}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-[17px] w-[17px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M12 5H6a2 2 0 0 0-2 2v3" />
+                  <path d="m9 8 3-3-3-3" />
+                  <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+                </svg>
+              </IconButton>
+              <IconButton type="button" tone="neutral" size="sm" className={toolButtonClassName(false)} aria-label="Zrcali vodoravno" title="Zrcali vodoravno" onClick={() => runTransformAction(flipHorizontal)}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-[17px] w-[17px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="m3 7 5 5-5 5V7" />
+                  <path d="m21 7-5 5 5 5V7" />
+                  <path d="M12 20v2" />
+                  <path d="M12 14v2" />
+                  <path d="M12 8v2" />
+                  <path d="M12 2v2" />
+                </svg>
+              </IconButton>
+              <IconButton type="button" tone="neutral" size="sm" className={toolButtonClassName(false)} aria-label="Zrcali navpično" title="Zrcali navpično" onClick={() => runTransformAction(flipVertical)}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-[17px] w-[17px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="m7 3 5 5 5-5H7" />
+                  <path d="m7 21 5-5 5 5H7" />
+                  <path d="M2 12h2" />
+                  <path d="M8 12h2" />
+                  <path d="M14 12h2" />
+                  <path d="M20 12h2" />
+                </svg>
+              </IconButton>
+            </div>
+            <div className="h-full w-full p-5 pt-20">
+              <div className="relative h-full overflow-hidden rounded-xl border border-white/10 bg-black/25 shadow-inner">
+                <div ref={hostRef} className="h-full w-full [&>cropper-canvas]:!block [&>cropper-canvas]:!h-full [&>cropper-canvas]:!w-full" />
+              </div>
+            </div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               ref={imageRef}
@@ -182,20 +257,18 @@ export default function UploadedImageCropperModal({
               alt={`Urejanje slike ${slotIndex + 1}`}
               className="pointer-events-none absolute left-0 top-0 h-full w-full opacity-0"
             />
-          </div>
-          <aside className="flex min-h-0 flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-            <div>
-              <label className="mb-1 block text-[11px] font-bold text-slate-600">Alt besedilo</label>
+          </section>
+          <aside className="flex min-h-0 flex-col border-l border-white/10 bg-[#0f172a]/80 p-3">
+            <div className="space-y-3">
+              <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">Alt besedilo</label>
               <input
-                className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-900 outline-none focus:border-[#3e67d6]"
+                className="h-9 w-full rounded-lg border border-white/15 bg-white/5 px-2.5 text-xs text-slate-100 outline-none placeholder:text-slate-500 focus:border-blue-400/70"
                 value={altText}
                 onChange={(event) => onAltTextChange(event.target.value)}
                 placeholder={`Slika ${slotIndex + 1}`}
               />
-            </div>
-            <div>
-              <label className="mb-1 block text-[11px] font-bold text-slate-600">Predogled izreza</label>
-              <div className="flex h-44 w-full items-center justify-center overflow-hidden rounded-md border border-slate-300 bg-white p-2">
+              <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">Predogled</label>
+              <div className="flex h-40 w-full items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-black/30 p-2">
                 {previewUrl ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img src={previewUrl} alt={previewLabel} className="max-h-full max-w-full object-contain" />
@@ -204,36 +277,7 @@ export default function UploadedImageCropperModal({
                 )}
               </div>
             </div>
-            <div>
-              <label className="mb-1 block text-[11px] font-bold text-slate-600">Orodja</label>
-              <div className="grid grid-cols-4 gap-2">
-                <IconButton type="button" tone="neutral" size="sm" aria-label="Zavrti levo" title="Zavrti levo" onClick={() => applyRotate(-90)}>
-                  <svg viewBox="0 0 20 20" className={toolIconClassName} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <path d="M8 3.5A6.5 6.5 0 1 0 14.1 7" />
-                    <path d="M8 3.5h3.4M8 3.5v3.4" />
-                  </svg>
-                </IconButton>
-                <IconButton type="button" tone="neutral" size="sm" aria-label="Zavrti desno" title="Zavrti desno" onClick={() => applyRotate(90)}>
-                  <svg viewBox="0 0 20 20" className={toolIconClassName} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <path d="M12 3.5A6.5 6.5 0 1 1 5.9 7" />
-                    <path d="M12 3.5H8.6M12 3.5v3.4" />
-                  </svg>
-                </IconButton>
-                <IconButton type="button" tone="neutral" size="sm" aria-label="Zrcali vodoravno" title="Zrcali vodoravno" onClick={flipHorizontal}>
-                  <svg viewBox="0 0 20 20" className={toolIconClassName} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <path d="M10 2.5v15" />
-                    <path d="M3.5 6.5h5v7h-5zM11.5 6.5h5v7h-5z" />
-                  </svg>
-                </IconButton>
-                <IconButton type="button" tone="neutral" size="sm" aria-label="Zrcali navpično" title="Zrcali navpično" onClick={flipVertical}>
-                  <svg viewBox="0 0 20 20" className={toolIconClassName} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <path d="M2.5 10h15" />
-                    <path d="M6.5 3.5h7v5h-7zM6.5 11.5h7v5h-7z" />
-                  </svg>
-                </IconButton>
-              </div>
-            </div>
-            <div className="mt-auto flex flex-wrap justify-end gap-2 pt-2">
+            <div className="mt-auto flex flex-wrap justify-end gap-2 border-t border-white/10 pt-3">
               <Button type="button" variant="ghost" size="toolbar" onClick={resetEditor}>
                 <ActionUndoIcon className="h-[14px] w-[14px]" />
                 Ponastavi

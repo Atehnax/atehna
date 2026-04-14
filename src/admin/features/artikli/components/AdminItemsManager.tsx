@@ -11,6 +11,7 @@ import { ColumnFilterIcon, DownloadIcon, PencilIcon, SaveIcon, TrashCanIcon } fr
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActionsDropdown, Table, THead, TH, TR } from '@/shared/ui/table';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
+import AdminRangeFilterPanel from '@/shared/ui/admin-range-filter-panel';
 import { adminTableRowToneClasses, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
 import {
   buildFamiliesFromSeed,
@@ -25,7 +26,12 @@ import {
 
 type StatusFilter = 'all' | 'active' | 'hidden';
 type DiscountFilter = 'all' | 'yes' | 'no';
-type OpenFilter = 'category' | 'status' | 'discount' | null;
+type OpenFilter = 'category' | 'status' | 'discount' | 'variantCount' | 'priceRange' | null;
+type SortState =
+  | { column: 'article' | 'category'; direction: 'asc' | 'desc' }
+  | { column: 'variantCount' | 'discount' | 'status'; direction: 'desc' | 'asc' }
+  | { column: 'priceRange'; mode: 'minAsc' | 'minDesc' | 'maxDesc' | 'maxAsc' }
+  | null;
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
 const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500';
@@ -45,6 +51,11 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
   const [deletedVariantIds, setDeletedVariantIds] = useState<Set<string>>(new Set());
   const [variantDrafts, setVariantDrafts] = useState<Record<string, { label: string; sku: string; price: number; discountPct: number; stock: number; active: boolean }>>({});
+  const [sortState, setSortState] = useState<SortState>(null);
+  const [variantCountRange, setVariantCountRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
+  const [draftVariantCountRange, setDraftVariantCountRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
+  const [priceRangeFilter, setPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
+  const [draftPriceRangeFilter, setDraftPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
 
   const families = useMemo(() => buildFamiliesFromSeed(seedItems), [seedItems]);
   const categories = useMemo(() => Array.from(new Set(families.map((family) => family.category))).sort((a, b) => a.localeCompare(b, 'sl')), [families]);
@@ -79,7 +90,87 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
     return rows;
   }, [filteredFamilies]);
 
-  const paginationTotal = filteredFamilies.length;
+  const filteredRows = useMemo(() => {
+    const normalizedRows = filteredFamilies
+      .map((family) => {
+        const visibleVariants = family.variants.filter(
+          (variant) => variantLabel(variant) !== 'Osnovna različica' && !deletedVariantIds.has(variant.id)
+        );
+        const prices = family.variants.map((variant) => variant.price);
+        const minPrice = prices.length ? Math.min(...prices) : 0;
+        const maxPrice = prices.length ? Math.max(...prices) : 0;
+        return {
+          family,
+          visibleVariants,
+          variantCount: visibleVariants.length,
+          minPrice,
+          maxPrice
+        };
+      })
+      .filter((row) => {
+        const minCount = variantCountRange.min.trim() === '' ? null : Number(variantCountRange.min);
+        const maxCount = variantCountRange.max.trim() === '' ? null : Number(variantCountRange.max);
+        const minPriceFilter = priceRangeFilter.min.trim() === '' ? null : Number(priceRangeFilter.min);
+        const maxPriceFilter = priceRangeFilter.max.trim() === '' ? null : Number(priceRangeFilter.max);
+        const matchesCountMin = minCount === null || row.variantCount >= minCount;
+        const matchesCountMax = maxCount === null || row.variantCount <= maxCount;
+        const matchesPriceMin = minPriceFilter === null || row.minPrice >= minPriceFilter;
+        const matchesPriceMax = maxPriceFilter === null || row.maxPrice <= maxPriceFilter;
+        return matchesCountMin && matchesCountMax && matchesPriceMin && matchesPriceMax;
+      });
+
+    if (!sortState) return normalizedRows;
+
+    const rows = [...normalizedRows];
+    if (sortState.column === 'article') {
+      rows.sort((a, b) =>
+        sortState.direction === 'asc'
+          ? a.family.name.localeCompare(b.family.name, 'sl')
+          : b.family.name.localeCompare(a.family.name, 'sl')
+      );
+      return rows;
+    }
+    if (sortState.column === 'category') {
+      rows.sort((a, b) =>
+        sortState.direction === 'asc'
+          ? a.family.category.localeCompare(b.family.category, 'sl')
+          : b.family.category.localeCompare(a.family.category, 'sl')
+      );
+      return rows;
+    }
+    if (sortState.column === 'variantCount') {
+      rows.sort((a, b) => (sortState.direction === 'desc' ? b.variantCount - a.variantCount : a.variantCount - b.variantCount));
+      return rows;
+    }
+    if (sortState.column === 'discount') {
+      rows.sort((a, b) =>
+        sortState.direction === 'desc'
+          ? b.family.defaultDiscountPct - a.family.defaultDiscountPct
+          : a.family.defaultDiscountPct - b.family.defaultDiscountPct
+      );
+      return rows;
+    }
+    if (sortState.column === 'status') {
+      rows.sort((a, b) => {
+        const valueA = a.family.active ? 1 : 0;
+        const valueB = b.family.active ? 1 : 0;
+        return sortState.direction === 'desc' ? valueB - valueA : valueA - valueB;
+      });
+      return rows;
+    }
+    if (sortState.column === 'priceRange') {
+      rows.sort((a, b) => {
+        if (sortState.mode === 'minAsc') return a.minPrice - b.minPrice;
+        if (sortState.mode === 'minDesc') return b.minPrice - a.minPrice;
+        if (sortState.mode === 'maxDesc') return b.maxPrice - a.maxPrice;
+        return a.maxPrice - b.maxPrice;
+      });
+      return rows;
+    }
+    return rows;
+  }, [deletedVariantIds, filteredFamilies, priceRangeFilter.max, priceRangeFilter.min, sortState, variantCountRange.max, variantCountRange.min]);
+
+  const paginationTotal = filteredRows.length;
   const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
     totalCount: paginationTotal,
     storageKey: 'adminArtikli.families.pageSize',
@@ -89,12 +180,12 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
 
   const pagedFamilies = useMemo(() => {
     const start = (page - 1) * pageSize;
-    return filteredFamilies.slice(start, start + pageSize);
-  }, [filteredFamilies, page, pageSize]);
+    return filteredRows.slice(start, start + pageSize);
+  }, [filteredRows, page, pageSize]);
 
   useEffect(() => {
     setPage(1);
-  }, [categoryFilter, discountFilter, search, setPage, statusFilter]);
+  }, [categoryFilter, discountFilter, priceRangeFilter.max, priceRangeFilter.min, search, setPage, statusFilter, variantCountRange.max, variantCountRange.min]);
 
   const exportVariantsCsv = () => {
     const headers = ['Družina', 'Različica', 'SKU', 'Cena', 'Popust', 'Akcijska cena', 'Zaloga', 'Status'];
@@ -119,8 +210,8 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
     URL.revokeObjectURL(url);
   };
 
-  const allVisibleFamilyIds = useMemo(() => new Set(pagedFamilies.map((family) => family.id)), [pagedFamilies]);
-  const familiesSelectedOnPage = pagedFamilies.length > 0 && pagedFamilies.every((family) => selectedFamilyIds.has(family.id));
+  const allVisibleFamilyIds = useMemo(() => new Set(pagedFamilies.map((row) => row.family.id)), [pagedFamilies]);
+  const familiesSelectedOnPage = pagedFamilies.length > 0 && pagedFamilies.every((row) => selectedFamilyIds.has(row.family.id));
   const startVariantEdit = (variant: Variant) => {
     setEditingVariantId(variant.id);
     setVariantDrafts((current) => ({
@@ -142,6 +233,32 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
       next.add(variantId);
       return next;
     });
+  const getSortTitleClass = (column: 'article' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'status') =>
+    `inline-flex items-center text-[11px] font-semibold leading-none hover:text-[color:var(--blue-500)] ${
+      sortState && 'column' in sortState && sortState.column === column ? 'underline underline-offset-2 text-[color:var(--blue-500)]' : ''
+    }`;
+  const cycleSort = (column: 'article' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'status') => {
+    setSortState((current) => {
+      if (column === 'article' || column === 'category') {
+        if (!current || !('column' in current) || current.column !== column) return { column, direction: 'asc' };
+        if ('direction' in current && current.direction === 'asc') return { column, direction: 'desc' };
+        return null;
+      }
+      if (column === 'variantCount' || column === 'discount' || column === 'status') {
+        if (!current || !('column' in current) || current.column !== column) return { column, direction: 'desc' };
+        if ('direction' in current && current.direction === 'desc') return { column, direction: 'asc' };
+        return null;
+      }
+      if (column === 'priceRange') {
+        if (!current || !('column' in current) || current.column !== column) return { column, mode: 'minAsc' };
+        if ('mode' in current && current.mode === 'minAsc') return { column, mode: 'minDesc' };
+        if ('mode' in current && current.mode === 'minDesc') return { column, mode: 'maxDesc' };
+        if ('mode' in current && current.mode === 'maxDesc') return { column, mode: 'maxAsc' };
+        return null;
+      }
+      return current;
+    });
+  };
 
   return (
     <div className="space-y-4 font-['Inter',system-ui,sans-serif]">
@@ -207,11 +324,44 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                 </button>
               </span>
             ) : null}
+            {variantCountRange.min || variantCountRange.max ? (
+              <span className={filterPillTokenClasses.base}>
+                Št. različic: {variantCountRange.min || '0'}–{variantCountRange.max || '∞'}
+                <button
+                  type="button"
+                  className={filterPillTokenClasses.clear}
+                  onClick={() => {
+                    setVariantCountRange({ min: '', max: '' });
+                    setDraftVariantCountRange({ min: '', max: '' });
+                  }}
+                  aria-label="Počisti filter Št. različic"
+                >
+                  ×
+                </button>
+              </span>
+            ) : null}
+            {priceRangeFilter.min || priceRangeFilter.max ? (
+              <span className={filterPillTokenClasses.base}>
+                Razpon cen: {priceRangeFilter.min || '0'}–{priceRangeFilter.max || '∞'}
+                <button
+                  type="button"
+                  className={filterPillTokenClasses.clear}
+                  onClick={() => {
+                    setPriceRangeFilter({ min: '', max: '' });
+                    setDraftPriceRangeFilter({ min: '', max: '' });
+                  }}
+                  aria-label="Počisti filter Razpon cen"
+                >
+                  ×
+                </button>
+              </span>
+            ) : null}
           </div>
         }
         filterRowRight={<EuiTablePagination page={page} pageCount={pageCount} onPageChange={setPage} itemsPerPage={pageSize} onChangeItemsPerPage={setPageSize} itemsPerPageOptions={PAGE_SIZE_OPTIONS} />}
         contentClassName="overflow-x-auto overflow-y-visible bg-white"
         footerRight={<EuiTablePagination page={page} pageCount={pageCount} onPageChange={setPage} itemsPerPage={pageSize} onChangeItemsPerPage={setPageSize} itemsPerPageOptions={PAGE_SIZE_OPTIONS} />}
+        showDivider={false}
       >
         <Table className="w-full table-fixed text-[12px]">
             <THead>
@@ -230,10 +380,16 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                     aria-label="Izberi vse družine"
                   />
                 </TH>
-                <TH className="w-[30%]">Artikel</TH>
+                <TH className="w-[30%]">
+                  <button type="button" className={getSortTitleClass('article')} onClick={() => cycleSort('article')}>
+                    Artikel
+                  </button>
+                </TH>
                 <TH className="w-[30%]">
                   <div className="relative inline-flex items-center gap-1">
-                    Kategorija
+                    <button type="button" className={getSortTitleClass('category')} onClick={() => cycleSort('category')}>
+                      Kategorija
+                    </button>
                     <button
                       type="button"
                       className={HEADER_FILTER_BUTTON_CLASS}
@@ -266,11 +422,91 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                     ) : null}
                   </div>
                 </TH>
-                <TH className="text-center">Št. različic</TH>
-                <TH>Razpon cen</TH>
                 <TH className="text-center">
                   <div className="relative inline-flex items-center gap-1">
-                    Popust
+                    <button type="button" className={getSortTitleClass('variantCount')} onClick={() => cycleSort('variantCount')}>
+                      Št. različic
+                    </button>
+                    <button
+                      type="button"
+                      className={HEADER_FILTER_BUTTON_CLASS}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setDraftVariantCountRange(variantCountRange);
+                        setOpenFilter((current) => (current === 'variantCount' ? null : 'variantCount'));
+                      }}
+                      aria-label="Filtriraj Št. različic"
+                    >
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                    {openFilter === 'variantCount' ? (
+                      <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
+                        <AdminRangeFilterPanel
+                          title="Št. različic"
+                          draftRange={draftVariantCountRange}
+                          onDraftChange={setDraftVariantCountRange}
+                          onConfirm={() => {
+                            setVariantCountRange(draftVariantCountRange);
+                            setOpenFilter(null);
+                          }}
+                          onReset={() => {
+                            setDraftVariantCountRange({ min: '', max: '' });
+                            setVariantCountRange({ min: '', max: '' });
+                            setOpenFilter(null);
+                          }}
+                          minPlaceholder="Min"
+                          maxPlaceholder="Max"
+                          min={0}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                </TH>
+                <TH>
+                  <div className="relative inline-flex items-center gap-1">
+                    <button type="button" className={getSortTitleClass('priceRange')} onClick={() => cycleSort('priceRange')}>
+                      Razpon cen
+                    </button>
+                    <button
+                      type="button"
+                      className={HEADER_FILTER_BUTTON_CLASS}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setDraftPriceRangeFilter(priceRangeFilter);
+                        setOpenFilter((current) => (current === 'priceRange' ? null : 'priceRange'));
+                      }}
+                      aria-label="Filtriraj Razpon cen"
+                    >
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                    {openFilter === 'priceRange' ? (
+                      <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
+                        <AdminRangeFilterPanel
+                          title="Razpon cen"
+                          draftRange={draftPriceRangeFilter}
+                          onDraftChange={setDraftPriceRangeFilter}
+                          onConfirm={() => {
+                            setPriceRangeFilter(draftPriceRangeFilter);
+                            setOpenFilter(null);
+                          }}
+                          onReset={() => {
+                            setDraftPriceRangeFilter({ min: '', max: '' });
+                            setPriceRangeFilter({ min: '', max: '' });
+                            setOpenFilter(null);
+                          }}
+                          minPlaceholder="Min cena"
+                          maxPlaceholder="Max cena"
+                          min={0}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                </TH>
+                <TH className="text-center">
+                  <div className="relative inline-flex items-center gap-1">
+                    <button type="button" className={getSortTitleClass('discount')} onClick={() => cycleSort('discount')}>
+                      Popust
+                    </button>
                     <button
                       type="button"
                       className={HEADER_FILTER_BUTTON_CLASS}
@@ -295,7 +531,9 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                 </TH>
                 <TH className="text-center">
                   <div className="relative inline-flex items-center gap-1">
-                    Status
+                    <button type="button" className={getSortTitleClass('status')} onClick={() => cycleSort('status')}>
+                      Status
+                    </button>
                     <button
                       type="button"
                       className={HEADER_FILTER_BUTTON_CLASS}
@@ -322,14 +560,9 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
               </TR>
             </THead>
             <tbody>
-              {pagedFamilies.map((family) => {
+              {pagedFamilies.map((row) => {
+                const { family, visibleVariants, minPrice, maxPrice, variantCount } = row;
                 const isExpanded = expandedFamilyIds.has(family.id);
-                const visibleVariants = family.variants.filter(
-                  (variant) => variantLabel(variant) !== 'Osnovna različica' && !deletedVariantIds.has(variant.id)
-                );
-                const prices = family.variants.map((variant) => variant.price);
-                const minPrice = prices.length ? Math.min(...prices) : 0;
-                const maxPrice = prices.length ? Math.max(...prices) : 0;
                 return (
                   <Fragment key={family.id}>
                     <tr className={`border-t border-slate-100 bg-white ${adminTableRowToneClasses.hover}`}>
@@ -349,7 +582,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                         </button>
                       </td>
                       <td className="px-2 py-3 text-slate-600">{family.category}</td>
-                      <td className="px-2 py-3 text-center">{visibleVariants.length}</td>
+                      <td className="px-2 py-3 text-center">{variantCount}</td>
                       <td className="px-2 py-3">{formatPriceRange(minPrice, maxPrice)}</td>
                       <td className="px-2 py-3 text-center text-emerald-700">{family.defaultDiscountPct}%</td>
                       <td className="px-2 py-3 text-center"><Chip variant={family.active ? 'success' : 'warning'}>{statusLabel(family.active)}</Chip></td>

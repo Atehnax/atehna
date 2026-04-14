@@ -27,10 +27,11 @@ export default function UploadedImageCropperModal({
   const imageRef = useRef<HTMLImageElement>(null);
   const cropperRef = useRef<Cropper | null>(null);
   const livePreviewUrlRef = useRef<string | null>(null);
-  const appliedPreviewUrlRef = useRef<string | null>(null);
+  const workingImageObjectUrlRef = useRef<string | null>(null);
   const appliedCropBlobRef = useRef<Blob | null>(null);
+  const [workingImageUrl, setWorkingImageUrl] = useState(imageUrl);
   const [livePreviewUrl, setLivePreviewUrl] = useState<string | null>(null);
-  const [appliedPreviewUrl, setAppliedPreviewUrl] = useState<string | null>(null);
+  const [renderSeed, setRenderSeed] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTool, setActiveTool] = useState<'crop' | 'transform'>('crop');
 
@@ -39,16 +40,30 @@ export default function UploadedImageCropperModal({
       URL.revokeObjectURL(livePreviewUrlRef.current);
       livePreviewUrlRef.current = null;
     }
-    if (appliedPreviewUrlRef.current) {
-      URL.revokeObjectURL(appliedPreviewUrlRef.current);
-      appliedPreviewUrlRef.current = null;
+    if (workingImageObjectUrlRef.current) {
+      URL.revokeObjectURL(workingImageObjectUrlRef.current);
+      workingImageObjectUrlRef.current = null;
     }
   }, []);
+
+  useEffect(() => {
+    appliedCropBlobRef.current = null;
+    setWorkingImageUrl(imageUrl);
+    setLivePreviewUrl(null);
+    setRenderSeed((current) => current + 1);
+  }, [imageUrl]);
 
   const refreshLivePreview = useCallback(async () => {
     const cropper = cropperRef.current;
     const selection = cropper?.getCropperSelection();
-    if (!selection) return;
+    if (!selection || selection.hidden || selection.width < 2 || selection.height < 2) {
+      if (livePreviewUrlRef.current) {
+        URL.revokeObjectURL(livePreviewUrlRef.current);
+        livePreviewUrlRef.current = null;
+      }
+      setLivePreviewUrl(null);
+      return;
+    }
     const previewCanvas = await selection.$toCanvas();
     const previewBlob = await new Promise<Blob | null>((resolve) => previewCanvas.toBlob(resolve, 'image/webp', 0.9));
     if (!previewBlob) return;
@@ -78,7 +93,7 @@ export default function UploadedImageCropperModal({
   <cropper-image rotatable scalable translatable initial-center-size="contain"></cropper-image>\
   <cropper-shade hidden></cropper-shade>\
   <cropper-handle action="select" plain></cropper-handle>\
-  <cropper-selection initial-coverage="0.65" movable resizable>\
+  <cropper-selection hidden movable resizable>\
     <cropper-grid role="grid" bordered covered></cropper-grid>\
     <cropper-crosshair centered></cropper-crosshair>\
     <cropper-handle action="move" theme-color="rgba(255, 255, 255, 0.35)"></cropper-handle>\
@@ -122,7 +137,7 @@ export default function UploadedImageCropperModal({
       cropper.destroy();
       cropperRef.current = null;
     };
-  }, [imageUrl, refreshCropperLayout, refreshLivePreview]);
+  }, [refreshCropperLayout, refreshLivePreview, renderSeed, workingImageUrl]);
 
   useEffect(() => () => {
     cleanupPreviewUrl();
@@ -153,7 +168,7 @@ export default function UploadedImageCropperModal({
     if (!appliedCropBlobRef.current) return;
     setIsSaving(true);
     try {
-      const imageType = imageUrl.endsWith('.png') ? 'image/png' : 'image/jpeg';
+      const imageType = appliedCropBlobRef.current.type || (imageUrl.endsWith('.png') ? 'image/png' : 'image/jpeg');
       onSave({ blob: appliedCropBlobRef.current, mimeType: imageType });
     } finally {
       setIsSaving(false);
@@ -164,27 +179,29 @@ export default function UploadedImageCropperModal({
 
   const activateCropTool = useCallback(() => {
     const cropperCanvas = cropperRef.current?.getCropperCanvas();
-    const selection = cropperRef.current?.getCropperSelection();
-    if (!cropperCanvas || !selection) return;
+    if (!cropperCanvas) return;
     cropperCanvas.$setAction('select');
-    selection.hidden = false;
-    selection.movable = true;
-    selection.resizable = true;
-    selection.$render();
     setActiveTool('crop');
   }, []);
 
   const applyCropSelection = useCallback(async () => {
     const selection = cropperRef.current?.getCropperSelection();
     if (!selection) return;
+    if (selection.hidden || selection.width < 2 || selection.height < 2) return;
     const canvas = await selection.$toCanvas();
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.92));
     if (!blob) return;
     const previewObjectUrl = URL.createObjectURL(blob);
-    if (appliedPreviewUrlRef.current) URL.revokeObjectURL(appliedPreviewUrlRef.current);
-    appliedPreviewUrlRef.current = previewObjectUrl;
+    if (workingImageObjectUrlRef.current) URL.revokeObjectURL(workingImageObjectUrlRef.current);
+    workingImageObjectUrlRef.current = previewObjectUrl;
     appliedCropBlobRef.current = blob;
-    setAppliedPreviewUrl(previewObjectUrl);
+    if (livePreviewUrlRef.current) {
+      URL.revokeObjectURL(livePreviewUrlRef.current);
+      livePreviewUrlRef.current = null;
+    }
+    setLivePreviewUrl(null);
+    setWorkingImageUrl(previewObjectUrl);
+    setRenderSeed((current) => current + 1);
     setActiveTool('crop');
   }, []);
 
@@ -290,7 +307,7 @@ export default function UploadedImageCropperModal({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               ref={imageRef}
-              src={imageUrl}
+              src={workingImageUrl}
               alt={`Urejanje slike ${slotIndex + 1}`}
               className="pointer-events-none absolute left-0 top-0 h-full w-full opacity-0"
             />
@@ -307,16 +324,16 @@ export default function UploadedImageCropperModal({
               <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">Predogled slike</label>
               <div className="flex h-40 w-full items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white p-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={appliedPreviewUrl ?? imageUrl} alt={`Polni predogled slike ${slotIndex + 1}`} className="max-h-full max-w-full object-contain" />
+                <img src={workingImageUrl} alt={`Polni predogled slike ${slotIndex + 1}`} className="max-h-full max-w-full object-contain" />
               </div>
               <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">Predogled prikazne sličice</label>
               <div className="flex h-40 w-full items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white p-2">
-                {(appliedPreviewUrl ? livePreviewUrl : null) ? (
+                {livePreviewUrl ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={livePreviewUrl ?? appliedPreviewUrl ?? imageUrl} alt={previewLabel} className="max-h-full max-w-full object-contain" />
+                  <img src={livePreviewUrl} alt={previewLabel} className="max-h-full max-w-full object-contain" />
                 ) : (
                   /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={appliedPreviewUrl ?? imageUrl} alt={previewLabel} className="max-h-full max-w-full object-contain" />
+                  <img src={workingImageUrl} alt={previewLabel} className="max-h-full max-w-full object-contain" />
                 )}
               </div>
             </div>

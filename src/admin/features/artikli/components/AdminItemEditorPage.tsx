@@ -348,18 +348,11 @@ function SideInputIcon({ icon, muted = false, className = '' }: { icon: SideFiel
   if (icon === 'sku') {
     return (
       <svg {...iconProps}>
-        <rect width="5" height="5" x="3" y="3" rx="1" />
-        <rect width="5" height="5" x="16" y="3" rx="1" />
-        <rect width="5" height="5" x="3" y="16" rx="1" />
-        <path d="M21 16h-3a2 2 0 0 0-2 2v3" />
-        <path d="M21 21v.01" />
-        <path d="M12 7v3a2 2 0 0 1-2 2H7" />
-        <path d="M3 12h.01" />
-        <path d="M12 3h.01" />
-        <path d="M12 16v.01" />
-        <path d="M16 12h1" />
-        <path d="M21 12v.01" />
-        <path d="M12 21v-1" />
+        <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+        <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+        <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+        <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+        <path d="M7 12h10" />
       </svg>
     );
   }
@@ -1404,9 +1397,9 @@ export default function AdminItemEditorPage({
 
   const handleTechnicalFileSelect = (file?: File | null) => {
     if (!file) return;
-    const maxBytes = 20 * 1024 * 1024;
+    const maxBytes = 5 * 1024 * 1024;
     if (file.size > maxBytes) {
-      toast.error('Datoteka je prevelika. Dovoljena velikost je največ 20 MB.');
+      toast.error('Datoteka je prevelika. Dovoljena velikost je največ 5 MB.');
       return;
     }
     const fileSizeLabel = file.size < 1024 * 1024
@@ -1875,28 +1868,18 @@ export default function AdminItemEditorPage({
               <div className="col-span-2 grid grid-cols-2 gap-3">
                 {[
                   { title: 'SKU', value: sideSettings.sku, placeholder: 'SKU koda', icon: 'sku' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, sku: value })) },
+                  { title: 'URL', value: draft.slug, placeholder: toSlug(draft.name || 'naziv-artikla'), icon: 'link' as SideFieldIcon, onChange: (value: string) => setDraft((current) => ({ ...current, slug: value })) },
                   { title: 'Blagovna znamka', value: sideSettings.brand, placeholder: 'AluCraft', icon: 'brand' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, brand: value })) },
                   { title: 'Material', value: sideSettings.material, placeholder: 'Aluminij', icon: 'material' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, material: value })) },
-                  { title: 'Oblika', value: sideSettings.surface, placeholder: 'Pravokotna', icon: 'shape' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, surface: value })) },
                   { title: 'Barva', value: sideSettings.color, placeholder: 'Srebrna', icon: 'color' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, color: value })) },
-                  { title: 'URL', value: draft.slug, placeholder: toSlug(draft.name || 'naziv-artikla'), icon: 'link' as SideFieldIcon, onChange: (value: string) => setDraft((current) => ({ ...current, slug: value })) }
+                  { title: 'Oblika', value: sideSettings.surface, placeholder: 'Pravokotna', icon: 'shape' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, surface: value })) }
                 ].map((field) => (
                   <div key={field.title} className="min-h-10">
                     <p className="text-sm font-semibold text-slate-900">{field.title}</p>
-                    {field.title === 'URL' ? (
-                      <div className="mt-0.5 flex min-h-[52px] flex-col justify-end">
-                        <div className={`${compactSideInputWrapClassName} ${isEditable ? '' : '!bg-[color:var(--ui-neutral-bg)] text-slate-500'}`}>
-                          <SideInputIcon icon="link" className="h-[12.5px] w-[12.5px]" muted={field.value.trim().length === 0} />
-                          <input disabled={!isEditable} className={`${compactSideInputClassName} ${isEditable ? '' : 'cursor-not-allowed text-slate-500'}`} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
-                        </div>
-                        <p className="mt-1 text-[11px] text-slate-500">URL povezava do artikla.</p>
-                      </div>
-                    ) : (
-                      <div className={`${compactSideInputWrapClassName} ${isEditable ? '' : '!bg-[color:var(--ui-neutral-bg)] text-slate-500'}`}>
-                        <SideInputIcon icon={field.icon} muted={field.value.trim().length === 0} />
-                        <input disabled={!isEditable} className={`${compactSideInputClassName} ${isEditable ? '' : 'cursor-not-allowed text-slate-500'}`} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
-                      </div>
-                    )}
+                    <div className={`${compactSideInputWrapClassName} ${isEditable ? '' : '!bg-[color:var(--ui-neutral-bg)] text-slate-500'}`}>
+                      <SideInputIcon icon={field.icon} muted={field.value.trim().length === 0} />
+                      <input disabled={!isEditable} className={`${compactSideInputClassName} ${isEditable ? '' : 'cursor-not-allowed text-slate-500'}`} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -2369,7 +2352,7 @@ export default function AdminItemEditorPage({
                     <DocumentUploadFrameIcon className="h-[72px] w-[72px] text-[#74addb]" />
                     <div className="mt-1 flex flex-col items-center justify-center leading-tight">
                       <span className="text-base font-semibold text-slate-800">Naloži tehnični list</span>
-                      <span className="mt-1 text-xs font-medium text-slate-500">(največ 20 MB)</span>
+                      <span className="mt-1 text-xs font-medium text-slate-500">(največ 5 MB)</span>
                     </div>
                   </div>
                 </div>

@@ -1877,16 +1877,42 @@ export default function AdminItemEditorPage({
                         >
                           <span className="mx-auto inline-flex items-center gap-3">
                             <span className="inline-flex h-9 w-9 items-center justify-center">
-                              <svg viewBox="0 0 64 64" className="h-8 w-8" fill="none" aria-hidden>
+                              <svg viewBox="0 0 512 512" className="h-8 w-8" fill="none" aria-hidden>
                                 <defs>
-                                  <linearGradient id="tech-doc-gradient" x1="6" y1="6" x2="58" y2="58" gradientUnits="userSpaceOnUse">
-                                    <stop stopColor="#43a6e8" />
-                                    <stop offset="1" stopColor="#1f7fc6" />
-                                  </linearGradient>
+                                  <filter id="tech-doc-shadow" x="-20%" y="-20%" width="140%" height="140%">
+                                    <feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="#000000" floodOpacity="0.12" />
+                                  </filter>
                                 </defs>
-                                <path d="M12 6h30l16 16v30a6 6 0 0 1-6 6H12a6 6 0 0 1-6-6V12a6 6 0 0 1 6-6Z" fill="url(#tech-doc-gradient)" />
-                                <path d="M42 6v12a4 4 0 0 0 4 4h12" stroke="#0f5f9f" strokeWidth="2.4" strokeLinejoin="round" />
-                                <path d="M16 30h32M16 40h24M16 50h18" stroke="#0d3960" strokeWidth="3.2" strokeLinecap="round" />
+                                <g filter="url(#tech-doc-shadow)">
+                                  <path
+                                    d="M104 72 C104 52 120 36 140 36 H328 C337 36 346 39 352 46 L414 108 C421 114 424 123 424 132 V404 C424 444 392 476 352 476 H140 C120 476 104 460 104 440 Z"
+                                    fill="#1982BF"
+                                  />
+                                  <path
+                                    d="M336 44 L416 124 H364 C348 124 336 112 336 96 Z"
+                                    fill="#FFFFFF"
+                                  />
+                                  <path
+                                    d="M336 44 L416 124 H402 L336 58 Z"
+                                    fill="#E8EEF5"
+                                    fillOpacity="0.7"
+                                  />
+                                  <rect x="142" y="222" width="220" height="18" rx="9" fill="#FFFFFF" />
+                                  <rect x="142" y="288" width="168" height="18" rx="9" fill="#FFFFFF" />
+                                  <rect x="142" y="354" width="116" height="18" rx="9" fill="#FFFFFF" />
+                                  <path
+                                    d="M104 72 C104 52 120 36 140 36 H328 C337 36 346 39 352 46 L414 108 C421 114 424 123 424 132 V404 C424 444 392 476 352 476 H140 C120 476 104 460 104 440 Z"
+                                    stroke="#0D5F90"
+                                    strokeOpacity="0.35"
+                                    strokeWidth="2"
+                                  />
+                                  <path
+                                    d="M336 44 L416 124 H364 C348 124 336 112 336 96 Z"
+                                    stroke="#0D5F90"
+                                    strokeOpacity="0.18"
+                                    strokeWidth="2"
+                                  />
+                                </g>
                               </svg>
                             </span>
                             <span className="inline-flex flex-col items-start gap-0.5">

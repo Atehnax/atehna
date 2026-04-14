@@ -80,7 +80,7 @@ type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 type VideoState = { source: 'upload' | 'youtube'; label: string; previewUrl: string };
 type ImageSettings = { altText: string };
-type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'price';
+type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension';
 const MEDIA_SLOT_COUNT = 7;
 const GALLERY_SMALL_SLOT_COUNT = 6;
 
@@ -262,8 +262,8 @@ function UppyDropzoneFieldInner({
       {...interactionProps}
       className={[
         'relative border-2 border-dashed transition',
-        dragActive ? 'border-[#4f8bff] bg-[#edf3ff]' : 'border-[#9cb8ea] bg-[#f7f9fe]',
-        disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
+        dragActive ? 'border-[#1982bf] bg-[#edf3ff]' : 'border-[#9cb8ea] bg-[#f7f9fe]',
+        disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-[#1982bf] hover:bg-[#edf3ff]',
         className
       ].join(' ')}
     >
@@ -350,16 +350,6 @@ function SideInputIcon({ icon, muted = false, className = '' }: { icon: SideFiel
         <path d="M22 8V4" />
         <path d="M6 15v-3" />
         <rect x="2" y="12" width="20" height="8" rx="2" />
-      </svg>
-    );
-  }
-  if (icon === 'price') {
-    return (
-      <svg {...iconProps}>
-        <path d="M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41L13.7 2.71a2.41 2.41 0 0 0-3.41 0Z" />
-        <path d="M9.2 9.2h.01" />
-        <path d="m14.5 9.5-5 5" />
-        <path d="M14.7 14.8h.01" />
       </svg>
     );
   }
@@ -1062,7 +1052,6 @@ export default function AdminItemEditorPage({
   });
   const [variantSelections, setVariantSelections] = useState<Set<string>>(new Set());
   const [generatorInput, setGeneratorInput] = useState('');
-  const [generatorPriceInput, setGeneratorPriceInput] = useState('');
   const [generatorChips, setGeneratorChips] = useState<GeneratorChip[]>([]);
   const [generatorError, setGeneratorError] = useState<string | null>(null);
   const [sideSettings, setSideSettings] = useState({
@@ -1170,17 +1159,6 @@ export default function AdminItemEditorPage({
     setSelectedCategoryPath(path);
   };
 
-  useEffect(() => {
-    if (articleType !== 'unit') return;
-    const parsedPrice = Number(generatorPriceInput.replace(',', '.'));
-    if (!Number.isFinite(parsedPrice)) return;
-    setDraft((current) => {
-      const nextVariants = current.variants.map((variant) => (variant.price === parsedPrice ? variant : { ...variant, price: parsedPrice }));
-      const changed = nextVariants.some((variant, index) => variant !== current.variants[index]);
-      return changed ? { ...current, variants: nextVariants } : current;
-    });
-  }, [articleType, generatorPriceInput]);
-
   const isEditable = editorMode === 'edit';
   const isTableEditable = tableEditorMode === 'edit';
   const isMediaEditable = true;
@@ -1190,7 +1168,6 @@ export default function AdminItemEditorPage({
   const isDimensionLockActive = isBulkMaterial;
   const isThicknessLockActive = isBulkMaterial || isLinearMaterial;
   const isGeneratorLocked = !isTableEditable || isDimensionLockActive;
-  const generatorUnitLabel = articleType === 'sheet' ? 'na m²' : articleType === 'bulk' ? 'na kg' : articleType === 'unit' ? 'na kos' : articleType === 'linear' ? 'na m' : 'na enoto';
   const hasSelectedVariants = variantSelections.size > 0;
   const allVariantsSelected = draft.variants.length > 0 && draft.variants.every((variant) => variantSelections.has(variant.id));
   const generatorDimensionLabels: Record<GeneratorDimension, string> = {
@@ -1260,8 +1237,6 @@ export default function AdminItemEditorPage({
     }
 
     const generated: Variant[] = [];
-    const parsedGeneratorPrice = Number(generatorPriceInput.replace(',', '.'));
-    const nextPrice = Number.isFinite(parsedGeneratorPrice) ? parsedGeneratorPrice : 0;
     widths.forEach((width) => lengths.forEach((length) => thicknessValues.forEach((thickness) => {
       generated.push(createVariant({
         label: shouldUseThickness ? `${width} × ${length} × ${thickness} mm` : `${width} × ${length} mm`,
@@ -1271,7 +1246,7 @@ export default function AdminItemEditorPage({
         sku: shouldUseThickness
           ? `${toSlug(draft.name || 'artikel').toUpperCase()}-${width}${length}${thickness}`
           : `${toSlug(draft.name || 'artikel').toUpperCase()}-${width}${length}`,
-        price: nextPrice,
+        price: 0,
         discountPct: draft.defaultDiscountPct,
         sort: generated.length + 1
       }));
@@ -1873,7 +1848,7 @@ export default function AdminItemEditorPage({
                         />
                         <label
                           htmlFor="tech-sheet-upload-inline"
-                          className={`relative flex w-full items-center rounded-[16px] border-2 border-dashed border-[#9cb8ea] bg-[#f3f5f9] px-4 py-2.5 transition ${isEditable ? 'cursor-pointer hover:border-[#4f8bff] hover:bg-[#edf3ff]' : 'cursor-not-allowed opacity-60'}`}
+                          className={`relative flex w-full items-center rounded-[16px] border-2 border-dashed border-[#9cb8ea] bg-[#f3f5f9] px-4 py-2.5 transition ${isEditable ? 'cursor-pointer hover:border-[#1982bf] hover:bg-[#edf3ff]' : 'cursor-not-allowed opacity-60'}`}
                         >
                           <span className="mx-auto inline-flex items-center gap-3">
                             <span className="inline-flex h-9 w-9 items-center justify-center">
@@ -1994,7 +1969,7 @@ export default function AdminItemEditorPage({
                         </span>
                       </UppyDropzoneField>
                     ) : (
-                      <div className={`relative flex h-full w-full items-center justify-center rounded-lg bg-[#f7f9fe] text-blue-600 ${isMediaEditable ? '' : 'cursor-not-allowed opacity-60'}`}>
+                      <div className={`relative flex h-full w-full items-center justify-center rounded-lg border-2 border-dashed border-[#9cb8ea] bg-[#f7f9fe] text-blue-600 transition ${isMediaEditable ? 'cursor-pointer hover:border-[#1982bf] hover:bg-[#edf3ff]' : 'cursor-not-allowed opacity-60'}`}>
                         <span className="flex flex-col items-center justify-center gap-2 text-center">
                           <ImageUploadFrameIcon className="h-[84px] w-[84px] text-[#2f7dc5]" />
                           <span className="text-base font-semibold text-slate-800">Naloži sliko</span>
@@ -2097,7 +2072,7 @@ export default function AdminItemEditorPage({
                                 </span>
                               </UppyDropzoneField>
                             ) : (
-                              <div key={`slot-${slotIndex}`} className={`relative flex h-full items-center justify-center rounded-lg bg-[#f7f9fe] text-blue-600 ${isMediaEditable ? '' : 'cursor-not-allowed opacity-60'}`}>
+                              <div key={`slot-${slotIndex}`} className={`relative flex h-full items-center justify-center rounded-lg border-2 border-dashed border-[#9cb8ea] bg-[#f7f9fe] text-blue-600 transition ${isMediaEditable ? 'cursor-pointer hover:border-[#1982bf] hover:bg-[#edf3ff]' : 'cursor-not-allowed opacity-60'}`}>
                                 <CloudUploadIcon className="h-8 w-8 text-[#2f7dc5]" />
                               </div>
                             )
@@ -2265,7 +2240,7 @@ export default function AdminItemEditorPage({
                     </div>
                   ) : (
                     <div
-                      className={`relative flex h-full w-full flex-col items-center justify-between rounded-lg border-2 border-dashed bg-[#f7f9fe] px-5 pb-4 pt-3 text-center transition ${videoDragActive ? 'border-[#4f8bff] bg-[#edf3ff]' : 'border-[#9cb8ea]'} ${isMediaEditable ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
+                      className={`relative flex h-full w-full flex-col items-center justify-between rounded-lg border-2 border-dashed bg-[#f7f9fe] px-5 pb-4 pt-3 text-center transition ${videoDragActive ? 'border-[#1982bf] bg-[#edf3ff]' : 'border-[#9cb8ea]'} ${isMediaEditable ? 'cursor-pointer hover:border-[#1982bf] hover:bg-[#edf3ff]' : 'cursor-not-allowed opacity-60'}`}
                       onClick={() => {
                         if (!isMediaEditable) return;
                         document.getElementById('video-upload-input')?.click();
@@ -2481,21 +2456,6 @@ export default function AdminItemEditorPage({
               </div>
               <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">{combinationCount}</span>
             </div>
-            <label className="ml-auto mt-0.5 inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
-              <span>Cena:</span>
-              <span className={`relative inline-flex h-[30px] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[10px] pr-16 ${!isTableEditable ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`}>
-                <SideInputIcon icon="price" muted={generatorPriceInput.trim().length === 0} />
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  value={generatorPriceInput}
-                  disabled={!isTableEditable}
-                  onChange={(event) => setGeneratorPriceInput(event.target.value)}
-                  className={`h-full w-40 border-0 bg-transparent p-0 text-right text-sm outline-none focus:ring-0 ${!isTableEditable ? 'cursor-not-allowed text-slate-500' : 'text-slate-900'}`}
-                />
-                <span className="pointer-events-none absolute right-3 text-xs font-medium text-slate-500">{generatorUnitLabel}</span>
-              </span>
-            </label>
           </div>
           </div>
           <div className="text-xs">

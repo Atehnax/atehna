@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
 import { Chip } from '@/shared/ui/badge';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
@@ -32,6 +33,7 @@ const formatPriceRange = (minPrice: number, maxPrice: number) =>
   `${minPrice.toLocaleString('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} – ${maxPrice.toLocaleString('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 
 export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTuple[] }) {
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -172,9 +174,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
               variant="primary"
               size="toolbar"
               aria-label="Dodaj artikel"
-              onClick={() => {
-                window.location.href = '/admin/artikli/nov';
-              }}
+              onClick={() => router.push('/admin/artikli/nov')}
             >
               Dodaj artikel
             </Button>

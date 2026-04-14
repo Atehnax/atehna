@@ -426,7 +426,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                     ) : null}
                   </div>
                 </TH>
-                <TH className="text-center">
+                <TH className="w-[11%] whitespace-nowrap text-center">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('variantCount')} onClick={() => cycleSort('variantCount')}>
                       Št. različic
@@ -506,7 +506,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                     ) : null}
                   </div>
                 </TH>
-                <TH className="text-center">
+                <TH className="w-[11%] whitespace-nowrap text-center">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('discount')} onClick={() => cycleSort('discount')}>
                       Popust
@@ -533,7 +533,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                     ) : null}
                   </div>
                 </TH>
-                <TH className="text-center">
+                <TH className="w-[11%] whitespace-nowrap text-center">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('status')} onClick={() => cycleSort('status')}>
                       Status
@@ -560,7 +560,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                     ) : null}
                   </div>
                 </TH>
-                <TH className="text-center">Opombe</TH>
+                <TH className="w-[12%] whitespace-nowrap text-center">Opombe</TH>
                 <TH className="w-20 text-center">Uredi</TH>
               </TR>
             </THead>
@@ -593,8 +593,8 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                       <td className="px-2 py-3 text-center">{variantCount}</td>
                       <td className="px-2 py-3">{minPrice === maxPrice ? formatCurrency(minPrice) : formatPriceRange(minPrice, maxPrice)}</td>
                       <td className="px-2 py-3 text-center text-emerald-700">{family.defaultDiscountPct}%</td>
-                      <td className="px-2 py-3 text-center"><Chip variant={family.active ? 'success' : 'warning'}>{statusLabel(family.active)}</Chip></td>
-                      <td className="px-2 py-3 text-center">{family.notes?.trim() ? family.notes : '—'}</td>
+                      <td className="w-[11%] px-2 py-3 text-center"><Chip variant={family.active ? 'success' : 'warning'}>{statusLabel(family.active)}</Chip></td>
+                      <td className="w-[12%] px-2 py-3 text-center">{family.notes?.trim() ? family.notes : '—'}</td>
                       <td className="px-2 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'quick-edit', label: 'Hitro urejanje', icon: <PencilIcon />, disabled: !primaryVariant || !hasSubtable, onSelect: () => { if (!primaryVariant || !hasSubtable) return; setExpandedFamilyIds((current) => new Set(current).add(family.id)); startVariantEdit(primaryVariant); } }, { key: 'edit', label: 'Uredi', onSelect: () => (window.location.href = `/admin/artikli/${encodeURIComponent(family.slug || family.id)}`) }]} /></td>
                     </tr>
                     {isExpanded && hasSubtable ? (

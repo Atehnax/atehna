@@ -131,7 +131,7 @@ export default function UploadedImageCropperModal({
       forceLayoutRefresh();
     });
     resizeObserver.observe(host);
-    void cropper.getCropperImage()?.$ready((nativeImage) => {
+    void cropper.getCropperImage()?.$ready((nativeImage: HTMLImageElement) => {
       const pendingRebase = pendingViewportRebaseRef.current;
       if (pendingRebase) {
         const cropperImage = cropper.getCropperImage();

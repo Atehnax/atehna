@@ -1873,14 +1873,20 @@ export default function AdminItemEditorPage({
                         />
                         <label
                           htmlFor="tech-sheet-upload-inline"
-                          className={`relative flex w-full items-center rounded-xl border-2 border-dashed border-[#9cb8ea] bg-[#f7f9fe] px-4 py-2.5 text-blue-500 transition ${isEditable ? 'cursor-pointer hover:border-[#4f8bff] hover:bg-[#edf3ff]' : 'cursor-not-allowed opacity-60'}`}
+                          className={`relative flex w-full items-center rounded-[16px] border-2 border-dashed border-[#9cb8ea] bg-[#f3f5f9] px-4 py-2.5 transition ${isEditable ? 'cursor-pointer hover:border-[#4f8bff] hover:bg-[#edf3ff]' : 'cursor-not-allowed opacity-60'}`}
                         >
-                          <span className="mx-auto inline-flex flex-col items-start gap-0.5 text-blue-600">
-                            <span className="inline-flex items-center gap-1">
-                              <SideInputIcon icon="document" muted={false} className="!text-blue-600" />
-                              <span className="inline-block text-sm font-semibold leading-none">Dodaj dokument</span>
+                          <span className="mx-auto inline-flex items-center gap-3">
+                            <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-[#2f8cc9] shadow-[inset_0_1px_0_rgba(255,255,255,0.24)]">
+                              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" aria-hidden>
+                                <path d="M6 3h8l4 4v14H6z" fill="#2f8cc9" />
+                                <path d="M14 3v4h4" stroke="#166fa9" strokeWidth="1.4" strokeLinejoin="round" />
+                                <path d="M8.5 11.2h7M8.5 14.4h7M8.5 17.6h4.8" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" />
+                              </svg>
                             </span>
-                            <span className="text-center text-[11px] leading-tight text-slate-500">PDF, DOC, XLSX do 10 MB</span>
+                            <span className="inline-flex flex-col items-start gap-0.5">
+                              <span className="inline-block text-sm font-bold leading-none text-slate-900">Dodaj dokument</span>
+                              <span className="text-center text-[11px] leading-tight text-slate-500">PDF, DOC, XLSX do 10 MB</span>
+                            </span>
                           </span>
                         </label>
                       </div>

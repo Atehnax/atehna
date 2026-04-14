@@ -246,7 +246,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                     </button>
                     {openFilter === 'category' ? (
                       <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
-                        <MenuPanel className="w-64">
+                        <MenuPanel className="w-[18.4rem]">
                           {[{ value: 'all', label: 'Vse kategorije' }, ...categories.map((category) => ({ value: category, label: category }))].map(
                             (option) => (
                               <MenuItem
@@ -352,7 +352,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                       <td className="px-2 py-3">{formatPriceRange(minPrice, maxPrice)}</td>
                       <td className="px-2 py-3 text-center text-emerald-700">{family.defaultDiscountPct}%</td>
                       <td className="px-2 py-3 text-center"><Chip variant={family.active ? 'success' : 'warning'}>{statusLabel(family.active)}</Chip></td>
-                      <td className="px-2 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'edit', label: 'Uredi', onSelect: () => (window.location.href = `/admin/artikli/${encodeURIComponent(family.id)}`) }]} /></td>
+                      <td className="px-2 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'edit', label: 'Uredi', onSelect: () => (window.location.href = `/admin/artikli/${encodeURIComponent(family.slug || family.id)}`) }]} /></td>
                     </tr>
                     {isExpanded ? (
                       <tr className="border-t border-slate-100 bg-slate-50/70">

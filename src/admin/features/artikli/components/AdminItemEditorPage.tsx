@@ -1036,7 +1036,10 @@ export default function AdminItemEditorPage({
 }) {
   const { toast } = useToast();
   const families = useMemo(() => buildFamiliesFromSeed(seedItems), [seedItems]);
-  const existing = mode === 'edit' ? families.find((family) => family.id === articleId) ?? null : null;
+  const existing =
+    mode === 'edit'
+      ? families.find((family) => family.slug === articleId || family.id === articleId) ?? null
+      : null;
   const categoryPathsFromSeed = useMemo(
     () => Array.from(new Set(seedItems.map(([, , , categoryPath]) => categoryPath).filter((categoryPath) => categoryPath.trim().length > 0))),
     [seedItems]

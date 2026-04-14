@@ -66,8 +66,8 @@ export default function UploadedImageCropperModal({
 
     const cropper = new Cropper(sourceImage, {
       container: host,
-      template: '<cropper-canvas background>\
-  <cropper-image rotatable scalable translatable></cropper-image>\
+      template: '<cropper-canvas background style="width:100%;height:100%;display:block;">\
+  <cropper-image rotatable scalable translatable initial-center-size="contain"></cropper-image>\
   <cropper-shade hidden></cropper-shade>\
   <cropper-handle action="select" plain></cropper-handle>\
   <cropper-selection initial-coverage="0.65" movable resizable>\
@@ -101,6 +101,9 @@ export default function UploadedImageCropperModal({
       forceLayoutRefresh();
     });
     resizeObserver.observe(host);
+    void cropper.getCropperImage()?.$ready(() => {
+      forceLayoutRefresh();
+    });
     requestAnimationFrame(() => {
       forceLayoutRefresh();
     });
@@ -171,10 +174,7 @@ export default function UploadedImageCropperModal({
         </div>
         <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="relative min-h-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-950/5">
-            <div
-              ref={hostRef}
-              className="h-full w-full [&_.cropper-container]:!h-full [&_.cropper-container]:!w-full [&_.cropper-canvas]:!h-full [&_.cropper-canvas]:!w-full"
-            />
+            <div ref={hostRef} className="h-full w-full [&>cropper-canvas]:!block [&>cropper-canvas]:!h-full [&>cropper-canvas]:!w-full" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               ref={imageRef}

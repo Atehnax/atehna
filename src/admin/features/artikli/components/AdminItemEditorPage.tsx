@@ -1891,7 +1891,7 @@ export default function AdminItemEditorPage({
                               </svg>
                             </span>
                             <span className="inline-flex flex-col items-start gap-0.5">
-                              <span className="inline-block text-sm font-normal leading-none text-slate-900">Dodaj dokument</span>
+                              <span className="inline-block text-sm font-semibold text-slate-900">Dodaj dokument</span>
                               <span className="text-center text-[11px] leading-tight text-slate-500">PDF, DOC, XLSX do 10 MB</span>
                             </span>
                           </span>

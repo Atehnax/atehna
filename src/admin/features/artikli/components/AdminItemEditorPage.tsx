@@ -1735,18 +1735,6 @@ export default function AdminItemEditorPage({
     const verticalAlignClass = compact ? 'justify-center' : 'justify-start pt-2';
     const actions = [
       {
-        key: 'edit',
-        label: 'Uredi',
-        tone: 'light' as const,
-        onClick: () => setEditingImageSlot(slotIndex),
-        icon: (
-          <svg viewBox="0 0 24 24" className={compact ? 'h-[12px] w-[12px]' : 'h-4 w-4'} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M3 17.25V21h3.75L18.8 8.95l-3.75-3.75L3 17.25Z" />
-            <path d="m14.95 5.2 3.75 3.75" />
-          </svg>
-        )
-      },
-      {
         key: 'remove',
         label: 'Odstrani',
         tone: 'danger' as const,

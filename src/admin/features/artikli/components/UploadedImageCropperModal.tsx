@@ -26,18 +26,26 @@ export default function UploadedImageCropperModal({
   const hostRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const cropperRef = useRef<Cropper | null>(null);
-  const previewUrlRef = useRef<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const livePreviewUrlRef = useRef<string | null>(null);
+  const appliedPreviewUrlRef = useRef<string | null>(null);
+  const appliedCropBlobRef = useRef<Blob | null>(null);
+  const [livePreviewUrl, setLivePreviewUrl] = useState<string | null>(null);
+  const [appliedPreviewUrl, setAppliedPreviewUrl] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTool, setActiveTool] = useState<'crop' | 'transform'>('crop');
 
   const cleanupPreviewUrl = useCallback(() => {
-    if (!previewUrlRef.current) return;
-    URL.revokeObjectURL(previewUrlRef.current);
-    previewUrlRef.current = null;
+    if (livePreviewUrlRef.current) {
+      URL.revokeObjectURL(livePreviewUrlRef.current);
+      livePreviewUrlRef.current = null;
+    }
+    if (appliedPreviewUrlRef.current) {
+      URL.revokeObjectURL(appliedPreviewUrlRef.current);
+      appliedPreviewUrlRef.current = null;
+    }
   }, []);
 
-  const refreshPreview = useCallback(async () => {
+  const refreshLivePreview = useCallback(async () => {
     const cropper = cropperRef.current;
     const selection = cropper?.getCropperSelection();
     if (!selection) return;
@@ -45,10 +53,10 @@ export default function UploadedImageCropperModal({
     const previewBlob = await new Promise<Blob | null>((resolve) => previewCanvas.toBlob(resolve, 'image/webp', 0.9));
     if (!previewBlob) return;
     const nextPreviewUrl = URL.createObjectURL(previewBlob);
-    cleanupPreviewUrl();
-    previewUrlRef.current = nextPreviewUrl;
-    setPreviewUrl(nextPreviewUrl);
-  }, [cleanupPreviewUrl]);
+    if (livePreviewUrlRef.current) URL.revokeObjectURL(livePreviewUrlRef.current);
+    livePreviewUrlRef.current = nextPreviewUrl;
+    setLivePreviewUrl(nextPreviewUrl);
+  }, []);
 
   const refreshCropperLayout = useCallback(() => {
     const cropperImage = cropperRef.current?.getCropperImage();
@@ -89,11 +97,11 @@ export default function UploadedImageCropperModal({
     cropperRef.current = cropper;
     const selection = cropper.getCropperSelection();
     const queuePreviewRefresh = () => {
-      void refreshPreview();
+      void refreshLivePreview();
     };
     const forceLayoutRefresh = () => {
       refreshCropperLayout();
-      void refreshPreview();
+      void refreshLivePreview();
     };
 
     selection?.addEventListener('change', queuePreviewRefresh);
@@ -114,7 +122,7 @@ export default function UploadedImageCropperModal({
       cropper.destroy();
       cropperRef.current = null;
     };
-  }, [imageUrl, refreshCropperLayout, refreshPreview]);
+  }, [imageUrl, refreshCropperLayout, refreshLivePreview]);
 
   useEffect(() => () => {
     cleanupPreviewUrl();
@@ -124,34 +132,29 @@ export default function UploadedImageCropperModal({
     const cropperImage = cropperRef.current?.getCropperImage();
     if (!cropperImage) return;
     cropperImage.$rotate(`${degrees}deg`);
-    void refreshPreview();
-  }, [refreshPreview]);
+    void refreshLivePreview();
+  }, [refreshLivePreview]);
 
   const flipHorizontal = useCallback(() => {
     const cropperImage = cropperRef.current?.getCropperImage();
     if (!cropperImage) return;
     cropperImage.$scale(-1, 1);
-    void refreshPreview();
-  }, [refreshPreview]);
+    void refreshLivePreview();
+  }, [refreshLivePreview]);
 
   const flipVertical = useCallback(() => {
     const cropperImage = cropperRef.current?.getCropperImage();
     if (!cropperImage) return;
     cropperImage.$scale(1, -1);
-    void refreshPreview();
-  }, [refreshPreview]);
+    void refreshLivePreview();
+  }, [refreshLivePreview]);
 
   const handleSave = useCallback(async () => {
-    const cropper = cropperRef.current;
-    const selection = cropper?.getCropperSelection();
-    if (!selection) return;
+    if (!appliedCropBlobRef.current) return;
     setIsSaving(true);
     try {
-      const canvas = await selection.$toCanvas();
       const imageType = imageUrl.endsWith('.png') ? 'image/png' : 'image/jpeg';
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, imageType, 0.92));
-      if (!blob) return;
-      onSave({ blob, mimeType: imageType });
+      onSave({ blob: appliedCropBlobRef.current, mimeType: imageType });
     } finally {
       setIsSaving(false);
     }
@@ -171,13 +174,27 @@ export default function UploadedImageCropperModal({
     setActiveTool('crop');
   }, []);
 
+  const applyCropSelection = useCallback(async () => {
+    const selection = cropperRef.current?.getCropperSelection();
+    if (!selection) return;
+    const canvas = await selection.$toCanvas();
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.92));
+    if (!blob) return;
+    const previewObjectUrl = URL.createObjectURL(blob);
+    if (appliedPreviewUrlRef.current) URL.revokeObjectURL(appliedPreviewUrlRef.current);
+    appliedPreviewUrlRef.current = previewObjectUrl;
+    appliedCropBlobRef.current = blob;
+    setAppliedPreviewUrl(previewObjectUrl);
+    setActiveTool('crop');
+  }, []);
+
   const runTransformAction = useCallback((action: () => void) => {
     action();
     setActiveTool('transform');
   }, []);
 
-  const toolButtonClassName = (isActive: boolean) => [
-    '!h-9 !w-9 rounded-lg border transition',
+  const toolButtonClassName = (isActive: boolean, size: 'toolbar' | 'header' = 'toolbar') => [
+    `${size === 'toolbar' ? '!h-9 !w-9' : '!h-7 !w-7'} rounded-lg border transition`,
     isActive
       ? 'border-[#3e67d6] bg-[#e9efff] text-[#2143a8]'
       : 'border-slate-200 bg-white text-slate-700 hover:border-[#9cb8ea] hover:bg-[#f7f9fe]'
@@ -193,13 +210,13 @@ export default function UploadedImageCropperModal({
               type="button"
               tone="neutral"
               size="sm"
-              className={toolButtonClassName(false)}
+              className={toolButtonClassName(false, 'header')}
               aria-label="Shrani"
               title="Shrani"
               onClick={() => void handleSave()}
-              disabled={isSaving}
+              disabled={isSaving || !appliedCropBlobRef.current}
             >
-              <SaveIcon className="h-[15px] w-[15px]" />
+              <SaveIcon className="h-[13px] w-[13px]" />
             </IconButton>
             <Button type="button" variant="close-x" onClick={onCancel} aria-label="Zapri urejanje slike" title="Zapri">×</Button>
           </div>
@@ -214,28 +231,31 @@ export default function UploadedImageCropperModal({
                 className={toolButtonClassName(activeTool === 'crop')}
                 aria-label="Vključi izrez"
                 title="Vključi izrez"
-                onClick={activateCropTool}
+                onClick={() => {
+                  activateCropTool();
+                  void applyCropSelection();
+                }}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-[17px] w-[17px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <path d="M6 2v14a2 2 0 0 0 2 2h14" />
                   <path d="M18 22V8a2 2 0 0 0-2-2H2" />
                 </svg>
               </IconButton>
-              <IconButton type="button" tone="neutral" size="sm" className={toolButtonClassName(false)} aria-label="Zavrti levo" title="Zavrti levo" onClick={() => runTransformAction(() => applyRotate(-90))}>
+              <IconButton type="button" tone="neutral" size="sm" className={toolButtonClassName(false)} aria-label="Zavrti levo" title="Zavrti levo" onClick={() => { runTransformAction(() => applyRotate(-90)); void applyCropSelection(); }}>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-[17px] w-[17px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <path d="M20 9V7a2 2 0 0 0-2-2h-6" />
                   <path d="m15 2-3 3 3 3" />
                   <path d="M20 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2" />
                 </svg>
               </IconButton>
-              <IconButton type="button" tone="neutral" size="sm" className={toolButtonClassName(false)} aria-label="Zavrti desno" title="Zavrti desno" onClick={() => runTransformAction(() => applyRotate(90))}>
+              <IconButton type="button" tone="neutral" size="sm" className={toolButtonClassName(false)} aria-label="Zavrti desno" title="Zavrti desno" onClick={() => { runTransformAction(() => applyRotate(90)); void applyCropSelection(); }}>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-[17px] w-[17px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <path d="M12 5H6a2 2 0 0 0-2 2v3" />
                   <path d="m9 8 3-3-3-3" />
                   <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
                 </svg>
               </IconButton>
-              <IconButton type="button" tone="neutral" size="sm" className={toolButtonClassName(false)} aria-label="Zrcali vodoravno" title="Zrcali vodoravno" onClick={() => runTransformAction(flipHorizontal)}>
+              <IconButton type="button" tone="neutral" size="sm" className={toolButtonClassName(false)} aria-label="Zrcali vodoravno" title="Zrcali vodoravno" onClick={() => { runTransformAction(flipHorizontal); void applyCropSelection(); }}>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-[17px] w-[17px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <path d="m3 7 5 5-5 5V7" />
                   <path d="m21 7-5 5 5 5V7" />
@@ -245,7 +265,7 @@ export default function UploadedImageCropperModal({
                   <path d="M12 2v2" />
                 </svg>
               </IconButton>
-              <IconButton type="button" tone="neutral" size="sm" className={toolButtonClassName(false)} aria-label="Zrcali navpično" title="Zrcali navpično" onClick={() => runTransformAction(flipVertical)}>
+              <IconButton type="button" tone="neutral" size="sm" className={toolButtonClassName(false)} aria-label="Zrcali navpično" title="Zrcali navpično" onClick={() => { runTransformAction(flipVertical); void applyCropSelection(); }}>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-[17px] w-[17px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <path d="m7 3 5 5 5-5H7" />
                   <path d="m7 21 5-5 5 5H7" />
@@ -287,20 +307,18 @@ export default function UploadedImageCropperModal({
               <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">Predogled slike</label>
               <div className="flex h-40 w-full items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white p-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={imageUrl} alt={`Polni predogled slike ${slotIndex + 1}`} className="max-h-full max-w-full object-contain" />
+                <img src={appliedPreviewUrl ?? imageUrl} alt={`Polni predogled slike ${slotIndex + 1}`} className="max-h-full max-w-full object-contain" />
               </div>
               <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">Predogled prikazne sličice</label>
               <div className="flex h-40 w-full items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white p-2">
-                {previewUrl ? (
+                {(appliedPreviewUrl ? livePreviewUrl : null) ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={previewUrl} alt={previewLabel} className="max-h-full max-w-full object-contain" />
+                  <img src={livePreviewUrl ?? appliedPreviewUrl ?? imageUrl} alt={previewLabel} className="max-h-full max-w-full object-contain" />
                 ) : (
-                  <span className="text-xs text-slate-500">Priprava predogleda …</span>
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={appliedPreviewUrl ?? imageUrl} alt={previewLabel} className="max-h-full max-w-full object-contain" />
                 )}
               </div>
-            </div>
-            <div className="mt-auto border-t border-slate-200 pt-3 text-[11px] text-slate-500">
-              Urejanje se shrani z gumbom zgoraj desno.
             </div>
           </aside>
         </div>

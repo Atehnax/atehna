@@ -173,6 +173,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
               type="button"
               variant="primary"
               size="toolbar"
+              className="h-9"
               aria-label="Dodaj artikel"
               onClick={() => router.push('/admin/artikli/nov')}
             >

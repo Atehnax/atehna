@@ -1,16 +1,18 @@
 'use client';
 
-import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
 import { Chip } from '@/shared/ui/badge';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
-import { DownloadIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { ColumnFilterIcon, DownloadIcon, PencilIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActionsDropdown, Table, THead, TH, TR } from '@/shared/ui/table';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
-import { adminTableRowToneClasses } from '@/shared/ui/theme/tokens';
+import AdminRangeFilterPanel from '@/shared/ui/admin-range-filter-panel';
+import { adminTableRowToneClasses, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
 import {
   buildFamiliesFromSeed,
   computeSalePrice,
@@ -23,23 +25,39 @@ import {
 } from '@/admin/features/artikli/lib/familyModel';
 
 type StatusFilter = 'all' | 'active' | 'hidden';
-type ActiveFilter = 'all' | 'yes' | 'no';
 type DiscountFilter = 'all' | 'yes' | 'no';
-type ListMode = 'families' | 'variants';
+type OpenFilter = 'category' | 'status' | 'discount' | 'variantCount' | 'priceRange' | null;
+type SortState =
+  | { column: 'article' | 'category'; direction: 'asc' | 'desc' }
+  | { column: 'variantCount' | 'discount' | 'status'; direction: 'desc' | 'asc' }
+  | { column: 'priceRange'; mode: 'minAsc' | 'minDesc' | 'maxDesc' | 'maxAsc' }
+  | null;
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
+const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500';
+const formatPriceRange = (minPrice: number, maxPrice: number) =>
+  `${minPrice.toLocaleString('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} – ${maxPrice.toLocaleString('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 
 export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTuple[] }) {
+  const router = useRouter();
   const [search, setSearch] = useState('');
-  const [mode, setMode] = useState<ListMode>('families');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [activeFilter, setActiveFilter] = useState<ActiveFilter>('all');
   const [discountFilter, setDiscountFilter] = useState<DiscountFilter>('all');
+  const [openFilter, setOpenFilter] = useState<OpenFilter>(null);
   const [expandedFamilyIds, setExpandedFamilyIds] = useState<Set<string>>(new Set());
   const [selectedFamilyIds, setSelectedFamilyIds] = useState<Set<string>>(new Set());
   const [selectedVariantIds, setSelectedVariantIds] = useState<Set<string>>(new Set());
-  const [createModePickerOpen, setCreateModePickerOpen] = useState(false);
+  const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
+  const [deletedVariantIds, setDeletedVariantIds] = useState<Set<string>>(new Set());
+  const [variantDrafts, setVariantDrafts] = useState<
+    Record<string, { label: string; sku: string; price: number; discountPct: number; stock: number; active: boolean; minOrder: number; note: string }>
+  >({});
+  const [sortState, setSortState] = useState<SortState>(null);
+  const [variantCountRange, setVariantCountRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
+  const [draftVariantCountRange, setDraftVariantCountRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
+  const [priceRangeFilter, setPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
+  const [draftPriceRangeFilter, setDraftPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
 
   const families = useMemo(() => buildFamiliesFromSeed(seedItems), [seedItems]);
   const categories = useMemo(() => Array.from(new Set(families.map((family) => family.category))).sort((a, b) => a.localeCompare(b, 'sl')), [families]);
@@ -50,26 +68,111 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
       const matchesSearch =
         q.length === 0 ||
         family.name.toLowerCase().includes(q) ||
-        family.variants.some((variant) => variant.sku.toLowerCase().includes(q) || variantLabel(variant).toLowerCase().includes(q));
+        family.variants.some((variant) => {
+          const label = variantLabel(variant);
+          if (label === 'Osnovna različica') return false;
+          return variant.sku.toLowerCase().includes(q) || label.toLowerCase().includes(q);
+        });
       const matchesCategory = categoryFilter === 'all' || family.category === categoryFilter;
       const matchesStatus = statusFilter === 'all' || (statusFilter === 'active' ? family.active : !family.active);
-      const hasAnyActiveVariant = family.variants.some((variant) => variant.active);
-      const matchesActive = activeFilter === 'all' || (activeFilter === 'yes' ? hasAnyActiveVariant : !hasAnyActiveVariant);
       const hasDiscount = family.defaultDiscountPct > 0 || family.variants.some((variant) => variant.discountPct > 0);
       const matchesDiscount = discountFilter === 'all' || (discountFilter === 'yes' ? hasDiscount : !hasDiscount);
-      return matchesSearch && matchesCategory && matchesStatus && matchesActive && matchesDiscount;
+      return matchesSearch && matchesCategory && matchesStatus && matchesDiscount;
     });
-  }, [activeFilter, categoryFilter, discountFilter, families, search, statusFilter]);
+  }, [categoryFilter, discountFilter, families, search, statusFilter]);
 
   const flatVariants = useMemo(() => {
     const rows: Array<{ family: ProductFamily; variant: Variant }> = [];
     filteredFamilies.forEach((family) => {
-      family.variants.forEach((variant) => rows.push({ family, variant }));
+      family.variants.forEach((variant) => {
+        if (variantLabel(variant) === 'Osnovna različica') return;
+        rows.push({ family, variant });
+      });
     });
     return rows;
   }, [filteredFamilies]);
 
-  const paginationTotal = mode === 'families' ? filteredFamilies.length : flatVariants.length;
+  const filteredRows = useMemo(() => {
+    const normalizedRows = filteredFamilies
+      .map((family) => {
+        const visibleVariants = family.variants.filter(
+          (variant) => variantLabel(variant) !== 'Osnovna različica' && !deletedVariantIds.has(variant.id)
+        );
+        const prices = family.variants.map((variant) => variant.price);
+        const minPrice = prices.length ? Math.min(...prices) : 0;
+        const maxPrice = prices.length ? Math.max(...prices) : 0;
+        return {
+          family,
+          visibleVariants,
+          variantCount: visibleVariants.length,
+          minPrice,
+          maxPrice
+        };
+      })
+      .filter((row) => {
+        const minCount = variantCountRange.min.trim() === '' ? null : Number(variantCountRange.min);
+        const maxCount = variantCountRange.max.trim() === '' ? null : Number(variantCountRange.max);
+        const minPriceFilter = priceRangeFilter.min.trim() === '' ? null : Number(priceRangeFilter.min);
+        const maxPriceFilter = priceRangeFilter.max.trim() === '' ? null : Number(priceRangeFilter.max);
+        const matchesCountMin = minCount === null || row.variantCount >= minCount;
+        const matchesCountMax = maxCount === null || row.variantCount <= maxCount;
+        const matchesPriceMin = minPriceFilter === null || row.minPrice >= minPriceFilter;
+        const matchesPriceMax = maxPriceFilter === null || row.maxPrice <= maxPriceFilter;
+        return matchesCountMin && matchesCountMax && matchesPriceMin && matchesPriceMax;
+      });
+
+    if (!sortState) return normalizedRows;
+
+    const rows = [...normalizedRows];
+    if (sortState.column === 'article') {
+      rows.sort((a, b) =>
+        sortState.direction === 'asc'
+          ? a.family.name.localeCompare(b.family.name, 'sl')
+          : b.family.name.localeCompare(a.family.name, 'sl')
+      );
+      return rows;
+    }
+    if (sortState.column === 'category') {
+      rows.sort((a, b) =>
+        sortState.direction === 'asc'
+          ? a.family.category.localeCompare(b.family.category, 'sl')
+          : b.family.category.localeCompare(a.family.category, 'sl')
+      );
+      return rows;
+    }
+    if (sortState.column === 'variantCount') {
+      rows.sort((a, b) => (sortState.direction === 'desc' ? b.variantCount - a.variantCount : a.variantCount - b.variantCount));
+      return rows;
+    }
+    if (sortState.column === 'discount') {
+      rows.sort((a, b) =>
+        sortState.direction === 'desc'
+          ? b.family.defaultDiscountPct - a.family.defaultDiscountPct
+          : a.family.defaultDiscountPct - b.family.defaultDiscountPct
+      );
+      return rows;
+    }
+    if (sortState.column === 'status') {
+      rows.sort((a, b) => {
+        const valueA = a.family.active ? 1 : 0;
+        const valueB = b.family.active ? 1 : 0;
+        return sortState.direction === 'desc' ? valueB - valueA : valueA - valueB;
+      });
+      return rows;
+    }
+    if (sortState.column === 'priceRange') {
+      rows.sort((a, b) => {
+        if (sortState.mode === 'minAsc') return a.minPrice - b.minPrice;
+        if (sortState.mode === 'minDesc') return b.minPrice - a.minPrice;
+        if (sortState.mode === 'maxDesc') return b.maxPrice - a.maxPrice;
+        return a.maxPrice - b.maxPrice;
+      });
+      return rows;
+    }
+    return rows;
+  }, [deletedVariantIds, filteredFamilies, priceRangeFilter.max, priceRangeFilter.min, sortState, variantCountRange.max, variantCountRange.min]);
+
+  const paginationTotal = filteredRows.length;
   const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
     totalCount: paginationTotal,
     storageKey: 'adminArtikli.families.pageSize',
@@ -78,28 +181,13 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   });
 
   const pagedFamilies = useMemo(() => {
-    if (mode !== 'families') return [];
     const start = (page - 1) * pageSize;
-    return filteredFamilies.slice(start, start + pageSize);
-  }, [filteredFamilies, mode, page, pageSize]);
-
-  const pagedVariants = useMemo(() => {
-    if (mode !== 'variants') return [];
-    const start = (page - 1) * pageSize;
-    return flatVariants.slice(start, start + pageSize);
-  }, [flatVariants, mode, page, pageSize]);
+    return filteredRows.slice(start, start + pageSize);
+  }, [filteredRows, page, pageSize]);
 
   useEffect(() => {
     setPage(1);
-  }, [activeFilter, categoryFilter, discountFilter, mode, search, setPage, statusFilter]);
-
-  const resetFilters = () => {
-    setSearch('');
-    setCategoryFilter('all');
-    setStatusFilter('all');
-    setActiveFilter('all');
-    setDiscountFilter('all');
-  };
+  }, [categoryFilter, discountFilter, priceRangeFilter.max, priceRangeFilter.min, search, setPage, statusFilter, variantCountRange.max, variantCountRange.min]);
 
   const exportVariantsCsv = () => {
     const headers = ['Družina', 'Različica', 'SKU', 'Cena', 'Popust', 'Akcijska cena', 'Zaloga', 'Status'];
@@ -124,8 +212,57 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
     URL.revokeObjectURL(url);
   };
 
-  const allVisibleFamilyIds = useMemo(() => new Set(pagedFamilies.map((family) => family.id)), [pagedFamilies]);
-  const familiesSelectedOnPage = pagedFamilies.length > 0 && pagedFamilies.every((family) => selectedFamilyIds.has(family.id));
+  const allVisibleFamilyIds = useMemo(() => new Set(pagedFamilies.map((row) => row.family.id)), [pagedFamilies]);
+  const familiesSelectedOnPage = pagedFamilies.length > 0 && pagedFamilies.every((row) => selectedFamilyIds.has(row.family.id));
+  const startVariantEdit = (variant: Variant) => {
+    setEditingVariantId(variant.id);
+    setVariantDrafts((current) => ({
+      ...current,
+      [variant.id]: {
+        label: variantLabel(variant),
+        sku: variant.sku,
+        price: variant.price,
+        discountPct: variant.discountPct,
+        stock: variant.stock,
+        active: variant.active,
+        minOrder: 1,
+        note: ''
+      }
+    }));
+  };
+  const saveVariantEdit = (variantId: string) => setEditingVariantId((current) => (current === variantId ? null : current));
+  const removeVariantRow = (variantId: string) =>
+    setDeletedVariantIds((current) => {
+      const next = new Set(current);
+      next.add(variantId);
+      return next;
+    });
+  const getSortTitleClass = (column: 'article' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'status') =>
+    `inline-flex items-center text-[11px] font-semibold leading-none hover:text-[color:var(--blue-500)] ${
+      sortState && 'column' in sortState && sortState.column === column ? 'underline underline-offset-2 text-[color:var(--blue-500)]' : ''
+    }`;
+  const cycleSort = (column: 'article' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'status') => {
+    setSortState((current) => {
+      if (column === 'article' || column === 'category') {
+        if (!current || !('column' in current) || current.column !== column) return { column, direction: 'asc' };
+        if ('direction' in current && current.direction === 'asc') return { column, direction: 'desc' };
+        return null;
+      }
+      if (column === 'variantCount' || column === 'discount' || column === 'status') {
+        if (!current || !('column' in current) || current.column !== column) return { column, direction: 'desc' };
+        if ('direction' in current && current.direction === 'desc') return { column, direction: 'asc' };
+        return null;
+      }
+      if (column === 'priceRange') {
+        if (!current || !('column' in current) || current.column !== column) return { column, mode: 'minAsc' };
+        if ('mode' in current && current.mode === 'minAsc') return { column, mode: 'minDesc' };
+        if ('mode' in current && current.mode === 'minDesc') return { column, mode: 'maxDesc' };
+        if ('mode' in current && current.mode === 'maxDesc') return { column, mode: 'maxAsc' };
+        return null;
+      }
+      return current;
+    });
+  };
 
   return (
     <div className="space-y-4 font-['Inter',system-ui,sans-serif]">
@@ -134,11 +271,16 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
         style={{ background: '#fff', borderColor: '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
         headerClassName="!bg-white"
         headerLeft={
-          <div className="flex w-full items-center gap-2">
-            <AdminSearchInput value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Poišči artikel ali SKU ..." aria-label="Poišči artikel ali SKU" className="!m-0 !h-9 w-full" />
-            <div className="inline-flex rounded-lg border border-slate-200 p-0.5 text-xs font-semibold">
-              <button type="button" className={`rounded-md px-3 py-1.5 ${mode === 'families' ? 'bg-[#2f66dd] text-white' : 'text-slate-600'}`} onClick={() => setMode('families')}>Družine</button>
-              <button type="button" className={`rounded-md px-3 py-1.5 ${mode === 'variants' ? 'bg-[#2f66dd] text-white' : 'text-slate-600'}`} onClick={() => setMode('variants')}>Različice</button>
+          <div className="flex h-7 w-full items-center gap-2">
+            <div className="min-w-0 w-full rounded-md border border-slate-200 bg-white transition-colors focus-within:border-[#3e67d6]">
+              <AdminSearchInput
+                showIcon={false}
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Poišči artikel ali SKU ..."
+                aria-label="Poišči artikel ali SKU"
+                className="!m-0 !h-7 min-w-0 w-full flex-1 !rounded-md !border-0 !bg-transparent !shadow-none !outline-none ring-0 transition-colors placeholder:text-slate-400 [--euiFormControlStateWidth:0px] focus:[--euiFormControlStateWidth:0px] focus-visible:[--euiFormControlStateWidth:0px] focus:!border-0 focus:!shadow-none focus:!outline-none focus-visible:!border-0 focus-visible:!shadow-none focus-visible:!outline-none"
+              />
             </div>
           </div>
         }
@@ -148,90 +290,541 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
               <DownloadIcon />
               Izvozi CSV
             </Button>
-            <div className="relative">
-              <Button type="button" variant="primary" size="toolbar" onClick={() => setCreateModePickerOpen((current) => !current)}>Dodaj artikel</Button>
-              {createModePickerOpen ? (
-                <div className="absolute right-0 top-10 z-20 w-56 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
-                  <Link href="/admin/artikli/nov?tip=simple" className="block w-full rounded-md px-3 py-2 text-left text-sm hover:bg-slate-100">Enostaven artikel</Link>
-                  <Link href="/admin/artikli/nov?tip=variants" className="block w-full rounded-md px-3 py-2 text-left text-sm hover:bg-slate-100">Artikel z različicami</Link>
-                </div>
-              ) : null}
-            </div>
+            <Button
+              type="button"
+              variant="primary"
+              size="toolbar"
+              className="!h-7 !rounded-md"
+              aria-label="Dodaj artikel"
+              onClick={() => router.push('/admin/artikli/nov')}
+            >
+              Dodaj artikel
+            </Button>
           </div>
         }
         filterRowLeft={
           <div className="flex flex-wrap items-center gap-2">
-            <select className="h-8 rounded-lg border border-slate-300 bg-white px-2 text-xs" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
-              <option value="all">Kategorija: Vse</option>
-              {categories.map((category) => <option key={category} value={category}>{category}</option>)}
-            </select>
-            <select className="h-8 rounded-lg border border-slate-300 bg-white px-2 text-xs" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}>
-              <option value="all">Status: Vsi</option><option value="active">Status: Aktiven</option><option value="hidden">Status: Skrit</option>
-            </select>
-            <select className="h-8 rounded-lg border border-slate-300 bg-white px-2 text-xs" value={activeFilter} onChange={(event) => setActiveFilter(event.target.value as ActiveFilter)}>
-              <option value="all">Aktivni: Vsi</option><option value="yes">Aktivni: Da</option><option value="no">Aktivni: Ne</option>
-            </select>
-            <select className="h-8 rounded-lg border border-slate-300 bg-white px-2 text-xs" value={discountFilter} onChange={(event) => setDiscountFilter(event.target.value as DiscountFilter)}>
-              <option value="all">Ima popust: Vsi</option><option value="yes">Ima popust: Da</option><option value="no">Ima popust: Ne</option>
-            </select>
-            <Button type="button" variant="ghost" size="toolbar" onClick={resetFilters}>Počisti</Button>
+            {categoryFilter !== 'all' ? (
+              <span className={filterPillTokenClasses.base}>
+                Kategorija: {categoryFilter}
+                <button type="button" className={filterPillTokenClasses.clear} onClick={() => setCategoryFilter('all')} aria-label="Počisti filter kategorije">
+                  ×
+                </button>
+              </span>
+            ) : null}
+            {statusFilter !== 'all' ? (
+              <span className={filterPillTokenClasses.base}>
+                Status: {statusFilter === 'active' ? 'Aktiven' : 'Skrit'}
+                <button type="button" className={filterPillTokenClasses.clear} onClick={() => setStatusFilter('all')} aria-label="Počisti filter statusa">
+                  ×
+                </button>
+              </span>
+            ) : null}
+            {discountFilter !== 'all' ? (
+              <span className={filterPillTokenClasses.base}>
+                Popust: {discountFilter === 'yes' ? 'Da' : 'Ne'}
+                <button type="button" className={filterPillTokenClasses.clear} onClick={() => setDiscountFilter('all')} aria-label="Počisti filter popusta">
+                  ×
+                </button>
+              </span>
+            ) : null}
+            {variantCountRange.min || variantCountRange.max ? (
+              <span className={filterPillTokenClasses.base}>
+                Št. različic: {variantCountRange.min || '0'}–{variantCountRange.max || '∞'}
+                <button
+                  type="button"
+                  className={filterPillTokenClasses.clear}
+                  onClick={() => {
+                    setVariantCountRange({ min: '', max: '' });
+                    setDraftVariantCountRange({ min: '', max: '' });
+                  }}
+                  aria-label="Počisti filter Št. različic"
+                >
+                  ×
+                </button>
+              </span>
+            ) : null}
+            {priceRangeFilter.min || priceRangeFilter.max ? (
+              <span className={filterPillTokenClasses.base}>
+                Razpon cen: {priceRangeFilter.min || '0'}–{priceRangeFilter.max || '∞'}
+                <button
+                  type="button"
+                  className={filterPillTokenClasses.clear}
+                  onClick={() => {
+                    setPriceRangeFilter({ min: '', max: '' });
+                    setDraftPriceRangeFilter({ min: '', max: '' });
+                  }}
+                  aria-label="Počisti filter Razpon cen"
+                >
+                  ×
+                </button>
+              </span>
+            ) : null}
           </div>
         }
         filterRowRight={<EuiTablePagination page={page} pageCount={pageCount} onPageChange={setPage} itemsPerPage={pageSize} onChangeItemsPerPage={setPageSize} itemsPerPageOptions={PAGE_SIZE_OPTIONS} />}
         contentClassName="overflow-x-auto overflow-y-visible bg-white"
         footerRight={<EuiTablePagination page={page} pageCount={pageCount} onPageChange={setPage} itemsPerPage={pageSize} onChangeItemsPerPage={setPageSize} itemsPerPageOptions={PAGE_SIZE_OPTIONS} />}
+        showDivider={false}
       >
-        {mode === 'families' ? (
-          <Table className="min-w-[1080px] table-fixed text-[12px]">
-            <colgroup><col className="w-[40px]" /><col className="w-[320px]" /><col className="w-[190px]" /><col className="w-[90px]" /><col className="w-[170px]" /><col className="w-[100px]" /><col className="w-[110px]" /><col className="w-[100px]" /></colgroup>
-            <THead><TR><TH className="text-center"><AdminCheckbox checked={familiesSelectedOnPage} onChange={() => setSelectedFamilyIds((current) => {
-              const next = new Set(current);
-              if (familiesSelectedOnPage) allVisibleFamilyIds.forEach((id) => next.delete(id));
-              else allVisibleFamilyIds.forEach((id) => next.add(id));
-              return next;
-            })} aria-label="Izberi vse družine" /></TH><TH>Družina</TH><TH>Kategorija</TH><TH>Št. različic</TH><TH>Razpon cen</TH><TH>Popust</TH><TH>Status</TH><TH className="text-center">Akcije</TH></TR></THead>
+        <Table className="w-full table-fixed text-[12px]">
+            <THead>
+              <TR>
+                <TH className="w-10 px-2 text-center">
+                  <AdminCheckbox
+                    checked={familiesSelectedOnPage}
+                    onChange={() =>
+                      setSelectedFamilyIds((current) => {
+                        const next = new Set(current);
+                        if (familiesSelectedOnPage) allVisibleFamilyIds.forEach((id) => next.delete(id));
+                        else allVisibleFamilyIds.forEach((id) => next.add(id));
+                        return next;
+                      })
+                    }
+                    aria-label="Izberi vse družine"
+                  />
+                </TH>
+                <TH className="w-[27%]">
+                  <button type="button" className={getSortTitleClass('article')} onClick={() => cycleSort('article')}>
+                    Artikel
+                  </button>
+                </TH>
+                <TH className="w-[27%]">
+                  <div className="relative inline-flex items-center gap-1">
+                    <button type="button" className={getSortTitleClass('category')} onClick={() => cycleSort('category')}>
+                      Kategorija
+                    </button>
+                    <button
+                      type="button"
+                      className={HEADER_FILTER_BUTTON_CLASS}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setOpenFilter((current) => (current === 'category' ? null : 'category'));
+                      }}
+                      aria-label="Filtriraj kategorijo"
+                    >
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                    {openFilter === 'category' ? (
+                      <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
+                        <MenuPanel className="w-[18.4rem]">
+                          {[{ value: 'all', label: 'Vse kategorije' }, ...categories.map((category) => ({ value: category, label: category }))].map(
+                            (option) => (
+                              <MenuItem
+                                key={option.value}
+                                onClick={() => {
+                                  setCategoryFilter(option.value);
+                                  setOpenFilter(null);
+                                }}
+                              >
+                                {option.label}
+                              </MenuItem>
+                            )
+                          )}
+                        </MenuPanel>
+                      </div>
+                    ) : null}
+                  </div>
+                </TH>
+                <TH className="w-[11%] whitespace-nowrap text-center">
+                  <div className="relative inline-flex items-center gap-1">
+                    <button type="button" className={getSortTitleClass('variantCount')} onClick={() => cycleSort('variantCount')}>
+                      Št. različic
+                    </button>
+                    <button
+                      type="button"
+                      className={HEADER_FILTER_BUTTON_CLASS}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setDraftVariantCountRange(variantCountRange);
+                        setOpenFilter((current) => (current === 'variantCount' ? null : 'variantCount'));
+                      }}
+                      aria-label="Filtriraj Št. različic"
+                    >
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                    {openFilter === 'variantCount' ? (
+                      <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
+                        <AdminRangeFilterPanel
+                          title="Št. različic"
+                          draftRange={draftVariantCountRange}
+                          onDraftChange={setDraftVariantCountRange}
+                          onConfirm={() => {
+                            setVariantCountRange(draftVariantCountRange);
+                            setOpenFilter(null);
+                          }}
+                          onReset={() => {
+                            setDraftVariantCountRange({ min: '', max: '' });
+                            setVariantCountRange({ min: '', max: '' });
+                            setOpenFilter(null);
+                          }}
+                          minPlaceholder="Min"
+                          maxPlaceholder="Max"
+                          min={0}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                </TH>
+                <TH className="w-[18%]">
+                  <div className="relative inline-flex items-center gap-1">
+                    <button type="button" className={getSortTitleClass('priceRange')} onClick={() => cycleSort('priceRange')}>
+                      Razpon cen
+                    </button>
+                    <button
+                      type="button"
+                      className={HEADER_FILTER_BUTTON_CLASS}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setDraftPriceRangeFilter(priceRangeFilter);
+                        setOpenFilter((current) => (current === 'priceRange' ? null : 'priceRange'));
+                      }}
+                      aria-label="Filtriraj Razpon cen"
+                    >
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                    {openFilter === 'priceRange' ? (
+                      <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
+                        <AdminRangeFilterPanel
+                          title="Razpon cen"
+                          draftRange={draftPriceRangeFilter}
+                          onDraftChange={setDraftPriceRangeFilter}
+                          onConfirm={() => {
+                            setPriceRangeFilter(draftPriceRangeFilter);
+                            setOpenFilter(null);
+                          }}
+                          onReset={() => {
+                            setDraftPriceRangeFilter({ min: '', max: '' });
+                            setPriceRangeFilter({ min: '', max: '' });
+                            setOpenFilter(null);
+                          }}
+                          minPlaceholder="Min cena"
+                          maxPlaceholder="Max cena"
+                          min={0}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                </TH>
+                <TH className="w-[11%] whitespace-nowrap text-center">
+                  <div className="relative inline-flex items-center gap-1">
+                    <button type="button" className={getSortTitleClass('discount')} onClick={() => cycleSort('discount')}>
+                      Popust
+                    </button>
+                    <button
+                      type="button"
+                      className={HEADER_FILTER_BUTTON_CLASS}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setOpenFilter((current) => (current === 'discount' ? null : 'discount'));
+                      }}
+                      aria-label="Filtriraj popust"
+                    >
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                    {openFilter === 'discount' ? (
+                      <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
+                        <MenuPanel className="w-40">
+                          <MenuItem onClick={() => { setDiscountFilter('all'); setOpenFilter(null); }}>Vsi</MenuItem>
+                          <MenuItem onClick={() => { setDiscountFilter('yes'); setOpenFilter(null); }}>S popustom</MenuItem>
+                          <MenuItem onClick={() => { setDiscountFilter('no'); setOpenFilter(null); }}>Brez popusta</MenuItem>
+                        </MenuPanel>
+                      </div>
+                    ) : null}
+                  </div>
+                </TH>
+                <TH className="w-[11%] whitespace-nowrap text-center">
+                  <div className="relative inline-flex items-center gap-1">
+                    <button type="button" className={getSortTitleClass('status')} onClick={() => cycleSort('status')}>
+                      Status
+                    </button>
+                    <button
+                      type="button"
+                      className={HEADER_FILTER_BUTTON_CLASS}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setOpenFilter((current) => (current === 'status' ? null : 'status'));
+                      }}
+                      aria-label="Filtriraj status"
+                    >
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                    {openFilter === 'status' ? (
+                      <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
+                        <MenuPanel className="w-36">
+                          <MenuItem onClick={() => { setStatusFilter('all'); setOpenFilter(null); }}>Vsi</MenuItem>
+                          <MenuItem onClick={() => { setStatusFilter('active'); setOpenFilter(null); }}>Aktiven</MenuItem>
+                          <MenuItem onClick={() => { setStatusFilter('hidden'); setOpenFilter(null); }}>Skrit</MenuItem>
+                        </MenuPanel>
+                      </div>
+                    ) : null}
+                  </div>
+                </TH>
+                <TH className="w-[12%] whitespace-nowrap text-center">Opombe</TH>
+                <TH className="w-20 text-center">Uredi</TH>
+              </TR>
+            </THead>
             <tbody>
-              {pagedFamilies.map((family) => {
+              {pagedFamilies.map((row) => {
+                const { family, visibleVariants, minPrice, maxPrice, variantCount } = row;
                 const isExpanded = expandedFamilyIds.has(family.id);
-                const prices = family.variants.map((variant) => variant.price);
-                const minPrice = prices.length ? Math.min(...prices) : 0;
-                const maxPrice = prices.length ? Math.max(...prices) : 0;
+                const hasSubtable = visibleVariants.length > 1;
+                const primaryVariant = visibleVariants[0] ?? null;
                 return (
-                  <>
-                    <tr key={family.id} className={`border-t border-slate-100 bg-white ${adminTableRowToneClasses.hover}`}>
-                      <td className="px-2 py-2"><AdminCheckbox checked={selectedFamilyIds.has(family.id)} onChange={() => setSelectedFamilyIds((current) => {
+                  <Fragment key={family.id}>
+                    <tr className={`border-t border-slate-100 bg-white ${adminTableRowToneClasses.hover}`}>
+                      <td className="w-10 px-2 py-2 text-center"><AdminCheckbox checked={selectedFamilyIds.has(family.id)} onChange={() => setSelectedFamilyIds((current) => {
                         const next = new Set(current);
                         if (next.has(family.id)) next.delete(family.id); else next.add(family.id);
                         return next;
                       })} aria-label={`Izberi ${family.name}`} /></td>
                       <td className="px-2 py-3">
-                        <button type="button" className="inline-flex items-start gap-2 text-left" onClick={() => setExpandedFamilyIds((current) => {
+                        <button type="button" disabled={!hasSubtable} className="inline-flex items-start gap-2 text-left disabled:cursor-default" onClick={() => setExpandedFamilyIds((current) => {
+                          if (!hasSubtable) return current;
                           const next = new Set(current);
                           if (next.has(family.id)) next.delete(family.id); else next.add(family.id);
                           return next;
                         })}>
-                          <span className="mt-0.5 inline-flex h-4 w-4 items-center justify-center text-slate-500">{isExpanded ? '▾' : '▸'}</span>
-                          <span><span className="block text-sm font-semibold text-slate-900">{family.name}</span><span className="block text-xs text-slate-500">{family.description || 'Brez opisa.'}</span></span>
+                          <span className="mt-0.5 inline-flex h-4 w-4 items-center justify-center text-slate-500">{hasSubtable ? (isExpanded ? '▾' : '▸') : ''}</span>
+                          <span className="block text-sm font-semibold text-slate-900">{family.name}</span>
                         </button>
                       </td>
                       <td className="px-2 py-3 text-slate-600">{family.category}</td>
-                      <td className="px-2 py-3"><Chip variant="neutral" className="text-xs">{family.variants.length} različic</Chip></td>
-                      <td className="px-2 py-3">{formatCurrency(minPrice)} – {formatCurrency(maxPrice)}</td>
-                      <td className="px-2 py-3 text-emerald-700">{family.defaultDiscountPct}%</td>
-                      <td className="px-2 py-3"><Chip variant={family.active ? 'success' : 'warning'}>{statusLabel(family.active)}</Chip></td>
-                      <td className="px-2 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'edit', label: 'Uredi', onSelect: () => (window.location.href = `/admin/artikli/${encodeURIComponent(family.id)}`) }]} /></td>
+                      <td className="px-2 py-3 text-center">{variantCount}</td>
+                      <td className="px-2 py-3">{minPrice === maxPrice ? formatCurrency(minPrice) : formatPriceRange(minPrice, maxPrice)}</td>
+                      <td className="px-2 py-3 text-center text-emerald-700">{family.defaultDiscountPct}%</td>
+                      <td className="w-[11%] px-2 py-3 text-center"><Chip variant={family.active ? 'success' : 'warning'}>{statusLabel(family.active)}</Chip></td>
+                      <td className="w-[12%] px-2 py-3 text-center">{family.notes?.trim() ? family.notes : '—'}</td>
+                      <td className="px-2 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'quick-edit', label: 'Hitro urejanje', icon: <PencilIcon />, disabled: !primaryVariant || !hasSubtable, onSelect: () => { if (!primaryVariant || !hasSubtable) return; setExpandedFamilyIds((current) => new Set(current).add(family.id)); startVariantEdit(primaryVariant); } }, { key: 'edit', label: 'Uredi', onSelect: () => (window.location.href = `/admin/artikli/${encodeURIComponent(family.slug || family.id)}`) }]} /></td>
                     </tr>
-                    {isExpanded ? <tr className="border-t border-slate-100 bg-slate-50/70"><td /><td colSpan={7} className="p-0"><table className="w-full text-[12px]"><thead><tr className="border-b border-slate-200 text-slate-600"><th className="px-2 py-2" /><th className="px-2 py-2 text-left">Različica</th><th className="px-2 py-2 text-left">SKU</th><th className="px-2 py-2 text-left">Cena</th><th className="px-2 py-2 text-left">Popust</th><th className="px-2 py-2 text-left">Akcijska cena</th><th className="px-2 py-2 text-left">Zaloga</th><th className="px-2 py-2 text-left">Status</th></tr></thead><tbody>{family.variants.map((variant) => <tr key={variant.id} className="border-t border-slate-100"><td className="px-2 py-2"><AdminCheckbox checked={selectedVariantIds.has(variant.id)} onChange={() => setSelectedVariantIds((current) => {
-                      const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next;
-                    })} /></td><td className="px-2 py-2 font-medium">{variantLabel(variant)}</td><td className="px-2 py-2">{variant.sku}</td><td className="px-2 py-2">{formatCurrency(variant.price)}</td><td className="px-2 py-2 text-emerald-700">{variant.discountPct}%</td><td className="px-2 py-2">{formatCurrency(computeSalePrice(variant.price, variant.discountPct))}</td><td className="px-2 py-2">{variant.stock}</td><td className="px-2 py-2"><Chip variant={variant.active ? 'success' : 'warning'}>{statusLabel(variant.active)}</Chip></td></tr>)}</tbody></table></td></tr> : null}
-                  </>
+                    {isExpanded && hasSubtable ? (
+                      <tr className="border-t border-slate-100 bg-slate-50/70">
+                        <td />
+                        <td colSpan={8} className="p-0">
+                          <table className="w-full text-[12px]">
+                            <thead>
+                              <tr className="border-b border-slate-200 text-slate-600">
+                                <th className="px-2 py-2" />
+                                <th className="px-2 py-2 text-left">Različica</th>
+                                <th className="w-[14%] px-2 py-2 text-left">SKU</th>
+                                <th className="px-2 py-2 text-right">Cena</th>
+                                <th className="px-2 py-2 text-center">Popust</th>
+                                <th className="w-[14%] px-2 py-2 text-right">Akcijska cena</th>
+                                <th className="px-2 py-2 text-right">Zaloga</th>
+                                <th className="px-2 py-2 text-center">Min/nar.</th>
+                                <th className="px-2 py-2 text-center">Status</th>
+                                <th className="px-2 py-2 text-center">Opombe</th>
+                                <th className="px-2 py-2 text-center">Uredi</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {visibleVariants.map((variant) => {
+                                const isEditing = editingVariantId === variant.id;
+                                const draft = variantDrafts[variant.id] ?? {
+                                  label: variantLabel(variant),
+                                  sku: variant.sku,
+                                  price: variant.price,
+                                  discountPct: variant.discountPct,
+                                  stock: variant.stock,
+                                  active: variant.active,
+                                  minOrder: 1,
+                                  note: ''
+                                };
+                                const actionPrice = computeSalePrice(draft.price, draft.discountPct);
+                                return (
+                                  <tr key={variant.id} className="border-t border-slate-100">
+                                    <td className="px-2 py-2 text-center">
+                                      <AdminCheckbox
+                                        checked={selectedVariantIds.has(variant.id)}
+                                        onChange={() =>
+                                          setSelectedVariantIds((current) => {
+                                            const next = new Set(current);
+                                            if (next.has(variant.id)) next.delete(variant.id);
+                                            else next.add(variant.id);
+                                            return next;
+                                          })
+                                        }
+                                      />
+                                    </td>
+                                    <td className="px-2 py-2 font-medium">
+                                      {isEditing ? (
+                                        <input
+                                          className="h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                                          value={draft.label}
+                                          onChange={(event) =>
+                                            setVariantDrafts((current) => ({
+                                              ...current,
+                                              [variant.id]: { ...draft, label: event.target.value }
+                                            }))
+                                          }
+                                        />
+                                      ) : (
+                                        draft.label
+                                      )}
+                                    </td>
+                                    <td className="px-2 py-2">
+                                      {isEditing ? (
+                                        <input
+                                          className="h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                                          value={draft.sku}
+                                          onChange={(event) =>
+                                            setVariantDrafts((current) => ({
+                                              ...current,
+                                              [variant.id]: { ...draft, sku: event.target.value }
+                                            }))
+                                          }
+                                        />
+                                      ) : (
+                                        draft.sku
+                                      )}
+                                    </td>
+                                    <td className="px-2 py-2 text-right">
+                                      {isEditing ? (
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          className="h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-right text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                                          value={draft.price}
+                                          onChange={(event) =>
+                                            setVariantDrafts((current) => ({
+                                              ...current,
+                                              [variant.id]: { ...draft, price: Number(event.target.value) || 0 }
+                                            }))
+                                          }
+                                        />
+                                      ) : (
+                                        formatCurrency(draft.price)
+                                      )}
+                                    </td>
+                                    <td className="px-2 py-2 text-center text-emerald-700">
+                                      {isEditing ? (
+                                        <input
+                                          type="number"
+                                          min={0}
+                                          max={100}
+                                          className="h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-center text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                                          value={draft.discountPct}
+                                          onChange={(event) =>
+                                            setVariantDrafts((current) => ({
+                                              ...current,
+                                              [variant.id]: { ...draft, discountPct: Number(event.target.value) || 0 }
+                                            }))
+                                          }
+                                        />
+                                      ) : (
+                                        `${draft.discountPct}%`
+                                      )}
+                                    </td>
+                                    <td className="px-2 py-2 text-right">{formatCurrency(actionPrice)}</td>
+                                    <td className="px-2 py-2 text-right">
+                                      {isEditing ? (
+                                        <input
+                                          type="number"
+                                          className="h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-right text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                                          value={draft.stock}
+                                          onChange={(event) =>
+                                            setVariantDrafts((current) => ({
+                                              ...current,
+                                              [variant.id]: { ...draft, stock: Number(event.target.value) || 0 }
+                                            }))
+                                          }
+                                        />
+                                      ) : (
+                                        draft.stock
+                                      )}
+                                    </td>
+                                    <td className="px-2 py-2 text-center">
+                                      {isEditing ? (
+                                        <input
+                                          type="number"
+                                          className="h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-center text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                                          value={draft.minOrder}
+                                          onChange={(event) =>
+                                            setVariantDrafts((current) => ({
+                                              ...current,
+                                              [variant.id]: { ...draft, minOrder: Number(event.target.value) || 1 }
+                                            }))
+                                          }
+                                        />
+                                      ) : (
+                                        draft.minOrder
+                                      )}
+                                    </td>
+                                    <td className="px-2 py-2 text-center">
+                                      {isEditing ? (
+                                        <select
+                                          className="h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                                          value={draft.active ? 'active' : 'hidden'}
+                                          onChange={(event) =>
+                                            setVariantDrafts((current) => ({
+                                              ...current,
+                                              [variant.id]: { ...draft, active: event.target.value === 'active' }
+                                            }))
+                                          }
+                                        >
+                                          <option value="active">Aktiven</option>
+                                          <option value="hidden">Skrit</option>
+                                        </select>
+                                      ) : (
+                                        <Chip variant={draft.active ? 'success' : 'warning'}>{statusLabel(draft.active)}</Chip>
+                                      )}
+                                    </td>
+                                    <td className="px-2 py-2 text-center">
+                                      {isEditing ? (
+                                        <input
+                                          className="h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                                          value={draft.note}
+                                          onChange={(event) =>
+                                            setVariantDrafts((current) => ({
+                                              ...current,
+                                              [variant.id]: { ...draft, note: event.target.value }
+                                            }))
+                                          }
+                                        />
+                                      ) : (
+                                        draft.note || '—'
+                                      )}
+                                    </td>
+                                    <td className="px-2 py-2 text-center">
+                                      <RowActionsDropdown
+                                        label={`Uredi ${variant.sku}`}
+                                        items={[
+                                          {
+                                            key: 'edit',
+                                            label: 'Hitro urejanje',
+                                            icon: <PencilIcon />,
+                                            onSelect: () => startVariantEdit(variant)
+                                          },
+                                          {
+                                            key: 'save',
+                                            label: 'Shrani',
+                                            icon: <SaveIcon />,
+                                            disabled: !isEditing,
+                                            onSelect: () => saveVariantEdit(variant.id)
+                                          },
+                                          {
+                                            key: 'delete',
+                                            label: 'Izbriši',
+                                            icon: <TrashCanIcon />,
+                                            className: 'text-rose-600 hover:!bg-rose-50 hover:!text-rose-600',
+                                            onSelect: () => removeVariantRow(variant.id)
+                                          }
+                                        ]}
+                                      />
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                    ) : null}
+                  </Fragment>
                 );
               })}
             </tbody>
           </Table>
-        ) : (
-          <Table className="min-w-[980px] table-fixed text-[12px]"><colgroup><col className="w-[40px]" /><col className="w-[220px]" /><col className="w-[220px]" /><col className="w-[140px]" /><col className="w-[110px]" /><col className="w-[100px]" /><col className="w-[120px]" /><col className="w-[100px]" /><col className="w-[110px]" /></colgroup><THead><TR><TH>{' '}</TH><TH>Družina</TH><TH>Različica</TH><TH>SKU</TH><TH>Cena</TH><TH>Popust</TH><TH>Akcijska cena</TH><TH>Zaloga</TH><TH>Status</TH></TR></THead><tbody>{pagedVariants.map(({ family, variant }) => <tr key={variant.id} className={`border-t border-slate-100 bg-white ${adminTableRowToneClasses.hover}`}><td className="px-2 py-2"><AdminCheckbox checked={selectedVariantIds.has(variant.id)} onChange={() => setSelectedVariantIds((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} /></td><td className="px-2 py-2 font-medium"><Link href={`/admin/artikli/${encodeURIComponent(family.id)}`} className="text-[#2f66dd] hover:underline">{family.name}</Link></td><td className="px-2 py-2">{variantLabel(variant)}</td><td className="px-2 py-2">{variant.sku}</td><td className="px-2 py-2">{formatCurrency(variant.price)}</td><td className="px-2 py-2 text-emerald-700">{variant.discountPct}%</td><td className="px-2 py-2">{formatCurrency(computeSalePrice(variant.price, variant.discountPct))}</td><td className="px-2 py-2">{variant.stock}</td><td className="px-2 py-2"><Chip variant={variant.active ? 'success' : 'warning'}>{statusLabel(variant.active)}</Chip></td></tr>)}</tbody></Table>
-        )}
       </AdminTableLayout>
     </div>
   );

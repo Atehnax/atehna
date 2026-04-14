@@ -74,13 +74,13 @@ function inferImageExtensionLabel({ mimeType, fileName, url }: { mimeType?: stri
 
 type EditorMode = 'create' | 'edit';
 type CreateType = 'simple' | 'variants';
-type MediaTab = 'slike' | 'video';
+type MediaTab = 'slike' | 'video' | 'tehnicni';
 type VariantTag = 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
 type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 type VideoState = { source: 'upload' | 'youtube'; label: string; previewUrl: string };
 type ImageSettings = { altText: string };
-type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension';
+type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'sku';
 const MEDIA_SLOT_COUNT = 7;
 const GALLERY_SMALL_SLOT_COUNT = 6;
 
@@ -207,6 +207,20 @@ function VideoUploadFrameIcon({ className = '' }: { className?: string }) {
   );
 }
 
+function DocumentUploadFrameIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 48" aria-hidden className={className}>
+      <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H10v2H7.5A1.5 1.5 0 0 0 6 7.5V10H4V6.5Z" fill="currentColor" />
+      <path d="M60 6.5A2.5 2.5 0 0 0 57.5 4H54v2h2.5A1.5 1.5 0 0 1 58 7.5V10h2V6.5Z" fill="currentColor" />
+      <path d="M4 41.5A2.5 2.5 0 0 0 6.5 44H10v-2H7.5A1.5 1.5 0 0 1 6 40.5V38H4v3.5Z" fill="currentColor" />
+      <path d="M60 41.5A2.5 2.5 0 0 1 57.5 44H54v-2h2.5a1.5 1.5 0 0 0 1.5-1.5V38h2v3.5Z" fill="currentColor" />
+      <path d="M20 11h16l8 8v18H20z" fill="currentColor" opacity="0.28" />
+      <path d="M36 11v8h8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M25 27h14M25 32h14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function UppyDropzoneField({
   uppy,
   disabled,
@@ -328,6 +342,24 @@ function SideInputIcon({ icon, muted = false, className = '' }: { icon: SideFiel
         <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
         <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
         <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+      </svg>
+    );
+  }
+  if (icon === 'sku') {
+    return (
+      <svg {...iconProps}>
+        <rect width="5" height="5" x="3" y="3" rx="1" />
+        <rect width="5" height="5" x="16" y="3" rx="1" />
+        <rect width="5" height="5" x="3" y="16" rx="1" />
+        <path d="M21 16h-3a2 2 0 0 0-2 2v3" />
+        <path d="M21 21v.01" />
+        <path d="M12 7v3a2 2 0 0 1-2 2H7" />
+        <path d="M3 12h.01" />
+        <path d="M12 3h.01" />
+        <path d="M12 16v.01" />
+        <path d="M16 12h1" />
+        <path d="M21 12v.01" />
+        <path d="M12 21v-1" />
       </svg>
     );
   }
@@ -1058,6 +1090,7 @@ export default function AdminItemEditorPage({
   const [generatorChips, setGeneratorChips] = useState<GeneratorChip[]>([]);
   const [generatorError, setGeneratorError] = useState<string | null>(null);
   const [sideSettings, setSideSettings] = useState({
+    sku: '',
     brand: '',
     material: '',
     surface: '',
@@ -1103,6 +1136,7 @@ export default function AdminItemEditorPage({
   const [videoDragActive, setVideoDragActive] = useState(false);
   const [videoMoveMode, setVideoMoveMode] = useState(false);
   const [videoAssignedVariantId, setVideoAssignedVariantId] = useState<string | null>(null);
+  const technicalUploadInputRef = useRef<HTMLInputElement>(null);
   const [pendingMediaRemoval, setPendingMediaRemoval] = useState<{ type: 'image'; slotIndex: number } | { type: 'video' } | null>(null);
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>({});
   const [editingImageSlot, setEditingImageSlot] = useState<number | null>(null);
@@ -1366,6 +1400,19 @@ export default function AdminItemEditorPage({
     }
     setVideoDraft({ source: 'upload', label: file.name, previewUrl: URL.createObjectURL(file) });
     setVideoMoveMode(false);
+  };
+
+  const handleTechnicalFileSelect = (file?: File | null) => {
+    if (!file) return;
+    const maxBytes = 20 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      toast.error('Datoteka je prevelika. Dovoljena velikost je največ 20 MB.');
+      return;
+    }
+    const fileSizeLabel = file.size < 1024 * 1024
+      ? `${Math.round(file.size / 1024)} KB`
+      : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+    setDocuments((current) => [{ name: file.name, size: fileSizeLabel }, ...current.filter((entry) => entry.name !== file.name)]);
   };
 
   const updateVariant = (index: number, updates: Partial<Variant>) => {
@@ -1827,80 +1874,16 @@ export default function AdminItemEditorPage({
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2 grid grid-cols-2 gap-3">
                 {[
+                  { title: 'SKU', value: sideSettings.sku, placeholder: 'SKU koda', icon: 'sku' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, sku: value })) },
                   { title: 'Blagovna znamka', value: sideSettings.brand, placeholder: 'AluCraft', icon: 'brand' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, brand: value })) },
                   { title: 'Material', value: sideSettings.material, placeholder: 'Aluminij', icon: 'material' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, material: value })) },
                   { title: 'Oblika', value: sideSettings.surface, placeholder: 'Pravokotna', icon: 'shape' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, surface: value })) },
                   { title: 'Barva', value: sideSettings.color, placeholder: 'Srebrna', icon: 'color' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, color: value })) },
-                  { title: 'Tehnični list', value: documents.map((doc) => doc.name).join(', '), placeholder: 'Dodajte dokument', icon: 'document' as SideFieldIcon, onChange: () => {} },
                   { title: 'URL', value: draft.slug, placeholder: toSlug(draft.name || 'naziv-artikla'), icon: 'link' as SideFieldIcon, onChange: (value: string) => setDraft((current) => ({ ...current, slug: value })) }
                 ].map((field) => (
                   <div key={field.title} className="min-h-10">
                     <p className="text-sm font-semibold text-slate-900">{field.title}</p>
-                    {field.title === 'Tehnični list' ? (
-                      <div className="mt-0.5 flex items-center gap-2">
-                        <input
-                          type="file"
-                          className="hidden"
-                          id="tech-sheet-upload-inline"
-                          disabled={!isEditable}
-                          onChange={(event) => {
-                            const file = event.target.files?.[0];
-                            if (!file) return;
-                            setDocuments((current) => [...current, { name: file.name, size: `${Math.max(1, Math.round(file.size / 1024))} KB` }]);
-                          }}
-                        />
-                        <label
-                          htmlFor="tech-sheet-upload-inline"
-                          className={`relative flex w-full items-center rounded-[16px] border-2 border-dashed border-[#9cb8ea] bg-[#f3f5f9] px-4 py-2.5 transition ${isEditable ? 'cursor-pointer hover:border-[#1982bf] hover:bg-[#edf3ff]' : 'cursor-not-allowed opacity-60'}`}
-                        >
-                          <span className="mx-auto inline-flex items-center gap-3">
-                            <span className="inline-flex h-9 w-9 items-center justify-center">
-                              <svg viewBox="0 0 512 512" className="h-[1.7rem] w-[1.7rem]" fill="none" aria-hidden>
-                                <defs>
-                                  <filter id="tech-doc-shadow" x="-20%" y="-20%" width="140%" height="140%">
-                                    <feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="#000000" floodOpacity="0.12" />
-                                  </filter>
-                                </defs>
-                                <g filter="url(#tech-doc-shadow)">
-                                  <path
-                                    d="M104 72 C104 52 120 36 140 36 H328 C337 36 346 39 352 46 L414 108 C421 114 424 123 424 132 V404 C424 444 392 476 352 476 H140 C120 476 104 460 104 440 Z"
-                                    fill="#1982BF"
-                                  />
-                                  <path
-                                    d="M336 44 L416 124 H364 C348 124 336 112 336 96 Z"
-                                    fill="#FFFFFF"
-                                  />
-                                  <path
-                                    d="M336 44 L416 124 H402 L336 58 Z"
-                                    fill="#E8EEF5"
-                                    fillOpacity="0.7"
-                                  />
-                                  <rect x="142" y="222" width="220" height="18" rx="9" fill="#FFFFFF" />
-                                  <rect x="142" y="288" width="168" height="18" rx="9" fill="#FFFFFF" />
-                                  <rect x="142" y="354" width="116" height="18" rx="9" fill="#FFFFFF" />
-                                  <path
-                                    d="M104 72 C104 52 120 36 140 36 H328 C337 36 346 39 352 46 L414 108 C421 114 424 123 424 132 V404 C424 444 392 476 352 476 H140 C120 476 104 460 104 440 Z"
-                                    stroke="#0D5F90"
-                                    strokeOpacity="0.35"
-                                    strokeWidth="2"
-                                  />
-                                  <path
-                                    d="M336 44 L416 124 H364 C348 124 336 112 336 96 Z"
-                                    stroke="#0D5F90"
-                                    strokeOpacity="0.18"
-                                    strokeWidth="2"
-                                  />
-                                </g>
-                              </svg>
-                            </span>
-                            <span className="inline-flex flex-col items-start gap-0.5">
-                              <span className="inline-block text-sm font-semibold text-slate-900">Dodaj dokument</span>
-                              <span className="text-center text-[11px] leading-tight text-slate-500">PDF, DOC, XLSX do 10 MB</span>
-                            </span>
-                          </span>
-                        </label>
-                      </div>
-                    ) : field.title === 'URL' ? (
+                    {field.title === 'URL' ? (
                       <div className="mt-0.5 flex min-h-[52px] flex-col justify-end">
                         <div className={`${compactSideInputWrapClassName} ${isEditable ? '' : '!bg-[color:var(--ui-neutral-bg)] text-slate-500'}`}>
                           <SideInputIcon icon="link" className="h-[12.5px] w-[12.5px]" muted={field.value.trim().length === 0} />
@@ -1937,7 +1920,8 @@ export default function AdminItemEditorPage({
                 tabClassName="!font-['Inter',system-ui,sans-serif] !tracking-[0]"
                 tabs={[
                   { value: 'slike', label: 'Slike' },
-                  { value: 'video', label: 'Video' }
+                  { value: 'video', label: 'Video' },
+                  { value: 'tehnicni', label: 'Tehnični list' }
                 ]}
               />
             </div>
@@ -2178,7 +2162,7 @@ export default function AdminItemEditorPage({
                   </table>
                 </div>
               </div>
-            ) : (
+            ) : mediaTab === 'video' ? (
               <div className="mt-3 space-y-2">
                 <input
                   id="video-upload-input"
@@ -2348,6 +2332,66 @@ export default function AdminItemEditorPage({
                           </td>
                         </tr>
                       )})}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-3 space-y-2">
+                <input
+                  ref={technicalUploadInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.dwg"
+                  className="hidden"
+                  disabled={!isMediaEditable}
+                  onChange={(event) => {
+                    handleTechnicalFileSelect(event.target.files?.[0]);
+                    event.currentTarget.value = '';
+                  }}
+                />
+                <div className="h-[11.5rem]">
+                  <div
+                    className={`relative flex h-full w-full flex-col items-center justify-center rounded-lg border-2 border-dashed bg-[#f7f9fe] px-5 pb-4 pt-3 text-center transition ${isMediaEditable ? 'cursor-pointer border-[#9cb8ea] hover:border-[#1982bf] hover:bg-[#edf3ff]' : 'cursor-not-allowed border-[#9cb8ea] opacity-60'}`}
+                    onClick={() => {
+                      if (!isMediaEditable) return;
+                      technicalUploadInputRef.current?.click();
+                    }}
+                    onDragOver={(event) => {
+                      if (!isMediaEditable) return;
+                      event.preventDefault();
+                    }}
+                    onDrop={(event) => {
+                      if (!isMediaEditable) return;
+                      event.preventDefault();
+                      handleTechnicalFileSelect(event.dataTransfer.files?.[0]);
+                    }}
+                  >
+                    <DocumentUploadFrameIcon className="h-[72px] w-[72px] text-[#74addb]" />
+                    <div className="mt-1 flex flex-col items-center justify-center leading-tight">
+                      <span className="text-base font-semibold text-slate-800">Naloži tehnični list</span>
+                      <span className="mt-1 text-xs font-medium text-slate-500">(največ 20 MB)</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="overflow-hidden rounded-lg border border-slate-200">
+                  <table className="min-w-full text-xs">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="px-2 py-1.5 text-left">Datoteka</th>
+                        <th className="px-2 py-1.5 text-right">Velikost</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {documents.length > 0 ? documents.map((documentEntry) => (
+                        <tr key={documentEntry.name} className="border-t border-slate-100">
+                          <td className="px-2 py-1.5">{documentEntry.name}</td>
+                          <td className="px-2 py-1.5 text-right">{documentEntry.size}</td>
+                        </tr>
+                      )) : (
+                        <tr className="border-t border-slate-100">
+                          <td className="px-2 py-2 text-slate-500" colSpan={2}>Ni naloženih dokumentov.</td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>

@@ -1877,7 +1877,7 @@ export default function AdminItemEditorPage({
                         >
                           <span className="mx-auto inline-flex items-center gap-3">
                             <span className="inline-flex h-9 w-9 items-center justify-center">
-                              <svg viewBox="0 0 512 512" className="h-[1.7rem] w-[1.7rem]" fill="none" aria-hidden>
+                              <svg viewBox="0 0 512 512" className="h-[1.8rem] w-[1.8rem]" fill="none" aria-hidden>
                                 <defs>
                                   <filter id="tech-doc-shadow" x="-20%" y="-20%" width="140%" height="140%">
                                     <feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="#000000" floodOpacity="0.12" />

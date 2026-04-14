@@ -23,6 +23,12 @@ export default function UploadedImageCropperModal({
   onCancel,
   onSave
 }: UploadedImageCropperModalProps) {
+  type UndoEntry =
+    | { kind: 'rotate'; degrees: number }
+    | { kind: 'flip-horizontal' }
+    | { kind: 'flip-vertical' }
+    | { kind: 'crop'; previousBlob: Blob | null; previousImageUrl: string };
+
   const hostRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const cropperRef = useRef<Cropper | null>(null);
@@ -30,6 +36,8 @@ export default function UploadedImageCropperModal({
   const livePreviewUrlRef = useRef<string | null>(null);
   const workingImageObjectUrlRef = useRef<string | null>(null);
   const appliedCropBlobRef = useRef<Blob | null>(null);
+  const undoStackRef = useRef<UndoEntry[]>([]);
+  const suppressUndoRecordRef = useRef(false);
   const [workingImageUrl, setWorkingImageUrl] = useState(imageUrl);
   const [livePreviewUrl, setLivePreviewUrl] = useState<string | null>(null);
   const [renderSeed, setRenderSeed] = useState(0);
@@ -49,6 +57,7 @@ export default function UploadedImageCropperModal({
 
   useEffect(() => {
     appliedCropBlobRef.current = null;
+    undoStackRef.current = [];
     setWorkingImageUrl(imageUrl);
     setLivePreviewUrl(null);
     setRenderSeed((current) => current + 1);
@@ -157,6 +166,9 @@ export default function UploadedImageCropperModal({
   }, [cleanupPreviewUrl]);
 
   const applyRotate = useCallback((degrees: number) => {
+    if (!suppressUndoRecordRef.current) {
+      undoStackRef.current.push({ kind: 'rotate', degrees });
+    }
     const cropperImage = cropperRef.current?.getCropperImage();
     if (!cropperImage) return;
     cropperImage.$rotate(`${degrees}deg`);
@@ -164,6 +176,9 @@ export default function UploadedImageCropperModal({
   }, [refreshLivePreview]);
 
   const flipHorizontal = useCallback(() => {
+    if (!suppressUndoRecordRef.current) {
+      undoStackRef.current.push({ kind: 'flip-horizontal' });
+    }
     const cropperImage = cropperRef.current?.getCropperImage();
     if (!cropperImage) return;
     cropperImage.$scale(-1, 1);
@@ -171,6 +186,9 @@ export default function UploadedImageCropperModal({
   }, [refreshLivePreview]);
 
   const flipVertical = useCallback(() => {
+    if (!suppressUndoRecordRef.current) {
+      undoStackRef.current.push({ kind: 'flip-vertical' });
+    }
     const cropperImage = cropperRef.current?.getCropperImage();
     if (!cropperImage) return;
     cropperImage.$scale(1, -1);
@@ -201,6 +219,13 @@ export default function UploadedImageCropperModal({
     const selection = cropperRef.current?.getCropperSelection();
     if (!selection) return;
     if (selection.hidden || selection.width < 2 || selection.height < 2) return;
+    if (!suppressUndoRecordRef.current) {
+      undoStackRef.current.push({
+        kind: 'crop',
+        previousBlob: appliedCropBlobRef.current,
+        previousImageUrl: workingImageUrl
+      });
+    }
     pendingViewportRebaseRef.current = {
       x: selection.x,
       y: selection.y,
@@ -211,7 +236,9 @@ export default function UploadedImageCropperModal({
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.92));
     if (!blob) return;
     const previewObjectUrl = URL.createObjectURL(blob);
-    if (workingImageObjectUrlRef.current) URL.revokeObjectURL(workingImageObjectUrlRef.current);
+    if (workingImageObjectUrlRef.current && workingImageObjectUrlRef.current !== workingImageUrl) {
+      URL.revokeObjectURL(workingImageObjectUrlRef.current);
+    }
     workingImageObjectUrlRef.current = previewObjectUrl;
     appliedCropBlobRef.current = blob;
     if (livePreviewUrlRef.current) {
@@ -222,7 +249,44 @@ export default function UploadedImageCropperModal({
     setWorkingImageUrl(previewObjectUrl);
     setRenderSeed((current) => current + 1);
     setActiveTool('crop');
-  }, []);
+  }, [workingImageUrl]);
+
+  const undoPreviousAction = useCallback(() => {
+    const lastAction = undoStackRef.current.pop();
+    if (!lastAction) return;
+    suppressUndoRecordRef.current = true;
+    try {
+      if (lastAction.kind === 'rotate') {
+        applyRotate(-lastAction.degrees);
+        return;
+      }
+      if (lastAction.kind === 'flip-horizontal') {
+        flipHorizontal();
+        return;
+      }
+      if (lastAction.kind === 'flip-vertical') {
+        flipVertical();
+        return;
+      }
+      if (workingImageObjectUrlRef.current && workingImageObjectUrlRef.current !== imageUrl) {
+        URL.revokeObjectURL(workingImageObjectUrlRef.current);
+      }
+      if (lastAction.previousBlob) {
+        const previousObjectUrl = URL.createObjectURL(lastAction.previousBlob);
+        workingImageObjectUrlRef.current = previousObjectUrl;
+        appliedCropBlobRef.current = lastAction.previousBlob;
+        setWorkingImageUrl(previousObjectUrl);
+      } else {
+        workingImageObjectUrlRef.current = null;
+        appliedCropBlobRef.current = null;
+        setWorkingImageUrl(lastAction.previousImageUrl);
+      }
+      setLivePreviewUrl(null);
+      setRenderSeed((current) => current + 1);
+    } finally {
+      suppressUndoRecordRef.current = false;
+    }
+  }, [applyRotate, flipHorizontal, flipVertical, imageUrl]);
 
   const runTransformAction = useCallback((action: () => void) => {
     action();
@@ -311,7 +375,7 @@ export default function UploadedImageCropperModal({
                   <path d="M20 12h2" />
                 </svg>
               </IconButton>
-              <IconButton type="button" tone="neutral" size="sm" className={toolButtonClassName(false)} aria-label="Prekliči" title="Prekliči" onClick={onCancel}>
+              <IconButton type="button" tone="neutral" size="sm" className={toolButtonClassName(false)} aria-label="Prekliči" title="Prekliči" onClick={undoPreviousAction}>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-[17px] w-[17px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <path d="M9 14 4 9l5-5" />
                   <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" />

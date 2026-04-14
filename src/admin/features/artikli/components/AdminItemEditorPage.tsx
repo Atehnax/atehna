@@ -77,7 +77,10 @@ type MediaTab = 'slike' | 'video';
 type VariantTag = 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
 type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
-type VideoEntry = { id: string; source: 'upload' | 'youtube'; label: string; previewUrl: string; visible: boolean };
+type VideoState = { source: 'upload' | 'youtube'; label: string; previewUrl: string };
+type ThumbnailFocusRect = { left: number; top: number; width: number; height: number };
+type ImageSettings = { altText: string; focusX: number; focusY: number; focusRect: ThumbnailFocusRect | null };
+type FocusInteractionMode = 'create' | 'move' | 'resize-nw' | 'resize-ne' | 'resize-se' | 'resize-sw';
 type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'price';
 const MEDIA_SLOT_COUNT = 7;
 const GALLERY_SMALL_SLOT_COUNT = 6;
@@ -188,6 +191,19 @@ function ImageUploadFrameIcon({ className = '' }: { className?: string }) {
       <path d="M60 6.5A2.5 2.5 0 0 0 57.5 4H54v2h2.5A1.5 1.5 0 0 1 58 7.5V10h2V6.5Z" fill="#74addb" />
       <path d="M4 41.5A2.5 2.5 0 0 0 6.5 44H10v-2H7.5A1.5 1.5 0 0 1 6 40.5V38H4v3.5Z" fill="#74addb" />
       <path d="M60 41.5A2.5 2.5 0 0 1 57.5 44H54v-2h2.5a1.5 1.5 0 0 0 1.5-1.5V38h2v3.5Z" fill="#74addb" />
+    </svg>
+  );
+}
+
+function VideoUploadFrameIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 48" aria-hidden className={className}>
+      <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H10v2H7.5A1.5 1.5 0 0 0 6 7.5V10H4V6.5Z" fill="currentColor" />
+      <path d="M60 6.5A2.5 2.5 0 0 0 57.5 4H54v2h2.5A1.5 1.5 0 0 1 58 7.5V10h2V6.5Z" fill="currentColor" />
+      <path d="M4 41.5A2.5 2.5 0 0 0 6.5 44H10v-2H7.5A1.5 1.5 0 0 1 6 40.5V38H4v3.5Z" fill="currentColor" />
+      <path d="M60 41.5A2.5 2.5 0 0 1 57.5 44H54v-2h2.5a1.5 1.5 0 0 0 1.5-1.5V38h2v3.5Z" fill="currentColor" />
+      <rect x="9" y="8" width="46" height="32" rx="4" fill="currentColor" opacity="0.9" />
+      <path d="M27 18.2c0-1.7 1.8-2.8 3.3-2l11.5 6.4c1.6.9 1.6 3.1 0 4L30.3 33c-1.5.9-3.3-.2-3.3-2V18.2Z" fill="#f8fafc" />
     </svg>
   );
 }
@@ -1079,10 +1095,7 @@ export default function AdminItemEditorPage({
   const [tableEditorMode, setTableEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
   const [articleType, setArticleType] = useState<'unit' | 'sheet' | 'bulk' | 'linear' | ''>('');
   const [mediaTab, setMediaTab] = useState<MediaTab>('slike');
-  const [mediaMode, setMediaMode] = useState<'read' | 'edit'>('read');
-  const [mediaImagesSaved, setMediaImagesSaved] = useState<string[]>(draft.images);
   const [mediaImagesDraft, setMediaImagesDraft] = useState<string[]>(draft.images);
-  const [selectedImageIndexes, setSelectedImageIndexes] = useState<Set<number>>(new Set());
   const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
   const [draggedVariantId, setDraggedVariantId] = useState<string | null>(null);
   const [draggedVariantImageSlot, setDraggedVariantImageSlot] = useState<number | null>(null);
@@ -1095,14 +1108,18 @@ export default function AdminItemEditorPage({
   const mediaUploadInputRef = useRef<HTMLInputElement>(null);
   const mediaUploadContextRef = useRef<{ slotIndex: number; multiple: boolean }>({ slotIndex: 0, multiple: true });
   const updateImageAtSlotRef = useRef<(slotIndex: number, imageUrl: string) => void>(() => {});
-  const [uploadedVideo, setUploadedVideo] = useState<{ name: string; url: string } | null>(null);
   const [youtubeInput, setYoutubeInput] = useState('');
-  const [videoEntriesDraft, setVideoEntriesDraft] = useState<VideoEntry[]>([]);
-  const [videoEntriesSaved, setVideoEntriesSaved] = useState<VideoEntry[]>([]);
-  const [videoSelections, setVideoSelections] = useState<Set<string>>(new Set());
+  const [videoDraft, setVideoDraft] = useState<VideoState | null>(null);
+  const [videoDragActive, setVideoDragActive] = useState(false);
+  const [videoMoveMode, setVideoMoveMode] = useState(false);
+  const [videoAssignedVariantId, setVideoAssignedVariantId] = useState<string | null>(null);
+  const [pendingMediaRemoval, setPendingMediaRemoval] = useState<{ type: 'image'; slotIndex: number } | { type: 'video' } | null>(null);
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>({});
   const [editingImageSlot, setEditingImageSlot] = useState<number | null>(null);
-  const [imageSettings, setImageSettings] = useState<Record<number, { altText: string; focusX: number; focusY: number }>>({});
+  const [imageSettings, setImageSettings] = useState<Record<number, ImageSettings>>({});
+  const [focusSelectionDraft, setFocusSelectionDraft] = useState<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
+  const focusSelectionDraftRef = useRef<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
+  const focusInteractionRef = useRef<{ mode: FocusInteractionMode; startX: number; startY: number; originRect: ThumbnailFocusRect | null } | null>(null);
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() =>
     (draft.category || '')
       .split('/')
@@ -1113,6 +1130,30 @@ export default function AdminItemEditorPage({
   useEffect(() => {
     setDraft((current) => ({ ...current, category: selectedCategoryPath.join(' / ') }));
   }, [selectedCategoryPath]);
+
+  useEffect(() => {
+    setFocusSelectionDraft(null);
+    focusSelectionDraftRef.current = null;
+    focusInteractionRef.current = null;
+  }, [editingImageSlot]);
+
+  useEffect(() => {
+    if (!videoDraft) {
+      if (videoAssignedVariantId !== null) setVideoAssignedVariantId(null);
+      if (videoMoveMode) setVideoMoveMode(false);
+      return;
+    }
+    if (!draft.variants.length) {
+      if (videoAssignedVariantId !== null) setVideoAssignedVariantId(null);
+      return;
+    }
+    const hasAssignedVariant = videoAssignedVariantId
+      ? draft.variants.some((variant) => variant.id === videoAssignedVariantId)
+      : false;
+    if (!hasAssignedVariant) {
+      setVideoAssignedVariantId(draft.variants[0].id);
+    }
+  }, [draft.variants, videoAssignedVariantId, videoDraft, videoMoveMode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1153,7 +1194,7 @@ export default function AdminItemEditorPage({
 
   const isEditable = editorMode === 'edit';
   const isTableEditable = tableEditorMode === 'edit';
-  const isMediaEditable = mediaMode === 'edit';
+  const isMediaEditable = true;
   const isBulkMaterial = articleType === 'bulk';
   const isLinearMaterial = articleType === 'linear';
   const isToleranceLocked = articleType === 'unit';
@@ -1304,35 +1345,60 @@ export default function AdminItemEditorPage({
     setGeneratorInput('');
   };
 
-  const addYoutubeVideo = () => {
-    const value = youtubeInput.trim();
-    if (!value) return;
-    if (!value.includes('youtube.com') && !value.includes('youtu.be')) {
-      toast.error('Vnesite veljavno YouTube povezavo.');
+  const resolveYoutubeEmbedUrl = (rawUrl: string) => {
+    const value = rawUrl.trim();
+    if (!value) return null;
+    const normalized = value.toLowerCase();
+    if (!normalized.includes('youtube.com') && !normalized.includes('youtu.be')) return null;
+    try {
+      const parsed = new URL(value);
+      if (parsed.hostname.includes('youtu.be')) {
+        const videoId = parsed.pathname.replace('/', '').trim();
+        if (!videoId) return null;
+        return `https://www.youtube.com/embed/${videoId}`;
+      }
+      if (!parsed.hostname.includes('youtube.com')) return null;
+      if (parsed.pathname === '/watch') {
+        const videoId = parsed.searchParams.get('v');
+        if (!videoId) return null;
+        return `https://www.youtube.com/embed/${videoId}`;
+      }
+      if (parsed.pathname.startsWith('/embed/')) {
+        return `${parsed.origin}${parsed.pathname}`;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const submitYoutubeVideo = (rawUrl: string, options: { showError?: boolean } = {}) => {
+    const value = rawUrl.trim();
+    if (!value) return false;
+    const previewUrl = resolveYoutubeEmbedUrl(value);
+    if (!previewUrl) {
+      if (options.showError) toast.error('Vnesite veljavno YouTube povezavo.');
+      return false;
+    }
+    setVideoDraft({ source: 'youtube', label: value, previewUrl });
+    setYoutubeInput('');
+    setVideoMoveMode(false);
+    return true;
+  };
+
+  const handleVideoFileSelect = (file?: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith('video/')) {
+      toast.error('Izberite veljavno video datoteko.');
       return;
     }
-    const previewUrl = value.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/');
-    setVideoEntriesDraft((current) => [
-      ...current,
-      { id: `video-${Date.now()}`, source: 'youtube', label: value, previewUrl, visible: true }
-    ]);
-    setYoutubeInput('');
-  };
-
-  const addUploadedVideo = () => {
-    if (!uploadedVideo) return;
-    setVideoEntriesDraft((current) => [
-      ...current,
-      { id: `video-${Date.now()}`, source: 'upload', label: uploadedVideo.name, previewUrl: uploadedVideo.url, visible: true }
-    ]);
-    setUploadedVideo(null);
-  };
-
-  const saveVideoEntries = () => {
-    setVideoEntriesSaved(videoEntriesDraft);
-    setMediaImagesSaved(mediaImagesDraft);
-    setDraft((current) => ({ ...current, images: mediaImagesDraft }));
-    toast.success('Video spremembe shranjene lokalno.');
+    const maxBytes = 100 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      toast.error('Video je prevelik. Dovoljena velikost je največ 100 MB.');
+      return;
+    }
+    setVideoDraft({ source: 'upload', label: file.name, previewUrl: URL.createObjectURL(file) });
+    setVideoMoveMode(false);
   };
 
   const updateVariant = (index: number, updates: Partial<Variant>) => {
@@ -1395,10 +1461,6 @@ export default function AdminItemEditorPage({
       probe.src = url;
     });
   }, [imageMeta, mediaImagesDraft]);
-
-  useEffect(() => {
-    setSelectedImageIndexes((current) => new Set(Array.from(current).filter((index) => index >= 0 && index < mediaImagesDraft.length)));
-  }, [mediaImagesDraft.length]);
 
   useEffect(() => {
     if (editingImageSlot === null) return;
@@ -1606,6 +1668,31 @@ export default function AdminItemEditorPage({
     sorted.forEach((slotIndex) => removeImageSlot(slotIndex));
   };
 
+  const requestRemoveImageSlot = (slotIndex: number) => {
+    setPendingMediaRemoval({ type: 'image', slotIndex });
+  };
+
+  const requestRemoveVideo = () => {
+    if (!videoDraft) return;
+    setPendingMediaRemoval({ type: 'video' });
+  };
+
+  const closePendingMediaRemoval = () => setPendingMediaRemoval(null);
+
+  const confirmPendingMediaRemoval = () => {
+    if (!pendingMediaRemoval) return;
+    if (pendingMediaRemoval.type === 'image') {
+      removeImageSlot(pendingMediaRemoval.slotIndex);
+      setPendingMediaRemoval(null);
+      return;
+    }
+    setVideoDraft(null);
+    setYoutubeInput('');
+    setVideoMoveMode(false);
+    setVideoAssignedVariantId(null);
+    setPendingMediaRemoval(null);
+  };
+
   const assignImageToVariant = (variantIndex: number, slotIndex: number) => {
     const slotImage = mediaImagesDraft[slotIndex];
     if (!slotImage) return;
@@ -1631,19 +1718,62 @@ export default function AdminItemEditorPage({
     });
   };
 
-  const ensureImageSettings = useCallback((slotIndex: number) => {
-    return imageSettings[slotIndex] ?? { altText: '', focusX: 50, focusY: 50 };
-  }, [imageSettings]);
+  const normalizeThumbnailFocusRect = useCallback((rawRect: ThumbnailFocusRect) => {
+    const minSizePct = 1;
+    const width = Math.max(minSizePct, Math.min(100, rawRect.width));
+    const height = Math.max(minSizePct, Math.min(100, rawRect.height));
+    const left = Math.max(0, Math.min(100 - width, rawRect.left));
+    const top = Math.max(0, Math.min(100 - height, rawRect.top));
+    return { left, top, width, height };
+  }, []);
 
-  const updateImageSettings = useCallback((slotIndex: number, updates: Partial<{ altText: string; focusX: number; focusY: number }>) => {
+  const toRectFromPoints = useCallback((startX: number, startY: number, endX: number, endY: number): ThumbnailFocusRect => ({
+    left: Math.min(startX, endX),
+    top: Math.min(startY, endY),
+    width: Math.abs(endX - startX),
+    height: Math.abs(endY - startY)
+  }), []);
+
+  const clampRectWithinBounds = useCallback((rawRect: ThumbnailFocusRect): ThumbnailFocusRect => {
+    const width = Math.max(0.1, Math.min(100, rawRect.width));
+    const height = Math.max(0.1, Math.min(100, rawRect.height));
+    const left = Math.max(0, Math.min(100 - width, rawRect.left));
+    const top = Math.max(0, Math.min(100 - height, rawRect.top));
+    return { left, top, width, height };
+  }, []);
+
+  const ensureImageSettings = useCallback((slotIndex: number): ImageSettings => {
+    const existing = imageSettings[slotIndex];
+    if (existing) {
+      return { ...existing, focusRect: existing.focusRect ? normalizeThumbnailFocusRect(existing.focusRect) : null };
+    }
+    return { altText: '', focusX: 50, focusY: 50, focusRect: null };
+  }, [imageSettings, normalizeThumbnailFocusRect]);
+
+  const updateImageSettings = useCallback((slotIndex: number, updates: Partial<ImageSettings>) => {
     setImageSettings((current) => {
-      const previous = current[slotIndex] ?? { altText: '', focusX: 50, focusY: 50 };
+      const previous = current[slotIndex] ?? { altText: '', focusX: 50, focusY: 50, focusRect: null };
+      const nextFocusRect = typeof updates.focusRect !== 'undefined'
+        ? (updates.focusRect ? normalizeThumbnailFocusRect(updates.focusRect) : null)
+        : (previous.focusRect ? normalizeThumbnailFocusRect(previous.focusRect) : null);
+      const merged = { ...previous, ...updates, focusRect: nextFocusRect };
       return {
         ...current,
-        [slotIndex]: { ...previous, ...updates }
+        [slotIndex]: merged
       };
     });
-  }, []);
+  }, [normalizeThumbnailFocusRect]);
+
+  const getActiveFocusRect = useCallback((slotIndex: number) => {
+    if (focusSelectionDraft) {
+      const left = Math.min(focusSelectionDraft.startX, focusSelectionDraft.endX);
+      const top = Math.min(focusSelectionDraft.startY, focusSelectionDraft.endY);
+      const width = Math.abs(focusSelectionDraft.endX - focusSelectionDraft.startX);
+      const height = Math.abs(focusSelectionDraft.endY - focusSelectionDraft.startY);
+      return normalizeThumbnailFocusRect({ left, top, width, height });
+    }
+    return ensureImageSettings(slotIndex).focusRect;
+  }, [ensureImageSettings, focusSelectionDraft, normalizeThumbnailFocusRect]);
 
   const renderImageActionButtons = (slotIndex: number) => {
     const compact = slotIndex !== 0;
@@ -1653,7 +1783,7 @@ export default function AdminItemEditorPage({
         key: 'remove',
         label: 'Odstrani',
         tone: 'danger' as const,
-        onClick: () => removeImageSlot(slotIndex),
+        onClick: () => requestRemoveImageSlot(slotIndex),
         icon: <span aria-hidden className={`${compact ? 'text-[11px]' : 'text-sm'} leading-none`}>✕</span>
       },
       {
@@ -1839,30 +1969,6 @@ export default function AdminItemEditorPage({
                   { value: 'video', label: 'Video' }
                 ]}
               />
-              <div className="flex items-center justify-end gap-1.5">
-              <IconButton type="button" tone="neutral" aria-label="Uredi medije" title="Uredi" onClick={() => setMediaMode((current) => (current === 'read' ? 'edit' : 'read'))}><PencilIcon /></IconButton>
-              <IconButton type="button" tone="neutral" aria-label="Shrani medije" title="Shrani" onClick={saveVideoEntries} disabled={!isMediaEditable}><SaveIcon /></IconButton>
-              <IconButton
-                type="button"
-                tone={(mediaTab === 'video' ? videoSelections.size : selectedImageIndexes.size) > 0 ? 'danger' : 'neutral'}
-                aria-label="Izbriši medije"
-                title="Izbriši"
-                disabled={!isMediaEditable || (mediaTab === 'video' ? videoSelections.size === 0 : selectedImageIndexes.size === 0)}
-                onClick={() => {
-                  if (mediaTab === 'video') {
-                    const selected = new Set(videoSelections);
-                    setVideoEntriesDraft((current) => current.filter((entry) => !selected.has(entry.id)));
-                    setVideoSelections(new Set());
-                    return;
-                  }
-                  const selected = new Set(selectedImageIndexes);
-                  removeSelectedImageSlots(selected);
-                  setSelectedImageIndexes(new Set());
-                }}
-              >
-                <TrashCanIcon />
-              </IconButton>
-              </div>
             </div>
             {mediaTab === 'slike' ? (
               <div className="mt-3 space-y-2">
@@ -2102,68 +2208,175 @@ export default function AdminItemEditorPage({
                 </div>
               </div>
             ) : (
-              <div className="mt-3 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <div className="space-y-1">
-                      <label className="text-xs text-slate-600">YouTube URL</label>
-                      <div className="flex gap-2">
-                        <input className={inputClass} value={youtubeInput} disabled={!isMediaEditable} onChange={(event) => setYoutubeInput(event.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
-                        <Button type="button" variant="default" size="toolbar" disabled={!isMediaEditable} onClick={addYoutubeVideo}>Dodaj</Button>
+              <div className="mt-3 space-y-2">
+                <input
+                  id="video-upload-input"
+                  type="file"
+                  accept="video/*"
+                  disabled={!isMediaEditable}
+                  className="hidden"
+                  onChange={(event) => {
+                    handleVideoFileSelect(event.target.files?.[0]);
+                    event.currentTarget.value = '';
+                  }}
+                />
+                <div className="h-[11.5rem]">
+                  {videoDraft ? (
+                    <div className="group relative h-full overflow-hidden rounded-lg border border-slate-300 bg-black">
+                      {videoDraft.source === 'youtube' ? (
+                        <iframe
+                          title="Predogled videa"
+                          className="h-full w-full"
+                          src={videoDraft.previewUrl}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <video controls className="h-full w-full object-contain">
+                          <source src={videoDraft.previewUrl} />
+                        </video>
+                      )}
+                      <div className="absolute inset-y-0 right-2 z-20 flex flex-col items-end justify-start gap-1.5 pt-2 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+                        {[
+                          { key: 'remove', label: 'Odstrani', tone: 'danger' as const, onClick: requestRemoveVideo, icon: <span aria-hidden className="text-sm leading-none">✕</span> },
+                          {
+                            key: 'move',
+                            label: 'Premakni',
+                            tone: 'light' as const,
+                            onClick: () => {
+                              setVideoMoveMode(true);
+                              toast.info('Izberite ciljno celico v stolpcu Video.');
+                            },
+                            icon: <span className="text-[11px]">↕</span>
+                          }
+                        ].map((action) => (
+                          <button
+                            key={action.key}
+                            type="button"
+                            className={`inline-flex h-[25px] min-w-[1.6rem] items-center justify-center rounded-md border px-0 leading-none shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${action.tone === 'danger' ? 'border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'}`}
+                            onPointerDown={(event) => {
+                              event.stopPropagation();
+                              event.preventDefault();
+                            }}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              action.onClick();
+                            }}
+                            aria-label={action.label}
+                            title={action.label}
+                          >
+                            <span className="inline-flex h-full w-full items-center justify-center">{action.icon}</span>
+                          </button>
+                        ))}
                       </div>
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-xs text-slate-600">Video datoteka</label>
-                      <input
-                        type="file"
-                        accept="video/*"
-                        disabled={!isMediaEditable}
-                        className="block w-full text-xs text-slate-700 file:mr-2 file:rounded-md file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs file:font-semibold"
-                        onChange={(event) => {
-                          const file = event.target.files?.[0];
-                          if (!file) return;
-                          setUploadedVideo({ name: file.name, url: URL.createObjectURL(file) });
-                        }}
-                      />
-                      <Button type="button" variant="default" size="toolbar" disabled={!isMediaEditable || !uploadedVideo} onClick={addUploadedVideo}>Dodaj video</Button>
+                  ) : (
+                    <div
+                      className={`relative flex h-full w-full flex-col items-center justify-between rounded-lg border-2 border-dashed bg-[#f7f9fe] px-5 pb-4 pt-3 text-center transition ${videoDragActive ? 'border-[#4f8bff] bg-[#edf3ff]' : 'border-[#9cb8ea]'} ${isMediaEditable ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
+                      onClick={() => {
+                        if (!isMediaEditable) return;
+                        document.getElementById('video-upload-input')?.click();
+                      }}
+                      onDragEnter={(event) => {
+                        if (!isMediaEditable) return;
+                        event.preventDefault();
+                        setVideoDragActive(true);
+                      }}
+                      onDragOver={(event) => {
+                        if (!isMediaEditable) return;
+                        event.preventDefault();
+                        setVideoDragActive(true);
+                      }}
+                      onDragLeave={(event) => {
+                        if (!isMediaEditable) return;
+                        event.preventDefault();
+                        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                          setVideoDragActive(false);
+                        }
+                      }}
+                      onDrop={(event) => {
+                        if (!isMediaEditable) return;
+                        event.preventDefault();
+                        setVideoDragActive(false);
+                        handleVideoFileSelect(event.dataTransfer.files?.[0]);
+                      }}
+                    >
+                      <div className="flex flex-1 flex-col items-center justify-center">
+                        <VideoUploadFrameIcon className="h-[72px] w-[72px] text-[#74addb]" />
+                        <div className="mt-1 flex flex-col items-center justify-center leading-tight">
+                          <span className="text-base font-semibold text-slate-800">Naloži video</span>
+                          <span className="mt-1 text-xs font-medium text-slate-500">(največ 100 MB)</span>
+                        </div>
+                      </div>
+                      <div className="mt-3 w-full max-w-[340px] pb-1">
+                        <div
+                          className="flex h-[30px] items-center gap-1 rounded-md border border-slate-200 bg-white px-1"
+                          onClick={(event) => event.stopPropagation()}
+                          onPointerDown={(event) => event.stopPropagation()}
+                        >
+                          <input
+                            className="h-full w-full border-0 bg-transparent px-1.5 text-sm text-slate-500 outline-none placeholder:font-normal placeholder:text-slate-300 placeholder:opacity-100 focus:ring-0"
+                            value={youtubeInput}
+                            disabled={!isMediaEditable}
+                            onChange={(event) => setYoutubeInput(event.target.value)}
+                            onPaste={(event) => {
+                              const pastedText = event.clipboardData.getData('text');
+                              const didEmbed = submitYoutubeVideo(pastedText);
+                              if (didEmbed) {
+                                event.preventDefault();
+                              }
+                            }}
+                            onBlur={() => {
+                              if (!youtubeInput.trim()) return;
+                              void submitYoutubeVideo(youtubeInput, { showError: true });
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key !== 'Enter') return;
+                              event.preventDefault();
+                              submitYoutubeVideo(youtubeInput, { showError: true });
+                            }}
+                            placeholder="https://youtube.com/watch?v=..."
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-xs text-slate-600">Predogled</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {(videoEntriesDraft.length ? videoEntriesDraft : videoEntriesSaved).slice(0, 4).map((entry) => (
-                        entry.source === 'youtube' ? (
-                          <iframe key={entry.id} title={`Predogled ${entry.id}`} className="h-16 w-full rounded border border-slate-200" src={entry.previewUrl} />
-                        ) : (
-                          <video key={entry.id} controls className="h-16 w-full rounded border border-slate-200 object-cover"><source src={entry.previewUrl} /></video>
-                        )
-                      ))}
-                    </div>
-                  </div>
+                  )}
                 </div>
                 <div className="overflow-hidden rounded-lg border border-slate-200">
                   <table className="min-w-full text-xs">
                     <thead className="bg-slate-50">
                       <tr>
-                        <th className="px-2 py-1.5 text-center" />
-                        <th className="px-2 py-1.5 text-left">Vir videa</th>
-                        <th className="px-2 py-1.5 text-center">Status</th>
+                        <th className="px-2 py-1.5 text-left">SKU</th>
+                        <th className="px-2 py-1.5 text-center">Tip</th>
+                        <th className="px-2 py-1.5 text-left">Video</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {videoEntriesDraft.map((entry) => (
-                        <tr key={entry.id} className="border-t border-slate-100">
-                          <td className="px-2 py-1.5 text-center">
-                            <AdminCheckbox checked={videoSelections.has(entry.id)} disabled={!isMediaEditable} onChange={() => setVideoSelections((current) => {
-                              const next = new Set(current);
-                              if (next.has(entry.id)) next.delete(entry.id); else next.add(entry.id);
-                              return next;
-                            })} />
+                      {draft.variants.map((variant) => {
+                        const hasVideoInCell = Boolean(videoDraft) && videoAssignedVariantId === variant.id;
+                        const canPlaceHere = Boolean(videoDraft) && isMediaEditable && videoMoveMode;
+                        return (
+                        <tr key={`variant-video-${variant.id}`} className="border-t border-slate-100">
+                          <td className="px-2 py-1.5">{variant.sku || '—'}</td>
+                          <td className="px-2 py-1.5 text-center">{hasVideoInCell ? (videoDraft?.source === 'youtube' ? 'YouTube' : 'Upload') : '—'}</td>
+                          <td className="px-2 py-1.5 text-left">
+                            <button
+                              type="button"
+                              disabled={!canPlaceHere && !hasVideoInCell}
+                              className={`inline-flex h-[18px] items-center gap-1 overflow-hidden rounded-md border px-1 text-[11px] transition ${hasVideoInCell ? 'border-slate-200 bg-white text-slate-600' : canPlaceHere ? 'border-[#9cb8ea] bg-[#f0f6ff] text-[#2f7dc5] hover:bg-[#e6f0ff]' : 'border-transparent bg-transparent text-slate-400'}`}
+                              onClick={() => {
+                                if (!canPlaceHere) return;
+                                setVideoAssignedVariantId(variant.id);
+                                setVideoMoveMode(false);
+                              }}
+                            >
+                              {hasVideoInCell ? (
+                                <span className="max-w-[120px] truncate">{videoDraft?.label}</span>
+                              ) : canPlaceHere ? 'Postavi video' : '—'}
+                            </button>
                           </td>
-                          <td className="px-2 py-1.5">{entry.source === 'youtube' ? 'YouTube povezava' : 'Naložen video'}</td>
-                          <td className="px-2 py-1.5 text-center"><VisibilityChip visible={entry.visible} editable={isMediaEditable} onChange={(next) => setVideoEntriesDraft((current) => current.map((video) => video.id === entry.id ? { ...video, visible: next } : video))} /></td>
                         </tr>
-                      ))}
+                      )})}
                     </tbody>
                   </table>
                 </div>
@@ -2405,33 +2618,184 @@ export default function AdminItemEditorPage({
           </table>
         </div>
       </section>
+      <Dialog
+        open={pendingMediaRemoval !== null}
+        onOpenChange={(open) => {
+          if (!open) closePendingMediaRemoval();
+        }}
+        title={pendingMediaRemoval?.type === 'image' ? 'Odstrani sliko' : 'Odstrani video'}
+        panelClassName="max-w-xs"
+        footer={(
+          <div className="mt-3 flex justify-end gap-2">
+            <Button type="button" variant="ghost" size="toolbar" onClick={closePendingMediaRemoval}>Prekliči</Button>
+            <Button type="button" variant="danger" size="toolbar" onClick={confirmPendingMediaRemoval}>Odstrani</Button>
+          </div>
+        )}
+      >
+        <p className="mt-2 text-sm text-slate-600">
+          {pendingMediaRemoval?.type === 'image'
+            ? 'Ali res želite odstraniti izbrano sliko?'
+            : 'Ali res želite odstraniti izbrani video?'}
+        </p>
+      </Dialog>
       {editingImageSlot !== null && mediaImagesDraft[editingImageSlot]
         ? createPortal(
           <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-slate-900/40 p-4">
             <div className="w-full max-w-3xl rounded-xl border border-slate-200 bg-white p-3 shadow-2xl">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-sm font-semibold text-slate-800">Urejanje slike {editingImageSlot + 1}</span>
-                <button type="button" className="text-xs text-slate-500 hover:text-slate-700" onClick={() => setEditingImageSlot(null)}>Zapri</button>
+                <Button type="button" variant="close-x" onClick={() => setEditingImageSlot(null)} aria-label="Zapri urejanje slike" title="Zapri">×</Button>
               </div>
               <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_240px]">
                 <div
-                  className="relative aspect-square overflow-hidden rounded-md border border-slate-200 bg-slate-100"
-                  onClick={(event) => {
+                  className="relative aspect-square cursor-crosshair overflow-hidden rounded-md border border-slate-200 bg-slate-100"
+                  style={{ touchAction: 'none' }}
+                  onPointerDown={(event) => {
                     const rect = event.currentTarget.getBoundingClientRect();
-                    const x = ((event.clientX - rect.left) / rect.width) * 100;
-                    const y = ((event.clientY - rect.top) / rect.height) * 100;
-                    updateImageSettings(editingImageSlot, { focusX: Math.max(0, Math.min(100, x)), focusY: Math.max(0, Math.min(100, y)) });
+                    const pointX = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
+                    const pointY = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
+                    const target = event.target as HTMLElement;
+                    const action = target.dataset.focusAction as FocusInteractionMode | undefined;
+                    const existingRect = ensureImageSettings(editingImageSlot).focusRect;
+                    if (action && existingRect) {
+                      focusInteractionRef.current = { mode: action, startX: pointX, startY: pointY, originRect: existingRect };
+                      const initialDraft = {
+                        startX: existingRect.left,
+                        startY: existingRect.top,
+                        endX: existingRect.left + existingRect.width,
+                        endY: existingRect.top + existingRect.height
+                      };
+                      focusSelectionDraftRef.current = initialDraft;
+                      setFocusSelectionDraft(initialDraft);
+                    } else {
+                      focusInteractionRef.current = { mode: 'create', startX: pointX, startY: pointY, originRect: null };
+                      const initialDraft = { startX: pointX, startY: pointY, endX: pointX, endY: pointY };
+                      focusSelectionDraftRef.current = initialDraft;
+                      setFocusSelectionDraft(initialDraft);
+                    }
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                  }}
+                  onPointerMove={(event) => {
+                    const interaction = focusInteractionRef.current;
+                    if (!interaction) return;
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    const pointX = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
+                    const pointY = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
+                    let nextRect: ThumbnailFocusRect | null = null;
+                    if (interaction.mode === 'create') {
+                      nextRect = clampRectWithinBounds(toRectFromPoints(interaction.startX, interaction.startY, pointX, pointY));
+                    } else if (interaction.mode === 'move' && interaction.originRect) {
+                      const deltaX = pointX - interaction.startX;
+                      const deltaY = pointY - interaction.startY;
+                      nextRect = clampRectWithinBounds({
+                        left: interaction.originRect.left + deltaX,
+                        top: interaction.originRect.top + deltaY,
+                        width: interaction.originRect.width,
+                        height: interaction.originRect.height
+                      });
+                    } else if (interaction.originRect) {
+                      const originLeft = interaction.originRect.left;
+                      const originTop = interaction.originRect.top;
+                      const originRight = interaction.originRect.left + interaction.originRect.width;
+                      const originBottom = interaction.originRect.top + interaction.originRect.height;
+                      let left = originLeft;
+                      let right = originRight;
+                      let top = originTop;
+                      let bottom = originBottom;
+                      if (interaction.mode === 'resize-nw') {
+                        left = pointX;
+                        top = pointY;
+                      } else if (interaction.mode === 'resize-ne') {
+                        right = pointX;
+                        top = pointY;
+                      } else if (interaction.mode === 'resize-se') {
+                        right = pointX;
+                        bottom = pointY;
+                      } else if (interaction.mode === 'resize-sw') {
+                        left = pointX;
+                        bottom = pointY;
+                      }
+                      nextRect = clampRectWithinBounds({
+                        left: Math.min(left, right),
+                        top: Math.min(top, bottom),
+                        width: Math.abs(right - left),
+                        height: Math.abs(bottom - top)
+                      });
+                    }
+                    if (!nextRect) return;
+                    const nextDraft = {
+                      startX: nextRect.left,
+                      startY: nextRect.top,
+                      endX: nextRect.left + nextRect.width,
+                      endY: nextRect.top + nextRect.height
+                    };
+                    focusSelectionDraftRef.current = nextDraft;
+                    setFocusSelectionDraft(nextDraft);
+                  }}
+                  onPointerUp={(event) => {
+                    const interaction = focusInteractionRef.current;
+                    const activeDraft = focusSelectionDraftRef.current;
+                    if (!activeDraft) return;
+                    const createdRect = toRectFromPoints(activeDraft.startX, activeDraft.startY, activeDraft.endX, activeDraft.endY);
+                    if (interaction?.mode === 'create' && (createdRect.width < 1 || createdRect.height < 1)) {
+                      focusInteractionRef.current = null;
+                      focusSelectionDraftRef.current = null;
+                      setFocusSelectionDraft(null);
+                      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                        event.currentTarget.releasePointerCapture(event.pointerId);
+                      }
+                      return;
+                    }
+                    const nextRect = normalizeThumbnailFocusRect(createdRect);
+                    updateImageSettings(editingImageSlot, {
+                      focusRect: nextRect,
+                      focusX: nextRect.left + nextRect.width / 2,
+                      focusY: nextRect.top + nextRect.height / 2
+                    });
+                    focusInteractionRef.current = null;
+                    focusSelectionDraftRef.current = null;
+                    setFocusSelectionDraft(null);
+                    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                      event.currentTarget.releasePointerCapture(event.pointerId);
+                    }
+                  }}
+                  onPointerCancel={() => {
+                    focusInteractionRef.current = null;
+                    focusSelectionDraftRef.current = null;
+                    setFocusSelectionDraft(null);
+                  }}
+                  onLostPointerCapture={() => {
+                    focusInteractionRef.current = null;
+                    focusSelectionDraftRef.current = null;
+                    setFocusSelectionDraft(null);
                   }}
                 >
                   <Image src={mediaImagesDraft[editingImageSlot]} alt={`Urejanje slike ${editingImageSlot + 1}`} fill unoptimized className="object-cover" />
-                  <span
-                    className="pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white bg-[#3e67d6] shadow"
-                    style={{ left: `${ensureImageSettings(editingImageSlot).focusX}%`, top: `${ensureImageSettings(editingImageSlot).focusY}%` }}
-                  />
+                  {(() => {
+                    const focusRect = getActiveFocusRect(editingImageSlot);
+                    if (!focusRect) return null;
+                    return (
+                      <span
+                        data-focus-action="move"
+                        className="absolute rounded-[2px] border border-slate-700 border-dashed bg-transparent"
+                        style={{
+                          left: `${focusRect.left}%`,
+                          top: `${focusRect.top}%`,
+                          width: `${focusRect.width}%`,
+                          height: `${focusRect.height}%`
+                        }}
+                      >
+                        <span data-focus-action="resize-nw" className="absolute -left-1.5 -top-1.5 h-3 w-3 cursor-nwse-resize rounded-sm border border-slate-600 bg-white shadow-sm" />
+                        <span data-focus-action="resize-ne" className="absolute -right-1.5 -top-1.5 h-3 w-3 cursor-nesw-resize rounded-sm border border-slate-600 bg-white shadow-sm" />
+                        <span data-focus-action="resize-se" className="absolute -bottom-1.5 -right-1.5 h-3 w-3 cursor-nwse-resize rounded-sm border border-slate-600 bg-white shadow-sm" />
+                        <span data-focus-action="resize-sw" className="absolute -bottom-1.5 -left-1.5 h-3 w-3 cursor-nesw-resize rounded-sm border border-slate-600 bg-white shadow-sm" />
+                      </span>
+                    );
+                  })()}
                 </div>
                 <div className="space-y-2">
                   <div>
-                    <label className="mb-1 block text-[11px] text-slate-600">Alt besedilo</label>
+                    <label className="mb-1 block text-[11px] font-bold text-slate-600">Alt besedilo</label>
                     <input
                       className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-900 outline-none focus:border-[#3e67d6]"
                       value={ensureImageSettings(editingImageSlot).altText}
@@ -2440,8 +2804,48 @@ export default function AdminItemEditorPage({
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-[11px] text-slate-600">Fokus slike</label>
-                    <p className="text-[11px] text-slate-500">Kliknite na predogled, da nastavite fokus prikaza.</p>
+                    <label className="mb-1 block text-[11px] font-bold text-slate-600">Fokus slike</label>
+                    <div className="mt-2 inline-flex h-[100px] w-[140px] items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-slate-100">
+                      <div className="relative h-full w-full p-1">
+                        {(() => {
+                          const focusRect = ensureImageSettings(editingImageSlot).focusRect;
+                          if (!focusRect) {
+                            return (
+                              <div className="relative h-full w-full overflow-hidden rounded-sm">
+                                <Image
+                                  src={mediaImagesDraft[editingImageSlot]}
+                                  alt={`Predogled sličice ${editingImageSlot + 1}`}
+                                  fill
+                                  unoptimized
+                                  className="object-cover"
+                                />
+                              </div>
+                            );
+                          }
+                          const cropRatio = focusRect.width / focusRect.height;
+                          const frameRatio = 140 / 100;
+                          const previewWidthPct = cropRatio >= frameRatio ? 100 : (cropRatio / frameRatio) * 100;
+                          const previewHeightPct = cropRatio >= frameRatio ? (frameRatio / cropRatio) * 100 : 100;
+                          const backgroundWidth = (100 / focusRect.width) * 100;
+                          const backgroundHeight = (100 / focusRect.height) * 100;
+                          const backgroundPosX = (focusRect.left / (100 - focusRect.width)) * 100;
+                          const backgroundPosY = (focusRect.top / (100 - focusRect.height)) * 100;
+                          return (
+                            <div
+                              className="absolute left-1/2 top-1/2 bg-no-repeat"
+                              style={{
+                                width: `${previewWidthPct}%`,
+                                height: `${previewHeightPct}%`,
+                                transform: 'translate(-50%, -50%)',
+                                backgroundImage: `url(${mediaImagesDraft[editingImageSlot]})`,
+                                backgroundSize: `${backgroundWidth}% ${backgroundHeight}%`,
+                                backgroundPosition: `${Number.isFinite(backgroundPosX) ? backgroundPosX : 50}% ${Number.isFinite(backgroundPosY) ? backgroundPosY : 50}%`
+                              }}
+                            />
+                          );
+                        })()}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

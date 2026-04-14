@@ -1,13 +1,12 @@
 'use client';
 
-import Link from 'next/link';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { Chip } from '@/shared/ui/badge';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
-import { ColumnFilterIcon, DownloadIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { ColumnFilterIcon, DownloadIcon, OrdersTrashIcon, PencilIcon, SaveIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActionsDropdown, Table, THead, TH, TR } from '@/shared/ui/table';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
@@ -41,6 +40,9 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   const [expandedFamilyIds, setExpandedFamilyIds] = useState<Set<string>>(new Set());
   const [selectedFamilyIds, setSelectedFamilyIds] = useState<Set<string>>(new Set());
   const [selectedVariantIds, setSelectedVariantIds] = useState<Set<string>>(new Set());
+  const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
+  const [deletedVariantIds, setDeletedVariantIds] = useState<Set<string>>(new Set());
+  const [variantDrafts, setVariantDrafts] = useState<Record<string, { label: string; sku: string; price: number; discountPct: number; stock: number; active: boolean }>>({});
 
   const families = useMemo(() => buildFamiliesFromSeed(seedItems), [seedItems]);
   const categories = useMemo(() => Array.from(new Set(families.map((family) => family.category))).sort((a, b) => a.localeCompare(b, 'sl')), [families]);
@@ -117,6 +119,27 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
 
   const allVisibleFamilyIds = useMemo(() => new Set(pagedFamilies.map((family) => family.id)), [pagedFamilies]);
   const familiesSelectedOnPage = pagedFamilies.length > 0 && pagedFamilies.every((family) => selectedFamilyIds.has(family.id));
+  const startVariantEdit = (variant: Variant) => {
+    setEditingVariantId(variant.id);
+    setVariantDrafts((current) => ({
+      ...current,
+      [variant.id]: {
+        label: variantLabel(variant),
+        sku: variant.sku,
+        price: variant.price,
+        discountPct: variant.discountPct,
+        stock: variant.stock,
+        active: variant.active
+      }
+    }));
+  };
+  const saveVariantEdit = (variantId: string) => setEditingVariantId((current) => (current === variantId ? null : current));
+  const removeVariantRow = (variantId: string) =>
+    setDeletedVariantIds((current) => {
+      const next = new Set(current);
+      next.add(variantId);
+      return next;
+    });
 
   return (
     <div className="space-y-4 font-['Inter',system-ui,sans-serif]">
@@ -223,7 +246,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                     </button>
                     {openFilter === 'category' ? (
                       <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
-                        <MenuPanel className="w-64">
+                        <MenuPanel className="w-52">
                           {[{ value: 'all', label: 'Vse kategorije' }, ...categories.map((category) => ({ value: category, label: category }))].map(
                             (option) => (
                               <MenuItem
@@ -300,7 +323,9 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
             <tbody>
               {pagedFamilies.map((family) => {
                 const isExpanded = expandedFamilyIds.has(family.id);
-                const visibleVariants = family.variants.filter((variant) => variantLabel(variant) !== 'Osnovna različica');
+                const visibleVariants = family.variants.filter(
+                  (variant) => variantLabel(variant) !== 'Osnovna različica' && !deletedVariantIds.has(variant.id)
+                );
                 const prices = family.variants.map((variant) => variant.price);
                 const minPrice = prices.length ? Math.min(...prices) : 0;
                 const maxPrice = prices.length ? Math.max(...prices) : 0;
@@ -329,9 +354,191 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                       <td className="px-2 py-3 text-center"><Chip variant={family.active ? 'success' : 'warning'}>{statusLabel(family.active)}</Chip></td>
                       <td className="px-2 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'edit', label: 'Uredi', onSelect: () => (window.location.href = `/admin/artikli/${encodeURIComponent(family.id)}`) }]} /></td>
                     </tr>
-                    {isExpanded ? <tr className="border-t border-slate-100 bg-slate-50/70"><td /><td colSpan={7} className="p-0"><table className="w-full text-[12px]"><thead><tr className="border-b border-slate-200 text-slate-600"><th className="px-2 py-2" /><th className="px-2 py-2 text-left">Različica</th><th className="px-2 py-2 text-left">SKU</th><th className="px-2 py-2 text-right">Cena</th><th className="px-2 py-2 text-center">Popust</th><th className="px-2 py-2 text-right">Akcijska cena</th><th className="px-2 py-2 text-right">Zaloga</th><th className="px-2 py-2 text-center">Status</th><th className="px-2 py-2 text-center">Uredi</th></tr></thead><tbody>{visibleVariants.map((variant) => <tr key={variant.id} className="border-t border-slate-100"><td className="px-2 py-2 text-center"><AdminCheckbox checked={selectedVariantIds.has(variant.id)} onChange={() => setSelectedVariantIds((current) => {
-                      const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next;
-                    })} /></td><td className="px-2 py-2 font-medium">{variantLabel(variant)}</td><td className="px-2 py-2">{variant.sku}</td><td className="px-2 py-2 text-right">{formatCurrency(variant.price)}</td><td className="px-2 py-2 text-center text-emerald-700">{variant.discountPct}%</td><td className="px-2 py-2 text-right">{formatCurrency(computeSalePrice(variant.price, variant.discountPct))}</td><td className="px-2 py-2 text-right">{variant.stock}</td><td className="px-2 py-2 text-center"><Chip variant={variant.active ? 'success' : 'warning'}>{statusLabel(variant.active)}</Chip></td><td className="px-2 py-2 text-center"><Link href={`/admin/artikli/${encodeURIComponent(family.id)}`} className="text-[#2f66dd] hover:underline">Uredi</Link></td></tr>)}</tbody></table></td></tr> : null}
+                    {isExpanded ? (
+                      <tr className="border-t border-slate-100 bg-slate-50/70">
+                        <td />
+                        <td colSpan={7} className="p-0">
+                          <table className="w-full text-[12px]">
+                            <thead>
+                              <tr className="border-b border-slate-200 text-slate-600">
+                                <th className="px-2 py-2" />
+                                <th className="px-2 py-2 text-left">Različica</th>
+                                <th className="px-2 py-2 text-left">SKU</th>
+                                <th className="px-2 py-2 text-right">Cena</th>
+                                <th className="px-2 py-2 text-center">Popust</th>
+                                <th className="px-2 py-2 text-right">Akcijska cena</th>
+                                <th className="px-2 py-2 text-right">Zaloga</th>
+                                <th className="px-2 py-2 text-center">Status</th>
+                                <th className="px-2 py-2 text-center">Uredi</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {visibleVariants.map((variant) => {
+                                const isEditing = editingVariantId === variant.id;
+                                const draft = variantDrafts[variant.id] ?? {
+                                  label: variantLabel(variant),
+                                  sku: variant.sku,
+                                  price: variant.price,
+                                  discountPct: variant.discountPct,
+                                  stock: variant.stock,
+                                  active: variant.active
+                                };
+                                const actionPrice = computeSalePrice(draft.price, draft.discountPct);
+                                return (
+                                  <tr key={variant.id} className="border-t border-slate-100">
+                                    <td className="px-2 py-2 text-center">
+                                      <AdminCheckbox
+                                        checked={selectedVariantIds.has(variant.id)}
+                                        onChange={() =>
+                                          setSelectedVariantIds((current) => {
+                                            const next = new Set(current);
+                                            if (next.has(variant.id)) next.delete(variant.id);
+                                            else next.add(variant.id);
+                                            return next;
+                                          })
+                                        }
+                                      />
+                                    </td>
+                                    <td className="px-2 py-2 font-medium">
+                                      {isEditing ? (
+                                        <input
+                                          className="h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                                          value={draft.label}
+                                          onChange={(event) =>
+                                            setVariantDrafts((current) => ({
+                                              ...current,
+                                              [variant.id]: { ...draft, label: event.target.value }
+                                            }))
+                                          }
+                                        />
+                                      ) : (
+                                        draft.label
+                                      )}
+                                    </td>
+                                    <td className="px-2 py-2">
+                                      {isEditing ? (
+                                        <input
+                                          className="h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                                          value={draft.sku}
+                                          onChange={(event) =>
+                                            setVariantDrafts((current) => ({
+                                              ...current,
+                                              [variant.id]: { ...draft, sku: event.target.value }
+                                            }))
+                                          }
+                                        />
+                                      ) : (
+                                        draft.sku
+                                      )}
+                                    </td>
+                                    <td className="px-2 py-2 text-right">
+                                      {isEditing ? (
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          className="h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-right text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                                          value={draft.price}
+                                          onChange={(event) =>
+                                            setVariantDrafts((current) => ({
+                                              ...current,
+                                              [variant.id]: { ...draft, price: Number(event.target.value) || 0 }
+                                            }))
+                                          }
+                                        />
+                                      ) : (
+                                        formatCurrency(draft.price)
+                                      )}
+                                    </td>
+                                    <td className="px-2 py-2 text-center text-emerald-700">
+                                      {isEditing ? (
+                                        <input
+                                          type="number"
+                                          min={0}
+                                          max={100}
+                                          className="h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-center text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                                          value={draft.discountPct}
+                                          onChange={(event) =>
+                                            setVariantDrafts((current) => ({
+                                              ...current,
+                                              [variant.id]: { ...draft, discountPct: Number(event.target.value) || 0 }
+                                            }))
+                                          }
+                                        />
+                                      ) : (
+                                        `${draft.discountPct}%`
+                                      )}
+                                    </td>
+                                    <td className="px-2 py-2 text-right">{formatCurrency(actionPrice)}</td>
+                                    <td className="px-2 py-2 text-right">
+                                      {isEditing ? (
+                                        <input
+                                          type="number"
+                                          className="h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-right text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                                          value={draft.stock}
+                                          onChange={(event) =>
+                                            setVariantDrafts((current) => ({
+                                              ...current,
+                                              [variant.id]: { ...draft, stock: Number(event.target.value) || 0 }
+                                            }))
+                                          }
+                                        />
+                                      ) : (
+                                        draft.stock
+                                      )}
+                                    </td>
+                                    <td className="px-2 py-2 text-center">
+                                      {isEditing ? (
+                                        <select
+                                          className="h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                                          value={draft.active ? 'active' : 'hidden'}
+                                          onChange={(event) =>
+                                            setVariantDrafts((current) => ({
+                                              ...current,
+                                              [variant.id]: { ...draft, active: event.target.value === 'active' }
+                                            }))
+                                          }
+                                        >
+                                          <option value="active">Aktiven</option>
+                                          <option value="hidden">Skrit</option>
+                                        </select>
+                                      ) : (
+                                        <Chip variant={draft.active ? 'success' : 'warning'}>{statusLabel(draft.active)}</Chip>
+                                      )}
+                                    </td>
+                                    <td className="px-2 py-2 text-center">
+                                      <RowActionsDropdown
+                                        label={`Uredi ${variant.sku}`}
+                                        items={[
+                                          {
+                                            key: 'edit',
+                                            label: 'Uredi',
+                                            icon: <PencilIcon />,
+                                            onSelect: () => startVariantEdit(variant)
+                                          },
+                                          {
+                                            key: 'save',
+                                            label: 'Shrani',
+                                            icon: <SaveIcon />,
+                                            disabled: !isEditing,
+                                            onSelect: () => saveVariantEdit(variant.id)
+                                          },
+                                          {
+                                            key: 'delete',
+                                            label: 'Izbriši',
+                                            icon: <OrdersTrashIcon />,
+                                            onSelect: () => removeVariantRow(variant.id)
+                                          }
+                                        ]}
+                                      />
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                    ) : null}
                   </Fragment>
                 );
               })}

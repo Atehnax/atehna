@@ -384,12 +384,12 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                     aria-label="Izberi vse družine"
                   />
                 </TH>
-                <TH className="w-[30%]">
+                <TH className="w-[27%]">
                   <button type="button" className={getSortTitleClass('article')} onClick={() => cycleSort('article')}>
                     Artikel
                   </button>
                 </TH>
-                <TH className="w-[30%]">
+                <TH className="w-[27%]">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('category')} onClick={() => cycleSort('category')}>
                       Kategorija
@@ -466,7 +466,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                     ) : null}
                   </div>
                 </TH>
-                <TH>
+                <TH className="w-[18%]">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('priceRange')} onClick={() => cycleSort('priceRange')}>
                       Razpon cen
@@ -606,10 +606,10 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                               <tr className="border-b border-slate-200 text-slate-600">
                                 <th className="px-2 py-2" />
                                 <th className="px-2 py-2 text-left">Različica</th>
-                                <th className="px-2 py-2 text-left">SKU</th>
+                                <th className="w-[14%] px-2 py-2 text-left">SKU</th>
                                 <th className="px-2 py-2 text-right">Cena</th>
                                 <th className="px-2 py-2 text-center">Popust</th>
-                                <th className="px-2 py-2 text-right">Akcijska cena</th>
+                                <th className="w-[14%] px-2 py-2 text-right">Akcijska cena</th>
                                 <th className="px-2 py-2 text-right">Zaloga</th>
                                 <th className="px-2 py-2 text-center">Min/nar.</th>
                                 <th className="px-2 py-2 text-center">Status</th>

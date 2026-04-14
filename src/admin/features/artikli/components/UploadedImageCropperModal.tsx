@@ -26,6 +26,7 @@ export default function UploadedImageCropperModal({
   const hostRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const cropperRef = useRef<Cropper | null>(null);
+  const pendingViewportRebaseRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
   const livePreviewUrlRef = useRef<string | null>(null);
   const workingImageObjectUrlRef = useRef<string | null>(null);
   const appliedCropBlobRef = useRef<Blob | null>(null);
@@ -122,7 +123,17 @@ export default function UploadedImageCropperModal({
       forceLayoutRefresh();
     });
     resizeObserver.observe(host);
-    void cropper.getCropperImage()?.$ready(() => {
+    void cropper.getCropperImage()?.$ready((nativeImage) => {
+      const pendingRebase = pendingViewportRebaseRef.current;
+      if (pendingRebase) {
+        const cropperImage = cropper.getCropperImage();
+        if (cropperImage && nativeImage.naturalWidth > 0 && nativeImage.naturalHeight > 0) {
+          const scaleX = pendingRebase.width / nativeImage.naturalWidth;
+          const scaleY = pendingRebase.height / nativeImage.naturalHeight;
+          cropperImage.$setTransform(scaleX, 0, 0, scaleY, pendingRebase.x, pendingRebase.y);
+        }
+        pendingViewportRebaseRef.current = null;
+      }
       forceLayoutRefresh();
     });
     requestAnimationFrame(() => {
@@ -186,6 +197,12 @@ export default function UploadedImageCropperModal({
     const selection = cropperRef.current?.getCropperSelection();
     if (!selection) return;
     if (selection.hidden || selection.width < 2 || selection.height < 2) return;
+    pendingViewportRebaseRef.current = {
+      x: selection.x,
+      y: selection.y,
+      width: selection.width,
+      height: selection.height
+    };
     const canvas = await selection.$toCanvas();
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.92));
     if (!blob) return;

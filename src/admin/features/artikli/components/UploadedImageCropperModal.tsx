@@ -77,7 +77,6 @@ export default function UploadedImageCropperModal({
   const refreshCropperLayout = useCallback(() => {
     const cropperSelection = cropperRef.current?.getCropperSelection();
     if (!cropperSelection) return;
-    cropperSelection.$center();
     cropperSelection.$render();
   }, []);
 
@@ -127,10 +126,15 @@ export default function UploadedImageCropperModal({
       const pendingRebase = pendingViewportRebaseRef.current;
       if (pendingRebase) {
         const cropperImage = cropper.getCropperImage();
+        const cropperSelection = cropper.getCropperSelection();
         if (cropperImage && nativeImage.naturalWidth > 0 && nativeImage.naturalHeight > 0) {
           const scaleX = pendingRebase.width / nativeImage.naturalWidth;
           const scaleY = pendingRebase.height / nativeImage.naturalHeight;
           cropperImage.$setTransform(scaleX, 0, 0, scaleY, pendingRebase.x, pendingRebase.y);
+        }
+        if (cropperSelection) {
+          cropperSelection.hidden = false;
+          cropperSelection.$change(pendingRebase.x, pendingRebase.y, pendingRebase.width, pendingRebase.height);
         }
         pendingViewportRebaseRef.current = null;
       }

@@ -25,7 +25,6 @@ import {
 
 type StatusFilter = 'all' | 'active' | 'hidden';
 type DiscountFilter = 'all' | 'yes' | 'no';
-type ListMode = 'families' | 'variants';
 type OpenFilter = 'category' | 'status' | 'discount' | null;
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
@@ -35,7 +34,6 @@ const formatPriceRange = (minPrice: number, maxPrice: number) =>
 
 export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTuple[] }) {
   const [search, setSearch] = useState('');
-  const [mode, setMode] = useState<ListMode>('families');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [discountFilter, setDiscountFilter] = useState<DiscountFilter>('all');
@@ -43,7 +41,6 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   const [expandedFamilyIds, setExpandedFamilyIds] = useState<Set<string>>(new Set());
   const [selectedFamilyIds, setSelectedFamilyIds] = useState<Set<string>>(new Set());
   const [selectedVariantIds, setSelectedVariantIds] = useState<Set<string>>(new Set());
-  const [createModePickerOpen, setCreateModePickerOpen] = useState(false);
 
   const families = useMemo(() => buildFamiliesFromSeed(seedItems), [seedItems]);
   const categories = useMemo(() => Array.from(new Set(families.map((family) => family.category))).sort((a, b) => a.localeCompare(b, 'sl')), [families]);
@@ -78,7 +75,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
     return rows;
   }, [filteredFamilies]);
 
-  const paginationTotal = mode === 'families' ? filteredFamilies.length : flatVariants.length;
+  const paginationTotal = filteredFamilies.length;
   const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
     totalCount: paginationTotal,
     storageKey: 'adminArtikli.families.pageSize',
@@ -87,20 +84,13 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   });
 
   const pagedFamilies = useMemo(() => {
-    if (mode !== 'families') return [];
     const start = (page - 1) * pageSize;
     return filteredFamilies.slice(start, start + pageSize);
-  }, [filteredFamilies, mode, page, pageSize]);
-
-  const pagedVariants = useMemo(() => {
-    if (mode !== 'variants') return [];
-    const start = (page - 1) * pageSize;
-    return flatVariants.slice(start, start + pageSize);
-  }, [flatVariants, mode, page, pageSize]);
+  }, [filteredFamilies, page, pageSize]);
 
   useEffect(() => {
     setPage(1);
-  }, [categoryFilter, discountFilter, mode, search, setPage, statusFilter]);
+  }, [categoryFilter, discountFilter, search, setPage, statusFilter]);
 
   const exportVariantsCsv = () => {
     const headers = ['Družina', 'Različica', 'SKU', 'Cena', 'Popust', 'Akcijska cena', 'Zaloga', 'Status'];
@@ -146,10 +136,6 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                 className="!m-0 !h-7 min-w-0 w-full flex-1 !rounded-md !border-0 !bg-transparent !shadow-none !outline-none ring-0 transition-colors placeholder:text-slate-400 [--euiFormControlStateWidth:0px] focus:[--euiFormControlStateWidth:0px] focus-visible:[--euiFormControlStateWidth:0px] focus:!border-0 focus:!shadow-none focus:!outline-none focus-visible:!border-0 focus-visible:!shadow-none focus-visible:!outline-none"
               />
             </div>
-            <div className="inline-flex rounded-lg border border-slate-200 p-0.5 text-xs font-semibold">
-              <button type="button" className={`rounded-md px-3 py-1.5 ${mode === 'families' ? 'bg-[#2f66dd] text-white' : 'text-slate-600'}`} onClick={() => setMode('families')}>Družine</button>
-              <button type="button" className={`rounded-md px-3 py-1.5 ${mode === 'variants' ? 'bg-[#2f66dd] text-white' : 'text-slate-600'}`} onClick={() => setMode('variants')}>Različice</button>
-            </div>
           </div>
         }
         headerRight={
@@ -158,23 +144,17 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
               <DownloadIcon />
               Izvozi CSV
             </Button>
-            <div className="relative">
-              <Button
-                type="button"
-                variant="primary"
-                size="toolbar"
-                aria-label="Dodaj artikel"
-                onClick={() => setCreateModePickerOpen((current) => !current)}
-              >
-                Dodaj artikel
-              </Button>
-              {createModePickerOpen ? (
-                <div className="absolute right-0 top-10 z-20 w-56 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
-                  <Link href="/admin/artikli/nov?tip=simple" className="block w-full rounded-md px-3 py-2 text-left text-sm hover:bg-slate-100">Enostaven artikel</Link>
-                  <Link href="/admin/artikli/nov?tip=variants" className="block w-full rounded-md px-3 py-2 text-left text-sm hover:bg-slate-100">Artikel z različicami</Link>
-                </div>
-              ) : null}
-            </div>
+            <Button
+              type="button"
+              variant="primary"
+              size="toolbar"
+              aria-label="Dodaj artikel"
+              onClick={() => {
+                window.location.href = '/admin/artikli/nov';
+              }}
+            >
+              Dodaj artikel
+            </Button>
           </div>
         }
         filterRowLeft={
@@ -209,8 +189,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
         contentClassName="overflow-x-auto overflow-y-visible bg-white"
         footerRight={<EuiTablePagination page={page} pageCount={pageCount} onPageChange={setPage} itemsPerPage={pageSize} onChangeItemsPerPage={setPageSize} itemsPerPageOptions={PAGE_SIZE_OPTIONS} />}
       >
-        {mode === 'families' ? (
-          <Table className="w-full table-fixed text-[12px]">
+        <Table className="w-full table-fixed text-[12px]">
             <THead>
               <TR>
                 <TH className="w-10 px-2 text-center">
@@ -244,7 +223,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                     </button>
                     {openFilter === 'category' ? (
                       <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
-                        <MenuPanel className="w-44">
+                        <MenuPanel className="w-64">
                           {[{ value: 'all', label: 'Vse kategorije' }, ...categories.map((category) => ({ value: category, label: category }))].map(
                             (option) => (
                               <MenuItem
@@ -315,7 +294,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                     ) : null}
                   </div>
                 </TH>
-                <TH className="w-20 text-center">Akcije</TH>
+                <TH className="w-20 text-center">Uredi</TH>
               </TR>
             </THead>
             <tbody>
@@ -350,64 +329,14 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                       <td className="px-2 py-3 text-center"><Chip variant={family.active ? 'success' : 'warning'}>{statusLabel(family.active)}</Chip></td>
                       <td className="px-2 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'edit', label: 'Uredi', onSelect: () => (window.location.href = `/admin/artikli/${encodeURIComponent(family.id)}`) }]} /></td>
                     </tr>
-                    {isExpanded ? <tr className="border-t border-slate-100 bg-slate-50/70"><td /><td colSpan={7} className="p-0"><table className="w-full text-[12px]"><thead><tr className="border-b border-slate-200 text-slate-600"><th className="px-2 py-2" /><th className="px-2 py-2 text-left">Različica</th><th className="px-2 py-2 text-left">SKU</th><th className="px-2 py-2 text-right">Cena</th><th className="px-2 py-2 text-center">Popust</th><th className="px-2 py-2 text-right">Akcijska cena</th><th className="px-2 py-2 text-right">Zaloga</th><th className="px-2 py-2 text-center">Status</th></tr></thead><tbody>{visibleVariants.map((variant) => <tr key={variant.id} className="border-t border-slate-100"><td className="px-2 py-2 text-center"><AdminCheckbox checked={selectedVariantIds.has(variant.id)} onChange={() => setSelectedVariantIds((current) => {
+                    {isExpanded ? <tr className="border-t border-slate-100 bg-slate-50/70"><td /><td colSpan={7} className="p-0"><table className="w-full text-[12px]"><thead><tr className="border-b border-slate-200 text-slate-600"><th className="px-2 py-2" /><th className="px-2 py-2 text-left">Različica</th><th className="px-2 py-2 text-left">SKU</th><th className="px-2 py-2 text-right">Cena</th><th className="px-2 py-2 text-center">Popust</th><th className="px-2 py-2 text-right">Akcijska cena</th><th className="px-2 py-2 text-right">Zaloga</th><th className="px-2 py-2 text-center">Status</th><th className="px-2 py-2 text-center">Uredi</th></tr></thead><tbody>{visibleVariants.map((variant) => <tr key={variant.id} className="border-t border-slate-100"><td className="px-2 py-2 text-center"><AdminCheckbox checked={selectedVariantIds.has(variant.id)} onChange={() => setSelectedVariantIds((current) => {
                       const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next;
-                    })} /></td><td className="px-2 py-2 font-medium">{variantLabel(variant)}</td><td className="px-2 py-2">{variant.sku}</td><td className="px-2 py-2 text-right">{formatCurrency(variant.price)}</td><td className="px-2 py-2 text-center text-emerald-700">{variant.discountPct}%</td><td className="px-2 py-2 text-right">{formatCurrency(computeSalePrice(variant.price, variant.discountPct))}</td><td className="px-2 py-2 text-right">{variant.stock}</td><td className="px-2 py-2 text-center"><Chip variant={variant.active ? 'success' : 'warning'}>{statusLabel(variant.active)}</Chip></td></tr>)}</tbody></table></td></tr> : null}
+                    })} /></td><td className="px-2 py-2 font-medium">{variantLabel(variant)}</td><td className="px-2 py-2">{variant.sku}</td><td className="px-2 py-2 text-right">{formatCurrency(variant.price)}</td><td className="px-2 py-2 text-center text-emerald-700">{variant.discountPct}%</td><td className="px-2 py-2 text-right">{formatCurrency(computeSalePrice(variant.price, variant.discountPct))}</td><td className="px-2 py-2 text-right">{variant.stock}</td><td className="px-2 py-2 text-center"><Chip variant={variant.active ? 'success' : 'warning'}>{statusLabel(variant.active)}</Chip></td><td className="px-2 py-2 text-center"><Link href={`/admin/artikli/${encodeURIComponent(family.id)}`} className="text-[#2f66dd] hover:underline">Uredi</Link></td></tr>)}</tbody></table></td></tr> : null}
                   </Fragment>
                 );
               })}
             </tbody>
           </Table>
-        ) : (
-          <Table className="w-full table-fixed text-[12px]">
-            <THead>
-              <TR>
-                <TH className="w-10 px-2 text-center">{' '}</TH>
-                <TH>Artikel</TH>
-                <TH>Različica</TH>
-                <TH>SKU</TH>
-                <TH>Cena</TH>
-                <TH className="text-center">Popust</TH>
-                <TH>Akcijska cena</TH>
-                <TH>Zaloga</TH>
-                <TH className="text-center">Status</TH>
-              </TR>
-            </THead>
-            <tbody>
-              {pagedVariants.map(({ family, variant }) => (
-                <tr key={variant.id} className={`border-t border-slate-100 bg-white ${adminTableRowToneClasses.hover}`}>
-                  <td className="w-10 px-2 py-2 text-center">
-                    <AdminCheckbox
-                      checked={selectedVariantIds.has(variant.id)}
-                      onChange={() =>
-                        setSelectedVariantIds((current) => {
-                          const next = new Set(current);
-                          if (next.has(variant.id)) next.delete(variant.id);
-                          else next.add(variant.id);
-                          return next;
-                        })
-                      }
-                    />
-                  </td>
-                  <td className="px-2 py-2 font-medium">
-                    <Link href={`/admin/artikli/${encodeURIComponent(family.id)}`} className="text-[#2f66dd] hover:underline">
-                      {family.name}
-                    </Link>
-                  </td>
-                  <td className="px-2 py-2">{variantLabel(variant)}</td>
-                  <td className="px-2 py-2">{variant.sku}</td>
-                  <td className="px-2 py-2">{formatCurrency(variant.price)}</td>
-                  <td className="px-2 py-2 text-center text-emerald-700">{variant.discountPct}%</td>
-                  <td className="px-2 py-2">{formatCurrency(computeSalePrice(variant.price, variant.discountPct))}</td>
-                  <td className="px-2 py-2">{variant.stock}</td>
-                  <td className="px-2 py-2 text-center">
-                    <Chip variant={variant.active ? 'success' : 'warning'}>{statusLabel(variant.active)}</Chip>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        )}
       </AdminTableLayout>
     </div>
   );

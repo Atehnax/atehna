@@ -39,6 +39,7 @@ import {
 } from '@/admin/features/artikli/lib/familyModel';
 import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/AdminCategoryBreadcrumbPicker';
 import OpisColorPopover from '@/admin/features/artikli/components/OpisColorPopover';
+import UploadedImageCropperModal from '@/admin/features/artikli/components/UploadedImageCropperModal';
 import Dialog from '@/shared/ui/dialog/dialog';
 
 const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0';
@@ -78,9 +79,7 @@ type VariantTag = 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
 type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 type VideoState = { source: 'upload' | 'youtube'; label: string; previewUrl: string };
-type ThumbnailFocusRect = { left: number; top: number; width: number; height: number };
-type ImageSettings = { altText: string; focusX: number; focusY: number; focusRect: ThumbnailFocusRect | null };
-type FocusInteractionMode = 'create' | 'move' | 'resize-nw' | 'resize-ne' | 'resize-se' | 'resize-sw';
+type ImageSettings = { altText: string };
 type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'price';
 const MEDIA_SLOT_COUNT = 7;
 const GALLERY_SMALL_SLOT_COUNT = 6;
@@ -1084,7 +1083,6 @@ export default function AdminItemEditorPage({
     priceRounding: '0.01',
     showOldPrice: true,
     showGallery: true,
-    autoSquareCrop: true,
     imageFocus: 'center',
     galleryMode: 'grid' as 'grid' | 'slider' | 'list',
     imageAltText: '',
@@ -1117,9 +1115,6 @@ export default function AdminItemEditorPage({
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>({});
   const [editingImageSlot, setEditingImageSlot] = useState<number | null>(null);
   const [imageSettings, setImageSettings] = useState<Record<number, ImageSettings>>({});
-  const [focusSelectionDraft, setFocusSelectionDraft] = useState<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
-  const focusSelectionDraftRef = useRef<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
-  const focusInteractionRef = useRef<{ mode: FocusInteractionMode; startX: number; startY: number; originRect: ThumbnailFocusRect | null } | null>(null);
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() =>
     (draft.category || '')
       .split('/')
@@ -1130,12 +1125,6 @@ export default function AdminItemEditorPage({
   useEffect(() => {
     setDraft((current) => ({ ...current, category: selectedCategoryPath.join(' / ') }));
   }, [selectedCategoryPath]);
-
-  useEffect(() => {
-    setFocusSelectionDraft(null);
-    focusSelectionDraftRef.current = null;
-    focusInteractionRef.current = null;
-  }, [editingImageSlot]);
 
   useEffect(() => {
     if (!videoDraft) {
@@ -1718,67 +1707,45 @@ export default function AdminItemEditorPage({
     });
   };
 
-  const normalizeThumbnailFocusRect = useCallback((rawRect: ThumbnailFocusRect) => {
-    const minSizePct = 1;
-    const width = Math.max(minSizePct, Math.min(100, rawRect.width));
-    const height = Math.max(minSizePct, Math.min(100, rawRect.height));
-    const left = Math.max(0, Math.min(100 - width, rawRect.left));
-    const top = Math.max(0, Math.min(100 - height, rawRect.top));
-    return { left, top, width, height };
-  }, []);
-
-  const toRectFromPoints = useCallback((startX: number, startY: number, endX: number, endY: number): ThumbnailFocusRect => ({
-    left: Math.min(startX, endX),
-    top: Math.min(startY, endY),
-    width: Math.abs(endX - startX),
-    height: Math.abs(endY - startY)
-  }), []);
-
-  const clampRectWithinBounds = useCallback((rawRect: ThumbnailFocusRect): ThumbnailFocusRect => {
-    const width = Math.max(0.1, Math.min(100, rawRect.width));
-    const height = Math.max(0.1, Math.min(100, rawRect.height));
-    const left = Math.max(0, Math.min(100 - width, rawRect.left));
-    const top = Math.max(0, Math.min(100 - height, rawRect.top));
-    return { left, top, width, height };
-  }, []);
-
   const ensureImageSettings = useCallback((slotIndex: number): ImageSettings => {
-    const existing = imageSettings[slotIndex];
-    if (existing) {
-      return { ...existing, focusRect: existing.focusRect ? normalizeThumbnailFocusRect(existing.focusRect) : null };
-    }
-    return { altText: '', focusX: 50, focusY: 50, focusRect: null };
-  }, [imageSettings, normalizeThumbnailFocusRect]);
+    return imageSettings[slotIndex] ?? { altText: '' };
+  }, [imageSettings]);
 
   const updateImageSettings = useCallback((slotIndex: number, updates: Partial<ImageSettings>) => {
     setImageSettings((current) => {
-      const previous = current[slotIndex] ?? { altText: '', focusX: 50, focusY: 50, focusRect: null };
-      const nextFocusRect = typeof updates.focusRect !== 'undefined'
-        ? (updates.focusRect ? normalizeThumbnailFocusRect(updates.focusRect) : null)
-        : (previous.focusRect ? normalizeThumbnailFocusRect(previous.focusRect) : null);
-      const merged = { ...previous, ...updates, focusRect: nextFocusRect };
+      const previous = current[slotIndex] ?? { altText: '' };
+      const merged = { ...previous, ...updates };
       return {
         ...current,
         [slotIndex]: merged
       };
     });
-  }, [normalizeThumbnailFocusRect]);
+  }, []);
 
-  const getActiveFocusRect = useCallback((slotIndex: number) => {
-    if (focusSelectionDraft) {
-      const left = Math.min(focusSelectionDraft.startX, focusSelectionDraft.endX);
-      const top = Math.min(focusSelectionDraft.startY, focusSelectionDraft.endY);
-      const width = Math.abs(focusSelectionDraft.endX - focusSelectionDraft.startX);
-      const height = Math.abs(focusSelectionDraft.endY - focusSelectionDraft.startY);
-      return normalizeThumbnailFocusRect({ left, top, width, height });
-    }
-    return ensureImageSettings(slotIndex).focusRect;
-  }, [ensureImageSettings, focusSelectionDraft, normalizeThumbnailFocusRect]);
+  const handleSaveEditedImage = useCallback((slotIndex: number, blob: Blob, mimeType: string) => {
+    const nextImageUrl = createLocalImageUrl(blob);
+    imageTypeHintsRef.current[nextImageUrl] = inferImageExtensionLabel({ mimeType });
+    updateImageAtSlot(slotIndex, nextImageUrl);
+    setEditingImageSlot(null);
+    toast.success('Slika je uspešno urejena.');
+  }, [createLocalImageUrl, toast, updateImageAtSlot]);
 
   const renderImageActionButtons = (slotIndex: number) => {
     const compact = slotIndex !== 0;
     const verticalAlignClass = compact ? 'justify-center' : 'justify-start pt-2';
     const actions = [
+      {
+        key: 'edit',
+        label: 'Uredi',
+        tone: 'light' as const,
+        onClick: () => setEditingImageSlot(slotIndex),
+        icon: (
+          <svg viewBox="0 0 24 24" className={compact ? 'h-[12px] w-[12px]' : 'h-4 w-4'} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M3 17.25V21h3.75L18.8 8.95l-3.75-3.75L3 17.25Z" />
+            <path d="m14.95 5.2 3.75 3.75" />
+          </svg>
+        )
+      },
       {
         key: 'remove',
         label: 'Odstrani',
@@ -2640,217 +2607,14 @@ export default function AdminItemEditorPage({
       </Dialog>
       {editingImageSlot !== null && mediaImagesDraft[editingImageSlot]
         ? createPortal(
-          <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-slate-900/40 p-4">
-            <div className="w-full max-w-3xl rounded-xl border border-slate-200 bg-white p-3 shadow-2xl">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-sm font-semibold text-slate-800">Urejanje slike {editingImageSlot + 1}</span>
-                <Button type="button" variant="close-x" onClick={() => setEditingImageSlot(null)} aria-label="Zapri urejanje slike" title="Zapri">×</Button>
-              </div>
-              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_240px]">
-                <div
-                  className="relative aspect-square cursor-crosshair overflow-hidden rounded-md border border-slate-200 bg-slate-100"
-                  style={{ touchAction: 'none' }}
-                  onPointerDown={(event) => {
-                    const rect = event.currentTarget.getBoundingClientRect();
-                    const pointX = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
-                    const pointY = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
-                    const target = event.target as HTMLElement;
-                    const action = target.dataset.focusAction as FocusInteractionMode | undefined;
-                    const existingRect = ensureImageSettings(editingImageSlot).focusRect;
-                    if (action && existingRect) {
-                      focusInteractionRef.current = { mode: action, startX: pointX, startY: pointY, originRect: existingRect };
-                      const initialDraft = {
-                        startX: existingRect.left,
-                        startY: existingRect.top,
-                        endX: existingRect.left + existingRect.width,
-                        endY: existingRect.top + existingRect.height
-                      };
-                      focusSelectionDraftRef.current = initialDraft;
-                      setFocusSelectionDraft(initialDraft);
-                    } else {
-                      focusInteractionRef.current = { mode: 'create', startX: pointX, startY: pointY, originRect: null };
-                      const initialDraft = { startX: pointX, startY: pointY, endX: pointX, endY: pointY };
-                      focusSelectionDraftRef.current = initialDraft;
-                      setFocusSelectionDraft(initialDraft);
-                    }
-                    event.currentTarget.setPointerCapture(event.pointerId);
-                  }}
-                  onPointerMove={(event) => {
-                    const interaction = focusInteractionRef.current;
-                    if (!interaction) return;
-                    const rect = event.currentTarget.getBoundingClientRect();
-                    const pointX = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
-                    const pointY = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
-                    let nextRect: ThumbnailFocusRect | null = null;
-                    if (interaction.mode === 'create') {
-                      nextRect = clampRectWithinBounds(toRectFromPoints(interaction.startX, interaction.startY, pointX, pointY));
-                    } else if (interaction.mode === 'move' && interaction.originRect) {
-                      const deltaX = pointX - interaction.startX;
-                      const deltaY = pointY - interaction.startY;
-                      nextRect = clampRectWithinBounds({
-                        left: interaction.originRect.left + deltaX,
-                        top: interaction.originRect.top + deltaY,
-                        width: interaction.originRect.width,
-                        height: interaction.originRect.height
-                      });
-                    } else if (interaction.originRect) {
-                      const originLeft = interaction.originRect.left;
-                      const originTop = interaction.originRect.top;
-                      const originRight = interaction.originRect.left + interaction.originRect.width;
-                      const originBottom = interaction.originRect.top + interaction.originRect.height;
-                      let left = originLeft;
-                      let right = originRight;
-                      let top = originTop;
-                      let bottom = originBottom;
-                      if (interaction.mode === 'resize-nw') {
-                        left = pointX;
-                        top = pointY;
-                      } else if (interaction.mode === 'resize-ne') {
-                        right = pointX;
-                        top = pointY;
-                      } else if (interaction.mode === 'resize-se') {
-                        right = pointX;
-                        bottom = pointY;
-                      } else if (interaction.mode === 'resize-sw') {
-                        left = pointX;
-                        bottom = pointY;
-                      }
-                      nextRect = clampRectWithinBounds({
-                        left: Math.min(left, right),
-                        top: Math.min(top, bottom),
-                        width: Math.abs(right - left),
-                        height: Math.abs(bottom - top)
-                      });
-                    }
-                    if (!nextRect) return;
-                    const nextDraft = {
-                      startX: nextRect.left,
-                      startY: nextRect.top,
-                      endX: nextRect.left + nextRect.width,
-                      endY: nextRect.top + nextRect.height
-                    };
-                    focusSelectionDraftRef.current = nextDraft;
-                    setFocusSelectionDraft(nextDraft);
-                  }}
-                  onPointerUp={(event) => {
-                    const interaction = focusInteractionRef.current;
-                    const activeDraft = focusSelectionDraftRef.current;
-                    if (!activeDraft) return;
-                    const createdRect = toRectFromPoints(activeDraft.startX, activeDraft.startY, activeDraft.endX, activeDraft.endY);
-                    if (interaction?.mode === 'create' && (createdRect.width < 1 || createdRect.height < 1)) {
-                      focusInteractionRef.current = null;
-                      focusSelectionDraftRef.current = null;
-                      setFocusSelectionDraft(null);
-                      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-                        event.currentTarget.releasePointerCapture(event.pointerId);
-                      }
-                      return;
-                    }
-                    const nextRect = normalizeThumbnailFocusRect(createdRect);
-                    updateImageSettings(editingImageSlot, {
-                      focusRect: nextRect,
-                      focusX: nextRect.left + nextRect.width / 2,
-                      focusY: nextRect.top + nextRect.height / 2
-                    });
-                    focusInteractionRef.current = null;
-                    focusSelectionDraftRef.current = null;
-                    setFocusSelectionDraft(null);
-                    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-                      event.currentTarget.releasePointerCapture(event.pointerId);
-                    }
-                  }}
-                  onPointerCancel={() => {
-                    focusInteractionRef.current = null;
-                    focusSelectionDraftRef.current = null;
-                    setFocusSelectionDraft(null);
-                  }}
-                  onLostPointerCapture={() => {
-                    focusInteractionRef.current = null;
-                    focusSelectionDraftRef.current = null;
-                    setFocusSelectionDraft(null);
-                  }}
-                >
-                  <Image src={mediaImagesDraft[editingImageSlot]} alt={`Urejanje slike ${editingImageSlot + 1}`} fill unoptimized className="object-cover" />
-                  {(() => {
-                    const focusRect = getActiveFocusRect(editingImageSlot);
-                    if (!focusRect) return null;
-                    return (
-                      <span
-                        data-focus-action="move"
-                        className="absolute rounded-[2px] border border-slate-700 border-dashed bg-transparent"
-                        style={{
-                          left: `${focusRect.left}%`,
-                          top: `${focusRect.top}%`,
-                          width: `${focusRect.width}%`,
-                          height: `${focusRect.height}%`
-                        }}
-                      >
-                        <span data-focus-action="resize-nw" className="absolute -left-1.5 -top-1.5 h-3 w-3 cursor-nwse-resize rounded-sm border border-slate-600 bg-white shadow-sm" />
-                        <span data-focus-action="resize-ne" className="absolute -right-1.5 -top-1.5 h-3 w-3 cursor-nesw-resize rounded-sm border border-slate-600 bg-white shadow-sm" />
-                        <span data-focus-action="resize-se" className="absolute -bottom-1.5 -right-1.5 h-3 w-3 cursor-nwse-resize rounded-sm border border-slate-600 bg-white shadow-sm" />
-                        <span data-focus-action="resize-sw" className="absolute -bottom-1.5 -left-1.5 h-3 w-3 cursor-nesw-resize rounded-sm border border-slate-600 bg-white shadow-sm" />
-                      </span>
-                    );
-                  })()}
-                </div>
-                <div className="space-y-2">
-                  <div>
-                    <label className="mb-1 block text-[11px] font-bold text-slate-600">Alt besedilo</label>
-                    <input
-                      className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-900 outline-none focus:border-[#3e67d6]"
-                      value={ensureImageSettings(editingImageSlot).altText}
-                      onChange={(event) => updateImageSettings(editingImageSlot, { altText: event.target.value })}
-                      placeholder={`Slika ${editingImageSlot + 1}`}
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-[11px] font-bold text-slate-600">Fokus slike</label>
-                    <div className="mt-2 inline-flex h-[100px] w-[140px] items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-slate-100">
-                      <div className="relative h-full w-full p-1">
-                        {(() => {
-                          const focusRect = ensureImageSettings(editingImageSlot).focusRect;
-                          if (!focusRect) {
-                            return (
-                              <div className="relative h-full w-full overflow-hidden rounded-sm">
-                                <Image
-                                  src={mediaImagesDraft[editingImageSlot]}
-                                  alt={`Predogled sličice ${editingImageSlot + 1}`}
-                                  fill
-                                  unoptimized
-                                  className="object-cover"
-                                />
-                              </div>
-                            );
-                          }
-                          const cropRatio = focusRect.width / focusRect.height;
-                          const frameRatio = 140 / 100;
-                          const previewWidthPct = cropRatio >= frameRatio ? 100 : (cropRatio / frameRatio) * 100;
-                          const previewHeightPct = cropRatio >= frameRatio ? (frameRatio / cropRatio) * 100 : 100;
-                          const backgroundWidth = (100 / focusRect.width) * 100;
-                          const backgroundHeight = (100 / focusRect.height) * 100;
-                          const backgroundPosX = (focusRect.left / (100 - focusRect.width)) * 100;
-                          const backgroundPosY = (focusRect.top / (100 - focusRect.height)) * 100;
-                          return (
-                            <div
-                              className="absolute left-1/2 top-1/2 bg-no-repeat"
-                              style={{
-                                width: `${previewWidthPct}%`,
-                                height: `${previewHeightPct}%`,
-                                transform: 'translate(-50%, -50%)',
-                                backgroundImage: `url(${mediaImagesDraft[editingImageSlot]})`,
-                                backgroundSize: `${backgroundWidth}% ${backgroundHeight}%`,
-                                backgroundPosition: `${Number.isFinite(backgroundPosX) ? backgroundPosX : 50}% ${Number.isFinite(backgroundPosY) ? backgroundPosY : 50}%`
-                              }}
-                            />
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>,
+          <UploadedImageCropperModal
+            imageUrl={mediaImagesDraft[editingImageSlot]}
+            slotIndex={editingImageSlot}
+            altText={ensureImageSettings(editingImageSlot).altText}
+            onAltTextChange={(value) => updateImageSettings(editingImageSlot, { altText: value })}
+            onCancel={() => setEditingImageSlot(null)}
+            onSave={({ blob, mimeType }) => handleSaveEditedImage(editingImageSlot, blob, mimeType)}
+          />,
           document.body
         )
         : null}

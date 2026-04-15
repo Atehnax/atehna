@@ -28,7 +28,7 @@ type StatusFilter = 'all' | 'active' | 'hidden';
 type DiscountFilter = 'all' | 'yes' | 'no';
 type OpenFilter = 'category' | 'status' | 'discount' | 'variantCount' | 'priceRange' | null;
 type SortState =
-  | { column: 'article' | 'category'; direction: 'asc' | 'desc' }
+  | { column: 'article' | 'sku' | 'category'; direction: 'asc' | 'desc' }
   | { column: 'variantCount' | 'discount' | 'status'; direction: 'desc' | 'asc' }
   | { column: 'priceRange'; mode: 'minAsc' | 'minDesc' | 'maxDesc' | 'maxAsc' }
   | null;
@@ -143,6 +143,14 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
       );
       return rows;
     }
+    if (sortState.column === 'sku') {
+      rows.sort((a, b) =>
+        sortState.direction === 'asc'
+          ? getBaseSku(a.family).localeCompare(getBaseSku(b.family), 'sl')
+          : getBaseSku(b.family).localeCompare(getBaseSku(a.family), 'sl')
+      );
+      return rows;
+    }
     if (sortState.column === 'variantCount') {
       rows.sort((a, b) => (sortState.direction === 'desc' ? b.variantCount - a.variantCount : a.variantCount - b.variantCount));
       return rows;
@@ -240,13 +248,13 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
       next.add(variantId);
       return next;
     });
-  const getSortTitleClass = (column: 'article' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'status') =>
+  const getSortTitleClass = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'status') =>
     `inline-flex items-center text-[11px] font-semibold leading-none hover:text-[color:var(--blue-500)] ${
       sortState && 'column' in sortState && sortState.column === column ? 'underline underline-offset-2 text-[color:var(--blue-500)]' : ''
     }`;
-  const cycleSort = (column: 'article' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'status') => {
+  const cycleSort = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'status') => {
     setSortState((current) => {
-      if (column === 'article' || column === 'category') {
+      if (column === 'article' || column === 'sku' || column === 'category') {
         if (!current || !('column' in current) || current.column !== column) return { column, direction: 'asc' };
         if ('direction' in current && current.direction === 'asc') return { column, direction: 'desc' };
         return null;
@@ -392,7 +400,11 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                     Artikel
                   </button>
                 </TH>
-                <TH className="w-[13%]">SKU</TH>
+                <TH className="w-[13%]">
+                  <button type="button" className={getSortTitleClass('sku')} onClick={() => cycleSort('sku')}>
+                    SKU
+                  </button>
+                </TH>
                 <TH className="w-[22%]">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('category')} onClick={() => cycleSort('category')}>
@@ -470,7 +482,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                     ) : null}
                   </div>
                 </TH>
-                <TH className="w-[18%]">
+                <TH className="w-[18%] text-right">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('priceRange')} onClick={() => cycleSort('priceRange')}>
                       Razpon cen
@@ -596,7 +608,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                       <td className="px-2 py-3 text-slate-600">{getBaseSku(family) || '—'}</td>
                       <td className="px-2 py-3 text-slate-600">{family.category}</td>
                       <td className="px-2 py-3 text-center">{variantCount}</td>
-                      <td className="px-2 py-3">{minPrice === maxPrice ? formatCurrency(minPrice) : formatPriceRange(minPrice, maxPrice)}</td>
+                      <td className="px-2 py-3 text-right">{minPrice === maxPrice ? formatCurrency(minPrice) : formatPriceRange(minPrice, maxPrice)}</td>
                       <td className="px-2 py-3 text-center text-emerald-700">{family.defaultDiscountPct}%</td>
                       <td className="w-[11%] px-2 py-3 text-center"><Chip variant={family.active ? 'success' : 'warning'}>{statusLabel(family.active)}</Chip></td>
                       <td className="w-[12%] px-2 py-3 text-center">{family.notes?.trim() ? family.notes : '—'}</td>

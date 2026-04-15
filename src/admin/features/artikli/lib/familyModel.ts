@@ -21,6 +21,8 @@ export type Variant = {
   errorTolerance?: string | null;
   weight?: number | null;
   minOrder?: number;
+  badge?: string | null;
+  position?: number;
   sku: string;
   price: number;
   discountPct: number;

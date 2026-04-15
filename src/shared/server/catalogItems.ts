@@ -78,12 +78,16 @@ export type AdminCatalogVariantSummary = {
   id: number;
   variantName: string;
   variantSku: string | null;
+  length: number | null;
+  width: number | null;
+  thickness: number | null;
   price: number;
   discountPct: number;
   inventory: number;
   minOrder: number;
   status: 'active' | 'inactive';
   badge: string | null;
+  position: number;
 };
 
 export type AdminCatalogListItem = {
@@ -364,12 +368,16 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
               'id', civ.id,
               'variantName', civ.variant_name,
               'variantSku', civ.variant_sku,
+              'length', civ.length,
+              'width', civ.width,
+              'thickness', civ.thickness,
               'price', civ.price,
               'discountPct', civ.discount_pct,
               'inventory', civ.inventory,
               'minOrder', civ.min_order,
               'status', civ.status,
-              'badge', civ.badge
+              'badge', civ.badge,
+              'position', civ.position
             )
             order by civ.position asc, civ.id asc
           ),
@@ -417,12 +425,16 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
             id: asNumber(entry.id),
             variantName: String(entry.variantName ?? ''),
             variantSku: asStringOrNull(entry.variantSku),
+            length: entry.length === null ? null : asNumber(entry.length),
+            width: entry.width === null ? null : asNumber(entry.width),
+            thickness: entry.thickness === null ? null : asNumber(entry.thickness),
             price: asNumber(entry.price),
             discountPct: asNumber(entry.discountPct),
             inventory: asNumber(entry.inventory),
             minOrder: Math.max(1, asNumber(entry.minOrder, 1)),
             status: String(entry.status ?? 'inactive') === 'active' ? 'active' : 'inactive',
-            badge: asStringOrNull(entry.badge)
+            badge: asStringOrNull(entry.badge),
+            position: asNumber(entry.position)
           };
         })
       : []

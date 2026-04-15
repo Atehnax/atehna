@@ -18,8 +18,7 @@ import {
   formatCurrency,
   statusLabel,
   type ProductFamily,
-  type Variant,
-  variantLabel
+  type Variant
 } from '@/admin/features/artikli/lib/familyModel';
 import type { AdminCatalogListItem } from '@/shared/server/catalogItems';
 
@@ -45,9 +44,12 @@ function toListFamilies(items: AdminCatalogListItem[]): ListFamily[] {
     const variants: Variant[] = item.variants.map((variant, variantIndex) => ({
       id: String(variant.id),
       label: variant.variantName || `Različica ${variantIndex + 1}`,
-      width: null,
-      length: null,
-      thickness: null,
+      width: variant.width,
+      length: variant.length,
+      thickness: variant.thickness,
+      minOrder: variant.minOrder,
+      badge: variant.badge,
+      position: variant.position,
       sku: variant.variantSku ?? '',
       price: variant.price,
       discountPct: variant.discountPct,
@@ -109,11 +111,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         q.length === 0 ||
         family.name.toLowerCase().includes(q) ||
         getBaseSku(family).toLowerCase().includes(q) ||
-        family.variants.some((variant) => {
-          const label = variantLabel(variant);
-          if (label === 'Osnovna različica') return false;
-          return variant.sku.toLowerCase().includes(q) || label.toLowerCase().includes(q);
-        });
+        family.variants.some((variant) => variant.sku.toLowerCase().includes(q) || variant.label.toLowerCase().includes(q));
       const matchesCategory = categoryFilter === 'all' || family.category === categoryFilter;
       const matchesStatus = statusFilter === 'all' || (statusFilter === 'active' ? family.active : !family.active);
       const hasDiscount = family.defaultDiscountPct > 0 || family.variants.some((variant) => variant.discountPct > 0);
@@ -126,7 +124,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     const rows: Array<{ family: ProductFamily; variant: Variant }> = [];
     filteredFamilies.forEach((family) => {
       family.variants.forEach((variant) => {
-        if (variantLabel(variant) === 'Osnovna različica') return;
         rows.push({ family, variant });
       });
     });
@@ -136,9 +133,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const filteredRows = useMemo(() => {
     const normalizedRows = filteredFamilies
       .map((family) => {
-        const visibleVariants = family.variants.filter(
-          (variant) => variantLabel(variant) !== 'Osnovna različica' && !deletedVariantIds.has(variant.id)
-        );
+        const visibleVariants = family.variants.filter((variant) => !deletedVariantIds.has(variant.id));
         const prices = family.variants.map((variant) => variant.price);
         const minPrice = prices.length ? Math.min(...prices) : 0;
         const maxPrice = prices.length ? Math.max(...prices) : 0;
@@ -242,7 +237,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     const headers = ['Družina', 'Različica', 'SKU', 'Cena', 'Popust', 'Akcijska cena', 'Zaloga', 'Status'];
     const csvRows = flatVariants.map(({ family, variant }) => [
       family.name,
-      variantLabel(variant),
+      variant.label,
       variant.sku,
       variant.price.toFixed(2),
       `${variant.discountPct}`,
@@ -268,14 +263,14 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     setVariantDrafts((current) => ({
       ...current,
       [variant.id]: {
-        label: variantLabel(variant),
+        label: variant.label,
         sku: variant.sku,
         price: variant.price,
         discountPct: variant.discountPct,
         stock: variant.stock,
         active: variant.active,
-        minOrder: 1,
-        note: ''
+        minOrder: variant.minOrder ?? 1,
+        note: variant.badge ?? ''
       }
     }));
   };
@@ -622,7 +617,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
               {pagedFamilies.map((row) => {
                 const { family, visibleVariants, minPrice, maxPrice, variantCount } = row;
                 const isExpanded = expandedFamilyIds.has(family.id);
-                const hasSubtable = visibleVariants.length > 1;
+                const hasSubtable = visibleVariants.length > 0;
                 const primaryVariant = visibleVariants[0] ?? null;
                 return (
                   <Fragment key={family.id}>
@@ -661,6 +656,9 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                               <tr className="border-b border-slate-200 text-slate-600">
                                 <th className="px-2 py-2" />
                                 <th className="px-2 py-2 text-left">Različica</th>
+                                <th className="px-2 py-2 text-right">Dolžina</th>
+                                <th className="px-2 py-2 text-right">Širina</th>
+                                <th className="px-2 py-2 text-right">Debelina</th>
                                 <th className="w-[14%] px-2 py-2 text-left">SKU</th>
                                 <th className="px-2 py-2 text-right">Cena</th>
                                 <th className="px-2 py-2 text-center">Popust</th>
@@ -669,6 +667,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                 <th className="px-2 py-2 text-center">Min/nar.</th>
                                 <th className="px-2 py-2 text-center">Status</th>
                                 <th className="px-2 py-2 text-center">Opombe</th>
+                                <th className="px-2 py-2 text-center">Mesto</th>
                                 <th className="px-2 py-2 text-center">Uredi</th>
                               </tr>
                             </thead>
@@ -676,14 +675,14 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                               {visibleVariants.map((variant) => {
                                 const isEditing = editingVariantId === variant.id;
                                 const draft = variantDrafts[variant.id] ?? {
-                                  label: variantLabel(variant),
+                                  label: variant.label,
                                   sku: variant.sku,
                                   price: variant.price,
                                   discountPct: variant.discountPct,
                                   stock: variant.stock,
                                   active: variant.active,
-                                  minOrder: 1,
-                                  note: ''
+                                  minOrder: variant.minOrder ?? 1,
+                                  note: variant.badge ?? ''
                                 };
                                 const actionPrice = computeSalePrice(draft.price, draft.discountPct);
                                 return (
@@ -717,6 +716,9 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         draft.label
                                       )}
                                     </td>
+                                    <td className="px-2 py-2 text-right">{variant.length ?? '—'}</td>
+                                    <td className="px-2 py-2 text-right">{variant.width ?? '—'}</td>
+                                    <td className="px-2 py-2 text-right">{variant.thickness ?? '—'}</td>
                                     <td className="px-2 py-2">
                                       {isEditing ? (
                                         <input
@@ -840,6 +842,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         draft.note || '—'
                                       )}
                                     </td>
+                                    <td className="px-2 py-2 text-center">{variant.position ?? '—'}</td>
                                     <td className="px-2 py-2 text-center">
                                       <RowActionsDropdown
                                         label={`Uredi ${variant.sku}`}

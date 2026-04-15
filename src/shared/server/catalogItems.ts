@@ -1,0 +1,463 @@
+import { getPool } from '@/shared/server/db';
+import { revalidateTag } from 'next/cache';
+import { CATALOG_PUBLIC_TAG } from '@/shared/server/catalogCategories';
+import type { CatalogItemType } from '@/shared/domain/catalog/itemType';
+
+export type CatalogItemSeedRow = {
+  id: number;
+  item_name: string;
+  description: string;
+  category_path: string;
+  category_id: string | null;
+  parent_category_id: string | null;
+  variant_id: number;
+  price: number;
+  sku: string;
+  images: string[];
+  discount_pct: number;
+  item_position: number;
+};
+
+export type CatalogItemEditorPayload = {
+  id?: number;
+  itemName: string;
+  itemType: CatalogItemType;
+  badge?: string | null;
+  status: 'active' | 'inactive';
+  categoryPath: string[];
+  sku?: string | null;
+  slug: string;
+  unit?: string | null;
+  brand?: string | null;
+  material?: string | null;
+  colour?: string | null;
+  shape?: string | null;
+  description?: string | null;
+  adminNotes?: string | null;
+  position?: number;
+  variants: Array<{
+    id?: number;
+    variantName: string;
+    length?: number | null;
+    width?: number | null;
+    thickness?: number | null;
+    weight?: number | null;
+    errorTolerance?: string | null;
+    price: number;
+    discountPct?: number;
+    inventory?: number;
+    minOrder?: number;
+    variantSku?: string | null;
+    unit?: string | null;
+    status?: 'active' | 'inactive';
+    badge?: string | null;
+    position?: number;
+    imageAssignments?: number[];
+  }>;
+  media: Array<{
+    id?: number;
+    variantIndex?: number | null;
+    mediaKind: 'image' | 'video' | 'document';
+    role: 'gallery' | 'technical_sheet';
+    sourceKind: 'upload' | 'youtube';
+    filename?: string | null;
+    blobUrl?: string | null;
+    blobPathname?: string | null;
+    externalUrl?: string | null;
+    mimeType?: string | null;
+    altText?: string | null;
+    imageType?: string | null;
+    imageDimensions?: { width?: number; height?: number } | null;
+    videoType?: string | null;
+    hidden?: boolean;
+    position?: number;
+  }>;
+};
+
+function asNumber(value: unknown, fallback = 0): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+}
+
+function asStringOrNull(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+async function resolveCategoryIdByPath(path: string[]): Promise<string | null> {
+  if (path.length === 0) return null;
+  const pool = await getPool();
+  let parentId: string | null = null;
+  let lastId: string | null = null;
+
+  for (const segment of path) {
+    const result = await pool.query(
+      `
+      select id
+      from catalog_categories
+      where coalesce(parent_id, '') = coalesce($1::text, '')
+        and lower(trim(title)) = lower(trim($2::text))
+      order by position asc, id asc
+      limit 1
+      `,
+      [parentId, segment]
+    );
+
+    const row = result.rows[0] as { id?: string } | undefined;
+    if (!row?.id) return null;
+    parentId = row.id;
+    lastId = row.id;
+  }
+
+  return lastId;
+}
+
+export async function fetchCatalogItemSeeds(): Promise<CatalogItemSeedRow[]> {
+  const pool = await getPool();
+  const result = await pool.query(
+    `
+    with recursive category_paths as (
+      select id, parent_id, title, title::text as full_path
+      from catalog_categories
+      where parent_id is null
+      union all
+      select c.id, c.parent_id, c.title, cp.full_path || ' / ' || c.title
+      from catalog_categories c
+      join category_paths cp on cp.id = c.parent_id
+    ),
+    media_images as (
+      select item_id,
+             coalesce(
+               array_agg(coalesce(nullif(blob_url, ''), external_url) order by position asc, id asc)
+                 filter (where media_kind = 'image' and role = 'gallery' and coalesce(nullif(blob_url, ''), external_url) is not null),
+               array[]::text[]
+             ) as image_urls
+      from catalog_media
+      group by item_id
+    )
+    select
+      ci.id,
+      ci.item_name,
+      ci.description,
+      coalesce(cp.full_path, '') as category_path,
+      ci.category_id,
+      cc.parent_id as parent_category_id,
+      civ.id as variant_id,
+      coalesce(civ.price, 0)::text as price,
+      coalesce(nullif(civ.variant_sku, ''), nullif(ci.sku, ''), ci.slug) as sku,
+      coalesce(mi.image_urls, array[]::text[]) as images,
+      coalesce(civ.discount_pct, 0)::text as discount_pct,
+      ci.position as item_position
+    from catalog_items ci
+    left join catalog_item_variants civ on civ.item_id = ci.id
+    left join media_images mi on mi.item_id = ci.id
+    left join category_paths cp on cp.id = ci.category_id
+    left join catalog_categories cc on cc.id = ci.category_id
+    where ci.status = 'active'
+    order by ci.position asc, ci.id asc, civ.position asc, civ.id asc
+    `
+  );
+
+  return (result.rows as Record<string, unknown>[])
+    .filter((row) => row.variant_id !== null)
+    .map((row) => ({
+      id: Number(row.id),
+      item_name: String(row.item_name ?? ''),
+      description: String(row.description ?? ''),
+      category_path: String(row.category_path ?? ''),
+      category_id: asStringOrNull(row.parent_category_id) ?? asStringOrNull(row.category_id),
+      parent_category_id: asStringOrNull(row.category_id),
+      variant_id: Number(row.variant_id),
+      price: asNumber(row.price),
+      sku: String(row.sku ?? ''),
+      images: Array.isArray(row.images) ? row.images.map((image) => String(image)) : [],
+      discount_pct: asNumber(row.discount_pct),
+      item_position: asNumber(row.item_position)
+    }));
+}
+
+export async function fetchCatalogItemsForCategory(categoryIds: string[]): Promise<Array<{ category_id: string; item: Record<string, unknown> }>> {
+  if (categoryIds.length === 0) return [];
+
+  const pool = await getPool();
+  const result = await pool.query(
+    `
+    with variants_agg as (
+      select
+        item_id,
+        min(price)::text as min_price,
+        max(price)::text as max_price,
+        coalesce(
+          json_agg(
+            json_build_object(
+              'id', id,
+              'variantName', variant_name,
+              'length', length,
+              'width', width,
+              'thickness', thickness,
+              'price', price,
+              'discountPct', discount_pct,
+              'inventory', inventory,
+              'minOrder', min_order,
+              'variantSku', variant_sku,
+              'unit', unit,
+              'status', status,
+              'badge', badge
+            )
+            order by position asc, id asc
+          ),
+          '[]'::json
+        ) as variants
+      from catalog_item_variants
+      group by item_id
+    ),
+    media_agg as (
+      select
+        item_id,
+        coalesce(json_agg(
+          json_build_object(
+            'id', id,
+            'mediaKind', media_kind,
+            'role', role,
+            'sourceKind', source_kind,
+            'filename', filename,
+            'blobUrl', blob_url,
+            'blobPathname', blob_pathname,
+            'externalUrl', external_url,
+            'mimeType', mime_type,
+            'altText', alt_text,
+            'imageType', image_type,
+            'imageDimensions', image_dimensions,
+            'videoType', video_type,
+            'variantId', variant_id,
+            'hidden', hidden,
+            'position', position
+          )
+          order by position asc, id asc
+        ), '[]'::json) as media
+      from catalog_media
+      group by item_id
+    )
+    select
+      ci.category_id,
+      json_build_object(
+        'id', ci.id,
+        'slug', ci.slug,
+        'name', ci.item_name,
+        'description', ci.description,
+        'image', coalesce((
+          select coalesce(nullif(cm.blob_url, ''), cm.external_url)
+          from catalog_media cm
+          where cm.item_id = ci.id
+            and cm.media_kind = 'image'
+            and cm.role = 'gallery'
+            and coalesce(cm.hidden, false) = false
+          order by cm.position asc, cm.id asc
+          limit 1
+        ), ''),
+        'images', coalesce((
+          select json_agg(coalesce(nullif(cm.blob_url, ''), cm.external_url) order by cm.position asc, cm.id asc)
+          from catalog_media cm
+          where cm.item_id = ci.id
+            and cm.media_kind = 'image'
+            and cm.role = 'gallery'
+            and coalesce(cm.hidden, false) = false
+            and coalesce(nullif(cm.blob_url, ''), cm.external_url) is not null
+        ), '[]'::json),
+        'price', coalesce(va.min_price, '0')::numeric,
+        'discountPct', coalesce((
+          select max(discount_pct)
+          from catalog_item_variants civ
+          where civ.item_id = ci.id
+        ), 0),
+        'displayOrder', ci.position,
+        'variants', coalesce(va.variants, '[]'::json),
+        'media', coalesce(ma.media, '[]'::json)
+      ) as item
+    from catalog_items ci
+    left join variants_agg va on va.item_id = ci.id
+    left join media_agg ma on ma.item_id = ci.id
+    where ci.status = 'active'
+      and ci.category_id = any($1::text[])
+    order by ci.position asc, ci.item_name asc, ci.id asc
+    `,
+    [categoryIds]
+  );
+
+  return (result.rows as Array<{ category_id: string; item: Record<string, unknown> }>);
+}
+
+export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Promise<{ id: number; slug: string }> {
+  const pool = await getPool();
+  const client = await pool.connect();
+  try {
+    await client.query('begin');
+
+    const categoryId = await resolveCategoryIdByPath(payload.categoryPath);
+
+    const existingBySlug = payload.id
+      ? null
+      : await client.query('select id from catalog_items where slug = $1 limit 1', [payload.slug]);
+    const effectiveId = payload.id ?? (existingBySlug?.rows[0]?.id ? Number(existingBySlug.rows[0].id) : null);
+
+    const itemResult = effectiveId
+      ? await client.query(
+          `
+          update catalog_items
+          set item_name = $1,
+              item_type = $2,
+              badge = $3,
+              status = $4,
+              category_id = $5,
+              sku = $6,
+              slug = $7,
+              unit = $8,
+              brand = $9,
+              material = $10,
+              colour = $11,
+              shape = $12,
+              description = $13,
+              admin_notes = $14,
+              position = $15,
+              updated_at = now()
+          where id = $16
+          returning id, slug
+          `,
+          [
+            payload.itemName,
+            payload.itemType,
+            asStringOrNull(payload.badge),
+            payload.status,
+            categoryId,
+            asStringOrNull(payload.sku),
+            payload.slug,
+            asStringOrNull(payload.unit),
+            asStringOrNull(payload.brand),
+            asStringOrNull(payload.material),
+            asStringOrNull(payload.colour),
+            asStringOrNull(payload.shape),
+            payload.description ?? '',
+            asStringOrNull(payload.adminNotes),
+            payload.position ?? 0,
+            effectiveId
+          ]
+        )
+      : await client.query(
+          `
+          insert into catalog_items (
+            item_name, item_type, badge, status, category_id, sku, slug, unit, brand, material, colour, shape, description, admin_notes, position
+          ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+          returning id, slug
+          `,
+          [
+            payload.itemName,
+            payload.itemType,
+            asStringOrNull(payload.badge),
+            payload.status,
+            categoryId,
+            asStringOrNull(payload.sku),
+            payload.slug,
+            asStringOrNull(payload.unit),
+            asStringOrNull(payload.brand),
+            asStringOrNull(payload.material),
+            asStringOrNull(payload.colour),
+            asStringOrNull(payload.shape),
+            payload.description ?? '',
+            asStringOrNull(payload.adminNotes),
+            payload.position ?? 0
+          ]
+        );
+
+    const itemRow = itemResult.rows[0] as { id: number; slug: string } | undefined;
+    if (!itemRow) throw new Error('Shranjevanje artikla ni uspelo.');
+
+    await client.query('delete from catalog_item_variants where item_id = $1', [itemRow.id]);
+
+    const variantIdByIndex: Array<number | null> = [];
+    for (let index = 0; index < payload.variants.length; index += 1) {
+      const variant = payload.variants[index];
+      const variantResult = await client.query(
+        `
+        insert into catalog_item_variants (
+          item_id, variant_name, length, width, thickness, weight, error_tolerance, price, discount_pct,
+          inventory, min_order, variant_sku, unit, status, badge, position
+        ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+        returning id
+        `,
+        [
+          itemRow.id,
+          variant.variantName,
+          variant.length ?? null,
+          variant.width ?? null,
+          variant.thickness ?? null,
+          variant.weight ?? null,
+          asStringOrNull(variant.errorTolerance),
+          variant.price,
+          variant.discountPct ?? 0,
+          variant.inventory ?? 0,
+          Math.max(1, variant.minOrder ?? 1),
+          asStringOrNull(variant.variantSku),
+          asStringOrNull(variant.unit),
+          variant.status ?? 'active',
+          asStringOrNull(variant.badge),
+          variant.position ?? index
+        ]
+      );
+      variantIdByIndex[index] = Number(variantResult.rows[0]?.id ?? null);
+    }
+
+    await client.query('delete from catalog_media where item_id = $1', [itemRow.id]);
+
+    for (const media of payload.media) {
+      const variantId = typeof media.variantIndex === 'number' ? variantIdByIndex[media.variantIndex] ?? null : null;
+      await client.query(
+        `
+        insert into catalog_media (
+          item_id, variant_id, media_kind, role, source_kind, filename, blob_url, blob_pathname, external_url, mime_type,
+          alt_text, image_type, image_dimensions, video_type, hidden, position
+        ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::jsonb,$14,$15,$16)
+        `,
+        [
+          itemRow.id,
+          variantId,
+          media.mediaKind,
+          media.role,
+          media.sourceKind,
+          asStringOrNull(media.filename),
+          asStringOrNull(media.blobUrl),
+          asStringOrNull(media.blobPathname),
+          asStringOrNull(media.externalUrl),
+          asStringOrNull(media.mimeType),
+          asStringOrNull(media.altText),
+          asStringOrNull(media.imageType),
+          media.imageDimensions ? JSON.stringify(media.imageDimensions) : null,
+          asStringOrNull(media.videoType),
+          Boolean(media.hidden),
+          media.position ?? 0
+        ]
+      );
+    }
+
+    await client.query('commit');
+    revalidateTag(CATALOG_PUBLIC_TAG);
+    return { id: itemRow.id, slug: itemRow.slug };
+  } catch (error) {
+    await client.query('rollback');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function deleteCatalogItemBySlug(slug: string): Promise<boolean> {
+  const pool = await getPool();
+  const result = await pool.query('delete from catalog_items where slug = $1 returning id', [slug]);
+  if ((result.rowCount ?? 0) > 0) {
+    revalidateTag(CATALOG_PUBLIC_TAG);
+    return true;
+  }
+  return false;
+}

@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Uppy from '@uppy/core';
@@ -24,6 +25,7 @@ import { IconButton } from '@/shared/ui/icon-button';
 import { PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
 import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
+import { CATALOG_ITEM_TYPE_OPTIONS } from '@/shared/domain/catalog/itemType';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import EuiTabs from '@/shared/ui/eui-tabs';
 import {
@@ -1060,6 +1062,7 @@ export default function AdminItemEditorPage({
   createType?: CreateType;
 }) {
   const { toast } = useToast();
+  const router = useRouter();
   const families = useMemo(() => buildFamiliesFromSeed(seedItems), [seedItems]);
   const existing =
     mode === 'edit'
@@ -1237,7 +1240,7 @@ export default function AdminItemEditorPage({
     }
   }, [isLinearMaterial, generatorInput]);
 
-  const save = (asDraft = false) => {
+  const save = async (asDraft = false) => {
     if (!draft.name.trim()) {
       toast.error('Naziv je obvezen.');
       return;
@@ -1246,12 +1249,120 @@ export default function AdminItemEditorPage({
       toast.error('Kategorija je obvezna.');
       return;
     }
-    toast.success(asDraft ? 'Osnutek shranjen (lokalno).' : 'Artikel shranjen (lokalno).');
+    const normalizedMediaImages = mediaImagesDraft
+      .map((url, index) => ({ url, index }))
+      .filter((entry) => Boolean(entry.url) && !entry.url.startsWith('blob:'));
+
+    const payload = {
+      itemName: draft.name.trim(),
+      itemType: (articleType || 'unit') as 'unit' | 'sheet' | 'linear' | 'bulk',
+      badge: draft.promoBadge || null,
+      status: draft.active ? 'active' : 'inactive',
+      categoryPath: selectedCategoryPath,
+      sku: sideSettings.sku || draft.variants[0]?.sku || null,
+      slug: draft.slug.trim() || toSlug(draft.name.trim()),
+      unit: null,
+      brand: sideSettings.brand || null,
+      material: sideSettings.material || null,
+      colour: sideSettings.color || null,
+      shape: sideSettings.surface || null,
+      description: draft.description || '',
+      adminNotes: draft.notes || null,
+      position: draft.sort ?? 0,
+      variants: draft.variants.map((variant, index) => ({
+        variantName: variant.label || `Različica ${index + 1}`,
+        length: variant.length,
+        width: variant.width,
+        thickness: variant.thickness,
+        weight: sideSettings.weightPerUnit ? Number(sideSettings.weightPerUnit) : null,
+        errorTolerance: sideSettings.thicknessTolerance || null,
+        price: variant.price,
+        discountPct: variant.discountPct,
+        inventory: variant.stock,
+        minOrder: Number(sideSettings.moq || 1),
+        variantSku: variant.sku || null,
+        unit: null,
+        status: variant.active ? 'active' : 'inactive',
+        badge: variantTags[variant.id] ?? null,
+        position: variant.sort ?? index,
+        imageAssignments: variant.imageAssignments ?? []
+      })),
+      media: [
+        ...normalizedMediaImages.map((entry) => ({
+          mediaKind: 'image' as const,
+          role: 'gallery' as const,
+          sourceKind: 'upload' as const,
+          blobUrl: entry.url,
+          altText: imageSettings[entry.index]?.altText ?? null,
+          position: entry.index
+        })),
+        ...(videoDraft
+          ? [
+              {
+                mediaKind: 'video' as const,
+                role: 'gallery' as const,
+                sourceKind: videoDraft.source === 'youtube' ? ('youtube' as const) : ('upload' as const),
+                externalUrl: videoDraft.source === 'youtube' ? videoDraft.previewUrl : null,
+                blobUrl: videoDraft.source === 'upload' && !videoDraft.previewUrl.startsWith('blob:') ? videoDraft.previewUrl : null,
+                filename: videoDraft.label,
+                videoType: videoDraft.source,
+                variantIndex: videoAssignedVariantId
+                  ? Math.max(0, draft.variants.findIndex((variant) => variant.id === videoAssignedVariantId))
+                  : null,
+                position: 0
+              }
+            ]
+          : []),
+        ...documents.map((documentEntry, index) => ({
+          mediaKind: 'document' as const,
+          role: 'technical_sheet' as const,
+          sourceKind: 'upload' as const,
+          filename: documentEntry.name,
+          position: index
+        }))
+      ]
+    };
+
+    try {
+      const response = await fetch('/api/admin/artikli', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const body = (await response.json().catch(() => ({}))) as { slug?: string; message?: string };
+      if (!response.ok) {
+        throw new Error(body.message || 'Shranjevanje artikla ni uspelo.');
+      }
+      toast.success(asDraft ? 'Osnutek shranjen.' : 'Artikel shranjen.');
+      if (body.slug) {
+        router.push(`/admin/artikli/${encodeURIComponent(body.slug)}`);
+      } else {
+        router.refresh();
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Shranjevanje artikla ni uspelo.');
+    }
   };
-  const deleteItem = () => {
+  const deleteItem = async () => {
     const shouldDelete = window.confirm('Ali želite odstraniti artikel iz urejanja?');
     if (!shouldDelete) return;
-    toast.success('Artikel je označen za brisanje (lokalni prikaz).');
+    const slug = draft.slug || articleId || '';
+    if (!slug) {
+      toast.error('Artikel nima veljavnega identifikatorja za brisanje.');
+      return;
+    }
+    try {
+      const response = await fetch(`/api/admin/artikli/${encodeURIComponent(slug)}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { message?: string };
+        throw new Error(body.message || 'Brisanje artikla ni uspelo.');
+      }
+      toast.success('Artikel je izbrisan.');
+      router.push('/admin/artikli');
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Brisanje artikla ni uspelo.');
+    }
   };
 
   const generateVariants = () => {
@@ -1840,12 +1951,7 @@ export default function AdminItemEditorPage({
                   chipClassName="!min-w-[131px]"
                   placeholderLabel="Tip artikla"
                   onChange={(value) => setArticleType(value as 'unit' | 'sheet' | 'bulk' | 'linear' | '')}
-                  options={[
-                    { value: 'unit', label: 'Kosovni artikel' },
-                    { value: 'sheet', label: 'Ploščni artikel' },
-                    { value: 'linear', label: 'Dolžinski artikel' },
-                    { value: 'bulk', label: 'Sipki artikel' }
-                  ]}
+                  options={CATALOG_ITEM_TYPE_OPTIONS as unknown as Array<{ value: string; label: string }>}
                 />
                 <ActiveStateChip active={draft.active} editable={isEditable} onChange={(next) => setDraft((current) => ({ ...current, active: next }))} />
                 <IconButton type="button" tone="neutral" onClick={() => setEditorMode((current) => (current === 'read' ? 'edit' : 'read'))} aria-label="Uredi artikel" title="Uredi"><PencilIcon /></IconButton>

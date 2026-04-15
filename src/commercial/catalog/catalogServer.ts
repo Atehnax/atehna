@@ -20,7 +20,7 @@ import {
  * - subcategory page: use `getCatalogSubcategoryPageDataServer`.
  * - item pages: use `getCatalogItemPageDataServer` or `getCatalogCategoryItemPageDataServer`.
  * - `/admin/kategorije`: use `getCatalogDataFromDatabase({ includeInactive: true, includeStatuses: true })`.
- * - Admin side-data (catalog item pickers, article seed lists): prefer `getCatalogItemsIndexServer`.
+ * - Admin side-data (catalog category pickers, category-linked item overviews): prefer `getCatalogItemsIndexServer`.
  * - Avoid calling internal API routes from server components for catalog reads; import this loader layer directly.
  */
 

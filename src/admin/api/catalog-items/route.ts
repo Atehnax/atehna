@@ -1,11 +1,5 @@
 import { NextResponse } from 'next/server';
-import {
-  getCatalogCategoryItemPrice,
-  getCatalogCategoryItemSku,
-  getCatalogItemPrice,
-  getCatalogItemSku
-} from '@/commercial/catalog/catalog';
-import { getCatalogItemsIndexServer } from '@/commercial/catalog/catalogServer';
+import { fetchCatalogItemSeeds } from '@/shared/server/catalogItems';
 import { instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
 
 type CatalogChoice = {
@@ -20,35 +14,16 @@ const DEFAULT_UNIT = 'kos';
 
 async function collectCatalogChoices(): Promise<CatalogChoice[]> {
   return instrumentCatalogLoader('adminCatalogItemsRoute', '/api/admin/catalog-items', async () => {
-    const items: CatalogChoice[] = [];
-
-    for (const category of await getCatalogItemsIndexServer('/api/admin/catalog-items')) {
-      for (const item of category.items ?? []) {
-        items.push({
-          sku: getCatalogCategoryItemSku(category.slug, item.slug),
-          name: item.name,
-          unit: DEFAULT_UNIT,
-          unitPrice: item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug),
-          display_order: item.displayOrder ?? null
-        });
-      }
-
-      for (const subcategory of category.subcategories) {
-        for (const item of subcategory.items) {
-          items.push({
-            sku: getCatalogItemSku(category.slug, subcategory.slug, item.slug),
-            name: item.name,
-            unit: DEFAULT_UNIT,
-            unitPrice: item.price ?? getCatalogItemPrice(category.slug, subcategory.slug, item.slug),
-            display_order: item.displayOrder ?? null
-          });
-        }
-      }
-    }
-
-    return items.sort((leftItem, rightItem) =>
-      leftItem.name.localeCompare(rightItem.name, 'sl', { sensitivity: 'base' })
-    );
+    const rows = await fetchCatalogItemSeeds();
+    return rows
+      .map((row) => ({
+        sku: row.sku,
+        name: row.item_name,
+        unit: DEFAULT_UNIT,
+        unitPrice: row.price,
+        display_order: row.item_position
+      }))
+      .sort((leftItem, rightItem) => leftItem.name.localeCompare(rightItem.name, 'sl', { sensitivity: 'base' }));
   });
 }
 

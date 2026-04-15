@@ -37,6 +37,8 @@ const PAGE_SIZE_OPTIONS = [20, 50, 100];
 const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500';
 const formatPriceRange = (minPrice: number, maxPrice: number) =>
   `${minPrice.toLocaleString('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} – ${maxPrice.toLocaleString('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+const getBaseSku = (family: ProductFamily) =>
+  family.variants.find((variant) => variantLabel(variant) === 'Osnovna različica')?.sku || family.variants[0]?.sku || '';
 
 export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTuple[] }) {
   const router = useRouter();
@@ -68,6 +70,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
       const matchesSearch =
         q.length === 0 ||
         family.name.toLowerCase().includes(q) ||
+        getBaseSku(family).toLowerCase().includes(q) ||
         family.variants.some((variant) => {
           const label = variantLabel(variant);
           if (label === 'Osnovna različica') return false;
@@ -384,12 +387,13 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                     aria-label="Izberi vse družine"
                   />
                 </TH>
-                <TH className="w-[27%]">
+                <TH className="w-[22%]">
                   <button type="button" className={getSortTitleClass('article')} onClick={() => cycleSort('article')}>
                     Artikel
                   </button>
                 </TH>
-                <TH className="w-[27%]">
+                <TH className="w-[13%]">SKU</TH>
+                <TH className="w-[22%]">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('category')} onClick={() => cycleSort('category')}>
                       Kategorija
@@ -589,6 +593,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                           <span className="block text-sm font-semibold text-slate-900">{family.name}</span>
                         </button>
                       </td>
+                      <td className="px-2 py-3 text-slate-600">{getBaseSku(family) || '—'}</td>
                       <td className="px-2 py-3 text-slate-600">{family.category}</td>
                       <td className="px-2 py-3 text-center">{variantCount}</td>
                       <td className="px-2 py-3">{minPrice === maxPrice ? formatCurrency(minPrice) : formatPriceRange(minPrice, maxPrice)}</td>
@@ -600,7 +605,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
                     {isExpanded && hasSubtable ? (
                       <tr className="border-t border-slate-100 bg-slate-50/70">
                         <td />
-                        <td colSpan={8} className="p-0">
+                        <td colSpan={9} className="p-0">
                           <table className="w-full text-[12px]">
                             <thead>
                               <tr className="border-b border-slate-200 text-slate-600">

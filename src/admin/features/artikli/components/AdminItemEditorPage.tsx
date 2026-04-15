@@ -1867,7 +1867,7 @@ export default function AdminItemEditorPage({
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2 grid grid-cols-2 gap-3">
                 {[
-                  { title: 'SKU', value: sideSettings.sku, placeholder: 'SKU koda', icon: 'sku' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, sku: value })) },
+                  { title: 'Osnovni SKU', value: sideSettings.sku, placeholder: 'SKU koda', icon: 'sku' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, sku: value })) },
                   { title: 'URL', value: draft.slug, placeholder: toSlug(draft.name || 'naziv-artikla'), icon: 'link' as SideFieldIcon, onChange: (value: string) => setDraft((current) => ({ ...current, slug: value })) },
                   { title: 'Blagovna znamka', value: sideSettings.brand, placeholder: 'AluCraft', icon: 'brand' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, brand: value })) },
                   { title: 'Material', value: sideSettings.material, placeholder: 'Aluminij', icon: 'material' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, material: value })) },

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
 import { isPaymentStatus } from '@/shared/domain/order/paymentStatus';
 import { getPool } from '@/shared/server/db';
+import { ensureOrderPaymentLogsTable } from '@/shared/server/orderPaymentLogs';
 
 
 export async function POST(
@@ -22,6 +23,7 @@ export async function POST(
     }
 
     const pool = await getPool();
+    await ensureOrderPaymentLogsTable();
     const current = await pool.query('SELECT payment_status FROM orders WHERE id = $1', [orderId]);
     const previousStatus = current.rows[0]?.payment_status ?? null;
 

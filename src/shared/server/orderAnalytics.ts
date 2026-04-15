@@ -1,6 +1,7 @@
 import { getPool } from '@/shared/server/db';
 import { instrumentCatalogLoader, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import { fetchOrdersAnalyticsRows, type OrderAnalyticsRow } from '@/shared/server/orders';
+import { ensureOrderPaymentLogsTable } from '@/shared/server/orderPaymentLogs';
 
 export const ANALYTICS_TIMEZONE = 'UTC';
 
@@ -143,6 +144,7 @@ const percentile = (values: number[], percentileRank: number): number | null => 
 async function fetchPaidLogTimestamps(orderIds: number[]) {
   if (orderIds.length === 0) return new Map<number, string>();
 
+  await ensureOrderPaymentLogsTable();
   const pool = await getPool();
   const result = await pool.query(
     `

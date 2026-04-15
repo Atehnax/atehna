@@ -1,5 +1,6 @@
 import { getPool } from '@/shared/server/db';
 import { instrumentCatalogLoader, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
+import { ensureOrderPaymentLogsTable } from '@/shared/server/orderPaymentLogs';
 
 const CURRENT_ORDERS_SCHEMA_SUPPORT = {
   supportsDraftColumn: true,
@@ -764,22 +765,11 @@ export async function fetchOrderAttachmentsForOrders(
 }
 
 export async function fetchPaymentLogs(orderId: number): Promise<PaymentLogRow[]> {
+  await ensureOrderPaymentLogsTable();
   const pool = await getPool();
-  try {
-    const result = await pool.query(
-      'select * from order_payment_logs where order_id = $1 order by created_at desc',
-      [orderId]
-    );
-    return result.rows.map((rawRow) => mapPaymentLogRow(rawRow as Record<string, unknown>));
-  } catch (error) {
-    if (
-      typeof error === 'object' &&
-      error !== null &&
-      'code' in error &&
-      ['42P01', '42501'].includes((error as { code?: string }).code ?? '')
-    ) {
-      return [];
-    }
-    throw error;
-  }
+  const result = await pool.query(
+    'select * from order_payment_logs where order_id = $1 order by created_at desc',
+    [orderId]
+  );
+  return result.rows.map((rawRow) => mapPaymentLogRow(rawRow as Record<string, unknown>));
 }

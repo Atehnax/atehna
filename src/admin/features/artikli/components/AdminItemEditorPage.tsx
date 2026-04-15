@@ -29,20 +29,19 @@ import { CATALOG_ITEM_TYPE_OPTIONS } from '@/shared/domain/catalog/itemType';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import EuiTabs from '@/shared/ui/eui-tabs';
 import {
-  buildFamiliesFromSeed,
   computeSalePrice,
   createFamily,
   createVariant,
   formatCurrency,
   toSlug,
   type ProductFamily,
-  type SeedItemTuple,
   type Variant
 } from '@/admin/features/artikli/lib/familyModel';
 import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/AdminCategoryBreadcrumbPicker';
 import OpisColorPopover from '@/admin/features/artikli/components/OpisColorPopover';
 import UploadedImageCropperModal from '@/admin/features/artikli/components/UploadedImageCropperModal';
 import Dialog from '@/shared/ui/dialog/dialog';
+import type { CatalogItemEditorHydration } from '@/shared/server/catalogItems';
 
 const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0';
 const numberInputClass = '[-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
@@ -80,9 +79,10 @@ type MediaTab = 'slike' | 'video' | 'tehnicni';
 type VariantTag = 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
 type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
-type VideoState = { source: 'upload' | 'youtube'; label: string; previewUrl: string };
+type VideoState = { source: 'upload' | 'youtube'; label: string; previewUrl: string; blobPathname?: string | null };
 type ImageSettings = { altText: string };
 type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'sku';
+type TechnicalDocument = { name: string; size: string; blobUrl: string | null; blobPathname: string | null };
 const MEDIA_SLOT_COUNT = 7;
 const GALLERY_SMALL_SLOT_COUNT = 6;
 
@@ -1051,31 +1051,62 @@ function VisibilityChip({
 }
 
 export default function AdminItemEditorPage({
-  seedItems,
   articleId,
   mode,
-  createType = 'simple'
+  createType = 'simple',
+  initialData = null
 }: {
-  seedItems: SeedItemTuple[];
   articleId?: string;
   mode: EditorMode;
   createType?: CreateType;
+  initialData?: CatalogItemEditorHydration | null;
 }) {
   const { toast } = useToast();
   const router = useRouter();
-  const families = useMemo(() => buildFamiliesFromSeed(seedItems), [seedItems]);
-  const existing =
-    mode === 'edit'
-      ? families.find((family) => family.slug === articleId || family.id === articleId) ?? null
-      : null;
-  const categoryPathsFromSeed = useMemo(
-    () => Array.from(new Set(seedItems.map(([, , , categoryPath]) => categoryPath).filter((categoryPath) => categoryPath.trim().length > 0))),
-    [seedItems]
-  );
+  const categoryPathsFromSeed = useMemo(() => [], []);
   const [categoryPaths, setCategoryPaths] = useState<string[]>(categoryPathsFromSeed);
 
   const [draft, setDraft] = useState<ProductFamily>(() => {
-    if (existing) return structuredClone(existing);
+    if (initialData) {
+      return createFamily({
+        id: String(initialData.id),
+        name: initialData.itemName,
+        description: initialData.description ?? '',
+        category: initialData.categoryPath.join(' / '),
+        categoryId: null,
+        subcategoryId: null,
+        images: initialData.media
+          .filter((media) => media.mediaKind === 'image' && media.role === 'gallery')
+          .map((media) => media.blobUrl || media.externalUrl || '')
+          .filter(Boolean),
+        promoBadge: initialData.badge ?? '',
+        defaultDiscountPct: 0,
+        active: initialData.status === 'active',
+        sort: initialData.position,
+        notes: initialData.adminNotes ?? '',
+        slug: initialData.slug,
+        variants: (initialData.variants.length > 0
+          ? initialData.variants.map((variant, index) =>
+              createVariant({
+                id: String(variant.id ?? `variant-${index}`),
+                label: variant.variantName,
+                width: variant.width ?? null,
+                length: variant.length ?? null,
+                thickness: variant.thickness ?? null,
+                errorTolerance: variant.errorTolerance ?? null,
+                weight: variant.weight ?? null,
+                minOrder: variant.minOrder ?? 1,
+                sku: variant.variantSku ?? '',
+                price: variant.price,
+                discountPct: variant.discountPct ?? 0,
+                stock: variant.inventory ?? 0,
+                active: (variant.status ?? 'active') === 'active',
+                sort: variant.position ?? index + 1
+              })
+            )
+          : [createVariant({ label: 'Osnovni artikel' })])
+      });
+    }
     return createFamily({
       variants: createType === 'variants' ? [createVariant()] : [createVariant({ label: 'Osnovni artikel' })],
       active: true
@@ -1086,14 +1117,14 @@ export default function AdminItemEditorPage({
   const [generatorChips, setGeneratorChips] = useState<GeneratorChip[]>([]);
   const [generatorError, setGeneratorError] = useState<string | null>(null);
   const [sideSettings, setSideSettings] = useState({
-    sku: '',
-    brand: '',
-    material: '',
-    surface: '',
-    color: '',
-    thicknessTolerance: '',
-    moq: 1,
-    weightPerUnit: '0',
+    sku: initialData?.sku ?? '',
+    brand: initialData?.brand ?? '',
+    material: initialData?.material ?? '',
+    surface: initialData?.shape ?? '',
+    color: initialData?.colour ?? '',
+    thicknessTolerance: initialData?.variants[0]?.errorTolerance ?? '',
+    moq: initialData?.variants[0]?.minOrder ?? 1,
+    weightPerUnit: initialData?.variants[0]?.weight != null ? String(initialData.variants[0]?.weight) : '0',
     palletCount: '',
     dimensions: { width: '', depth: '', height: '' },
     trackInventory: true,
@@ -1109,10 +1140,22 @@ export default function AdminItemEditorPage({
     imageAltText: '',
     videoUrl: ''
   });
-  const [documents, setDocuments] = useState<Array<{ name: string; size: string }>>([]);
+  const [documents, setDocuments] = useState<TechnicalDocument[]>(
+    () =>
+      initialData?.media
+        .filter((media) => media.mediaKind === 'document' && media.role === 'technical_sheet')
+        .map((media) => ({
+          name: media.filename || 'Tehnični list',
+          size: '—',
+          blobUrl: media.blobUrl ?? media.externalUrl ?? null,
+          blobPathname: media.blobPathname ?? null
+        })) ?? []
+  );
   const [editorMode, setEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
   const [tableEditorMode, setTableEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
-  const [articleType, setArticleType] = useState<'unit' | 'sheet' | 'bulk' | 'linear' | ''>('');
+  const [articleType, setArticleType] = useState<'unit' | 'sheet' | 'bulk' | 'linear' | ''>(
+    (initialData?.itemType as 'unit' | 'sheet' | 'bulk' | 'linear') ?? ''
+  );
   const [mediaTab, setMediaTab] = useState<MediaTab>('slike');
   const [mediaImagesDraft, setMediaImagesDraft] = useState<string[]>(draft.images);
   const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
@@ -1128,21 +1171,47 @@ export default function AdminItemEditorPage({
   const mediaUploadContextRef = useRef<{ slotIndex: number; multiple: boolean }>({ slotIndex: 0, multiple: true });
   const updateImageAtSlotRef = useRef<(slotIndex: number, imageUrl: string) => void>(() => {});
   const [youtubeInput, setYoutubeInput] = useState('');
-  const [videoDraft, setVideoDraft] = useState<VideoState | null>(null);
+  const [videoDraft, setVideoDraft] = useState<VideoState | null>(() => {
+    const video = initialData?.media.find((media) => media.mediaKind === 'video');
+    if (!video) return null;
+    return {
+      source: video.sourceKind === 'youtube' ? 'youtube' : 'upload',
+      label: video.filename || 'Video',
+      previewUrl: video.externalUrl || video.blobUrl || ''
+    };
+  });
   const [videoDragActive, setVideoDragActive] = useState(false);
   const [videoMoveMode, setVideoMoveMode] = useState(false);
-  const [videoAssignedVariantId, setVideoAssignedVariantId] = useState<string | null>(null);
+  const [videoAssignedVariantId, setVideoAssignedVariantId] = useState<string | null>(() => {
+    const video = initialData?.media.find((media) => media.mediaKind === 'video');
+    if (!video || typeof video.variantIndex !== 'number') return null;
+    const variant = draft.variants[video.variantIndex];
+    return variant ? variant.id : null;
+  });
   const technicalUploadInputRef = useRef<HTMLInputElement>(null);
   const [pendingMediaRemoval, setPendingMediaRemoval] = useState<{ type: 'image'; slotIndex: number } | { type: 'video' } | null>(null);
-  const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>({});
+  const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>(() => {
+    const allowed = new Set<VariantTag>(['novo', 'akcija', 'zadnji-kosi', 'ni-na-zalogi']);
+    const next: Record<string, VariantTag> = {};
+    initialData?.variants.forEach((variant) => {
+      const key = String(variant.id ?? '');
+      const rawBadge = (variant.badge ?? '').trim() as VariantTag;
+      if (key && allowed.has(rawBadge)) next[key] = rawBadge;
+    });
+    return next;
+  });
   const [editingImageSlot, setEditingImageSlot] = useState<number | null>(null);
-  const [imageSettings, setImageSettings] = useState<Record<number, ImageSettings>>({});
-  const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() =>
-    (draft.category || '')
-      .split('/')
-      .map((entry) => entry.trim())
-      .filter(Boolean)
-  );
+  const [imageSettings, setImageSettings] = useState<Record<number, ImageSettings>>(() => {
+    const settings: Record<number, ImageSettings> = {};
+    const imageMedia = initialData?.media
+      .filter((media) => media.mediaKind === 'image' && media.role === 'gallery')
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0)) ?? [];
+    imageMedia.forEach((media, index) => {
+      settings[index] = { altText: media.altText ?? '' };
+    });
+    return settings;
+  });
+  const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() => initialData?.categoryPath ?? []);
 
   useEffect(() => {
     setDraft((current) => ({ ...current, category: selectedCategoryPath.join(' / ') }));
@@ -1252,6 +1321,11 @@ export default function AdminItemEditorPage({
     const normalizedMediaImages = mediaImagesDraft
       .map((url, index) => ({ url, index }))
       .filter((entry) => Boolean(entry.url) && !entry.url.startsWith('blob:'));
+    const hasUnpersistedImages = mediaImagesDraft.some((url) => Boolean(url) && url.startsWith('blob:'));
+    if (hasUnpersistedImages) {
+      toast.error('Nekatere slike še niso naložene. Počakajte, da se nalaganje konča.');
+      return;
+    }
 
     const payload = {
       itemName: draft.name.trim(),
@@ -1274,12 +1348,12 @@ export default function AdminItemEditorPage({
         length: variant.length,
         width: variant.width,
         thickness: variant.thickness,
-        weight: sideSettings.weightPerUnit ? Number(sideSettings.weightPerUnit) : null,
-        errorTolerance: sideSettings.thicknessTolerance || null,
+        weight: variant.weight ?? (sideSettings.weightPerUnit ? Number(sideSettings.weightPerUnit) : null),
+        errorTolerance: (variant.errorTolerance ?? sideSettings.thicknessTolerance) || null,
         price: variant.price,
         discountPct: variant.discountPct,
         inventory: variant.stock,
-        minOrder: Number(sideSettings.moq || 1),
+        minOrder: Math.max(1, variant.minOrder ?? Number(sideSettings.moq || 1)),
         variantSku: variant.sku || null,
         unit: null,
         status: variant.active ? 'active' : 'inactive',
@@ -1304,6 +1378,7 @@ export default function AdminItemEditorPage({
                 sourceKind: videoDraft.source === 'youtube' ? ('youtube' as const) : ('upload' as const),
                 externalUrl: videoDraft.source === 'youtube' ? videoDraft.previewUrl : null,
                 blobUrl: videoDraft.source === 'upload' && !videoDraft.previewUrl.startsWith('blob:') ? videoDraft.previewUrl : null,
+                blobPathname: videoDraft.source === 'upload' ? videoDraft.blobPathname ?? null : null,
                 filename: videoDraft.label,
                 videoType: videoDraft.source,
                 variantIndex: videoAssignedVariantId
@@ -1318,6 +1393,8 @@ export default function AdminItemEditorPage({
           role: 'technical_sheet' as const,
           sourceKind: 'upload' as const,
           filename: documentEntry.name,
+          blobUrl: documentEntry.blobUrl,
+          blobPathname: documentEntry.blobPathname,
           position: index
         }))
       ]
@@ -1450,6 +1527,36 @@ export default function AdminItemEditorPage({
     setGeneratorInput('');
   };
 
+  const uploadMediaFile = useCallback(async (file: File): Promise<{ url: string; pathname: string; mimeType: string | null; filename: string }> => {
+    const itemSlug = (draft.slug || toSlug(draft.name || articleId || 'artikel')).trim();
+    if (!itemSlug) {
+      throw new Error('Najprej vnesite naziv ali URL artikla.');
+    }
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('itemSlug', itemSlug);
+    const response = await fetch('/api/admin/artikli/media', {
+      method: 'POST',
+      body: formData
+    });
+    const body = (await response.json().catch(() => ({}))) as {
+      message?: string;
+      url?: string;
+      pathname?: string;
+      mimeType?: string | null;
+      filename?: string;
+    };
+    if (!response.ok || !body.url || !body.pathname) {
+      throw new Error(body.message || 'Nalaganje datoteke ni uspelo.');
+    }
+    return {
+      url: body.url,
+      pathname: body.pathname,
+      mimeType: body.mimeType ?? null,
+      filename: body.filename ?? file.name
+    };
+  }, [articleId, draft.name, draft.slug]);
+
   const resolveYoutubeEmbedUrl = (rawUrl: string) => {
     const value = rawUrl.trim();
     if (!value) return null;
@@ -1491,7 +1598,7 @@ export default function AdminItemEditorPage({
     return true;
   };
 
-  const handleVideoFileSelect = (file?: File | null) => {
+  const handleVideoFileSelect = async (file?: File | null) => {
     if (!file) return;
     if (!file.type.startsWith('video/')) {
       toast.error('Izberite veljavno video datoteko.');
@@ -1502,21 +1609,34 @@ export default function AdminItemEditorPage({
       toast.error('Video je prevelik. Dovoljena velikost je največ 100 MB.');
       return;
     }
-    setVideoDraft({ source: 'upload', label: file.name, previewUrl: URL.createObjectURL(file) });
-    setVideoMoveMode(false);
+    try {
+      const uploaded = await uploadMediaFile(file);
+      setVideoDraft({ source: 'upload', label: uploaded.filename, previewUrl: uploaded.url, blobPathname: uploaded.pathname });
+      setVideoMoveMode(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Nalaganje videa ni uspelo.');
+    }
   };
 
-  const handleTechnicalFileSelect = (file?: File | null) => {
+  const handleTechnicalFileSelect = async (file?: File | null) => {
     if (!file) return;
     const maxBytes = 5 * 1024 * 1024;
     if (file.size > maxBytes) {
       toast.error('Datoteka je prevelika. Dovoljena velikost je največ 5 MB.');
       return;
     }
-    const fileSizeLabel = file.size < 1024 * 1024
-      ? `${Math.round(file.size / 1024)} KB`
-      : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
-    setDocuments((current) => [{ name: file.name, size: fileSizeLabel }, ...current.filter((entry) => entry.name !== file.name)]);
+    try {
+      const uploaded = await uploadMediaFile(file);
+      const fileSizeLabel = file.size < 1024 * 1024
+        ? `${Math.round(file.size / 1024)} KB`
+        : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+      setDocuments((current) => [
+        { name: uploaded.filename, size: fileSizeLabel, blobUrl: uploaded.url, blobPathname: uploaded.pathname },
+        ...current.filter((entry) => entry.name !== uploaded.filename)
+      ]);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Nalaganje tehničnega lista ni uspelo.');
+    }
   };
 
   const updateVariant = (index: number, updates: Partial<Variant>) => {
@@ -1639,17 +1759,21 @@ export default function AdminItemEditorPage({
     });
 
     uppy.addUploader(async (fileIDs) => {
-      fileIDs.forEach((fileID) => {
+      for (const fileID of fileIDs) {
         const file = uppy.getFile(fileID);
-        if (!file) return;
+        if (!file) continue;
         const targetSlot = Number(file.meta?.targetSlot);
-        if (!Number.isFinite(targetSlot)) return;
+        if (!Number.isFinite(targetSlot)) continue;
         const blob = file.data;
-        if (!(blob instanceof Blob)) return;
-        const localImageUrl = createLocalImageUrl(blob);
-        imageTypeHintsRef.current[localImageUrl] = inferImageExtensionLabel({ mimeType: file.type, fileName: file.name });
-        updateImageAtSlotRef.current(Math.max(0, Math.min(MEDIA_SLOT_COUNT - 1, targetSlot)), localImageUrl);
-      });
+        if (!(blob instanceof Blob)) continue;
+        try {
+          const uploaded = await uploadMediaFile(new File([blob], file.name, { type: file.type }));
+          imageTypeHintsRef.current[uploaded.url] = inferImageExtensionLabel({ mimeType: file.type, fileName: file.name });
+          updateImageAtSlotRef.current(Math.max(0, Math.min(MEDIA_SLOT_COUNT - 1, targetSlot)), uploaded.url);
+        } catch (error) {
+          toast.error(error instanceof Error ? error.message : 'Nalaganje slike ni uspelo.');
+        }
+      }
       fileIDs.forEach((fileID) => {
         if (uppy.getFile(fileID)) uppy.removeFile(fileID);
       });
@@ -1661,7 +1785,7 @@ export default function AdminItemEditorPage({
       uppy.destroy();
       uppyRef.current = null;
     };
-  }, [createLocalImageUrl, toast]);
+  }, [toast, uploadMediaFile]);
 
   const queueImageUpload = useCallback((files: FileList | File[] | null, startSlot: number, allowMultiple: boolean) => {
     if (!isMediaEditable) return;
@@ -1851,13 +1975,17 @@ export default function AdminItemEditorPage({
     });
   }, []);
 
-  const handleSaveEditedImage = useCallback((slotIndex: number, blob: Blob, mimeType: string) => {
-    const nextImageUrl = createLocalImageUrl(blob);
-    imageTypeHintsRef.current[nextImageUrl] = inferImageExtensionLabel({ mimeType });
-    updateImageAtSlot(slotIndex, nextImageUrl);
-    setEditingImageSlot(null);
-    toast.success('Slika je uspešno urejena.');
-  }, [createLocalImageUrl, toast, updateImageAtSlot]);
+  const handleSaveEditedImage = useCallback(async (slotIndex: number, blob: Blob, mimeType: string) => {
+    try {
+      const uploaded = await uploadMediaFile(new File([blob], `edited-${Date.now()}.webp`, { type: mimeType || 'image/webp' }));
+      imageTypeHintsRef.current[uploaded.url] = inferImageExtensionLabel({ mimeType });
+      updateImageAtSlot(slotIndex, uploaded.url);
+      setEditingImageSlot(null);
+      toast.success('Slika je uspešno urejena.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Shranjevanje obrezane slike ni uspelo.');
+    }
+  }, [toast, updateImageAtSlot, uploadMediaFile]);
 
   const renderImageActionButtons = (slotIndex: number) => {
     const compact = slotIndex !== 0;
@@ -2260,7 +2388,7 @@ export default function AdminItemEditorPage({
                   disabled={!isMediaEditable}
                   className="hidden"
                   onChange={(event) => {
-                    handleVideoFileSelect(event.target.files?.[0]);
+                    void handleVideoFileSelect(event.target.files?.[0]);
                     event.currentTarget.value = '';
                   }}
                 />
@@ -2342,7 +2470,7 @@ export default function AdminItemEditorPage({
                         if (!isMediaEditable) return;
                         event.preventDefault();
                         setVideoDragActive(false);
-                        handleVideoFileSelect(event.dataTransfer.files?.[0]);
+                        void handleVideoFileSelect(event.dataTransfer.files?.[0]);
                       }}
                     >
                       <div className="flex flex-1 flex-col items-center justify-center">
@@ -2434,7 +2562,7 @@ export default function AdminItemEditorPage({
                   className="hidden"
                   disabled={!isMediaEditable}
                   onChange={(event) => {
-                    handleTechnicalFileSelect(event.target.files?.[0]);
+                    void handleTechnicalFileSelect(event.target.files?.[0]);
                     event.currentTarget.value = '';
                   }}
                 />
@@ -2452,7 +2580,7 @@ export default function AdminItemEditorPage({
                     onDrop={(event) => {
                       if (!isMediaEditable) return;
                       event.preventDefault();
-                      handleTechnicalFileSelect(event.dataTransfer.files?.[0]);
+                      void handleTechnicalFileSelect(event.dataTransfer.files?.[0]);
                     }}
                   >
                     <DocumentUploadFrameIcon className="h-[72px] w-[72px] text-[#74addb]" />
@@ -2651,7 +2779,7 @@ export default function AdminItemEditorPage({
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isDimensionLockActive} className={`${compactTableNumberInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.length ?? ''} onChange={(event) => updateVariant(index, { length: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.length ?? '—'}</span></span>}</td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isDimensionLockActive} className={`${compactTableNumberInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.width ?? ''} onChange={(event) => updateVariant(index, { width: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.width ?? '—'}</span></span>}</td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isThicknessLockActive} className={`${compactTableNumberInputClassName} !w-[7ch] text-right ${isThicknessLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.thickness ?? ''} onChange={(event) => updateVariant(index, { thickness: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.thickness ?? '—'}</span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-[7ch] text-right`} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-[7ch] items-center justify-end">{sideSettings.weightPerUnit || '—'}</span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-[7ch] text-right`} value={variant.weight ?? ''} onChange={(event) => updateVariant(index, { weight: Number(event.target.value) || 0 })} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.weight ?? '—'}</span></span>}</td>
                   <td className="px-2 py-1.5 text-center">
                     {isTableEditable ? (
                       <div className="inline-flex h-5 w-[52px] items-center justify-center gap-0.5">
@@ -2661,22 +2789,22 @@ export default function AdminItemEditorPage({
                           inputMode="decimal"
                           disabled={isToleranceLocked}
                           className={`${compactTableNumberInputClassName} !mt-0 !w-10 text-center ${isToleranceLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`}
-                          value={sideSettings.thicknessTolerance}
+                          value={variant.errorTolerance ?? ''}
                           onChange={(event) => {
                             if (isToleranceLocked) return;
-                            setSideSettings((current) => ({ ...current, thicknessTolerance: event.target.value }));
+                            updateVariant(index, { errorTolerance: event.target.value });
                           }}
                         />
                       </div>
                     ) : (
-                      <span className="inline-flex h-5 w-[52px] items-center justify-center">{sideSettings.thicknessTolerance ? `±${sideSettings.thicknessTolerance}` : '—'}</span>
+                      <span className="inline-flex h-5 w-[52px] items-center justify-center">{variant.errorTolerance ? `±${variant.errorTolerance}` : '—'}</span>
                     )}
                   </td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-[7ch] text-right`} value={variant.price} onChange={(event) => updateVariant(index, { price: Number(event.target.value) || 0 })} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-[7ch] items-center justify-end">{formatCurrency(variant.price)}</span></span>}</td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="decimal" min={0} max={99.9} step={0.1} className={`${compactTableNumberInputClassName} !mt-0 !w-[7ch] text-right`} value={variant.discountPct} onChange={(event) => updateVariant(index, { discountPct: Math.min(99.9, Math.max(0, Number(event.target.value) || 0)) })} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.discountPct}</span></span>}</td>
                   <td className="px-2 py-1.5 text-right"><span className="inline-flex h-5 items-center justify-end">{formatCurrency(computeSalePrice(variant.price, variant.discountPct))}</span></td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="numeric" className={`${compactTableNumberInputClassName} !mt-0 !w-auto !max-w-[6ch] text-right`} value={variant.stock} onChange={(event) => updateVariant(index, { stock: Number(event.target.value) || 0 })} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 max-w-[6ch] items-center justify-end">{variant.stock}</span></span>}</td>
-                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableNumberInputClassName} !mt-0 !w-10 text-center`} value={sideSettings.moq} onChange={(event) => setSideSettings((current) => ({ ...current, moq: Number(event.target.value) || 1 }))} /> : <span className="inline-flex h-5 w-10 items-center justify-center">{sideSettings.moq}</span>}</td>
+                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableNumberInputClassName} !mt-0 !w-10 text-center`} value={variant.minOrder ?? 1} onChange={(event) => updateVariant(index, { minOrder: Math.max(1, Number(event.target.value) || 1) })} /> : <span className="inline-flex h-5 w-10 items-center justify-center">{variant.minOrder ?? 1}</span>}</td>
                   <td className="px-2 py-1.5 text-center">{isTableEditable ? <input className={`${orderLikeEditableInputClassName} !mt-0 !h-5 !w-[20ch] text-center`} value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} /> : <span className="inline-flex h-5 w-[20ch] items-center justify-center overflow-hidden text-ellipsis whitespace-nowrap text-center">{variant.sku || '—'}</span>}</td>
                   <td className="px-1 py-1.5 text-center">
                     <div className="inline-flex justify-center">
@@ -2735,7 +2863,7 @@ export default function AdminItemEditorPage({
             altText={ensureImageSettings(editingImageSlot).altText}
             onAltTextChange={(value) => updateImageSettings(editingImageSlot, { altText: value })}
             onCancel={() => setEditingImageSlot(null)}
-            onSave={({ blob, mimeType }) => handleSaveEditedImage(editingImageSlot, blob, mimeType)}
+            onSave={({ blob, mimeType }) => { void handleSaveEditedImage(editingImageSlot, blob, mimeType); }}
           />,
           document.body
         )

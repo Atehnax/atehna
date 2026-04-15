@@ -14,15 +14,14 @@ import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
 import AdminRangeFilterPanel from '@/shared/ui/admin-range-filter-panel';
 import { adminTableRowToneClasses, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
 import {
-  buildFamiliesFromSeed,
   computeSalePrice,
   formatCurrency,
   statusLabel,
   type ProductFamily,
-  type SeedItemTuple,
   type Variant,
   variantLabel
 } from '@/admin/features/artikli/lib/familyModel';
+import type { AdminCatalogListItem } from '@/shared/server/catalogItems';
 
 type StatusFilter = 'all' | 'active' | 'hidden';
 type DiscountFilter = 'all' | 'yes' | 'no';
@@ -37,10 +36,49 @@ const PAGE_SIZE_OPTIONS = [20, 50, 100];
 const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500';
 const formatPriceRange = (minPrice: number, maxPrice: number) =>
   `${minPrice.toLocaleString('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} – ${maxPrice.toLocaleString('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
-const getBaseSku = (family: ProductFamily) =>
-  family.variants.find((variant) => variantLabel(variant) === 'Osnovna različica')?.sku || family.variants[0]?.sku || '';
+type ListFamily = ProductFamily & { baseSku: string };
 
-export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTuple[] }) {
+const getBaseSku = (family: ListFamily) => family.baseSku || family.variants[0]?.sku || '';
+
+function toListFamilies(items: AdminCatalogListItem[]): ListFamily[] {
+  return items.map((item, itemIndex) => {
+    const variants: Variant[] = item.variants.map((variant, variantIndex) => ({
+      id: String(variant.id),
+      label: variant.variantName || `Različica ${variantIndex + 1}`,
+      width: null,
+      length: null,
+      thickness: null,
+      sku: variant.variantSku ?? '',
+      price: variant.price,
+      discountPct: variant.discountPct,
+      stock: variant.inventory,
+      active: variant.status === 'active',
+      sort: variantIndex + 1,
+      imageAssignments: [],
+      imageOverride: null
+    }));
+
+    return {
+      id: String(item.id),
+      name: item.itemName,
+      description: '',
+      category: item.categoryLabel || '—',
+      categoryId: null,
+      subcategoryId: null,
+      images: [],
+      promoBadge: '',
+      defaultDiscountPct: item.defaultDiscountPct,
+      active: item.status === 'active',
+      sort: itemIndex + 1,
+      notes: item.adminNotes ?? '',
+      slug: item.slug,
+      variants,
+      baseSku: item.baseSku ?? ''
+    };
+  });
+}
+
+export default function AdminItemsManager({ items }: { items: AdminCatalogListItem[] }) {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -61,7 +99,7 @@ export default function AdminItemsManager({ seedItems }: { seedItems: SeedItemTu
   const [priceRangeFilter, setPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [draftPriceRangeFilter, setDraftPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
 
-  const families = useMemo(() => buildFamiliesFromSeed(seedItems), [seedItems]);
+  const families = useMemo(() => toListFamilies(items), [items]);
   const categories = useMemo(() => Array.from(new Set(families.map((family) => family.category))).sort((a, b) => a.localeCompare(b, 'sl')), [families]);
 
   const filteredFamilies = useMemo(() => {

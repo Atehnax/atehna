@@ -1,6 +1,6 @@
 import AdminItemsManager from '@/admin/features/artikli/components/AdminItemsManager';
-import type { SeedItemTuple } from '@/admin/features/artikli/lib/familyModel';
+import type { AdminCatalogListItem } from '@/shared/server/catalogItems';
 
-export default function AdminItemsManagerLoader({ seedItems }: { seedItems: SeedItemTuple[] }) {
-  return <AdminItemsManager seedItems={seedItems} />;
+export default function AdminItemsManagerLoader({ items }: { items: AdminCatalogListItem[] }) {
+  return <AdminItemsManager items={items} />;
 }

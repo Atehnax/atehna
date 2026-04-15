@@ -74,6 +74,54 @@ export type CatalogItemEditorPayload = {
   }>;
 };
 
+export type AdminCatalogVariantSummary = {
+  id: number;
+  variantName: string;
+  variantSku: string | null;
+  price: number;
+  discountPct: number;
+  inventory: number;
+  minOrder: number;
+  status: 'active' | 'inactive';
+  badge: string | null;
+};
+
+export type AdminCatalogListItem = {
+  id: number;
+  slug: string;
+  itemName: string;
+  baseSku: string | null;
+  categoryLabel: string;
+  status: 'active' | 'inactive';
+  variantCount: number;
+  minPrice: number;
+  maxPrice: number;
+  defaultDiscountPct: number;
+  adminNotes: string | null;
+  variants: AdminCatalogVariantSummary[];
+};
+
+export type CatalogItemEditorHydration = {
+  id: number;
+  itemName: string;
+  itemType: CatalogItemType;
+  badge: string | null;
+  status: 'active' | 'inactive';
+  categoryPath: string[];
+  sku: string | null;
+  slug: string;
+  unit: string | null;
+  brand: string | null;
+  material: string | null;
+  colour: string | null;
+  shape: string | null;
+  description: string | null;
+  adminNotes: string | null;
+  position: number;
+  variants: CatalogItemEditorPayload['variants'];
+  media: CatalogItemEditorPayload['media'];
+};
+
 function asNumber(value: unknown, fallback = 0): number {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (typeof value === 'string') {
@@ -288,6 +336,273 @@ export async function fetchCatalogItemsForCategory(categoryIds: string[]): Promi
   );
 
   return (result.rows as Array<{ category_id: string; item: Record<string, unknown> }>);
+}
+
+export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem[]> {
+  const pool = await getPool();
+  const result = await pool.query(
+    `
+    with recursive category_paths as (
+      select id, parent_id, title, title::text as full_path
+      from catalog_categories
+      where parent_id is null
+      union all
+      select c.id, c.parent_id, c.title, cp.full_path || ' / ' || c.title
+      from catalog_categories c
+      join category_paths cp on cp.id = c.parent_id
+    ),
+    variants_agg as (
+      select
+        civ.item_id,
+        coalesce(count(*), 0)::int as variant_count,
+        coalesce(min(civ.price), 0)::numeric as min_price,
+        coalesce(max(civ.price), 0)::numeric as max_price,
+        coalesce(max(civ.discount_pct), 0)::numeric as max_discount_pct,
+        coalesce(
+          json_agg(
+            json_build_object(
+              'id', civ.id,
+              'variantName', civ.variant_name,
+              'variantSku', civ.variant_sku,
+              'price', civ.price,
+              'discountPct', civ.discount_pct,
+              'inventory', civ.inventory,
+              'minOrder', civ.min_order,
+              'status', civ.status,
+              'badge', civ.badge
+            )
+            order by civ.position asc, civ.id asc
+          ),
+          '[]'::json
+        ) as variants
+      from catalog_item_variants civ
+      group by civ.item_id
+    )
+    select
+      ci.id,
+      ci.slug,
+      ci.item_name,
+      ci.sku,
+      ci.status,
+      ci.admin_notes,
+      coalesce(cp.full_path, '') as category_label,
+      coalesce(va.variant_count, 0) as variant_count,
+      coalesce(va.min_price, 0)::text as min_price,
+      coalesce(va.max_price, 0)::text as max_price,
+      coalesce(va.max_discount_pct, 0)::text as default_discount_pct,
+      coalesce(va.variants, '[]'::json) as variants
+    from catalog_items ci
+    left join category_paths cp on cp.id = ci.category_id
+    left join variants_agg va on va.item_id = ci.id
+    order by ci.position asc, ci.item_name asc, ci.id asc
+    `
+  );
+
+  return (result.rows as Record<string, unknown>[]).map((row) => ({
+    id: Number(row.id),
+    slug: String(row.slug ?? ''),
+    itemName: String(row.item_name ?? ''),
+    baseSku: asStringOrNull(row.sku),
+    categoryLabel: String(row.category_label ?? ''),
+    status: String(row.status ?? 'inactive') === 'active' ? 'active' : 'inactive',
+    variantCount: asNumber(row.variant_count),
+    minPrice: asNumber(row.min_price),
+    maxPrice: asNumber(row.max_price),
+    defaultDiscountPct: asNumber(row.default_discount_pct),
+    adminNotes: asStringOrNull(row.admin_notes),
+    variants: Array.isArray(row.variants)
+      ? row.variants.map((variant) => {
+          const entry = variant as Record<string, unknown>;
+          return {
+            id: asNumber(entry.id),
+            variantName: String(entry.variantName ?? ''),
+            variantSku: asStringOrNull(entry.variantSku),
+            price: asNumber(entry.price),
+            discountPct: asNumber(entry.discountPct),
+            inventory: asNumber(entry.inventory),
+            minOrder: Math.max(1, asNumber(entry.minOrder, 1)),
+            status: String(entry.status ?? 'inactive') === 'active' ? 'active' : 'inactive',
+            badge: asStringOrNull(entry.badge)
+          };
+        })
+      : []
+  }));
+}
+
+export async function fetchCatalogItemEditorBySlug(slug: string): Promise<CatalogItemEditorHydration | null> {
+  const normalizedSlug = slug.trim();
+  if (!normalizedSlug) return null;
+
+  const pool = await getPool();
+  const result = await pool.query(
+    `
+    with item as (
+      select *
+      from catalog_items
+      where slug = $1
+      limit 1
+    ),
+    category_path as (
+      with recursive chain as (
+        select cc.id, cc.parent_id, cc.title, 0 as depth
+        from catalog_categories cc
+        join item i on i.category_id = cc.id
+        union all
+        select parent.id, parent.parent_id, parent.title, chain.depth + 1
+        from catalog_categories parent
+        join chain on chain.parent_id = parent.id
+      )
+      select coalesce(array_agg(title order by depth desc), array[]::text[]) as path
+      from chain
+    )
+    select
+      i.id,
+      i.item_name,
+      i.item_type,
+      i.badge,
+      i.status,
+      i.sku,
+      i.slug,
+      i.unit,
+      i.brand,
+      i.material,
+      i.colour,
+      i.shape,
+      i.description,
+      i.admin_notes,
+      i.position,
+      coalesce((select path from category_path), array[]::text[]) as category_path,
+      coalesce((
+        select json_agg(
+          json_build_object(
+            'id', civ.id,
+            'variantName', civ.variant_name,
+            'length', civ.length,
+            'width', civ.width,
+            'thickness', civ.thickness,
+            'weight', civ.weight,
+            'errorTolerance', civ.error_tolerance,
+            'price', civ.price,
+            'discountPct', civ.discount_pct,
+            'inventory', civ.inventory,
+            'minOrder', civ.min_order,
+            'variantSku', civ.variant_sku,
+            'unit', civ.unit,
+            'status', civ.status,
+            'badge', civ.badge,
+            'position', civ.position
+          )
+          order by civ.position asc, civ.id asc
+        )
+        from catalog_item_variants civ
+        where civ.item_id = i.id
+      ), '[]'::json) as variants,
+      coalesce((
+        select json_agg(
+          json_build_object(
+            'id', cm.id,
+            'variantId', cm.variant_id,
+            'mediaKind', cm.media_kind,
+            'role', cm.role,
+            'sourceKind', cm.source_kind,
+            'filename', cm.filename,
+            'blobUrl', cm.blob_url,
+            'blobPathname', cm.blob_pathname,
+            'externalUrl', cm.external_url,
+            'mimeType', cm.mime_type,
+            'altText', cm.alt_text,
+            'imageType', cm.image_type,
+            'imageDimensions', cm.image_dimensions,
+            'videoType', cm.video_type,
+            'hidden', cm.hidden,
+            'position', cm.position
+          )
+          order by cm.position asc, cm.id asc
+        )
+        from catalog_media cm
+        where cm.item_id = i.id
+      ), '[]'::json) as media
+    from item i
+    `
+    ,
+    [normalizedSlug]
+  );
+
+  const row = result.rows[0] as Record<string, unknown> | undefined;
+  if (!row) return null;
+
+  const variantsJson = Array.isArray(row.variants) ? row.variants : [];
+  const mediaJson = Array.isArray(row.media) ? row.media : [];
+  const variantIdToIndex = new Map<number, number>();
+  const variants = variantsJson.map((entry, index) => {
+    const variant = entry as Record<string, unknown>;
+    const id = asNumber(variant.id);
+    variantIdToIndex.set(id, index);
+    return {
+      id,
+      variantName: String(variant.variantName ?? ''),
+      length: variant.length === null ? null : asNumber(variant.length),
+      width: variant.width === null ? null : asNumber(variant.width),
+      thickness: variant.thickness === null ? null : asNumber(variant.thickness),
+      weight: variant.weight === null ? null : asNumber(variant.weight),
+      errorTolerance: asStringOrNull(variant.errorTolerance),
+      price: asNumber(variant.price),
+      discountPct: asNumber(variant.discountPct),
+      inventory: asNumber(variant.inventory),
+      minOrder: Math.max(1, asNumber(variant.minOrder, 1)),
+      variantSku: asStringOrNull(variant.variantSku),
+      unit: asStringOrNull(variant.unit),
+      status: (String(variant.status ?? 'inactive') === 'active' ? 'active' : 'inactive') as 'active' | 'inactive',
+      badge: asStringOrNull(variant.badge),
+      position: asNumber(variant.position, index)
+    };
+  });
+
+  const media = mediaJson.map((entry, index) => {
+    const item = entry as Record<string, unknown>;
+    const variantId = item.variantId === null ? null : asNumber(item.variantId, -1);
+    return {
+      id: asNumber(item.id),
+      variantIndex: variantId !== null && variantIdToIndex.has(variantId) ? variantIdToIndex.get(variantId) ?? null : null,
+      mediaKind: String(item.mediaKind ?? 'image') as 'image' | 'video' | 'document',
+      role: String(item.role ?? 'gallery') as 'gallery' | 'technical_sheet',
+      sourceKind: String(item.sourceKind ?? 'upload') as 'upload' | 'youtube',
+      filename: asStringOrNull(item.filename),
+      blobUrl: asStringOrNull(item.blobUrl),
+      blobPathname: asStringOrNull(item.blobPathname),
+      externalUrl: asStringOrNull(item.externalUrl),
+      mimeType: asStringOrNull(item.mimeType),
+      altText: asStringOrNull(item.altText),
+      imageType: asStringOrNull(item.imageType),
+      imageDimensions: (typeof item.imageDimensions === 'object' && item.imageDimensions !== null
+        ? (item.imageDimensions as { width?: number; height?: number })
+        : null),
+      videoType: asStringOrNull(item.videoType),
+      hidden: Boolean(item.hidden),
+      position: asNumber(item.position, index)
+    };
+  });
+
+  return {
+    id: asNumber(row.id),
+    itemName: String(row.item_name ?? ''),
+    itemType: String(row.item_type ?? 'unit') as CatalogItemType,
+    badge: asStringOrNull(row.badge),
+    status: String(row.status ?? 'inactive') === 'active' ? 'active' : 'inactive',
+    categoryPath: Array.isArray(row.category_path) ? row.category_path.map((entry) => String(entry)) : [],
+    sku: asStringOrNull(row.sku),
+    slug: String(row.slug ?? ''),
+    unit: asStringOrNull(row.unit),
+    brand: asStringOrNull(row.brand),
+    material: asStringOrNull(row.material),
+    colour: asStringOrNull(row.colour),
+    shape: asStringOrNull(row.shape),
+    description: asStringOrNull(row.description),
+    adminNotes: asStringOrNull(row.admin_notes),
+    position: asNumber(row.position),
+    variants,
+    media
+  };
 }
 
 export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Promise<{ id: number; slug: string }> {

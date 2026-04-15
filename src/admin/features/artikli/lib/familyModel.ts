@@ -18,6 +18,9 @@ export type Variant = {
   width: number | null;
   length: number | null;
   thickness: number | null;
+  errorTolerance?: string | null;
+  weight?: number | null;
+  minOrder?: number;
   sku: string;
   price: number;
   discountPct: number;
@@ -85,6 +88,9 @@ export const createVariant = (overrides: Partial<Variant> = {}): Variant => ({
   width: null,
   length: null,
   thickness: null,
+  errorTolerance: null,
+  weight: null,
+  minOrder: 1,
   sku: '',
   price: 0,
   discountPct: 0,

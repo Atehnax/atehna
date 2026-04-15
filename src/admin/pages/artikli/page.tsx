@@ -1,5 +1,5 @@
 import AdminItemsManagerLoader from '@/admin/components/AdminItemsManagerLoader';
-import { buildSeedItems } from '@/admin/features/artikli/lib/seedItems';
+import { fetchAdminCatalogListItems } from '@/shared/server/catalogItems';
 import { instrumentAdminRouteRender } from '@/shared/server/catalogDiagnostics';
 import { AdminPageHeader } from '@/shared/ui/admin-primitives';
 
@@ -11,8 +11,8 @@ export const metadata = {
 
 async function AdminItemsManagerSection() {
   return instrumentAdminRouteRender('/admin/artikli', async () => {
-    const seedItems = await buildSeedItems();
-    return <AdminItemsManagerLoader seedItems={seedItems} />;
+    const items = await fetchAdminCatalogListItems();
+    return <AdminItemsManagerLoader items={items} />;
   });
 }
 

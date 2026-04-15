@@ -144,34 +144,22 @@ async function fetchPaidLogTimestamps(orderIds: number[]) {
   if (orderIds.length === 0) return new Map<number, string>();
 
   const pool = await getPool();
-  try {
-    const result = await pool.query(
-      `
-      select order_id, min(created_at) as paid_at
-      from order_payment_logs
-      where order_id = any($1::bigint[])
-        and new_status = 'paid'
-      group by order_id
-      `,
-      [orderIds]
-    );
+  const result = await pool.query(
+    `
+    select order_id, min(created_at) as paid_at
+    from order_payment_logs
+    where order_id = any($1::bigint[])
+      and new_status = 'paid'
+    group by order_id
+    `,
+    [orderIds]
+  );
 
-    return new Map<number, string>(
-      result.rows
-        .map((row) => [Number(row.order_id), String(row.paid_at)] as const)
-        .filter((entry) => Number.isFinite(entry[0]))
-    );
-  } catch (error) {
-    if (
-      typeof error === 'object' &&
-      error !== null &&
-      'code' in error &&
-      ['42P01', '42501'].includes((error as { code?: string }).code ?? '')
-    ) {
-      return new Map<number, string>();
-    }
-    throw error;
-  }
+  return new Map<number, string>(
+    result.rows
+      .map((row) => [Number(row.order_id), String(row.paid_at)] as const)
+      .filter((entry) => Number.isFinite(entry[0]))
+  );
 }
 
 const toFiniteNumber = (value: unknown) => {

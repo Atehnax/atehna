@@ -1,111 +1,23 @@
 import { getPool } from '@/shared/server/db';
 import { instrumentCatalogLoader, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 
-let hasOrdersDraftColumnCache: boolean | null = null;
-let hasOrdersDeletedColumnCache: boolean | null = null;
-let hasOrdersPaymentStatusColumnCache: boolean | null = null;
-let hasOrdersPaymentNotesColumnCache: boolean | null = null;
-let hasDocumentsDeletedColumnCache: boolean | null = null;
-let ordersSchemaSupportPromise:
-  | Promise<{
-      supportsDraftColumn: boolean;
-      supportsDeletedColumn: boolean;
-      supportsPaymentStatusColumn: boolean;
-      supportsPaymentNotesColumn: boolean;
-    }>
-  | null = null;
-let documentsSchemaSupportPromise: Promise<{ supportsDeletedColumn: boolean }> | null = null;
+const CURRENT_ORDERS_SCHEMA_SUPPORT = {
+  supportsDraftColumn: true,
+  supportsDeletedColumn: true,
+  supportsPaymentStatusColumn: true,
+  supportsPaymentNotesColumn: true
+} as const;
 
-async function hasOrdersColumn(columnName: string) {
-  const pool = await getPool();
-  const result = await pool.query(
-    `
-    select 1
-    from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'orders'
-      and column_name = $1
-    limit 1
-    `,
-    [columnName]
-  );
-
-  return Number(result.rowCount ?? 0) > 0;
-}
-
-async function hasOrdersDraftColumn() {
-  if (hasOrdersDraftColumnCache !== null) return hasOrdersDraftColumnCache;
-
-  hasOrdersDraftColumnCache = await hasOrdersColumn('is_draft');
-  return hasOrdersDraftColumnCache;
-}
-
-async function hasOrdersDeletedColumn() {
-  if (hasOrdersDeletedColumnCache !== null) return hasOrdersDeletedColumnCache;
-
-  hasOrdersDeletedColumnCache = await hasOrdersColumn('deleted_at');
-  return hasOrdersDeletedColumnCache;
-}
-
-async function hasOrdersPaymentStatusColumn() {
-  if (hasOrdersPaymentStatusColumnCache !== null) return hasOrdersPaymentStatusColumnCache;
-
-  hasOrdersPaymentStatusColumnCache = await hasOrdersColumn('payment_status');
-  return hasOrdersPaymentStatusColumnCache;
-}
-
-async function hasOrdersPaymentNotesColumn() {
-  if (hasOrdersPaymentNotesColumnCache !== null) return hasOrdersPaymentNotesColumnCache;
-
-  hasOrdersPaymentNotesColumnCache = await hasOrdersColumn('payment_notes');
-  return hasOrdersPaymentNotesColumnCache;
-}
-
-async function hasDocumentsDeletedColumn() {
-  if (hasDocumentsDeletedColumnCache !== null) return hasDocumentsDeletedColumnCache;
-
-  const pool = await getPool();
-  const result = await pool.query(
-    `
-    select 1
-    from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'order_documents'
-      and column_name = 'deleted_at'
-    limit 1
-    `
-  );
-
-  hasDocumentsDeletedColumnCache = Number(result.rowCount ?? 0) > 0;
-  return hasDocumentsDeletedColumnCache;
-}
+const CURRENT_DOCUMENTS_SCHEMA_SUPPORT = {
+  supportsDeletedColumn: true
+} as const;
 
 async function getOrdersSchemaSupport() {
-  if (!ordersSchemaSupportPromise) {
-    ordersSchemaSupportPromise = Promise.all([
-      hasOrdersDraftColumn(),
-      hasOrdersDeletedColumn(),
-      hasOrdersPaymentStatusColumn(),
-      hasOrdersPaymentNotesColumn()
-    ]).then(([supportsDraftColumn, supportsDeletedColumn, supportsPaymentStatusColumn, supportsPaymentNotesColumn]) => ({
-      supportsDraftColumn,
-      supportsDeletedColumn,
-      supportsPaymentStatusColumn,
-      supportsPaymentNotesColumn
-    }));
-  }
-
-  return ordersSchemaSupportPromise;
+  return CURRENT_ORDERS_SCHEMA_SUPPORT;
 }
 
 async function getDocumentsSchemaSupport() {
-  if (!documentsSchemaSupportPromise) {
-    documentsSchemaSupportPromise = hasDocumentsDeletedColumn().then((supportsDeletedColumn) => ({
-      supportsDeletedColumn
-    }));
-  }
-
-  return documentsSchemaSupportPromise;
+  return CURRENT_DOCUMENTS_SCHEMA_SUPPORT;
 }
 
 export type OrderRow = {

@@ -67,12 +67,6 @@ const parsePricedItems = (rawItems: unknown): PricedOrderItem[] | null => {
   return parsedItems;
 };
 
-const isMissingColumnError = (error: unknown, columnCode: string): boolean => {
-  if (!error || typeof error !== 'object') return false;
-  const databaseError = error as { code?: string };
-  return databaseError.code === columnCode;
-};
-
 const asDatabaseErrorDetails = (error: unknown): { code: string; message: string } => {
   if (error instanceof Error) {
     const databaseError = error as Error & { code?: string };
@@ -178,43 +172,6 @@ export async function POST(request: Request) {
         returning id, order_number, created_at
       `;
 
-      const insertOrderFallbackQuery = `
-        with next_id as (
-          select nextval('orders_id_seq') as id
-        )
-        insert into orders (
-          id,
-          order_number,
-          customer_type,
-          organization_name,
-          contact_name,
-          email,
-          phone,
-          delivery_address,
-          reference,
-          notes,
-          subtotal,
-          tax,
-          total
-        )
-        select
-          id,
-          '#' || id,
-          $1,
-          $2,
-          $3,
-          $4,
-          $5,
-          $6,
-          $7,
-          $8,
-          $9,
-          $10,
-          $11
-        from next_id
-        returning id, order_number, created_at
-      `;
-
       const orderInsertParams = [
         customerType,
         toNullableText(organizationName),
@@ -229,24 +186,7 @@ export async function POST(request: Request) {
         total
       ];
 
-      let orderResult;
-      await databaseClient.query('savepoint order_insert_sp');
-      try {
-        orderResult = await databaseClient.query(insertOrderQuery, orderInsertParams);
-      } catch (error) {
-        if (!isMissingColumnError(error, '42703')) {
-          await databaseClient.query('rollback to savepoint order_insert_sp');
-          throw error;
-        }
-
-        const details = asDatabaseErrorDetails(error);
-        console.error('[orders.create] primary insert failed, using fallback query', details);
-
-        await databaseClient.query('rollback to savepoint order_insert_sp');
-        orderResult = await databaseClient.query(insertOrderFallbackQuery, orderInsertParams);
-      } finally {
-        await databaseClient.query('release savepoint order_insert_sp');
-      }
+      const orderResult = await databaseClient.query(insertOrderQuery, orderInsertParams);
 
       const orderRow = orderResult.rows[0] as
         | { id: number; order_number: string; created_at: string }
@@ -302,30 +242,10 @@ export async function POST(request: Request) {
       const blobPath = buildOrderBlobPath(orderRow.id, fileName);
       const blob = await uploadBlob(blobPath, Buffer.from(pdfBuffer), 'application/pdf');
 
-      await databaseClient.query('savepoint order_document_insert_sp');
-      try {
-        await databaseClient.query(
-          'insert into order_documents (order_id, type, filename, blob_url, blob_pathname) values ($1, $2, $3, $4, $5)',
-          [orderRow.id, documentType, fileName, blob.url, blob.pathname]
-        );
-      } catch (error) {
-        if (!isMissingColumnError(error, '42703')) {
-          await databaseClient.query('rollback to savepoint order_document_insert_sp');
-          throw error;
-        }
-
-        const details = asDatabaseErrorDetails(error);
-        console.error('[orders.create] order_documents insert failed, using fallback query', details);
-
-        await databaseClient.query('rollback to savepoint order_document_insert_sp');
-
-        await databaseClient.query(
-          'insert into order_documents (order_id, type, filename, blob_url) values ($1, $2, $3, $4)',
-          [orderRow.id, documentType, fileName, blob.url]
-        );
-      } finally {
-        await databaseClient.query('release savepoint order_document_insert_sp');
-      }
+      await databaseClient.query(
+        'insert into order_documents (order_id, type, filename, blob_url, blob_pathname) values ($1, $2, $3, $4, $5)',
+        [orderRow.id, documentType, fileName, blob.url, blob.pathname]
+      );
 
       await databaseClient.query('commit');
 

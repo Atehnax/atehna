@@ -84,6 +84,7 @@ type CategoryRow = {
 let ensured = false;
 let seeded = false;
 let cleanedLegacyImages = false;
+const allowCatalogFileFallback = process.env.CATALOG_FILE_FALLBACK === '1';
 
 async function ensureTable() {
   if (ensured) return;
@@ -273,7 +274,7 @@ async function readCatalogDataFromDatabase(
 ): Promise<CatalogData | CatalogDataWithStatuses> {
   const { includeInactive = false, includeStatuses = false } = options;
 
-  if (!getDatabaseUrl()) {
+  if (!getDatabaseUrl() && allowCatalogFileFallback) {
     const normalized = await readCatalogFile();
     return includeStatuses
       ? { categories: normalized.categories, statuses: buildDefaultStatuses(normalized.categories) }
@@ -344,7 +345,7 @@ async function readCatalogPreviewDataFromDatabase(
 ): Promise<CatalogPreviewData | CatalogPreviewDataWithStatuses> {
   const { includeInactive = false, includeStatuses = false } = options;
 
-  if (!getDatabaseUrl()) {
+  if (!getDatabaseUrl() && allowCatalogFileFallback) {
     const normalized = await readCatalogFile();
     const previewPayload: CatalogPreviewData = {
       categories: normalized.categories.map((category) => ({
@@ -411,7 +412,7 @@ async function readCatalogPreviewDataFromDatabase(
 
 
 async function readCatalogCategoryCardsFromDatabase(): Promise<CatalogCategoryCard[]> {
-  if (!getDatabaseUrl()) {
+  if (!getDatabaseUrl() && allowCatalogFileFallback) {
     const normalized = await readCatalogFile();
     return normalized.categories.map(({ slug, title, summary, image }) => ({ slug, title, summary, image }));
   }
@@ -430,7 +431,7 @@ async function readCatalogCategoryCardsFromDatabase(): Promise<CatalogCategoryCa
 }
 
 async function readCatalogCategorySummariesFromDatabase(): Promise<CatalogCategorySummary[]> {
-  if (!getDatabaseUrl()) {
+  if (!getDatabaseUrl() && allowCatalogFileFallback) {
     const normalized = await readCatalogFile();
     return normalized.categories.map(({ slug, title }) => ({ slug, title }));
   }
@@ -451,7 +452,7 @@ async function readCatalogCategorySummariesFromDatabase(): Promise<CatalogCatego
 async function readCatalogCategoryWithSubcategoriesFromDatabase(
   slug: string
 ): Promise<CatalogCategoryWithSubcategories | null> {
-  if (!getDatabaseUrl()) {
+  if (!getDatabaseUrl() && allowCatalogFileFallback) {
     const normalized = await readCatalogFile();
     const category = normalized.categories.find((entry) => entry.slug === slug);
     if (!category) return null;
@@ -521,7 +522,7 @@ async function readCatalogCategoryWithSubcategoriesFromDatabase(
 async function readCatalogCategoryPageDataFromDatabase(
   slug: string
 ): Promise<CatalogCategoryPageData | null> {
-  if (!getDatabaseUrl()) {
+  if (!getDatabaseUrl() && allowCatalogFileFallback) {
     const normalized = await readCatalogFile();
     const category = normalized.categories.find((entry) => entry.slug === slug);
     if (!category) return null;
@@ -595,7 +596,7 @@ async function readCatalogSubcategoryWithCategoryFromDatabase(
   category: CatalogCategorySummary;
   subcategory: Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'items'>;
 } | null> {
-  if (!getDatabaseUrl()) {
+  if (!getDatabaseUrl() && allowCatalogFileFallback) {
     const normalized = await readCatalogFile();
     const category = normalized.categories.find((entry) => entry.slug === categorySlug);
     const subcategory = category?.subcategories.find((entry) => entry.slug === subSlug);
@@ -658,7 +659,7 @@ async function readCatalogSearchIndexFromDatabase(): Promise<{
   categories: CatalogCategoryCard[];
   searchItems: Array<{ categorySlug: string; subcategorySlug?: string; items: CatalogItem[] }>;
 }> {
-  if (!getDatabaseUrl()) {
+  if (!getDatabaseUrl() && allowCatalogFileFallback) {
     const normalized = await readCatalogFile();
     return {
       categories: normalized.categories.map(({ slug, title, summary, image }) => ({ slug, title, summary, image })),
@@ -722,7 +723,7 @@ async function readCatalogSearchIndexFromDatabase(): Promise<{
 
 
 async function readCatalogItemsIndexFromDatabase(): Promise<CatalogItemsIndex> {
-  if (!getDatabaseUrl()) {
+  if (!getDatabaseUrl() && allowCatalogFileFallback) {
     const normalized = await readCatalogFile();
     return normalized.categories.map(({ id, slug, title, items, subcategories }) => ({
       id,
@@ -986,7 +987,10 @@ export async function patchCategoryTree(
 ): Promise<void> {
   const { upserts, deleteIds } = patches;
 
-  if (!getDatabaseUrl()) return;
+  if (!getDatabaseUrl()) {
+    if (allowCatalogFileFallback) return;
+    throw new Error('Catalog database URL is required for catalog mutations.');
+  }
   if (upserts.length === 0 && deleteIds.length === 0) return;
 
   await ensureCatalogStorageReady();
@@ -1136,7 +1140,8 @@ export async function replaceCategoryTree(
   const normalized = normalizeCatalogData(input);
 
   if (!getDatabaseUrl()) {
-    return normalized;
+    if (allowCatalogFileFallback) return normalized;
+    throw new Error('Catalog database URL is required for catalog mutations.');
   }
 
   await ensureCatalogStorageReady();

@@ -53,14 +53,13 @@ function normalizeOrder(order: OrderRow, orderId: number) {
     organization_name: asText(order.organization_name),
     contact_name: asText(order.contact_name, ''),
     email: asText(order.email, ''),
-    phone: asText(order.phone),
     delivery_address: asText(order.delivery_address),
     postal_code: asText((order as Record<string, unknown>).postal_code),
     reference: asText(order.reference),
     notes: asText(order.notes),
     status: asText(order.status, 'received'),
     payment_status: asText(order.payment_status, 'unpaid'),
-    payment_notes: asText(order.payment_notes),
+    admin_order_notes: asText(order.admin_order_notes),
     created_at: asText(order.created_at, new Date().toISOString()),
     subtotal: asNumber(order.subtotal, 0),
     tax: asNumber(order.tax, 0),
@@ -172,16 +171,16 @@ async function AdminOrderDocumentsSection({
   orderId,
   documentsPromise,
   paymentStatus,
-  paymentNotes
+  adminOrderNotes
 }: {
   orderId: number;
   documentsPromise: Promise<OrderDocumentRow[]>;
   paymentStatus?: string | null;
-  paymentNotes?: string | null;
+  adminOrderNotes?: string | null;
 }) {
   const documents = await documentsPromise;
 
-  return <AdminOrderPdfManager orderId={orderId} documents={documents} paymentStatus={paymentStatus} paymentNotes={paymentNotes} />;
+  return <AdminOrderPdfManager orderId={orderId} documents={documents} paymentStatus={paymentStatus} adminOrderNotes={adminOrderNotes} />;
 }
 
 export default async function AdminOrderDetailPage({ params }: { params: { orderId: string } }) {
@@ -195,13 +194,12 @@ export default async function AdminOrderDetailPage({ params }: { params: { order
           organization_name: 'Osnovna šola Triglav',
           contact_name: 'Maja Kovač',
           email: 'maja.kovac@example.com',
-          phone: '041 555 123',
           delivery_address: 'Šolska ulica 1, Ljubljana',
           reference: 'PO-2024-01',
           notes: 'Demo zapis brez povezave na bazo.',
           status: 'received',
           payment_status: 'paid',
-          payment_notes: null,
+          admin_order_notes: null,
           subtotal: 1220,
           tax: 268.4,
           total: 1488.4,
@@ -264,7 +262,7 @@ export default async function AdminOrderDetailPage({ params }: { params: { order
               orderId={1}
               documents={demoDocuments}
               paymentStatus={demoOrder.payment_status}
-              paymentNotes={demoOrder.payment_notes}
+              adminOrderNotes={demoOrder.admin_order_notes}
             />
           }
         />
@@ -312,7 +310,7 @@ export default async function AdminOrderDetailPage({ params }: { params: { order
               orderId={orderId}
               documentsPromise={documentsPromise}
               paymentStatus={safeOrder.payment_status}
-              paymentNotes={safeOrder.payment_notes}
+              adminOrderNotes={safeOrder.admin_order_notes}
             />
           </Suspense>
         }

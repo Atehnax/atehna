@@ -382,7 +382,6 @@ export async function permanentlyDeleteArchiveEntries(entryIds: number[]): Promi
     for (const entry of entries) {
       if (entry.item_type === 'order' && entry.order_id) {
         await client.query('delete from order_items where order_id = $1', [entry.order_id]);
-        await client.query('delete from order_attachments where order_id = $1', [entry.order_id]);
         await client.query('delete from order_documents where order_id = $1', [entry.order_id]);
         await client.query('delete from orders where id = $1', [entry.order_id]);
       }

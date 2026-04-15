@@ -8,7 +8,6 @@ type OrderRowTuple = readonly [
   organizationName: string | null,
   contactName: string,
   email: string,
-  phone: string | null,
   deliveryAddress: string | null,
   reference: string | null,
   notes: string | null,
@@ -23,13 +22,11 @@ type OrderRowTuple = readonly [
   deletedAt?: string | null
 ];
 type PdfDocTuple = readonly [id: number, orderId: number, type: string, filename: string, blobUrl: string, createdAt: string];
-type AttachmentTuple = readonly [id: number, orderId: number, type: string, filename: string, blobUrl: string, createdAt?: string];
 
 export default function AdminOrdersTableLoader(props: {
   orders: ReadonlyArray<Readonly<OrderRowTuple>>;
   analyticsOrders?: ReadonlyArray<Readonly<OrderRowTuple>>;
   documents: ReadonlyArray<PdfDocTuple>;
-  attachments: ReadonlyArray<AttachmentTuple>;
   initialFrom?: string;
   initialTo?: string;
   initialQuery?: string;

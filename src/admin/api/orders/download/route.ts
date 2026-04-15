@@ -14,14 +14,6 @@ type DocRow = {
   created_at: string;
 };
 
-type AttachmentRow = {
-  order_number: string;
-  type: string;
-  filename: string;
-  blob_url: string;
-  created_at: string;
-};
-
 
 async function hasDocumentsDeletedAtColumn() {
   const pool = await getPool();
@@ -58,53 +50,32 @@ export async function GET(request: Request) {
 
     const pool = await getPool();
     const supportsDeletedColumn = await hasDocumentsDeletedAtColumn();
-    const rows: Array<DocRow | AttachmentRow> = [];
+    const rows: DocRow[] = [];
 
-    if (typeParam === 'all' || typeParam === 'purchase_order') {
-      const attachmentResult = await pool.query(
-        `
-        SELECT o.order_number, a.type, a.filename, a.blob_url, a.created_at
-        FROM order_attachments a
-        JOIN orders o ON o.id = a.order_id
-        WHERE a.created_at BETWEEN $1 AND $2
-        ORDER BY a.created_at DESC
-        `,
-        [fromDate.toISOString(), toDate.toISOString()]
-      );
-      rows.push(
-        ...(attachmentResult.rows as AttachmentRow[]).map((row) => ({
-          ...row,
-          type: 'purchase_order'
-        }))
-      );
-    }
+    const docQuery = typeParam === 'all'
+      ? `
+      SELECT o.order_number, d.type, d.filename, d.blob_url, d.created_at
+      FROM order_documents d
+      JOIN orders o ON o.id = d.order_id
+      WHERE d.created_at BETWEEN $1 AND $2
+        AND (not $3::boolean or d.deleted_at is null)
+      ORDER BY d.created_at DESC
+      `
+      : `
+      SELECT o.order_number, d.type, d.filename, d.blob_url, d.created_at
+      FROM order_documents d
+      JOIN orders o ON o.id = d.order_id
+      WHERE d.created_at BETWEEN $1 AND $2 AND d.type = $3
+        AND (not $4::boolean or d.deleted_at is null)
+      ORDER BY d.created_at DESC
+      `;
 
-    if (typeParam === 'all' || typeParam !== 'purchase_order') {
-      const docQuery = typeParam === 'all'
-        ? `
-        SELECT o.order_number, d.type, d.filename, d.blob_url, d.created_at
-        FROM order_documents d
-        JOIN orders o ON o.id = d.order_id
-        WHERE d.created_at BETWEEN $1 AND $2
-          AND (not $3::boolean or d.deleted_at is null)
-        ORDER BY d.created_at DESC
-        `
-        : `
-        SELECT o.order_number, d.type, d.filename, d.blob_url, d.created_at
-        FROM order_documents d
-        JOIN orders o ON o.id = d.order_id
-        WHERE d.created_at BETWEEN $1 AND $2 AND d.type = $3
-          AND (not $4::boolean or d.deleted_at is null)
-        ORDER BY d.created_at DESC
-        `;
+    const docParams = typeParam === 'all'
+      ? [fromDate.toISOString(), toDate.toISOString(), supportsDeletedColumn]
+      : [fromDate.toISOString(), toDate.toISOString(), typeParam, supportsDeletedColumn];
 
-      const docParams = typeParam === 'all'
-        ? [fromDate.toISOString(), toDate.toISOString(), supportsDeletedColumn]
-        : [fromDate.toISOString(), toDate.toISOString(), typeParam, supportsDeletedColumn];
-
-      const docResult = await pool.query(docQuery, docParams);
-      rows.push(...(docResult.rows as DocRow[]));
-    }
+    const docResult = await pool.query(docQuery, docParams);
+    rows.push(...(docResult.rows as DocRow[]));
 
     if (rows.length === 0) {
       return NextResponse.json({ message: 'Ni dokumentov za izbran interval.' }, { status: 404 });

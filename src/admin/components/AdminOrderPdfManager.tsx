@@ -76,12 +76,12 @@ export default function AdminOrderPdfManager({
   orderId,
   documents,
   paymentStatus,
-  paymentNotes
+  adminOrderNotes
 }: {
   orderId: number;
   documents: PdfDocument[];
   paymentStatus?: string | null;
-  paymentNotes?: string | null;
+  adminOrderNotes?: string | null;
 }) {
   const [docList, setDocList] = useState(documents);
   const [loadingType, setLoadingType] = useState<PdfTypeKey | null>(null);
@@ -92,8 +92,8 @@ export default function AdminOrderPdfManager({
   const uploadInputRefs = useRef<Partial<Record<PdfTypeKey, HTMLInputElement | null>>>({});
 
   const [notesSectionMode, setNotesSectionMode] = useState<SectionMode>('read');
-  const [persistedNotes, setPersistedNotes] = useState<string>(paymentNotes ?? '');
-  const [draftNotes, setDraftNotes] = useState<string>(paymentNotes ?? '');
+  const [persistedNotes, setPersistedNotes] = useState<string>(adminOrderNotes ?? '');
+  const [draftNotes, setDraftNotes] = useState<string>(adminOrderNotes ?? '');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
 
   const { toast } = useToast();

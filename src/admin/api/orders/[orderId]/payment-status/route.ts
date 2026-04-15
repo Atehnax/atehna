@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
 import { isPaymentStatus } from '@/shared/domain/order/paymentStatus';
 import { getPool } from '@/shared/server/db';
+import { ensureOrderPaymentLogsTable } from '@/shared/server/orderPaymentLogs';
 
 
 export async function POST(
@@ -22,6 +23,7 @@ export async function POST(
     }
 
     const pool = await getPool();
+    await ensureOrderPaymentLogsTable();
     const current = await pool.query('SELECT payment_status FROM orders WHERE id = $1', [orderId]);
     const previousStatus = current.rows[0]?.payment_status ?? null;
 
@@ -30,15 +32,10 @@ export async function POST(
       [status, note || null, orderId]
     );
 
-    try {
-      await pool.query(
-        'INSERT INTO order_payment_logs (order_id, previous_status, new_status, note) VALUES ($1, $2, $3, $4)',
-        [orderId, previousStatus, status, note || null]
-      );
-    } catch (error) {
-      const errorCode = typeof error === 'object' && error !== null ? (error as { code?: string }).code : null;
-      if (errorCode !== '42P01') throw error;
-    }
+    await pool.query(
+      'INSERT INTO order_payment_logs (order_id, previous_status, new_status, note) VALUES ($1, $2, $3, $4)',
+      [orderId, previousStatus, status, note || null]
+    );
 
     revalidateAdminOrderPaths(orderId);
     return NextResponse.json({ success: true });

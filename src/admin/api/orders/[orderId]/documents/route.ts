@@ -70,28 +70,10 @@ export async function POST(
     // force correct metadata, never pass browser mime directly
     const blob = await uploadBlob(blobPath, fileBuffer, 'application/pdf');
 
-    let insertResult;
-
-    try {
-      insertResult = await pool.query(
-        'INSERT INTO order_documents (order_id, type, filename, blob_url, blob_pathname) VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at',
-        [orderId, normalizedType, fileName, blob.url, blob.pathname]
-      );
-    } catch (error) {
-      const errorCode =
-        typeof error === 'object' && error !== null
-          ? (error as { code?: string }).code
-          : null;
-
-      if (errorCode !== '42703') {
-        throw error;
-      }
-
-      insertResult = await pool.query(
-        'INSERT INTO order_documents (order_id, type, filename, blob_url) VALUES ($1, $2, $3, $4) RETURNING id, created_at',
-        [orderId, normalizedType, fileName, blob.url]
-      );
-    }
+    const insertResult = await pool.query(
+      'INSERT INTO order_documents (order_id, type, filename, blob_url, blob_pathname) VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at',
+      [orderId, normalizedType, fileName, blob.url, blob.pathname]
+    );
 
     return NextResponse.json({
       id: Number(insertResult.rows[0].id),

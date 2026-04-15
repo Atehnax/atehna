@@ -40,6 +40,7 @@ export default function CustomSelect({
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const menuContainerRef = useRef<HTMLDivElement | null>(null);
   const [menuRect, setMenuRect] = useState<{ top: number; left: number; width: number } | null>(null);
 
   const selectedLabel = useMemo(
@@ -64,7 +65,10 @@ export default function CustomSelect({
     updateMenuRect();
 
     const handleOutsideClick = (event: MouseEvent) => {
-      if (!containerRef.current?.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const clickedInsideTrigger = containerRef.current?.contains(target);
+      const clickedInsideMenu = menuContainerRef.current?.contains(target);
+      if (!clickedInsideTrigger && !clickedInsideMenu) {
         setIsOpen(false);
       }
     };
@@ -111,6 +115,7 @@ export default function CustomSelect({
       {isOpen && menuRect && typeof document !== 'undefined'
         ? createPortal(
             <div
+              ref={menuContainerRef}
               role="listbox"
               className="fixed z-[140]"
               style={{ top: `${menuRect.top}px`, left: `${menuRect.left}px`, width: `${menuRect.width}px` }}

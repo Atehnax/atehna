@@ -98,6 +98,7 @@ export type AdminCatalogListItem = {
   baseSku: string | null;
   categoryLabel: string;
   status: 'active' | 'inactive';
+  badge: string | null;
   variantCount: number;
   minPrice: number;
   maxPrice: number;
@@ -394,6 +395,7 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
       ci.material,
       ci.sku,
       ci.status,
+      ci.badge,
       ci.admin_notes,
       coalesce(cp.full_path, '') as category_label,
       coalesce(va.variant_count, 0) as variant_count,
@@ -416,6 +418,7 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
     baseSku: asStringOrNull(row.sku),
     categoryLabel: String(row.category_label ?? ''),
     status: String(row.status ?? 'inactive') === 'active' ? 'active' : 'inactive',
+    badge: asStringOrNull(row.badge),
     variantCount: asNumber(row.variant_count),
     minPrice: asNumber(row.min_price),
     maxPrice: asNumber(row.max_price),

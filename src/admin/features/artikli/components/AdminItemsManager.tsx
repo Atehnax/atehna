@@ -133,7 +133,7 @@ function toListFamilies(items: AdminCatalogListItem[]): ListFamily[] {
       defaultDiscountPct: item.defaultDiscountPct,
       active: item.status === 'active',
       sort: itemIndex + 1,
-      notes: item.adminNotes ?? '',
+      notes: item.badge ?? item.adminNotes ?? '',
       slug: item.slug,
       variants,
       baseSku: item.baseSku ?? '',
@@ -547,7 +547,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         payload.itemName = draft.name;
         payload.sku = draft.sku || null;
         payload.status = draft.active ? 'active' : 'inactive';
-        payload.adminNotes = nextItemLevelNote;
+        payload.badge = nextItemLevelNote;
         if (draft.categoryPath.length > 0) {
           payload.categoryPath = draft.categoryPath;
         }

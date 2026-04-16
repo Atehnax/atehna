@@ -1010,7 +1010,7 @@ export default function AdminItemEditorPage({
   const [editorMode, setEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
   const [tableEditorMode, setTableEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
   const [itemLevelNote, setItemLevelNote] = useState<VariantTag | ''>(() => {
-    const raw = normalizeVariantTag(initialData?.adminNotes);
+    const raw = normalizeVariantTag(initialData?.badge ?? initialData?.adminNotes);
     return ITEM_NOTE_OPTIONS.some((entry) => entry.value === raw) ? raw : '';
   });
   const [mediaTab, setMediaTab] = useState<MediaTab>('slike');
@@ -1171,7 +1171,7 @@ export default function AdminItemEditorPage({
     const payload = {
       itemName: draft.name.trim(),
       itemType: (initialData?.itemType ?? 'unit') as 'unit' | 'sheet' | 'linear' | 'bulk',
-      badge: draft.promoBadge || null,
+      badge: itemLevelNote || null,
       status: draft.active ? 'active' : 'inactive',
       categoryPath: selectedCategoryPath,
       sku: sideSettings.sku || draft.variants[0]?.sku || null,
@@ -1182,7 +1182,7 @@ export default function AdminItemEditorPage({
       colour: sideSettings.color || null,
       shape: sideSettings.surface || null,
       description: draft.description || '',
-      adminNotes: itemLevelNote || null,
+      adminNotes: initialData?.adminNotes ?? null,
       position: draft.sort ?? 0,
       variants: draft.variants.map((variant, index) => ({
         variantName: variant.label || `Različica ${index + 1}`,

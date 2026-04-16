@@ -25,7 +25,6 @@ import { IconButton } from '@/shared/ui/icon-button';
 import { PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
 import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
-import { CATALOG_ITEM_TYPE_OPTIONS } from '@/shared/domain/catalog/itemType';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import EuiTabs from '@/shared/ui/eui-tabs';
 import {
@@ -98,6 +97,12 @@ type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' 
 type TechnicalDocument = { name: string; size: string; blobUrl: string | null; blobPathname: string | null };
 const MEDIA_SLOT_COUNT = 7;
 const GALLERY_SMALL_SLOT_COUNT = 6;
+const ITEM_NOTE_OPTIONS: Array<{ value: VariantTag; label: string }> = [
+  { value: 'novo', label: 'Novo' },
+  { value: 'akcija', label: 'Akcija' },
+  { value: 'zadnji-kosi', label: 'Zadnji kosi' },
+  { value: 'ni-na-zalogi', label: 'Ni na zalogi' }
+];
 
 function canonicalizeVariantDimensions(
   input: VariantDimensionSet,
@@ -1188,9 +1193,10 @@ export default function AdminItemEditorPage({
   );
   const [editorMode, setEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
   const [tableEditorMode, setTableEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
-  const [articleType, setArticleType] = useState<'unit' | 'sheet' | 'bulk' | 'linear' | ''>(
-    (initialData?.itemType as 'unit' | 'sheet' | 'bulk' | 'linear') ?? ''
-  );
+  const [itemLevelNote, setItemLevelNote] = useState<VariantTag | ''>(() => {
+    const raw = (initialData?.adminNotes ?? '').trim() as VariantTag;
+    return ITEM_NOTE_OPTIONS.some((entry) => entry.value === raw) ? raw : '';
+  });
   const [mediaTab, setMediaTab] = useState<MediaTab>('slike');
   const [mediaImagesDraft, setMediaImagesDraft] = useState<string[]>(draft.images);
   const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
@@ -1302,12 +1308,10 @@ export default function AdminItemEditorPage({
   const isEditable = editorMode === 'edit';
   const isTableEditable = tableEditorMode === 'edit';
   const isMediaEditable = true;
-  const isBulkMaterial = articleType === 'bulk';
-  const isLinearMaterial = articleType === 'linear';
-  const isToleranceLocked = articleType === 'unit';
-  const isDimensionLockActive = isBulkMaterial;
-  const isThicknessLockActive = isBulkMaterial || isLinearMaterial;
-  const isGeneratorLocked = !isTableEditable || isDimensionLockActive;
+  const isToleranceLocked = false;
+  const isDimensionLockActive = false;
+  const isThicknessLockActive = false;
+  const isGeneratorLocked = !isTableEditable;
   const hasSelectedVariants = variantSelections.size > 0;
   const allVariantsSelected = draft.variants.length > 0 && draft.variants.every((variant) => variantSelections.has(variant.id));
   const generatorDimensionLabels: Record<GeneratorDimension, string> = {
@@ -1330,23 +1334,6 @@ export default function AdminItemEditorPage({
     return activeDimensions.reduce((total, values) => total * values.length, 1);
   }, [generatorByDimension]);
 
-  useEffect(() => {
-    if (!isLinearMaterial) return;
-    setGeneratorChips((current) => current.filter((chip) => chip.dimension !== 'thickness'));
-    if (generatorInput.trim()) {
-      const normalizedPrefix = generatorInput
-        .trim()
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/\p{Diacritic}/gu, '')
-        .split(':')[0]
-        ?.trim();
-      if (normalizedPrefix === 'debelina' || normalizedPrefix === 'v' || normalizedPrefix === 'h') {
-        setGeneratorInput('');
-      }
-    }
-  }, [isLinearMaterial, generatorInput]);
-
   const save = async (asDraft = false) => {
     if (!draft.name.trim()) {
       toast.error('Naziv je obvezen.');
@@ -1367,7 +1354,7 @@ export default function AdminItemEditorPage({
 
     const payload = {
       itemName: draft.name.trim(),
-      itemType: (articleType || 'unit') as 'unit' | 'sheet' | 'linear' | 'bulk',
+      itemType: (initialData?.itemType ?? 'unit') as 'unit' | 'sheet' | 'linear' | 'bulk',
       badge: draft.promoBadge || null,
       status: draft.active ? 'active' : 'inactive',
       categoryPath: selectedCategoryPath,
@@ -1379,7 +1366,7 @@ export default function AdminItemEditorPage({
       colour: sideSettings.color || null,
       shape: sideSettings.surface || null,
       description: draft.description || '',
-      adminNotes: draft.notes || null,
+      adminNotes: itemLevelNote || null,
       position: draft.sort ?? 0,
       variants: draft.variants.map((variant, index) => ({
         variantName: variant.label || `Različica ${index + 1}`,
@@ -1483,7 +1470,7 @@ export default function AdminItemEditorPage({
     const widths = generatorByDimension.get('width') ?? [];
     const lengths = generatorByDimension.get('length') ?? [];
     const thicknesses = generatorByDimension.get('thickness') ?? [];
-    const shouldUseThickness = !isLinearMaterial;
+    const shouldUseThickness = true;
     const thicknessValues = shouldUseThickness ? thicknesses : [0];
 
     if (widths.length === 0 || lengths.length === 0 || (shouldUseThickness && thicknesses.length === 0)) {
@@ -1585,10 +1572,6 @@ export default function AdminItemEditorPage({
     const parsedValues = parseDecimalListInput(rawValues);
     if (parsedValues.length === 0) return { error: 'Dodajte vsaj eno številčno vrednost.' };
     if (parsedValues.length > 5) return { error: `${generatorDimensionLabels[dimension]} podpira največ 5 vrednosti.` };
-    if (isLinearMaterial && dimension === 'thickness') {
-      return { error: 'Za dolžinski material Debelina ni dovoljena.' };
-    }
-
     const duplicateGuard = new Set<number>();
     for (const parsed of parsedValues) {
       if (duplicateGuard.has(parsed)) return { error: 'Podvojene vrednosti v isti dimenziji niso dovoljene.' };
@@ -2200,12 +2183,12 @@ export default function AdminItemEditorPage({
               </h1>
               <div className="ml-auto flex items-center gap-1.5">
                 <NeutralDropdownChip
-                  value={articleType}
+                  value={itemLevelNote}
                   editable={isEditable}
                   chipClassName="!min-w-[131px]"
-                  placeholderLabel="Tip artikla"
-                  onChange={(value) => setArticleType(value as 'unit' | 'sheet' | 'bulk' | 'linear' | '')}
-                  options={CATALOG_ITEM_TYPE_OPTIONS as unknown as Array<{ value: string; label: string }>}
+                  placeholderLabel="Opombe"
+                  onChange={(value) => setItemLevelNote((value as VariantTag) || '')}
+                  options={ITEM_NOTE_OPTIONS as unknown as Array<{ value: string; label: string }>}
                 />
                 <ActiveStateChip active={draft.active} editable={isEditable} onChange={(next) => setDraft((current) => ({ ...current, active: next }))} />
                 <IconButton type="button" tone="neutral" onClick={() => setEditorMode((current) => (current === 'read' ? 'edit' : 'read'))} aria-label="Uredi artikel" title="Uredi"><PencilIcon /></IconButton>

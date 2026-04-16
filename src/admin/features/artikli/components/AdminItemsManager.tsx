@@ -21,7 +21,7 @@ import {
   type Variant
 } from '@/admin/features/artikli/lib/familyModel';
 import { formatDecimalForDisplay } from '@/admin/features/artikli/lib/decimalFormat';
-import type { AdminCatalogListItem } from '@/shared/server/catalogItems';
+import type { AdminCatalogListItem, CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/server/catalogItems';
 
 type StatusFilter = 'all' | 'active' | 'hidden';
 type DiscountFilter = 'all' | 'yes' | 'no';
@@ -37,10 +37,24 @@ const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0
 const formatPriceRange = (minPrice: number, maxPrice: number) =>
   `${minPrice.toLocaleString('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} – ${maxPrice.toLocaleString('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 type ListFamily = ProductFamily & { baseSku: string; material: string | null };
+type NoteValue = '' | 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
+const NOTE_OPTIONS: Array<{ value: NoteValue; label: string }> = [
+  { value: '', label: '—' },
+  { value: 'novo', label: 'Novo' },
+  { value: 'akcija', label: 'Akcija' },
+  { value: 'zadnji-kosi', label: 'Zadnji kosi' },
+  { value: 'ni-na-zalogi', label: 'Ni na zalogi' }
+];
 
 const getBaseSku = (family: ListFamily) => family.baseSku || family.variants[0]?.sku || '';
 const formatDimension = (value: number | null | undefined) =>
   (typeof value === 'number' && Number.isFinite(value) ? formatDecimalForDisplay(value) : null);
+const formatRangeValue = (values: number[], formatter: (value: number) => string) => {
+  if (!values.length) return '—';
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  return min === max ? formatter(min) : `${formatter(min)} – ${formatter(max)}`;
+};
 
 function buildVariantDisplayLabel(family: ListFamily, variant: Variant): string {
   const material = family.material?.trim() ?? '';
@@ -97,6 +111,56 @@ function toListFamilies(items: AdminCatalogListItem[]): ListFamily[] {
   });
 }
 
+function toUpsertPayload(item: CatalogItemEditorHydration): CatalogItemEditorPayload {
+  return {
+    itemName: item.itemName,
+    itemType: item.itemType,
+    badge: item.badge,
+    status: item.status,
+    categoryPath: item.categoryPath,
+    sku: item.sku,
+    slug: item.slug,
+    unit: item.unit,
+    brand: item.brand,
+    material: item.material,
+    colour: item.colour,
+    shape: item.shape,
+    description: item.description,
+    adminNotes: item.adminNotes,
+    position: item.position,
+    variants: item.variants.map((variant) => ({
+      variantName: variant.variantName,
+      length: variant.length,
+      width: variant.width,
+      thickness: variant.thickness,
+      weight: variant.weight,
+      errorTolerance: variant.errorTolerance,
+      price: variant.price,
+      discountPct: variant.discountPct,
+      inventory: variant.inventory,
+      minOrder: variant.minOrder,
+      variantSku: variant.variantSku,
+      unit: variant.unit,
+      status: variant.status,
+      badge: variant.badge,
+      position: variant.position
+    })),
+    media: item.media.map((media) => ({
+      mediaKind: media.mediaKind,
+      role: media.role,
+      sourceKind: media.sourceKind,
+      filename: media.filename,
+      blobUrl: media.blobUrl,
+      blobPathname: media.blobPathname,
+      externalUrl: media.externalUrl,
+      mimeType: media.mimeType,
+      altText: media.altText,
+      position: media.position,
+      variantIndex: media.variantIndex
+    }))
+  };
+}
+
 export default function AdminItemsManager({ items }: { items: AdminCatalogListItem[] }) {
   const router = useRouter();
   const [search, setSearch] = useState('');
@@ -108,9 +172,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [selectedFamilyIds, setSelectedFamilyIds] = useState<Set<string>>(new Set());
   const [selectedVariantIds, setSelectedVariantIds] = useState<Set<string>>(new Set());
   const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
+  const [editingFamilyId, setEditingFamilyId] = useState<string | null>(null);
   const [deletedVariantIds, setDeletedVariantIds] = useState<Set<string>>(new Set());
+  const [familyDrafts, setFamilyDrafts] = useState<
+    Record<string, { name: string; sku: string; category: string; active: boolean; note: NoteValue; price: number; discountPct: number; stock: number; minOrder: number }>
+  >({});
   const [variantDrafts, setVariantDrafts] = useState<
-    Record<string, { label: string; sku: string; price: number; discountPct: number; stock: number; active: boolean; minOrder: number; note: string }>
+    Record<string, { label: string; sku: string; price: number; discountPct: number; stock: number; active: boolean; minOrder: number; note: NoteValue }>
   >({});
   const [sortState, setSortState] = useState<SortState>(null);
   const [variantCountRange, setVariantCountRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
@@ -151,15 +219,21 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     const normalizedRows = filteredFamilies
       .map((family) => {
         const visibleVariants = family.variants.filter((variant) => !deletedVariantIds.has(variant.id));
-        const prices = family.variants.map((variant) => variant.price);
+        const prices = visibleVariants.map((variant) => variant.price);
         const minPrice = prices.length ? Math.min(...prices) : 0;
         const maxPrice = prices.length ? Math.max(...prices) : 0;
+        const discounts = visibleVariants.map((variant) => variant.discountPct);
+        const stocks = visibleVariants.map((variant) => variant.stock);
+        const minOrders = visibleVariants.map((variant) => Math.max(1, variant.minOrder ?? 1));
         return {
           family,
           visibleVariants,
           variantCount: visibleVariants.length,
           minPrice,
-          maxPrice
+          maxPrice,
+          discounts,
+          stocks,
+          minOrders
         };
       })
       .filter((row) => {
@@ -275,6 +349,25 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
 
   const allVisibleFamilyIds = useMemo(() => new Set(pagedFamilies.map((row) => row.family.id)), [pagedFamilies]);
   const familiesSelectedOnPage = pagedFamilies.length > 0 && pagedFamilies.every((row) => selectedFamilyIds.has(row.family.id));
+  const persistItemBySlug = async (
+    slug: string,
+    mutate: (payload: CatalogItemEditorPayload, hydration: CatalogItemEditorHydration) => void
+  ) => {
+    const readResponse = await fetch(`/api/admin/artikli/${encodeURIComponent(slug)}`, { cache: 'no-store' });
+    if (!readResponse.ok) throw new Error('Nalagam podatke artikla ni uspelo.');
+    const hydration = (await readResponse.json()) as CatalogItemEditorHydration;
+    const payload = toUpsertPayload(hydration);
+    mutate(payload, hydration);
+    const saveResponse = await fetch('/api/admin/artikli', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!saveResponse.ok) {
+      const body = (await saveResponse.json().catch(() => ({}))) as { message?: string };
+      throw new Error(body.message || 'Shranjevanje artikla ni uspelo.');
+    }
+  };
   const startVariantEdit = (variant: Variant) => {
     setEditingVariantId(variant.id);
     setVariantDrafts((current) => ({
@@ -287,11 +380,82 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         stock: variant.stock,
         active: variant.active,
         minOrder: variant.minOrder ?? 1,
-        note: variant.badge ?? ''
+        note: (variant.badge as NoteValue) ?? ''
       }
     }));
   };
-  const saveVariantEdit = (variantId: string) => setEditingVariantId((current) => (current === variantId ? null : current));
+  const saveVariantEdit = async (family: ListFamily, variantId: string) => {
+    const draft = variantDrafts[variantId];
+    if (!draft) return;
+    try {
+      await persistItemBySlug(family.slug || family.id, (payload, hydration) => {
+        const index = hydration.variants.findIndex((variant) => String(variant.id) === variantId);
+        if (index < 0 || !payload.variants[index]) return;
+        payload.variants[index] = {
+          ...payload.variants[index],
+          variantName: draft.label,
+          variantSku: draft.sku,
+          price: draft.price,
+          discountPct: draft.discountPct,
+          inventory: draft.stock,
+          minOrder: Math.max(1, draft.minOrder),
+          status: draft.active ? 'active' : 'inactive',
+          badge: draft.note || null
+        };
+      });
+      setEditingVariantId(null);
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+  const startFamilyEdit = (family: ListFamily, variants: Variant[]) => {
+    setEditingFamilyId(family.id);
+    const primary = variants[0];
+    setFamilyDrafts((current) => ({
+      ...current,
+      [family.id]: {
+        name: family.name,
+        sku: getBaseSku(family),
+        category: family.category,
+        active: family.active,
+        note: (family.notes as NoteValue) || '',
+        price: primary?.price ?? 0,
+        discountPct: primary?.discountPct ?? 0,
+        stock: primary?.stock ?? 0,
+        minOrder: Math.max(1, primary?.minOrder ?? 1)
+      }
+    }));
+  };
+  const saveFamilyEdit = async (family: ListFamily, variants: Variant[]) => {
+    const draft = familyDrafts[family.id];
+    if (!draft) return;
+    try {
+      await persistItemBySlug(family.slug || family.id, (payload) => {
+        payload.itemName = draft.name;
+        payload.sku = draft.sku || null;
+        payload.status = draft.active ? 'active' : 'inactive';
+        payload.adminNotes = draft.note || null;
+        if (payload.categoryPath.length > 0) {
+          payload.categoryPath = [draft.category];
+        }
+        if (variants.length <= 1 && payload.variants[0]) {
+          payload.variants[0] = {
+            ...payload.variants[0],
+            price: draft.price,
+            discountPct: draft.discountPct,
+            inventory: draft.stock,
+            minOrder: Math.max(1, draft.minOrder),
+            variantSku: draft.sku || payload.variants[0].variantSku
+          };
+        }
+      });
+      setEditingFamilyId(null);
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+    }
+  };
   const removeVariantRow = (variantId: string) =>
     setDeletedVariantIds((current) => {
       const next = new Set(current);
@@ -535,7 +699,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 <TH className="w-[18%] text-right">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('priceRange')} onClick={() => cycleSort('priceRange')}>
-                      Razpon cen
+                      Cena
                     </button>
                     <button
                       type="button"
@@ -545,14 +709,14 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                         setDraftPriceRangeFilter(priceRangeFilter);
                         setOpenFilter((current) => (current === 'priceRange' ? null : 'priceRange'));
                       }}
-                      aria-label="Filtriraj Razpon cen"
+                      aria-label="Filtriraj Cena"
                     >
                       <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                     </button>
                     {openFilter === 'priceRange' ? (
                       <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
                         <AdminRangeFilterPanel
-                          title="Razpon cen"
+                          title="Cena"
                           draftRange={draftPriceRangeFilter}
                           onDraftChange={setDraftPriceRangeFilter}
                           onConfirm={() => {
@@ -599,6 +763,9 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     ) : null}
                   </div>
                 </TH>
+                <TH className="w-[12%] whitespace-nowrap text-right">Akcijska cena</TH>
+                <TH className="w-[8%] whitespace-nowrap text-right">Zaloga</TH>
+                <TH className="w-[8%] whitespace-nowrap text-center">Min/nar.</TH>
                 <TH className="w-[11%] whitespace-nowrap text-center">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('status')} onClick={() => cycleSort('status')}>
@@ -632,10 +799,23 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
             </THead>
             <tbody>
               {pagedFamilies.map((row) => {
-                const { family, visibleVariants, minPrice, maxPrice, variantCount } = row;
+                const { family, visibleVariants, minPrice, maxPrice, variantCount, discounts, stocks, minOrders } = row;
                 const isExpanded = expandedFamilyIds.has(family.id);
                 const hasSubtable = visibleVariants.length > 0;
                 const primaryVariant = visibleVariants[0] ?? null;
+                const isEditingFamily = editingFamilyId === family.id;
+                const familyDraft = familyDrafts[family.id] ?? {
+                  name: family.name,
+                  sku: getBaseSku(family),
+                  category: family.category,
+                  active: family.active,
+                  note: (family.notes as NoteValue) || '',
+                  price: primaryVariant?.price ?? 0,
+                  discountPct: primaryVariant?.discountPct ?? 0,
+                  stock: primaryVariant?.stock ?? 0,
+                  minOrder: Math.max(1, primaryVariant?.minOrder ?? 1)
+                };
+                const singleRowLike = visibleVariants.length <= 1;
                 return (
                   <Fragment key={family.id}>
                     <tr className={`border-t border-slate-100 bg-white ${adminTableRowToneClasses.hover}`}>
@@ -652,22 +832,30 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                           return next;
                         })}>
                           <span className="mt-0.5 inline-flex h-4 w-4 items-center justify-center text-slate-500">{hasSubtable ? (isExpanded ? '▾' : '▸') : ''}</span>
-                          <span className="block text-sm font-semibold text-slate-900">{family.name}</span>
+                          {isEditingFamily
+                            ? <input className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-sm" value={familyDraft.name} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, name: event.target.value } }))} />
+                            : <span className="block text-sm font-semibold text-slate-900">{family.name}</span>}
                         </button>
                       </td>
-                      <td className="px-2 py-3 text-slate-600">{getBaseSku(family) || '—'}</td>
-                      <td className="px-2 py-3 text-slate-600">{family.category}</td>
+                      <td className="px-2 py-3 text-slate-600">{isEditingFamily ? <input className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-sm" value={familyDraft.sku} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, sku: event.target.value } }))} /> : (getBaseSku(family) || '—')}</td>
+                      <td className="px-2 py-3 text-slate-600">{isEditingFamily ? <input className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-sm" value={familyDraft.category} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, category: event.target.value } }))} /> : family.category}</td>
                       <td className="px-2 py-3 text-center">{variantCount}</td>
-                      <td className="px-2 py-3 text-right">{minPrice === maxPrice ? formatCurrency(minPrice) : formatPriceRange(minPrice, maxPrice)}</td>
-                      <td className="px-2 py-3 text-center text-emerald-700">{family.defaultDiscountPct}%</td>
-                      <td className="w-[11%] px-2 py-3 text-center"><Chip variant={family.active ? 'success' : 'warning'}>{statusLabel(family.active)}</Chip></td>
-                      <td className="w-[12%] px-2 py-3 text-center">{family.notes?.trim() ? family.notes : '—'}</td>
-                      <td className="px-2 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'quick-edit', label: 'Hitro urejanje', icon: <PencilIcon />, disabled: !primaryVariant || !hasSubtable, onSelect: () => { if (!primaryVariant || !hasSubtable) return; setExpandedFamilyIds((current) => new Set(current).add(family.id)); startVariantEdit(primaryVariant); } }, { key: 'edit', label: 'Uredi', onSelect: () => (window.location.href = `/admin/artikli/${encodeURIComponent(family.slug || family.id)}`) }]} /></td>
+                      <td className="px-2 py-3 text-right">{singleRowLike && isEditingFamily ? <input type="number" step="0.01" className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-right text-sm" value={familyDraft.price} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, price: Number(event.target.value) || 0 } }))} /> : formatRangeValue(visibleVariants.map((variant) => variant.price), formatCurrency)}</td>
+                      <td className="px-2 py-3 text-center text-emerald-700">{singleRowLike && isEditingFamily ? <input type="number" className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-center text-sm" value={familyDraft.discountPct} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, discountPct: Number(event.target.value) || 0 } }))} /> : formatRangeValue(discounts, (value) => `${formatDecimalForDisplay(value)}%`)}</td>
+                      <td className="px-2 py-3 text-right">{singleRowLike ? (familyDraft.discountPct > 0 ? formatCurrency(computeSalePrice(familyDraft.price, familyDraft.discountPct)) : '—') : (() => {
+                        const discounted = visibleVariants.filter((variant) => variant.discountPct > 0).map((variant) => computeSalePrice(variant.price, variant.discountPct));
+                        return discounted.length ? formatRangeValue(discounted, formatCurrency) : '—';
+                      })()}</td>
+                      <td className="px-2 py-3 text-right">{singleRowLike && isEditingFamily ? <input type="number" className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-right text-sm" value={familyDraft.stock} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, stock: Number(event.target.value) || 0 } }))} /> : formatRangeValue(stocks, (value) => `${value}`)}</td>
+                      <td className="px-2 py-3 text-center">{singleRowLike && isEditingFamily ? <input type="number" className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-center text-sm" value={familyDraft.minOrder} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, minOrder: Number(event.target.value) || 1 } }))} /> : formatRangeValue(minOrders, (value) => `${value}`)}</td>
+                      <td className="w-[11%] px-2 py-3 text-center">{isEditingFamily ? <select className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-sm" value={familyDraft.active ? 'active' : 'hidden'} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, active: event.target.value === 'active' } }))}><option value="active">Aktiven</option><option value="hidden">Skrit</option></select> : <Chip variant={family.active ? 'success' : 'warning'}>{statusLabel(family.active)}</Chip>}</td>
+                      <td className="w-[12%] px-2 py-3 text-center">{isEditingFamily ? <select className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-sm" value={familyDraft.note} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, note: event.target.value as NoteValue } }))}>{NOTE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select> : (family.notes?.trim() ? family.notes : '—')}</td>
+                      <td className="px-2 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'quick-edit', label: 'Hitro urejanje', icon: <PencilIcon />, onSelect: () => startFamilyEdit(family, visibleVariants) }, { key: 'save', label: 'Shrani', icon: <SaveIcon />, disabled: !isEditingFamily, onSelect: () => { void saveFamilyEdit(family, visibleVariants); } }, { key: 'edit', label: 'Uredi', onSelect: () => router.push(`/admin/artikli/${encodeURIComponent(family.slug || family.id)}`) }]} /></td>
                     </tr>
                     {isExpanded && hasSubtable ? (
                       <tr className="border-t border-slate-100 bg-slate-50/70">
                         <td />
-                        <td colSpan={9} className="p-0">
+                        <td colSpan={12} className="p-0">
                           <table className="w-full text-[12px]">
                             <thead>
                               <tr className="border-b border-slate-200 text-slate-600">
@@ -696,9 +884,9 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                   stock: variant.stock,
                                   active: variant.active,
                                   minOrder: variant.minOrder ?? 1,
-                                  note: variant.badge ?? ''
+                                  note: (variant.badge as NoteValue) ?? ''
                                 };
-                                const actionPrice = computeSalePrice(draft.price, draft.discountPct);
+                                const actionPrice = draft.discountPct > 0 ? computeSalePrice(draft.price, draft.discountPct) : null;
                                 return (
                                   <tr key={variant.id} className="border-t border-slate-100">
                                     <td className="px-2 py-2 text-center">
@@ -783,7 +971,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         `${draft.discountPct}%`
                                       )}
                                     </td>
-                                    <td className="px-2 py-2 text-right">{formatCurrency(actionPrice)}</td>
+                                    <td className="px-2 py-2 text-right">{actionPrice === null ? '—' : formatCurrency(actionPrice)}</td>
                                     <td className="px-2 py-2 text-right">
                                       {isEditing ? (
                                         <input
@@ -839,16 +1027,18 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                     </td>
                                     <td className="px-2 py-2 text-center">
                                       {isEditing ? (
-                                        <input
+                                        <select
                                           className="h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0"
                                           value={draft.note}
                                           onChange={(event) =>
                                             setVariantDrafts((current) => ({
                                               ...current,
-                                              [variant.id]: { ...draft, note: event.target.value }
+                                              [variant.id]: { ...draft, note: event.target.value as NoteValue }
                                             }))
                                           }
-                                        />
+                                        >
+                                          {NOTE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                                        </select>
                                       ) : (
                                         draft.note || '—'
                                       )}
@@ -869,7 +1059,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                             label: 'Shrani',
                                             icon: <SaveIcon />,
                                             disabled: !isEditing,
-                                            onSelect: () => saveVariantEdit(variant.id)
+                                            onSelect: () => { void saveVariantEdit(family, variant.id); }
                                           },
                                           {
                                             key: 'delete',

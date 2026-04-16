@@ -728,47 +728,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     ) : null}
                   </div>
                 </TH>
-                <TH className="w-[4.5%] whitespace-nowrap text-center">
-                  <div className="relative inline-flex items-center gap-1">
-                    <button type="button" className={getSortTitleClass('variantCount')} onClick={() => cycleSort('variantCount')}>
-                      Št. različic
-                    </button>
-                    <button
-                      type="button"
-                      className={HEADER_FILTER_BUTTON_CLASS}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setDraftVariantCountRange(variantCountRange);
-                        setOpenFilter((current) => (current === 'variantCount' ? null : 'variantCount'));
-                      }}
-                      aria-label="Filtriraj Št. različic"
-                    >
-                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
-                    </button>
-                    {openFilter === 'variantCount' ? (
-                      <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
-                        <AdminRangeFilterPanel
-                          title="Št. različic"
-                          draftRange={draftVariantCountRange}
-                          onDraftChange={setDraftVariantCountRange}
-                          onConfirm={() => {
-                            setVariantCountRange(draftVariantCountRange);
-                            setOpenFilter(null);
-                          }}
-                          onReset={() => {
-                            setDraftVariantCountRange({ min: '', max: '' });
-                            setVariantCountRange({ min: '', max: '' });
-                            setOpenFilter(null);
-                          }}
-                          minPlaceholder="Min"
-                          maxPlaceholder="Max"
-                          min={0}
-                        />
-                      </div>
-                    ) : null}
-                  </div>
-                </TH>
-                <TH className="w-[6.5%] text-right">
+                <TH className="w-[7.5%] text-right">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('priceRange')} onClick={() => cycleSort('priceRange')}>
                       Cena
@@ -808,7 +768,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     ) : null}
                   </div>
                 </TH>
-                <TH className="w-[3.5%] whitespace-nowrap text-center">
+                <TH className="w-[4%] whitespace-nowrap text-center">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('discount')} onClick={() => cycleSort('discount')}>
                       Popust
@@ -836,7 +796,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                   </div>
                 </TH>
                 <TH className="w-[6.5%] whitespace-nowrap text-right">Akcijska cena</TH>
-                <TH className="w-[9.25%] whitespace-nowrap px-0 text-center">
+                <TH className="w-[10.25%] whitespace-nowrap px-0 text-center">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('status')} onClick={() => cycleSort('status')}>
                       Status
@@ -863,13 +823,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     ) : null}
                   </div>
                 </TH>
-                <TH className="w-[9.25%] whitespace-nowrap px-0 text-center">Opombe</TH>
-                <TH className="w-[3%] text-center">Uredi</TH>
+                <TH className="w-[10.25%] whitespace-nowrap px-0 text-center">Opombe</TH>
+                <TH className="w-[4%] text-center">Uredi</TH>
               </TR>
             </THead>
             <tbody>
               {pagedFamilies.map((row) => {
-                const { family, visibleVariants, minPrice, maxPrice, variantCount, discounts } = row;
+                const { family, visibleVariants, minPrice, maxPrice, discounts } = row;
                 const isExpanded = expandedFamilyIds.has(family.id);
                 const hasSubtable = visibleVariants.length > 0;
                 const primaryVariant = visibleVariants[0] ?? null;
@@ -930,25 +890,24 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                           </div>
                         )}
                       </td>
-                      <td className="px-2 py-3 text-center">{variantCount}</td>
                       <td className="px-2 py-3 text-right">{singleRowLike && isEditingFamily ? <input type="number" step="0.01" className={ROW_EDIT_INPUT_CLASS} value={familyDraft.price} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, price: Number(event.target.value) || 0 } }))} /> : formatCurrencyRange(minPrice, maxPrice)}</td>
                       <td className="px-2 py-3 text-center text-emerald-700">{singleRowLike && isEditingFamily ? <input type="number" className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-center text-sm" value={familyDraft.discountPct} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, discountPct: Number(event.target.value) || 0 } }))} /> : formatPercentRange(discounts)}</td>
                       <td className="px-2 py-3 text-right">{singleRowLike ? (familyDraft.discountPct > 0 ? formatCurrency(computeSalePrice(familyDraft.price, familyDraft.discountPct)) : '—') : (() => {
                         const discounted = visibleVariants.filter((variant) => variant.discountPct > 0).map((variant) => computeSalePrice(variant.price, variant.discountPct));
                         return discounted.length ? formatCurrencyRangeFromValues(discounted) : '—';
                       })()}</td>
-                      <td className="w-[9.25%] px-0 py-3 text-center"><div className="flex justify-center px-1"><ActiveStateChip active={familyDraft.active} editable={isEditingFamily} editScope={`family:${family.id}`} chipClassName="!min-w-0 !w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap !text-[11px]" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, active: next } }))} /></div></td>
-                      <td className="w-[9.25%] px-0 py-3 text-center">
+                      <td className="w-[10.25%] px-0 py-3 text-center"><div className="flex justify-center px-1"><ActiveStateChip active={familyDraft.active} editable={isEditingFamily} editScope={`family:${family.id}`} chipClassName="!min-w-0 !w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap !text-[11px]" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, active: next } }))} /></div></td>
+                      <td className="w-[10.25%] px-0 py-3 text-center">
                         {isEditingFamily
                           ? <div className="flex justify-center px-1"><NoteTagChip value={familyDraft.note} editable allowEmpty editScope={`family:${family.id}`} chipClassName="!min-w-0 !w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap !text-[11px]" placeholderLabel="Opombe" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, note: next as NoteValue } }))} /></div>
                           : <div className="flex justify-center px-1"><NoteTagChip value={(family.notes?.trim() as NoteValue) || ''} editable={false} allowEmpty editScope={`family:${family.id}`} chipClassName="!min-w-0 !w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap !text-[11px]" placeholderLabel="Opombe" onChange={() => {}} /></div>}
                       </td>
-                      <td className="w-[3%] px-1 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'quick-edit', label: 'Hitro urejanje', icon: <PencilIcon />, onSelect: () => startFamilyEdit(family, visibleVariants) }, { key: 'save', label: 'Shrani', icon: <SaveIcon />, disabled: !isEditingFamily, onSelect: () => { void saveFamilyEdit(family, visibleVariants); } }, { key: 'edit', label: 'Uredi', onSelect: () => router.push(`/admin/artikli/${encodeURIComponent(family.slug || family.id)}`) }]} /></td>
+                      <td className="w-[4%] px-1 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'quick-edit', label: 'Hitro urejanje', icon: <PencilIcon />, onSelect: () => startFamilyEdit(family, visibleVariants) }, { key: 'save', label: 'Shrani', icon: <SaveIcon />, disabled: !isEditingFamily, onSelect: () => { void saveFamilyEdit(family, visibleVariants); } }, { key: 'edit', label: 'Uredi', onSelect: () => router.push(`/admin/artikli/${encodeURIComponent(family.slug || family.id)}`) }]} /></td>
                     </tr>
                     {isExpanded && hasSubtable ? (
                       <tr className="border-t border-slate-100 bg-slate-50/70">
                         <td />
-                        <td colSpan={10} className="p-0">
+                        <td colSpan={9} className="p-0">
                           <table className="w-full text-[12px]">
                             <thead>
                               <tr className="border-b border-slate-200 text-slate-600">

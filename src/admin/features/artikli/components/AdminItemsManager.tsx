@@ -30,7 +30,6 @@ import ActiveStateChip from '@/admin/features/artikli/components/ActiveStateChip
 import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/AdminCategoryBreadcrumbPicker';
 import { NoteTagChip, type NoteTag } from '@/admin/features/artikli/components/NoteTagChip';
 import type { AdminCatalogListItem } from '@/shared/server/catalogItems';
-import { updateCatalogItemBySlug } from '@/admin/features/artikli/lib/canonicalSaveClient';
 
 type StatusFilter = 'all' | 'active' | 'inactive';
 type DiscountFilter = 'all' | 'yes' | 'no';
@@ -163,6 +162,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [variantDrafts, setVariantDrafts] = useState<
     Record<string, { label: string; sku: string; price: number; discountPct: number; stock: number; active: boolean; minOrder: number; note: NoteValue; position: number }>
   >({});
+  const [savedFamilyRows, setSavedFamilyRows] = useState<Record<string, ListFamily>>({});
   const [categoryPaths, setCategoryPaths] = useState<string[]>([]);
   const [sortState, setSortState] = useState<SortState>(null);
   const [variantCountRange, setVariantCountRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
@@ -179,8 +179,19 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const noteFilterButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const families = useMemo(() => toListFamilies(items), [items]);
-  const effectiveFamilies = families;
+  const effectiveFamilies = useMemo(
+    () =>
+      families.map((family) => {
+        const saved = savedFamilyRows[family.id];
+        return saved ?? family;
+      }),
+    [families, savedFamilyRows]
+  );
   const categories = useMemo(() => Array.from(new Set(effectiveFamilies.map((family) => family.category))).sort((a, b) => a.localeCompare(b, 'sl')), [effectiveFamilies]);
+
+  useEffect(() => {
+    setSavedFamilyRows({});
+  }, [items]);
 
   useEffect(() => {
     let cancelled = false;
@@ -392,7 +403,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
 
   const allVisibleFamilyIds = useMemo(() => new Set(pagedFamilies.map((row) => row.family.id)), [pagedFamilies]);
   const familiesSelectedOnPage = pagedFamilies.length > 0 && pagedFamilies.every((row) => selectedFamilyIds.has(row.family.id));
-  const persistItemBySlug = async (itemSlug: string, mutate: Parameters<typeof updateCatalogItemBySlug>[1]) => updateCatalogItemBySlug(itemSlug, mutate);
+  const applySavedFamilyRow = (item: AdminCatalogListItem) => {
+    const [nextFamily] = toListFamilies([item]);
+    if (!nextFamily) return;
+    setSavedFamilyRows((current) => ({ ...current, [nextFamily.id]: nextFamily }));
+  };
   const startVariantEdit = (variant: Variant) => {
     setEditingVariantId(variant.id);
     setVariantDrafts((current) => ({
@@ -413,24 +428,38 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const saveVariantEdit = async (family: ListFamily, variantId: string) => {
     const draft = variantDrafts[variantId];
     if (!draft) return;
+    const variant = family.variants.find((entry) => entry.id === variantId);
+    if (!variant) return;
     try {
+      const variantIdNumber = Number(variantId);
+      if (!Number.isFinite(variantIdNumber)) throw new Error('Neveljaven identifikator različice.');
       if (!family.slug) throw new Error('Artikel nima veljavnega identifikatorja (slug).');
-      await persistItemBySlug(family.slug, (payload, hydration) => {
-        const index = hydration.variants.findIndex((variant) => String(variant.id) === variantId);
-        if (index < 0 || !payload.variants[index]) return;
-        payload.variants[index] = {
-          ...payload.variants[index],
-          variantName: draft.label,
-          variantSku: draft.sku,
-          price: draft.price,
-          discountPct: draft.discountPct,
-          inventory: draft.stock,
-          minOrder: Math.max(1, draft.minOrder),
-          status: draft.active ? 'active' : 'inactive',
-          badge: draft.note || null,
-          position: Math.max(1, draft.position)
-        };
+      const patch: Record<string, unknown> = {};
+      if (draft.label !== variant.label) patch.variantName = draft.label;
+      if (draft.sku !== variant.sku) patch.variantSku = draft.sku || null;
+      if (draft.price !== variant.price) patch.price = draft.price;
+      if (draft.discountPct !== variant.discountPct) patch.discountPct = draft.discountPct;
+      if (draft.stock !== variant.stock) patch.inventory = draft.stock;
+      if (Math.max(1, draft.minOrder) !== Math.max(1, variant.minOrder ?? 1)) patch.minOrder = Math.max(1, draft.minOrder);
+      if ((draft.active ? 'active' : 'inactive') !== (variant.active ? 'active' : 'inactive')) patch.status = draft.active ? 'active' : 'inactive';
+      if ((draft.note || null) !== (normalizeNoteValue(variant.badge) || null)) patch.badge = draft.note || null;
+      if (Math.max(1, draft.position) !== Math.max(1, variant.position ?? 1)) patch.position = Math.max(1, draft.position);
+      if (Object.keys(patch).length === 0) {
+        setEditingVariantId(null);
+        return;
+      }
+      const response = await fetch('/api/admin/artikli/quick-save/variant', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          itemIdentifier: family.slug,
+          variantId: variantIdNumber,
+          patch
+        })
       });
+      const body = (await response.json().catch(() => ({}))) as { item?: AdminCatalogListItem; message?: string };
+      if (!response.ok || !body.item) throw new Error(body.message || 'Shranjevanje različice ni uspelo.');
+      applySavedFamilyRow(body.item);
       setEditingVariantId(null);
       router.refresh();
     } catch (error) {
@@ -464,27 +493,57 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     const draft = familyDrafts[family.id] ?? fallbackDraft;
     if (!draft) return;
     try {
-      const nextItemLevelNote = (draft.badge || 'na-zalogi') as NoteValue;
       if (!family.slug) throw new Error('Artikel nima veljavnega identifikatorja (slug).');
-      await persistItemBySlug(family.slug, (payload) => {
-        payload.itemName = draft.name;
-        payload.sku = draft.sku || null;
-        payload.status = draft.active ? 'active' : 'inactive';
-        payload.badge = nextItemLevelNote;
-        if (draft.categoryPath.length > 0) {
-          payload.categoryPath = draft.categoryPath;
+      const patch: Record<string, unknown> = {};
+      if (draft.name !== family.name) patch.itemName = draft.name;
+      if ((draft.sku || null) !== (getBaseSku(family) || null)) patch.sku = draft.sku || null;
+      if ((draft.active ? 'active' : 'inactive') !== (family.active ? 'active' : 'inactive')) patch.status = draft.active ? 'active' : 'inactive';
+      if ((draft.badge || null) !== (family.itemBadge || null)) patch.badge = draft.badge || null;
+      const familyPath = (family.categoryPath.length > 0 ? family.categoryPath : normalizeCategoryPath(family.category)).join('/');
+      const draftPath = draft.categoryPath.join('/');
+      if (draftPath !== familyPath && draft.categoryPath.length > 0) patch.categoryPath = draft.categoryPath;
+      let latestSavedItem: AdminCatalogListItem | null = null;
+      if (Object.keys(patch).length > 0) {
+        const response = await fetch('/api/admin/artikli/quick-save/item', {
+          method: 'PATCH',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            itemIdentifier: family.slug,
+            patch
+          })
+        });
+        const body = (await response.json().catch(() => ({}))) as { item?: AdminCatalogListItem; message?: string };
+        if (!response.ok || !body.item) throw new Error(body.message || 'Shranjevanje artikla ni uspelo.');
+        latestSavedItem = body.item;
+      }
+
+      if (variants.length <= 1 && variants[0]) {
+        const primary = variants[0];
+        const variantPatch: Record<string, unknown> = {};
+        if (draft.price !== primary.price) variantPatch.price = draft.price;
+        if (draft.discountPct !== primary.discountPct) variantPatch.discountPct = draft.discountPct;
+        if (draft.stock !== primary.stock) variantPatch.inventory = draft.stock;
+        if (Math.max(1, draft.minOrder) !== Math.max(1, primary.minOrder ?? 1)) variantPatch.minOrder = Math.max(1, draft.minOrder);
+        if ((draft.sku || null) !== (primary.sku || null)) variantPatch.variantSku = draft.sku || null;
+        if (Object.keys(variantPatch).length > 0) {
+          const variantResponse = await fetch('/api/admin/artikli/quick-save/variant', {
+            method: 'PATCH',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              itemIdentifier: family.slug,
+              variantId: Number(primary.id),
+              patch: variantPatch
+            })
+          });
+          const variantBody = (await variantResponse.json().catch(() => ({}))) as { item?: AdminCatalogListItem; message?: string };
+          if (!variantResponse.ok || !variantBody.item) throw new Error(variantBody.message || 'Shranjevanje različice ni uspelo.');
+          latestSavedItem = variantBody.item;
         }
-        if (variants.length <= 1 && payload.variants[0]) {
-          payload.variants[0] = {
-            ...payload.variants[0],
-            price: draft.price,
-            discountPct: draft.discountPct,
-            inventory: draft.stock,
-            minOrder: Math.max(1, draft.minOrder),
-            variantSku: draft.sku || payload.variants[0].variantSku
-          };
-        }
-      });
+      }
+
+      if (latestSavedItem) {
+        applySavedFamilyRow(latestSavedItem);
+      }
       setEditingFamilyId(null);
       router.refresh();
     } catch (error) {

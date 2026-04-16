@@ -128,6 +128,32 @@ export type CatalogItemEditorHydration = {
   media: CatalogItemEditorPayload['media'];
 };
 
+export type CatalogItemQuickPatch = {
+  itemName?: string;
+  sku?: string | null;
+  status?: 'active' | 'inactive';
+  badge?: string | null;
+  categoryPath?: string[];
+  categoryId?: string | null;
+};
+
+export type CatalogVariantQuickPatch = {
+  variantName?: string;
+  variantSku?: string | null;
+  length?: number | null;
+  width?: number | null;
+  thickness?: number | null;
+  weight?: number | null;
+  errorTolerance?: string | null;
+  price?: number;
+  discountPct?: number;
+  inventory?: number;
+  minOrder?: number;
+  status?: 'active' | 'inactive';
+  badge?: string | null;
+  position?: number;
+};
+
 function asNumber(value: unknown, fallback = 0): number {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (typeof value === 'string') {
@@ -139,6 +165,33 @@ function asNumber(value: unknown, fallback = 0): number {
 
 function asStringOrNull(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function normalizeActiveState(value: unknown): 'active' | 'inactive' {
+  return String(value ?? 'inactive') === 'active' ? 'active' : 'inactive';
+}
+
+async function resolveItemIdByIdentifier(client: { query: (sql: string, params?: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }> }, itemIdentifier: string): Promise<number | null> {
+  const normalized = itemIdentifier.trim();
+  if (!normalized) return null;
+  const result = await client.query(
+    `
+    select id
+    from catalog_items
+    where slug = $1
+       or id::text = $1
+    order by case when slug = $1 then 0 else 1 end
+    limit 1
+    `,
+    [normalized]
+  );
+  const id = result.rows[0]?.id;
+  return typeof id === 'number' ? id : typeof id === 'string' ? Number(id) : null;
+}
+
+async function fetchAdminCatalogListItemByItemId(itemId: number): Promise<AdminCatalogListItem | null> {
+  const items = await fetchAdminCatalogListItems();
+  return items.find((item) => item.id === itemId) ?? null;
 }
 
 async function resolveCategoryIdByPath(path: string[]): Promise<string | null> {
@@ -623,6 +676,167 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
     variants,
     media
   };
+}
+
+export async function quickPatchCatalogItemByIdentifier(
+  itemIdentifier: string,
+  patch: CatalogItemQuickPatch
+): Promise<AdminCatalogListItem | null> {
+  const normalizedIdentifier = itemIdentifier.trim();
+  if (!normalizedIdentifier) throw new Error('Neveljaven identifikator artikla.');
+
+  const pool = await getPool();
+  const client = await pool.connect();
+  try {
+    await client.query('begin');
+
+    const itemId = await resolveItemIdByIdentifier(client, normalizedIdentifier);
+    if (!itemId) {
+      await client.query('rollback');
+      return null;
+    }
+
+    const existingResult = await client.query(
+      `
+      select id, item_name, sku, status, badge, category_id
+      from catalog_items
+      where id = $1
+      limit 1
+      `,
+      [itemId]
+    );
+    const existing = existingResult.rows[0];
+    if (!existing) {
+      await client.query('rollback');
+      return null;
+    }
+
+    const nextCategoryId =
+      patch.categoryId !== undefined
+        ? asStringOrNull(patch.categoryId)
+        : patch.categoryPath !== undefined
+          ? await resolveCategoryIdByPath(patch.categoryPath)
+          : asStringOrNull(existing.category_id);
+
+    await client.query(
+      `
+      update catalog_items
+      set item_name = $1,
+          sku = $2,
+          status = $3,
+          badge = $4,
+          category_id = $5,
+          updated_at = now()
+      where id = $6
+      `,
+      [
+        patch.itemName !== undefined ? patch.itemName : String(existing.item_name ?? ''),
+        patch.sku !== undefined ? asStringOrNull(patch.sku) : asStringOrNull(existing.sku),
+        patch.status !== undefined ? patch.status : normalizeActiveState(existing.status),
+        patch.badge !== undefined ? asStringOrNull(patch.badge) : asStringOrNull(existing.badge),
+        nextCategoryId,
+        itemId
+      ]
+    );
+
+    await client.query('commit');
+    revalidateTag(CATALOG_PUBLIC_TAG);
+    return await fetchAdminCatalogListItemByItemId(itemId);
+  } catch (error) {
+    await client.query('rollback');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function quickPatchCatalogVariantByIdentifier(
+  itemIdentifier: string,
+  variantId: number,
+  patch: CatalogVariantQuickPatch
+): Promise<{ item: AdminCatalogListItem; variant: AdminCatalogVariantSummary } | null> {
+  const normalizedIdentifier = itemIdentifier.trim();
+  if (!normalizedIdentifier || !Number.isFinite(variantId)) throw new Error('Neveljaven identifikator različice.');
+
+  const pool = await getPool();
+  const client = await pool.connect();
+  try {
+    await client.query('begin');
+
+    const itemId = await resolveItemIdByIdentifier(client, normalizedIdentifier);
+    if (!itemId) {
+      await client.query('rollback');
+      return null;
+    }
+
+    const existingResult = await client.query(
+      `
+      select id, item_id, variant_name, variant_sku, length, width, thickness, weight, error_tolerance, price, discount_pct, inventory, min_order, status, badge, position
+      from catalog_item_variants
+      where id = $1 and item_id = $2
+      limit 1
+      `,
+      [variantId, itemId]
+    );
+    const existing = existingResult.rows[0];
+    if (!existing) {
+      await client.query('rollback');
+      return null;
+    }
+
+    await client.query(
+      `
+      update catalog_item_variants
+      set variant_name = $1,
+          variant_sku = $2,
+          length = $3,
+          width = $4,
+          thickness = $5,
+          weight = $6,
+          error_tolerance = $7,
+          price = $8,
+          discount_pct = $9,
+          inventory = $10,
+          min_order = $11,
+          status = $12,
+          badge = $13,
+          position = $14
+      where id = $15
+        and item_id = $16
+      `,
+      [
+        patch.variantName !== undefined ? patch.variantName : String(existing.variant_name ?? ''),
+        patch.variantSku !== undefined ? asStringOrNull(patch.variantSku) : asStringOrNull(existing.variant_sku),
+        patch.length !== undefined ? patch.length : existing.length,
+        patch.width !== undefined ? patch.width : existing.width,
+        patch.thickness !== undefined ? patch.thickness : existing.thickness,
+        patch.weight !== undefined ? patch.weight : existing.weight,
+        patch.errorTolerance !== undefined ? asStringOrNull(patch.errorTolerance) : asStringOrNull(existing.error_tolerance),
+        patch.price !== undefined ? patch.price : asNumber(existing.price),
+        patch.discountPct !== undefined ? patch.discountPct : asNumber(existing.discount_pct),
+        patch.inventory !== undefined ? patch.inventory : asNumber(existing.inventory),
+        patch.minOrder !== undefined ? Math.max(1, patch.minOrder) : Math.max(1, asNumber(existing.min_order, 1)),
+        patch.status !== undefined ? patch.status : normalizeActiveState(existing.status),
+        patch.badge !== undefined ? asStringOrNull(patch.badge) : asStringOrNull(existing.badge),
+        patch.position !== undefined ? Math.max(1, patch.position) : asNumber(existing.position, 1),
+        variantId,
+        itemId
+      ]
+    );
+
+    await client.query('commit');
+    revalidateTag(CATALOG_PUBLIC_TAG);
+    const item = await fetchAdminCatalogListItemByItemId(itemId);
+    if (!item) return null;
+    const variant = item.variants.find((entry) => entry.id === variantId);
+    if (!variant) return null;
+    return { item, variant };
+  } catch (error) {
+    await client.query('rollback');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Promise<{ id: number; slug: string }> {

@@ -681,17 +681,17 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     aria-label="Izberi vse družine"
                   />
                 </TH>
-                <TH className="w-[18%]">
+                <TH className="w-[17.5%]">
                   <button type="button" className={getSortTitleClass('article')} onClick={() => cycleSort('article')}>
                     Artikel
                   </button>
                 </TH>
-                <TH className="w-[9%]">
+                <TH className="w-[15.5%]">
                   <button type="button" className={getSortTitleClass('sku')} onClick={() => cycleSort('sku')}>
                     SKU
                   </button>
                 </TH>
-                <TH className="w-[23%]">
+                <TH className="w-[24.5%]">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('category')} onClick={() => cycleSort('category')}>
                       Kategorija
@@ -728,7 +728,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     ) : null}
                   </div>
                 </TH>
-                <TH className="w-[5%] whitespace-nowrap text-center">
+                <TH className="w-[4.5%] whitespace-nowrap text-center">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('variantCount')} onClick={() => cycleSort('variantCount')}>
                       Št. različic
@@ -768,7 +768,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     ) : null}
                   </div>
                 </TH>
-                <TH className="w-[5%] text-right">
+                <TH className="w-[6.5%] text-right">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('priceRange')} onClick={() => cycleSort('priceRange')}>
                       Cena
@@ -808,7 +808,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     ) : null}
                   </div>
                 </TH>
-                <TH className="w-[6%] whitespace-nowrap text-center">
+                <TH className="w-[3.5%] whitespace-nowrap text-center">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('discount')} onClick={() => cycleSort('discount')}>
                       Popust
@@ -835,8 +835,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     ) : null}
                   </div>
                 </TH>
-                <TH className="w-[10%] whitespace-nowrap text-right">Akcijska cena</TH>
-                <TH className="w-[60px] whitespace-nowrap px-0 text-center">
+                <TH className="w-[6.5%] whitespace-nowrap text-right">Akcijska cena</TH>
+                <TH className="w-[9.25%] whitespace-nowrap px-0 text-center">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('status')} onClick={() => cycleSort('status')}>
                       Status
@@ -863,8 +863,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     ) : null}
                   </div>
                 </TH>
-                <TH className="w-[60px] whitespace-nowrap px-0 text-center">Opombe</TH>
-                <TH className="w-10 text-center">Uredi</TH>
+                <TH className="w-[9.25%] whitespace-nowrap px-0 text-center">Opombe</TH>
+                <TH className="w-[3%] text-center">Uredi</TH>
               </TR>
             </THead>
             <tbody>
@@ -937,13 +937,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                         const discounted = visibleVariants.filter((variant) => variant.discountPct > 0).map((variant) => computeSalePrice(variant.price, variant.discountPct));
                         return discounted.length ? formatCurrencyRangeFromValues(discounted) : '—';
                       })()}</td>
-                      <td className="w-[60px] px-0 py-3 text-center"><div className="inline-flex justify-end pr-[5px]"><ActiveStateChip active={familyDraft.active} editable={isEditingFamily} editScope={`family:${family.id}`} chipClassName="!min-w-[84px] !text-[11px]" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, active: next } }))} /></div></td>
-                      <td className="w-[60px] px-0 py-3 text-center">
+                      <td className="w-[9.25%] px-0 py-3 text-center"><div className="flex justify-center px-1"><ActiveStateChip active={familyDraft.active} editable={isEditingFamily} editScope={`family:${family.id}`} chipClassName="!min-w-0 !w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap !text-[11px]" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, active: next } }))} /></div></td>
+                      <td className="w-[9.25%] px-0 py-3 text-center">
                         {isEditingFamily
-                          ? <div className="inline-flex justify-start pl-[5px]"><NoteTagChip value={familyDraft.note} editable allowEmpty editScope={`family:${family.id}`} chipClassName="!min-w-[100px] !text-[11px]" placeholderLabel="Opombe" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, note: next as NoteValue } }))} /></div>
-                          : <div className="inline-flex justify-start pl-[5px]"><NoteTagChip value={(family.notes?.trim() as NoteValue) || ''} editable={false} allowEmpty editScope={`family:${family.id}`} chipClassName="!min-w-[100px] !text-[11px]" placeholderLabel="Opombe" onChange={() => {}} /></div>}
+                          ? <div className="flex justify-center px-1"><NoteTagChip value={familyDraft.note} editable allowEmpty editScope={`family:${family.id}`} chipClassName="!min-w-0 !w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap !text-[11px]" placeholderLabel="Opombe" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, note: next as NoteValue } }))} /></div>
+                          : <div className="flex justify-center px-1"><NoteTagChip value={(family.notes?.trim() as NoteValue) || ''} editable={false} allowEmpty editScope={`family:${family.id}`} chipClassName="!min-w-0 !w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap !text-[11px]" placeholderLabel="Opombe" onChange={() => {}} /></div>}
                       </td>
-                      <td className="w-10 px-1 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'quick-edit', label: 'Hitro urejanje', icon: <PencilIcon />, onSelect: () => startFamilyEdit(family, visibleVariants) }, { key: 'save', label: 'Shrani', icon: <SaveIcon />, disabled: !isEditingFamily, onSelect: () => { void saveFamilyEdit(family, visibleVariants); } }, { key: 'edit', label: 'Uredi', onSelect: () => router.push(`/admin/artikli/${encodeURIComponent(family.slug || family.id)}`) }]} /></td>
+                      <td className="w-[3%] px-1 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'quick-edit', label: 'Hitro urejanje', icon: <PencilIcon />, onSelect: () => startFamilyEdit(family, visibleVariants) }, { key: 'save', label: 'Shrani', icon: <SaveIcon />, disabled: !isEditingFamily, onSelect: () => { void saveFamilyEdit(family, visibleVariants); } }, { key: 'edit', label: 'Uredi', onSelect: () => router.push(`/admin/artikli/${encodeURIComponent(family.slug || family.id)}`) }]} /></td>
                     </tr>
                     {isExpanded && hasSubtable ? (
                       <tr className="border-t border-slate-100 bg-slate-50/70">

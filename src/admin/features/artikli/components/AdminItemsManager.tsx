@@ -33,10 +33,11 @@ import type { AdminCatalogListItem, CatalogItemEditorHydration, CatalogItemEdito
 
 type StatusFilter = 'all' | 'active' | 'inactive';
 type DiscountFilter = 'all' | 'yes' | 'no';
-type OpenFilter = 'category' | 'status' | 'discount' | 'variantCount' | 'priceRange' | 'actionPriceRange' | null;
+type NoteFilter = 'all' | 'withNote' | 'withoutNote';
+type OpenFilter = 'category' | 'status' | 'discount' | 'note' | 'variantCount' | 'priceRange' | 'actionPriceRange' | null;
 type SortState =
   | { column: 'article' | 'sku' | 'category'; direction: 'asc' | 'desc' }
-  | { column: 'variantCount' | 'discount' | 'status'; direction: 'desc' | 'asc' }
+  | { column: 'variantCount' | 'discount' | 'status' | 'note'; direction: 'desc' | 'asc' }
   | { column: 'priceRange' | 'actionPriceRange'; mode: 'minAsc' | 'minDesc' | 'maxDesc' | 'maxAsc' }
   | null;
 
@@ -185,6 +186,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [discountFilter, setDiscountFilter] = useState<DiscountFilter>('all');
+  const [noteFilter, setNoteFilter] = useState<NoteFilter>('all');
   const [openFilter, setOpenFilter] = useState<OpenFilter>(null);
   const [expandedFamilyIds, setExpandedFamilyIds] = useState<Set<string>>(new Set());
   const [selectedFamilyIds, setSelectedFamilyIds] = useState<Set<string>>(new Set());
@@ -211,6 +213,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const discountFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const actionPriceFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const statusFilterButtonRef = useRef<HTMLButtonElement | null>(null);
+  const noteFilterButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const families = useMemo(() => toListFamilies(items), [items]);
   const categories = useMemo(() => Array.from(new Set(families.map((family) => family.category))).sort((a, b) => a.localeCompare(b, 'sl')), [families]);
@@ -254,9 +257,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       const matchesStatus = statusFilter === 'all' || (statusFilter === 'active' ? family.active : !family.active);
       const hasDiscount = family.defaultDiscountPct > 0 || family.variants.some((variant) => variant.discountPct > 0);
       const matchesDiscount = discountFilter === 'all' || (discountFilter === 'yes' ? hasDiscount : !hasDiscount);
-      return matchesSearch && matchesCategory && matchesStatus && matchesDiscount;
+      const hasNote = family.notes.trim().length > 0;
+      const matchesNote = noteFilter === 'all' || (noteFilter === 'withNote' ? hasNote : !hasNote);
+      return matchesSearch && matchesCategory && matchesStatus && matchesDiscount && matchesNote;
     });
-  }, [categoryFilter, discountFilter, families, search, statusFilter]);
+  }, [categoryFilter, discountFilter, families, noteFilter, search, statusFilter]);
 
   const flatVariants = useMemo(() => {
     const rows: Array<{ family: ProductFamily; variant: Variant }> = [];
@@ -357,6 +362,16 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       });
       return rows;
     }
+    if (sortState.column === 'note') {
+      rows.sort((a, b) => {
+        const noteA = a.family.notes.trim().toLowerCase();
+        const noteB = b.family.notes.trim().toLowerCase();
+        return sortState.direction === 'desc'
+          ? noteB.localeCompare(noteA, 'sl')
+          : noteA.localeCompare(noteB, 'sl');
+      });
+      return rows;
+    }
     if (sortState.column === 'priceRange' || sortState.column === 'actionPriceRange') {
       const getMin = (row: (typeof rows)[number]) => (sortState.column === 'priceRange' ? row.minPrice : row.minActionPrice ?? Number.POSITIVE_INFINITY);
       const getMax = (row: (typeof rows)[number]) => (sortState.column === 'priceRange' ? row.maxPrice : row.maxActionPrice ?? Number.NEGATIVE_INFINITY);
@@ -386,7 +401,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
 
   useEffect(() => {
     setPage(1);
-  }, [actionPriceRangeFilter.max, actionPriceRangeFilter.min, categoryFilter, discountFilter, priceRangeFilter.max, priceRangeFilter.min, search, setPage, statusFilter, variantCountRange.max, variantCountRange.min]);
+  }, [actionPriceRangeFilter.max, actionPriceRangeFilter.min, categoryFilter, discountFilter, noteFilter, priceRangeFilter.max, priceRangeFilter.min, search, setPage, statusFilter, variantCountRange.max, variantCountRange.min]);
 
   const exportVariantsCsv = () => {
     const headers = ['Družina', 'Različica', 'SKU', 'Cena', 'Popust', 'Akcijska cena', 'Zaloga', 'Status'];
@@ -528,18 +543,18 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       next.add(variantId);
       return next;
     });
-  const getSortTitleClass = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'actionPriceRange' | 'status') =>
+  const getSortTitleClass = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'actionPriceRange' | 'status' | 'note') =>
     `inline-flex items-center text-[11px] font-semibold leading-none hover:text-[color:var(--blue-500)] ${
       sortState && 'column' in sortState && sortState.column === column ? 'underline underline-offset-2 text-[color:var(--blue-500)]' : ''
     }`;
-  const cycleSort = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'actionPriceRange' | 'status') => {
+  const cycleSort = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'actionPriceRange' | 'status' | 'note') => {
     setSortState((current) => {
       if (column === 'article' || column === 'sku' || column === 'category') {
         if (!current || !('column' in current) || current.column !== column) return { column, direction: 'asc' };
         if ('direction' in current && current.direction === 'asc') return { column, direction: 'desc' };
         return null;
       }
-      if (column === 'variantCount' || column === 'discount' || column === 'status') {
+      if (column === 'variantCount' || column === 'discount' || column === 'status' || column === 'note') {
         if (!current || !('column' in current) || current.column !== column) return { column, direction: 'desc' };
         if ('direction' in current && current.direction === 'desc') return { column, direction: 'asc' };
         return null;
@@ -646,6 +661,14 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
               <span className={filterPillTokenClasses.base}>
                 Status: {statusFilter === 'active' ? 'Aktiven' : 'Neaktiven'}
                 <button type="button" className={filterPillTokenClasses.clear} onClick={() => setStatusFilter('all')} aria-label="Počisti filter statusa">
+                  ×
+                </button>
+              </span>
+            ) : null}
+            {noteFilter !== 'all' ? (
+              <span className={filterPillTokenClasses.base}>
+                Opombe: {noteFilter === 'withNote' ? 'Z opombo' : 'Brez opombe'}
+                <button type="button" className={filterPillTokenClasses.clear} onClick={() => setNoteFilter('all')} aria-label="Počisti filter opomb">
                   ×
                 </button>
               </span>
@@ -837,7 +860,25 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     </button>
                   </div>
                 </TH>
-                <TH className="w-[10.25%] whitespace-nowrap px-0 text-center">Opombe</TH>
+                <TH className="w-[10.25%] whitespace-nowrap px-0 text-center">
+                  <div className="relative inline-flex items-center gap-1" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+                    <button type="button" className={getSortTitleClass('note')} onClick={() => cycleSort('note')}>
+                      Opombe
+                    </button>
+                    <button
+                      ref={noteFilterButtonRef}
+                      type="button"
+                      className={HEADER_FILTER_BUTTON_CLASS}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setOpenFilter((current) => (current === 'note' ? null : 'note'));
+                      }}
+                      aria-label="Filtriraj opombe"
+                    >
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                  </div>
+                </TH>
                 <TH className="w-[5%] px-2 text-center">Uredi</TH>
               </TR>
             </THead>
@@ -1198,6 +1239,15 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
               maxPlaceholder="Max akcijska"
               min={0}
             />
+          </div>
+        ) : null}
+        {openFilter === 'note' ? (
+          <div style={getHeaderPopoverStyle(noteFilterButtonRef.current, 176)}>
+            <MenuPanel className="w-44 shadow-lg">
+              <MenuItem onClick={() => { setNoteFilter('all'); setOpenFilter(null); }}>Vse opombe</MenuItem>
+              <MenuItem onClick={() => { setNoteFilter('withNote'); setOpenFilter(null); }}>Z opombo</MenuItem>
+              <MenuItem onClick={() => { setNoteFilter('withoutNote'); setOpenFilter(null); }}>Brez opombe</MenuItem>
+            </MenuPanel>
           </div>
         ) : null}
         {openFilter === 'status' ? (

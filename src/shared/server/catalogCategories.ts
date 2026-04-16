@@ -9,6 +9,7 @@ import {
   type RecursiveCatalogCategory,
   type RecursiveCatalogSubcategory
 } from '@/shared/server/catalogAdmin';
+import { fetchCatalogItemsForCategory } from '@/shared/server/catalogItems';
 
 type CategoryStatus = 'active' | 'inactive';
 type CatalogDataWithStatuses = CatalogData & { statuses: Record<string, CategoryStatus> };
@@ -61,7 +62,7 @@ type CategoryDetailRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'summary' |
 type SubcategoryDetailRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'description' | 'items'>;
 type SubcategoryCountRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'description'> & { item_count: number };
 type SearchCategoryRow = Pick<CategoryRow, 'id' | 'slug' | 'items'>;
-type SearchSubcategoryRow = Pick<CategoryRow, 'parent_id' | 'slug' | 'items'>;
+type SearchSubcategoryRow = Pick<CategoryRow, 'parent_id' | 'id' | 'slug' | 'items'>;
 type ItemsIndexCategoryRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'items'>;
 type ItemsIndexSubcategoryRow = Pick<CategoryRow, 'parent_id' | 'id' | 'slug' | 'title' | 'items'>;
 type CategoryRow = {
@@ -159,6 +160,36 @@ function normalizeStatus(value: string): CategoryStatus {
 
 function getRowItems(row: { items: unknown }): CatalogItem[] {
   return Array.isArray(row.items) ? (row.items as CatalogItem[]) : [];
+}
+
+function mapItemsByCategoryId(rows: Array<{ category_id: string; item: Record<string, unknown> }>): Map<string, CatalogItem[]> {
+  const byCategoryId = new Map<string, CatalogItem[]>();
+
+  for (const row of rows) {
+    const list = byCategoryId.get(row.category_id) ?? [];
+    list.push(row.item as CatalogItem);
+    byCategoryId.set(row.category_id, list);
+  }
+
+  return byCategoryId;
+}
+
+function assignItemsToCategoryTree(
+  categories: RecursiveCatalogCategory[],
+  itemsByCategoryId: Map<string, CatalogItem[]>
+): RecursiveCatalogCategory[] {
+  const mapSubcategories = (subcategories: RecursiveCatalogSubcategory[]): RecursiveCatalogSubcategory[] =>
+    subcategories.map((subcategory) => ({
+      ...subcategory,
+      items: itemsByCategoryId.get(subcategory.id) ?? [],
+      subcategories: mapSubcategories(subcategory.subcategories)
+    }));
+
+  return categories.map((category) => ({
+    ...category,
+    items: itemsByCategoryId.get(category.id) ?? [],
+    subcategories: mapSubcategories(category.subcategories)
+  }));
 }
 
 function normalizeCatalogImage(value: unknown): string {
@@ -309,8 +340,11 @@ async function readCatalogDataFromDatabase(
     return category;
   });
 
+  const allCategoryIds = rows.map((row) => row.id);
+  const itemsByCategoryId = mapItemsByCategoryId(await fetchCatalogItemsForCategory(allCategoryIds));
+
   const payload: CatalogDataWithStatuses = {
-    categories,
+    categories: assignItemsToCategoryTree(categories, itemsByCategoryId),
     statuses
   };
 
@@ -403,7 +437,21 @@ async function readCatalogPreviewDataFromDatabase(
     return category;
   });
 
-  const payload: CatalogPreviewDataWithStatuses = { categories, statuses };
+  const allCategoryIds = rows.map((row) => row.id);
+  const itemsByCategoryId = mapItemsByCategoryId(await fetchCatalogItemsForCategory(allCategoryIds));
+  const assignPreviewItems = (nodes: CatalogPreviewSubcategory[]): CatalogPreviewSubcategory[] =>
+    nodes.map((node) => ({
+      ...node,
+      items: itemsByCategoryId.get(node.id) ?? [],
+      subcategories: assignPreviewItems(node.subcategories)
+    }));
+  const previewCategories = categories.map((category) => ({
+    ...category,
+    items: itemsByCategoryId.get(category.id) ?? [],
+    subcategories: assignPreviewItems(category.subcategories)
+  }));
+
+  const payload: CatalogPreviewDataWithStatuses = { categories: previewCategories, statuses };
   const normalizedPayload = includeStatuses ? payload : { categories: payload.categories };
   profilePayloadEstimate('readCatalogPreviewDataFromDatabase:payload', normalizedPayload);
   return normalizedPayload;
@@ -499,6 +547,10 @@ async function readCatalogCategoryWithSubcategoriesFromDatabase(
     `,
     [categoryRow.id]
   );
+  const subRows = subcategoryResult.rows as SubcategoryDetailRow[];
+  const itemsByCategoryId = mapItemsByCategoryId(
+    await fetchCatalogItemsForCategory([categoryRow.id, ...subRows.map((row) => row.id)])
+  );
 
   return {
     id: categoryRow.id,
@@ -507,13 +559,13 @@ async function readCatalogCategoryWithSubcategoriesFromDatabase(
     summary: categoryRow.summary,
     description: categoryRow.description,
     image: categoryRow.image,
-    items: getRowItems(categoryRow),
-    subcategories: (subcategoryResult.rows as SubcategoryDetailRow[]).map((row) => ({
+    items: itemsByCategoryId.get(categoryRow.id) ?? [],
+    subcategories: subRows.map((row) => ({
       id: row.id,
       slug: row.slug,
       title: row.title,
       description: row.description,
-      items: getRowItems(row)
+      items: itemsByCategoryId.get(row.id) ?? []
     }))
   };
 }
@@ -570,6 +622,11 @@ async function readCatalogCategoryPageDataFromDatabase(
     [categoryRow.id]
   );
 
+  const subRows = subcategoryResult.rows as SubcategoryCountRow[];
+  const itemsByCategoryId = mapItemsByCategoryId(
+    await fetchCatalogItemsForCategory([categoryRow.id, ...subRows.map((row) => row.id)])
+  );
+
   return {
     id: categoryRow.id,
     slug: categoryRow.slug,
@@ -577,13 +634,13 @@ async function readCatalogCategoryPageDataFromDatabase(
     summary: categoryRow.summary,
     description: categoryRow.description,
     image: categoryRow.image,
-    items: subcategoryResult.rowCount === 0 ? getRowItems(categoryRow) : [],
-    subcategories: (subcategoryResult.rows as SubcategoryCountRow[]).map((row) => ({
+    items: subRows.length === 0 ? itemsByCategoryId.get(categoryRow.id) ?? [] : [],
+    subcategories: subRows.map((row) => ({
       id: row.id,
       slug: row.slug,
       title: row.title,
       description: row.description,
-      itemCount: Number(row.item_count ?? 0)
+      itemCount: (itemsByCategoryId.get(row.id) ?? []).length
     }))
   };
 }
@@ -641,6 +698,7 @@ async function readCatalogSubcategoryWithCategoryFromDatabase(
 
   const subcategoryRow = (subcategoryResult.rows as SubcategoryDetailRow[])[0];
   if (!subcategoryRow) return null;
+  const itemsByCategoryId = mapItemsByCategoryId(await fetchCatalogItemsForCategory([subcategoryRow.id]));
 
   return {
     category: { slug: categoryRow.slug, title: categoryRow.title },
@@ -649,7 +707,7 @@ async function readCatalogSubcategoryWithCategoryFromDatabase(
       slug: subcategoryRow.slug,
       title: subcategoryRow.title,
       description: subcategoryRow.description,
-      items: getRowItems(subcategoryRow)
+      items: itemsByCategoryId.get(subcategoryRow.id) ?? []
     }
   };
 }
@@ -692,7 +750,7 @@ async function readCatalogSearchIndexFromDatabase(): Promise<{
   const subcategoryRows = categoryIds.length
     ? (await pool.query(
         `
-          select parent_id, slug, items
+          select parent_id, id, slug, items
           from catalog_categories
           where parent_id = any($1::text[]) and status = 'active'
           order by position asc, title asc
@@ -702,20 +760,24 @@ async function readCatalogSearchIndexFromDatabase(): Promise<{
     : [];
 
   const categorySlugById = new Map(categoryRows.map((row) => [row.id, row.slug]));
+  const itemsByCategoryId = mapItemsByCategoryId(
+    await fetchCatalogItemsForCategory([...categoryRows.map((row) => row.id), ...subcategoryRows.map((row) => row.id)])
+  );
 
   return {
     categories: categoryRows.map(({ slug, title, summary, image }) => ({ slug, title, summary, image })),
     searchItems: [
       ...categoryRows
-        .filter((row) => getRowItems(row).length > 0)
-        .map((row) => ({ categorySlug: row.slug, items: getRowItems(row) })),
+        .map((row) => ({ categorySlug: row.slug, items: itemsByCategoryId.get(row.id) ?? [] }))
+        .filter((row) => row.items.length > 0),
       ...subcategoryRows
         .map((row) => {
           const categorySlug = row.parent_id ? categorySlugById.get(row.parent_id) : null;
           if (!categorySlug) return null;
-          return { categorySlug, subcategorySlug: row.slug, items: getRowItems(row) };
+          return { categorySlug, subcategorySlug: row.slug, items: itemsByCategoryId.get(row.id) ?? [] };
         })
         .filter((row): row is { categorySlug: string; subcategorySlug: string; items: CatalogItem[] } => row !== null)
+        .filter((row) => row.items.length > 0)
     ]
   };
 }
@@ -764,6 +826,8 @@ async function readCatalogItemsIndexFromDatabase(): Promise<CatalogItemsIndex> {
     : [];
 
   const subcategoriesByParent = new Map<string, Array<Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'items'>>>();
+  const allCategoryIdsForItems = [...categoryIds, ...subcategoryRows.map((row) => row.id)];
+  const itemsByCategoryId = mapItemsByCategoryId(await fetchCatalogItemsForCategory(allCategoryIdsForItems));
 
   for (const row of subcategoryRows) {
     if (!row.parent_id) continue;
@@ -772,7 +836,7 @@ async function readCatalogItemsIndexFromDatabase(): Promise<CatalogItemsIndex> {
       id: row.id,
       slug: row.slug,
       title: row.title,
-      items: getRowItems(row)
+      items: itemsByCategoryId.get(row.id) ?? []
     });
     subcategoriesByParent.set(row.parent_id, list);
   }
@@ -781,7 +845,7 @@ async function readCatalogItemsIndexFromDatabase(): Promise<CatalogItemsIndex> {
     id: row.id,
     slug: row.slug,
     title: row.title,
-    items: getRowItems(row),
+    items: itemsByCategoryId.get(row.id) ?? [],
     subcategories: subcategoriesByParent.get(row.id) ?? []
   }));
   profilePayloadEstimate('readCatalogItemsIndexFromDatabase:payload', payload);

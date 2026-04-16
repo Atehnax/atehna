@@ -18,7 +18,6 @@ export type PdfOrder = {
   organizationName?: string | null;
   contactName: string;
   email: string;
-  phone?: string | null;
   deliveryAddress?: string | null;
   reference?: string | null;
   notes?: string | null;
@@ -166,7 +165,6 @@ export async function generateOrderPdf(
   const contactLines = [
     `Kontakt: ${toSafeText(order.contactName)}`,
     `E-pošta: ${toSafeText(order.email)}`,
-    order.phone ? `Telefon: ${toSafeText(order.phone)}` : null,
     order.deliveryAddress ? `Naslov dostave: ${toSafeText(order.deliveryAddress)}` : null,
     order.reference ? `Sklic: ${toSafeText(order.reference)}` : null
   ].filter(Boolean) as string[];

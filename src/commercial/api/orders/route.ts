@@ -25,7 +25,6 @@ type OrderPayload = {
   deliveryAddress?: unknown;
   contactName?: unknown;
   email?: unknown;
-  phone?: unknown;
   reference?: unknown;
   notes?: unknown;
   items?: unknown;
@@ -104,7 +103,6 @@ export async function POST(request: Request) {
     const deliveryAddress = toTrimmedText(payload.deliveryAddress);
     const contactName = toTrimmedText(payload.contactName);
     const email = toTrimmedText(payload.email);
-    const phone = toTrimmedText(payload.phone);
     const reference = toTrimmedText(payload.reference);
     const notes = toTrimmedText(payload.notes);
 
@@ -150,7 +148,6 @@ export async function POST(request: Request) {
           organization_name,
           contact_name,
           email,
-          phone,
           delivery_address,
           reference,
           notes,
@@ -172,7 +169,6 @@ export async function POST(request: Request) {
           $8,
           $9,
           $10,
-          $11,
           false
         from next_id
         returning id, order_number, created_at
@@ -189,7 +185,6 @@ export async function POST(request: Request) {
           organization_name,
           contact_name,
           email,
-          phone,
           delivery_address,
           reference,
           notes,
@@ -209,8 +204,7 @@ export async function POST(request: Request) {
           $7,
           $8,
           $9,
-          $10,
-          $11
+          $10
         from next_id
         returning id, order_number, created_at
       `;
@@ -220,7 +214,6 @@ export async function POST(request: Request) {
         toNullableText(organizationName),
         contactName,
         email,
-        toNullableText(phone),
         toNullableText(deliveryAddress),
         toNullableText(reference),
         toNullableText(notes),
@@ -286,7 +279,6 @@ export async function POST(request: Request) {
           organizationName: toNullableText(organizationName),
           contactName,
           email,
-          phone: toNullableText(phone),
           deliveryAddress: toNullableText(deliveryAddress),
           reference: toNullableText(reference),
           notes: toNullableText(notes),

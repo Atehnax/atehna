@@ -25,15 +25,6 @@ export type PdfDoc = {
   created_at: string;
 };
 
-export type Attachment = {
-  id: number;
-  order_id: number;
-  type: string;
-  filename: string;
-  blob_url: string;
-  created_at: string;
-};
-
 export type SortKey =
   | 'order_number'
   | 'customer'

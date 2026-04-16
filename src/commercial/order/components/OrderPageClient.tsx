@@ -35,7 +35,6 @@ type OrderFormData = {
   city: string;
   postalCode: string;
   email: string;
-  phone: string;
   notes: string;
 };
 
@@ -51,7 +50,6 @@ type SubmittedOrderSnapshot = {
   organizationName: string;
   recipientName: string;
   email: string;
-  phone: string;
   notes: string;
   deliveryAddressLines: string[];
   items: CheckoutItem[];
@@ -70,7 +68,6 @@ const initialForm: OrderFormData = {
   city: '',
   postalCode: '',
   email: '',
-  phone: '',
   notes: ''
 };
 
@@ -260,7 +257,6 @@ export default function OrderPageClient() {
           deliveryAddress: deliveryAddressLines.join(', '),
           contactName: recipientName,
           email: formData.email.trim(),
-          phone: formData.phone.trim(),
           notes: formData.notes.trim(),
           items: payloadItems
         })
@@ -279,7 +275,6 @@ export default function OrderPageClient() {
           formData.customerType === 'individual' ? '' : formData.organizationName.trim(),
         recipientName,
         email: formData.email.trim(),
-        phone: formData.phone.trim(),
         notes: formData.notes.trim(),
         deliveryAddressLines,
         items: payloadItems,
@@ -346,12 +341,6 @@ export default function OrderPageClient() {
               <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Email</p>
               <p className="mt-1 font-semibold text-slate-900">{submittedOrder.email}</p>
 
-              {submittedOrder.phone && (
-                <div className="mt-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Telefon</p>
-                  <p className="mt-1 font-semibold text-slate-900">{submittedOrder.phone}</p>
-                </div>
-              )}
             </div>
           </div>
 
@@ -667,18 +656,6 @@ export default function OrderPageClient() {
                 />
               </div>
 
-              <div className="md:col-span-2">
-                <FloatingInput
-                  id="phone"
-                  label="Telefon"
-                  disabled={shippingDetailsLocked}
-                  autoComplete="tel"
-                  value={formData.phone}
-                  onChange={(event) =>
-                    setFormData((previous) => ({ ...previous, phone: event.target.value }))
-                  }
-                />
-              </div>
 
               <div className="md:col-span-2">
                 <FloatingTextarea

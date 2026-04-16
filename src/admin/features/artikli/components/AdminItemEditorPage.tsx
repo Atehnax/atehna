@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Uppy from '@uppy/core';
@@ -27,26 +28,35 @@ import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import EuiTabs from '@/shared/ui/eui-tabs';
 import {
-  buildFamiliesFromSeed,
   computeSalePrice,
   createFamily,
   createVariant,
   formatCurrency,
   toSlug,
   type ProductFamily,
-  type SeedItemTuple,
   type Variant
 } from '@/admin/features/artikli/lib/familyModel';
+import { formatDecimalForDisplay, formatDecimalForSku, parseDecimalInput, parseDecimalListInput } from '@/admin/features/artikli/lib/decimalFormat';
 import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/AdminCategoryBreadcrumbPicker';
+import ActiveStateChip from '@/admin/features/artikli/components/ActiveStateChip';
 import OpisColorPopover from '@/admin/features/artikli/components/OpisColorPopover';
 import UploadedImageCropperModal from '@/admin/features/artikli/components/UploadedImageCropperModal';
+import { NoteTagChip, type NoteTag } from '@/admin/features/artikli/components/NoteTagChip';
 import Dialog from '@/shared/ui/dialog/dialog';
+import type { CatalogItemEditorHydration } from '@/shared/server/catalogItems';
 
 const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0';
 const numberInputClass = '[-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 const orderLikeEditableInputClassName = 'mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0';
 const compactTableNumberInputClassName = `h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-[11px] leading-4 text-slate-900 outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0 ${numberInputClass}`;
-const compactSideInputWrapClassName = 'mt-0.5 flex h-[30px] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[10px] pr-3';
+const compactTableAlignedInputClassName = `${compactTableNumberInputClassName} !rounded-md !border-slate-300 !bg-white !px-0.5 shadow-none`;
+const compactTableAlignedTextInputClassName = `${orderLikeEditableInputClassName} !rounded-md !border-slate-300 !bg-white !px-1 shadow-none`;
+const compactTableValueUnitShellClassName = 'inline-flex h-5 items-center gap-1 whitespace-nowrap';
+const compactTableAdornmentClassName = 'text-[11px] text-slate-500';
+const compactTableNumericSlotClassName = 'inline-flex h-5 w-[7ch] items-center justify-end';
+const compactTableFourDigitSlotClassName = 'inline-flex h-5 w-[5ch] items-center justify-end';
+const compactTableThreeDigitSlotClassName = 'inline-flex h-5 w-[4ch] items-center justify-end';
+const compactSideInputWrapClassName = 'mt-0.5 flex h-[30px] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[10px] pr-3 transition-colors focus-within:border-[#3e67d6]';
 const compactSideInputClassName = 'h-full w-full border-0 bg-transparent p-0 text-sm text-slate-900 outline-none focus:ring-0';
 const articleNameInputClassName = 'admin-item-name-input h-full w-full min-w-0 border-0 bg-transparent p-0 shadow-none outline-none transition focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none disabled:cursor-not-allowed';
 const inlineSnippetClass = 'rounded bg-[#1982bf1a] px-1 py-0.5 font-mono text-[11px] text-[#1982bf]';
@@ -72,17 +82,49 @@ function inferImageExtensionLabel({ mimeType, fileName, url }: { mimeType?: stri
   return 'IMG';
 }
 
+function formatCurrencyAmountOnly(value: number) {
+  return formatCurrency(value).replace(/\s*€/u, '').trim();
+}
+
 type EditorMode = 'create' | 'edit';
 type CreateType = 'simple' | 'variants';
 type MediaTab = 'slike' | 'video' | 'tehnicni';
-type VariantTag = 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
+type VariantTag = NoteTag;
 type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
-type VideoState = { source: 'upload' | 'youtube'; label: string; previewUrl: string };
+type VariantDimensionSet = { length: number; width: number; thickness: number };
+type VideoState = { source: 'upload' | 'youtube'; label: string; previewUrl: string; blobPathname?: string | null };
 type ImageSettings = { altText: string };
 type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'sku';
+type TechnicalDocument = { name: string; size: string; blobUrl: string | null; blobPathname: string | null };
 const MEDIA_SLOT_COUNT = 7;
 const GALLERY_SMALL_SLOT_COUNT = 6;
+const ITEM_NOTE_OPTIONS: Array<{ value: VariantTag; label: string }> = [
+  { value: 'novo', label: 'Novo' },
+  { value: 'akcija', label: 'Akcija' },
+  { value: 'zadnji-kosi', label: 'Zadnji kosi' },
+  { value: 'ni-na-zalogi', label: 'Ni na zalogi' }
+];
+
+function canonicalizeVariantDimensions(
+  input: VariantDimensionSet,
+  options: { interchangeableGroups?: Array<Array<keyof VariantDimensionSet>> } = {}
+): VariantDimensionSet {
+  const normalized: VariantDimensionSet = { ...input };
+  const groups = options.interchangeableGroups ?? [['length', 'width']];
+  groups.forEach((group) => {
+    if (group.length < 2) return;
+    const values = group
+      .map((key) => normalized[key])
+      .filter((value): value is number => Number.isFinite(value))
+      .sort((a, b) => b - a);
+    if (values.length !== group.length) return;
+    group.forEach((key, index) => {
+      normalized[key] = values[index];
+    });
+  });
+  return normalized;
+}
 
 function CalmDashedOutline({ className = '' }: { className?: string }) {
   const frameRef = useRef<SVGSVGElement>(null);
@@ -722,99 +764,6 @@ function OpisRichTextEditor({
   );
 }
 
-function ActiveStateChip({
-  active,
-  editable,
-  onChange,
-  chipClassName,
-  menuPlacement = 'bottom'
-}: {
-  active: boolean;
-  editable: boolean;
-  onChange: (next: boolean) => void;
-  chipClassName?: string;
-  menuPlacement?: 'top' | 'bottom';
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const label = active ? 'Aktiven' : 'Neaktiven';
-
-  const updateMenuPosition = useCallback(() => {
-    if (!triggerRef.current) return;
-    const triggerRect = triggerRef.current.getBoundingClientRect();
-    const menuWidth = Math.max(130, menuRef.current?.offsetWidth ?? 130);
-    const left = Math.min(Math.max(8, triggerRect.left), window.innerWidth - menuWidth - 8);
-    const top = menuPlacement === 'top' ? triggerRect.top - 6 : triggerRect.bottom + 6;
-    setMenuPosition({ top, left });
-  }, [menuPlacement]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    updateMenuPosition();
-    const onDocClick = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (rootRef.current?.contains(target)) return;
-      if (menuRef.current?.contains(target)) return;
-      setIsOpen(false);
-    };
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsOpen(false);
-    };
-    const onWindowChange = () => updateMenuPosition();
-    document.addEventListener('mousedown', onDocClick);
-    document.addEventListener('keydown', onEscape);
-    window.addEventListener('resize', onWindowChange);
-    window.addEventListener('scroll', onWindowChange, true);
-    return () => {
-      document.removeEventListener('mousedown', onDocClick);
-      document.removeEventListener('keydown', onEscape);
-      window.removeEventListener('resize', onWindowChange);
-      window.removeEventListener('scroll', onWindowChange, true);
-    };
-  }, [isOpen, updateMenuPosition]);
-
-  return (
-    <div ref={rootRef} className="relative">
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={() => {
-          if (!editable) return;
-          setIsOpen((current) => !current);
-        }}
-        className="relative block rounded-full focus:outline-none"
-        aria-haspopup={editable ? 'menu' : undefined}
-        aria-expanded={editable ? isOpen : undefined}
-      >
-        {editable ? <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span> : null}
-        <span className="block">
-          <Chip variant={active ? 'success' : 'neutral'} className={chipClassName}>{label}</Chip>
-        </span>
-      </button>
-
-      {editable && isOpen && menuPosition && typeof document !== 'undefined'
-        ? createPortal(
-            <div
-              ref={menuRef}
-              role="menu"
-              className={`fixed z-[1000] min-w-[130px] ${menuPlacement === 'top' ? '-translate-y-full' : ''}`}
-              style={{ top: menuPosition.top, left: menuPosition.left }}
-            >
-              <MenuPanel>
-                <MenuItem onClick={() => { onChange(true); setIsOpen(false); }}>Aktiven</MenuItem>
-                <MenuItem onClick={() => { onChange(false); setIsOpen(false); }}>Neaktiven</MenuItem>
-              </MenuPanel>
-            </div>,
-            document.body
-          )
-        : null}
-    </div>
-  );
-}
-
 function NeutralDropdownChip({
   value,
   editable,
@@ -891,110 +840,6 @@ function NeutralDropdownChip({
   );
 }
 
-function TagStateChip({
-  value,
-  editable,
-  onChange,
-  chipClassName,
-  menuPlacement = 'bottom'
-}: {
-  value: VariantTag;
-  editable: boolean;
-  onChange: (next: VariantTag) => void;
-  chipClassName?: string;
-  menuPlacement?: 'top' | 'bottom';
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const label =
-    value === 'novo'
-      ? 'Novo'
-      : value === 'akcija'
-        ? 'V akciji'
-        : value === 'ni-na-zalogi'
-          ? 'Ni na zalogi'
-          : 'Zadnji kosi';
-  const variant = value === 'novo' ? 'info' : value === 'akcija' ? 'danger' : value === 'ni-na-zalogi' ? 'neutral' : 'purple';
-  const emphasisClassName = value === 'akcija' ? '!border-rose-200 !bg-rose-50 !text-rose-700' : '';
-
-  const updateMenuPosition = useCallback(() => {
-    if (!triggerRef.current) return;
-    const triggerRect = triggerRef.current.getBoundingClientRect();
-    const menuWidth = Math.max(130, menuRef.current?.offsetWidth ?? 130);
-    const left = Math.min(Math.max(8, triggerRect.left), window.innerWidth - menuWidth - 8);
-    const top = menuPlacement === 'top' ? triggerRect.top - 6 : triggerRect.bottom + 6;
-    setMenuPosition({ top, left });
-  }, [menuPlacement]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    updateMenuPosition();
-    const onDocClick = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (rootRef.current?.contains(target)) return;
-      if (menuRef.current?.contains(target)) return;
-      setIsOpen(false);
-    };
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsOpen(false);
-    };
-    const onWindowChange = () => updateMenuPosition();
-    document.addEventListener('mousedown', onDocClick);
-    document.addEventListener('keydown', onEscape);
-    window.addEventListener('resize', onWindowChange);
-    window.addEventListener('scroll', onWindowChange, true);
-    return () => {
-      document.removeEventListener('mousedown', onDocClick);
-      document.removeEventListener('keydown', onEscape);
-      window.removeEventListener('resize', onWindowChange);
-      window.removeEventListener('scroll', onWindowChange, true);
-    };
-  }, [isOpen, updateMenuPosition]);
-
-  return (
-    <div ref={rootRef} className="relative">
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={() => {
-          if (!editable) return;
-          setIsOpen((current) => !current);
-        }}
-        className="relative block rounded-full focus:outline-none"
-        aria-haspopup={editable ? 'menu' : undefined}
-        aria-expanded={editable ? isOpen : undefined}
-      >
-        {editable ? <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span> : null}
-        <span className="block">
-          <Chip variant={variant} className={`${chipClassName ?? ''} ${emphasisClassName}`.trim()}>{label}</Chip>
-        </span>
-      </button>
-
-      {editable && isOpen && menuPosition && typeof document !== 'undefined'
-        ? createPortal(
-            <div
-              ref={menuRef}
-              role="menu"
-              className={`fixed z-[1000] min-w-[130px] ${menuPlacement === 'top' ? '-translate-y-full' : ''}`}
-              style={{ top: menuPosition.top, left: menuPosition.left }}
-            >
-              <MenuPanel>
-                <MenuItem onClick={() => { onChange('novo'); setIsOpen(false); }}>Novo</MenuItem>
-                <MenuItem onClick={() => { onChange('akcija'); setIsOpen(false); }}>V akciji</MenuItem>
-                <MenuItem onClick={() => { onChange('zadnji-kosi'); setIsOpen(false); }}>Zadnji kosi</MenuItem>
-                <MenuItem onClick={() => { onChange('ni-na-zalogi'); setIsOpen(false); }}>Ni na zalogi</MenuItem>
-              </MenuPanel>
-            </div>,
-            document.body
-          )
-        : null}
-    </div>
-  );
-}
-
 function VisibilityChip({
   visible,
   editable,
@@ -1049,30 +894,64 @@ function VisibilityChip({
 }
 
 export default function AdminItemEditorPage({
-  seedItems,
   articleId,
   mode,
-  createType = 'simple'
+  createType = 'simple',
+  initialData = null
 }: {
-  seedItems: SeedItemTuple[];
   articleId?: string;
   mode: EditorMode;
   createType?: CreateType;
+  initialData?: CatalogItemEditorHydration | null;
 }) {
   const { toast } = useToast();
-  const families = useMemo(() => buildFamiliesFromSeed(seedItems), [seedItems]);
-  const existing =
-    mode === 'edit'
-      ? families.find((family) => family.slug === articleId || family.id === articleId) ?? null
-      : null;
-  const categoryPathsFromSeed = useMemo(
-    () => Array.from(new Set(seedItems.map(([, , , categoryPath]) => categoryPath).filter((categoryPath) => categoryPath.trim().length > 0))),
-    [seedItems]
-  );
+  const router = useRouter();
+  const categoryPathsFromSeed = useMemo(() => [], []);
   const [categoryPaths, setCategoryPaths] = useState<string[]>(categoryPathsFromSeed);
 
   const [draft, setDraft] = useState<ProductFamily>(() => {
-    if (existing) return structuredClone(existing);
+    if (initialData) {
+      return createFamily({
+        id: String(initialData.id),
+        name: initialData.itemName,
+        description: initialData.description ?? '',
+        category: initialData.categoryPath.join(' / '),
+        categoryId: null,
+        subcategoryId: null,
+        images: initialData.media
+          .filter((media) => media.mediaKind === 'image' && media.role === 'gallery')
+          .map((media) => media.blobUrl || media.externalUrl || '')
+          .filter(Boolean),
+        promoBadge: initialData.badge ?? '',
+        defaultDiscountPct: 0,
+        active: initialData.status === 'active',
+        sort: initialData.position,
+        notes: initialData.adminNotes ?? '',
+        slug: initialData.slug,
+        variants: (initialData.variants.length > 0
+          ? initialData.variants.map((variant, index) =>
+              createVariant({
+                id: String(variant.id ?? `variant-${index}`),
+                label: variant.variantName,
+                width: variant.width ?? null,
+                length: variant.length ?? null,
+                thickness: variant.thickness ?? null,
+                errorTolerance: variant.errorTolerance ?? null,
+                weight: variant.weight ?? null,
+                minOrder: variant.minOrder ?? 1,
+                badge: variant.badge ?? null,
+                sku: variant.variantSku ?? '',
+                skuAutoGenerated: false,
+                price: variant.price,
+                discountPct: variant.discountPct ?? 0,
+                stock: variant.inventory ?? 0,
+                active: (variant.status ?? 'active') === 'active',
+                sort: variant.position ?? index + 1
+              })
+            )
+          : [createVariant({ label: 'Osnovni artikel' })])
+      });
+    }
     return createFamily({
       variants: createType === 'variants' ? [createVariant()] : [createVariant({ label: 'Osnovni artikel' })],
       active: true
@@ -1083,14 +962,14 @@ export default function AdminItemEditorPage({
   const [generatorChips, setGeneratorChips] = useState<GeneratorChip[]>([]);
   const [generatorError, setGeneratorError] = useState<string | null>(null);
   const [sideSettings, setSideSettings] = useState({
-    sku: '',
-    brand: '',
-    material: '',
-    surface: '',
-    color: '',
-    thicknessTolerance: '',
-    moq: 1,
-    weightPerUnit: '0',
+    sku: initialData?.sku ?? '',
+    brand: initialData?.brand ?? '',
+    material: initialData?.material ?? '',
+    surface: initialData?.shape ?? '',
+    color: initialData?.colour ?? '',
+    thicknessTolerance: initialData?.variants[0]?.errorTolerance ?? '',
+    moq: initialData?.variants[0]?.minOrder ?? 1,
+    weightPerUnit: initialData?.variants[0]?.weight != null ? String(initialData.variants[0]?.weight) : '0',
     palletCount: '',
     dimensions: { width: '', depth: '', height: '' },
     trackInventory: true,
@@ -1106,10 +985,23 @@ export default function AdminItemEditorPage({
     imageAltText: '',
     videoUrl: ''
   });
-  const [documents, setDocuments] = useState<Array<{ name: string; size: string }>>([]);
+  const [documents, setDocuments] = useState<TechnicalDocument[]>(
+    () =>
+      initialData?.media
+        .filter((media) => media.mediaKind === 'document' && media.role === 'technical_sheet')
+        .map((media) => ({
+          name: media.filename || 'Tehnični list',
+          size: '—',
+          blobUrl: media.blobUrl ?? media.externalUrl ?? null,
+          blobPathname: media.blobPathname ?? null
+        })) ?? []
+  );
   const [editorMode, setEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
   const [tableEditorMode, setTableEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
-  const [articleType, setArticleType] = useState<'unit' | 'sheet' | 'bulk' | 'linear' | ''>('');
+  const [itemLevelNote, setItemLevelNote] = useState<VariantTag | ''>(() => {
+    const raw = (initialData?.adminNotes ?? '').trim() as VariantTag;
+    return ITEM_NOTE_OPTIONS.some((entry) => entry.value === raw) ? raw : '';
+  });
   const [mediaTab, setMediaTab] = useState<MediaTab>('slike');
   const [mediaImagesDraft, setMediaImagesDraft] = useState<string[]>(draft.images);
   const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
@@ -1125,21 +1017,50 @@ export default function AdminItemEditorPage({
   const mediaUploadContextRef = useRef<{ slotIndex: number; multiple: boolean }>({ slotIndex: 0, multiple: true });
   const updateImageAtSlotRef = useRef<(slotIndex: number, imageUrl: string) => void>(() => {});
   const [youtubeInput, setYoutubeInput] = useState('');
-  const [videoDraft, setVideoDraft] = useState<VideoState | null>(null);
+  const [videoDraft, setVideoDraft] = useState<VideoState | null>(() => {
+    const video = initialData?.media.find((media) => media.mediaKind === 'video');
+    if (!video) return null;
+    return {
+      source: video.sourceKind === 'youtube' ? 'youtube' : 'upload',
+      label: video.filename || 'Video',
+      previewUrl: video.externalUrl || video.blobUrl || ''
+    };
+  });
   const [videoDragActive, setVideoDragActive] = useState(false);
   const [videoMoveMode, setVideoMoveMode] = useState(false);
-  const [videoAssignedVariantId, setVideoAssignedVariantId] = useState<string | null>(null);
+  const [videoAssignedVariantId, setVideoAssignedVariantId] = useState<string | null>(() => {
+    const video = initialData?.media.find((media) => media.mediaKind === 'video');
+    if (!video || typeof video.variantIndex !== 'number') return null;
+    const variant = draft.variants[video.variantIndex];
+    return variant ? variant.id : null;
+  });
   const technicalUploadInputRef = useRef<HTMLInputElement>(null);
   const [pendingMediaRemoval, setPendingMediaRemoval] = useState<{ type: 'image'; slotIndex: number } | { type: 'video' } | null>(null);
-  const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>({});
+  const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>(() => {
+    const allowed = new Set<VariantTag>(['novo', 'akcija', 'zadnji-kosi', 'ni-na-zalogi']);
+    const next: Record<string, VariantTag> = {};
+    initialData?.variants.forEach((variant) => {
+      const key = String(variant.id ?? '');
+      const rawBadge = (variant.badge ?? '').trim() as VariantTag;
+      if (key && allowed.has(rawBadge)) next[key] = rawBadge;
+    });
+    return next;
+  });
   const [editingImageSlot, setEditingImageSlot] = useState<number | null>(null);
-  const [imageSettings, setImageSettings] = useState<Record<number, ImageSettings>>({});
-  const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() =>
-    (draft.category || '')
-      .split('/')
-      .map((entry) => entry.trim())
-      .filter(Boolean)
-  );
+  const [decimalInputDrafts, setDecimalInputDrafts] = useState<Record<string, string>>({});
+  const [imageSettings, setImageSettings] = useState<Record<number, ImageSettings>>(() => {
+    const settings: Record<number, ImageSettings> = {};
+    const imageMedia = initialData?.media
+      .filter((media) => media.mediaKind === 'image' && media.role === 'gallery')
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0)) ?? [];
+    imageMedia.forEach((media, index) => {
+      settings[index] = { altText: media.altText ?? '' };
+    });
+    return settings;
+  });
+  const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() => initialData?.categoryPath ?? []);
+
+  const decimalDraftKey = (variantId: string, field: string) => `${variantId}:${field}`;
 
   useEffect(() => {
     setDraft((current) => ({ ...current, category: selectedCategoryPath.join(' / ') }));
@@ -1192,12 +1113,10 @@ export default function AdminItemEditorPage({
   const isEditable = editorMode === 'edit';
   const isTableEditable = tableEditorMode === 'edit';
   const isMediaEditable = true;
-  const isBulkMaterial = articleType === 'bulk';
-  const isLinearMaterial = articleType === 'linear';
-  const isToleranceLocked = articleType === 'unit';
-  const isDimensionLockActive = isBulkMaterial;
-  const isThicknessLockActive = isBulkMaterial || isLinearMaterial;
-  const isGeneratorLocked = !isTableEditable || isDimensionLockActive;
+  const isToleranceLocked = false;
+  const isDimensionLockActive = false;
+  const isThicknessLockActive = false;
+  const isGeneratorLocked = !isTableEditable;
   const hasSelectedVariants = variantSelections.size > 0;
   const allVariantsSelected = draft.variants.length > 0 && draft.variants.every((variant) => variantSelections.has(variant.id));
   const generatorDimensionLabels: Record<GeneratorDimension, string> = {
@@ -1220,24 +1139,7 @@ export default function AdminItemEditorPage({
     return activeDimensions.reduce((total, values) => total * values.length, 1);
   }, [generatorByDimension]);
 
-  useEffect(() => {
-    if (!isLinearMaterial) return;
-    setGeneratorChips((current) => current.filter((chip) => chip.dimension !== 'thickness'));
-    if (generatorInput.trim()) {
-      const normalizedPrefix = generatorInput
-        .trim()
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/\p{Diacritic}/gu, '')
-        .split(':')[0]
-        ?.trim();
-      if (normalizedPrefix === 'debelina' || normalizedPrefix === 'v' || normalizedPrefix === 'h') {
-        setGeneratorInput('');
-      }
-    }
-  }, [isLinearMaterial, generatorInput]);
-
-  const save = (asDraft = false) => {
+  const save = async (asDraft = false) => {
     if (!draft.name.trim()) {
       toast.error('Naziv je obvezen.');
       return;
@@ -1246,19 +1148,134 @@ export default function AdminItemEditorPage({
       toast.error('Kategorija je obvezna.');
       return;
     }
-    toast.success(asDraft ? 'Osnutek shranjen (lokalno).' : 'Artikel shranjen (lokalno).');
+    const normalizedMediaImages = mediaImagesDraft
+      .map((url, index) => ({ url, index }))
+      .filter((entry) => Boolean(entry.url) && !entry.url.startsWith('blob:'));
+    const hasUnpersistedImages = mediaImagesDraft.some((url) => Boolean(url) && url.startsWith('blob:'));
+    if (hasUnpersistedImages) {
+      toast.error('Nekatere slike še niso naložene. Počakajte, da se nalaganje konča.');
+      return;
+    }
+
+    const payload = {
+      itemName: draft.name.trim(),
+      itemType: (initialData?.itemType ?? 'unit') as 'unit' | 'sheet' | 'linear' | 'bulk',
+      badge: draft.promoBadge || null,
+      status: draft.active ? 'active' : 'inactive',
+      categoryPath: selectedCategoryPath,
+      sku: sideSettings.sku || draft.variants[0]?.sku || null,
+      slug: draft.slug.trim() || toSlug(draft.name.trim()),
+      unit: null,
+      brand: sideSettings.brand || null,
+      material: sideSettings.material || null,
+      colour: sideSettings.color || null,
+      shape: sideSettings.surface || null,
+      description: draft.description || '',
+      adminNotes: itemLevelNote || null,
+      position: draft.sort ?? 0,
+      variants: draft.variants.map((variant, index) => ({
+        variantName: variant.label || `Različica ${index + 1}`,
+        length: variant.length,
+        width: variant.width,
+        thickness: variant.thickness,
+        weight: variant.weight ?? (sideSettings.weightPerUnit ? Number(sideSettings.weightPerUnit) : null),
+        errorTolerance: (variant.errorTolerance ?? sideSettings.thicknessTolerance) || null,
+        price: variant.price,
+        discountPct: variant.discountPct,
+        inventory: variant.stock,
+        minOrder: Math.max(1, variant.minOrder ?? Number(sideSettings.moq || 1)),
+        variantSku: variant.sku || null,
+        unit: null,
+        status: variant.active ? 'active' : 'inactive',
+        badge: variantTags[variant.id] ?? variant.badge ?? null,
+        position: variant.sort ?? index,
+        imageAssignments: variant.imageAssignments ?? []
+      })),
+      media: [
+        ...normalizedMediaImages.map((entry) => ({
+          mediaKind: 'image' as const,
+          role: 'gallery' as const,
+          sourceKind: 'upload' as const,
+          blobUrl: entry.url,
+          altText: imageSettings[entry.index]?.altText ?? null,
+          position: entry.index
+        })),
+        ...(videoDraft
+          ? [
+              {
+                mediaKind: 'video' as const,
+                role: 'gallery' as const,
+                sourceKind: videoDraft.source === 'youtube' ? ('youtube' as const) : ('upload' as const),
+                externalUrl: videoDraft.source === 'youtube' ? videoDraft.previewUrl : null,
+                blobUrl: videoDraft.source === 'upload' && !videoDraft.previewUrl.startsWith('blob:') ? videoDraft.previewUrl : null,
+                blobPathname: videoDraft.source === 'upload' ? videoDraft.blobPathname ?? null : null,
+                filename: videoDraft.label,
+                videoType: videoDraft.source,
+                variantIndex: videoAssignedVariantId
+                  ? Math.max(0, draft.variants.findIndex((variant) => variant.id === videoAssignedVariantId))
+                  : null,
+                position: 0
+              }
+            ]
+          : []),
+        ...documents.map((documentEntry, index) => ({
+          mediaKind: 'document' as const,
+          role: 'technical_sheet' as const,
+          sourceKind: 'upload' as const,
+          filename: documentEntry.name,
+          blobUrl: documentEntry.blobUrl,
+          blobPathname: documentEntry.blobPathname,
+          position: index
+        }))
+      ]
+    };
+
+    try {
+      const response = await fetch('/api/admin/artikli', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const body = (await response.json().catch(() => ({}))) as { slug?: string; message?: string };
+      if (!response.ok) {
+        throw new Error(body.message || 'Shranjevanje artikla ni uspelo.');
+      }
+      toast.success(asDraft ? 'Osnutek shranjen.' : 'Artikel shranjen.');
+      if (body.slug) {
+        router.push(`/admin/artikli/${encodeURIComponent(body.slug)}`);
+      }
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Shranjevanje artikla ni uspelo.');
+    }
   };
-  const deleteItem = () => {
+  const deleteItem = async () => {
     const shouldDelete = window.confirm('Ali želite odstraniti artikel iz urejanja?');
     if (!shouldDelete) return;
-    toast.success('Artikel je označen za brisanje (lokalni prikaz).');
+    const slug = draft.slug || articleId || '';
+    if (!slug) {
+      toast.error('Artikel nima veljavnega identifikatorja za brisanje.');
+      return;
+    }
+    try {
+      const response = await fetch(`/api/admin/artikli/${encodeURIComponent(slug)}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { message?: string };
+        throw new Error(body.message || 'Brisanje artikla ni uspelo.');
+      }
+      toast.success('Artikel je izbrisan.');
+      router.push('/admin/artikli');
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Brisanje artikla ni uspelo.');
+    }
   };
 
   const generateVariants = () => {
     const widths = generatorByDimension.get('width') ?? [];
     const lengths = generatorByDimension.get('length') ?? [];
     const thicknesses = generatorByDimension.get('thickness') ?? [];
-    const shouldUseThickness = !isLinearMaterial;
+    const shouldUseThickness = true;
     const thicknessValues = shouldUseThickness ? thicknesses : [0];
 
     if (widths.length === 0 || lengths.length === 0 || (shouldUseThickness && thicknesses.length === 0)) {
@@ -1266,25 +1283,77 @@ export default function AdminItemEditorPage({
       return;
     }
 
-    const generated: Variant[] = [];
+    const baseSku = sideSettings.sku.trim();
+    const normalizedBaseForVariants = baseSku.replace(/-GEN$/i, '');
+    const generatedByKey = new Map<string, VariantDimensionSet>();
+
     widths.forEach((width) => lengths.forEach((length) => thicknessValues.forEach((thickness) => {
-      generated.push(createVariant({
-        label: shouldUseThickness ? `${width} × ${length} × ${thickness} mm` : `${width} × ${length} mm`,
-        width,
+      const canonical = canonicalizeVariantDimensions({
         length,
-        thickness,
-        sku: shouldUseThickness
-          ? `${toSlug(draft.name || 'artikel').toUpperCase()}-${width}${length}${thickness}`
-          : `${toSlug(draft.name || 'artikel').toUpperCase()}-${width}${length}`,
+        width,
+        thickness
+      });
+      const key = shouldUseThickness
+        ? `${canonical.length}|${canonical.width}|${canonical.thickness}`
+        : `${canonical.length}|${canonical.width}`;
+      if (!generatedByKey.has(key)) generatedByKey.set(key, canonical);
+    })));
+
+    const generated: Variant[] = Array.from(generatedByKey.values()).map((dimensions, index) => {
+      const dimensionSuffix = shouldUseThickness
+        ? `${formatDecimalForSku(dimensions.length)}x${formatDecimalForSku(dimensions.width)}x${formatDecimalForSku(dimensions.thickness)}`
+        : `${formatDecimalForSku(dimensions.length)}x${formatDecimalForSku(dimensions.width)}`;
+      const generatedSku = baseSku
+        ? `${normalizedBaseForVariants}-${dimensionSuffix}`
+        : shouldUseThickness
+          ? `${toSlug(draft.name || 'artikel').toUpperCase()}-${formatDecimalForSku(dimensions.length)}${formatDecimalForSku(dimensions.width)}${formatDecimalForSku(dimensions.thickness)}`
+          : `${toSlug(draft.name || 'artikel').toUpperCase()}-${formatDecimalForSku(dimensions.length)}${formatDecimalForSku(dimensions.width)}`;
+      return createVariant({
+        label: shouldUseThickness
+          ? `${formatDecimalForDisplay(dimensions.length)} × ${formatDecimalForDisplay(dimensions.width)} × ${formatDecimalForDisplay(dimensions.thickness)} mm`
+          : `${formatDecimalForDisplay(dimensions.length)} × ${formatDecimalForDisplay(dimensions.width)} mm`,
+        width: dimensions.width,
+        length: dimensions.length,
+        thickness: dimensions.thickness,
+        sku: generatedSku,
+        skuAutoGenerated: true,
         price: 0,
         discountPct: draft.defaultDiscountPct,
-        sort: generated.length + 1
-      }));
-    })));
+        sort: index + 1
+      });
+    });
 
     setDraft((current) => ({ ...current, variants: generated }));
     setVariantSelections(new Set());
   };
+
+  useEffect(() => {
+    const baseSku = sideSettings.sku.trim();
+    if (!baseSku) return;
+    setDraft((current) => {
+      if (current.variants.length === 0) return current;
+      if (current.variants.length === 1) {
+        const variant = current.variants[0];
+        if (variant.sku && variant.skuAutoGenerated === false) return current;
+        if (variant.sku === baseSku) return current;
+        return {
+          ...current,
+          variants: [{ ...variant, sku: baseSku, skuAutoGenerated: true }]
+        };
+      }
+      const normalizedBaseForVariants = baseSku.replace(/-GEN$/i, '');
+      let changed = false;
+      const variants = current.variants.map((variant) => {
+        if (variant.skuAutoGenerated === false) return variant;
+        if (variant.length === null || variant.width === null || variant.thickness === null) return variant;
+        const nextSku = `${normalizedBaseForVariants}-${formatDecimalForSku(variant.length)}x${formatDecimalForSku(variant.width)}x${formatDecimalForSku(variant.thickness)}`;
+        if (variant.sku === nextSku && variant.skuAutoGenerated) return variant;
+        changed = true;
+        return { ...variant, sku: nextSku, skuAutoGenerated: true };
+      });
+      return changed ? { ...current, variants } : current;
+    });
+  }, [sideSettings.sku]);
 
   const parseGeneratorEntry = (value: string): { dimension: GeneratorDimension; values: number[] } | { error: string } => {
     const normalized = value.trim();
@@ -1305,21 +1374,13 @@ export default function AdminItemEditorPage({
         : (prefix.startsWith('deb') || prefix === 'v' || prefix === 'h')
           ? 'thickness'
           : 'thickness';
-    const parts = rawValues.split(',').map((entry) => entry.trim()).filter(Boolean);
-    if (parts.length === 0) return { error: 'Dodajte vsaj eno številčno vrednost.' };
-    if (parts.length > 5) return { error: `${generatorDimensionLabels[dimension]} podpira največ 5 vrednosti.` };
-    if (isLinearMaterial && dimension === 'thickness') {
-      return { error: 'Za dolžinski material Debelina ni dovoljena.' };
-    }
-
-    const parsedValues: number[] = [];
+    const parsedValues = parseDecimalListInput(rawValues);
+    if (parsedValues.length === 0) return { error: 'Dodajte vsaj eno številčno vrednost.' };
+    if (parsedValues.length > 5) return { error: `${generatorDimensionLabels[dimension]} podpira največ 5 vrednosti.` };
     const duplicateGuard = new Set<number>();
-    for (const part of parts) {
-      const parsed = Number(part.replace(',', '.'));
-      if (!Number.isFinite(parsed)) return { error: 'Vse vrednosti morajo biti številke.' };
+    for (const parsed of parsedValues) {
       if (duplicateGuard.has(parsed)) return { error: 'Podvojene vrednosti v isti dimenziji niso dovoljene.' };
       duplicateGuard.add(parsed);
-      parsedValues.push(parsed);
     }
 
     return { dimension, values: parsedValues };
@@ -1338,6 +1399,36 @@ export default function AdminItemEditorPage({
     });
     setGeneratorInput('');
   };
+
+  const uploadMediaFile = useCallback(async (file: File): Promise<{ url: string; pathname: string; mimeType: string | null; filename: string }> => {
+    const itemSlug = (draft.slug || toSlug(draft.name || articleId || 'artikel')).trim();
+    if (!itemSlug) {
+      throw new Error('Najprej vnesite naziv ali URL artikla.');
+    }
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('itemSlug', itemSlug);
+    const response = await fetch('/api/admin/artikli/media', {
+      method: 'POST',
+      body: formData
+    });
+    const body = (await response.json().catch(() => ({}))) as {
+      message?: string;
+      url?: string;
+      pathname?: string;
+      mimeType?: string | null;
+      filename?: string;
+    };
+    if (!response.ok || !body.url || !body.pathname) {
+      throw new Error(body.message || 'Nalaganje datoteke ni uspelo.');
+    }
+    return {
+      url: body.url,
+      pathname: body.pathname,
+      mimeType: body.mimeType ?? null,
+      filename: body.filename ?? file.name
+    };
+  }, [articleId, draft.name, draft.slug]);
 
   const resolveYoutubeEmbedUrl = (rawUrl: string) => {
     const value = rawUrl.trim();
@@ -1380,7 +1471,7 @@ export default function AdminItemEditorPage({
     return true;
   };
 
-  const handleVideoFileSelect = (file?: File | null) => {
+  const handleVideoFileSelect = async (file?: File | null) => {
     if (!file) return;
     if (!file.type.startsWith('video/')) {
       toast.error('Izberite veljavno video datoteko.');
@@ -1391,28 +1482,82 @@ export default function AdminItemEditorPage({
       toast.error('Video je prevelik. Dovoljena velikost je največ 100 MB.');
       return;
     }
-    setVideoDraft({ source: 'upload', label: file.name, previewUrl: URL.createObjectURL(file) });
-    setVideoMoveMode(false);
+    try {
+      const uploaded = await uploadMediaFile(file);
+      setVideoDraft({ source: 'upload', label: uploaded.filename, previewUrl: uploaded.url, blobPathname: uploaded.pathname });
+      setVideoMoveMode(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Nalaganje videa ni uspelo.');
+    }
   };
 
-  const handleTechnicalFileSelect = (file?: File | null) => {
+  const handleTechnicalFileSelect = async (file?: File | null) => {
     if (!file) return;
     const maxBytes = 5 * 1024 * 1024;
     if (file.size > maxBytes) {
       toast.error('Datoteka je prevelika. Dovoljena velikost je največ 5 MB.');
       return;
     }
-    const fileSizeLabel = file.size < 1024 * 1024
-      ? `${Math.round(file.size / 1024)} KB`
-      : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
-    setDocuments((current) => [{ name: file.name, size: fileSizeLabel }, ...current.filter((entry) => entry.name !== file.name)]);
+    try {
+      const uploaded = await uploadMediaFile(file);
+      const fileSizeLabel = file.size < 1024 * 1024
+        ? `${Math.round(file.size / 1024)} KB`
+        : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+      setDocuments((current) => [
+        { name: uploaded.filename, size: fileSizeLabel, blobUrl: uploaded.url, blobPathname: uploaded.pathname },
+        ...current.filter((entry) => entry.name !== uploaded.filename)
+      ]);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Nalaganje tehničnega lista ni uspelo.');
+    }
   };
 
-  const updateVariant = (index: number, updates: Partial<Variant>) => {
+  const updateVariant = (variantId: string, updates: Partial<Variant>) => {
     setDraft((current) => {
-      const next = [...current.variants];
-      next[index] = { ...next[index], ...updates };
-      return { ...current, variants: next };
+      return {
+        ...current,
+        variants: current.variants.map((variant) => (variant.id === variantId ? { ...variant, ...updates } : variant))
+      };
+    });
+  };
+
+  const readDecimalInputValue = (variantId: string, field: string, value: number | null | undefined) => {
+    const key = decimalDraftKey(variantId, field);
+    return decimalInputDrafts[key] ?? formatDecimalForDisplay(value);
+  };
+
+  const updateDecimalInputDraft = (variantId: string, field: string, raw: string) => {
+    if (!/^-?\d*(?:[.,]\d*)?$/.test(raw.trim()) && raw.trim() !== '') return;
+    const key = decimalDraftKey(variantId, field);
+    setDecimalInputDrafts((current) => ({ ...current, [key]: raw }));
+  };
+
+  const commitDecimalInputDraft = (
+    variantId: string,
+    field: string,
+    fallbackValue: number | null | undefined,
+    onCommit: (value: number | null) => void,
+    emptyFallback: number | null
+  ) => {
+    const key = decimalDraftKey(variantId, field);
+    const raw = decimalInputDrafts[key] ?? formatDecimalForDisplay(fallbackValue);
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      onCommit(emptyFallback);
+      setDecimalInputDrafts((current) => {
+        const next = { ...current };
+        delete next[key];
+        return next;
+      });
+      return;
+    }
+    const parsed = parseDecimalInput(trimmed);
+    if (parsed === null) return;
+    onCommit(parsed);
+    setDecimalInputDrafts((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
     });
   };
 
@@ -1528,17 +1673,21 @@ export default function AdminItemEditorPage({
     });
 
     uppy.addUploader(async (fileIDs) => {
-      fileIDs.forEach((fileID) => {
+      for (const fileID of fileIDs) {
         const file = uppy.getFile(fileID);
-        if (!file) return;
+        if (!file) continue;
         const targetSlot = Number(file.meta?.targetSlot);
-        if (!Number.isFinite(targetSlot)) return;
+        if (!Number.isFinite(targetSlot)) continue;
         const blob = file.data;
-        if (!(blob instanceof Blob)) return;
-        const localImageUrl = createLocalImageUrl(blob);
-        imageTypeHintsRef.current[localImageUrl] = inferImageExtensionLabel({ mimeType: file.type, fileName: file.name });
-        updateImageAtSlotRef.current(Math.max(0, Math.min(MEDIA_SLOT_COUNT - 1, targetSlot)), localImageUrl);
-      });
+        if (!(blob instanceof Blob)) continue;
+        try {
+          const uploaded = await uploadMediaFile(new File([blob], file.name, { type: file.type }));
+          imageTypeHintsRef.current[uploaded.url] = inferImageExtensionLabel({ mimeType: file.type, fileName: file.name });
+          updateImageAtSlotRef.current(Math.max(0, Math.min(MEDIA_SLOT_COUNT - 1, targetSlot)), uploaded.url);
+        } catch (error) {
+          toast.error(error instanceof Error ? error.message : 'Nalaganje slike ni uspelo.');
+        }
+      }
       fileIDs.forEach((fileID) => {
         if (uppy.getFile(fileID)) uppy.removeFile(fileID);
       });
@@ -1550,7 +1699,7 @@ export default function AdminItemEditorPage({
       uppy.destroy();
       uppyRef.current = null;
     };
-  }, [createLocalImageUrl, toast]);
+  }, [toast, uploadMediaFile]);
 
   const queueImageUpload = useCallback((files: FileList | File[] | null, startSlot: number, allowMultiple: boolean) => {
     if (!isMediaEditable) return;
@@ -1707,7 +1856,7 @@ export default function AdminItemEditorPage({
     if (!variant) return;
     const currentAssignments = variant.imageAssignments ?? [];
     if (currentAssignments.includes(slotIndex)) return;
-    updateVariant(variantIndex, { imageAssignments: [...currentAssignments, slotIndex], imageOverride: slotImage });
+    updateVariant(variant.id, { imageAssignments: [...currentAssignments, slotIndex], imageOverride: slotImage });
   };
 
   const reorderVariantAssignment = (variantIndex: number, fromSlot: number, toSlot: number) => {
@@ -1719,7 +1868,7 @@ export default function AdminItemEditorPage({
     if (fromIndex === -1 || toIndex === -1) return;
     assignments.splice(fromIndex, 1);
     assignments.splice(toIndex, 0, fromSlot);
-    updateVariant(variantIndex, {
+    updateVariant(variant.id, {
       imageAssignments: assignments,
       imageOverride: assignments.length > 0 ? mediaImagesDraft[assignments[0]] ?? null : null
     });
@@ -1740,13 +1889,17 @@ export default function AdminItemEditorPage({
     });
   }, []);
 
-  const handleSaveEditedImage = useCallback((slotIndex: number, blob: Blob, mimeType: string) => {
-    const nextImageUrl = createLocalImageUrl(blob);
-    imageTypeHintsRef.current[nextImageUrl] = inferImageExtensionLabel({ mimeType });
-    updateImageAtSlot(slotIndex, nextImageUrl);
-    setEditingImageSlot(null);
-    toast.success('Slika je uspešno urejena.');
-  }, [createLocalImageUrl, toast, updateImageAtSlot]);
+  const handleSaveEditedImage = useCallback(async (slotIndex: number, blob: Blob, mimeType: string) => {
+    try {
+      const uploaded = await uploadMediaFile(new File([blob], `edited-${Date.now()}.webp`, { type: mimeType || 'image/webp' }));
+      imageTypeHintsRef.current[uploaded.url] = inferImageExtensionLabel({ mimeType });
+      updateImageAtSlot(slotIndex, uploaded.url);
+      setEditingImageSlot(null);
+      toast.success('Slika je uspešno urejena.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Shranjevanje obrezane slike ni uspelo.');
+    }
+  }, [toast, updateImageAtSlot, uploadMediaFile]);
 
   const renderImageActionButtons = (slotIndex: number) => {
     const compact = slotIndex !== 0;
@@ -1834,19 +1987,26 @@ export default function AdminItemEditorPage({
                 </span>
               </h1>
               <div className="ml-auto flex items-center gap-1.5">
-                <NeutralDropdownChip
-                  value={articleType}
-                  editable={isEditable}
-                  chipClassName="!min-w-[131px]"
-                  placeholderLabel="Tip artikla"
-                  onChange={(value) => setArticleType(value as 'unit' | 'sheet' | 'bulk' | 'linear' | '')}
-                  options={[
-                    { value: 'unit', label: 'Kosovni artikel' },
-                    { value: 'sheet', label: 'Ploščni artikel' },
-                    { value: 'linear', label: 'Dolžinski artikel' },
-                    { value: 'bulk', label: 'Sipki artikel' }
-                  ]}
-                />
+                {itemLevelNote
+                  ? (
+                    <NoteTagChip
+                      value={itemLevelNote}
+                      editable={isEditable}
+                      chipClassName="!min-w-[131px]"
+                      menuPlacement="bottom"
+                      onChange={setItemLevelNote}
+                    />
+                  )
+                  : (
+                    <NeutralDropdownChip
+                      value=""
+                      editable={isEditable}
+                      chipClassName="!min-w-[131px]"
+                      placeholderLabel="Opombe"
+                      onChange={(value) => setItemLevelNote((value as VariantTag) || 'novo')}
+                      options={ITEM_NOTE_OPTIONS as unknown as Array<{ value: string; label: string }>}
+                    />
+                  )}
                 <ActiveStateChip active={draft.active} editable={isEditable} onChange={(next) => setDraft((current) => ({ ...current, active: next }))} />
                 <IconButton type="button" tone="neutral" onClick={() => setEditorMode((current) => (current === 'read' ? 'edit' : 'read'))} aria-label="Uredi artikel" title="Uredi"><PencilIcon /></IconButton>
                 <IconButton type="button" tone="neutral" onClick={() => save(false)} aria-label="Shrani artikel" title="Shrani" disabled={!isEditable}><SaveIcon /></IconButton>
@@ -1878,7 +2038,7 @@ export default function AdminItemEditorPage({
                     <p className="text-sm font-semibold text-slate-900">{field.title}</p>
                     <div className={`${compactSideInputWrapClassName} ${isEditable ? '' : '!bg-[color:var(--ui-neutral-bg)] text-slate-500'}`}>
                       <SideInputIcon icon={field.icon} muted={field.value.trim().length === 0} />
-                      <input disabled={!isEditable} className={`${compactSideInputClassName} ${isEditable ? '' : 'cursor-not-allowed text-slate-500'}`} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
+                      <input disabled={!isEditable} style={{ outline: 'none', boxShadow: 'none' }} className={`${compactSideInputClassName} ${isEditable ? '' : 'cursor-not-allowed text-slate-500'}`} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
                     </div>
                   </div>
                 ))}
@@ -2126,7 +2286,7 @@ export default function AdminItemEditorPage({
                                         type="button"
                                         disabled={!isMediaEditable}
                                         className="text-slate-400 hover:text-rose-600"
-                                        onClick={() => updateVariant(variantIndex, {
+                                        onClick={() => updateVariant(variant.id, {
                                           imageAssignments: assignedSlots.filter((value) => value !== slot),
                                           imageOverride: assignedSlots.length > 1 ? mediaImagesDraft[assignedSlots.find((value) => value !== slot) ?? 0] ?? null : null
                                         })}
@@ -2154,7 +2314,7 @@ export default function AdminItemEditorPage({
                   disabled={!isMediaEditable}
                   className="hidden"
                   onChange={(event) => {
-                    handleVideoFileSelect(event.target.files?.[0]);
+                    void handleVideoFileSelect(event.target.files?.[0]);
                     event.currentTarget.value = '';
                   }}
                 />
@@ -2236,7 +2396,7 @@ export default function AdminItemEditorPage({
                         if (!isMediaEditable) return;
                         event.preventDefault();
                         setVideoDragActive(false);
-                        handleVideoFileSelect(event.dataTransfer.files?.[0]);
+                        void handleVideoFileSelect(event.dataTransfer.files?.[0]);
                       }}
                     >
                       <div className="flex flex-1 flex-col items-center justify-center">
@@ -2328,7 +2488,7 @@ export default function AdminItemEditorPage({
                   className="hidden"
                   disabled={!isMediaEditable}
                   onChange={(event) => {
-                    handleTechnicalFileSelect(event.target.files?.[0]);
+                    void handleTechnicalFileSelect(event.target.files?.[0]);
                     event.currentTarget.value = '';
                   }}
                 />
@@ -2346,7 +2506,7 @@ export default function AdminItemEditorPage({
                     onDrop={(event) => {
                       if (!isMediaEditable) return;
                       event.preventDefault();
-                      handleTechnicalFileSelect(event.dataTransfer.files?.[0]);
+                      void handleTechnicalFileSelect(event.dataTransfer.files?.[0]);
                     }}
                   >
                     <DocumentUploadFrameIcon className="h-[72px] w-[72px] text-[#74addb]" />
@@ -2413,7 +2573,10 @@ export default function AdminItemEditorPage({
               title="Shrani"
               tone="neutral"
               disabled={!isTableEditable}
-              onClick={() => setTableEditorMode('read')}
+              onClick={async () => {
+                setTableEditorMode('read');
+                await save();
+              }}
             >
               <SaveIcon />
             </IconButton>
@@ -2451,11 +2614,11 @@ export default function AdminItemEditorPage({
                       className="whitespace-nowrap hover:text-slate-900 disabled:cursor-not-allowed disabled:text-slate-400"
                       disabled={isGeneratorLocked}
                       onClick={() => {
-                        setGeneratorInput(`${generatorDimensionLabels[chip.dimension]}: ${chip.values.join(',')}`);
+                        setGeneratorInput(`${generatorDimensionLabels[chip.dimension]}: ${chip.values.map((value) => formatDecimalForDisplay(value)).join(',')}`);
                         setGeneratorChips((current) => current.filter((entry) => entry.dimension !== chip.dimension));
                       }}
                     >
-                      {`${generatorDimensionLabels[chip.dimension]}: ${chip.values.join(', ')}`}
+                      {`${generatorDimensionLabels[chip.dimension]}: ${chip.values.map((value) => formatDecimalForDisplay(value)).join(', ')}`}
                     </button>
                     <button
                       type="button"
@@ -2495,21 +2658,21 @@ export default function AdminItemEditorPage({
         <div className="relative overflow-x-auto overflow-y-visible rounded-lg border border-slate-200">
           <table className="min-w-full text-[11px] leading-4">
             <colgroup>
-              <col style={{ width: '4%' }} />
-              <col style={{ width: '6%' }} />
-              <col style={{ width: '6%' }} />
-              <col style={{ width: '6%' }} />
+              <col style={{ width: '1.87%' }} />
+              <col style={{ width: '5.4%' }} />
+              <col style={{ width: '5.4%' }} />
+              <col style={{ width: '5.1%' }} />
               <col style={{ width: '5%' }} />
-              <col style={{ width: '6%' }} />
-              <col style={{ width: '6%' }} />
+              <col style={{ width: '5.1%' }} />
+              <col style={{ width: '5.1%' }} />
               <col style={{ width: '6%' }} />
               <col style={{ width: '8%' }} />
               <col style={{ width: '6%' }} />
               <col style={{ width: '6%' }} />
-              <col style={{ width: '14%' }} />
+              <col style={{ width: '20.97%' }} />
               <col style={{ width: '8%' }} />
               <col style={{ width: '9%' }} />
-              <col style={{ width: '4%' }} />
+              <col style={{ width: '3.06%' }} />
             </colgroup>
             <thead className="bg-slate-50">
               <tr>
@@ -2525,10 +2688,10 @@ export default function AdminItemEditorPage({
                 <th className="px-2 py-2 text-right">Dolžina</th>
                 <th className="px-2 py-2 text-right">Širina/fi</th>
                 <th className="px-2 py-2 text-right">Debelina</th>
-                <th className="px-2 py-2 text-right">Teža (g)</th>
+                <th className="px-2 py-2 text-right">Teža</th>
                 <th className="px-2 py-2 text-center">Toleranca</th>
                 <th className="px-2 py-2 text-right">Cena</th>
-                <th className="px-2 py-2 text-right">Popust %</th>
+                <th className="px-2 py-2 text-right">Popust</th>
                 <th className="px-2 py-2 text-right">Akcijska cena</th>
                 <th className="px-2 py-2 text-right">Zaloga</th>
                 <th className="px-2 py-2 text-center">Min/nar.</th>
@@ -2542,36 +2705,59 @@ export default function AdminItemEditorPage({
               {draft.variants.map((variant, index) => (
                 <tr key={variant.id} className="h-8 border-t border-slate-100 align-middle">
                   <td className="px-2 py-1.5 text-center"><AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} disabled={!isTableEditable} /></td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isDimensionLockActive} className={`${compactTableNumberInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.length ?? ''} onChange={(event) => updateVariant(index, { length: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.length ?? '—'}</span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isDimensionLockActive} className={`${compactTableNumberInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.width ?? ''} onChange={(event) => updateVariant(index, { width: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.width ?? '—'}</span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" disabled={isThicknessLockActive} className={`${compactTableNumberInputClassName} !w-[7ch] text-right ${isThicknessLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={variant.thickness ?? ''} onChange={(event) => updateVariant(index, { thickness: Number(event.target.value) || 0 })} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.thickness ?? '—'}</span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-[7ch] text-right`} value={sideSettings.weightPerUnit} onChange={(event) => setSideSettings((current) => ({ ...current, weightPerUnit: event.target.value }))} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-[7ch] items-center justify-end">{sideSettings.weightPerUnit || '—'}</span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" disabled={isDimensionLockActive} className={`${compactTableAlignedInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'length', variant.length)} onChange={(event) => updateDecimalInputDraft(variant.id, 'length', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'length', variant.length, (value) => updateVariant(variant.id, { length: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-5 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{variant.length === null ? '—' : formatDecimalForDisplay(variant.length)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" disabled={isDimensionLockActive} className={`${compactTableAlignedInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'width', variant.width)} onChange={(event) => updateDecimalInputDraft(variant.id, 'width', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'width', variant.width, (value) => updateVariant(variant.id, { width: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-5 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{variant.width === null ? '—' : formatDecimalForDisplay(variant.width)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" disabled={isThicknessLockActive} className={`${compactTableAlignedInputClassName} !w-[5ch] text-right ${isThicknessLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'thickness', variant.thickness)} onChange={(event) => updateDecimalInputDraft(variant.id, 'thickness', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'thickness', variant.thickness, (value) => updateVariant(variant.id, { thickness: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-5 w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><span className={compactTableFourDigitSlotClassName}>{variant.thickness === null ? '—' : formatDecimalForDisplay(variant.thickness)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" className={`${compactTableAlignedInputClassName} !mt-0 !w-[7ch] text-right`} value={readDecimalInputValue(variant.id, 'weight', variant.weight)} onChange={(event) => updateDecimalInputDraft(variant.id, 'weight', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'weight', variant.weight ?? null, (value) => updateVariant(variant.id, { weight: value }), null)} /><span className={compactTableAdornmentClassName}>g</span></span></span> : <span className="inline-flex h-5 w-full justify-end"><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{variant.weight === null || variant.weight === undefined ? '—' : formatDecimalForDisplay(variant.weight)}</span><span className={compactTableAdornmentClassName}>g</span></span></span>}</td>
                   <td className="px-2 py-1.5 text-center">
                     {isTableEditable ? (
-                      <div className="inline-flex h-5 w-[52px] items-center justify-center gap-0.5">
-                        <span className="text-slate-500">±</span>
+                      <div className={`inline-flex h-5 items-center justify-center whitespace-nowrap ${isToleranceLocked ? 'text-slate-500' : ''}`}>
+                        <span className={compactTableAdornmentClassName}>±</span>
                         <input
-                          type="number"
+                          type="text"
                           inputMode="decimal"
                           disabled={isToleranceLocked}
-                          className={`${compactTableNumberInputClassName} !mt-0 !w-10 text-center ${isToleranceLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`}
-                          value={sideSettings.thicknessTolerance}
+                          maxLength={1}
+                          className={`${compactTableAlignedInputClassName} !mt-0 !w-[3ch] !px-0 text-center ${isToleranceLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`}
+                          value={decimalInputDrafts[decimalDraftKey(variant.id, 'errorTolerance')] ?? variant.errorTolerance ?? ''}
                           onChange={(event) => {
                             if (isToleranceLocked) return;
-                            setSideSettings((current) => ({ ...current, thicknessTolerance: event.target.value }));
+                            const nextValue = event.target.value.replace(/\D/g, '').slice(0, 1);
+                            updateDecimalInputDraft(variant.id, 'errorTolerance', nextValue);
+                          }}
+                          onBlur={() => {
+                            const key = decimalDraftKey(variant.id, 'errorTolerance');
+                            const raw = decimalInputDrafts[key] ?? variant.errorTolerance ?? '';
+                            const parsed = parseDecimalInput(raw);
+                            updateVariant(variant.id, { errorTolerance: parsed === null ? null : formatDecimalForDisplay(parsed) });
+                            setDecimalInputDrafts((current) => {
+                              const next = { ...current };
+                              delete next[key];
+                              return next;
+                            });
                           }}
                         />
+                        <span className={`ml-1 ${compactTableAdornmentClassName}`}>mm</span>
                       </div>
                     ) : (
-                      <span className="inline-flex h-5 w-[52px] items-center justify-center">{sideSettings.thicknessTolerance ? `±${sideSettings.thicknessTolerance}` : '—'}</span>
+                      <span className="inline-flex h-5 items-center justify-center">
+                        {variant.errorTolerance
+                          ? (
+                            <span className="inline-flex h-5 items-center whitespace-nowrap">
+                              <span>{`±${variant.errorTolerance.replace('.', ',')}`}</span>
+                              <span className={`ml-1 ${compactTableAdornmentClassName}`}>mm</span>
+                            </span>
+                          )
+                          : '—'}
+                      </span>
                     )}
                   </td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-[7ch] text-right`} value={variant.price} onChange={(event) => updateVariant(index, { price: Number(event.target.value) || 0 })} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-[7ch] items-center justify-end">{formatCurrency(variant.price)}</span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="decimal" min={0} max={99.9} step={0.1} className={`${compactTableNumberInputClassName} !mt-0 !w-[7ch] text-right`} value={variant.discountPct} onChange={(event) => updateVariant(index, { discountPct: Math.min(99.9, Math.max(0, Number(event.target.value) || 0)) })} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.discountPct}</span></span>}</td>
-                  <td className="px-2 py-1.5 text-right"><span className="inline-flex h-5 items-center justify-end">{formatCurrency(computeSalePrice(variant.price, variant.discountPct))}</span></td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="numeric" className={`${compactTableNumberInputClassName} !mt-0 !w-auto !max-w-[6ch] text-right`} value={variant.stock} onChange={(event) => updateVariant(index, { stock: Number(event.target.value) || 0 })} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 max-w-[6ch] items-center justify-end">{variant.stock}</span></span>}</td>
-                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableNumberInputClassName} !mt-0 !w-10 text-center`} value={sideSettings.moq} onChange={(event) => setSideSettings((current) => ({ ...current, moq: Number(event.target.value) || 1 }))} /> : <span className="inline-flex h-5 w-10 items-center justify-center">{sideSettings.moq}</span>}</td>
-                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input className={`${orderLikeEditableInputClassName} !mt-0 !h-5 !w-[20ch] text-center`} value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} /> : <span className="inline-flex h-5 w-[20ch] items-center justify-center overflow-hidden text-ellipsis whitespace-nowrap text-center">{variant.sku || '—'}</span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" className={`${compactTableAlignedInputClassName} !mt-0 !w-[7ch] text-right`} value={readDecimalInputValue(variant.id, 'price', variant.price)} onChange={(event) => updateDecimalInputDraft(variant.id, 'price', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'price', variant.price, (value) => updateVariant(variant.id, { price: value ?? 0 }), 0)} /><span className={compactTableAdornmentClassName}>€</span></span></span> : <span className="inline-flex h-5 w-full justify-end"><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{formatCurrencyAmountOnly(variant.price)}</span><span className={compactTableAdornmentClassName}>€</span></span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" className={`${compactTableAlignedInputClassName} !mt-0 !w-[5ch] !px-0 text-right`} value={readDecimalInputValue(variant.id, 'discountPct', variant.discountPct)} onChange={(event) => updateDecimalInputDraft(variant.id, 'discountPct', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'discountPct', variant.discountPct, (value) => updateVariant(variant.id, { discountPct: Math.min(99.9, Math.max(0, value ?? 0)) }), 0)} /><span className={compactTableAdornmentClassName}>%</span></span></span> : <span className="inline-flex h-5 w-full justify-end"><span className={compactTableValueUnitShellClassName}><span className={compactTableFourDigitSlotClassName}>{formatDecimalForDisplay(variant.discountPct)}</span><span className={compactTableAdornmentClassName}>%</span></span></span>}</td>
+                  <td className="px-2 py-1.5 text-right"><span className="inline-flex h-5 items-center justify-end">{variant.discountPct > 0 ? formatCurrency(computeSalePrice(variant.price, variant.discountPct)) : '—'}</span></td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !w-auto !max-w-[6ch] text-right`} value={variant.stock} onChange={(event) => updateVariant(variant.id, { stock: Number(event.target.value) || 0 })} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 max-w-[6ch] items-center justify-end">{variant.stock}</span></span>}</td>
+                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !w-[5ch] !px-0 text-center`} value={variant.minOrder ?? 1} onChange={(event) => updateVariant(variant.id, { minOrder: Math.max(1, Number(event.target.value) || 1) })} /> : <span className="inline-flex h-5 w-[5ch] items-center justify-center">{variant.minOrder ?? 1}</span>}</td>
+                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input className={`${compactTableAlignedTextInputClassName} !mt-0 !h-5 !w-[26ch] text-center`} value={variant.sku} onChange={(event) => updateVariant(variant.id, { sku: event.target.value, skuAutoGenerated: false })} /> : <span className="inline-flex h-5 w-[26ch] items-center justify-center overflow-hidden text-ellipsis whitespace-nowrap text-center">{variant.sku || '—'}</span>}</td>
                   <td className="px-1 py-1.5 text-center">
                     <div className="inline-flex justify-center">
                       <ActiveStateChip
@@ -2579,22 +2765,25 @@ export default function AdminItemEditorPage({
                         editable={isTableEditable}
                         chipClassName="!h-5 !min-w-[94px] !px-1.5 !text-[10px]"
                         menuPlacement="bottom"
-                        onChange={(next) => updateVariant(index, { active: next })}
+                        onChange={(next) => updateVariant(variant.id, { active: next })}
                       />
                     </div>
                   </td>
                   <td className="px-1 py-1.5 text-center">
                     <div className="inline-flex justify-center">
-                      <TagStateChip
+                      <NoteTagChip
                         value={getVariantTag(variant.id)}
                         editable={isTableEditable}
                         chipClassName="!h-5 !min-w-[94px] !px-1.5 !text-[10px]"
                         menuPlacement="bottom"
-                        onChange={(next) => setVariantTag(variant.id, next)}
+                        onChange={(next) => {
+                          if (!next) return;
+                          setVariantTag(variant.id, next);
+                        }}
                       />
                     </div>
                   </td>
-                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableNumberInputClassName} !mt-0 !w-10 text-center`} value={variant.sort} onChange={(event) => updateVariant(index, { sort: Number(event.target.value) || 1 })} /> : <span className="inline-flex h-5 w-10 items-center justify-center">{variant.sort}</span>}</td>
+                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !w-[4ch] !px-0 text-center`} value={variant.sort} onChange={(event) => updateVariant(variant.id, { sort: Number(event.target.value) || 1 })} /> : <span className="inline-flex h-5 w-[4ch] items-center justify-center">{variant.sort}</span>}</td>
                 </tr>
               ))}
             </tbody>
@@ -2629,7 +2818,7 @@ export default function AdminItemEditorPage({
             altText={ensureImageSettings(editingImageSlot).altText}
             onAltTextChange={(value) => updateImageSettings(editingImageSlot, { altText: value })}
             onCancel={() => setEditingImageSlot(null)}
-            onSave={({ blob, mimeType }) => handleSaveEditedImage(editingImageSlot, blob, mimeType)}
+            onSave={({ blob, mimeType }) => { void handleSaveEditedImage(editingImageSlot, blob, mimeType); }}
           />,
           document.body
         )

@@ -128,7 +128,6 @@ export async function buildPdfContext(pool: Pool, orderId: number): Promise<Buil
       organizationName: asNullableString(order.organization_name),
       contactName,
       email,
-      phone: asNullableString(order.phone),
       deliveryAddress: asNullableString(order.delivery_address),
       reference: asNullableString(order.reference),
       notes: asNullableString(order.notes),

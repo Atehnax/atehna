@@ -79,13 +79,12 @@ async function AdminOrdersTableSection({
       organization_name: 'Osnovna šola Triglav',
       contact_name: 'Maja Kovač',
       email: 'maja.kovac@example.com',
-      phone: '041 555 123',
       delivery_address: 'Šolska ulica 1, Ljubljana',
       reference: 'PO-2024-01',
       notes: null,
       status: 'received',
       payment_status: 'paid',
-      payment_notes: null,
+      admin_order_notes: null,
       subtotal: 0,
       tax: 0,
       total: 0,
@@ -189,13 +188,12 @@ async function AdminOrdersTableSection({
       order.organization_name,
       order.contact_name,
       order.email,
-      order.phone ?? null,
       order.delivery_address ?? null,
       order.reference ?? null,
       order.notes ?? null,
       order.status,
       order.payment_status ?? null,
-      order.payment_notes ?? null,
+      order.admin_order_notes ?? null,
       order.subtotal,
       order.tax,
       order.total,
@@ -210,13 +208,12 @@ async function AdminOrdersTableSection({
       order.organization_name,
       order.contact_name,
       order.email,
-      order.phone ?? null,
       order.delivery_address ?? null,
       order.reference ?? null,
       order.notes ?? null,
       order.status,
       order.payment_status ?? null,
-      order.payment_notes ?? null,
+      order.admin_order_notes ?? null,
       order.subtotal,
       order.tax,
       order.total,
@@ -244,7 +241,6 @@ async function AdminOrdersTableSection({
           orders={compactOrders}
           analyticsOrders={compactAnalyticsOrders}
           documents={compactDocuments}
-          attachments={[]}
           initialFrom={from}
           initialTo={to}
           initialQuery={query}

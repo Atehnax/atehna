@@ -25,10 +25,7 @@ export async function POST(
     const current = await pool.query('SELECT payment_status FROM orders WHERE id = $1', [orderId]);
     const previousStatus = current.rows[0]?.payment_status ?? null;
 
-    await pool.query(
-      'UPDATE orders SET payment_status = $1, payment_notes = $2 WHERE id = $3',
-      [status, note || null, orderId]
-    );
+    await pool.query('UPDATE orders SET payment_status = $1, admin_order_notes = $2 WHERE id = $3', [status, note || null, orderId]);
 
     try {
       await pool.query(

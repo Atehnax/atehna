@@ -35,7 +35,6 @@ import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, isPaymentStatus } from '@/shar
 import type { AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
 
 import {
-  type Attachment,
   type DocumentType,
   type OrderRow,
   type PdfDoc,
@@ -63,13 +62,12 @@ type OrderRowTuple = [
   organizationName: string | null,
   contactName: string,
   email: string,
-  phone: string | null,
   deliveryAddress: string | null,
   reference: string | null,
   notes: string | null,
   status: string,
   paymentStatus: string | null,
-  paymentNotes: string | null,
+  adminOrderNotes: string | null,
   subtotal: number | string | null,
   tax: number | string | null,
   total: number | string | null,
@@ -78,7 +76,6 @@ type OrderRowTuple = [
   deletedAt?: string | null
 ];
 type PdfDocTuple = readonly [id: number, orderId: number, type: PdfDoc['type'], filename: string, blobUrl: string, createdAt: string];
-type AttachmentTuple = readonly [id: number, orderId: number, type: Attachment['type'], filename: string, blobUrl: string, createdAt?: string];
 
 type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
 type OrdersColumnKey = 'order' | 'date' | 'customer' | 'address' | 'type' | 'status' | 'payment' | 'total' | 'documents';
@@ -146,7 +143,6 @@ export default function AdminOrdersTable({
   orders: serializedOrders,
   analyticsOrders: serializedAnalyticsOrders,
   documents: serializedDocuments,
-  attachments: serializedAttachments,
   initialFrom = '',
   initialTo = '',
   initialQuery = '',
@@ -161,7 +157,6 @@ export default function AdminOrdersTable({
   orders: ReadonlyArray<Readonly<OrderRowTuple>>;
   analyticsOrders?: ReadonlyArray<Readonly<OrderRowTuple>>;
   documents: ReadonlyArray<PdfDocTuple>;
-  attachments: ReadonlyArray<AttachmentTuple>;
   initialFrom?: string;
   initialTo?: string;
   initialQuery?: string;
@@ -182,19 +177,18 @@ export default function AdminOrdersTable({
         organization_name: row[3] ?? '',
         contact_name: row[4],
         email: row[5],
-        phone: row[6] ?? '',
-        delivery_address: row[7] ?? '',
-        reference: row[8] ?? '',
-        notes: row[9],
-        status: row[10],
-        payment_status: row[11],
-        payment_notes: row[12],
-        subtotal: row[13] ?? 0,
-        tax: row[14] ?? 0,
-        total: row[15] ?? 0,
-        created_at: row[16],
-        is_draft: row[17],
-        deleted_at: row[18] ?? null
+        delivery_address: row[6] ?? '',
+        reference: row[7] ?? '',
+        notes: row[8],
+        status: row[9],
+        payment_status: row[10],
+        admin_order_notes: row[11],
+        subtotal: row[12] ?? 0,
+        tax: row[13] ?? 0,
+        total: row[14] ?? 0,
+        created_at: row[15],
+        is_draft: row[16],
+        deleted_at: row[17] ?? null
       })),
     [serializedOrders]
   );
@@ -207,19 +201,18 @@ export default function AdminOrdersTable({
         organization_name: row[3] ?? '',
         contact_name: row[4],
         email: row[5],
-        phone: row[6] ?? '',
-        delivery_address: row[7] ?? '',
-        reference: row[8] ?? '',
-        notes: row[9],
-        status: row[10],
-        payment_status: row[11],
-        payment_notes: row[12],
-        subtotal: row[13] ?? 0,
-        tax: row[14] ?? 0,
-        total: row[15] ?? 0,
-        created_at: row[16],
-        is_draft: row[17],
-        deleted_at: row[18] ?? null
+        delivery_address: row[6] ?? '',
+        reference: row[7] ?? '',
+        notes: row[8],
+        status: row[9],
+        payment_status: row[10],
+        admin_order_notes: row[11],
+        subtotal: row[12] ?? 0,
+        tax: row[13] ?? 0,
+        total: row[14] ?? 0,
+        created_at: row[15],
+        is_draft: row[16],
+        deleted_at: row[17] ?? null
       })),
     [serializedAnalyticsOrders, serializedOrders]
   );
@@ -234,18 +227,6 @@ export default function AdminOrdersTable({
         created_at: entry[5]
       })),
     [serializedDocuments]
-  );
-  const attachments = useMemo<Attachment[]>(
-    () =>
-      serializedAttachments.map((entry) => ({
-        id: entry[0],
-        order_id: entry[1],
-        type: entry[2],
-        filename: entry[3],
-        blob_url: entry[4],
-        created_at: entry[5] ?? ''
-      })),
-    [serializedAttachments]
   );
   const router = useRouter();
   const pathname = usePathname();
@@ -530,16 +511,6 @@ export default function AdminOrdersTable({
     return byOrder;
   }, [documents]);
 
-  const attachmentsByOrder = useMemo(() => {
-    const byOrder = new Map<number, Attachment[]>();
-    attachments.forEach((attachmentItem) => {
-      const existingList = byOrder.get(attachmentItem.order_id) ?? [];
-      existingList.push({ ...attachmentItem, type: 'purchase_order' });
-      byOrder.set(attachmentItem.order_id, existingList);
-    });
-    return byOrder;
-  }, [attachments]);
-
   const latestDocumentsByOrder = useMemo(() => {
     const byOrderByType = new Map<number, Map<string, UnifiedDocument>>();
 
@@ -575,24 +546,13 @@ export default function AdminOrdersTable({
       });
     });
 
-    attachments.forEach((attachmentItem) => {
-      upsertLatestDocument({
-        order_id: attachmentItem.order_id,
-        type: 'purchase_order',
-        filename: attachmentItem.filename,
-        blob_url: attachmentItem.blob_url,
-        created_at: attachmentItem.created_at,
-        typeLabel: documentTypeLabelMap.get('purchase_order') ?? 'Naročilnica'
-      });
-    });
-
     const result = new Map<number, UnifiedDocument[]>();
     byOrderByType.forEach((byType, orderId) => {
       result.set(orderId, Array.from(byType.values()));
     });
 
     return result;
-  }, [documents, attachments]);
+  }, [documents]);
 
   const orderRuntimeById = useMemo(() => {
     const runtime = new Map<number, {
@@ -1820,7 +1780,6 @@ export default function AdminOrdersTable({
                           <LazyAdminOrdersPdfCell
                             orderId={order.id}
                             documents={documentsByOrder.get(order.id) ?? []}
-                            attachments={attachmentsByOrder.get(order.id) ?? []}
                             interactionsDisabled={false}
                           />
                         </div>

@@ -44,6 +44,17 @@ export function buildCatalogImageBlobPath(
   return ['catalog-categories', safeCategorySlug, ...safeSegments, safeFileName].join('/');
 }
 
+export function buildCatalogItemMediaBlobPath(itemSlug: string, fileName: string, mediaFolder: 'images' | 'videos' | 'documents'): string {
+  const safeItemSlug = sanitizeBlobSegment(itemSlug) || 'artikel';
+  const safeFileName = sanitizeBlobSegment(fileName).replace(/^\/+/, '');
+
+  if (!safeFileName || safeFileName.endsWith('/')) {
+    throw new Error(`Invalid blob fileName: "${safeFileName}".`);
+  }
+
+  return ['catalog-items', safeItemSlug, mediaFolder, safeFileName].join('/');
+}
+
 export async function uploadBlob(
   pathname: string,
   data: Buffer | Uint8Array,

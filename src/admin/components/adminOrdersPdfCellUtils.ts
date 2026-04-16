@@ -63,10 +63,7 @@ export const formatDateTimeCompact = (value: string) => {
   return `${day}.${month}.${year} ${hour}:${minute}`;
 };
 
-export const groupDocumentsByType = (
-  documents: PdfDocument[],
-  attachments: PdfDocument[]
-): Record<PdfTypeKey, PdfDocument[]> => {
+export const groupDocumentsByType = (documents: PdfDocument[]): Record<PdfTypeKey, PdfDocument[]> => {
   const grouped: Record<PdfTypeKey, PdfDocument[]> = {
     order_summary: [],
     purchase_order: [],
@@ -84,15 +81,6 @@ export const groupDocumentsByType = (
     const normalizedType = normalizePdfType(documentItem.type);
     if (!normalizedType) return;
     grouped[normalizedType].push(documentItem);
-  });
-
-  const sortedAttachments = [...attachments].sort(
-    (leftAttachment, rightAttachment) =>
-      new Date(rightAttachment.created_at).getTime() - new Date(leftAttachment.created_at).getTime()
-  );
-
-  sortedAttachments.forEach((attachmentItem) => {
-    grouped.purchase_order.push(attachmentItem);
   });
 
   return grouped;

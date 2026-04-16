@@ -4,14 +4,14 @@ import { instrumentCatalogLoader, profileRoutePhase } from '@/shared/server/cata
 let hasOrdersDraftColumnCache: boolean | null = null;
 let hasOrdersDeletedColumnCache: boolean | null = null;
 let hasOrdersPaymentStatusColumnCache: boolean | null = null;
-let hasOrdersPaymentNotesColumnCache: boolean | null = null;
+let hasOrdersAdminOrderNotesColumnCache: boolean | null = null;
 let hasDocumentsDeletedColumnCache: boolean | null = null;
 let ordersSchemaSupportPromise:
   | Promise<{
       supportsDraftColumn: boolean;
       supportsDeletedColumn: boolean;
       supportsPaymentStatusColumn: boolean;
-      supportsPaymentNotesColumn: boolean;
+      supportsAdminOrderNotesColumn: boolean;
     }>
   | null = null;
 let documentsSchemaSupportPromise: Promise<{ supportsDeletedColumn: boolean }> | null = null;
@@ -54,11 +54,11 @@ async function hasOrdersPaymentStatusColumn() {
   return hasOrdersPaymentStatusColumnCache;
 }
 
-async function hasOrdersPaymentNotesColumn() {
-  if (hasOrdersPaymentNotesColumnCache !== null) return hasOrdersPaymentNotesColumnCache;
+async function hasOrdersAdminOrderNotesColumn() {
+  if (hasOrdersAdminOrderNotesColumnCache !== null) return hasOrdersAdminOrderNotesColumnCache;
 
-  hasOrdersPaymentNotesColumnCache = await hasOrdersColumn('payment_notes');
-  return hasOrdersPaymentNotesColumnCache;
+  hasOrdersAdminOrderNotesColumnCache = await hasOrdersColumn('admin_order_notes');
+  return hasOrdersAdminOrderNotesColumnCache;
 }
 
 async function hasDocumentsDeletedColumn() {
@@ -86,12 +86,12 @@ async function getOrdersSchemaSupport() {
       hasOrdersDraftColumn(),
       hasOrdersDeletedColumn(),
       hasOrdersPaymentStatusColumn(),
-      hasOrdersPaymentNotesColumn()
-    ]).then(([supportsDraftColumn, supportsDeletedColumn, supportsPaymentStatusColumn, supportsPaymentNotesColumn]) => ({
+      hasOrdersAdminOrderNotesColumn()
+    ]).then(([supportsDraftColumn, supportsDeletedColumn, supportsPaymentStatusColumn, supportsAdminOrderNotesColumn]) => ({
       supportsDraftColumn,
       supportsDeletedColumn,
       supportsPaymentStatusColumn,
-      supportsPaymentNotesColumn
+      supportsAdminOrderNotesColumn
     }));
   }
 
@@ -115,13 +115,12 @@ export type OrderRow = {
   organization_name: string | null;
   contact_name: string;
   email: string;
-  phone: string | null;
   delivery_address: string | null;
   reference: string | null;
   notes: string | null;
   status: string;
   payment_status?: string | null;
-  payment_notes?: string | null;
+  admin_order_notes?: string | null;
   subtotal: number | null;
   tax: number | null;
   total: number | null;
@@ -149,15 +148,6 @@ export type OrderDocumentRow = {
   filename: string;
   blob_url: string;
   blob_pathname: string | null;
-  created_at: string;
-};
-
-export type OrderAttachmentRow = {
-  id: number;
-  order_id: number;
-  type: string;
-  filename: string;
-  blob_url: string;
   created_at: string;
 };
 
@@ -221,13 +211,12 @@ function mapOrderRow(rawRow: Record<string, unknown>): OrderRow {
     organization_name: asNullableString(rawRow.organization_name),
     contact_name: String(rawRow.contact_name),
     email: String(rawRow.email),
-    phone: asNullableString(rawRow.phone),
     delivery_address: asNullableString(rawRow.delivery_address),
     reference: asNullableString(rawRow.reference),
     notes: asNullableString(rawRow.notes),
     status: String(rawRow.status),
     payment_status: asNullableString(rawRow.payment_status),
-    payment_notes: asNullableString(rawRow.payment_notes),
+    admin_order_notes: asNullableString(rawRow.admin_order_notes),
     subtotal: parseNullableNumber(rawRow.subtotal),
     tax: parseNullableNumber(rawRow.tax),
     total: parseNullableNumber(rawRow.total),
@@ -271,17 +260,6 @@ function mapOrderDocumentRow(rawRow: Record<string, unknown>): OrderDocumentRow 
   };
 }
 
-function mapOrderAttachmentRow(rawRow: Record<string, unknown>): OrderAttachmentRow {
-  return {
-    id: Number(rawRow.id),
-    order_id: Number(rawRow.order_id),
-    type: String(rawRow.type),
-    filename: String(rawRow.filename),
-    blob_url: String(rawRow.blob_url),
-    created_at: toIsoTimestamp(rawRow.created_at)
-  };
-}
-
 function mapOrderAnalyticsRow(rawRow: Record<string, unknown>): OrderAnalyticsRow {
   return {
     id: Number(rawRow.id),
@@ -319,7 +297,7 @@ export async function fetchOrders(
       supportsDraftColumn,
       supportsDeletedColumn,
       supportsPaymentStatusColumn,
-      supportsPaymentNotesColumn
+      supportsAdminOrderNotesColumn
     } = await getOrdersSchemaSupport();
     const conditions: string[] = [];
     const queryParams: unknown[] = [];
@@ -371,13 +349,12 @@ export async function fetchOrders(
       orders.organization_name,
       orders.contact_name,
       orders.email,
-      orders.phone,
       orders.delivery_address,
       orders.reference,
       orders.notes,
       orders.status,
       ${supportsPaymentStatusColumn ? 'orders.payment_status' : 'null::text as payment_status'},
-      ${supportsPaymentNotesColumn ? 'orders.payment_notes' : 'null::text as payment_notes'},
+      ${supportsAdminOrderNotesColumn ? 'orders.admin_order_notes' : 'null::text as admin_order_notes'},
       coalesce(orders.subtotal::text, computed_totals.subtotal::text, '0') as subtotal,
       coalesce(orders.tax::text, computed_totals.tax::text, '0') as tax,
       coalesce(orders.total::text, computed_totals.total::text, '0') as total,
@@ -407,13 +384,12 @@ export async function fetchOrders(
       orders.organization_name,
       orders.contact_name,
       orders.email,
-      orders.phone,
       orders.delivery_address,
       orders.reference,
       orders.notes,
       orders.status,
       ${supportsPaymentStatusColumn ? 'orders.payment_status' : 'null::text as payment_status'},
-      ${supportsPaymentNotesColumn ? 'orders.payment_notes' : 'null::text as payment_notes'},
+      ${supportsAdminOrderNotesColumn ? 'orders.admin_order_notes' : 'null::text as admin_order_notes'},
       coalesce(orders.subtotal::text, '0') as subtotal,
       coalesce(orders.tax::text, '0') as tax,
       coalesce(orders.total::text, '0') as total,
@@ -459,7 +435,7 @@ export async function fetchOrdersListPage(
       supportsDraftColumn,
       supportsDeletedColumn,
       supportsPaymentStatusColumn,
-      supportsPaymentNotesColumn
+      supportsAdminOrderNotesColumn
     } = await getOrdersSchemaSupport();
     const { supportsDeletedColumn: supportsDocumentsDeletedColumn } = await getDocumentsSchemaSupport();
 
@@ -516,15 +492,6 @@ export async function fetchOrdersListPage(
             ${supportsDocumentsDeletedColumn ? 'and od.deleted_at is null' : ''}
             and od.type = $${documentTypeIndex}
         )
-        or (
-          $${documentTypeIndex} = 'purchase_order'
-          and exists (
-            select 1
-            from order_attachments oa
-            where oa.order_id = orders.id
-              and oa.type = 'purchase_order'
-          )
-        )
       )`);
     }
 
@@ -545,13 +512,12 @@ export async function fetchOrdersListPage(
           orders.organization_name,
           orders.contact_name,
           orders.email,
-          orders.phone,
           orders.delivery_address,
           orders.reference,
           orders.notes,
           orders.status,
           ${supportsPaymentStatusColumn ? 'orders.payment_status' : 'null::text as payment_status'},
-          ${supportsPaymentNotesColumn ? 'orders.payment_notes' : 'null::text as payment_notes'},
+          ${supportsAdminOrderNotesColumn ? 'orders.admin_order_notes' : 'null::text as admin_order_notes'},
           coalesce(orders.subtotal::text, computed_totals.subtotal::text, '0') as subtotal,
           coalesce(orders.tax::text, computed_totals.tax::text, '0') as tax,
           coalesce(orders.total::text, computed_totals.total::text, '0') as total,
@@ -594,16 +560,6 @@ export async function fetchOrdersListPage(
           from order_documents od
           where od.order_id in (select id from paged_orders)
             ${supportsDocumentsDeletedColumn ? 'and od.deleted_at is null' : ''}
-          union all
-          select
-            oa.order_id,
-            'purchase_order'::text as type,
-            oa.filename,
-            oa.blob_url,
-            oa.created_at
-          from order_attachments oa
-          where oa.order_id in (select id from paged_orders)
-            and oa.type = 'purchase_order'
         ) source_docs
         order by order_id, type, created_at desc
       )
@@ -709,7 +665,7 @@ export async function fetchOrderById(orderId: number, diagnosticsContext = '/adm
       supportsDraftColumn,
       supportsDeletedColumn,
       supportsPaymentStatusColumn,
-      supportsPaymentNotesColumn
+      supportsAdminOrderNotesColumn
     } = await getOrdersSchemaSupport();
 
     const result = await profileRoutePhase('db', 'fetchOrderById:query', () => pool.query(
@@ -721,13 +677,12 @@ export async function fetchOrderById(orderId: number, diagnosticsContext = '/adm
       orders.organization_name,
       orders.contact_name,
       orders.email,
-      orders.phone,
       orders.delivery_address,
       orders.reference,
       orders.notes,
       orders.status,
       ${supportsPaymentStatusColumn ? 'orders.payment_status' : 'null::text as payment_status'},
-      ${supportsPaymentNotesColumn ? 'orders.payment_notes' : 'null::text as payment_notes'},
+      ${supportsAdminOrderNotesColumn ? 'orders.admin_order_notes' : 'null::text as admin_order_notes'},
       coalesce(orders.subtotal::text, computed_totals.subtotal::text, '0') as subtotal,
       coalesce(orders.tax::text, computed_totals.tax::text, '0') as tax,
       coalesce(orders.total::text, computed_totals.total::text, '0') as total,
@@ -795,59 +750,6 @@ export async function fetchOrderDocumentsForOrders(
     return profileRoutePhase('transform', 'fetchOrderDocumentsForOrders:mapRows', async () =>
       result.rows.map((rawRow) => mapOrderDocumentRow(rawRow as Record<string, unknown>))
     );
-  });
-}
-
-export async function fetchOrderAttachments(orderId: number, diagnosticsContext = '/admin/orders/[orderId]'): Promise<OrderAttachmentRow[]> {
-  return instrumentCatalogLoader('fetchOrderAttachments', diagnosticsContext, async () => {
-    const pool = await getPool();
-    try {
-      const result = await profileRoutePhase('db', 'fetchOrderAttachments:query', () =>
-        pool.query('select * from order_attachments where order_id = $1 order by created_at desc', [orderId])
-      );
-      return profileRoutePhase('transform', 'fetchOrderAttachments:mapRows', async () =>
-        result.rows.map((rawRow) => mapOrderAttachmentRow(rawRow as Record<string, unknown>))
-      );
-    } catch (error) {
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'code' in error &&
-        ['42P01', '42501'].includes((error as { code?: string }).code ?? '')
-      ) {
-        return [];
-      }
-      throw error;
-    }
-  });
-}
-
-export async function fetchOrderAttachmentsForOrders(
-  orderIds: number[],
-  diagnosticsContext = '/admin/orders'
-): Promise<OrderAttachmentRow[]> {
-  return instrumentCatalogLoader('fetchOrderAttachmentsForOrders', diagnosticsContext, async () => {
-    if (orderIds.length === 0) return [];
-    const pool = await getPool();
-    try {
-      const result = await profileRoutePhase('db', 'fetchOrderAttachmentsForOrders:query', () => pool.query(
-        'select * from order_attachments where order_id = any($1::bigint[]) order by created_at desc',
-        [orderIds]
-      ));
-      return profileRoutePhase('transform', 'fetchOrderAttachmentsForOrders:mapRows', async () =>
-        result.rows.map((rawRow) => mapOrderAttachmentRow(rawRow as Record<string, unknown>))
-      );
-    } catch (error) {
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'code' in error &&
-        ['42P01', '42501'].includes((error as { code?: string }).code ?? '')
-      ) {
-        return [];
-      }
-      throw error;
-    }
   });
 }
 

@@ -46,16 +46,13 @@ const clamp = (value: number, minValue: number, maxValue: number) => {
 export default function AdminOrdersPdfCell({
   orderId,
   documents,
-  attachments,
   interactionsDisabled = false
 }: {
   orderId: number;
   documents: PdfDocument[];
-  attachments: PdfDocument[];
   interactionsDisabled?: boolean;
 }) {
   const [documentsState, setDocumentsState] = useState<PdfDocument[]>(documents);
-  const [attachmentsState] = useState<PdfDocument[]>(attachments);
   const [loadingType, setLoadingType] = useState<GeneratePdfType | null>(null);
   const [openType, setOpenType] = useState<PdfTypeKey | null>(null);
   const { toast } = useToast();
@@ -160,10 +157,7 @@ export default function AdminOrdersPdfCell({
     };
   }, [openType, loadingType]);
 
-  const groupedDocuments = useMemo(
-    () => groupDocumentsByType(documentsState, attachmentsState),
-    [attachmentsState, documentsState]
-  );
+  const groupedDocuments = useMemo(() => groupDocumentsByType(documentsState), [documentsState]);
 
   const handleGenerate = async (type: GeneratePdfType) => {
     setLoadingType(type);

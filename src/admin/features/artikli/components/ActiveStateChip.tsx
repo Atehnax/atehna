@@ -10,13 +10,15 @@ export default function ActiveStateChip({
   editable,
   onChange,
   chipClassName,
-  menuPlacement = 'bottom'
+  menuPlacement = 'bottom',
+  editScope
 }: {
   active: boolean;
   editable: boolean;
   onChange: (next: boolean) => void;
   chipClassName?: string;
   menuPlacement?: 'top' | 'bottom';
+  editScope?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
@@ -60,7 +62,7 @@ export default function ActiveStateChip({
   }, [isOpen, updateMenuPosition]);
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="relative" data-edit-scope={editScope}>
       <button
         ref={triggerRef}
         type="button"
@@ -83,6 +85,7 @@ export default function ActiveStateChip({
             <div
               ref={menuRef}
               role="menu"
+              data-edit-scope={editScope}
               className={`fixed z-[1000] min-w-[130px] ${menuPlacement === 'top' ? '-translate-y-full' : ''}`}
               style={{ top: menuPosition.top, left: menuPosition.left }}
             >

@@ -15,7 +15,8 @@ export function NoteTagChip({
   chipClassName,
   menuPlacement = 'bottom',
   allowEmpty = false,
-  placeholderLabel = 'Opombe'
+  placeholderLabel = 'Opombe',
+  editScope
 }: {
   value: NoteTagValue;
   editable: boolean;
@@ -24,6 +25,7 @@ export function NoteTagChip({
   menuPlacement?: 'top' | 'bottom';
   allowEmpty?: boolean;
   placeholderLabel?: string;
+  editScope?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
@@ -78,7 +80,7 @@ export function NoteTagChip({
   }, [isOpen, updateMenuPosition]);
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="relative" data-edit-scope={editScope}>
       <button
         ref={triggerRef}
         type="button"
@@ -100,6 +102,7 @@ export function NoteTagChip({
             <div
               ref={menuRef}
               role="menu"
+              data-edit-scope={editScope}
               className={`fixed z-[1000] min-w-[130px] ${menuPlacement === 'top' ? '-translate-y-full' : ''}`}
               style={{ top: menuPosition.top, left: menuPosition.left }}
             >

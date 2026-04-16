@@ -523,6 +523,40 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     });
   };
 
+  useEffect(() => {
+    const handlePointerDownOutsideEdit = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+
+      if (editingFamilyId) {
+        const familyScope = `family:${editingFamilyId}`;
+        if (
+          target.closest(`tr[data-edit-scope="${familyScope}"]`) ||
+          target.closest(`[data-edit-scope="${familyScope}"]`)
+        ) {
+          return;
+        }
+        setEditingFamilyId(null);
+      }
+
+      if (editingVariantId) {
+        const variantScope = `variant:${editingVariantId}`;
+        if (
+          target.closest(`tr[data-edit-scope="${variantScope}"]`) ||
+          target.closest(`[data-edit-scope="${variantScope}"]`)
+        ) {
+          return;
+        }
+        setEditingVariantId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDownOutsideEdit);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDownOutsideEdit);
+    };
+  }, [editingFamilyId, editingVariantId]);
+
   return (
     <div className="space-y-4 font-['Inter',system-ui,sans-serif]">
       <AdminTableLayout
@@ -626,7 +660,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         footerRight={<EuiTablePagination page={page} pageCount={pageCount} onPageChange={setPage} itemsPerPage={pageSize} onChangeItemsPerPage={setPageSize} itemsPerPageOptions={PAGE_SIZE_OPTIONS} />}
         showDivider={false}
       >
-        <Table className="w-full min-w-[1500px] table-fixed text-[12px]">
+        <Table className="w-full table-fixed text-[12px]">
             <THead>
               <TR>
                 <TH className="w-10 px-2 text-center">
@@ -643,17 +677,17 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     aria-label="Izberi vse družine"
                   />
                 </TH>
-                <TH className="w-[12%]">
+                <TH className="w-[18%]">
                   <button type="button" className={getSortTitleClass('article')} onClick={() => cycleSort('article')}>
                     Artikel
                   </button>
                 </TH>
-                <TH className="w-[12%]">
+                <TH className="w-[8%]">
                   <button type="button" className={getSortTitleClass('sku')} onClick={() => cycleSort('sku')}>
                     SKU
                   </button>
                 </TH>
-                <TH className="w-[40%]">
+                <TH className="w-[26%]">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('category')} onClick={() => cycleSort('category')}>
                       Kategorija
@@ -690,7 +724,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     ) : null}
                   </div>
                 </TH>
-                <TH className="w-[6%] whitespace-nowrap text-center">
+                <TH className="w-[3%] whitespace-nowrap text-center">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('variantCount')} onClick={() => cycleSort('variantCount')}>
                       Št. različic
@@ -730,7 +764,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     ) : null}
                   </div>
                 </TH>
-                <TH className="w-[10%] text-right">
+                <TH className="w-[5%] text-right">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('priceRange')} onClick={() => cycleSort('priceRange')}>
                       Cena
@@ -770,7 +804,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     ) : null}
                   </div>
                 </TH>
-                <TH className="w-[7%] whitespace-nowrap text-center">
+                <TH className="w-[4%] whitespace-nowrap text-center">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('discount')} onClick={() => cycleSort('discount')}>
                       Popust
@@ -797,10 +831,10 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     ) : null}
                   </div>
                 </TH>
-                <TH className="w-[8%] whitespace-nowrap text-right">Akcijska cena</TH>
-                <TH className="w-[5%] whitespace-nowrap text-right">Zaloga</TH>
-                <TH className="w-[5%] whitespace-nowrap text-center">Min/nar.</TH>
-                <TH className="w-[108px] whitespace-nowrap text-center">
+                <TH className="w-[4%] whitespace-nowrap text-right">Akcijska cena</TH>
+                <TH className="w-[2%] whitespace-nowrap text-right">Zaloga</TH>
+                <TH className="w-[2%] whitespace-nowrap text-center">Min/nar.</TH>
+                <TH className="w-[120px] whitespace-nowrap text-center">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('status')} onClick={() => cycleSort('status')}>
                       Status
@@ -827,8 +861,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     ) : null}
                   </div>
                 </TH>
-                <TH className="w-[112px] whitespace-nowrap text-center">Opombe</TH>
-                <TH className="w-16 text-center">Uredi</TH>
+                <TH className="w-[124px] whitespace-nowrap text-center">Opombe</TH>
+                <TH className="w-14 text-center">Uredi</TH>
               </TR>
             </THead>
             <tbody>
@@ -852,7 +886,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 const singleRowLike = visibleVariants.length <= 1;
                 return (
                   <Fragment key={family.id}>
-                    <tr className={`border-t border-slate-100 bg-white ${adminTableRowToneClasses.hover}`}>
+                    <tr className={`border-t border-slate-100 bg-white ${adminTableRowToneClasses.hover}`} data-edit-scope={`family:${family.id}`}>
                       <td className="w-10 px-2 py-2 text-center"><AdminCheckbox checked={selectedFamilyIds.has(family.id)} onChange={() => setSelectedFamilyIds((current) => {
                         const next = new Set(current);
                         if (next.has(family.id)) next.delete(family.id); else next.add(family.id);
@@ -882,7 +916,17 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                               className="flex h-7 items-center rounded-md bg-transparent px-1 !py-0 text-xs"
                             />
                           </div>
-                        ) : (family.categoryPath.join(' / ') || family.category)}
+                        ) : (
+                          <div className="min-w-0">
+                            <AdminCategoryBreadcrumbPicker
+                              value={family.categoryPath.length > 0 ? family.categoryPath : normalizeCategoryPath(family.category)}
+                              onChange={() => {}}
+                              categoryPaths={categoryPaths}
+                              disabled
+                              className="flex h-7 items-center rounded-md bg-transparent px-1 !py-0 text-xs"
+                            />
+                          </div>
+                        )}
                       </td>
                       <td className="px-2 py-3 text-center">{variantCount}</td>
                       <td className="px-2 py-3 text-right">{singleRowLike && isEditingFamily ? <input type="number" step="0.01" className={ROW_EDIT_INPUT_CLASS} value={familyDraft.price} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, price: Number(event.target.value) || 0 } }))} /> : formatCurrencyRange(minPrice, maxPrice)}</td>
@@ -893,11 +937,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                       })()}</td>
                       <td className="px-2 py-3 text-right">{singleRowLike && isEditingFamily ? <input type="number" className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-right text-sm" value={familyDraft.stock} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, stock: Number(event.target.value) || 0 } }))} /> : formatRangeValue(stocks, (value) => `${value}`)}</td>
                       <td className="px-2 py-3 text-center">{singleRowLike && isEditingFamily ? <input type="number" className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-center text-sm" value={familyDraft.minOrder} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, minOrder: Number(event.target.value) || 1 } }))} /> : formatRangeValue(minOrders, (value) => `${value}`)}</td>
-                      <td className="w-[108px] px-2 py-3 text-center"><div className="inline-flex justify-center"><ActiveStateChip active={familyDraft.active} editable={isEditingFamily} chipClassName="!min-w-[84px] !text-[11px]" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, active: next } }))} /></div></td>
-                      <td className="w-[112px] px-2 py-3 text-center">
+                      <td className="w-[120px] px-2 py-3 text-center"><div className="inline-flex justify-center"><ActiveStateChip active={familyDraft.active} editable={isEditingFamily} editScope={`family:${family.id}`} chipClassName="!min-w-[92px] !text-[11px]" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, active: next } }))} /></div></td>
+                      <td className="w-[124px] px-2 py-3 text-center">
                         {isEditingFamily
-                          ? <div className="inline-flex justify-center"><NoteTagChip value={familyDraft.note} editable allowEmpty chipClassName="!min-w-[88px] !text-[11px]" placeholderLabel="Opombe" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, note: next as NoteValue } }))} /></div>
-                          : <div className="inline-flex justify-center"><NoteTagChip value={(family.notes?.trim() as NoteValue) || ''} editable={false} allowEmpty chipClassName="!min-w-[88px] !text-[11px]" placeholderLabel="Opombe" onChange={() => {}} /></div>}
+                          ? <div className="inline-flex justify-center"><NoteTagChip value={familyDraft.note} editable allowEmpty editScope={`family:${family.id}`} chipClassName="!min-w-[97px] !text-[11px]" placeholderLabel="Opombe" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, note: next as NoteValue } }))} /></div>
+                          : <div className="inline-flex justify-center"><NoteTagChip value={(family.notes?.trim() as NoteValue) || ''} editable={false} allowEmpty editScope={`family:${family.id}`} chipClassName="!min-w-[97px] !text-[11px]" placeholderLabel="Opombe" onChange={() => {}} /></div>}
                       </td>
                       <td className="px-2 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'quick-edit', label: 'Hitro urejanje', icon: <PencilIcon />, onSelect: () => startFamilyEdit(family, visibleVariants) }, { key: 'save', label: 'Shrani', icon: <SaveIcon />, disabled: !isEditingFamily, onSelect: () => { void saveFamilyEdit(family, visibleVariants); } }, { key: 'edit', label: 'Uredi', onSelect: () => router.push(`/admin/artikli/${encodeURIComponent(family.slug || family.id)}`) }]} /></td>
                     </tr>
@@ -916,8 +960,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                 <th className="w-[11%] px-2 py-2 text-right">Akcijska cena</th>
                                 <th className="w-[7%] px-2 py-2 text-right">Zaloga</th>
                                 <th className="w-[7%] px-2 py-2 text-center">Min/nar.</th>
-                                <th className="w-[108px] px-2 py-2 text-center">Status</th>
-                                <th className="w-[112px] px-2 py-2 text-center">Opombe</th>
+                                <th className="w-[120px] px-2 py-2 text-center">Status</th>
+                                <th className="w-[124px] px-2 py-2 text-center">Opombe</th>
                                 <th className="w-[5%] px-2 py-2 text-center">Mesto</th>
                                 <th className="px-2 py-2 text-center">Uredi</th>
                               </tr>
@@ -938,7 +982,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                 };
                                 const actionPrice = draft.discountPct > 0 ? computeSalePrice(draft.price, draft.discountPct) : null;
                                 return (
-                                  <tr key={variant.id} className="border-t border-slate-100">
+                                  <tr key={variant.id} className="border-t border-slate-100" data-edit-scope={`variant:${variant.id}`}>
                                     <td className="px-2 py-2 text-center">
                                       <AdminCheckbox
                                         checked={selectedVariantIds.has(variant.id)}
@@ -1056,12 +1100,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         draft.minOrder
                                       )}
                                     </td>
-                                    <td className="w-[108px] px-2 py-2 text-center">
+                                    <td className="w-[120px] px-2 py-2 text-center">
                                       <div className="inline-flex justify-center">
                                         <ActiveStateChip
                                           active={draft.active}
                                           editable={isEditing}
-                                          chipClassName="!min-w-[84px] !text-[11px]"
+                                          editScope={`variant:${variant.id}`}
+                                          chipClassName="!min-w-[92px] !text-[11px]"
                                           onChange={(next) =>
                                             setVariantDrafts((current) => ({
                                               ...current,
@@ -1071,13 +1116,14 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         />
                                       </div>
                                     </td>
-                                    <td className="w-[112px] px-2 py-2 text-center">
+                                    <td className="w-[124px] px-2 py-2 text-center">
                                       {isEditing ? (
                                         <div className="inline-flex justify-center">
                                           <NoteTagChip
                                             value={(draft.note || 'novo') as NoteTag}
                                             editable
-                                            chipClassName="!min-w-[88px] !text-[11px]"
+                                            editScope={`variant:${variant.id}`}
+                                            chipClassName="!min-w-[97px] !text-[11px]"
                                             onChange={(next) =>
                                               setVariantDrafts((current) => ({
                                                 ...current,
@@ -1087,7 +1133,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                           />
                                         </div>
                                       ) : (
-                                        <div className="inline-flex justify-center"><NoteTagChip value={(draft.note || 'novo') as NoteTag} editable={false} chipClassName="!min-w-[88px] !text-[11px]" onChange={() => {}} /></div>
+                                        <div className="inline-flex justify-center"><NoteTagChip value={(draft.note || 'novo') as NoteTag} editable={false} editScope={`variant:${variant.id}`} chipClassName="!min-w-[97px] !text-[11px]" onChange={() => {}} /></div>
                                       )}
                                     </td>
                                     <td className="px-2 py-2 text-center">

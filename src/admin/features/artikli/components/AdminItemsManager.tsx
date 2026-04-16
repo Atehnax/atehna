@@ -33,7 +33,7 @@ import type { AdminCatalogListItem, CatalogItemEditorHydration, CatalogItemEdito
 
 type StatusFilter = 'all' | 'active' | 'inactive';
 type DiscountFilter = 'all' | 'yes' | 'no';
-type NoteFilter = 'all' | 'withNote' | 'withoutNote';
+type NoteFilter = 'all' | 'na-zalogi' | 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
 type OpenFilter = 'category' | 'status' | 'discount' | 'note' | 'variantCount' | 'priceRange' | 'actionPriceRange' | null;
 type SortState =
   | { column: 'article' | 'sku' | 'category'; direction: 'asc' | 'desc' }
@@ -76,6 +76,15 @@ const formatCurrencyRangeFromValues = (values: number[]) => {
   return min === max
     ? formatCurrencyWithSuffix(min)
     : `${formatCurrencyAmountOnly(min)}–${formatCurrencyAmountOnly(max)} €`;
+};
+const normalizeNoteValue = (value: string | null | undefined): NoteTag | '' => {
+  const normalized = (value ?? '').trim().toLowerCase();
+  if (!normalized) return '';
+  if (normalized === 'opomba') return 'na-zalogi';
+  if (normalized === 'na-zalogi' || normalized === 'novo' || normalized === 'akcija' || normalized === 'zadnji-kosi' || normalized === 'ni-na-zalogi') {
+    return normalized;
+  }
+  return '';
 };
 const itemStatusLabel = (active: boolean) => (active ? 'Aktiven' : 'Neaktiven');
 const formatPercentRange = (values: number[]) => {
@@ -257,8 +266,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       const matchesStatus = statusFilter === 'all' || (statusFilter === 'active' ? family.active : !family.active);
       const hasDiscount = family.defaultDiscountPct > 0 || family.variants.some((variant) => variant.discountPct > 0);
       const matchesDiscount = discountFilter === 'all' || (discountFilter === 'yes' ? hasDiscount : !hasDiscount);
-      const hasNote = family.notes.trim().length > 0;
-      const matchesNote = noteFilter === 'all' || (noteFilter === 'withNote' ? hasNote : !hasNote);
+      const familyNote = normalizeNoteValue(family.notes);
+      const matchesNote = noteFilter === 'all' || familyNote === noteFilter;
       return matchesSearch && matchesCategory && matchesStatus && matchesDiscount && matchesNote;
     });
   }, [categoryFilter, discountFilter, families, noteFilter, search, statusFilter]);
@@ -364,8 +373,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     }
     if (sortState.column === 'note') {
       rows.sort((a, b) => {
-        const noteA = a.family.notes.trim().toLowerCase();
-        const noteB = b.family.notes.trim().toLowerCase();
+        const noteA = normalizeNoteValue(a.family.notes);
+        const noteB = normalizeNoteValue(b.family.notes);
         return sortState.direction === 'desc'
           ? noteB.localeCompare(noteA, 'sl')
           : noteA.localeCompare(noteB, 'sl');
@@ -459,7 +468,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         stock: variant.stock,
         active: variant.active,
         minOrder: variant.minOrder ?? 1,
-        note: (variant.badge as NoteValue) ?? '',
+        note: (normalizeNoteValue(variant.badge) as NoteValue) || 'na-zalogi',
         position: variant.position ?? 1
       }
     }));
@@ -500,7 +509,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         sku: getBaseSku(family),
         categoryPath: family.categoryPath.length > 0 ? family.categoryPath : normalizeCategoryPath(family.category),
         active: family.active,
-        note: (family.notes as NoteValue) || '',
+        note: (normalizeNoteValue(family.notes) as NoteValue) || 'na-zalogi',
         price: primary?.price ?? 0,
         discountPct: primary?.discountPct ?? 0,
         stock: primary?.stock ?? 0,
@@ -544,7 +553,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       return next;
     });
   const getSortTitleClass = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'actionPriceRange' | 'status' | 'note') =>
-    `inline-flex items-center text-[11px] font-semibold leading-none hover:text-[color:var(--blue-500)] ${
+    `inline-flex items-center text-[11px] font-medium leading-none hover:text-[color:var(--blue-500)] ${
       sortState && 'column' in sortState && sortState.column === column ? 'underline underline-offset-2 text-[color:var(--blue-500)]' : ''
     }`;
   const cycleSort = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'actionPriceRange' | 'status' | 'note') => {
@@ -667,7 +676,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
             ) : null}
             {noteFilter !== 'all' ? (
               <span className={filterPillTokenClasses.base}>
-                Opombe: {noteFilter === 'withNote' ? 'Z opombo' : 'Brez opombe'}
+                Opombe: {noteFilter === 'na-zalogi' ? 'Na zalogi' : noteFilter === 'novo' ? 'Novo' : noteFilter === 'akcija' ? 'V akciji' : noteFilter === 'zadnji-kosi' ? 'Zadnji kosi' : 'Ni na zalogi'}
                 <button type="button" className={filterPillTokenClasses.clear} onClick={() => setNoteFilter('all')} aria-label="Počisti filter opomb">
                   ×
                 </button>
@@ -894,7 +903,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                   sku: getBaseSku(family),
                   categoryPath: family.categoryPath.length > 0 ? family.categoryPath : normalizeCategoryPath(family.category),
                   active: family.active,
-                  note: (family.notes as NoteValue) || '',
+                  note: (normalizeNoteValue(family.notes) as NoteValue) || 'na-zalogi',
                   price: primaryVariant?.price ?? 0,
                   discountPct: primaryVariant?.discountPct ?? 0,
                   stock: primaryVariant?.stock ?? 0,
@@ -918,8 +927,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                         })}>
                           <span className="inline-flex h-4 w-4 items-center justify-center text-slate-500">{hasSubtable ? (isExpanded ? '▾' : '▸') : ''}</span>
                           {isEditingFamily
-                            ? <input className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-sm" value={familyDraft.name} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, name: event.target.value } }))} />
-                            : <span className="block text-sm font-semibold text-slate-900">{family.name}</span>}
+                            ? <input className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-[12px]" value={familyDraft.name} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, name: event.target.value } }))} />
+                            : <span className="block text-[12px] font-semibold text-slate-900">{family.name}</span>}
                         </button>
                       </td>
                       <td className="px-2 py-3 text-slate-600">{isEditingFamily ? <input className={ROW_EDIT_INPUT_CLASS} value={familyDraft.sku} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, sku: event.target.value } }))} /> : (getBaseSku(family) || '—')}</td>
@@ -930,7 +939,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                               value={familyDraft.categoryPath}
                               onChange={(nextPath) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, categoryPath: nextPath } }))}
                               categoryPaths={categoryPaths}
-                              className="flex h-7 items-center rounded-md bg-transparent px-1 !py-0 text-xs"
+                              className="flex h-7 items-center rounded-md bg-transparent px-1 !py-0 text-[12px]"
                             />
                           </div>
                         ) : (
@@ -940,7 +949,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                               onChange={() => {}}
                               categoryPaths={categoryPaths}
                               disabled
-                              className="flex h-7 items-center rounded-md bg-transparent px-1 !py-0 text-xs"
+                              className="flex h-7 items-center rounded-md bg-transparent px-1 !py-0 text-[12px]"
                             />
                           </div>
                         )}
@@ -954,8 +963,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                       <td className="w-[10.25%] px-0 py-3 text-center"><div className="flex justify-center px-1"><ActiveStateChip active={familyDraft.active} editable={isEditingFamily} editScope={`family:${family.id}`} chipClassName="!min-w-[92px] !text-[11px]" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, active: next } }))} /></div></td>
                       <td className="w-[10.25%] px-0 py-3 text-center">
                         {isEditingFamily
-                          ? <div className="flex justify-center px-1"><NoteTagChip value={familyDraft.note} editable allowEmpty editScope={`family:${family.id}`} chipClassName="!min-w-[97px] !text-[11px]" placeholderLabel="Opombe" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, note: next as NoteValue } }))} /></div>
-                          : <div className="flex justify-center px-1"><NoteTagChip value={(family.notes?.trim() as NoteValue) || ''} editable={false} allowEmpty editScope={`family:${family.id}`} chipClassName="!min-w-[97px] !text-[11px]" placeholderLabel="Opombe" onChange={() => {}} /></div>}
+                          ? <div className="flex justify-center px-1"><NoteTagChip value={(familyDraft.note || 'na-zalogi') as NoteTag} editable editScope={`family:${family.id}`} chipClassName="!min-w-[97px] !text-[11px]" placeholderLabel="Opombe" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, note: (next || 'na-zalogi') as NoteValue } }))} /></div>
+                          : <div className="flex justify-center px-1"><NoteTagChip value={(normalizeNoteValue(family.notes) || 'na-zalogi') as NoteTag} editable={false} editScope={`family:${family.id}`} chipClassName="!min-w-[97px] !text-[11px]" placeholderLabel="Opombe" onChange={() => {}} /></div>}
                       </td>
                       <td className="w-[5%] px-2 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'quick-edit', label: 'Hitro urejanje', icon: <PencilIcon />, onSelect: () => startFamilyEdit(family, visibleVariants) }, { key: 'save', label: 'Shrani', icon: <SaveIcon />, disabled: !isEditingFamily, onSelect: () => { void saveFamilyEdit(family, visibleVariants); } }, { key: 'edit', label: 'Uredi', onSelect: () => router.push(`/admin/artikli/${encodeURIComponent(family.slug || family.id)}`) }]} /></td>
                     </tr>
@@ -965,7 +974,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                         <td colSpan={9} className="p-0">
                           <table className="w-full text-[12px]">
                             <thead>
-                              <tr className="border-b border-slate-200 text-slate-600">
+                              <tr className="border-b border-slate-200 text-slate-600 font-semibold">
                                 <th className="px-2 py-2" />
                                 <th className="w-[25%] px-2 py-2 text-left">Različica</th>
                                 <th className="w-[20%] px-2 py-2 text-left">SKU</th>
@@ -989,7 +998,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                   stock: variant.stock,
                                   active: variant.active,
                                   minOrder: variant.minOrder ?? 1,
-                                  note: (variant.badge as NoteValue) ?? '',
+                                  note: (normalizeNoteValue(variant.badge) as NoteValue) || 'na-zalogi',
                                   position: variant.position ?? 1
                                 };
                                 const actionPrice = draft.discountPct > 0 ? computeSalePrice(draft.price, draft.discountPct) : null;
@@ -1098,20 +1107,20 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                       {isEditing ? (
                                         <div className="inline-flex justify-center">
                                           <NoteTagChip
-                                            value={(draft.note || 'novo') as NoteTag}
+                                            value={(draft.note || 'na-zalogi') as NoteTag}
                                             editable
                                             editScope={`variant:${variant.id}`}
                                             chipClassName="!min-w-[97px] !text-[11px]"
                                             onChange={(next) =>
                                               setVariantDrafts((current) => ({
                                                 ...current,
-                                                [variant.id]: { ...draft, note: (next || 'novo') as NoteValue }
+                                                [variant.id]: { ...draft, note: (next || 'na-zalogi') as NoteValue }
                                               }))
                                             }
                                           />
                                         </div>
                                       ) : (
-                                        <div className="inline-flex justify-center"><NoteTagChip value={(draft.note || 'novo') as NoteTag} editable={false} editScope={`variant:${variant.id}`} chipClassName="!min-w-[97px] !text-[11px]" onChange={() => {}} /></div>
+                                        <div className="inline-flex justify-center"><NoteTagChip value={(draft.note || 'na-zalogi') as NoteTag} editable={false} editScope={`variant:${variant.id}`} chipClassName="!min-w-[97px] !text-[11px]" onChange={() => {}} /></div>
                                       )}
                                     </td>
                                     <td className="w-[5%] px-2 py-2 text-center">
@@ -1242,11 +1251,14 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
           </div>
         ) : null}
         {openFilter === 'note' ? (
-          <div style={getHeaderPopoverStyle(noteFilterButtonRef.current, 176)}>
+          <div style={getHeaderPopoverStyle(noteFilterButtonRef.current, 184)}>
             <MenuPanel className="w-44 shadow-lg">
               <MenuItem onClick={() => { setNoteFilter('all'); setOpenFilter(null); }}>Vse opombe</MenuItem>
-              <MenuItem onClick={() => { setNoteFilter('withNote'); setOpenFilter(null); }}>Z opombo</MenuItem>
-              <MenuItem onClick={() => { setNoteFilter('withoutNote'); setOpenFilter(null); }}>Brez opombe</MenuItem>
+              <MenuItem onClick={() => { setNoteFilter('na-zalogi'); setOpenFilter(null); }}>Na zalogi</MenuItem>
+              <MenuItem onClick={() => { setNoteFilter('novo'); setOpenFilter(null); }}>Novo</MenuItem>
+              <MenuItem onClick={() => { setNoteFilter('akcija'); setOpenFilter(null); }}>V akciji</MenuItem>
+              <MenuItem onClick={() => { setNoteFilter('zadnji-kosi'); setOpenFilter(null); }}>Zadnji kosi</MenuItem>
+              <MenuItem onClick={() => { setNoteFilter('ni-na-zalogi'); setOpenFilter(null); }}>Ni na zalogi</MenuItem>
             </MenuPanel>
           </div>
         ) : null}

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Chip } from '@/shared/ui/badge';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 
-export type NoteTag = 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
+export type NoteTag = 'na-zalogi' | 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
 type NoteTagValue = NoteTag | '';
 
 export function NoteTagChip({
@@ -35,6 +35,8 @@ export function NoteTagChip({
   const label =
     value === ''
       ? placeholderLabel
+      : value === 'na-zalogi'
+      ? 'Na zalogi'
       : value === 'novo'
       ? 'Novo'
       : value === 'akcija'
@@ -108,6 +110,7 @@ export function NoteTagChip({
             >
               <MenuPanel>
                 {allowEmpty ? <MenuItem onClick={() => { onChange(''); setIsOpen(false); }}>{placeholderLabel}</MenuItem> : null}
+                <MenuItem onClick={() => { onChange('na-zalogi'); setIsOpen(false); }}>Na zalogi</MenuItem>
                 <MenuItem onClick={() => { onChange('novo'); setIsOpen(false); }}>Novo</MenuItem>
                 <MenuItem onClick={() => { onChange('akcija'); setIsOpen(false); }}>V akciji</MenuItem>
                 <MenuItem onClick={() => { onChange('zadnji-kosi'); setIsOpen(false); }}>Zadnji kosi</MenuItem>

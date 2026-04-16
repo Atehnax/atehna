@@ -49,8 +49,10 @@ const numberInputClass = '[-moz-appearance:textfield] [&::-webkit-inner-spin-but
 const orderLikeEditableInputClassName = 'mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0';
 const compactTableNumberInputClassName = `h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-[11px] leading-4 text-slate-900 outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0 ${numberInputClass}`;
 const compactTableValueUnitShellClassName = 'inline-flex h-5 items-center gap-1 whitespace-nowrap';
-const compactTableAdornmentClassName = 'text-xs text-slate-500';
+const compactTableAdornmentClassName = 'text-[11px] text-slate-500';
 const compactTableNumericSlotClassName = 'inline-flex h-5 w-[7ch] items-center justify-end';
+const compactTableThreeDigitSlotClassName = 'inline-flex h-5 w-[4ch] items-center justify-end';
+const compactTableTwoDigitSlotClassName = 'inline-flex h-5 w-[3ch] items-center justify-end';
 const compactSideInputWrapClassName = 'mt-0.5 flex h-[30px] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[10px] pr-3';
 const compactSideInputClassName = 'h-full w-full border-0 bg-transparent p-0 text-sm text-slate-900 outline-none focus:ring-0';
 const articleNameInputClassName = 'admin-item-name-input h-full w-full min-w-0 border-0 bg-transparent p-0 shadow-none outline-none transition focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none disabled:cursor-not-allowed';
@@ -2854,25 +2856,25 @@ export default function AdminItemEditorPage({
         <div className="relative overflow-x-auto overflow-y-visible rounded-lg border border-slate-200">
           <table className="min-w-full text-[11px] leading-4">
             <colgroup>
-              <col style={{ width: '2%' }} />
+              <col style={{ width: '1.7%' }} />
               <col style={{ width: '5.4%' }} />
               <col style={{ width: '5.4%' }} />
-              <col style={{ width: '6%' }} />
+              <col style={{ width: '5.1%' }} />
               <col style={{ width: '5%' }} />
-              <col style={{ width: '6%' }} />
-              <col style={{ width: '6%' }} />
+              <col style={{ width: '5.1%' }} />
+              <col style={{ width: '5.1%' }} />
               <col style={{ width: '6%' }} />
               <col style={{ width: '8%' }} />
               <col style={{ width: '6%' }} />
               <col style={{ width: '6%' }} />
-              <col style={{ width: '17.6%' }} />
+              <col style={{ width: '21.14%' }} />
               <col style={{ width: '8%' }} />
               <col style={{ width: '9%' }} />
-              <col style={{ width: '3.6%' }} />
+              <col style={{ width: '3.06%' }} />
             </colgroup>
             <thead className="bg-slate-50">
               <tr>
-                <th className="px-2 py-2 text-center">
+                <th className="px-1 py-2 text-center">
                   <AdminCheckbox
                     checked={isTableEditable && allVariantsSelected}
                     onChange={() =>
@@ -2900,24 +2902,26 @@ export default function AdminItemEditorPage({
             <tbody>
               {draft.variants.map((variant, index) => (
                 <tr key={variant.id} className="h-8 border-t border-slate-100 align-middle">
-                  <td className="px-2 py-1.5 text-center"><AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} disabled={!isTableEditable} /></td>
+                  <td className="px-1 py-1.5 text-center"><AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} disabled={!isTableEditable} /></td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" disabled={isDimensionLockActive} className={`${compactTableNumberInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'length', variant.length)} onChange={(event) => updateDecimalInputDraft(variant.id, 'length', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'length', variant.length, (value) => updateVariant(variant.id, { length: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-5 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{variant.length === null ? '—' : formatDecimalForDisplay(variant.length)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" disabled={isDimensionLockActive} className={`${compactTableNumberInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'width', variant.width)} onChange={(event) => updateDecimalInputDraft(variant.id, 'width', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'width', variant.width, (value) => updateVariant(variant.id, { width: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-5 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{variant.width === null ? '—' : formatDecimalForDisplay(variant.width)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" disabled={isThicknessLockActive} className={`${compactTableNumberInputClassName} !w-[7ch] text-right ${isThicknessLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'thickness', variant.thickness)} onChange={(event) => updateDecimalInputDraft(variant.id, 'thickness', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'thickness', variant.thickness, (value) => updateVariant(variant.id, { thickness: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-5 w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{variant.thickness === null ? '—' : formatDecimalForDisplay(variant.thickness)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" disabled={isThicknessLockActive} className={`${compactTableNumberInputClassName} !w-[4ch] text-right ${isThicknessLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'thickness', variant.thickness)} onChange={(event) => updateDecimalInputDraft(variant.id, 'thickness', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'thickness', variant.thickness, (value) => updateVariant(variant.id, { thickness: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-5 w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><span className={compactTableThreeDigitSlotClassName}>{variant.thickness === null ? '—' : formatDecimalForDisplay(variant.thickness)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-[7ch] text-right`} value={readDecimalInputValue(variant.id, 'weight', variant.weight)} onChange={(event) => updateDecimalInputDraft(variant.id, 'weight', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'weight', variant.weight ?? null, (value) => updateVariant(variant.id, { weight: value }), null)} /><span className={compactTableAdornmentClassName}>g</span></span></span> : <span className="inline-flex h-5 w-full justify-end"><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{variant.weight === null || variant.weight === undefined ? '—' : formatDecimalForDisplay(variant.weight)}</span><span className={compactTableAdornmentClassName}>g</span></span></span>}</td>
                   <td className="px-2 py-1.5 text-center">
                     {isTableEditable ? (
-                      <div className={`inline-flex h-5 items-center justify-center gap-1 whitespace-nowrap ${isToleranceLocked ? 'text-slate-500' : ''}`}>
+                      <div className={`inline-flex h-5 items-center justify-center whitespace-nowrap ${isToleranceLocked ? 'text-slate-500' : ''}`}>
                         <span className={compactTableAdornmentClassName}>±</span>
                         <input
                           type="text"
                           inputMode="decimal"
                           disabled={isToleranceLocked}
-                          className={`${compactTableNumberInputClassName} !mt-0 !w-10 text-center ${isToleranceLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`}
+                          maxLength={1}
+                          className={`${compactTableNumberInputClassName} !mt-0 !w-[2ch] !px-0 text-center ${isToleranceLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`}
                           value={decimalInputDrafts[decimalDraftKey(variant.id, 'errorTolerance')] ?? variant.errorTolerance ?? ''}
                           onChange={(event) => {
                             if (isToleranceLocked) return;
-                            updateDecimalInputDraft(variant.id, 'errorTolerance', event.target.value);
+                            const nextValue = event.target.value.replace(/\D/g, '').slice(0, 1);
+                            updateDecimalInputDraft(variant.id, 'errorTolerance', nextValue);
                           }}
                           onBlur={() => {
                             const key = decimalDraftKey(variant.id, 'errorTolerance');
@@ -2931,16 +2935,15 @@ export default function AdminItemEditorPage({
                             });
                           }}
                         />
-                        <span className={compactTableAdornmentClassName}>mm</span>
+                        <span className={`ml-1 ${compactTableAdornmentClassName}`}>mm</span>
                       </div>
                     ) : (
                       <span className="inline-flex h-5 items-center justify-center">
                         {variant.errorTolerance
                           ? (
-                            <span className={compactTableValueUnitShellClassName}>
-                              <span className={compactTableAdornmentClassName}>±</span>
-                              <span className="inline-flex h-5 w-10 items-center justify-center">{variant.errorTolerance.replace('.', ',')}</span>
-                              <span className={compactTableAdornmentClassName}>mm</span>
+                            <span className="inline-flex h-5 items-center whitespace-nowrap">
+                              <span>{`±${variant.errorTolerance.replace('.', ',')}`}</span>
+                              <span className={`ml-1 ${compactTableAdornmentClassName}`}>mm</span>
                             </span>
                           )
                           : '—'}
@@ -2948,10 +2951,10 @@ export default function AdminItemEditorPage({
                     )}
                   </td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-[7ch] text-right`} value={readDecimalInputValue(variant.id, 'price', variant.price)} onChange={(event) => updateDecimalInputDraft(variant.id, 'price', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'price', variant.price, (value) => updateVariant(variant.id, { price: value ?? 0 }), 0)} /><span className={compactTableAdornmentClassName}>€</span></span></span> : <span className="inline-flex h-5 w-full justify-end"><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{formatCurrencyAmountOnly(variant.price)}</span><span className={compactTableAdornmentClassName}>€</span></span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-[7ch] text-right`} value={readDecimalInputValue(variant.id, 'discountPct', variant.discountPct)} onChange={(event) => updateDecimalInputDraft(variant.id, 'discountPct', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'discountPct', variant.discountPct, (value) => updateVariant(variant.id, { discountPct: Math.min(99.9, Math.max(0, value ?? 0)) }), 0)} /><span className={compactTableAdornmentClassName}>%</span></span></span> : <span className="inline-flex h-5 w-full justify-end"><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{formatDecimalForDisplay(variant.discountPct)}</span><span className={compactTableAdornmentClassName}>%</span></span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-[3ch] !px-0.5 text-right`} value={readDecimalInputValue(variant.id, 'discountPct', variant.discountPct)} onChange={(event) => updateDecimalInputDraft(variant.id, 'discountPct', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'discountPct', variant.discountPct, (value) => updateVariant(variant.id, { discountPct: Math.min(99.9, Math.max(0, value ?? 0)) }), 0)} /><span className={compactTableAdornmentClassName}>%</span></span></span> : <span className="inline-flex h-5 w-full justify-end"><span className={compactTableValueUnitShellClassName}><span className={compactTableTwoDigitSlotClassName}>{formatDecimalForDisplay(variant.discountPct)}</span><span className={compactTableAdornmentClassName}>%</span></span></span>}</td>
                   <td className="px-2 py-1.5 text-right"><span className="inline-flex h-5 items-center justify-end">{variant.discountPct > 0 ? formatCurrency(computeSalePrice(variant.price, variant.discountPct)) : '—'}</span></td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="numeric" className={`${compactTableNumberInputClassName} !mt-0 !w-auto !max-w-[6ch] text-right`} value={variant.stock} onChange={(event) => updateVariant(variant.id, { stock: Number(event.target.value) || 0 })} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 max-w-[6ch] items-center justify-end">{variant.stock}</span></span>}</td>
-                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableNumberInputClassName} !mt-0 !w-10 text-center`} value={variant.minOrder ?? 1} onChange={(event) => updateVariant(variant.id, { minOrder: Math.max(1, Number(event.target.value) || 1) })} /> : <span className="inline-flex h-5 w-10 items-center justify-center">{variant.minOrder ?? 1}</span>}</td>
+                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableNumberInputClassName} !mt-0 !w-[3ch] !px-0 text-center`} value={variant.minOrder ?? 1} onChange={(event) => updateVariant(variant.id, { minOrder: Math.max(1, Number(event.target.value) || 1) })} /> : <span className="inline-flex h-5 w-[3ch] items-center justify-center">{variant.minOrder ?? 1}</span>}</td>
                   <td className="px-2 py-1.5 text-center">{isTableEditable ? <input className={`${orderLikeEditableInputClassName} !mt-0 !h-5 !w-[20ch] text-center`} value={variant.sku} onChange={(event) => updateVariant(variant.id, { sku: event.target.value, skuAutoGenerated: false })} /> : <span className="inline-flex h-5 w-[20ch] items-center justify-center overflow-hidden text-ellipsis whitespace-nowrap text-center">{variant.sku || '—'}</span>}</td>
                   <td className="px-1 py-1.5 text-center">
                     <div className="inline-flex justify-center">
@@ -2975,7 +2978,7 @@ export default function AdminItemEditorPage({
                       />
                     </div>
                   </td>
-                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableNumberInputClassName} !mt-0 !w-10 text-center`} value={variant.sort} onChange={(event) => updateVariant(variant.id, { sort: Number(event.target.value) || 1 })} /> : <span className="inline-flex h-5 w-10 items-center justify-center">{variant.sort}</span>}</td>
+                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableNumberInputClassName} !mt-0 !w-[3ch] !px-0 text-center`} value={variant.sort} onChange={(event) => updateVariant(variant.id, { sort: Number(event.target.value) || 1 })} /> : <span className="inline-flex h-5 w-[3ch] items-center justify-center">{variant.sort}</span>}</td>
                 </tr>
               ))}
             </tbody>

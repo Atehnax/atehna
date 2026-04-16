@@ -845,8 +845,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                       <td className="w-[11%] px-2 py-3 text-center">{isEditingFamily ? <select className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-sm" value={familyDraft.active ? 'active' : 'hidden'} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, active: event.target.value === 'active' } }))}><option value="active">Aktiven</option><option value="hidden">Skrit</option></select> : <Chip variant={family.active ? 'success' : 'warning'}>{statusLabel(family.active)}</Chip>}</td>
                       <td className="w-[12%] px-2 py-3 text-center">
                         {isEditingFamily
-                          ? <div className="inline-flex justify-center"><NoteTagChip value={(familyDraft.note || 'novo') as NoteTag} editable onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, note: next } }))} chipClassName="!h-8 !min-w-[112px] !text-[11px]" /></div>
-                          : (family.notes?.trim() ? <div className="inline-flex justify-center"><NoteTagChip value={family.notes.trim() as NoteTag} editable={false} onChange={() => {}} chipClassName="!h-8 !min-w-[112px] !text-[11px]" /></div> : '—')}
+                          ? <div className="inline-flex justify-center"><NoteTagChip value={(familyDraft.note || 'novo') as NoteTag} editable onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, note: next } }))} /></div>
+                          : (family.notes?.trim() ? <div className="inline-flex justify-center"><NoteTagChip value={family.notes.trim() as NoteTag} editable={false} onChange={() => {}} /></div> : '—')}
                       </td>
                       <td className="px-2 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'quick-edit', label: 'Hitro urejanje', icon: <PencilIcon />, onSelect: () => startFamilyEdit(family, visibleVariants) }, { key: 'save', label: 'Shrani', icon: <SaveIcon />, disabled: !isEditingFamily, onSelect: () => { void saveFamilyEdit(family, visibleVariants); } }, { key: 'edit', label: 'Uredi', onSelect: () => router.push(`/admin/artikli/${encodeURIComponent(family.slug || family.id)}`) }]} /></td>
                     </tr>
@@ -1035,12 +1035,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                                 [variant.id]: { ...draft, note: next }
                                               }))
                                             }
-                                            chipClassName="!h-8 !min-w-[112px] !text-[11px]"
                                           />
                                         </div>
                                       ) : (
                                         draft.note
-                                          ? <div className="inline-flex justify-center"><NoteTagChip value={draft.note as NoteTag} editable={false} onChange={() => {}} chipClassName="!h-8 !min-w-[112px] !text-[11px]" /></div>
+                                          ? <div className="inline-flex justify-center"><NoteTagChip value={draft.note as NoteTag} editable={false} onChange={() => {}} /></div>
                                           : '—'
                                       )}
                                     </td>

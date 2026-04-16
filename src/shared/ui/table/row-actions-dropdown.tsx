@@ -33,15 +33,16 @@ export default function RowActionsDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
 
     const handleMouseDown = (event: MouseEvent) => {
       const target = event.target as Node;
-      if (!rootRef.current?.contains(target)) {
-        setIsOpen(false);
-      }
+      if (rootRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setIsOpen(false);
     };
 
     const handleEscape = (event: KeyboardEvent) => {
@@ -90,7 +91,7 @@ export default function RowActionsDropdown({
 
       {isOpen ? (
         createPortal(
-          <div style={getMenuStyle()}>
+          <div ref={menuRef} style={getMenuStyle()}>
             <MenuPanel className={`w-28 ${menuClassName ?? ''}`.trim()}>
               {items.map((item) => (
                 <MenuItem

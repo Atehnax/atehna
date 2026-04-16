@@ -20,6 +20,7 @@ import {
   type ProductFamily,
   type Variant
 } from '@/admin/features/artikli/lib/familyModel';
+import { formatDecimalForDisplay } from '@/admin/features/artikli/lib/decimalFormat';
 import type { AdminCatalogListItem } from '@/shared/server/catalogItems';
 
 type StatusFilter = 'all' | 'active' | 'hidden';
@@ -38,7 +39,8 @@ const formatPriceRange = (minPrice: number, maxPrice: number) =>
 type ListFamily = ProductFamily & { baseSku: string; material: string | null };
 
 const getBaseSku = (family: ListFamily) => family.baseSku || family.variants[0]?.sku || '';
-const formatDimension = (value: number | null | undefined) => (typeof value === 'number' && Number.isFinite(value) ? `${value}` : null);
+const formatDimension = (value: number | null | undefined) =>
+  (typeof value === 'number' && Number.isFinite(value) ? formatDecimalForDisplay(value) : null);
 
 function buildVariantDisplayLabel(family: ListFamily, variant: Variant): string {
   const material = family.material?.trim() ?? '';

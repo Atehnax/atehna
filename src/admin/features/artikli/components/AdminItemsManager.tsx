@@ -209,6 +209,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [variantDrafts, setVariantDrafts] = useState<
     Record<string, { label: string; sku: string; price: number; discountPct: number; stock: number; active: boolean; minOrder: number; note: NoteValue; position: number }>
   >({});
+  const [familyOverrides, setFamilyOverrides] = useState<Record<string, Partial<ListFamily>>>({});
   const [categoryPaths, setCategoryPaths] = useState<string[]>([]);
   const [sortState, setSortState] = useState<SortState>(null);
   const [variantCountRange, setVariantCountRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
@@ -225,7 +226,19 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const noteFilterButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const families = useMemo(() => toListFamilies(items), [items]);
-  const categories = useMemo(() => Array.from(new Set(families.map((family) => family.category))).sort((a, b) => a.localeCompare(b, 'sl')), [families]);
+  const effectiveFamilies = useMemo(
+    () =>
+      families.map((family) => {
+        const override = familyOverrides[family.id];
+        return override ? { ...family, ...override } : family;
+      }),
+    [families, familyOverrides]
+  );
+  const categories = useMemo(() => Array.from(new Set(effectiveFamilies.map((family) => family.category))).sort((a, b) => a.localeCompare(b, 'sl')), [effectiveFamilies]);
+
+  useEffect(() => {
+    setFamilyOverrides({});
+  }, [items]);
 
   useEffect(() => {
     let cancelled = false;
@@ -236,13 +249,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         const payload = (await response.json()) as { paths?: string[] };
         const nextPaths = Array.isArray(payload.paths) ? payload.paths : [];
         if (cancelled) return;
-        const fromRows = families
+        const fromRows = effectiveFamilies
           .map((family) => family.categoryPath.join(' / '))
           .filter((entry) => entry.length > 0);
         setCategoryPaths(Array.from(new Set([...fromRows, ...nextPaths])));
       } catch {
         if (cancelled) return;
-        const fallback = families
+        const fallback = effectiveFamilies
           .map((family) => family.categoryPath.join(' / '))
           .filter((entry) => entry.length > 0);
         setCategoryPaths(Array.from(new Set(fallback)));
@@ -252,11 +265,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     return () => {
       cancelled = true;
     };
-  }, [families]);
+  }, [effectiveFamilies]);
 
   const filteredFamilies = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return families.filter((family) => {
+    return effectiveFamilies.filter((family) => {
       const matchesSearch =
         q.length === 0 ||
         family.name.toLowerCase().includes(q) ||
@@ -270,7 +283,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       const matchesNote = noteFilter === 'all' || familyNote === noteFilter;
       return matchesSearch && matchesCategory && matchesStatus && matchesDiscount && matchesNote;
     });
-  }, [categoryFilter, discountFilter, families, noteFilter, search, statusFilter]);
+  }, [categoryFilter, discountFilter, effectiveFamilies, noteFilter, search, statusFilter]);
 
   const flatVariants = useMemo(() => {
     const rows: Array<{ family: ProductFamily; variant: Variant }> = [];
@@ -540,6 +553,17 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
           };
         }
       });
+      setFamilyOverrides((current) => ({
+        ...current,
+        [family.id]: {
+          name: draft.name,
+          baseSku: draft.sku,
+          category: draft.categoryPath.join(' / '),
+          categoryPath: draft.categoryPath,
+          active: draft.active,
+          notes: draft.note
+        }
+      }));
       setEditingFamilyId(null);
       router.refresh();
     } catch (error) {
@@ -954,7 +978,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                           </div>
                         )}
                       </td>
-                      <td className="w-[6.83%] px-2 py-3 text-right">{singleRowLike && isEditingFamily ? <input type="number" step="0.01" className={ROW_EDIT_INPUT_CLASS} value={familyDraft.price} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, price: Number(event.target.value) || 0 } }))} /> : formatCurrencyRange(minPrice, maxPrice)}</td>
+                      <td className="w-[6.83%] whitespace-nowrap px-2 py-3 text-right">{singleRowLike && isEditingFamily ? <input type="number" step="0.01" className={ROW_EDIT_INPUT_CLASS} value={familyDraft.price} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, price: Number(event.target.value) || 0 } }))} /> : formatCurrencyRange(minPrice, maxPrice)}</td>
                       <td className="w-[6.83%] px-2 py-3 text-right text-emerald-700">{singleRowLike && isEditingFamily ? <input type="number" className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-right text-sm" value={familyDraft.discountPct} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, discountPct: Number(event.target.value) || 0 } }))} /> : formatPercentRange(discounts)}</td>
                       <td className="w-[10.33%] px-2 py-3 text-right">{singleRowLike ? (familyDraft.discountPct > 0 ? formatCurrency(computeSalePrice(familyDraft.price, familyDraft.discountPct)) : '—') : (() => {
                         const discounted = visibleVariants.filter((variant) => variant.discountPct > 0).map((variant) => computeSalePrice(variant.price, variant.discountPct));

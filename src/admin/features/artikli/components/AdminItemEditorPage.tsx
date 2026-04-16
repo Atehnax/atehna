@@ -2868,7 +2868,10 @@ export default function AdminItemEditorPage({
                         editable={isTableEditable}
                         chipClassName="!h-5 !min-w-[94px] !px-1.5 !text-[10px]"
                         menuPlacement="bottom"
-                        onChange={(next) => setVariantTag(variant.id, next)}
+                        onChange={(next) => {
+                          if (!next) return;
+                          setVariantTag(variant.id, next);
+                        }}
                       />
                     </div>
                   </td>

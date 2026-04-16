@@ -6,19 +6,24 @@ import { Chip } from '@/shared/ui/badge';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 
 export type NoteTag = 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
+type NoteTagValue = NoteTag | '';
 
 export function NoteTagChip({
   value,
   editable,
   onChange,
   chipClassName,
-  menuPlacement = 'bottom'
+  menuPlacement = 'bottom',
+  allowEmpty = false,
+  placeholderLabel = 'Opombe'
 }: {
-  value: NoteTag;
+  value: NoteTagValue;
   editable: boolean;
-  onChange: (next: NoteTag) => void;
+  onChange: (next: NoteTagValue) => void;
   chipClassName?: string;
   menuPlacement?: 'top' | 'bottom';
+  allowEmpty?: boolean;
+  placeholderLabel?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
@@ -26,15 +31,17 @@ export function NoteTagChip({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const label =
-    value === 'novo'
+    value === ''
+      ? placeholderLabel
+      : value === 'novo'
       ? 'Novo'
       : value === 'akcija'
         ? 'V akciji'
         : value === 'ni-na-zalogi'
           ? 'Ni na zalogi'
           : 'Zadnji kosi';
-  const variant = value === 'novo' ? 'info' : value === 'akcija' ? 'danger' : value === 'ni-na-zalogi' ? 'neutral' : 'purple';
-  const emphasisClassName = value === 'akcija' ? '!border-rose-200 !bg-rose-50 !text-rose-700' : '';
+  const variant = value === '' ? 'neutral' : value === 'novo' ? 'info' : value === 'akcija' ? 'danger' : value === 'ni-na-zalogi' ? 'neutral' : 'purple';
+  const emphasisClassName = value === 'akcija' ? '!border-rose-200 !bg-rose-50 !text-rose-700' : value === '' ? 'text-slate-600' : '';
 
   const updateMenuPosition = useCallback(() => {
     if (!triggerRef.current) return;
@@ -97,6 +104,7 @@ export function NoteTagChip({
               style={{ top: menuPosition.top, left: menuPosition.left }}
             >
               <MenuPanel>
+                {allowEmpty ? <MenuItem onClick={() => { onChange(''); setIsOpen(false); }}>{placeholderLabel}</MenuItem> : null}
                 <MenuItem onClick={() => { onChange('novo'); setIsOpen(false); }}>Novo</MenuItem>
                 <MenuItem onClick={() => { onChange('akcija'); setIsOpen(false); }}>V akciji</MenuItem>
                 <MenuItem onClick={() => { onChange('zadnji-kosi'); setIsOpen(false); }}>Zadnji kosi</MenuItem>

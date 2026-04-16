@@ -686,7 +686,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     Artikel
                   </button>
                 </TH>
-                <TH className="w-[14%]">
+                <TH className="w-[13%]">
                   <button type="button" className={getSortTitleClass('sku')} onClick={() => cycleSort('sku')}>
                     SKU
                   </button>
@@ -795,7 +795,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     ) : null}
                   </div>
                 </TH>
-                <TH className="w-[7%] whitespace-nowrap text-right">Akcijska cena</TH>
+                <TH className="w-[8%] whitespace-nowrap text-right">Akcijska cena</TH>
                 <TH className="w-[10.25%] whitespace-nowrap px-0 text-center">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('status')} onClick={() => cycleSort('status')}>
@@ -915,7 +915,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                 <th className="w-[25%] px-2 py-2 text-left">Različica</th>
                                 <th className="w-[20%] px-2 py-2 text-left">SKU</th>
                                 <th className="w-[10.33%] px-2 py-2 text-right">Cena</th>
-                                <th className="w-[10.33%] px-2 py-2 text-center">Popust</th>
+                                <th className="w-[10.33%] px-2 py-2 text-right">Popust</th>
                                 <th className="w-[10.33%] px-2 py-2 text-right">Akcijska cena</th>
                                 <th className="w-[120px] px-2 py-2 text-center">Status</th>
                                 <th className="w-[124px] px-2 py-2 text-center">Opombe</th>
@@ -985,7 +985,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         draft.sku
                                       )}
                                     </td>
-                                    <td className="px-2 py-2 text-right">
+                                    <td className="w-[10.33%] px-2 py-2 text-right">
                                       {isEditing ? (
                                         <input
                                           type="number"
@@ -1003,7 +1003,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         formatCurrency(draft.price)
                                       )}
                                     </td>
-                                    <td className="px-2 py-2 text-center text-emerald-700">
+                                    <td className="w-[10.33%] px-2 py-2 text-right text-emerald-700">
                                       {isEditing ? (
                                         <input
                                           type="number"
@@ -1022,7 +1022,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         `${draft.discountPct}%`
                                       )}
                                     </td>
-                                    <td className="px-2 py-2 text-right">{actionPrice === null ? '—' : formatCurrency(actionPrice)}</td>
+                                    <td className="w-[10.33%] px-2 py-2 text-right">{actionPrice === null ? '—' : formatCurrency(actionPrice)}</td>
                                     <td className="w-[120px] px-2 py-2 text-center">
                                       <div className="inline-flex justify-center">
                                         <ActiveStateChip

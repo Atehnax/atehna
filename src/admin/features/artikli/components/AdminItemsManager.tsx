@@ -44,6 +44,7 @@ type SortState =
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
 type ListFamily = ProductFamily & { baseSku: string; material: string | null; categoryPath: string[] };
 type NoteValue = '' | NoteTag;
+type FamilyDraft = { name: string; sku: string; categoryPath: string[]; active: boolean; note: NoteValue; price: number; discountPct: number; stock: number; minOrder: number };
 const ROW_EDIT_INPUT_CLASS = 'h-7 w-full rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0';
 const STATUS_COLUMN_CLASS = 'w-[120px] min-w-[120px] max-w-[120px]';
 const NOTE_COLUMN_CLASS = 'w-[124px] min-w-[124px] max-w-[124px]';
@@ -206,9 +207,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
   const [editingFamilyId, setEditingFamilyId] = useState<string | null>(null);
   const [deletedVariantIds, setDeletedVariantIds] = useState<Set<string>>(new Set());
-  const [familyDrafts, setFamilyDrafts] = useState<
-    Record<string, { name: string; sku: string; categoryPath: string[]; active: boolean; note: NoteValue; price: number; discountPct: number; stock: number; minOrder: number }>
-  >({});
+  const [familyDrafts, setFamilyDrafts] = useState<Record<string, FamilyDraft>>({});
   const [variantDrafts, setVariantDrafts] = useState<
     Record<string, { label: string; sku: string; price: number; discountPct: number; stock: number; active: boolean; minOrder: number; note: NoteValue; position: number }>
   >({});
@@ -533,8 +532,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       }
     }));
   };
-  const saveFamilyEdit = async (family: ListFamily, variants: Variant[]) => {
-    const draft = familyDrafts[family.id];
+  const updateFamilyDraft = (familyId: string, mutate: (draft: FamilyDraft) => FamilyDraft) =>
+    setFamilyDrafts((current) => {
+      const draft = current[familyId];
+      if (!draft) return current;
+      return { ...current, [familyId]: mutate(draft) };
+    });
+  const saveFamilyEdit = async (family: ListFamily, variants: Variant[], draft: FamilyDraft) => {
     if (!draft) return;
     try {
       const nextItemLevelNote = (draft.note || 'na-zalogi') as NoteValue;
@@ -988,13 +992,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                         const discounted = visibleVariants.filter((variant) => variant.discountPct > 0).map((variant) => computeSalePrice(variant.price, variant.discountPct));
                         return discounted.length ? formatCurrencyRangeFromValues(discounted) : '—';
                       })()}</td>
-                      <td className={`${STATUS_COLUMN_CLASS} px-0 py-3 text-center`}><div className={STATUS_NOTE_CELL_INNER_CLASS}><ActiveStateChip active={familyDraft.active} editable={isEditingFamily} editScope={`family:${family.id}`} chipClassName="!min-w-[92px] !text-[11px]" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, active: next } }))} /></div></td>
+                      <td className={`${STATUS_COLUMN_CLASS} px-0 py-3 text-center`}><div className={STATUS_NOTE_CELL_INNER_CLASS}><ActiveStateChip active={familyDraft.active} editable={isEditingFamily} editScope={`family:${family.id}`} chipClassName="!min-w-[92px] !text-[11px]" onChange={(next) => updateFamilyDraft(family.id, (current) => ({ ...current, active: next }))} /></div></td>
                       <td className={`${NOTE_COLUMN_CLASS} px-0 py-3 text-center`}>
                         {isEditingFamily
-                          ? <div className={STATUS_NOTE_CELL_INNER_CLASS}><NoteTagChip value={(familyDraft.note || 'na-zalogi') as NoteTag} editable editScope={`family:${family.id}`} chipClassName="!min-w-[97px] !text-[11px]" placeholderLabel="Opombe" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, note: (next || 'na-zalogi') as NoteValue } }))} /></div>
+                          ? <div className={STATUS_NOTE_CELL_INNER_CLASS}><NoteTagChip value={(familyDraft.note || 'na-zalogi') as NoteTag} editable editScope={`family:${family.id}`} chipClassName="!min-w-[97px] !text-[11px]" placeholderLabel="Opombe" onChange={(next) => updateFamilyDraft(family.id, (current) => ({ ...current, note: (next || 'na-zalogi') as NoteValue }))} /></div>
                           : <div className={STATUS_NOTE_CELL_INNER_CLASS}><NoteTagChip value={(normalizeNoteValue(family.notes) || 'na-zalogi') as NoteTag} editable={false} editScope={`family:${family.id}`} chipClassName="!min-w-[97px] !text-[11px]" placeholderLabel="Opombe" onChange={() => {}} /></div>}
                       </td>
-                      <td className="w-[5%] px-2 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'quick-edit', label: 'Hitro urejanje', icon: <PencilIcon />, onSelect: () => startFamilyEdit(family, visibleVariants) }, { key: 'save', label: 'Shrani', icon: <SaveIcon />, disabled: !isEditingFamily, onSelect: () => { void saveFamilyEdit(family, visibleVariants); } }, { key: 'edit', label: 'Uredi', onSelect: () => router.push(`/admin/artikli/${encodeURIComponent(family.slug || family.id)}`) }]} /></td>
+                      <td className="w-[5%] px-2 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'quick-edit', label: 'Hitro urejanje', icon: <PencilIcon />, onSelect: () => startFamilyEdit(family, visibleVariants) }, { key: 'save', label: 'Shrani', icon: <SaveIcon />, disabled: !isEditingFamily, onSelect: () => { void saveFamilyEdit(family, visibleVariants, familyDraft); } }, { key: 'edit', label: 'Uredi', onSelect: () => router.push(`/admin/artikli/${encodeURIComponent(family.slug || family.id)}`) }]} /></td>
                     </tr>
                     {isExpanded && hasSubtable ? (
                       <tr className="border-t border-slate-100 bg-slate-50/70">

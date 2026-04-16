@@ -29,7 +29,8 @@ import { formatDecimalForDisplay } from '@/admin/features/artikli/lib/decimalFor
 import ActiveStateChip from '@/admin/features/artikli/components/ActiveStateChip';
 import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/AdminCategoryBreadcrumbPicker';
 import { NoteTagChip, type NoteTag } from '@/admin/features/artikli/components/NoteTagChip';
-import type { AdminCatalogListItem, CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/server/catalogItems';
+import type { AdminCatalogListItem } from '@/shared/server/catalogItems';
+import { updateCatalogItemBySlug } from '@/admin/features/artikli/lib/canonicalSaveClient';
 
 type StatusFilter = 'all' | 'active' | 'inactive';
 type DiscountFilter = 'all' | 'yes' | 'no';
@@ -144,56 +145,6 @@ function toListFamilies(items: AdminCatalogListItem[]): ListFamily[] {
   });
 }
 
-function toUpsertPayload(item: CatalogItemEditorHydration): CatalogItemEditorPayload {
-  return {
-    itemName: item.itemName,
-    itemType: item.itemType,
-    badge: item.badge,
-    status: item.status,
-    categoryPath: item.categoryPath,
-    sku: item.sku,
-    slug: item.slug,
-    unit: item.unit,
-    brand: item.brand,
-    material: item.material,
-    colour: item.colour,
-    shape: item.shape,
-    description: item.description,
-    adminNotes: item.adminNotes,
-    position: item.position,
-    variants: item.variants.map((variant) => ({
-      variantName: variant.variantName,
-      length: variant.length,
-      width: variant.width,
-      thickness: variant.thickness,
-      weight: variant.weight,
-      errorTolerance: variant.errorTolerance,
-      price: variant.price,
-      discountPct: variant.discountPct,
-      inventory: variant.inventory,
-      minOrder: variant.minOrder,
-      variantSku: variant.variantSku,
-      unit: variant.unit,
-      status: variant.status,
-      badge: variant.badge,
-      position: variant.position
-    })),
-    media: item.media.map((media) => ({
-      mediaKind: media.mediaKind,
-      role: media.role,
-      sourceKind: media.sourceKind,
-      filename: media.filename,
-      blobUrl: media.blobUrl,
-      blobPathname: media.blobPathname,
-      externalUrl: media.externalUrl,
-      mimeType: media.mimeType,
-      altText: media.altText,
-      position: media.position,
-      variantIndex: media.variantIndex
-    }))
-  };
-}
-
 export default function AdminItemsManager({ items }: { items: AdminCatalogListItem[] }) {
   const router = useRouter();
   const [search, setSearch] = useState('');
@@ -212,7 +163,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [variantDrafts, setVariantDrafts] = useState<
     Record<string, { label: string; sku: string; price: number; discountPct: number; stock: number; active: boolean; minOrder: number; note: NoteValue; position: number }>
   >({});
-  const [familyOverrides, setFamilyOverrides] = useState<Record<string, Partial<ListFamily>>>({});
   const [categoryPaths, setCategoryPaths] = useState<string[]>([]);
   const [sortState, setSortState] = useState<SortState>(null);
   const [variantCountRange, setVariantCountRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
@@ -229,19 +179,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const noteFilterButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const families = useMemo(() => toListFamilies(items), [items]);
-  const effectiveFamilies = useMemo(
-    () =>
-      families.map((family) => {
-        const override = familyOverrides[family.id];
-        return override ? { ...family, ...override } : family;
-      }),
-    [families, familyOverrides]
-  );
+  const effectiveFamilies = families;
   const categories = useMemo(() => Array.from(new Set(effectiveFamilies.map((family) => family.category))).sort((a, b) => a.localeCompare(b, 'sl')), [effectiveFamilies]);
-
-  useEffect(() => {
-    setFamilyOverrides({});
-  }, [items]);
 
   useEffect(() => {
     let cancelled = false;
@@ -453,25 +392,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
 
   const allVisibleFamilyIds = useMemo(() => new Set(pagedFamilies.map((row) => row.family.id)), [pagedFamilies]);
   const familiesSelectedOnPage = pagedFamilies.length > 0 && pagedFamilies.every((row) => selectedFamilyIds.has(row.family.id));
-  const persistItemByIdentifier = async (
-    itemIdentifier: string,
-    mutate: (payload: CatalogItemEditorPayload, hydration: CatalogItemEditorHydration) => void
-  ) => {
-    const readResponse = await fetch(`/api/admin/artikli/${encodeURIComponent(itemIdentifier)}`, { cache: 'no-store' });
-    if (!readResponse.ok) throw new Error('Nalagam podatke artikla ni uspelo.');
-    const hydration = (await readResponse.json()) as CatalogItemEditorHydration;
-    const payload = toUpsertPayload(hydration);
-    mutate(payload, hydration);
-    const saveResponse = await fetch('/api/admin/artikli', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    if (!saveResponse.ok) {
-      const body = (await saveResponse.json().catch(() => ({}))) as { message?: string };
-      throw new Error(body.message || 'Shranjevanje artikla ni uspelo.');
-    }
-  };
+  const persistItemBySlug = async (itemSlug: string, mutate: Parameters<typeof updateCatalogItemBySlug>[1]) => updateCatalogItemBySlug(itemSlug, mutate);
   const startVariantEdit = (variant: Variant) => {
     setEditingVariantId(variant.id);
     setVariantDrafts((current) => ({
@@ -493,7 +414,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     const draft = variantDrafts[variantId];
     if (!draft) return;
     try {
-      await persistItemByIdentifier(family.id, (payload, hydration) => {
+      if (!family.slug) throw new Error('Artikel nima veljavnega identifikatorja (slug).');
+      await persistItemBySlug(family.slug, (payload, hydration) => {
         const index = hydration.variants.findIndex((variant) => String(variant.id) === variantId);
         if (index < 0 || !payload.variants[index]) return;
         payload.variants[index] = {
@@ -543,7 +465,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     if (!draft) return;
     try {
       const nextItemLevelNote = (draft.badge || 'na-zalogi') as NoteValue;
-      await persistItemByIdentifier(family.id, (payload) => {
+      if (!family.slug) throw new Error('Artikel nima veljavnega identifikatorja (slug).');
+      await persistItemBySlug(family.slug, (payload) => {
         payload.itemName = draft.name;
         payload.sku = draft.sku || null;
         payload.status = draft.active ? 'active' : 'inactive';
@@ -562,17 +485,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
           };
         }
       });
-      setFamilyOverrides((current) => ({
-        ...current,
-        [family.id]: {
-          name: draft.name,
-          baseSku: draft.sku,
-          category: draft.categoryPath.join(' / '),
-          categoryPath: draft.categoryPath,
-          active: draft.active,
-          itemBadge: nextItemLevelNote
-        }
-      }));
       setEditingFamilyId(null);
       router.refresh();
     } catch (error) {

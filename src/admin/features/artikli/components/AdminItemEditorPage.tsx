@@ -42,8 +42,9 @@ import ActiveStateChip from '@/admin/features/artikli/components/ActiveStateChip
 import OpisColorPopover from '@/admin/features/artikli/components/OpisColorPopover';
 import UploadedImageCropperModal from '@/admin/features/artikli/components/UploadedImageCropperModal';
 import { NoteTagChip, type NoteTag } from '@/admin/features/artikli/components/NoteTagChip';
+import { saveCatalogItemPayload } from '@/admin/features/artikli/lib/canonicalSaveClient';
 import Dialog from '@/shared/ui/dialog/dialog';
-import type { CatalogItemEditorHydration } from '@/shared/server/catalogItems';
+import type { CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/server/catalogItems';
 
 const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0';
 const numberInputClass = '[-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
@@ -1168,7 +1169,7 @@ export default function AdminItemEditorPage({
       return;
     }
 
-    const payload = {
+    const payload: CatalogItemEditorPayload = {
       itemName: draft.name.trim(),
       itemType: (initialData?.itemType ?? 'unit') as 'unit' | 'sheet' | 'linear' | 'bulk',
       badge: itemLevelNote || null,
@@ -1242,15 +1243,7 @@ export default function AdminItemEditorPage({
     };
 
     try {
-      const response = await fetch('/api/admin/artikli', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const body = (await response.json().catch(() => ({}))) as { slug?: string; message?: string };
-      if (!response.ok) {
-        throw new Error(body.message || 'Shranjevanje artikla ni uspelo.');
-      }
+      const body = await saveCatalogItemPayload(payload);
       toast.success(asDraft ? 'Osnutek shranjen.' : 'Artikel shranjen.');
       if (body.slug) {
         router.push(`/admin/artikli/${encodeURIComponent(body.slug)}`);

@@ -3,7 +3,6 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
-import { Chip } from '@/shared/ui/badge';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
@@ -20,6 +19,7 @@ import {
   type Variant
 } from '@/admin/features/artikli/lib/familyModel';
 import { formatDecimalForDisplay } from '@/admin/features/artikli/lib/decimalFormat';
+import ActiveStateChip from '@/admin/features/artikli/components/ActiveStateChip';
 import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/AdminCategoryBreadcrumbPicker';
 import { NoteTagChip, type NoteTag } from '@/admin/features/artikli/components/NoteTagChip';
 import type { AdminCatalogListItem, CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/server/catalogItems';
@@ -38,10 +38,6 @@ const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0
 type ListFamily = ProductFamily & { baseSku: string; material: string | null; categoryPath: string[] };
 type NoteValue = '' | NoteTag;
 const ROW_EDIT_INPUT_CLASS = 'h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0';
-const STATUS_OPTIONS = [
-  { value: 'active', label: 'Aktiven' },
-  { value: 'inactive', label: 'Neaktiven' }
-] as const;
 
 const getBaseSku = (family: ListFamily) => family.baseSku || family.variants[0]?.sku || '';
 const formatRangeValue = (values: number[], formatter: (value: number) => string) => {
@@ -67,6 +63,14 @@ const formatCurrencyRange = (minValue: number, maxValue: number) =>
     ? formatCurrencyWithSuffix(minValue)
     : `${formatCurrencyAmountOnly(minValue)} – ${formatCurrencyAmountOnly(maxValue)} €`;
 const itemStatusLabel = (active: boolean) => (active ? 'Aktiven' : 'Neaktiven');
+const formatPercentRange = (values: number[]) => {
+  if (!values.length) return '—';
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const minLabel = formatDecimalForDisplay(min);
+  const maxLabel = formatDecimalForDisplay(max);
+  return min === max ? `${maxLabel}%` : `${minLabel} – ${maxLabel}%`;
+};
 
 function toListFamilies(items: AdminCatalogListItem[]): ListFamily[] {
   return items.map((item, itemIndex) => {
@@ -875,21 +879,21 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                               value={familyDraft.categoryPath}
                               onChange={(nextPath) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, categoryPath: nextPath } }))}
                               categoryPaths={categoryPaths}
-                              className="flex h-8 items-center rounded-md border border-slate-300 bg-white px-2 !py-0"
+                              className="flex h-8 items-center rounded-md border border-slate-300 bg-white px-2 !py-0 text-sm [&_*]:text-sm"
                             />
                           </div>
                         ) : (family.categoryPath.join(' / ') || family.category)}
                       </td>
                       <td className="px-2 py-3 text-center">{variantCount}</td>
                       <td className="px-2 py-3 text-right">{singleRowLike && isEditingFamily ? <input type="number" step="0.01" className={ROW_EDIT_INPUT_CLASS} value={familyDraft.price} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, price: Number(event.target.value) || 0 } }))} /> : formatCurrencyRange(minPrice, maxPrice)}</td>
-                      <td className="px-2 py-3 text-center text-emerald-700">{singleRowLike && isEditingFamily ? <input type="number" className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-center text-sm" value={familyDraft.discountPct} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, discountPct: Number(event.target.value) || 0 } }))} /> : formatRangeValue(discounts, (value) => `${formatDecimalForDisplay(value)}%`)}</td>
+                      <td className="px-2 py-3 text-center text-emerald-700">{singleRowLike && isEditingFamily ? <input type="number" className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-center text-sm" value={familyDraft.discountPct} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, discountPct: Number(event.target.value) || 0 } }))} /> : formatPercentRange(discounts)}</td>
                       <td className="px-2 py-3 text-right">{singleRowLike ? (familyDraft.discountPct > 0 ? formatCurrency(computeSalePrice(familyDraft.price, familyDraft.discountPct)) : '—') : (() => {
                         const discounted = visibleVariants.filter((variant) => variant.discountPct > 0).map((variant) => computeSalePrice(variant.price, variant.discountPct));
                         return discounted.length ? formatRangeValue(discounted, formatCurrency) : '—';
                       })()}</td>
                       <td className="px-2 py-3 text-right">{singleRowLike && isEditingFamily ? <input type="number" className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-right text-sm" value={familyDraft.stock} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, stock: Number(event.target.value) || 0 } }))} /> : formatRangeValue(stocks, (value) => `${value}`)}</td>
                       <td className="px-2 py-3 text-center">{singleRowLike && isEditingFamily ? <input type="number" className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-center text-sm" value={familyDraft.minOrder} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, minOrder: Number(event.target.value) || 1 } }))} /> : formatRangeValue(minOrders, (value) => `${value}`)}</td>
-                      <td className="w-[11%] px-2 py-3 text-center">{isEditingFamily ? <select className={ROW_EDIT_INPUT_CLASS} value={familyDraft.active ? 'active' : 'inactive'} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, active: event.target.value === 'active' } }))}>{STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select> : <Chip variant={family.active ? 'success' : 'neutral'}>{itemStatusLabel(family.active)}</Chip>}</td>
+                      <td className="w-[11%] px-2 py-3 text-center"><div className="inline-flex justify-center"><ActiveStateChip active={familyDraft.active} editable={isEditingFamily} onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, active: next } }))} /></div></td>
                       <td className="w-[12%] px-2 py-3 text-center">
                         {isEditingFamily
                           ? <div className="inline-flex justify-center"><NoteTagChip value={familyDraft.note} editable allowEmpty placeholderLabel="Opombe" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, note: next as NoteValue } }))} /></div>
@@ -906,9 +910,9 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                               <tr className="border-b border-slate-200 text-slate-600">
                                 <th className="px-2 py-2" />
                                 <th className="w-[26%] px-2 py-2 text-left">Različica</th>
-                                <th className="w-[16%] px-2 py-2 text-left">SKU</th>
+                                <th className="w-[20%] px-2 py-2 text-left">SKU</th>
                                 <th className="w-[12%] px-2 py-2 text-right">Cena</th>
-                                <th className="w-[8%] px-2 py-2 text-center">Popust</th>
+                                <th className="w-[4%] px-2 py-2 text-center">Popust</th>
                                 <th className="w-[14%] px-2 py-2 text-right">Akcijska cena</th>
                                 <th className="w-[8%] px-2 py-2 text-right">Zaloga</th>
                                 <th className="w-[8%] px-2 py-2 text-center">Min/nar.</th>
@@ -1053,24 +1057,18 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                       )}
                                     </td>
                                     <td className="px-2 py-2 text-center">
-                                      {isEditing ? (
-                                        <select
-                                          className={ROW_EDIT_INPUT_CLASS}
-                                          value={draft.active ? 'active' : 'inactive'}
-                                          onChange={(event) =>
+                                      <div className="inline-flex justify-center">
+                                        <ActiveStateChip
+                                          active={draft.active}
+                                          editable={isEditing}
+                                          onChange={(next) =>
                                             setVariantDrafts((current) => ({
                                               ...current,
-                                              [variant.id]: { ...draft, active: event.target.value === 'active' }
+                                              [variant.id]: { ...draft, active: next }
                                             }))
                                           }
-                                        >
-                                          {STATUS_OPTIONS.map((option) => (
-                                            <option key={option.value} value={option.value}>{option.label}</option>
-                                          ))}
-                                        </select>
-                                      ) : (
-                                        <Chip variant={draft.active ? 'success' : 'neutral'}>{itemStatusLabel(draft.active)}</Chip>
-                                      )}
+                                        />
+                                      </div>
                                     </td>
                                     <td className="px-2 py-2 text-center">
                                       {isEditing ? (

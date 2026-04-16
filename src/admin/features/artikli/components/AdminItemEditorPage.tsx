@@ -1225,6 +1225,7 @@ export default function AdminItemEditorPage({
     return next;
   });
   const [editingImageSlot, setEditingImageSlot] = useState<number | null>(null);
+  const [decimalInputDrafts, setDecimalInputDrafts] = useState<Record<string, string>>({});
   const [imageSettings, setImageSettings] = useState<Record<number, ImageSettings>>(() => {
     const settings: Record<number, ImageSettings> = {};
     const imageMedia = initialData?.media
@@ -1236,6 +1237,8 @@ export default function AdminItemEditorPage({
     return settings;
   });
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() => initialData?.categoryPath ?? []);
+
+  const decimalDraftKey = (variantId: string, field: string) => `${variantId}:${field}`;
 
   useEffect(() => {
     setDraft((current) => ({ ...current, category: selectedCategoryPath.join(' / ') }));
@@ -1716,6 +1719,46 @@ export default function AdminItemEditorPage({
         ...current,
         variants: current.variants.map((variant) => (variant.id === variantId ? { ...variant, ...updates } : variant))
       };
+    });
+  };
+
+  const readDecimalInputValue = (variantId: string, field: string, value: number | null | undefined) => {
+    const key = decimalDraftKey(variantId, field);
+    return decimalInputDrafts[key] ?? formatDecimalForDisplay(value);
+  };
+
+  const updateDecimalInputDraft = (variantId: string, field: string, raw: string) => {
+    if (!/^-?\d*(?:[.,]\d*)?$/.test(raw.trim()) && raw.trim() !== '') return;
+    const key = decimalDraftKey(variantId, field);
+    setDecimalInputDrafts((current) => ({ ...current, [key]: raw }));
+  };
+
+  const commitDecimalInputDraft = (
+    variantId: string,
+    field: string,
+    fallbackValue: number | null | undefined,
+    onCommit: (value: number | null) => void,
+    emptyFallback: number | null
+  ) => {
+    const key = decimalDraftKey(variantId, field);
+    const raw = decimalInputDrafts[key] ?? formatDecimalForDisplay(fallbackValue);
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      onCommit(emptyFallback);
+      setDecimalInputDrafts((current) => {
+        const next = { ...current };
+        delete next[key];
+        return next;
+      });
+      return;
+    }
+    const parsed = parseDecimalInput(trimmed);
+    if (parsed === null) return;
+    onCommit(parsed);
+    setDecimalInputDrafts((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
     });
   };
 
@@ -2760,11 +2803,11 @@ export default function AdminItemEditorPage({
                       className="whitespace-nowrap hover:text-slate-900 disabled:cursor-not-allowed disabled:text-slate-400"
                       disabled={isGeneratorLocked}
                       onClick={() => {
-                        setGeneratorInput(`${generatorDimensionLabels[chip.dimension]}: ${chip.values.join(',')}`);
+                        setGeneratorInput(`${generatorDimensionLabels[chip.dimension]}: ${chip.values.map((value) => formatDecimalForDisplay(value)).join(',')}`);
                         setGeneratorChips((current) => current.filter((entry) => entry.dimension !== chip.dimension));
                       }}
                     >
-                      {`${generatorDimensionLabels[chip.dimension]}: ${chip.values.join(', ')}`}
+                      {`${generatorDimensionLabels[chip.dimension]}: ${chip.values.map((value) => formatDecimalForDisplay(value)).join(', ')}`}
                     </button>
                     <button
                       type="button"
@@ -2834,10 +2877,10 @@ export default function AdminItemEditorPage({
                 <th className="px-2 py-2 text-right">Dolžina</th>
                 <th className="px-2 py-2 text-right">Širina/fi</th>
                 <th className="px-2 py-2 text-right">Debelina</th>
-                <th className="px-2 py-2 text-right">Teža (g)</th>
+                <th className="px-2 py-2 text-right">Teža</th>
                 <th className="px-2 py-2 text-center">Toleranca</th>
                 <th className="px-2 py-2 text-right">Cena</th>
-                <th className="px-2 py-2 text-right">Popust %</th>
+                <th className="px-2 py-2 text-right">Popust</th>
                 <th className="px-2 py-2 text-right">Akcijska cena</th>
                 <th className="px-2 py-2 text-right">Zaloga</th>
                 <th className="px-2 py-2 text-center">Min/nar.</th>
@@ -2851,34 +2894,44 @@ export default function AdminItemEditorPage({
               {draft.variants.map((variant, index) => (
                 <tr key={variant.id} className="h-8 border-t border-slate-100 align-middle">
                   <td className="px-2 py-1.5 text-center"><AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} disabled={!isTableEditable} /></td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="text" inputMode="decimal" disabled={isDimensionLockActive} className={`${compactTableNumberInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={formatDecimalForDisplay(variant.length)} onChange={(event) => { const parsed = parseDecimalInput(event.target.value); if (parsed === null && event.target.value.trim() !== '') return; updateVariant(variant.id, { length: parsed }); }} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.length === null ? '—' : formatDecimalForDisplay(variant.length)}</span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="text" inputMode="decimal" disabled={isDimensionLockActive} className={`${compactTableNumberInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={formatDecimalForDisplay(variant.width)} onChange={(event) => { const parsed = parseDecimalInput(event.target.value); if (parsed === null && event.target.value.trim() !== '') return; updateVariant(variant.id, { width: parsed }); }} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.width === null ? '—' : formatDecimalForDisplay(variant.width)}</span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="text" inputMode="decimal" disabled={isThicknessLockActive} className={`${compactTableNumberInputClassName} !w-[7ch] text-right ${isThicknessLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={formatDecimalForDisplay(variant.thickness)} onChange={(event) => { const parsed = parseDecimalInput(event.target.value); if (parsed === null && event.target.value.trim() !== '') return; updateVariant(variant.id, { thickness: parsed }); }} /></span> : <span className={`inline-flex h-5 w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.thickness === null ? '—' : formatDecimalForDisplay(variant.thickness)}</span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="text" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-[7ch] text-right`} value={formatDecimalForDisplay(variant.weight)} onChange={(event) => { const parsed = parseDecimalInput(event.target.value); if (parsed === null && event.target.value.trim() !== '') return; updateVariant(variant.id, { weight: parsed }); }} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.weight === null || variant.weight === undefined ? '—' : formatDecimalForDisplay(variant.weight)}</span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><span className={`inline-flex items-center gap-1 ${isDimensionLockActive ? 'text-slate-500' : ''}`}><input type="text" inputMode="decimal" disabled={isDimensionLockActive} className={`${compactTableNumberInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'length', variant.length)} onChange={(event) => updateDecimalInputDraft(variant.id, 'length', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'length', variant.length, (value) => updateVariant(variant.id, { length: value }), null)} /></span><span className="text-[10px] text-slate-500">mm</span></span> : <span className={`inline-flex h-5 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.length === null ? '—' : formatDecimalForDisplay(variant.length)}</span><span className="ml-1 text-[10px] text-slate-500">mm</span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><span className={`inline-flex items-center gap-1 ${isDimensionLockActive ? 'text-slate-500' : ''}`}><input type="text" inputMode="decimal" disabled={isDimensionLockActive} className={`${compactTableNumberInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'width', variant.width)} onChange={(event) => updateDecimalInputDraft(variant.id, 'width', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'width', variant.width, (value) => updateVariant(variant.id, { width: value }), null)} /></span><span className="text-[10px] text-slate-500">mm</span></span> : <span className={`inline-flex h-5 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.width === null ? '—' : formatDecimalForDisplay(variant.width)}</span><span className="ml-1 text-[10px] text-slate-500">mm</span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><span className={`inline-flex items-center gap-1 ${isThicknessLockActive ? 'text-slate-500' : ''}`}><input type="text" inputMode="decimal" disabled={isThicknessLockActive} className={`${compactTableNumberInputClassName} !w-[7ch] text-right ${isThicknessLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'thickness', variant.thickness)} onChange={(event) => updateDecimalInputDraft(variant.id, 'thickness', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'thickness', variant.thickness, (value) => updateVariant(variant.id, { thickness: value }), null)} /></span><span className="text-[10px] text-slate-500">mm</span></span> : <span className={`inline-flex h-5 w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.thickness === null ? '—' : formatDecimalForDisplay(variant.thickness)}</span><span className="ml-1 text-[10px] text-slate-500">mm</span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><span className="inline-flex items-center gap-1"><input type="text" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-[7ch] text-right`} value={readDecimalInputValue(variant.id, 'weight', variant.weight)} onChange={(event) => updateDecimalInputDraft(variant.id, 'weight', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'weight', variant.weight ?? null, (value) => updateVariant(variant.id, { weight: value }), null)} /><span className="text-[10px] text-slate-500">g</span></span></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-[7ch] items-center justify-end">{variant.weight === null || variant.weight === undefined ? '—' : formatDecimalForDisplay(variant.weight)}</span><span className="ml-1 text-[10px] text-slate-500">g</span></span>}</td>
                   <td className="px-2 py-1.5 text-center">
                     {isTableEditable ? (
-                      <div className="inline-flex h-5 w-[52px] items-center justify-center gap-0.5">
+                      <div className="inline-flex h-5 items-center justify-center gap-0.5">
                         <span className="text-slate-500">±</span>
                         <input
                           type="text"
                           inputMode="decimal"
                           disabled={isToleranceLocked}
                           className={`${compactTableNumberInputClassName} !mt-0 !w-10 text-center ${isToleranceLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`}
-                          value={variant.errorTolerance ?? ''}
+                          value={decimalInputDrafts[decimalDraftKey(variant.id, 'errorTolerance')] ?? variant.errorTolerance ?? ''}
                           onChange={(event) => {
                             if (isToleranceLocked) return;
-                            const parsed = parseDecimalInput(event.target.value);
-                            if (parsed === null && event.target.value.trim() !== '') return;
+                            updateDecimalInputDraft(variant.id, 'errorTolerance', event.target.value);
+                          }}
+                          onBlur={() => {
+                            const key = decimalDraftKey(variant.id, 'errorTolerance');
+                            const raw = decimalInputDrafts[key] ?? variant.errorTolerance ?? '';
+                            const parsed = parseDecimalInput(raw);
                             updateVariant(variant.id, { errorTolerance: parsed === null ? null : formatDecimalForDisplay(parsed) });
+                            setDecimalInputDrafts((current) => {
+                              const next = { ...current };
+                              delete next[key];
+                              return next;
+                            });
                           }}
                         />
+                        <span className="text-[10px] text-slate-500">mm</span>
                       </div>
                     ) : (
-                      <span className="inline-flex h-5 w-[52px] items-center justify-center">{variant.errorTolerance ? `±${variant.errorTolerance.replace('.', ',')}` : '—'}</span>
+                      <span className="inline-flex h-5 items-center justify-center">{variant.errorTolerance ? `±${variant.errorTolerance.replace('.', ',')} mm` : '—'}</span>
                     )}
                   </td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="text" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-[7ch] text-right`} value={formatDecimalForDisplay(variant.price)} onChange={(event) => { const parsed = parseDecimalInput(event.target.value); if (parsed === null && event.target.value.trim() !== '') return; updateVariant(variant.id, { price: parsed ?? 0 }); }} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-[7ch] items-center justify-end">{formatCurrency(variant.price)}</span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="text" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-[7ch] text-right`} value={formatDecimalForDisplay(variant.discountPct)} onChange={(event) => { const parsed = parseDecimalInput(event.target.value); if (parsed === null && event.target.value.trim() !== '') return; updateVariant(variant.id, { discountPct: Math.min(99.9, Math.max(0, parsed ?? 0)) }); }} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-[7ch] items-center justify-end">{formatDecimalForDisplay(variant.discountPct)}</span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><span className="inline-flex items-center gap-1"><input type="text" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-[7ch] text-right`} value={readDecimalInputValue(variant.id, 'price', variant.price)} onChange={(event) => updateDecimalInputDraft(variant.id, 'price', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'price', variant.price, (value) => updateVariant(variant.id, { price: value ?? 0 }), 0)} /><span className="text-[10px] text-slate-500">€</span></span></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-[7ch] items-center justify-end">{formatCurrency(variant.price)}</span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><span className="inline-flex items-center gap-1"><input type="text" inputMode="decimal" className={`${compactTableNumberInputClassName} !mt-0 !w-[7ch] text-right`} value={readDecimalInputValue(variant.id, 'discountPct', variant.discountPct)} onChange={(event) => updateDecimalInputDraft(variant.id, 'discountPct', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'discountPct', variant.discountPct, (value) => updateVariant(variant.id, { discountPct: Math.min(99.9, Math.max(0, value ?? 0)) }), 0)} /><span className="text-[10px] text-slate-500">%</span></span></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 w-[7ch] items-center justify-end">{formatDecimalForDisplay(variant.discountPct)}</span></span>}</td>
                   <td className="px-2 py-1.5 text-right"><span className="inline-flex h-5 items-center justify-end">{formatCurrency(computeSalePrice(variant.price, variant.discountPct))}</span></td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="numeric" className={`${compactTableNumberInputClassName} !mt-0 !w-auto !max-w-[6ch] text-right`} value={variant.stock} onChange={(event) => updateVariant(variant.id, { stock: Number(event.target.value) || 0 })} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 max-w-[6ch] items-center justify-end">{variant.stock}</span></span>}</td>
                   <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableNumberInputClassName} !mt-0 !w-10 text-center`} value={variant.minOrder ?? 1} onChange={(event) => updateVariant(variant.id, { minOrder: Math.max(1, Number(event.target.value) || 1) })} /> : <span className="inline-flex h-5 w-10 items-center justify-center">{variant.minOrder ?? 1}</span>}</td>

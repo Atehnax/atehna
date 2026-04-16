@@ -553,7 +553,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       return next;
     });
   const getSortTitleClass = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'actionPriceRange' | 'status' | 'note') =>
-    `inline-flex items-center text-[11px] font-medium leading-none hover:text-[color:var(--blue-500)] ${
+    `inline-flex items-center text-[12px] font-semibold leading-none hover:text-[color:var(--blue-500)] ${
       sortState && 'column' in sortState && sortState.column === column ? 'underline underline-offset-2 text-[color:var(--blue-500)]' : ''
     }`;
   const cycleSort = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'actionPriceRange' | 'status' | 'note') => {
@@ -939,7 +939,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                               value={familyDraft.categoryPath}
                               onChange={(nextPath) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, categoryPath: nextPath } }))}
                               categoryPaths={categoryPaths}
-                              className="flex h-7 items-center rounded-md bg-transparent px-1 !py-0 text-[12px]"
+                              className="flex h-7 items-center rounded-md bg-transparent px-1 !py-0 text-[12px] [&_input]:text-[12px] [&_span]:text-[12px]"
                             />
                           </div>
                         ) : (
@@ -949,7 +949,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                               onChange={() => {}}
                               categoryPaths={categoryPaths}
                               disabled
-                              className="flex h-7 items-center rounded-md bg-transparent px-1 !py-0 text-[12px]"
+                              className="flex h-7 items-center rounded-md bg-transparent px-1 !py-0 text-[12px] [&_input]:text-[12px] [&_span]:text-[12px]"
                             />
                           </div>
                         )}
@@ -974,7 +974,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                         <td colSpan={9} className="p-0">
                           <table className="w-full text-[12px]">
                             <thead>
-                              <tr className="border-b border-slate-200 text-slate-600 font-semibold">
+                              <tr className="border-b border-slate-200 text-[11px] font-medium text-slate-600">
                                 <th className="px-2 py-2" />
                                 <th className="w-[25%] px-2 py-2 text-left">Različica</th>
                                 <th className="w-[20%] px-2 py-2 text-left">SKU</th>

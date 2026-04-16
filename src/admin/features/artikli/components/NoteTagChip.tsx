@@ -44,7 +44,18 @@ export function NoteTagChip({
         : value === 'ni-na-zalogi'
           ? 'Ni na zalogi'
           : 'Zadnji kosi';
-  const variant = value === '' ? 'neutral' : value === 'novo' ? 'info' : value === 'akcija' ? 'danger' : value === 'ni-na-zalogi' ? 'neutral' : 'purple';
+  const variant =
+    value === ''
+      ? 'neutral'
+      : value === 'na-zalogi'
+        ? 'success'
+        : value === 'novo'
+          ? 'info'
+          : value === 'akcija'
+            ? 'danger'
+            : value === 'ni-na-zalogi'
+              ? 'neutral'
+              : 'purple';
   const emphasisClassName = value === 'akcija' ? '!border-rose-200 !bg-rose-50 !text-rose-700' : value === '' ? 'text-slate-600' : '';
 
   const updateMenuPosition = useCallback(() => {

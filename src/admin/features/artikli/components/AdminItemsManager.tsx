@@ -26,11 +26,11 @@ import type { AdminCatalogListItem, CatalogItemEditorHydration, CatalogItemEdito
 
 type StatusFilter = 'all' | 'active' | 'inactive';
 type DiscountFilter = 'all' | 'yes' | 'no';
-type OpenFilter = 'category' | 'status' | 'discount' | 'variantCount' | 'priceRange' | null;
+type OpenFilter = 'category' | 'status' | 'discount' | 'variantCount' | 'priceRange' | 'actionPriceRange' | null;
 type SortState =
   | { column: 'article' | 'sku' | 'category'; direction: 'asc' | 'desc' }
   | { column: 'variantCount' | 'discount' | 'status'; direction: 'desc' | 'asc' }
-  | { column: 'priceRange'; mode: 'minAsc' | 'minDesc' | 'maxDesc' | 'maxAsc' }
+  | { column: 'priceRange' | 'actionPriceRange'; mode: 'minAsc' | 'minDesc' | 'maxDesc' | 'maxAsc' }
   | null;
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
@@ -198,6 +198,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [draftVariantCountRange, setDraftVariantCountRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [priceRangeFilter, setPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [draftPriceRangeFilter, setDraftPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
+  const [actionPriceRangeFilter, setActionPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
+  const [draftActionPriceRangeFilter, setDraftActionPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
 
   const families = useMemo(() => toListFamilies(items), [items]);
   const categories = useMemo(() => Array.from(new Set(families.map((family) => family.category))).sort((a, b) => a.localeCompare(b, 'sl')), [families]);
@@ -263,13 +265,20 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         const minPrice = prices.length ? Math.min(...prices) : 0;
         const maxPrice = prices.length ? Math.max(...prices) : 0;
         const discounts = visibleVariants.map((variant) => variant.discountPct);
+        const actionPrices = visibleVariants
+          .filter((variant) => variant.discountPct > 0)
+          .map((variant) => computeSalePrice(variant.price, variant.discountPct));
+        const minActionPrice = actionPrices.length ? Math.min(...actionPrices) : null;
+        const maxActionPrice = actionPrices.length ? Math.max(...actionPrices) : null;
         return {
           family,
           visibleVariants,
           variantCount: visibleVariants.length,
           minPrice,
           maxPrice,
-          discounts
+          discounts,
+          minActionPrice,
+          maxActionPrice
         };
       })
       .filter((row) => {
@@ -277,11 +286,17 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         const maxCount = variantCountRange.max.trim() === '' ? null : Number(variantCountRange.max);
         const minPriceFilter = priceRangeFilter.min.trim() === '' ? null : Number(priceRangeFilter.min);
         const maxPriceFilter = priceRangeFilter.max.trim() === '' ? null : Number(priceRangeFilter.max);
+        const minActionPriceFilter = actionPriceRangeFilter.min.trim() === '' ? null : Number(actionPriceRangeFilter.min);
+        const maxActionPriceFilter = actionPriceRangeFilter.max.trim() === '' ? null : Number(actionPriceRangeFilter.max);
         const matchesCountMin = minCount === null || row.variantCount >= minCount;
         const matchesCountMax = maxCount === null || row.variantCount <= maxCount;
         const matchesPriceMin = minPriceFilter === null || row.minPrice >= minPriceFilter;
         const matchesPriceMax = maxPriceFilter === null || row.maxPrice <= maxPriceFilter;
-        return matchesCountMin && matchesCountMax && matchesPriceMin && matchesPriceMax;
+        const matchesActionPriceMin =
+          minActionPriceFilter === null || (row.minActionPrice !== null && row.minActionPrice >= minActionPriceFilter);
+        const matchesActionPriceMax =
+          maxActionPriceFilter === null || (row.maxActionPrice !== null && row.maxActionPrice <= maxActionPriceFilter);
+        return matchesCountMin && matchesCountMax && matchesPriceMin && matchesPriceMax && matchesActionPriceMin && matchesActionPriceMax;
       });
 
     if (!sortState) return normalizedRows;
@@ -331,17 +346,19 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       });
       return rows;
     }
-    if (sortState.column === 'priceRange') {
+    if (sortState.column === 'priceRange' || sortState.column === 'actionPriceRange') {
+      const getMin = (row: (typeof rows)[number]) => (sortState.column === 'priceRange' ? row.minPrice : row.minActionPrice ?? Number.POSITIVE_INFINITY);
+      const getMax = (row: (typeof rows)[number]) => (sortState.column === 'priceRange' ? row.maxPrice : row.maxActionPrice ?? Number.NEGATIVE_INFINITY);
       rows.sort((a, b) => {
-        if (sortState.mode === 'minAsc') return a.minPrice - b.minPrice;
-        if (sortState.mode === 'minDesc') return b.minPrice - a.minPrice;
-        if (sortState.mode === 'maxDesc') return b.maxPrice - a.maxPrice;
-        return a.maxPrice - b.maxPrice;
+        if (sortState.mode === 'minAsc') return getMin(a) - getMin(b);
+        if (sortState.mode === 'minDesc') return getMin(b) - getMin(a);
+        if (sortState.mode === 'maxDesc') return getMax(b) - getMax(a);
+        return getMax(a) - getMax(b);
       });
       return rows;
     }
     return rows;
-  }, [deletedVariantIds, filteredFamilies, priceRangeFilter.max, priceRangeFilter.min, sortState, variantCountRange.max, variantCountRange.min]);
+  }, [actionPriceRangeFilter.max, actionPriceRangeFilter.min, deletedVariantIds, filteredFamilies, priceRangeFilter.max, priceRangeFilter.min, sortState, variantCountRange.max, variantCountRange.min]);
 
   const paginationTotal = filteredRows.length;
   const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
@@ -358,7 +375,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
 
   useEffect(() => {
     setPage(1);
-  }, [categoryFilter, discountFilter, priceRangeFilter.max, priceRangeFilter.min, search, setPage, statusFilter, variantCountRange.max, variantCountRange.min]);
+  }, [actionPriceRangeFilter.max, actionPriceRangeFilter.min, categoryFilter, discountFilter, priceRangeFilter.max, priceRangeFilter.min, search, setPage, statusFilter, variantCountRange.max, variantCountRange.min]);
 
   const exportVariantsCsv = () => {
     const headers = ['Družina', 'Različica', 'SKU', 'Cena', 'Popust', 'Akcijska cena', 'Zaloga', 'Status'];
@@ -500,11 +517,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       next.add(variantId);
       return next;
     });
-  const getSortTitleClass = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'status') =>
+  const getSortTitleClass = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'actionPriceRange' | 'status') =>
     `inline-flex items-center text-[11px] font-semibold leading-none hover:text-[color:var(--blue-500)] ${
       sortState && 'column' in sortState && sortState.column === column ? 'underline underline-offset-2 text-[color:var(--blue-500)]' : ''
     }`;
-  const cycleSort = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'status') => {
+  const cycleSort = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'actionPriceRange' | 'status') => {
     setSortState((current) => {
       if (column === 'article' || column === 'sku' || column === 'category') {
         if (!current || !('column' in current) || current.column !== column) return { column, direction: 'asc' };
@@ -516,7 +533,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         if ('direction' in current && current.direction === 'desc') return { column, direction: 'asc' };
         return null;
       }
-      if (column === 'priceRange') {
+      if (column === 'priceRange' || column === 'actionPriceRange') {
         if (!current || !('column' in current) || current.column !== column) return { column, mode: 'minAsc' };
         if ('mode' in current && current.mode === 'minAsc') return { column, mode: 'minDesc' };
         if ('mode' in current && current.mode === 'minDesc') return { column, mode: 'maxDesc' };
@@ -652,6 +669,22 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     setDraftPriceRangeFilter({ min: '', max: '' });
                   }}
                   aria-label="Počisti filter Razpon cen"
+                >
+                  ×
+                </button>
+              </span>
+            ) : null}
+            {actionPriceRangeFilter.min || actionPriceRangeFilter.max ? (
+              <span className={filterPillTokenClasses.base}>
+                Razpon akcijske cene: {actionPriceRangeFilter.min || '0'}–{actionPriceRangeFilter.max || '∞'}
+                <button
+                  type="button"
+                  className={filterPillTokenClasses.clear}
+                  onClick={() => {
+                    setActionPriceRangeFilter({ min: '', max: '' });
+                    setDraftActionPriceRangeFilter({ min: '', max: '' });
+                  }}
+                  aria-label="Počisti filter Razpon akcijske cene"
                 >
                   ×
                 </button>
@@ -795,7 +828,46 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     ) : null}
                   </div>
                 </TH>
-                <TH className="w-[6.83%] whitespace-nowrap text-right">Akcijska cena</TH>
+                <TH className="w-[6.83%] whitespace-nowrap text-right">
+                  <div className="relative inline-flex items-center gap-1">
+                    <button type="button" className={getSortTitleClass('actionPriceRange')} onClick={() => cycleSort('actionPriceRange')}>
+                      Akcijska cena
+                    </button>
+                    <button
+                      type="button"
+                      className={HEADER_FILTER_BUTTON_CLASS}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setDraftActionPriceRangeFilter(actionPriceRangeFilter);
+                        setOpenFilter((current) => (current === 'actionPriceRange' ? null : 'actionPriceRange'));
+                      }}
+                      aria-label="Filtriraj Akcijska cena"
+                    >
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                    {openFilter === 'actionPriceRange' ? (
+                      <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
+                        <AdminRangeFilterPanel
+                          title="Akcijska cena"
+                          draftRange={draftActionPriceRangeFilter}
+                          onDraftChange={setDraftActionPriceRangeFilter}
+                          onConfirm={() => {
+                            setActionPriceRangeFilter(draftActionPriceRangeFilter);
+                            setOpenFilter(null);
+                          }}
+                          onReset={() => {
+                            setDraftActionPriceRangeFilter({ min: '', max: '' });
+                            setActionPriceRangeFilter({ min: '', max: '' });
+                            setOpenFilter(null);
+                          }}
+                          minPlaceholder="Min akcijska"
+                          maxPlaceholder="Max akcijska"
+                          min={0}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                </TH>
                 <TH className="w-[10.25%] whitespace-nowrap px-0 text-center">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('status')} onClick={() => cycleSort('status')}>

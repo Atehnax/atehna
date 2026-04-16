@@ -100,11 +100,22 @@ type TechnicalDocument = { name: string; size: string; blobUrl: string | null; b
 const MEDIA_SLOT_COUNT = 7;
 const GALLERY_SMALL_SLOT_COUNT = 6;
 const ITEM_NOTE_OPTIONS: Array<{ value: VariantTag; label: string }> = [
+  { value: 'na-zalogi', label: 'Na zalogi' },
   { value: 'novo', label: 'Novo' },
-  { value: 'akcija', label: 'Akcija' },
+  { value: 'akcija', label: 'V akciji' },
   { value: 'zadnji-kosi', label: 'Zadnji kosi' },
   { value: 'ni-na-zalogi', label: 'Ni na zalogi' }
 ];
+
+const normalizeVariantTag = (value: string | null | undefined): VariantTag | '' => {
+  const normalized = (value ?? '').trim().toLowerCase();
+  if (!normalized) return '';
+  if (normalized === 'opomba') return 'na-zalogi';
+  if (normalized === 'na-zalogi' || normalized === 'novo' || normalized === 'akcija' || normalized === 'zadnji-kosi' || normalized === 'ni-na-zalogi') {
+    return normalized;
+  }
+  return '';
+};
 
 function canonicalizeVariantDimensions(
   input: VariantDimensionSet,
@@ -999,7 +1010,7 @@ export default function AdminItemEditorPage({
   const [editorMode, setEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
   const [tableEditorMode, setTableEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
   const [itemLevelNote, setItemLevelNote] = useState<VariantTag | ''>(() => {
-    const raw = (initialData?.adminNotes ?? '').trim() as VariantTag;
+    const raw = normalizeVariantTag(initialData?.adminNotes);
     return ITEM_NOTE_OPTIONS.some((entry) => entry.value === raw) ? raw : '';
   });
   const [mediaTab, setMediaTab] = useState<MediaTab>('slike');
@@ -1037,11 +1048,11 @@ export default function AdminItemEditorPage({
   const technicalUploadInputRef = useRef<HTMLInputElement>(null);
   const [pendingMediaRemoval, setPendingMediaRemoval] = useState<{ type: 'image'; slotIndex: number } | { type: 'video' } | null>(null);
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>(() => {
-    const allowed = new Set<VariantTag>(['novo', 'akcija', 'zadnji-kosi', 'ni-na-zalogi']);
+    const allowed = new Set<VariantTag>(['na-zalogi', 'novo', 'akcija', 'zadnji-kosi', 'ni-na-zalogi']);
     const next: Record<string, VariantTag> = {};
     initialData?.variants.forEach((variant) => {
       const key = String(variant.id ?? '');
-      const rawBadge = (variant.badge ?? '').trim() as VariantTag;
+      const rawBadge = normalizeVariantTag(variant.badge) as VariantTag;
       if (key && allowed.has(rawBadge)) next[key] = rawBadge;
     });
     return next;
@@ -1187,7 +1198,7 @@ export default function AdminItemEditorPage({
         variantSku: variant.sku || null,
         unit: null,
         status: variant.active ? 'active' : 'inactive',
-        badge: variantTags[variant.id] ?? variant.badge ?? null,
+        badge: variantTags[variant.id] ?? (normalizeVariantTag(variant.badge) || null),
         position: variant.sort ?? index,
         imageAssignments: variant.imageAssignments ?? []
       })),
@@ -1580,7 +1591,7 @@ export default function AdminItemEditorPage({
     setVariantTags((current) => ({ ...current, [variantId]: tag }));
   };
 
-  const getVariantTag = (variantId: string): VariantTag => variantTags[variantId] ?? 'novo';
+  const getVariantTag = (variantId: string): VariantTag => variantTags[variantId] ?? 'na-zalogi';
 
   const createLocalImageUrl = useCallback((file: Blob) => {
     const url = URL.createObjectURL(file);
@@ -2003,7 +2014,7 @@ export default function AdminItemEditorPage({
                       editable={isEditable}
                       chipClassName="!min-w-[131px]"
                       placeholderLabel="Opombe"
-                      onChange={(value) => setItemLevelNote((value as VariantTag) || 'novo')}
+                      onChange={(value) => setItemLevelNote((value as VariantTag) || 'na-zalogi')}
                       options={ITEM_NOTE_OPTIONS as unknown as Array<{ value: string; label: string }>}
                     />
                   )}
@@ -2697,7 +2708,7 @@ export default function AdminItemEditorPage({
                 <th className="px-2 py-2 text-center">Min/nar.</th>
                 <th className="px-2 py-2 text-center">SKU</th>
                 <th className="px-1 py-2 text-center">Status</th>
-                <th className="px-1 py-2 text-center">Opomba</th>
+                <th className="px-1 py-2 text-center">Opombe</th>
                 <th className="px-2 py-2 text-center">Mesto</th>
               </tr>
             </thead>

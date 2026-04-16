@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
@@ -11,6 +11,13 @@ import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActionsDropdown, Table, THead, TH, TR } from '@/shared/ui/table';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
 import AdminRangeFilterPanel from '@/shared/ui/admin-range-filter-panel';
+import {
+  HeaderFilterPortal,
+  HEADER_FILTER_BUTTON_CLASS,
+  HEADER_FILTER_ROOT_ATTR,
+  getHeaderPopoverStyle,
+  useHeaderFilterDismiss
+} from '@/shared/ui/admin-header-filter';
 import { adminTableRowToneClasses, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
 import {
   computeSalePrice,
@@ -26,25 +33,25 @@ import type { AdminCatalogListItem, CatalogItemEditorHydration, CatalogItemEdito
 
 type StatusFilter = 'all' | 'active' | 'inactive';
 type DiscountFilter = 'all' | 'yes' | 'no';
-type OpenFilter = 'category' | 'status' | 'discount' | 'variantCount' | 'priceRange' | null;
+type NoteFilter = 'all' | 'na-zalogi' | 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
+type OpenFilter = 'category' | 'status' | 'discount' | 'note' | 'variantCount' | 'priceRange' | 'actionPriceRange' | null;
 type SortState =
   | { column: 'article' | 'sku' | 'category'; direction: 'asc' | 'desc' }
-  | { column: 'variantCount' | 'discount' | 'status'; direction: 'desc' | 'asc' }
-  | { column: 'priceRange'; mode: 'minAsc' | 'minDesc' | 'maxDesc' | 'maxAsc' }
+  | { column: 'variantCount' | 'discount' | 'status' | 'note'; direction: 'desc' | 'asc' }
+  | { column: 'priceRange' | 'actionPriceRange'; mode: 'minAsc' | 'minDesc' | 'maxDesc' | 'maxAsc' }
   | null;
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
-const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500';
 type ListFamily = ProductFamily & { baseSku: string; material: string | null; categoryPath: string[] };
 type NoteValue = '' | NoteTag;
-const ROW_EDIT_INPUT_CLASS = 'h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0';
+const ROW_EDIT_INPUT_CLASS = 'h-7 w-full rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0';
 
 const getBaseSku = (family: ListFamily) => family.baseSku || family.variants[0]?.sku || '';
 const formatRangeValue = (values: number[], formatter: (value: number) => string) => {
   if (!values.length) return '—';
   const min = Math.min(...values);
   const max = Math.max(...values);
-  return min === max ? formatter(min) : `${formatter(min)} – ${formatter(max)}`;
+  return min === max ? formatter(min) : `${formatter(min)}–${formatter(max)}`;
 };
 
 const normalizeCategoryPath = (value: string) =>
@@ -61,7 +68,24 @@ const formatCurrencyWithSuffix = (value: number) => `${formatCurrencyAmountOnly(
 const formatCurrencyRange = (minValue: number, maxValue: number) =>
   minValue === maxValue
     ? formatCurrencyWithSuffix(minValue)
-    : `${formatCurrencyAmountOnly(minValue)} – ${formatCurrencyAmountOnly(maxValue)} €`;
+    : `${formatCurrencyAmountOnly(minValue)}–${formatCurrencyAmountOnly(maxValue)} €`;
+const formatCurrencyRangeFromValues = (values: number[]) => {
+  if (!values.length) return '—';
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  return min === max
+    ? formatCurrencyWithSuffix(min)
+    : `${formatCurrencyAmountOnly(min)}–${formatCurrencyAmountOnly(max)} €`;
+};
+const normalizeNoteValue = (value: string | null | undefined): NoteTag | '' => {
+  const normalized = (value ?? '').trim().toLowerCase();
+  if (!normalized) return '';
+  if (normalized === 'opomba') return 'na-zalogi';
+  if (normalized === 'na-zalogi' || normalized === 'novo' || normalized === 'akcija' || normalized === 'zadnji-kosi' || normalized === 'ni-na-zalogi') {
+    return normalized;
+  }
+  return '';
+};
 const itemStatusLabel = (active: boolean) => (active ? 'Aktiven' : 'Neaktiven');
 const formatPercentRange = (values: number[]) => {
   if (!values.length) return '—';
@@ -69,7 +93,7 @@ const formatPercentRange = (values: number[]) => {
   const max = Math.max(...values);
   const minLabel = formatDecimalForDisplay(min);
   const maxLabel = formatDecimalForDisplay(max);
-  return min === max ? `${maxLabel}%` : `${minLabel} – ${maxLabel}%`;
+  return min === max ? `${maxLabel}%` : `${minLabel}–${maxLabel}%`;
 };
 
 function toListFamilies(items: AdminCatalogListItem[]): ListFamily[] {
@@ -171,6 +195,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [discountFilter, setDiscountFilter] = useState<DiscountFilter>('all');
+  const [noteFilter, setNoteFilter] = useState<NoteFilter>('all');
   const [openFilter, setOpenFilter] = useState<OpenFilter>(null);
   const [expandedFamilyIds, setExpandedFamilyIds] = useState<Set<string>>(new Set());
   const [selectedFamilyIds, setSelectedFamilyIds] = useState<Set<string>>(new Set());
@@ -184,15 +209,36 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [variantDrafts, setVariantDrafts] = useState<
     Record<string, { label: string; sku: string; price: number; discountPct: number; stock: number; active: boolean; minOrder: number; note: NoteValue; position: number }>
   >({});
+  const [familyOverrides, setFamilyOverrides] = useState<Record<string, Partial<ListFamily>>>({});
   const [categoryPaths, setCategoryPaths] = useState<string[]>([]);
   const [sortState, setSortState] = useState<SortState>(null);
   const [variantCountRange, setVariantCountRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [draftVariantCountRange, setDraftVariantCountRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [priceRangeFilter, setPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [draftPriceRangeFilter, setDraftPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
+  const [actionPriceRangeFilter, setActionPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
+  const [draftActionPriceRangeFilter, setDraftActionPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
+  const categoryFilterButtonRef = useRef<HTMLButtonElement | null>(null);
+  const priceFilterButtonRef = useRef<HTMLButtonElement | null>(null);
+  const discountFilterButtonRef = useRef<HTMLButtonElement | null>(null);
+  const actionPriceFilterButtonRef = useRef<HTMLButtonElement | null>(null);
+  const statusFilterButtonRef = useRef<HTMLButtonElement | null>(null);
+  const noteFilterButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const families = useMemo(() => toListFamilies(items), [items]);
-  const categories = useMemo(() => Array.from(new Set(families.map((family) => family.category))).sort((a, b) => a.localeCompare(b, 'sl')), [families]);
+  const effectiveFamilies = useMemo(
+    () =>
+      families.map((family) => {
+        const override = familyOverrides[family.id];
+        return override ? { ...family, ...override } : family;
+      }),
+    [families, familyOverrides]
+  );
+  const categories = useMemo(() => Array.from(new Set(effectiveFamilies.map((family) => family.category))).sort((a, b) => a.localeCompare(b, 'sl')), [effectiveFamilies]);
+
+  useEffect(() => {
+    setFamilyOverrides({});
+  }, [items]);
 
   useEffect(() => {
     let cancelled = false;
@@ -203,13 +249,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         const payload = (await response.json()) as { paths?: string[] };
         const nextPaths = Array.isArray(payload.paths) ? payload.paths : [];
         if (cancelled) return;
-        const fromRows = families
+        const fromRows = effectiveFamilies
           .map((family) => family.categoryPath.join(' / '))
           .filter((entry) => entry.length > 0);
         setCategoryPaths(Array.from(new Set([...fromRows, ...nextPaths])));
       } catch {
         if (cancelled) return;
-        const fallback = families
+        const fallback = effectiveFamilies
           .map((family) => family.categoryPath.join(' / '))
           .filter((entry) => entry.length > 0);
         setCategoryPaths(Array.from(new Set(fallback)));
@@ -219,11 +265,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     return () => {
       cancelled = true;
     };
-  }, [families]);
+  }, [effectiveFamilies]);
 
   const filteredFamilies = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return families.filter((family) => {
+    return effectiveFamilies.filter((family) => {
       const matchesSearch =
         q.length === 0 ||
         family.name.toLowerCase().includes(q) ||
@@ -233,9 +279,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       const matchesStatus = statusFilter === 'all' || (statusFilter === 'active' ? family.active : !family.active);
       const hasDiscount = family.defaultDiscountPct > 0 || family.variants.some((variant) => variant.discountPct > 0);
       const matchesDiscount = discountFilter === 'all' || (discountFilter === 'yes' ? hasDiscount : !hasDiscount);
-      return matchesSearch && matchesCategory && matchesStatus && matchesDiscount;
+      const familyNote = normalizeNoteValue(family.notes);
+      const matchesNote = noteFilter === 'all' || familyNote === noteFilter;
+      return matchesSearch && matchesCategory && matchesStatus && matchesDiscount && matchesNote;
     });
-  }, [categoryFilter, discountFilter, families, search, statusFilter]);
+  }, [categoryFilter, discountFilter, effectiveFamilies, noteFilter, search, statusFilter]);
 
   const flatVariants = useMemo(() => {
     const rows: Array<{ family: ProductFamily; variant: Variant }> = [];
@@ -255,8 +303,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         const minPrice = prices.length ? Math.min(...prices) : 0;
         const maxPrice = prices.length ? Math.max(...prices) : 0;
         const discounts = visibleVariants.map((variant) => variant.discountPct);
-        const stocks = visibleVariants.map((variant) => variant.stock);
-        const minOrders = visibleVariants.map((variant) => Math.max(1, variant.minOrder ?? 1));
+        const actionPrices = visibleVariants
+          .filter((variant) => variant.discountPct > 0)
+          .map((variant) => computeSalePrice(variant.price, variant.discountPct));
+        const minActionPrice = actionPrices.length ? Math.min(...actionPrices) : null;
+        const maxActionPrice = actionPrices.length ? Math.max(...actionPrices) : null;
         return {
           family,
           visibleVariants,
@@ -264,8 +315,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
           minPrice,
           maxPrice,
           discounts,
-          stocks,
-          minOrders
+          minActionPrice,
+          maxActionPrice
         };
       })
       .filter((row) => {
@@ -273,11 +324,17 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         const maxCount = variantCountRange.max.trim() === '' ? null : Number(variantCountRange.max);
         const minPriceFilter = priceRangeFilter.min.trim() === '' ? null : Number(priceRangeFilter.min);
         const maxPriceFilter = priceRangeFilter.max.trim() === '' ? null : Number(priceRangeFilter.max);
+        const minActionPriceFilter = actionPriceRangeFilter.min.trim() === '' ? null : Number(actionPriceRangeFilter.min);
+        const maxActionPriceFilter = actionPriceRangeFilter.max.trim() === '' ? null : Number(actionPriceRangeFilter.max);
         const matchesCountMin = minCount === null || row.variantCount >= minCount;
         const matchesCountMax = maxCount === null || row.variantCount <= maxCount;
         const matchesPriceMin = minPriceFilter === null || row.minPrice >= minPriceFilter;
         const matchesPriceMax = maxPriceFilter === null || row.maxPrice <= maxPriceFilter;
-        return matchesCountMin && matchesCountMax && matchesPriceMin && matchesPriceMax;
+        const matchesActionPriceMin =
+          minActionPriceFilter === null || (row.minActionPrice !== null && row.minActionPrice >= minActionPriceFilter);
+        const matchesActionPriceMax =
+          maxActionPriceFilter === null || (row.maxActionPrice !== null && row.maxActionPrice <= maxActionPriceFilter);
+        return matchesCountMin && matchesCountMax && matchesPriceMin && matchesPriceMax && matchesActionPriceMin && matchesActionPriceMax;
       });
 
     if (!sortState) return normalizedRows;
@@ -327,17 +384,29 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       });
       return rows;
     }
-    if (sortState.column === 'priceRange') {
+    if (sortState.column === 'note') {
       rows.sort((a, b) => {
-        if (sortState.mode === 'minAsc') return a.minPrice - b.minPrice;
-        if (sortState.mode === 'minDesc') return b.minPrice - a.minPrice;
-        if (sortState.mode === 'maxDesc') return b.maxPrice - a.maxPrice;
-        return a.maxPrice - b.maxPrice;
+        const noteA = normalizeNoteValue(a.family.notes);
+        const noteB = normalizeNoteValue(b.family.notes);
+        return sortState.direction === 'desc'
+          ? noteB.localeCompare(noteA, 'sl')
+          : noteA.localeCompare(noteB, 'sl');
+      });
+      return rows;
+    }
+    if (sortState.column === 'priceRange' || sortState.column === 'actionPriceRange') {
+      const getMin = (row: (typeof rows)[number]) => (sortState.column === 'priceRange' ? row.minPrice : row.minActionPrice ?? Number.POSITIVE_INFINITY);
+      const getMax = (row: (typeof rows)[number]) => (sortState.column === 'priceRange' ? row.maxPrice : row.maxActionPrice ?? Number.NEGATIVE_INFINITY);
+      rows.sort((a, b) => {
+        if (sortState.mode === 'minAsc') return getMin(a) - getMin(b);
+        if (sortState.mode === 'minDesc') return getMin(b) - getMin(a);
+        if (sortState.mode === 'maxDesc') return getMax(b) - getMax(a);
+        return getMax(a) - getMax(b);
       });
       return rows;
     }
     return rows;
-  }, [deletedVariantIds, filteredFamilies, priceRangeFilter.max, priceRangeFilter.min, sortState, variantCountRange.max, variantCountRange.min]);
+  }, [actionPriceRangeFilter.max, actionPriceRangeFilter.min, deletedVariantIds, filteredFamilies, priceRangeFilter.max, priceRangeFilter.min, sortState, variantCountRange.max, variantCountRange.min]);
 
   const paginationTotal = filteredRows.length;
   const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
@@ -354,7 +423,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
 
   useEffect(() => {
     setPage(1);
-  }, [categoryFilter, discountFilter, priceRangeFilter.max, priceRangeFilter.min, search, setPage, statusFilter, variantCountRange.max, variantCountRange.min]);
+  }, [actionPriceRangeFilter.max, actionPriceRangeFilter.min, categoryFilter, discountFilter, noteFilter, priceRangeFilter.max, priceRangeFilter.min, search, setPage, statusFilter, variantCountRange.max, variantCountRange.min]);
 
   const exportVariantsCsv = () => {
     const headers = ['Družina', 'Različica', 'SKU', 'Cena', 'Popust', 'Akcijska cena', 'Zaloga', 'Status'];
@@ -412,7 +481,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         stock: variant.stock,
         active: variant.active,
         minOrder: variant.minOrder ?? 1,
-        note: (variant.badge as NoteValue) ?? '',
+        note: (normalizeNoteValue(variant.badge) as NoteValue) || 'na-zalogi',
         position: variant.position ?? 1
       }
     }));
@@ -453,7 +522,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         sku: getBaseSku(family),
         categoryPath: family.categoryPath.length > 0 ? family.categoryPath : normalizeCategoryPath(family.category),
         active: family.active,
-        note: (family.notes as NoteValue) || '',
+        note: (normalizeNoteValue(family.notes) as NoteValue) || 'na-zalogi',
         price: primary?.price ?? 0,
         discountPct: primary?.discountPct ?? 0,
         stock: primary?.stock ?? 0,
@@ -484,6 +553,17 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
           };
         }
       });
+      setFamilyOverrides((current) => ({
+        ...current,
+        [family.id]: {
+          name: draft.name,
+          baseSku: draft.sku,
+          category: draft.categoryPath.join(' / '),
+          categoryPath: draft.categoryPath,
+          active: draft.active,
+          notes: draft.note
+        }
+      }));
       setEditingFamilyId(null);
       router.refresh();
     } catch (error) {
@@ -496,23 +576,23 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       next.add(variantId);
       return next;
     });
-  const getSortTitleClass = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'status') =>
-    `inline-flex items-center text-[11px] font-semibold leading-none hover:text-[color:var(--blue-500)] ${
+  const getSortTitleClass = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'actionPriceRange' | 'status' | 'note') =>
+    `inline-flex items-center text-[12px] font-semibold leading-none text-slate-900 hover:text-[color:var(--blue-500)] ${
       sortState && 'column' in sortState && sortState.column === column ? 'underline underline-offset-2 text-[color:var(--blue-500)]' : ''
     }`;
-  const cycleSort = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'status') => {
+  const cycleSort = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'actionPriceRange' | 'status' | 'note') => {
     setSortState((current) => {
       if (column === 'article' || column === 'sku' || column === 'category') {
         if (!current || !('column' in current) || current.column !== column) return { column, direction: 'asc' };
         if ('direction' in current && current.direction === 'asc') return { column, direction: 'desc' };
         return null;
       }
-      if (column === 'variantCount' || column === 'discount' || column === 'status') {
+      if (column === 'variantCount' || column === 'discount' || column === 'status' || column === 'note') {
         if (!current || !('column' in current) || current.column !== column) return { column, direction: 'desc' };
         if ('direction' in current && current.direction === 'desc') return { column, direction: 'asc' };
         return null;
       }
-      if (column === 'priceRange') {
+      if (column === 'priceRange' || column === 'actionPriceRange') {
         if (!current || !('column' in current) || current.column !== column) return { column, mode: 'minAsc' };
         if ('mode' in current && current.mode === 'minAsc') return { column, mode: 'minDesc' };
         if ('mode' in current && current.mode === 'minDesc') return { column, mode: 'maxDesc' };
@@ -522,6 +602,45 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       return current;
     });
   };
+
+  useEffect(() => {
+    const handlePointerDownOutsideEdit = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+
+      if (editingFamilyId) {
+        const familyScope = `family:${editingFamilyId}`;
+        if (
+          target.closest(`tr[data-edit-scope="${familyScope}"]`) ||
+          target.closest(`[data-edit-scope="${familyScope}"]`)
+        ) {
+          return;
+        }
+        setEditingFamilyId(null);
+      }
+
+      if (editingVariantId) {
+        const variantScope = `variant:${editingVariantId}`;
+        if (
+          target.closest(`tr[data-edit-scope="${variantScope}"]`) ||
+          target.closest(`[data-edit-scope="${variantScope}"]`)
+        ) {
+          return;
+        }
+        setEditingVariantId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDownOutsideEdit);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDownOutsideEdit);
+    };
+  }, [editingFamilyId, editingVariantId]);
+
+  useHeaderFilterDismiss({
+    isOpen: Boolean(openFilter),
+    onClose: () => setOpenFilter(null)
+  });
 
   return (
     <div className="space-y-4 font-['Inter',system-ui,sans-serif]">
@@ -579,6 +698,14 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 </button>
               </span>
             ) : null}
+            {noteFilter !== 'all' ? (
+              <span className={filterPillTokenClasses.base}>
+                Opombe: {noteFilter === 'na-zalogi' ? 'Na zalogi' : noteFilter === 'novo' ? 'Novo' : noteFilter === 'akcija' ? 'V akciji' : noteFilter === 'zadnji-kosi' ? 'Zadnji kosi' : 'Ni na zalogi'}
+                <button type="button" className={filterPillTokenClasses.clear} onClick={() => setNoteFilter('all')} aria-label="Počisti filter opomb">
+                  ×
+                </button>
+              </span>
+            ) : null}
             {discountFilter !== 'all' ? (
               <span className={filterPillTokenClasses.base}>
                 Popust: {discountFilter === 'yes' ? 'Da' : 'Ne'}
@@ -619,6 +746,22 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 </button>
               </span>
             ) : null}
+            {actionPriceRangeFilter.min || actionPriceRangeFilter.max ? (
+              <span className={filterPillTokenClasses.base}>
+                Razpon akcijske cene: {actionPriceRangeFilter.min || '0'}–{actionPriceRangeFilter.max || '∞'}
+                <button
+                  type="button"
+                  className={filterPillTokenClasses.clear}
+                  onClick={() => {
+                    setActionPriceRangeFilter({ min: '', max: '' });
+                    setDraftActionPriceRangeFilter({ min: '', max: '' });
+                  }}
+                  aria-label="Počisti filter Razpon akcijske cene"
+                >
+                  ×
+                </button>
+              </span>
+            ) : null}
           </div>
         }
         filterRowRight={<EuiTablePagination page={page} pageCount={pageCount} onPageChange={setPage} itemsPerPage={pageSize} onChangeItemsPerPage={setPageSize} itemsPerPageOptions={PAGE_SIZE_OPTIONS} />}
@@ -643,22 +786,23 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     aria-label="Izberi vse družine"
                   />
                 </TH>
-                <TH className="w-[21%]">
+                <TH className="w-[17.5%]">
                   <button type="button" className={getSortTitleClass('article')} onClick={() => cycleSort('article')}>
                     Artikel
                   </button>
                 </TH>
-                <TH className="w-[19%]">
+                <TH className="w-[13%]">
                   <button type="button" className={getSortTitleClass('sku')} onClick={() => cycleSort('sku')}>
                     SKU
                   </button>
                 </TH>
-                <TH className="w-[20%]">
-                  <div className="relative inline-flex items-center gap-1">
+                <TH className="w-[24.5%]">
+                  <div className="relative inline-flex items-center gap-1" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" className={getSortTitleClass('category')} onClick={() => cycleSort('category')}>
                       Kategorija
                     </button>
                     <button
+                      ref={categoryFilterButtonRef}
                       type="button"
                       className={HEADER_FILTER_BUTTON_CLASS}
                       onClick={(event) => {
@@ -669,73 +813,15 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     >
                       <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                     </button>
-                    {openFilter === 'category' ? (
-                      <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
-                        <MenuPanel className="w-[18.4rem]">
-                          {[{ value: 'all', label: 'Vse kategorije' }, ...categories.map((category) => ({ value: category, label: category }))].map(
-                            (option) => (
-                              <MenuItem
-                                key={option.value}
-                                onClick={() => {
-                                  setCategoryFilter(option.value);
-                                  setOpenFilter(null);
-                                }}
-                              >
-                                {option.label}
-                              </MenuItem>
-                            )
-                          )}
-                        </MenuPanel>
-                      </div>
-                    ) : null}
                   </div>
                 </TH>
-                <TH className="w-[8%] whitespace-nowrap text-center">
-                  <div className="relative inline-flex items-center gap-1">
-                    <button type="button" className={getSortTitleClass('variantCount')} onClick={() => cycleSort('variantCount')}>
-                      Št. različic
-                    </button>
-                    <button
-                      type="button"
-                      className={HEADER_FILTER_BUTTON_CLASS}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setDraftVariantCountRange(variantCountRange);
-                        setOpenFilter((current) => (current === 'variantCount' ? null : 'variantCount'));
-                      }}
-                      aria-label="Filtriraj Št. različic"
-                    >
-                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
-                    </button>
-                    {openFilter === 'variantCount' ? (
-                      <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
-                        <AdminRangeFilterPanel
-                          title="Št. različic"
-                          draftRange={draftVariantCountRange}
-                          onDraftChange={setDraftVariantCountRange}
-                          onConfirm={() => {
-                            setVariantCountRange(draftVariantCountRange);
-                            setOpenFilter(null);
-                          }}
-                          onReset={() => {
-                            setDraftVariantCountRange({ min: '', max: '' });
-                            setVariantCountRange({ min: '', max: '' });
-                            setOpenFilter(null);
-                          }}
-                          minPlaceholder="Min"
-                          maxPlaceholder="Max"
-                          min={0}
-                        />
-                      </div>
-                    ) : null}
-                  </div>
-                </TH>
-                <TH className="w-[18%] text-right">
-                  <div className="relative inline-flex items-center gap-1">
+                <TH className="w-[6.83%] text-right">
+                  <div className="relative inline-flex items-center gap-1" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" className={getSortTitleClass('priceRange')} onClick={() => cycleSort('priceRange')}>
                       Cena
                     </button>
                     <button
+                      ref={priceFilterButtonRef}
                       type="button"
                       className={HEADER_FILTER_BUTTON_CLASS}
                       onClick={(event) => {
@@ -747,35 +833,15 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     >
                       <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                     </button>
-                    {openFilter === 'priceRange' ? (
-                      <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
-                        <AdminRangeFilterPanel
-                          title="Cena"
-                          draftRange={draftPriceRangeFilter}
-                          onDraftChange={setDraftPriceRangeFilter}
-                          onConfirm={() => {
-                            setPriceRangeFilter(draftPriceRangeFilter);
-                            setOpenFilter(null);
-                          }}
-                          onReset={() => {
-                            setDraftPriceRangeFilter({ min: '', max: '' });
-                            setPriceRangeFilter({ min: '', max: '' });
-                            setOpenFilter(null);
-                          }}
-                          minPlaceholder="Min cena"
-                          maxPlaceholder="Max cena"
-                          min={0}
-                        />
-                      </div>
-                    ) : null}
                   </div>
                 </TH>
-                <TH className="w-[13%] whitespace-nowrap text-center">
-                  <div className="relative inline-flex items-center gap-1">
+                <TH className="w-[10.33%] whitespace-nowrap text-right">
+                  <div className="relative inline-flex items-center gap-1" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" className={getSortTitleClass('discount')} onClick={() => cycleSort('discount')}>
                       Popust
                     </button>
                     <button
+                      ref={discountFilterButtonRef}
                       type="button"
                       className={HEADER_FILTER_BUTTON_CLASS}
                       onClick={(event) => {
@@ -786,26 +852,35 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     >
                       <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                     </button>
-                    {openFilter === 'discount' ? (
-                      <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
-                        <MenuPanel className="w-40">
-                          <MenuItem onClick={() => { setDiscountFilter('all'); setOpenFilter(null); }}>Vsi</MenuItem>
-                          <MenuItem onClick={() => { setDiscountFilter('yes'); setOpenFilter(null); }}>S popustom</MenuItem>
-                          <MenuItem onClick={() => { setDiscountFilter('no'); setOpenFilter(null); }}>Brez popusta</MenuItem>
-                        </MenuPanel>
-                      </div>
-                    ) : null}
                   </div>
                 </TH>
-                <TH className="w-[12%] whitespace-nowrap text-right">Akcijska cena</TH>
-                <TH className="w-[8%] whitespace-nowrap text-right">Zaloga</TH>
-                <TH className="w-[8%] whitespace-nowrap text-center">Min/nar.</TH>
-                <TH className="w-[11%] whitespace-nowrap text-center">
-                  <div className="relative inline-flex items-center gap-1">
+                <TH className="w-[10.33%] whitespace-nowrap text-right">
+                  <div className="relative inline-flex items-center gap-1" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+                    <button type="button" className={getSortTitleClass('actionPriceRange')} onClick={() => cycleSort('actionPriceRange')}>
+                      Akcijska cena
+                    </button>
+                    <button
+                      ref={actionPriceFilterButtonRef}
+                      type="button"
+                      className={HEADER_FILTER_BUTTON_CLASS}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setDraftActionPriceRangeFilter(actionPriceRangeFilter);
+                        setOpenFilter((current) => (current === 'actionPriceRange' ? null : 'actionPriceRange'));
+                      }}
+                      aria-label="Filtriraj Akcijska cena"
+                    >
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                  </div>
+                </TH>
+                <TH className="w-[120px] whitespace-nowrap px-2 text-center">
+                  <div className="relative inline-flex items-center gap-1" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" className={getSortTitleClass('status')} onClick={() => cycleSort('status')}>
                       Status
                     </button>
                     <button
+                      ref={statusFilterButtonRef}
                       type="button"
                       className={HEADER_FILTER_BUTTON_CLASS}
                       onClick={(event) => {
@@ -816,24 +891,33 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     >
                       <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                     </button>
-                    {openFilter === 'status' ? (
-                      <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
-                        <MenuPanel className="w-36">
-                          <MenuItem onClick={() => { setStatusFilter('all'); setOpenFilter(null); }}>Vsi</MenuItem>
-                          <MenuItem onClick={() => { setStatusFilter('active'); setOpenFilter(null); }}>Aktiven</MenuItem>
-                          <MenuItem onClick={() => { setStatusFilter('inactive'); setOpenFilter(null); }}>Neaktiven</MenuItem>
-                        </MenuPanel>
-                      </div>
-                    ) : null}
                   </div>
                 </TH>
-                <TH className="w-[13%] whitespace-nowrap text-center">Opombe</TH>
-                <TH className="w-20 text-center">Uredi</TH>
+                <TH className="w-[124px] whitespace-nowrap px-2 text-center">
+                  <div className="relative inline-flex items-center gap-1" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+                    <button type="button" className={getSortTitleClass('note')} onClick={() => cycleSort('note')}>
+                      Opombe
+                    </button>
+                    <button
+                      ref={noteFilterButtonRef}
+                      type="button"
+                      className={HEADER_FILTER_BUTTON_CLASS}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setOpenFilter((current) => (current === 'note' ? null : 'note'));
+                      }}
+                      aria-label="Filtriraj opombe"
+                    >
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                  </div>
+                </TH>
+                <TH className="w-[5%] px-2 text-center">Uredi</TH>
               </TR>
             </THead>
             <tbody>
               {pagedFamilies.map((row) => {
-                const { family, visibleVariants, minPrice, maxPrice, variantCount, discounts, stocks, minOrders } = row;
+                const { family, visibleVariants, minPrice, maxPrice, discounts } = row;
                 const isExpanded = expandedFamilyIds.has(family.id);
                 const hasSubtable = visibleVariants.length > 0;
                 const primaryVariant = visibleVariants[0] ?? null;
@@ -843,7 +927,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                   sku: getBaseSku(family),
                   categoryPath: family.categoryPath.length > 0 ? family.categoryPath : normalizeCategoryPath(family.category),
                   active: family.active,
-                  note: (family.notes as NoteValue) || '',
+                  note: (normalizeNoteValue(family.notes) as NoteValue) || 'na-zalogi',
                   price: primaryVariant?.price ?? 0,
                   discountPct: primaryVariant?.discountPct ?? 0,
                   stock: primaryVariant?.stock ?? 0,
@@ -852,23 +936,23 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 const singleRowLike = visibleVariants.length <= 1;
                 return (
                   <Fragment key={family.id}>
-                    <tr className={`border-t border-slate-100 bg-white ${adminTableRowToneClasses.hover}`}>
+                    <tr className={`border-t border-slate-100 bg-white ${adminTableRowToneClasses.hover}`} data-edit-scope={`family:${family.id}`}>
                       <td className="w-10 px-2 py-2 text-center"><AdminCheckbox checked={selectedFamilyIds.has(family.id)} onChange={() => setSelectedFamilyIds((current) => {
                         const next = new Set(current);
                         if (next.has(family.id)) next.delete(family.id); else next.add(family.id);
                         return next;
                       })} aria-label={`Izberi ${family.name}`} /></td>
                       <td className="px-2 py-3">
-                        <button type="button" disabled={!hasSubtable} className="inline-flex items-start gap-2 text-left disabled:cursor-default" onClick={() => setExpandedFamilyIds((current) => {
+                        <button type="button" disabled={!hasSubtable} className="inline-flex items-center gap-2 text-left disabled:cursor-default" onClick={() => setExpandedFamilyIds((current) => {
                           if (!hasSubtable) return current;
                           const next = new Set(current);
                           if (next.has(family.id)) next.delete(family.id); else next.add(family.id);
                           return next;
                         })}>
-                          <span className="mt-0.5 inline-flex h-4 w-4 items-center justify-center text-slate-500">{hasSubtable ? (isExpanded ? '▾' : '▸') : ''}</span>
+                          <span className="inline-flex h-4 w-4 items-center justify-center text-slate-500">{hasSubtable ? (isExpanded ? '▾' : '▸') : ''}</span>
                           {isEditingFamily
-                            ? <input className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-sm" value={familyDraft.name} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, name: event.target.value } }))} />
-                            : <span className="block text-sm font-semibold text-slate-900">{family.name}</span>}
+                            ? <input className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-[12px]" value={familyDraft.name} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, name: event.target.value } }))} />
+                            : <span className="block text-[12px] font-semibold text-slate-900">{family.name}</span>}
                         </button>
                       </td>
                       <td className="px-2 py-3 text-slate-600">{isEditingFamily ? <input className={ROW_EDIT_INPUT_CLASS} value={familyDraft.sku} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, sku: event.target.value } }))} /> : (getBaseSku(family) || '—')}</td>
@@ -879,47 +963,52 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                               value={familyDraft.categoryPath}
                               onChange={(nextPath) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, categoryPath: nextPath } }))}
                               categoryPaths={categoryPaths}
-                              className="flex h-8 items-center rounded-md bg-transparent px-1 !py-0"
+                              className="flex h-7 items-center rounded-md bg-transparent px-1 !py-0 text-[12px] [&_input]:text-[12px] [&_span]:text-[12px]"
                             />
                           </div>
-                        ) : (family.categoryPath.join(' / ') || family.category)}
+                        ) : (
+                          <div className="min-w-0">
+                            <AdminCategoryBreadcrumbPicker
+                              value={family.categoryPath.length > 0 ? family.categoryPath : normalizeCategoryPath(family.category)}
+                              onChange={() => {}}
+                              categoryPaths={categoryPaths}
+                              disabled
+                              className="flex h-7 items-center rounded-md bg-transparent px-1 !py-0 text-[12px] [&_input]:text-[12px] [&_span]:text-[12px]"
+                            />
+                          </div>
+                        )}
                       </td>
-                      <td className="px-2 py-3 text-center">{variantCount}</td>
-                      <td className="px-2 py-3 text-right">{singleRowLike && isEditingFamily ? <input type="number" step="0.01" className={ROW_EDIT_INPUT_CLASS} value={familyDraft.price} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, price: Number(event.target.value) || 0 } }))} /> : formatCurrencyRange(minPrice, maxPrice)}</td>
-                      <td className="px-2 py-3 text-center text-emerald-700">{singleRowLike && isEditingFamily ? <input type="number" className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-center text-sm" value={familyDraft.discountPct} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, discountPct: Number(event.target.value) || 0 } }))} /> : formatPercentRange(discounts)}</td>
-                      <td className="px-2 py-3 text-right">{singleRowLike ? (familyDraft.discountPct > 0 ? formatCurrency(computeSalePrice(familyDraft.price, familyDraft.discountPct)) : '—') : (() => {
+                      <td className="w-[6.83%] whitespace-nowrap px-2 py-3 text-right">{singleRowLike && isEditingFamily ? <input type="number" step="0.01" className={ROW_EDIT_INPUT_CLASS} value={familyDraft.price} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, price: Number(event.target.value) || 0 } }))} /> : formatCurrencyRange(minPrice, maxPrice)}</td>
+                      <td className="w-[6.83%] px-2 py-3 text-right text-emerald-700">{singleRowLike && isEditingFamily ? <input type="number" className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-right text-sm" value={familyDraft.discountPct} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, discountPct: Number(event.target.value) || 0 } }))} /> : formatPercentRange(discounts)}</td>
+                      <td className="w-[10.33%] px-2 py-3 text-right">{singleRowLike ? (familyDraft.discountPct > 0 ? formatCurrency(computeSalePrice(familyDraft.price, familyDraft.discountPct)) : '—') : (() => {
                         const discounted = visibleVariants.filter((variant) => variant.discountPct > 0).map((variant) => computeSalePrice(variant.price, variant.discountPct));
-                        return discounted.length ? formatRangeValue(discounted, formatCurrency) : '—';
+                        return discounted.length ? formatCurrencyRangeFromValues(discounted) : '—';
                       })()}</td>
-                      <td className="px-2 py-3 text-right">{singleRowLike && isEditingFamily ? <input type="number" className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-right text-sm" value={familyDraft.stock} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, stock: Number(event.target.value) || 0 } }))} /> : formatRangeValue(stocks, (value) => `${value}`)}</td>
-                      <td className="px-2 py-3 text-center">{singleRowLike && isEditingFamily ? <input type="number" className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-center text-sm" value={familyDraft.minOrder} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, minOrder: Number(event.target.value) || 1 } }))} /> : formatRangeValue(minOrders, (value) => `${value}`)}</td>
-                      <td className="w-[13%] px-2 py-3 text-center"><div className="inline-flex justify-center"><ActiveStateChip active={familyDraft.active} editable={isEditingFamily} chipClassName="!min-w-[96px]" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, active: next } }))} /></div></td>
-                      <td className="w-[13%] px-2 py-3 text-center">
+                      <td className="w-[120px] px-2 py-3 text-center"><div className="inline-flex justify-center"><ActiveStateChip active={familyDraft.active} editable={isEditingFamily} editScope={`family:${family.id}`} chipClassName="!min-w-[92px] !text-[11px]" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, active: next } }))} /></div></td>
+                      <td className="w-[124px] px-2 py-3 text-center">
                         {isEditingFamily
-                          ? <div className="inline-flex justify-center"><NoteTagChip value={familyDraft.note} editable allowEmpty chipClassName="!min-w-[96px]" placeholderLabel="Opombe" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, note: next as NoteValue } }))} /></div>
-                          : <div className="inline-flex justify-center"><NoteTagChip value={(family.notes?.trim() as NoteValue) || ''} editable={false} allowEmpty chipClassName="!min-w-[96px]" placeholderLabel="Opombe" onChange={() => {}} /></div>}
+                          ? <div className="inline-flex justify-center"><NoteTagChip value={(familyDraft.note || 'na-zalogi') as NoteTag} editable editScope={`family:${family.id}`} chipClassName="!min-w-[97px] !text-[11px]" placeholderLabel="Opombe" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, note: (next || 'na-zalogi') as NoteValue } }))} /></div>
+                          : <div className="inline-flex justify-center"><NoteTagChip value={(normalizeNoteValue(family.notes) || 'na-zalogi') as NoteTag} editable={false} editScope={`family:${family.id}`} chipClassName="!min-w-[97px] !text-[11px]" placeholderLabel="Opombe" onChange={() => {}} /></div>}
                       </td>
-                      <td className="px-2 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'quick-edit', label: 'Hitro urejanje', icon: <PencilIcon />, onSelect: () => startFamilyEdit(family, visibleVariants) }, { key: 'save', label: 'Shrani', icon: <SaveIcon />, disabled: !isEditingFamily, onSelect: () => { void saveFamilyEdit(family, visibleVariants); } }, { key: 'edit', label: 'Uredi', onSelect: () => router.push(`/admin/artikli/${encodeURIComponent(family.slug || family.id)}`) }]} /></td>
+                      <td className="w-[5%] px-2 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'quick-edit', label: 'Hitro urejanje', icon: <PencilIcon />, onSelect: () => startFamilyEdit(family, visibleVariants) }, { key: 'save', label: 'Shrani', icon: <SaveIcon />, disabled: !isEditingFamily, onSelect: () => { void saveFamilyEdit(family, visibleVariants); } }, { key: 'edit', label: 'Uredi', onSelect: () => router.push(`/admin/artikli/${encodeURIComponent(family.slug || family.id)}`) }]} /></td>
                     </tr>
                     {isExpanded && hasSubtable ? (
                       <tr className="border-t border-slate-100 bg-slate-50/70">
                         <td />
-                        <td colSpan={12} className="p-0">
+                        <td colSpan={9} className="p-0">
                           <table className="w-full text-[12px]">
                             <thead>
-                              <tr className="border-b border-slate-200 text-slate-600">
+                              <tr className="border-b border-slate-200 text-[11px] font-medium text-slate-600">
                                 <th className="px-2 py-2" />
-                                <th className="w-[26%] px-2 py-2 text-left">Različica</th>
+                                <th className="w-[25%] px-2 py-2 text-left">Različica</th>
                                 <th className="w-[20%] px-2 py-2 text-left">SKU</th>
-                                <th className="w-[12%] px-2 py-2 text-right">Cena</th>
-                                <th className="w-[4%] px-2 py-2 text-center">Popust</th>
-                                <th className="w-[12%] px-2 py-2 text-right">Akcijska cena</th>
-                                <th className="w-[8%] px-2 py-2 text-right">Zaloga</th>
-                                <th className="w-[8%] px-2 py-2 text-center">Min/nar.</th>
-                                <th className="px-2 py-2 text-center">Status</th>
-                                <th className="px-2 py-2 text-center">Opombe</th>
-                                <th className="w-[6%] px-2 py-2 text-center">Mesto</th>
-                                <th className="px-2 py-2 text-center">Uredi</th>
+                                <th className="w-[10.33%] px-2 py-2 text-right">Cena</th>
+                                <th className="w-[10.33%] px-2 py-2 text-right">Popust</th>
+                                <th className="w-[10.33%] px-2 py-2 text-right">Akcijska cena</th>
+                                <th className="w-[120px] px-2 py-2 text-center">Status</th>
+                                <th className="w-[124px] px-2 py-2 text-center">Opombe</th>
+                                <th className="w-[5%] px-2 py-2 text-center">Mesto</th>
+                                <th className="w-[5%] px-2 py-2 text-center">Uredi</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -933,12 +1022,12 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                   stock: variant.stock,
                                   active: variant.active,
                                   minOrder: variant.minOrder ?? 1,
-                                  note: (variant.badge as NoteValue) ?? '',
+                                  note: (normalizeNoteValue(variant.badge) as NoteValue) || 'na-zalogi',
                                   position: variant.position ?? 1
                                 };
                                 const actionPrice = draft.discountPct > 0 ? computeSalePrice(draft.price, draft.discountPct) : null;
                                 return (
-                                  <tr key={variant.id} className="border-t border-slate-100">
+                                  <tr key={variant.id} className="border-t border-slate-100" data-edit-scope={`variant:${variant.id}`}>
                                     <td className="px-2 py-2 text-center">
                                       <AdminCheckbox
                                         checked={selectedVariantIds.has(variant.id)}
@@ -984,12 +1073,12 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         draft.sku
                                       )}
                                     </td>
-                                    <td className="px-2 py-2 text-right">
+                                    <td className="w-[10.33%] px-2 py-2 text-right">
                                       {isEditing ? (
                                         <input
                                           type="number"
                                           step="0.01"
-                                          className={`${ROW_EDIT_INPUT_CLASS} ml-auto w-[36%] text-right`}
+                                          className={`${ROW_EDIT_INPUT_CLASS} ml-auto w-[32%] text-right`}
                                           value={draft.price}
                                           onChange={(event) =>
                                             setVariantDrafts((current) => ({
@@ -1002,13 +1091,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         formatCurrency(draft.price)
                                       )}
                                     </td>
-                                    <td className="px-2 py-2 text-center text-emerald-700">
+                                    <td className="w-[10.33%] px-2 py-2 text-right text-emerald-700">
                                       {isEditing ? (
                                         <input
                                           type="number"
                                           min={0}
                                           max={100}
-                                          className={`${ROW_EDIT_INPUT_CLASS} mx-auto w-[70%] text-center`}
+                                          className={`${ROW_EDIT_INPUT_CLASS} mx-auto w-[56%] text-center`}
                                           value={draft.discountPct}
                                           onChange={(event) =>
                                             setVariantDrafts((current) => ({
@@ -1021,46 +1110,14 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         `${draft.discountPct}%`
                                       )}
                                     </td>
-                                    <td className="px-2 py-2 text-right">{actionPrice === null ? '—' : formatCurrency(actionPrice)}</td>
-                                    <td className="px-2 py-2 text-right">
-                                      {isEditing ? (
-                                        <input
-                                          type="number"
-                                          className={`${ROW_EDIT_INPUT_CLASS} ml-auto w-[40%] text-right`}
-                                          value={draft.stock}
-                                          onChange={(event) =>
-                                            setVariantDrafts((current) => ({
-                                              ...current,
-                                              [variant.id]: { ...draft, stock: Number(event.target.value) || 0 }
-                                            }))
-                                          }
-                                        />
-                                      ) : (
-                                        draft.stock
-                                      )}
-                                    </td>
-                                    <td className="px-2 py-2 text-center">
-                                      {isEditing ? (
-                                        <input
-                                          type="number"
-                                          className={`${ROW_EDIT_INPUT_CLASS} mx-auto w-[40%] text-center`}
-                                          value={draft.minOrder}
-                                          onChange={(event) =>
-                                            setVariantDrafts((current) => ({
-                                              ...current,
-                                              [variant.id]: { ...draft, minOrder: Number(event.target.value) || 1 }
-                                            }))
-                                          }
-                                        />
-                                      ) : (
-                                        draft.minOrder
-                                      )}
-                                    </td>
-                                    <td className="px-2 py-2 text-center">
+                                    <td className="w-[10.33%] px-2 py-2 text-right">{actionPrice === null ? '—' : formatCurrency(actionPrice)}</td>
+                                    <td className="w-[120px] px-2 py-2 text-center">
                                       <div className="inline-flex justify-center">
                                         <ActiveStateChip
                                           active={draft.active}
                                           editable={isEditing}
+                                          editScope={`variant:${variant.id}`}
+                                          chipClassName="!min-w-[92px] !text-[11px]"
                                           onChange={(next) =>
                                             setVariantDrafts((current) => ({
                                               ...current,
@@ -1070,29 +1127,31 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         />
                                       </div>
                                     </td>
-                                    <td className="px-2 py-2 text-center">
+                                    <td className="w-[124px] px-2 py-2 text-center">
                                       {isEditing ? (
                                         <div className="inline-flex justify-center">
                                           <NoteTagChip
-                                            value={(draft.note || 'novo') as NoteTag}
+                                            value={(draft.note || 'na-zalogi') as NoteTag}
                                             editable
+                                            editScope={`variant:${variant.id}`}
+                                            chipClassName="!min-w-[97px] !text-[11px]"
                                             onChange={(next) =>
                                               setVariantDrafts((current) => ({
                                                 ...current,
-                                                [variant.id]: { ...draft, note: (next || 'novo') as NoteValue }
+                                                [variant.id]: { ...draft, note: (next || 'na-zalogi') as NoteValue }
                                               }))
                                             }
                                           />
                                         </div>
                                       ) : (
-                                        <div className="inline-flex justify-center"><NoteTagChip value={(draft.note || 'novo') as NoteTag} editable={false} onChange={() => {}} /></div>
+                                        <div className="inline-flex justify-center"><NoteTagChip value={(draft.note || 'na-zalogi') as NoteTag} editable={false} editScope={`variant:${variant.id}`} chipClassName="!min-w-[97px] !text-[11px]" onChange={() => {}} /></div>
                                       )}
                                     </td>
-                                    <td className="px-2 py-2 text-center">
+                                    <td className="w-[5%] px-2 py-2 text-center">
                                       {isEditing ? (
                                         <input
                                           type="number"
-                                          className={`${ROW_EDIT_INPUT_CLASS} mx-auto w-1/4 text-center`}
+                                          className={`${ROW_EDIT_INPUT_CLASS} mx-auto w-[20%] text-center`}
                                           value={draft.position}
                                           onChange={(event) =>
                                             setVariantDrafts((current) => ({
@@ -1103,7 +1162,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         />
                                       ) : (variant.position ?? '—')}
                                     </td>
-                                    <td className="px-2 py-2 text-center">
+                                    <td className="w-[5%] px-2 py-2 text-center">
                                       <RowActionsDropdown
                                         label={`Uredi ${variant.sku}`}
                                         items={[
@@ -1144,6 +1203,99 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
             </tbody>
           </Table>
       </AdminTableLayout>
+      <HeaderFilterPortal open={Boolean(openFilter)}>
+        {openFilter === 'category' ? (
+          <div style={getHeaderPopoverStyle(categoryFilterButtonRef.current, 294)}>
+            <MenuPanel className="w-[18.4rem] shadow-lg">
+              {[{ value: 'all', label: 'Vse kategorije' }, ...categories.map((category) => ({ value: category, label: category }))].map(
+                (option) => (
+                  <MenuItem
+                    key={option.value}
+                    onClick={() => {
+                      setCategoryFilter(option.value);
+                      setOpenFilter(null);
+                    }}
+                  >
+                    {option.label}
+                  </MenuItem>
+                )
+              )}
+            </MenuPanel>
+          </div>
+        ) : null}
+        {openFilter === 'priceRange' ? (
+          <div style={getHeaderPopoverStyle(priceFilterButtonRef.current, 192)}>
+            <AdminRangeFilterPanel
+              title="Cena"
+              draftRange={draftPriceRangeFilter}
+              onDraftChange={setDraftPriceRangeFilter}
+              onConfirm={() => {
+                setPriceRangeFilter(draftPriceRangeFilter);
+                setOpenFilter(null);
+              }}
+              onReset={() => {
+                setDraftPriceRangeFilter({ min: '', max: '' });
+                setPriceRangeFilter({ min: '', max: '' });
+                setOpenFilter(null);
+              }}
+              minPlaceholder="Min cena"
+              maxPlaceholder="Max cena"
+              min={0}
+            />
+          </div>
+        ) : null}
+        {openFilter === 'discount' ? (
+          <div style={getHeaderPopoverStyle(discountFilterButtonRef.current, 160)}>
+            <MenuPanel className="w-40 shadow-lg">
+              <MenuItem onClick={() => { setDiscountFilter('all'); setOpenFilter(null); }}>Vsi</MenuItem>
+              <MenuItem onClick={() => { setDiscountFilter('yes'); setOpenFilter(null); }}>S popustom</MenuItem>
+              <MenuItem onClick={() => { setDiscountFilter('no'); setOpenFilter(null); }}>Brez popusta</MenuItem>
+            </MenuPanel>
+          </div>
+        ) : null}
+        {openFilter === 'actionPriceRange' ? (
+          <div style={getHeaderPopoverStyle(actionPriceFilterButtonRef.current, 192)}>
+            <AdminRangeFilterPanel
+              title="Akcijska cena"
+              draftRange={draftActionPriceRangeFilter}
+              onDraftChange={setDraftActionPriceRangeFilter}
+              onConfirm={() => {
+                setActionPriceRangeFilter(draftActionPriceRangeFilter);
+                setOpenFilter(null);
+              }}
+              onReset={() => {
+                setDraftActionPriceRangeFilter({ min: '', max: '' });
+                setActionPriceRangeFilter({ min: '', max: '' });
+                setOpenFilter(null);
+              }}
+              minPlaceholder="Min akcijska"
+              maxPlaceholder="Max akcijska"
+              min={0}
+            />
+          </div>
+        ) : null}
+        {openFilter === 'note' ? (
+          <div style={getHeaderPopoverStyle(noteFilterButtonRef.current, 184)}>
+            <MenuPanel className="w-44 shadow-lg">
+              <MenuItem onClick={() => { setNoteFilter('all'); setOpenFilter(null); }}>Vse opombe</MenuItem>
+              <MenuItem onClick={() => { setNoteFilter('na-zalogi'); setOpenFilter(null); }}>Na zalogi</MenuItem>
+              <MenuItem onClick={() => { setNoteFilter('novo'); setOpenFilter(null); }}>Novo</MenuItem>
+              <MenuItem onClick={() => { setNoteFilter('akcija'); setOpenFilter(null); }}>V akciji</MenuItem>
+              <MenuItem onClick={() => { setNoteFilter('zadnji-kosi'); setOpenFilter(null); }}>Zadnji kosi</MenuItem>
+              <MenuItem onClick={() => { setNoteFilter('ni-na-zalogi'); setOpenFilter(null); }}>Ni na zalogi</MenuItem>
+            </MenuPanel>
+          </div>
+        ) : null}
+        {openFilter === 'status' ? (
+          <div style={getHeaderPopoverStyle(statusFilterButtonRef.current, 144)}>
+            <MenuPanel className="w-36 shadow-lg">
+              <MenuItem onClick={() => { setStatusFilter('all'); setOpenFilter(null); }}>Vsi</MenuItem>
+              <MenuItem onClick={() => { setStatusFilter('active'); setOpenFilter(null); }}>Aktiven</MenuItem>
+              <MenuItem onClick={() => { setStatusFilter('inactive'); setOpenFilter(null); }}>Neaktiven</MenuItem>
+            </MenuPanel>
+          </div>
+        ) : null}
+      </HeaderFilterPortal>
     </div>
   );
 }

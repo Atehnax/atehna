@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Chip } from '@/shared/ui/badge';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 
-export type NoteTag = 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
+export type NoteTag = 'na-zalogi' | 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
 type NoteTagValue = NoteTag | '';
 
 export function NoteTagChip({
@@ -15,7 +15,8 @@ export function NoteTagChip({
   chipClassName,
   menuPlacement = 'bottom',
   allowEmpty = false,
-  placeholderLabel = 'Opombe'
+  placeholderLabel = 'Opombe',
+  editScope
 }: {
   value: NoteTagValue;
   editable: boolean;
@@ -24,6 +25,7 @@ export function NoteTagChip({
   menuPlacement?: 'top' | 'bottom';
   allowEmpty?: boolean;
   placeholderLabel?: string;
+  editScope?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
@@ -33,6 +35,8 @@ export function NoteTagChip({
   const label =
     value === ''
       ? placeholderLabel
+      : value === 'na-zalogi'
+      ? 'Na zalogi'
       : value === 'novo'
       ? 'Novo'
       : value === 'akcija'
@@ -40,7 +44,18 @@ export function NoteTagChip({
         : value === 'ni-na-zalogi'
           ? 'Ni na zalogi'
           : 'Zadnji kosi';
-  const variant = value === '' ? 'neutral' : value === 'novo' ? 'info' : value === 'akcija' ? 'danger' : value === 'ni-na-zalogi' ? 'neutral' : 'purple';
+  const variant =
+    value === ''
+      ? 'neutral'
+      : value === 'na-zalogi'
+        ? 'success'
+        : value === 'novo'
+          ? 'info'
+          : value === 'akcija'
+            ? 'danger'
+            : value === 'ni-na-zalogi'
+              ? 'neutral'
+              : 'purple';
   const emphasisClassName = value === 'akcija' ? '!border-rose-200 !bg-rose-50 !text-rose-700' : value === '' ? 'text-slate-600' : '';
 
   const updateMenuPosition = useCallback(() => {
@@ -78,7 +93,7 @@ export function NoteTagChip({
   }, [isOpen, updateMenuPosition]);
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="relative" data-edit-scope={editScope}>
       <button
         ref={triggerRef}
         type="button"
@@ -100,11 +115,13 @@ export function NoteTagChip({
             <div
               ref={menuRef}
               role="menu"
+              data-edit-scope={editScope}
               className={`fixed z-[1000] min-w-[130px] ${menuPlacement === 'top' ? '-translate-y-full' : ''}`}
               style={{ top: menuPosition.top, left: menuPosition.left }}
             >
               <MenuPanel>
                 {allowEmpty ? <MenuItem onClick={() => { onChange(''); setIsOpen(false); }}>{placeholderLabel}</MenuItem> : null}
+                <MenuItem onClick={() => { onChange('na-zalogi'); setIsOpen(false); }}>Na zalogi</MenuItem>
                 <MenuItem onClick={() => { onChange('novo'); setIsOpen(false); }}>Novo</MenuItem>
                 <MenuItem onClick={() => { onChange('akcija'); setIsOpen(false); }}>V akciji</MenuItem>
                 <MenuItem onClick={() => { onChange('zadnji-kosi'); setIsOpen(false); }}>Zadnji kosi</MenuItem>

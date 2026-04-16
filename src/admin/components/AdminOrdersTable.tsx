@@ -1,7 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
@@ -25,6 +24,13 @@ import { adminTableRowToneClasses, dateInputTokenClasses, filterPillTokenClasses
 import { AdminTableLayout, ColumnVisibilityControl } from '@/shared/ui/admin-table';
 import AdminRangeFilterPanel, { type RangePreset } from '@/shared/ui/admin-range-filter-panel';
 import AdminFilterInput from '@/shared/ui/admin-filter-input';
+import {
+  HeaderFilterPortal,
+  HEADER_FILTER_BUTTON_CLASS,
+  HEADER_FILTER_ROOT_ATTR,
+  getHeaderPopoverStyle,
+  useHeaderFilterDismiss
+} from '@/shared/ui/admin-header-filter';
 import AdminOrderPaymentSelect from '@/admin/components/AdminOrderPaymentSelect';
 import StatusChip from '@/admin/components/StatusChip';
 import PaymentChip from '@/admin/components/PaymentChip';
@@ -109,7 +115,6 @@ const PAYMENT_SORT_PRIORITY: Record<string, number> = {
 };
 const TYPE_SORT_CYCLE: TypePriority[] = ['school', 'company', 'individual'];
 const HEADER_TITLE_BUTTON_CLASS = 'inline-flex items-center text-[11px] font-semibold leading-none hover:text-[color:var(--blue-500)]';
-const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500';
 const ORDERS_NUMERIC_RANGE_PRESETS: RangePreset[] = ['20', '50', '100', '200', '500', '1000'].map((maxValue) => ({
   label: `0-${maxValue === '1000' ? '1k' : maxValue}`,
   value: { min: '0', max: maxValue }
@@ -367,28 +372,10 @@ export default function AdminOrdersTable({
     };
   }, [isPaymentHeaderMenuOpen, isStatusHeaderMenuOpen]);
 
-  useEffect(() => {
-    if (!openHeaderFilter) return;
-
-    const handleOutsideClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target?.closest('[data-header-filter-root="true"]')) return;
-      setOpenHeaderFilter(null);
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setOpenHeaderFilter(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleOutsideClick);
-    document.addEventListener('keydown', handleEscape);
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [openHeaderFilter]);
+  useHeaderFilterDismiss({
+    isOpen: Boolean(openHeaderFilter),
+    onClose: () => setOpenHeaderFilter(null)
+  });
 
   useEffect(() => {
     if (openHeaderFilter === 'total') {
@@ -1079,23 +1066,6 @@ export default function AdminOrdersTable({
     setOpenHeaderFilter((currentOpenFilter) => (currentOpenFilter === filterKey ? null : filterKey));
   };
 
-  const getHeaderPopoverStyle = useCallback((anchorElement: HTMLButtonElement | null, width: number): CSSProperties => {
-    if (!anchorElement || typeof window === 'undefined') return { visibility: 'hidden' };
-    const anchorRect = anchorElement.getBoundingClientRect();
-    const left = Math.min(
-      Math.max(8, anchorRect.left + anchorRect.width / 2 - width / 2),
-      window.innerWidth - width - 8
-    );
-
-    return {
-      position: 'fixed',
-      top: anchorRect.bottom + 6,
-      left,
-      width,
-      zIndex: 60
-    };
-  }, []);
-
   const resetAllFilters = () => {
     setStatusFilter('all');
     setQuery('');
@@ -1486,7 +1456,7 @@ export default function AdminOrdersTable({
                 </TH>
 
                 {visibleColumns.order ? <TH className="h-11 text-center">
-                  <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" onClick={() => onSort('order')} className={getHeaderTitleClass('order')}>Naročilo</button>
                     <button ref={orderFilterButtonRef} data-active={openHeaderFilter === 'order'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('order'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Naročilo">
                       <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
@@ -1495,7 +1465,7 @@ export default function AdminOrdersTable({
                 </TH> : null}
 
                 {visibleColumns.date ? <TH className="h-11 text-center text-[11px]">
-                  <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" onClick={() => onSort('date')} className={getHeaderTitleClass('date')}>Datum</button>
                     <button ref={dateFilterButtonRef} data-active={openHeaderFilter === 'date'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('date'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Datum">
                       <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
@@ -1508,7 +1478,7 @@ export default function AdminOrdersTable({
                 {visibleColumns.address ? <TH className="text-[11px]"><button type="button" onClick={() => onSort('address')} className={getHeaderTitleClass('address')}>Naslov</button></TH> : null}
 
                 {visibleColumns.type ? <TH className="h-11 text-center text-[11px]">
-                  <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" onClick={() => onSort('type')} className={getHeaderTitleClass('type')}>Tip</button>
                     <button ref={typeFilterButtonRef} data-active={openHeaderFilter === 'type'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('type'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Tip"><ColumnFilterIcon className="!h-[12px] !w-[12px]" /></button>
                   </div>
@@ -1546,7 +1516,7 @@ export default function AdminOrdersTable({
                         )}
                       </>
                     ) : (
-                      <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
+                      <div className="relative inline-flex items-center gap-1.5 align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                         <button type="button" onClick={() => onSort('status')} className={getHeaderTitleClass('status')}>Status</button>
                         <button ref={statusFilterButtonRef} data-active={openHeaderFilter === 'status'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('status'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Status"><ColumnFilterIcon className="!h-[12px] !w-[12px]" /></button>
                       </div>
@@ -1586,7 +1556,7 @@ export default function AdminOrdersTable({
                         )}
                       </>
                     ) : (
-                      <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
+                      <div className="relative inline-flex items-center gap-1.5 align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                         <button type="button" onClick={() => onSort('payment')} className={getHeaderTitleClass('payment')}>Plačilo</button>
                         <button ref={paymentFilterButtonRef} data-active={openHeaderFilter === 'payment'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('payment'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Plačilo"><ColumnFilterIcon className="!h-[12px] !w-[12px]" /></button>
                       </div>
@@ -1595,14 +1565,14 @@ export default function AdminOrdersTable({
                 </TH> : null}
 
                 {visibleColumns.total ? <TH className="h-11 text-center text-[11px]">
-                  <div className="relative inline-flex items-center gap-1.5 align-middle" data-header-filter-root="true">
+                  <div className="relative inline-flex items-center gap-1.5 align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" onClick={() => onSort('total')} className={getHeaderTitleClass('total')}>Skupaj</button>
                     <button ref={totalFilterButtonRef} data-active={openHeaderFilter === 'total'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('total'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Skupaj"><ColumnFilterIcon className="!h-[12px] !w-[12px]" /></button>
                   </div>
                 </TH> : null}
 
                 {visibleColumns.documents ? <TH className="h-11 min-w-[100px] whitespace-nowrap text-center text-[11px]">
-                  <div className="relative inline-flex items-center gap-1.5 whitespace-nowrap align-middle" data-header-filter-root="true">
+                  <div className="relative inline-flex items-center gap-1.5 whitespace-nowrap align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <span className="inline-flex items-center whitespace-nowrap text-[11px] font-semibold leading-none">PDF datoteke</span>
                     <button ref={documentsFilterButtonRef} data-active={openHeaderFilter === 'documents'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('documents'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj PDF datoteke"><ColumnFilterIcon className="!h-[12px] !w-[12px]" /></button>
                   </div>
@@ -1819,8 +1789,7 @@ export default function AdminOrdersTable({
             </TBody>
           </Table>
         </AdminTableLayout>
-        {typeof window !== 'undefined' && openHeaderFilter ? createPortal(
-          <div data-header-filter-root="true">
+        <HeaderFilterPortal open={Boolean(openHeaderFilter)}>
             {openHeaderFilter === 'order' ? (
               <div style={getHeaderPopoverStyle(orderFilterButtonRef.current, 192)} className="rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
                 <h4 className="mb-2 text-[11px] font-semibold text-slate-800">Nastavi razpon naročil</h4>
@@ -1935,9 +1904,7 @@ export default function AdminOrdersTable({
                 </MenuPanel>
               </div>
             ) : null}
-          </div>,
-          document.body
-        ) : null}
+        </HeaderFilterPortal>
       </div>
     </div>
   );

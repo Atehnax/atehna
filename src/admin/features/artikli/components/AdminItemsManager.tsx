@@ -934,7 +934,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                 <th className="w-[120px] px-2 py-2 text-center">Status</th>
                                 <th className="w-[124px] px-2 py-2 text-center">Opombe</th>
                                 <th className="w-[5%] px-2 py-2 text-center">Mesto</th>
-                                <th className="px-2 py-2 text-center">Uredi</th>
+                                <th className="w-[5%] px-2 py-2 text-center">Uredi</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -1073,7 +1073,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         <div className="inline-flex justify-center"><NoteTagChip value={(draft.note || 'novo') as NoteTag} editable={false} editScope={`variant:${variant.id}`} chipClassName="!min-w-[97px] !text-[11px]" onChange={() => {}} /></div>
                                       )}
                                     </td>
-                                    <td className="px-2 py-2 text-center">
+                                    <td className="w-[5%] px-2 py-2 text-center">
                                       {isEditing ? (
                                         <input
                                           type="number"
@@ -1088,7 +1088,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         />
                                       ) : (variant.position ?? '—')}
                                     </td>
-                                    <td className="px-2 py-2 text-center">
+                                    <td className="w-[5%] px-2 py-2 text-center">
                                       <RowActionsDropdown
                                         label={`Uredi ${variant.sku}`}
                                         items={[

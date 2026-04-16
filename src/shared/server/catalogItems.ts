@@ -94,6 +94,7 @@ export type AdminCatalogListItem = {
   id: number;
   slug: string;
   itemName: string;
+  material: string | null;
   baseSku: string | null;
   categoryLabel: string;
   status: 'active' | 'inactive';
@@ -390,6 +391,7 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
       ci.id,
       ci.slug,
       ci.item_name,
+      ci.material,
       ci.sku,
       ci.status,
       ci.admin_notes,
@@ -410,6 +412,7 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
     id: Number(row.id),
     slug: String(row.slug ?? ''),
     itemName: String(row.item_name ?? ''),
+    material: asStringOrNull(row.material),
     baseSku: asStringOrNull(row.sku),
     categoryLabel: String(row.category_label ?? ''),
     status: String(row.status ?? 'inactive') === 'active' ? 'active' : 'inactive',

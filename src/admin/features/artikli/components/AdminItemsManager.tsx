@@ -35,9 +35,23 @@ const PAGE_SIZE_OPTIONS = [20, 50, 100];
 const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500';
 const formatPriceRange = (minPrice: number, maxPrice: number) =>
   `${minPrice.toLocaleString('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} – ${maxPrice.toLocaleString('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
-type ListFamily = ProductFamily & { baseSku: string };
+type ListFamily = ProductFamily & { baseSku: string; material: string | null };
 
 const getBaseSku = (family: ListFamily) => family.baseSku || family.variants[0]?.sku || '';
+const formatDimension = (value: number | null | undefined) => (typeof value === 'number' && Number.isFinite(value) ? `${value}` : null);
+
+function buildVariantDisplayLabel(family: ListFamily, variant: Variant): string {
+  const material = family.material?.trim() ?? '';
+  const length = formatDimension(variant.length);
+  const width = formatDimension(variant.width);
+  const thickness = formatDimension(variant.thickness);
+  if (material && length && width && thickness) {
+    return `${material} ${length}x${width}x${thickness}`;
+  }
+  const fallback = variant.label?.trim();
+  if (fallback) return fallback;
+  return 'Različica';
+}
 
 function toListFamilies(items: AdminCatalogListItem[]): ListFamily[] {
   return items.map((item, itemIndex) => {
@@ -75,7 +89,8 @@ function toListFamilies(items: AdminCatalogListItem[]): ListFamily[] {
       notes: item.adminNotes ?? '',
       slug: item.slug,
       variants,
-      baseSku: item.baseSku ?? ''
+      baseSku: item.baseSku ?? '',
+      material: item.material
     };
   });
 }
@@ -656,9 +671,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                               <tr className="border-b border-slate-200 text-slate-600">
                                 <th className="px-2 py-2" />
                                 <th className="px-2 py-2 text-left">Različica</th>
-                                <th className="px-2 py-2 text-right">Dolžina</th>
-                                <th className="px-2 py-2 text-right">Širina</th>
-                                <th className="px-2 py-2 text-right">Debelina</th>
                                 <th className="w-[14%] px-2 py-2 text-left">SKU</th>
                                 <th className="px-2 py-2 text-right">Cena</th>
                                 <th className="px-2 py-2 text-center">Popust</th>
@@ -675,7 +687,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                               {visibleVariants.map((variant) => {
                                 const isEditing = editingVariantId === variant.id;
                                 const draft = variantDrafts[variant.id] ?? {
-                                  label: variant.label,
+                                  label: buildVariantDisplayLabel(family, variant),
                                   sku: variant.sku,
                                   price: variant.price,
                                   discountPct: variant.discountPct,
@@ -713,12 +725,9 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                           }
                                         />
                                       ) : (
-                                        draft.label
+                                        buildVariantDisplayLabel(family, variant)
                                       )}
                                     </td>
-                                    <td className="px-2 py-2 text-right">{variant.length ?? '—'}</td>
-                                    <td className="px-2 py-2 text-right">{variant.width ?? '—'}</td>
-                                    <td className="px-2 py-2 text-right">{variant.thickness ?? '—'}</td>
                                     <td className="px-2 py-2">
                                       {isEditing ? (
                                         <input

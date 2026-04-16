@@ -45,6 +45,9 @@ const PAGE_SIZE_OPTIONS = [20, 50, 100];
 type ListFamily = ProductFamily & { baseSku: string; material: string | null; categoryPath: string[] };
 type NoteValue = '' | NoteTag;
 const ROW_EDIT_INPUT_CLASS = 'h-7 w-full rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0';
+const STATUS_COLUMN_CLASS = 'w-[120px] min-w-[120px] max-w-[120px]';
+const NOTE_COLUMN_CLASS = 'w-[124px] min-w-[124px] max-w-[124px]';
+const STATUS_NOTE_CELL_INNER_CLASS = 'inline-flex w-full items-center justify-center';
 
 const getBaseSku = (family: ListFamily) => family.baseSku || family.variants[0]?.sku || '';
 const formatRangeValue = (values: number[], formatter: (value: number) => string) => {
@@ -224,6 +227,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const actionPriceFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const statusFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const noteFilterButtonRef = useRef<HTMLButtonElement | null>(null);
+  const familyDraftsRef = useRef(familyDrafts);
+
+  useEffect(() => {
+    familyDraftsRef.current = familyDrafts;
+  }, [familyDrafts]);
 
   const families = useMemo(() => toListFamilies(items), [items]);
   const effectiveFamilies = useMemo(
@@ -531,14 +539,15 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     }));
   };
   const saveFamilyEdit = async (family: ListFamily, variants: Variant[]) => {
-    const draft = familyDrafts[family.id];
+    const draft = familyDraftsRef.current[family.id];
     if (!draft) return;
     try {
+      const nextItemLevelNote = (draft.note || 'na-zalogi') as NoteValue;
       await persistItemBySlug(family.slug || family.id, (payload) => {
         payload.itemName = draft.name;
         payload.sku = draft.sku || null;
         payload.status = draft.active ? 'active' : 'inactive';
-        payload.adminNotes = draft.note || null;
+        payload.adminNotes = nextItemLevelNote;
         if (draft.categoryPath.length > 0) {
           payload.categoryPath = draft.categoryPath;
         }
@@ -561,7 +570,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
           category: draft.categoryPath.join(' / '),
           categoryPath: draft.categoryPath,
           active: draft.active,
-          notes: draft.note
+          notes: nextItemLevelNote
         }
       }));
       setEditingFamilyId(null);
@@ -874,7 +883,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     </button>
                   </div>
                 </TH>
-                <TH className="w-[120px] whitespace-nowrap px-2 text-center">
+                <TH className={`${STATUS_COLUMN_CLASS} whitespace-nowrap px-0 text-center`}>
                   <div className="relative inline-flex items-center gap-1" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" className={getSortTitleClass('status')} onClick={() => cycleSort('status')}>
                       Status
@@ -893,7 +902,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     </button>
                   </div>
                 </TH>
-                <TH className="w-[124px] whitespace-nowrap px-2 text-center">
+                <TH className={`${NOTE_COLUMN_CLASS} whitespace-nowrap px-0 text-center`}>
                   <div className="relative inline-flex items-center gap-1" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" className={getSortTitleClass('note')} onClick={() => cycleSort('note')}>
                       Opombe
@@ -984,11 +993,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                         const discounted = visibleVariants.filter((variant) => variant.discountPct > 0).map((variant) => computeSalePrice(variant.price, variant.discountPct));
                         return discounted.length ? formatCurrencyRangeFromValues(discounted) : '—';
                       })()}</td>
-                      <td className="w-[120px] px-2 py-3 text-center"><div className="inline-flex justify-center"><ActiveStateChip active={familyDraft.active} editable={isEditingFamily} editScope={`family:${family.id}`} chipClassName="!min-w-[92px] !text-[11px]" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, active: next } }))} /></div></td>
-                      <td className="w-[124px] px-2 py-3 text-center">
+                      <td className={`${STATUS_COLUMN_CLASS} px-0 py-3 text-center`}><div className={STATUS_NOTE_CELL_INNER_CLASS}><ActiveStateChip active={familyDraft.active} editable={isEditingFamily} editScope={`family:${family.id}`} chipClassName="!min-w-[92px] !text-[11px]" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, active: next } }))} /></div></td>
+                      <td className={`${NOTE_COLUMN_CLASS} px-0 py-3 text-center`}>
                         {isEditingFamily
-                          ? <div className="inline-flex justify-center"><NoteTagChip value={(familyDraft.note || 'na-zalogi') as NoteTag} editable editScope={`family:${family.id}`} chipClassName="!min-w-[97px] !text-[11px]" placeholderLabel="Opombe" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, note: (next || 'na-zalogi') as NoteValue } }))} /></div>
-                          : <div className="inline-flex justify-center"><NoteTagChip value={(normalizeNoteValue(family.notes) || 'na-zalogi') as NoteTag} editable={false} editScope={`family:${family.id}`} chipClassName="!min-w-[97px] !text-[11px]" placeholderLabel="Opombe" onChange={() => {}} /></div>}
+                          ? <div className={STATUS_NOTE_CELL_INNER_CLASS}><NoteTagChip value={(familyDraft.note || 'na-zalogi') as NoteTag} editable editScope={`family:${family.id}`} chipClassName="!min-w-[97px] !text-[11px]" placeholderLabel="Opombe" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, note: (next || 'na-zalogi') as NoteValue } }))} /></div>
+                          : <div className={STATUS_NOTE_CELL_INNER_CLASS}><NoteTagChip value={(normalizeNoteValue(family.notes) || 'na-zalogi') as NoteTag} editable={false} editScope={`family:${family.id}`} chipClassName="!min-w-[97px] !text-[11px]" placeholderLabel="Opombe" onChange={() => {}} /></div>}
                       </td>
                       <td className="w-[5%] px-2 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'quick-edit', label: 'Hitro urejanje', icon: <PencilIcon />, onSelect: () => startFamilyEdit(family, visibleVariants) }, { key: 'save', label: 'Shrani', icon: <SaveIcon />, disabled: !isEditingFamily, onSelect: () => { void saveFamilyEdit(family, visibleVariants); } }, { key: 'edit', label: 'Uredi', onSelect: () => router.push(`/admin/artikli/${encodeURIComponent(family.slug || family.id)}`) }]} /></td>
                     </tr>
@@ -1005,8 +1014,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                 <th className="w-[10.33%] px-2 py-2 text-right">Cena</th>
                                 <th className="w-[10.33%] px-2 py-2 text-right">Popust</th>
                                 <th className="w-[10.33%] px-2 py-2 text-right">Akcijska cena</th>
-                                <th className="w-[120px] px-2 py-2 text-center">Status</th>
-                                <th className="w-[124px] px-2 py-2 text-center">Opombe</th>
+                                <th className={`${STATUS_COLUMN_CLASS} px-0 py-2 text-center`}>Status</th>
+                                <th className={`${NOTE_COLUMN_CLASS} px-0 py-2 text-center`}>Opombe</th>
                                 <th className="w-[5%] px-2 py-2 text-center">Mesto</th>
                                 <th className="w-[5%] px-2 py-2 text-center">Uredi</th>
                               </tr>
@@ -1111,8 +1120,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                       )}
                                     </td>
                                     <td className="w-[10.33%] px-2 py-2 text-right">{actionPrice === null ? '—' : formatCurrency(actionPrice)}</td>
-                                    <td className="w-[120px] px-2 py-2 text-center">
-                                      <div className="inline-flex justify-center">
+                                    <td className={`${STATUS_COLUMN_CLASS} px-0 py-2 text-center`}>
+                                      <div className={STATUS_NOTE_CELL_INNER_CLASS}>
                                         <ActiveStateChip
                                           active={draft.active}
                                           editable={isEditing}
@@ -1127,9 +1136,9 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         />
                                       </div>
                                     </td>
-                                    <td className="w-[124px] px-2 py-2 text-center">
+                                    <td className={`${NOTE_COLUMN_CLASS} px-0 py-2 text-center`}>
                                       {isEditing ? (
-                                        <div className="inline-flex justify-center">
+                                        <div className={STATUS_NOTE_CELL_INNER_CLASS}>
                                           <NoteTagChip
                                             value={(draft.note || 'na-zalogi') as NoteTag}
                                             editable
@@ -1144,7 +1153,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                           />
                                         </div>
                                       ) : (
-                                        <div className="inline-flex justify-center"><NoteTagChip value={(draft.note || 'na-zalogi') as NoteTag} editable={false} editScope={`variant:${variant.id}`} chipClassName="!min-w-[97px] !text-[11px]" onChange={() => {}} /></div>
+                                        <div className={STATUS_NOTE_CELL_INNER_CLASS}><NoteTagChip value={(draft.note || 'na-zalogi') as NoteTag} editable={false} editScope={`variant:${variant.id}`} chipClassName="!min-w-[97px] !text-[11px]" onChange={() => {}} /></div>
                                       )}
                                     </td>
                                     <td className="w-[5%] px-2 py-2 text-center">

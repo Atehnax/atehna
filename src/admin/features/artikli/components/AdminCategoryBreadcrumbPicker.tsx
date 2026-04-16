@@ -275,7 +275,7 @@ export default function AdminCategoryBreadcrumbPicker({
         role="group"
         aria-label="Izbira poti kategorije"
       >
-        <span className="min-w-0 truncate text-sm text-slate-700" onClick={(event) => {
+        <span className="min-w-0 truncate text-xs text-slate-700" onClick={(event) => {
           if (disabled || isOpen || displayedPath.length === 0) return;
           const target = event.target as HTMLElement;
           if (target.closest('button')) return;
@@ -286,7 +286,7 @@ export default function AdminCategoryBreadcrumbPicker({
           <span className="inline-flex items-center gap-1">
             <AdminBreadcrumbPath
               items={breadcrumbItems}
-              className="truncate whitespace-nowrap text-sm text-slate-700"
+              className="truncate whitespace-nowrap text-xs text-slate-700"
             />
             {!disabled ? <span className="text-slate-400">›</span> : null}
           </span>

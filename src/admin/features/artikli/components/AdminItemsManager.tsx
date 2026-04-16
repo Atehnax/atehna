@@ -21,6 +21,7 @@ import {
   type Variant
 } from '@/admin/features/artikli/lib/familyModel';
 import { formatDecimalForDisplay } from '@/admin/features/artikli/lib/decimalFormat';
+import { NoteTagChip, type NoteTag } from '@/admin/features/artikli/components/NoteTagChip';
 import type { AdminCatalogListItem, CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/server/catalogItems';
 
 type StatusFilter = 'all' | 'active' | 'hidden';
@@ -37,14 +38,7 @@ const HEADER_FILTER_BUTTON_CLASS = 'group inline-flex h-[12px] w-[12px] shrink-0
 const formatPriceRange = (minPrice: number, maxPrice: number) =>
   `${minPrice.toLocaleString('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} – ${maxPrice.toLocaleString('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 type ListFamily = ProductFamily & { baseSku: string; material: string | null };
-type NoteValue = '' | 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
-const NOTE_OPTIONS: Array<{ value: NoteValue; label: string }> = [
-  { value: '', label: '—' },
-  { value: 'novo', label: 'Novo' },
-  { value: 'akcija', label: 'Akcija' },
-  { value: 'zadnji-kosi', label: 'Zadnji kosi' },
-  { value: 'ni-na-zalogi', label: 'Ni na zalogi' }
-];
+type NoteValue = '' | NoteTag;
 
 const getBaseSku = (family: ListFamily) => family.baseSku || family.variants[0]?.sku || '';
 const formatDimension = (value: number | null | undefined) =>
@@ -849,7 +843,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                       <td className="px-2 py-3 text-right">{singleRowLike && isEditingFamily ? <input type="number" className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-right text-sm" value={familyDraft.stock} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, stock: Number(event.target.value) || 0 } }))} /> : formatRangeValue(stocks, (value) => `${value}`)}</td>
                       <td className="px-2 py-3 text-center">{singleRowLike && isEditingFamily ? <input type="number" className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-center text-sm" value={familyDraft.minOrder} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, minOrder: Number(event.target.value) || 1 } }))} /> : formatRangeValue(minOrders, (value) => `${value}`)}</td>
                       <td className="w-[11%] px-2 py-3 text-center">{isEditingFamily ? <select className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-sm" value={familyDraft.active ? 'active' : 'hidden'} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, active: event.target.value === 'active' } }))}><option value="active">Aktiven</option><option value="hidden">Skrit</option></select> : <Chip variant={family.active ? 'success' : 'warning'}>{statusLabel(family.active)}</Chip>}</td>
-                      <td className="w-[12%] px-2 py-3 text-center">{isEditingFamily ? <select className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-sm" value={familyDraft.note} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, note: event.target.value as NoteValue } }))}>{NOTE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select> : (family.notes?.trim() ? family.notes : '—')}</td>
+                      <td className="w-[12%] px-2 py-3 text-center">
+                        {isEditingFamily
+                          ? <div className="inline-flex justify-center"><NoteTagChip value={(familyDraft.note || 'novo') as NoteTag} editable onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, note: next } }))} chipClassName="!h-8 !min-w-[112px] !text-[11px]" /></div>
+                          : (family.notes?.trim() ? <div className="inline-flex justify-center"><NoteTagChip value={family.notes.trim() as NoteTag} editable={false} onChange={() => {}} chipClassName="!h-8 !min-w-[112px] !text-[11px]" /></div> : '—')}
+                      </td>
                       <td className="px-2 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} items={[{ key: 'quick-edit', label: 'Hitro urejanje', icon: <PencilIcon />, onSelect: () => startFamilyEdit(family, visibleVariants) }, { key: 'save', label: 'Shrani', icon: <SaveIcon />, disabled: !isEditingFamily, onSelect: () => { void saveFamilyEdit(family, visibleVariants); } }, { key: 'edit', label: 'Uredi', onSelect: () => router.push(`/admin/artikli/${encodeURIComponent(family.slug || family.id)}`) }]} /></td>
                     </tr>
                     {isExpanded && hasSubtable ? (
@@ -1027,20 +1025,23 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                     </td>
                                     <td className="px-2 py-2 text-center">
                                       {isEditing ? (
-                                        <select
-                                          className="h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0"
-                                          value={draft.note}
-                                          onChange={(event) =>
-                                            setVariantDrafts((current) => ({
-                                              ...current,
-                                              [variant.id]: { ...draft, note: event.target.value as NoteValue }
-                                            }))
-                                          }
-                                        >
-                                          {NOTE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                                        </select>
+                                        <div className="inline-flex justify-center">
+                                          <NoteTagChip
+                                            value={(draft.note || 'novo') as NoteTag}
+                                            editable
+                                            onChange={(next) =>
+                                              setVariantDrafts((current) => ({
+                                                ...current,
+                                                [variant.id]: { ...draft, note: next }
+                                              }))
+                                            }
+                                            chipClassName="!h-8 !min-w-[112px] !text-[11px]"
+                                          />
+                                        </div>
                                       ) : (
-                                        draft.note || '—'
+                                        draft.note
+                                          ? <div className="inline-flex justify-center"><NoteTagChip value={draft.note as NoteTag} editable={false} onChange={() => {}} chipClassName="!h-8 !min-w-[112px] !text-[11px]" /></div>
+                                          : '—'
                                       )}
                                     </td>
                                     <td className="px-2 py-2 text-center">{variant.position ?? '—'}</td>

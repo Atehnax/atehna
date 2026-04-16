@@ -227,11 +227,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const actionPriceFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const statusFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const noteFilterButtonRef = useRef<HTMLButtonElement | null>(null);
-  const familyDraftsRef = useRef(familyDrafts);
-
-  useEffect(() => {
-    familyDraftsRef.current = familyDrafts;
-  }, [familyDrafts]);
 
   const families = useMemo(() => toListFamilies(items), [items]);
   const effectiveFamilies = useMemo(
@@ -539,7 +534,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     }));
   };
   const saveFamilyEdit = async (family: ListFamily, variants: Variant[]) => {
-    const draft = familyDraftsRef.current[family.id];
+    const draft = familyDrafts[family.id];
     if (!draft) return;
     try {
       const nextItemLevelNote = (draft.note || 'na-zalogi') as NoteValue;

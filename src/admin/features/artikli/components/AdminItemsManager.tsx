@@ -578,6 +578,27 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     };
   }, [editingFamilyId, editingVariantId]);
 
+  useEffect(() => {
+    if (!openFilter) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('[data-header-filter-root="true"]')) return;
+      setOpenFilter(null);
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenFilter(null);
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [openFilter]);
+
   return (
     <div className="space-y-4 font-['Inter',system-ui,sans-serif]">
       <AdminTableLayout
@@ -725,7 +746,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                   </button>
                 </TH>
                 <TH className="w-[24.5%]">
-                  <div className="relative inline-flex items-center gap-1">
+                  <div className="relative inline-flex items-center gap-1" data-header-filter-root="true">
                     <button type="button" className={getSortTitleClass('category')} onClick={() => cycleSort('category')}>
                       Kategorija
                     </button>
@@ -741,7 +762,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                       <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                     </button>
                     {openFilter === 'category' ? (
-                      <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
+                      <div className="absolute left-1/2 top-8 z-[1200] w-[18.4rem] -translate-x-1/2" onClick={(event) => event.stopPropagation()}>
                         <MenuPanel className="w-[18.4rem]">
                           {[{ value: 'all', label: 'Vse kategorije' }, ...categories.map((category) => ({ value: category, label: category }))].map(
                             (option) => (
@@ -762,7 +783,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                   </div>
                 </TH>
                 <TH className="w-[6.83%] text-right">
-                  <div className="relative inline-flex items-center gap-1">
+                  <div className="relative inline-flex items-center gap-1" data-header-filter-root="true">
                     <button type="button" className={getSortTitleClass('priceRange')} onClick={() => cycleSort('priceRange')}>
                       Cena
                     </button>
@@ -779,7 +800,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                       <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                     </button>
                     {openFilter === 'priceRange' ? (
-                      <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
+                      <div className="absolute left-1/2 top-8 z-[1200] w-[192px] -translate-x-1/2" onClick={(event) => event.stopPropagation()}>
                         <AdminRangeFilterPanel
                           title="Cena"
                           draftRange={draftPriceRangeFilter}
@@ -802,7 +823,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                   </div>
                 </TH>
                 <TH className="w-[6.83%] whitespace-nowrap text-right">
-                  <div className="relative inline-flex items-center gap-1">
+                  <div className="relative inline-flex items-center gap-1" data-header-filter-root="true">
                     <button type="button" className={getSortTitleClass('discount')} onClick={() => cycleSort('discount')}>
                       Popust
                     </button>
@@ -818,7 +839,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                       <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                     </button>
                     {openFilter === 'discount' ? (
-                      <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
+                      <div className="absolute left-1/2 top-8 z-[1200] w-40 -translate-x-1/2" onClick={(event) => event.stopPropagation()}>
                         <MenuPanel className="w-40">
                           <MenuItem onClick={() => { setDiscountFilter('all'); setOpenFilter(null); }}>Vsi</MenuItem>
                           <MenuItem onClick={() => { setDiscountFilter('yes'); setOpenFilter(null); }}>S popustom</MenuItem>
@@ -829,7 +850,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                   </div>
                 </TH>
                 <TH className="w-[6.83%] whitespace-nowrap text-right">
-                  <div className="relative inline-flex items-center gap-1">
+                  <div className="relative inline-flex items-center gap-1" data-header-filter-root="true">
                     <button type="button" className={getSortTitleClass('actionPriceRange')} onClick={() => cycleSort('actionPriceRange')}>
                       Akcijska cena
                     </button>
@@ -846,7 +867,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                       <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                     </button>
                     {openFilter === 'actionPriceRange' ? (
-                      <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
+                      <div className="absolute left-1/2 top-8 z-[1200] w-[192px] -translate-x-1/2" onClick={(event) => event.stopPropagation()}>
                         <AdminRangeFilterPanel
                           title="Akcijska cena"
                           draftRange={draftActionPriceRangeFilter}
@@ -869,7 +890,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                   </div>
                 </TH>
                 <TH className="w-[10.25%] whitespace-nowrap px-0 text-center">
-                  <div className="relative inline-flex items-center gap-1">
+                  <div className="relative inline-flex items-center gap-1" data-header-filter-root="true">
                     <button type="button" className={getSortTitleClass('status')} onClick={() => cycleSort('status')}>
                       Status
                     </button>
@@ -885,7 +906,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                       <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                     </button>
                     {openFilter === 'status' ? (
-                      <div className="absolute left-0 top-5 z-20" onClick={(event) => event.stopPropagation()}>
+                      <div className="absolute left-1/2 top-8 z-[1200] w-36 -translate-x-1/2" onClick={(event) => event.stopPropagation()}>
                         <MenuPanel className="w-36">
                           <MenuItem onClick={() => { setStatusFilter('all'); setOpenFilter(null); }}>Vsi</MenuItem>
                           <MenuItem onClick={() => { setStatusFilter('active'); setOpenFilter(null); }}>Aktiven</MenuItem>

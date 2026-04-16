@@ -496,8 +496,15 @@ export default function AdminDeletedArchiveTable({
       if (target?.closest('[data-archive-header-filter="true"]')) return;
       setOpenHeaderFilter(null);
     };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenHeaderFilter(null);
+    };
     document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
   }, [openHeaderFilter]);
 
   const confirmBulkDelete = async () => {
@@ -674,7 +681,7 @@ export default function AdminDeletedArchiveTable({
                       <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                     </button>
                     {openHeaderFilter === 'type' ? (
-                      <div role="menu" className="absolute left-1/2 top-8 z-30 w-40 -translate-x-1/2">
+                      <div role="menu" className="absolute left-1/2 top-8 z-[1200] w-40 -translate-x-1/2">
                         <MenuPanel className="w-full">
                           {TYPE_FILTER_OPTIONS.map((option) => (
                             <MenuItem key={option.value} onClick={() => { setTypeFilter(option.value); setOpenHeaderFilter(null); }}>
@@ -695,7 +702,7 @@ export default function AdminDeletedArchiveTable({
                     <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                   </button>
                   {openHeaderFilter === 'orderDate' ? (
-                    <div role="menu" className="absolute right-0 top-8 z-30 w-[380px] rounded-xl border border-slate-200 bg-white p-3 text-left shadow-lg">
+                    <div role="menu" className="absolute right-0 top-8 z-[1200] w-[380px] rounded-xl border border-slate-200 bg-white p-3 text-left shadow-lg">
                       <div className="mb-3 grid grid-cols-3 gap-2">
                         {DATE_RANGE_PRESETS.map((preset) => (
                           <button key={preset.key} type="button" className="rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-[color:var(--hover-neutral)]" onClick={() => setDraftOrderDateRange(applyQuickDateRange(preset.key))}>
@@ -724,7 +731,7 @@ export default function AdminDeletedArchiveTable({
                     <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                   </button>
                   {openHeaderFilter === 'customerType' ? (
-                    <div role="menu" className="absolute left-1/2 top-8 z-30 w-40 -translate-x-1/2">
+                    <div role="menu" className="absolute left-1/2 top-8 z-[1200] w-40 -translate-x-1/2">
                       <MenuPanel className="w-full">
                         <MenuItem onClick={() => { setCustomerTypeFilter('all'); setOpenHeaderFilter(null); }}>Vsi tipi</MenuItem>
                         <MenuItem onClick={() => { setCustomerTypeFilter('individual'); setOpenHeaderFilter(null); }}>Fiz. oseba</MenuItem>
@@ -744,7 +751,7 @@ export default function AdminDeletedArchiveTable({
                     <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                   </button>
                   {openHeaderFilter === 'deletedDate' ? (
-                    <div role="menu" className="absolute right-0 top-8 z-30 w-[380px] rounded-xl border border-slate-200 bg-white p-3 text-left shadow-lg">
+                    <div role="menu" className="absolute right-0 top-8 z-[1200] w-[380px] rounded-xl border border-slate-200 bg-white p-3 text-left shadow-lg">
                       <div className="mb-3 grid grid-cols-3 gap-2">
                         {DATE_RANGE_PRESETS.map((preset) => (
                           <button key={preset.key} type="button" className="rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-[color:var(--hover-neutral)]" onClick={() => setDraftDeletedDateRange(applyQuickDateRange(preset.key))}>
@@ -773,7 +780,7 @@ export default function AdminDeletedArchiveTable({
                     <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                   </button>
                   {openHeaderFilter === 'expiresDate' ? (
-                    <div role="menu" className="absolute right-0 top-8 z-30 w-[380px] rounded-xl border border-slate-200 bg-white p-3 text-left shadow-lg">
+                    <div role="menu" className="absolute right-0 top-8 z-[1200] w-[380px] rounded-xl border border-slate-200 bg-white p-3 text-left shadow-lg">
                       <div className="mb-3 grid grid-cols-3 gap-2">
                         {DATE_RANGE_PRESETS.map((preset) => (
                           <button key={preset.key} type="button" className="rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-[color:var(--hover-neutral)]" onClick={() => setDraftExpiresDateRange(applyQuickDateRange(preset.key))}>

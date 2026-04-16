@@ -263,17 +263,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         const minPrice = prices.length ? Math.min(...prices) : 0;
         const maxPrice = prices.length ? Math.max(...prices) : 0;
         const discounts = visibleVariants.map((variant) => variant.discountPct);
-        const stocks = visibleVariants.map((variant) => variant.stock);
-        const minOrders = visibleVariants.map((variant) => Math.max(1, variant.minOrder ?? 1));
         return {
           family,
           visibleVariants,
           variantCount: visibleVariants.length,
           minPrice,
           maxPrice,
-          discounts,
-          stocks,
-          minOrders
+          discounts
         };
       })
       .filter((row) => {
@@ -839,9 +835,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     ) : null}
                   </div>
                 </TH>
-                <TH className="w-[6%] whitespace-nowrap text-right">Akcijska cena</TH>
-                <TH className="w-[2%] whitespace-nowrap text-right">Zaloga</TH>
-                <TH className="w-[2%] whitespace-nowrap text-center">Min/nar.</TH>
+                <TH className="w-[10%] whitespace-nowrap text-right">Akcijska cena</TH>
                 <TH className="w-[60px] whitespace-nowrap px-0 text-center">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('status')} onClick={() => cycleSort('status')}>
@@ -875,7 +869,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
             </THead>
             <tbody>
               {pagedFamilies.map((row) => {
-                const { family, visibleVariants, minPrice, maxPrice, variantCount, discounts, stocks, minOrders } = row;
+                const { family, visibleVariants, minPrice, maxPrice, variantCount, discounts } = row;
                 const isExpanded = expandedFamilyIds.has(family.id);
                 const hasSubtable = visibleVariants.length > 0;
                 const primaryVariant = visibleVariants[0] ?? null;
@@ -943,8 +937,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                         const discounted = visibleVariants.filter((variant) => variant.discountPct > 0).map((variant) => computeSalePrice(variant.price, variant.discountPct));
                         return discounted.length ? formatCurrencyRangeFromValues(discounted) : '—';
                       })()}</td>
-                      <td className="px-2 py-3 text-right">{singleRowLike && isEditingFamily ? <input type="number" className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-right text-sm" value={familyDraft.stock} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, stock: Number(event.target.value) || 0 } }))} /> : formatRangeValue(stocks, (value) => `${value}`)}</td>
-                      <td className="px-2 py-3 text-center">{singleRowLike && isEditingFamily ? <input type="number" className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-center text-sm" value={familyDraft.minOrder} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, minOrder: Number(event.target.value) || 1 } }))} /> : formatRangeValue(minOrders, (value) => `${value}`)}</td>
                       <td className="w-[60px] px-0 py-3 text-center"><div className="inline-flex justify-end pr-[5px]"><ActiveStateChip active={familyDraft.active} editable={isEditingFamily} editScope={`family:${family.id}`} chipClassName="!min-w-[84px] !text-[11px]" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, active: next } }))} /></div></td>
                       <td className="w-[60px] px-0 py-3 text-center">
                         {isEditingFamily
@@ -956,7 +948,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     {isExpanded && hasSubtable ? (
                       <tr className="border-t border-slate-100 bg-slate-50/70">
                         <td />
-                        <td colSpan={12} className="p-0">
+                        <td colSpan={10} className="p-0">
                           <table className="w-full text-[12px]">
                             <thead>
                               <tr className="border-b border-slate-200 text-slate-600">
@@ -965,9 +957,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                 <th className="w-[20%] px-2 py-2 text-left">SKU</th>
                                 <th className="w-[11%] px-2 py-2 text-right">Cena</th>
                                 <th className="w-[5%] px-2 py-2 text-center">Popust</th>
-                                <th className="w-[11%] px-2 py-2 text-right">Akcijska cena</th>
-                                <th className="w-[7%] px-2 py-2 text-right">Zaloga</th>
-                                <th className="w-[7%] px-2 py-2 text-center">Min/nar.</th>
+                                <th className="w-[15%] px-2 py-2 text-right">Akcijska cena</th>
                                 <th className="w-[120px] px-2 py-2 text-center">Status</th>
                                 <th className="w-[124px] px-2 py-2 text-center">Opombe</th>
                                 <th className="w-[5%] px-2 py-2 text-center">Mesto</th>
@@ -1074,40 +1064,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                       )}
                                     </td>
                                     <td className="px-2 py-2 text-right">{actionPrice === null ? '—' : formatCurrency(actionPrice)}</td>
-                                    <td className="px-2 py-2 text-right">
-                                      {isEditing ? (
-                                        <input
-                                          type="number"
-                                          className={`${ROW_EDIT_INPUT_CLASS} ml-auto w-[34%] text-right`}
-                                          value={draft.stock}
-                                          onChange={(event) =>
-                                            setVariantDrafts((current) => ({
-                                              ...current,
-                                              [variant.id]: { ...draft, stock: Number(event.target.value) || 0 }
-                                            }))
-                                          }
-                                        />
-                                      ) : (
-                                        draft.stock
-                                      )}
-                                    </td>
-                                    <td className="px-2 py-2 text-center">
-                                      {isEditing ? (
-                                        <input
-                                          type="number"
-                                          className={`${ROW_EDIT_INPUT_CLASS} mx-auto w-[34%] text-center`}
-                                          value={draft.minOrder}
-                                          onChange={(event) =>
-                                            setVariantDrafts((current) => ({
-                                              ...current,
-                                              [variant.id]: { ...draft, minOrder: Number(event.target.value) || 1 }
-                                            }))
-                                          }
-                                        />
-                                      ) : (
-                                        draft.minOrder
-                                      )}
-                                    </td>
                                     <td className="w-[120px] px-2 py-2 text-center">
                                       <div className="inline-flex justify-center">
                                         <ActiveStateChip

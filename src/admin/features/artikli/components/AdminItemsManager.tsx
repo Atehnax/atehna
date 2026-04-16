@@ -44,7 +44,7 @@ const formatRangeValue = (values: number[], formatter: (value: number) => string
   if (!values.length) return '—';
   const min = Math.min(...values);
   const max = Math.max(...values);
-  return min === max ? formatter(min) : `${formatter(min)} – ${formatter(max)}`;
+  return min === max ? formatter(min) : `${formatter(min)}–${formatter(max)}`;
 };
 
 const normalizeCategoryPath = (value: string) =>
@@ -61,7 +61,15 @@ const formatCurrencyWithSuffix = (value: number) => `${formatCurrencyAmountOnly(
 const formatCurrencyRange = (minValue: number, maxValue: number) =>
   minValue === maxValue
     ? formatCurrencyWithSuffix(minValue)
-    : `${formatCurrencyAmountOnly(minValue)} – ${formatCurrencyAmountOnly(maxValue)} €`;
+    : `${formatCurrencyAmountOnly(minValue)}–${formatCurrencyAmountOnly(maxValue)} €`;
+const formatCurrencyRangeFromValues = (values: number[]) => {
+  if (!values.length) return '—';
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  return min === max
+    ? formatCurrencyWithSuffix(min)
+    : `${formatCurrencyAmountOnly(min)}–${formatCurrencyAmountOnly(max)} €`;
+};
 const itemStatusLabel = (active: boolean) => (active ? 'Aktiven' : 'Neaktiven');
 const formatPercentRange = (values: number[]) => {
   if (!values.length) return '—';
@@ -69,7 +77,7 @@ const formatPercentRange = (values: number[]) => {
   const max = Math.max(...values);
   const minLabel = formatDecimalForDisplay(min);
   const maxLabel = formatDecimalForDisplay(max);
-  return min === max ? `${maxLabel}%` : `${minLabel} – ${maxLabel}%`;
+  return min === max ? `${maxLabel}%` : `${minLabel}–${maxLabel}%`;
 };
 
 function toListFamilies(items: AdminCatalogListItem[]): ListFamily[] {
@@ -682,12 +690,12 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     Artikel
                   </button>
                 </TH>
-                <TH className="w-[8%]">
+                <TH className="w-[9%]">
                   <button type="button" className={getSortTitleClass('sku')} onClick={() => cycleSort('sku')}>
                     SKU
                   </button>
                 </TH>
-                <TH className="w-[26%]">
+                <TH className="w-[23%]">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('category')} onClick={() => cycleSort('category')}>
                       Kategorija
@@ -834,7 +842,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 <TH className="w-[4%] whitespace-nowrap text-right">Akcijska cena</TH>
                 <TH className="w-[2%] whitespace-nowrap text-right">Zaloga</TH>
                 <TH className="w-[2%] whitespace-nowrap text-center">Min/nar.</TH>
-                <TH className="w-[120px] whitespace-nowrap text-center">
+                <TH className="w-[108px] whitespace-nowrap px-1 text-center">
                   <div className="relative inline-flex items-center gap-1">
                     <button type="button" className={getSortTitleClass('status')} onClick={() => cycleSort('status')}>
                       Status
@@ -861,7 +869,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     ) : null}
                   </div>
                 </TH>
-                <TH className="w-[124px] whitespace-nowrap text-center">Opombe</TH>
+                <TH className="w-[112px] whitespace-nowrap px-1 text-center">Opombe</TH>
                 <TH className="w-14 text-center">Uredi</TH>
               </TR>
             </THead>
@@ -933,12 +941,12 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                       <td className="px-2 py-3 text-center text-emerald-700">{singleRowLike && isEditingFamily ? <input type="number" className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-center text-sm" value={familyDraft.discountPct} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, discountPct: Number(event.target.value) || 0 } }))} /> : formatPercentRange(discounts)}</td>
                       <td className="px-2 py-3 text-right">{singleRowLike ? (familyDraft.discountPct > 0 ? formatCurrency(computeSalePrice(familyDraft.price, familyDraft.discountPct)) : '—') : (() => {
                         const discounted = visibleVariants.filter((variant) => variant.discountPct > 0).map((variant) => computeSalePrice(variant.price, variant.discountPct));
-                        return discounted.length ? formatRangeValue(discounted, formatCurrency) : '—';
+                        return discounted.length ? formatCurrencyRangeFromValues(discounted) : '—';
                       })()}</td>
                       <td className="px-2 py-3 text-right">{singleRowLike && isEditingFamily ? <input type="number" className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-right text-sm" value={familyDraft.stock} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, stock: Number(event.target.value) || 0 } }))} /> : formatRangeValue(stocks, (value) => `${value}`)}</td>
                       <td className="px-2 py-3 text-center">{singleRowLike && isEditingFamily ? <input type="number" className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-center text-sm" value={familyDraft.minOrder} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, minOrder: Number(event.target.value) || 1 } }))} /> : formatRangeValue(minOrders, (value) => `${value}`)}</td>
-                      <td className="w-[120px] px-2 py-3 text-center"><div className="inline-flex justify-center"><ActiveStateChip active={familyDraft.active} editable={isEditingFamily} editScope={`family:${family.id}`} chipClassName="!min-w-[92px] !text-[11px]" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, active: next } }))} /></div></td>
-                      <td className="w-[124px] px-2 py-3 text-center">
+                      <td className="w-[108px] px-1 py-3 text-center"><div className="inline-flex justify-center"><ActiveStateChip active={familyDraft.active} editable={isEditingFamily} editScope={`family:${family.id}`} chipClassName="!min-w-[92px] !text-[11px]" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, active: next } }))} /></div></td>
+                      <td className="w-[112px] px-1 py-3 text-center">
                         {isEditingFamily
                           ? <div className="inline-flex justify-center"><NoteTagChip value={familyDraft.note} editable allowEmpty editScope={`family:${family.id}`} chipClassName="!min-w-[97px] !text-[11px]" placeholderLabel="Opombe" onChange={(next) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, note: next as NoteValue } }))} /></div>
                           : <div className="inline-flex justify-center"><NoteTagChip value={(family.notes?.trim() as NoteValue) || ''} editable={false} allowEmpty editScope={`family:${family.id}`} chipClassName="!min-w-[97px] !text-[11px]" placeholderLabel="Opombe" onChange={() => {}} /></div>}

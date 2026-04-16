@@ -458,6 +458,8 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
       select *
       from catalog_items
       where slug = $1
+         or id::text = $1
+      order by case when id::text = $1 then 0 else 1 end
       limit 1
     ),
     category_path as (

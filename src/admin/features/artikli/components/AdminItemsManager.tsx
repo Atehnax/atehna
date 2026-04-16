@@ -453,11 +453,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
 
   const allVisibleFamilyIds = useMemo(() => new Set(pagedFamilies.map((row) => row.family.id)), [pagedFamilies]);
   const familiesSelectedOnPage = pagedFamilies.length > 0 && pagedFamilies.every((row) => selectedFamilyIds.has(row.family.id));
-  const persistItemBySlug = async (
-    slug: string,
+  const persistItemByIdentifier = async (
+    itemIdentifier: string,
     mutate: (payload: CatalogItemEditorPayload, hydration: CatalogItemEditorHydration) => void
   ) => {
-    const readResponse = await fetch(`/api/admin/artikli/${encodeURIComponent(slug)}`, { cache: 'no-store' });
+    const readResponse = await fetch(`/api/admin/artikli/${encodeURIComponent(itemIdentifier)}`, { cache: 'no-store' });
     if (!readResponse.ok) throw new Error('Nalagam podatke artikla ni uspelo.');
     const hydration = (await readResponse.json()) as CatalogItemEditorHydration;
     const payload = toUpsertPayload(hydration);
@@ -493,7 +493,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     const draft = variantDrafts[variantId];
     if (!draft) return;
     try {
-      await persistItemBySlug(family.slug || family.id, (payload, hydration) => {
+      await persistItemByIdentifier(family.id, (payload, hydration) => {
         const index = hydration.variants.findIndex((variant) => String(variant.id) === variantId);
         if (index < 0 || !payload.variants[index]) return;
         payload.variants[index] = {
@@ -543,7 +543,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     if (!draft) return;
     try {
       const nextItemLevelNote = (draft.badge || 'na-zalogi') as NoteValue;
-      await persistItemBySlug(family.slug || family.id, (payload) => {
+      await persistItemByIdentifier(family.id, (payload) => {
         payload.itemName = draft.name;
         payload.sku = draft.sku || null;
         payload.status = draft.active ? 'active' : 'inactive';

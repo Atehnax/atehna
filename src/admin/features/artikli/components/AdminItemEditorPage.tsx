@@ -2188,19 +2188,17 @@ export default function AdminItemEditorPage({
   return (
     <div className="mx-auto max-w-7xl space-y-4 font-['Inter',system-ui,sans-serif]">
       <div className="text-xs text-slate-500"><Link href="/admin/artikli" className="hover:underline">Artikli</Link> › {mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</div>
-      <div className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4">
+      <div className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          <div className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-[color:var(--ui-neutral-bg)]">
-            <PackageTitleIcon className="h-8 w-8 text-slate-500" />
-          </div>
-          <div className={`flex h-14 min-w-[280px] max-w-[520px] flex-1 items-center rounded-xl border border-slate-300 px-4 transition-colors focus-within:border-[#3e67d6] ${isEditable ? 'bg-white' : 'bg-[color:var(--ui-neutral-bg)]'}`}>
+          <div className={`flex h-11 min-w-[280px] max-w-[420px] flex-1 items-center gap-2 rounded-xl border border-slate-300 px-3 transition-colors focus-within:border-[#3e67d6] ${isEditable ? 'bg-white' : 'bg-[color:var(--ui-neutral-bg)]'}`}>
+            <PackageTitleIcon className="h-[18px] w-[18px] text-slate-500" />
             <input
               aria-label="Naziv artikla"
               value={draft.name}
               disabled={!isEditable}
               onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
               placeholder="Naziv artikla"
-              className={`${articleNameInputClassName} text-lg font-semibold`}
+              className={articleNameInputClassName}
             />
           </div>
           <ActiveStateChip active={draft.active} editable={isEditable} chipClassName="!px-4 !py-1 !text-[14px] !font-semibold" leadingIcon={<StatusCheckIcon className="h-[15px] w-[15px]" />} onChange={(next) => setDraft((current) => ({ ...current, active: next }))} />

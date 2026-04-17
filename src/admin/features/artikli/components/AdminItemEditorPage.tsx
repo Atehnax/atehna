@@ -44,6 +44,7 @@ import UploadedImageCropperModal from '@/admin/features/artikli/components/Uploa
 import { NoteTagChip, type NoteTag } from '@/admin/features/artikli/components/NoteTagChip';
 import { saveCatalogItemPayload } from '@/admin/features/artikli/lib/canonicalSaveClient';
 import Dialog from '@/shared/ui/dialog/dialog';
+import { THead, TH } from '@/shared/ui/table';
 import type { CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/server/catalogItems';
 
 const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0';
@@ -2678,9 +2679,9 @@ export default function AdminItemEditorPage({
               <col style={{ width: '9%' }} />
               <col style={{ width: '3.06%' }} />
             </colgroup>
-            <thead className="bg-slate-50">
+            <THead>
               <tr>
-                <th className="px-2 py-2 text-center">
+                <TH className="h-11 px-2 text-center text-[11px]">
                   <AdminCheckbox
                     checked={isTableEditable && allVariantsSelected}
                     onChange={() =>
@@ -2688,23 +2689,23 @@ export default function AdminItemEditorPage({
                     }
                     disabled={!isTableEditable}
                   />
-                </th>
-                <th className="px-2 py-2 text-right">Dolžina</th>
-                <th className="px-2 py-2 text-right">Širina/fi</th>
-                <th className="px-2 py-2 text-right">Debelina</th>
-                <th className="px-2 py-2 text-right">Teža</th>
-                <th className="px-2 py-2 text-center">Toleranca</th>
-                <th className="px-2 py-2 text-right">Cena</th>
-                <th className="px-2 py-2 text-right">Popust</th>
-                <th className="px-2 py-2 text-right">Akcijska cena</th>
-                <th className="px-2 py-2 text-right">Zaloga</th>
-                <th className="px-2 py-2 text-center">Min/nar.</th>
-                <th className="px-2 py-2 text-center">SKU</th>
-                <th className="px-1 py-2 text-center">Status</th>
-                <th className="px-1 py-2 text-center">Opombe</th>
-                <th className="px-2 py-2 text-center">Mesto</th>
+                </TH>
+                <TH className="h-11 px-2 text-right text-[11px]">Dolžina</TH>
+                <TH className="h-11 px-2 text-right text-[11px]">Širina/fi</TH>
+                <TH className="h-11 px-2 text-right text-[11px]">Debelina</TH>
+                <TH className="h-11 px-2 text-right text-[11px]">Teža</TH>
+                <TH className="h-11 px-2 text-center text-[11px]">Toleranca</TH>
+                <TH className="h-11 px-2 text-right text-[11px]">Cena</TH>
+                <TH className="h-11 px-2 text-right text-[11px]">Popust</TH>
+                <TH className="h-11 px-2 text-right text-[11px]">Akcijska cena</TH>
+                <TH className="h-11 px-2 text-right text-[11px]">Zaloga</TH>
+                <TH className="h-11 px-2 text-center text-[11px]">Min/nar.</TH>
+                <TH className="h-11 px-2 text-center text-[11px]">SKU</TH>
+                <TH className="h-11 px-1 text-center text-[11px]">Status</TH>
+                <TH className="h-11 px-1 text-center text-[11px]">Opombe</TH>
+                <TH className="h-11 px-2 text-center text-[11px]">Mesto</TH>
               </tr>
-            </thead>
+            </THead>
             <tbody>
               {draft.variants.map((variant, index) => (
                 <tr key={variant.id} className="h-8 border-t border-slate-100 align-middle">

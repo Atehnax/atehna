@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
+import { adminTextButtonTypographyTokenClasses } from '@/shared/ui/theme/tokens';
 
 type Props = {
   className?: string;
@@ -49,7 +50,7 @@ export default function AdminCreateDraftOrderButton({ className, buttonClassName
         aria-label="Novo naročilo"
         variant="primary"
         size="toolbar"
-        className={buttonClassName}
+        className={[adminTextButtonTypographyTokenClasses, buttonClassName].filter(Boolean).join(' ')}
       >
         {isCreating ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Ustvarjam ...</span> : 'Novo naročilo'}
       </Button>

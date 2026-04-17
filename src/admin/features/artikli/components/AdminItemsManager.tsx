@@ -19,7 +19,7 @@ import {
   getHeaderPopoverStyle,
   useHeaderFilterDismiss
 } from '@/shared/ui/admin-header-filter';
-import { adminTableRowToneClasses, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
+import { adminTableRowToneClasses, adminTextButtonTypographyTokenClasses, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
 import {
   computeSalePrice,
   formatCurrency,
@@ -599,7 +599,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         }
         headerRight={
           <div className="flex items-center gap-2">
-            <Button type="button" variant="default" size="toolbar" onClick={exportVariantsCsv}>
+            <Button type="button" variant="default" size="toolbar" className={adminTextButtonTypographyTokenClasses} onClick={exportVariantsCsv}>
               <DownloadIcon />
               Izvozi CSV
             </Button>
@@ -607,7 +607,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
               type="button"
               variant="primary"
               size="toolbar"
-              className="!h-7 !rounded-md"
+              className={`!h-7 !rounded-md ${adminTextButtonTypographyTokenClasses}`}
               aria-label="Dodaj artikel"
               onClick={() => router.push('/admin/artikli/nov')}
             >

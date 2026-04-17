@@ -6,6 +6,7 @@ import { IconButton } from '@/shared/ui/icon-button';
 import { ActionRestoreIcon, ActionUndoIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import AdminBreadcrumbPath from '@/shared/ui/admin-breadcrumb-path';
+import { adminTextButtonTypographyTokenClasses } from '@/shared/ui/theme/tokens';
 
 const padTwoDigits = (value: number) => String(value).padStart(2, '0');
 
@@ -211,7 +212,7 @@ export function AdminCategoriesMiller({
           >
             <TrashCanIcon />
           </IconButton>
-          <Button type="button" variant="primary" size="toolbar" className="!h-7 !rounded-md !px-3 !text-[11px]" onClick={onRequestSave} disabled={!millerDirty || saving}>
+          <Button type="button" variant="primary" size="toolbar" className={`!h-7 !rounded-md !px-3 ${adminTextButtonTypographyTokenClasses}`} onClick={onRequestSave} disabled={!millerDirty || saving}>
             Shrani
           </Button>
         </div>

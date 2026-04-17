@@ -20,7 +20,7 @@ import {
 import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, RowActionsDropdown, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
-import { adminTableRowToneClasses, dateInputTokenClasses, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
+import { adminTableRowToneClasses, adminTextButtonTypographyTokenClasses, dateInputTokenClasses, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
 import { AdminTableLayout, ColumnVisibilityControl } from '@/shared/ui/admin-table';
 import AdminRangeFilterPanel, { type RangePreset } from '@/shared/ui/admin-range-filter-panel';
 import AdminFilterInput from '@/shared/ui/admin-filter-input';
@@ -133,7 +133,7 @@ const LazyAdminOrdersPdfCell = dynamic(() => import('@/admin/components/AdminOrd
     <button
       type="button"
       disabled
-      className="inline-flex h-8 min-w-[72px] items-center justify-center rounded-md border border-slate-300 bg-slate-100 px-2 text-[11px] font-medium text-slate-500"
+      className={`inline-flex h-8 min-w-[72px] items-center justify-center rounded-md border border-slate-300 bg-slate-100 px-2 text-slate-500 ${adminTextButtonTypographyTokenClasses}`}
     >
       PDF
     </button>
@@ -1594,7 +1594,7 @@ export default function AdminOrdersTable({
                           <button
                             type="button"
                             onClick={resetAllFilters}
-                            className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:border-[color:var(--blue-500)] hover:bg-[color:var(--hover-neutral)]"
+                            className={`rounded-full border border-slate-300 px-3 py-1 text-slate-700 hover:border-[color:var(--blue-500)] hover:bg-[color:var(--hover-neutral)] ${adminTextButtonTypographyTokenClasses}`}
                           >
                             Prikaži vsa naročila
                           </button>
@@ -1798,8 +1798,8 @@ export default function AdminOrdersTable({
                   <AdminFilterInput type="number" placeholder="Do" value={draftOrderNumberRange.max} onChange={(event) => setDraftOrderNumberRange((current) => ({ ...current, max: event.target.value }))} aria-label="Do" />
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2">
-                  <button type="button" className="rounded-xl bg-[color:var(--blue-500)] py-2 text-[11px] font-semibold text-white" onClick={() => { setOrderNumberRange(draftOrderNumberRange); setOpenHeaderFilter(null); }}>Potrdi</button>
-                  <button type="button" className="rounded-xl border border-slate-300 bg-[color:var(--ui-neutral-bg)] py-2 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--ui-neutral-bg-hover)]" onClick={() => { const emptyRange = { min: '', max: '' }; setDraftOrderNumberRange(emptyRange); setOrderNumberRange(emptyRange); setOpenHeaderFilter(null); }}>Ponastavi</button>
+                  <button type="button" className={`rounded-xl bg-[color:var(--blue-500)] py-2 text-white ${adminTextButtonTypographyTokenClasses}`} onClick={() => { setOrderNumberRange(draftOrderNumberRange); setOpenHeaderFilter(null); }}>Potrdi</button>
+                  <button type="button" className={`rounded-xl border border-slate-300 bg-[color:var(--ui-neutral-bg)] py-2 text-slate-700 hover:bg-[color:var(--ui-neutral-bg-hover)] ${adminTextButtonTypographyTokenClasses}`} onClick={() => { const emptyRange = { min: '', max: '' }; setDraftOrderNumberRange(emptyRange); setOrderNumberRange(emptyRange); setOpenHeaderFilter(null); }}>Ponastavi</button>
                 </div>
               </div>
             ) : null}
@@ -1827,7 +1827,7 @@ export default function AdminOrdersTable({
                         setHasExplicitDateFilter(true);
                         setOpenHeaderFilter(null);
                       }}
-                      className="rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-[color:var(--hover-neutral)]"
+                      className={`rounded-lg border border-slate-300 px-2 py-1 text-slate-800 hover:bg-[color:var(--hover-neutral)] ${adminTextButtonTypographyTokenClasses}`}
                     >
                       {item.label}
                     </button>
@@ -1840,8 +1840,8 @@ export default function AdminOrdersTable({
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <button type="button" className="rounded-xl bg-[color:var(--blue-500)] py-2 text-[11px] font-semibold text-white" onClick={() => { setFromDate(draftFromDate); setToDate(draftToDate); setHasExplicitDateFilter(Boolean(draftFromDate || draftToDate)); setOpenHeaderFilter(null); }}>Potrdi</button>
-                  <button type="button" className="rounded-xl border border-slate-300 bg-[color:var(--ui-neutral-bg)] py-2 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--ui-neutral-bg-hover)]" onClick={() => { setDraftFromDate(''); setDraftToDate(''); setFromDate(''); setToDate(''); setHasExplicitDateFilter(false); setOpenHeaderFilter(null); }}>Ponastavi</button>
+                  <button type="button" className={`rounded-xl bg-[color:var(--blue-500)] py-2 text-white ${adminTextButtonTypographyTokenClasses}`} onClick={() => { setFromDate(draftFromDate); setToDate(draftToDate); setHasExplicitDateFilter(Boolean(draftFromDate || draftToDate)); setOpenHeaderFilter(null); }}>Potrdi</button>
+                  <button type="button" className={`rounded-xl border border-slate-300 bg-[color:var(--ui-neutral-bg)] py-2 text-slate-700 hover:bg-[color:var(--ui-neutral-bg-hover)] ${adminTextButtonTypographyTokenClasses}`} onClick={() => { setDraftFromDate(''); setDraftToDate(''); setFromDate(''); setToDate(''); setHasExplicitDateFilter(false); setOpenHeaderFilter(null); }}>Ponastavi</button>
                 </div>
               </div>
             ) : null}

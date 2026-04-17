@@ -33,6 +33,9 @@ export const UI_TOKENS = {
   }
 } as const;
 
+export const adminTextButtonTypographyTokenClasses =
+  "font-['Inter',system-ui,sans-serif] !text-xs !font-normal";
+
 export const hoverTokenClasses = {
   neutral: 'hover:bg-[color:var(--hover-neutral)]'
 } as const;
@@ -164,13 +167,13 @@ export const adminRangeFilterTokenClasses = {
   title: 'mb-2 text-[11px] font-semibold text-slate-800',
   presetsGrid: 'mb-3 grid grid-cols-3 gap-1',
   presetButton:
-    'rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-[color:var(--hover-neutral)]',
+    `rounded-lg border border-slate-300 px-2 py-1 text-slate-800 hover:bg-[color:var(--hover-neutral)] ${adminTextButtonTypographyTokenClasses}`,
   inputsSection: 'mb-3 border-t border-slate-200 pt-3',
   inputGrid: 'grid grid-cols-2 gap-2',
   actionsGrid: 'grid grid-cols-2 gap-2',
-  confirmButton: 'rounded-xl bg-[color:var(--blue-500)] py-2 text-[11px] font-semibold text-white',
+  confirmButton: `rounded-xl bg-[color:var(--blue-500)] py-2 text-white ${adminTextButtonTypographyTokenClasses}`,
   resetButton:
-    'rounded-xl border border-slate-300 bg-[color:var(--ui-neutral-bg)] py-2 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--ui-neutral-bg-hover)]'
+    `rounded-xl border border-slate-300 bg-[color:var(--ui-neutral-bg)] py-2 text-slate-700 hover:bg-[color:var(--ui-neutral-bg-hover)] ${adminTextButtonTypographyTokenClasses}`
 } as const;
 
 export const selectTokenClasses = {

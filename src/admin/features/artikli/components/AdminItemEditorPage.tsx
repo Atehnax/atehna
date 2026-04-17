@@ -25,6 +25,7 @@ import { IconButton } from '@/shared/ui/icon-button';
 import { PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import { TH } from '@/shared/ui/table';
 import EuiTabs from '@/shared/ui/eui-tabs';
 import {
   computeSalePrice,
@@ -57,8 +58,10 @@ const compactTableFourDigitSlotClassName = 'inline-flex h-7 w-[5ch] items-center
 const compactTableThreeDigitSlotClassName = 'inline-flex h-7 w-[4ch] items-center justify-end';
 const compactTableSkuFieldWidthClassName = 'w-[24ch] min-w-[24ch]';
 const compactTableStatusFieldWidthClassName = 'min-w-[92px]';
-const articleVariantsHeaderCellClassName = 'px-2 py-3 text-[13px] font-normal';
+const articleVariantsHeaderCellClassName = 'px-2 py-3 !text-[13px] !font-normal text-slate-700';
 const articleVariantsCheckboxShellClassName = 'inline-flex h-5 w-5 items-center justify-center';
+const compactTableStockSlotClassName = 'inline-flex h-5 w-[5ch] items-center justify-end';
+const compactTableMinOrderSlotClassName = 'inline-flex h-5 w-[4.5ch] items-center justify-center';
 const articleHeaderChipClassName = '!h-11 !min-w-[164px] !rounded-2xl !px-5 !text-[15px] !font-semibold';
 const articleHeaderActionButtonClassName = '!h-11 !rounded-2xl !px-7 !text-[15px] !font-semibold [&_svg+*]:pl-2.5';
 const compactSideInputWrapClassName = 'mt-0.5 flex h-[30px] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[10px] pr-3 transition-colors focus-within:border-[#3e67d6]';
@@ -2882,7 +2885,7 @@ export default function AdminItemEditorPage({
             </colgroup>
             <thead className="bg-slate-50">
               <tr>
-                <th className={`${articleVariantsHeaderCellClassName} text-center`}>
+                <TH className={`${articleVariantsHeaderCellClassName} text-center`}>
                   <span className={articleVariantsCheckboxShellClassName}>
                     <AdminCheckbox
                       checked={isTableEditable && allVariantsSelected}
@@ -2892,21 +2895,21 @@ export default function AdminItemEditorPage({
                       disabled={!isTableEditable}
                     />
                   </span>
-                </th>
-                <th className={`${articleVariantsHeaderCellClassName} text-right`}>Dolžina</th>
-                <th className={`${articleVariantsHeaderCellClassName} text-right`}>Širina/fi</th>
-                <th className={`${articleVariantsHeaderCellClassName} text-right`}>Debelina</th>
-                <th className={`${articleVariantsHeaderCellClassName} text-right`}>Teža</th>
-                <th className={`${articleVariantsHeaderCellClassName} text-center`}>Toleranca</th>
-                <th className={`${articleVariantsHeaderCellClassName} text-right`}>Cena</th>
-                <th className={`${articleVariantsHeaderCellClassName} text-right`}>Popust</th>
-                <th className={`${articleVariantsHeaderCellClassName} text-right`}>Akcijska cena</th>
-                <th className={`${articleVariantsHeaderCellClassName} text-right`}>Zaloga</th>
-                <th className={`${articleVariantsHeaderCellClassName} text-center`}>Min/nar.</th>
-                <th className={`${articleVariantsHeaderCellClassName} text-center`}>SKU</th>
-                <th className={`${articleVariantsHeaderCellClassName} text-center`}>Status</th>
-                <th className={`${articleVariantsHeaderCellClassName} text-center`}>Opombe</th>
-                <th className={`${articleVariantsHeaderCellClassName} text-center`}>Mesto</th>
+                </TH>
+                <TH className={`${articleVariantsHeaderCellClassName} text-right`}>Dolžina</TH>
+                <TH className={`${articleVariantsHeaderCellClassName} text-right`}>Širina/fi</TH>
+                <TH className={`${articleVariantsHeaderCellClassName} text-right`}>Debelina</TH>
+                <TH className={`${articleVariantsHeaderCellClassName} text-right`}>Teža</TH>
+                <TH className={`${articleVariantsHeaderCellClassName} text-center`}>Toleranca</TH>
+                <TH className={`${articleVariantsHeaderCellClassName} text-right`}>Cena</TH>
+                <TH className={`${articleVariantsHeaderCellClassName} text-right`}>Popust</TH>
+                <TH className={`${articleVariantsHeaderCellClassName} text-right`}>Akcijska cena</TH>
+                <TH className={`${articleVariantsHeaderCellClassName} text-right`}>Zaloga</TH>
+                <TH className={`${articleVariantsHeaderCellClassName} text-center`}>Min/nar.</TH>
+                <TH className={`${articleVariantsHeaderCellClassName} text-center`}>SKU</TH>
+                <TH className={`${articleVariantsHeaderCellClassName} text-center`}>Status</TH>
+                <TH className={`${articleVariantsHeaderCellClassName} text-center`}>Opombe</TH>
+                <TH className={`${articleVariantsHeaderCellClassName} text-center`}>Mesto</TH>
               </tr>
             </thead>
             <tbody>
@@ -2967,8 +2970,8 @@ export default function AdminItemEditorPage({
                   <td className="px-2 py-2 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" className={`${compactTableAlignedInputClassName} !mt-0 !w-[6.5ch] text-right`} value={readDecimalInputValue(variant.id, 'price', variant.price)} onChange={(event) => updateDecimalInputDraft(variant.id, 'price', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'price', variant.price, (value) => updateVariant(variant.id, { price: value ?? 0 }), 0)} /><span className={compactTableAdornmentClassName}>€</span></span></span> : <span className="inline-flex h-5 w-full justify-end"><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{formatCurrencyAmountOnly(variant.price)}</span><span className={compactTableAdornmentClassName}>€</span></span></span>}</td>
                   <td className="px-2 py-2 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" className={`${compactTableAlignedInputClassName} !mt-0 !w-[4.5ch] !px-0 text-right`} value={readDecimalInputValue(variant.id, 'discountPct', variant.discountPct)} onChange={(event) => updateDecimalInputDraft(variant.id, 'discountPct', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'discountPct', variant.discountPct, (value) => updateVariant(variant.id, { discountPct: Math.min(99.9, Math.max(0, value ?? 0)) }), 0)} /><span className={compactTableAdornmentClassName}>%</span></span></span> : <span className="inline-flex h-5 w-full justify-end"><span className={compactTableValueUnitShellClassName}><span className={compactTableFourDigitSlotClassName}>{formatDecimalForDisplay(variant.discountPct)}</span><span className={compactTableAdornmentClassName}>%</span></span></span>}</td>
                   <td className="px-2 py-2 text-right"><span className="inline-flex h-5 items-center justify-end">{variant.discountPct > 0 ? formatCurrency(computeSalePrice(variant.price, variant.discountPct)) : '—'}</span></td>
-                  <td className="px-2 py-2 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !w-auto !max-w-[5ch] text-right`} value={variant.stock} onChange={(event) => updateVariant(variant.id, { stock: Number(event.target.value) || 0 })} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 max-w-[6ch] items-center justify-end">{variant.stock}</span></span>}</td>
-                  <td className="px-2 py-2 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !w-[4.5ch] !px-0 text-center`} value={variant.minOrder ?? 1} onChange={(event) => updateVariant(variant.id, { minOrder: Math.max(1, Number(event.target.value) || 1) })} /> : <span className="inline-flex h-5 w-[5ch] items-center justify-center">{variant.minOrder ?? 1}</span>}</td>
+                  <td className="px-2 py-2 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !w-[5ch] !px-0 text-right`} value={variant.stock} onChange={(event) => updateVariant(variant.id, { stock: Number(event.target.value) || 0 })} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className={compactTableStockSlotClassName}>{variant.stock}</span></span>}</td>
+                  <td className="px-2 py-2 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !w-[4.5ch] !px-0 text-center`} value={variant.minOrder ?? 1} onChange={(event) => updateVariant(variant.id, { minOrder: Math.max(1, Number(event.target.value) || 1) })} /> : <span className={compactTableMinOrderSlotClassName}>{variant.minOrder ?? 1}</span>}</td>
                   <td className="px-2 py-2 text-center">{isTableEditable ? <input className={`${compactTableAlignedTextInputClassName} ${compactTableSkuFieldWidthClassName} !mt-0 text-center`} value={variant.sku} onChange={(event) => updateVariant(variant.id, { sku: event.target.value, skuAutoGenerated: false })} /> : <span className={`inline-flex h-5 items-center justify-center whitespace-nowrap text-center ${compactTableSkuFieldWidthClassName}`}>{variant.sku || '—'}</span>}</td>
                   <td className="px-2 py-2 text-center">
                     <div className="inline-flex justify-center">

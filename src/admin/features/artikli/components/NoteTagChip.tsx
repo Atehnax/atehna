@@ -2,6 +2,7 @@
 
 import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Chip } from '@/shared/ui/badge';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 
@@ -13,6 +14,7 @@ export function NoteTagChip({
   editable,
   onChange,
   chipClassName,
+  leadingIcon,
   menuPlacement = 'bottom',
   allowEmpty = false,
   placeholderLabel = 'Opombe',
@@ -22,6 +24,7 @@ export function NoteTagChip({
   editable: boolean;
   onChange: (next: NoteTagValue) => void;
   chipClassName?: string;
+  leadingIcon?: ReactNode;
   menuPlacement?: 'top' | 'bottom';
   allowEmpty?: boolean;
   placeholderLabel?: string;
@@ -107,7 +110,12 @@ export function NoteTagChip({
       >
         {editable ? <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span> : null}
         <span className="block">
-          <Chip variant={variant} className={`${chipClassName ?? ''} ${emphasisClassName}`.trim()}>{label}</Chip>
+          <Chip variant={variant} className={`${chipClassName ?? ''} ${emphasisClassName}`.trim()}>
+            <span className="inline-flex items-center gap-2">
+              {leadingIcon ? <span className="inline-flex shrink-0">{leadingIcon}</span> : null}
+              <span>{label}</span>
+            </span>
+          </Chip>
         </span>
       </button>
       {editable && isOpen && menuPosition && typeof document !== 'undefined'

@@ -9,6 +9,7 @@ import { AdminTableLayout } from '@/shared/ui/admin-table';
 import { ActionRestoreIcon, ActionUndoIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { Spinner } from '@/shared/ui/loading';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
+import { adminTextButtonTypographyTokenClasses } from '@/shared/ui/theme/tokens';
 import type { CategoryStatus, CategoriesView } from '../common/types';
 
 const treeRowHeight = 48;
@@ -169,7 +170,7 @@ export function AdminCategoriesTableView({
               <Button
                 variant="primary"
                 size="toolbar"
-                className="!h-7 !rounded-md !px-3 !text-[11px]"
+                className={`!h-7 !rounded-md !px-3 ${adminTextButtonTypographyTokenClasses}`}
                 onClick={onRequestSave}
                 disabled={!tableDirty || saving}
               >

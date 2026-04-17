@@ -30,6 +30,7 @@ import {
 } from "@/commercial/catalog/catalogUtils";
 import { Button } from "@/shared/ui/button";
 import { IconButton } from "@/shared/ui/icon-button";
+import { adminTextButtonTypographyTokenClasses } from "@/shared/ui/theme/tokens";
 import { InlineEditableText, InlineEditFocusFrame } from "@/shared/ui/inline-edit";
 import type {
   CategoryStatus,
@@ -189,7 +190,7 @@ export function AdminCategoriesPreview({
             <Button
               variant="primary"
               size="toolbar"
-              className="!h-7 !rounded-md !px-3 !text-[11px]"
+              className={`!h-7 !rounded-md !px-3 ${adminTextButtonTypographyTokenClasses}`}
               onClick={() => {
                 if (hasActiveEditChanges) onCommitEdit();
                 onRequestSave();

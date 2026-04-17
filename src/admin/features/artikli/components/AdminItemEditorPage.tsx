@@ -22,9 +22,9 @@ import { Button } from '@/shared/ui/button';
 import { Chip } from '@/shared/ui/badge';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { IconButton } from '@/shared/ui/icon-button';
-import { PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { ArchiveIcon, PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
-import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
+import { adminTextButtonTypographyTokenClasses, buttonTokenClasses } from '@/shared/ui/theme/tokens';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import EuiTabs from '@/shared/ui/eui-tabs';
 import {
@@ -61,6 +61,10 @@ const compactTableThreeDigitSlotClassName = 'inline-flex h-5 w-[4ch] items-cente
 const compactSideInputWrapClassName = 'mt-0.5 flex h-[30px] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[10px] pr-3 transition-colors focus-within:border-[#3e67d6]';
 const compactSideInputClassName = 'h-full w-full border-0 bg-transparent p-0 text-sm text-slate-900 outline-none focus:ring-0';
 const articleNameInputClassName = 'admin-item-name-input h-full w-full min-w-0 border-0 bg-transparent p-0 shadow-none outline-none transition focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none disabled:cursor-not-allowed';
+const topBarArticleNameInputClassName = `${articleNameInputClassName} min-w-0 font-['Inter',system-ui,sans-serif] text-[22px] font-semibold leading-none tracking-tight`;
+const topActionButtonClassName = `inline-flex h-12 items-center gap-2 rounded-2xl px-5 ${adminTextButtonTypographyTokenClasses} leading-none tracking-[0]`;
+const topActionMatchArchiveButtonClassName = `${adminTextButtonTypographyTokenClasses} !h-8 !leading-none !tracking-[0]`;
+const editorSectionTitleClassName = 'text-[20px] font-semibold tracking-tight text-slate-900';
 const inlineSnippetClass = 'rounded bg-[#1982bf1a] px-1 py-0.5 font-mono text-[11px] text-[#1982bf]';
 const mimeTypeToImageExtension: Record<string, string> = {
   'image/jpeg': 'JPG',
@@ -95,12 +99,77 @@ type VariantTag = NoteTag;
 type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 type VariantDimensionSet = { length: number; width: number; thickness: number };
-type VideoState = { source: 'upload' | 'youtube'; label: string; previewUrl: string; blobPathname?: string | null };
-type ImageSettings = { altText: string };
 type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'sku';
-type TechnicalDocument = { name: string; size: string; blobUrl: string | null; blobPathname: string | null };
+type SideSettingsState = {
+  sku: string;
+  brand: string;
+  material: string;
+  surface: string;
+  color: string;
+  thicknessTolerance: string;
+  moq: number;
+  weightPerUnit: string;
+  palletCount: string;
+  dimensions: { width: string; depth: string; height: string };
+  trackInventory: boolean;
+  currentStock: number;
+  minStock: number;
+  warehouseLocation: string;
+  basePriceNoVat: string;
+  priceRounding: string;
+  showOldPrice: boolean;
+  showGallery: boolean;
+  imageFocus: string;
+  galleryMode: 'grid' | 'slider' | 'list';
+  imageAltText: string;
+  videoUrl: string;
+};
+type StagedImageSlot = {
+  previewUrl: string;
+  uploadedUrl: string | null;
+  file: File | null;
+  filename: string | null;
+  mimeType: string | null;
+  altText: string;
+  localId: string | null;
+};
+type StagedVideoState = {
+  source: 'upload' | 'youtube';
+  label: string;
+  previewUrl: string;
+  uploadedUrl: string | null;
+  blobPathname: string | null;
+  file: File | null;
+  mimeType: string | null;
+  localId: string | null;
+};
+type StagedTechnicalDocument = {
+  id: string;
+  name: string;
+  size: string;
+  blobUrl: string | null;
+  blobPathname: string | null;
+  file: File | null;
+  mimeType: string | null;
+  localId: string | null;
+};
+type EditorPersistedState = {
+  draft: ProductFamily;
+  sideSettings: SideSettingsState;
+  documents: StagedTechnicalDocument[];
+  itemLevelNote: VariantTag | '';
+  mediaImages: StagedImageSlot[];
+  video: StagedVideoState | null;
+  variantTags: Record<string, VariantTag>;
+  selectedCategoryPath: string[];
+  videoAssignedVariantId: string | null;
+};
 const MEDIA_SLOT_COUNT = 7;
 const GALLERY_SMALL_SLOT_COUNT = 6;
+const IMAGE_MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+const VIDEO_MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+const TECHNICAL_DOCUMENT_MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+const ARCHIVED_ITEMS_STORAGE_KEY = 'admin-items-crud-v2';
 const ITEM_NOTE_OPTIONS: Array<{ value: VariantTag; label: string }> = [
   { value: 'na-zalogi', label: 'Na zalogi' },
   { value: 'novo', label: 'Novo' },
@@ -118,6 +187,302 @@ const normalizeVariantTag = (value: string | null | undefined): VariantTag | '' 
   }
   return '';
 };
+
+const createLocalStageId = () => `local-${Math.random().toString(36).slice(2, 10)}`;
+
+function formatFileSize(bytes: number) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '—';
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function cloneVariant(variant: Variant): Variant {
+  return {
+    ...variant,
+    imageAssignments: [...(variant.imageAssignments ?? [])]
+  };
+}
+
+function cloneSideSettings(settings: SideSettingsState): SideSettingsState {
+  return {
+    ...settings,
+    dimensions: { ...settings.dimensions }
+  };
+}
+
+function cloneMediaImage(slot: StagedImageSlot): StagedImageSlot {
+  return { ...slot };
+}
+
+function cloneVideo(video: StagedVideoState | null): StagedVideoState | null {
+  return video ? { ...video } : null;
+}
+
+function cloneDocument(documentEntry: StagedTechnicalDocument): StagedTechnicalDocument {
+  return { ...documentEntry };
+}
+
+function cloneEditorPersistedState(state: EditorPersistedState): EditorPersistedState {
+  return {
+    draft: {
+      ...state.draft,
+      variants: state.draft.variants.map(cloneVariant)
+    },
+    sideSettings: cloneSideSettings(state.sideSettings),
+    documents: state.documents.map(cloneDocument),
+    itemLevelNote: state.itemLevelNote,
+    mediaImages: state.mediaImages.map(cloneMediaImage),
+    video: cloneVideo(state.video),
+    variantTags: { ...state.variantTags },
+    selectedCategoryPath: [...state.selectedCategoryPath],
+    videoAssignedVariantId: state.videoAssignedVariantId
+  };
+}
+
+function serializeEditorPersistedState(state: EditorPersistedState, decimalDrafts: Record<string, string>) {
+  return JSON.stringify({
+    draft: {
+      ...state.draft,
+      variants: state.draft.variants.map((variant) => ({
+        ...variant,
+        imageAssignments: [...(variant.imageAssignments ?? [])]
+      }))
+    },
+    sideSettings: state.sideSettings,
+    documents: state.documents.map((documentEntry) => ({
+      id: documentEntry.id,
+      name: documentEntry.name,
+      size: documentEntry.size,
+      blobUrl: documentEntry.blobUrl,
+      blobPathname: documentEntry.blobPathname,
+      mimeType: documentEntry.mimeType,
+      localId: documentEntry.localId,
+      file: documentEntry.file
+        ? {
+            name: documentEntry.file.name,
+            size: documentEntry.file.size,
+            type: documentEntry.file.type,
+            lastModified: documentEntry.file.lastModified
+          }
+        : null
+    })),
+    itemLevelNote: state.itemLevelNote,
+    mediaImages: state.mediaImages.map((slot) => ({
+      uploadedUrl: slot.uploadedUrl,
+      altText: slot.altText,
+      filename: slot.filename,
+      mimeType: slot.mimeType,
+      localId: slot.localId,
+      file: slot.file
+        ? {
+            name: slot.file.name,
+            size: slot.file.size,
+            type: slot.file.type,
+            lastModified: slot.file.lastModified
+          }
+        : null
+    })),
+    video: state.video
+      ? {
+          source: state.video.source,
+          label: state.video.label,
+          uploadedUrl: state.video.uploadedUrl,
+          blobPathname: state.video.blobPathname,
+          mimeType: state.video.mimeType,
+          localId: state.video.localId,
+          file: state.video.file
+            ? {
+                name: state.video.file.name,
+                size: state.video.file.size,
+                type: state.video.file.type,
+                lastModified: state.video.file.lastModified
+              }
+            : null
+        }
+      : null,
+    variantTags: Object.fromEntries(Object.entries(state.variantTags).sort(([left], [right]) => left.localeCompare(right))),
+    selectedCategoryPath: [...state.selectedCategoryPath],
+    videoAssignedVariantId: state.videoAssignedVariantId,
+    decimalDrafts: Object.fromEntries(Object.entries(decimalDrafts).sort(([left], [right]) => left.localeCompare(right)))
+  });
+}
+
+function buildArchiveRecord(state: EditorPersistedState, identifier: string) {
+  const firstVariant = state.draft.variants[0];
+  return {
+    id: identifier,
+    name: state.draft.name.trim() || 'Artikel',
+    category: state.selectedCategoryPath.join(' / '),
+    sku: state.sideSettings.sku || firstVariant?.sku || '',
+    price: firstVariant?.price ?? 0,
+    discountPct: firstVariant?.discountPct ?? 0,
+    active: state.draft.active,
+    archivedAt: new Date().toISOString()
+  };
+}
+
+function readArchivedItemStorage() {
+  if (typeof window === 'undefined') return [];
+  const raw = window.localStorage.getItem(ARCHIVED_ITEMS_STORAGE_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as Array<Record<string, unknown>>;
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeArchivedItemStorage(items: Array<Record<string, unknown>>) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(ARCHIVED_ITEMS_STORAGE_KEY, JSON.stringify(items));
+}
+
+function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydration | null, createType: CreateType): EditorPersistedState {
+  const family = initialData
+    ? createFamily({
+        id: String(initialData.id),
+        name: initialData.itemName,
+        description: initialData.description ?? '',
+        category: initialData.categoryPath.join(' / '),
+        categoryId: null,
+        subcategoryId: null,
+        images: initialData.media
+          .filter((media) => media.mediaKind === 'image' && media.role === 'gallery')
+          .map((media) => media.blobUrl || media.externalUrl || '')
+          .filter(Boolean),
+        promoBadge: initialData.badge ?? '',
+        defaultDiscountPct: 0,
+        active: initialData.status === 'active',
+        sort: initialData.position,
+        notes: initialData.adminNotes ?? '',
+        slug: initialData.slug,
+        variants: (initialData.variants.length > 0
+          ? initialData.variants.map((variant, index) =>
+              createVariant({
+                id: String(variant.id ?? `variant-${index}`),
+                label: variant.variantName,
+                width: variant.width ?? null,
+                length: variant.length ?? null,
+                thickness: variant.thickness ?? null,
+                errorTolerance: variant.errorTolerance ?? null,
+                weight: variant.weight ?? null,
+                minOrder: variant.minOrder ?? 1,
+                badge: variant.badge ?? null,
+                sku: variant.variantSku ?? '',
+                skuAutoGenerated: false,
+                price: variant.price,
+                discountPct: variant.discountPct ?? 0,
+                stock: variant.inventory ?? 0,
+                active: (variant.status ?? 'active') === 'active',
+                sort: variant.position ?? index + 1
+              })
+            )
+          : [createVariant({ label: 'Osnovni artikel' })])
+      })
+    : createFamily({
+        variants: createType === 'variants' ? [createVariant()] : [createVariant({ label: 'Osnovni artikel' })],
+        active: true
+      });
+
+  const mediaImages = (initialData?.media
+    .filter((media) => media.mediaKind === 'image' && media.role === 'gallery')
+    .sort((left, right) => (left.position ?? 0) - (right.position ?? 0))
+    .map((media) => {
+      const url = media.blobUrl || media.externalUrl || '';
+      return {
+        previewUrl: url,
+        uploadedUrl: url || null,
+        file: null,
+        filename: media.filename ?? null,
+        mimeType: media.mimeType ?? null,
+        altText: media.altText ?? '',
+        localId: null
+      } satisfies StagedImageSlot;
+    })
+    .filter((slot) => Boolean(slot.previewUrl)) ?? []);
+
+  const videoMedia = initialData?.media.find((media) => media.mediaKind === 'video') ?? null;
+  const video = videoMedia
+    ? {
+        source: videoMedia.sourceKind === 'youtube' ? 'youtube' : 'upload',
+        label: videoMedia.filename || 'Video',
+        previewUrl: videoMedia.externalUrl || videoMedia.blobUrl || '',
+        uploadedUrl: videoMedia.blobUrl ?? null,
+        blobPathname: videoMedia.blobPathname ?? null,
+        file: null,
+        mimeType: videoMedia.mimeType ?? null,
+        localId: null
+      } satisfies StagedVideoState
+    : null;
+
+  const videoAssignedVariantId =
+    videoMedia && typeof videoMedia.variantIndex === 'number' && family.variants[videoMedia.variantIndex]
+      ? family.variants[videoMedia.variantIndex]?.id ?? null
+      : null;
+
+  const sideSettings: SideSettingsState = {
+    sku: initialData?.sku ?? '',
+    brand: initialData?.brand ?? '',
+    material: initialData?.material ?? '',
+    surface: initialData?.shape ?? '',
+    color: initialData?.colour ?? '',
+    thicknessTolerance: initialData?.variants[0]?.errorTolerance ?? '',
+    moq: initialData?.variants[0]?.minOrder ?? 1,
+    weightPerUnit: initialData?.variants[0]?.weight != null ? String(initialData.variants[0]?.weight) : '0',
+    palletCount: '',
+    dimensions: { width: '', depth: '', height: '' },
+    trackInventory: true,
+    currentStock: 0,
+    minStock: 0,
+    warehouseLocation: '',
+    basePriceNoVat: '',
+    priceRounding: '0.01',
+    showOldPrice: true,
+    showGallery: true,
+    imageFocus: 'center',
+    galleryMode: 'grid',
+    imageAltText: '',
+    videoUrl: ''
+  };
+
+  const itemLevelNote = (() => {
+    const raw = normalizeVariantTag(initialData?.badge ?? initialData?.adminNotes);
+    return ITEM_NOTE_OPTIONS.some((entry) => entry.value === raw) ? raw : '';
+  })();
+
+  const documents = initialData?.media
+    .filter((media) => media.mediaKind === 'document' && media.role === 'technical_sheet')
+    .map((media, index) => ({
+      id: String(media.id ?? `document-${index}`),
+      name: media.filename || 'Tehnični list',
+      size: '—',
+      blobUrl: media.blobUrl ?? media.externalUrl ?? null,
+      blobPathname: media.blobPathname ?? null,
+      file: null,
+      mimeType: media.mimeType ?? null,
+      localId: null
+    })) ?? [];
+
+  const variantTags: Record<string, VariantTag> = {};
+  initialData?.variants.forEach((variant) => {
+    const key = String(variant.id ?? '');
+    const rawBadge = normalizeVariantTag(variant.badge) as VariantTag;
+    if (key && ITEM_NOTE_OPTIONS.some((entry) => entry.value === rawBadge)) variantTags[key] = rawBadge;
+  });
+
+  return {
+    draft: family,
+    sideSettings,
+    documents,
+    itemLevelNote,
+    mediaImages,
+    video,
+    variantTags,
+    selectedCategoryPath: initialData?.categoryPath ?? [],
+    videoAssignedVariantId
+  };
+}
 
 function canonicalizeVariantDimensions(
   input: VariantDimensionSet,
@@ -763,8 +1128,8 @@ function OpisRichTextEditor({
         isDismissable
         footer={(
           <div className="mt-3 flex items-center justify-end gap-2">
-            <Button type="button" variant="default" size="toolbar" onClick={() => setMediaDialogMode(null)}>Prekliči</Button>
-            <Button type="button" variant="primary" size="toolbar" onClick={submitMediaUrl}>Potrdi</Button>
+            <Button type="button" variant="default" size="toolbar" className={adminTextButtonTypographyTokenClasses} onClick={() => setMediaDialogMode(null)}>Prekliči</Button>
+            <Button type="button" variant="primary" size="toolbar" className={adminTextButtonTypographyTokenClasses} onClick={submitMediaUrl}>Potrdi</Button>
           </div>
         )}
       >
@@ -921,102 +1286,27 @@ export default function AdminItemEditorPage({
   const router = useRouter();
   const categoryPathsFromSeed = useMemo(() => [], []);
   const [categoryPaths, setCategoryPaths] = useState<string[]>(categoryPathsFromSeed);
+  const initialPersistedStateRef = useRef<EditorPersistedState | null>(null);
+  if (initialPersistedStateRef.current === null) {
+    initialPersistedStateRef.current = buildInitialEditorPersistedState(initialData, createType);
+  }
+  const initialPersistedState = initialPersistedStateRef.current;
 
-  const [draft, setDraft] = useState<ProductFamily>(() => {
-    if (initialData) {
-      return createFamily({
-        id: String(initialData.id),
-        name: initialData.itemName,
-        description: initialData.description ?? '',
-        category: initialData.categoryPath.join(' / '),
-        categoryId: null,
-        subcategoryId: null,
-        images: initialData.media
-          .filter((media) => media.mediaKind === 'image' && media.role === 'gallery')
-          .map((media) => media.blobUrl || media.externalUrl || '')
-          .filter(Boolean),
-        promoBadge: initialData.badge ?? '',
-        defaultDiscountPct: 0,
-        active: initialData.status === 'active',
-        sort: initialData.position,
-        notes: initialData.adminNotes ?? '',
-        slug: initialData.slug,
-        variants: (initialData.variants.length > 0
-          ? initialData.variants.map((variant, index) =>
-              createVariant({
-                id: String(variant.id ?? `variant-${index}`),
-                label: variant.variantName,
-                width: variant.width ?? null,
-                length: variant.length ?? null,
-                thickness: variant.thickness ?? null,
-                errorTolerance: variant.errorTolerance ?? null,
-                weight: variant.weight ?? null,
-                minOrder: variant.minOrder ?? 1,
-                badge: variant.badge ?? null,
-                sku: variant.variantSku ?? '',
-                skuAutoGenerated: false,
-                price: variant.price,
-                discountPct: variant.discountPct ?? 0,
-                stock: variant.inventory ?? 0,
-                active: (variant.status ?? 'active') === 'active',
-                sort: variant.position ?? index + 1
-              })
-            )
-          : [createVariant({ label: 'Osnovni artikel' })])
-      });
-    }
-    return createFamily({
-      variants: createType === 'variants' ? [createVariant()] : [createVariant({ label: 'Osnovni artikel' })],
-      active: true
-    });
-  });
+  const [draft, setDraft] = useState<ProductFamily>(() => ({
+    ...initialPersistedState.draft,
+    variants: initialPersistedState.draft.variants.map(cloneVariant)
+  }));
   const [variantSelections, setVariantSelections] = useState<Set<string>>(new Set());
   const [generatorInput, setGeneratorInput] = useState('');
   const [generatorChips, setGeneratorChips] = useState<GeneratorChip[]>([]);
   const [generatorError, setGeneratorError] = useState<string | null>(null);
-  const [sideSettings, setSideSettings] = useState({
-    sku: initialData?.sku ?? '',
-    brand: initialData?.brand ?? '',
-    material: initialData?.material ?? '',
-    surface: initialData?.shape ?? '',
-    color: initialData?.colour ?? '',
-    thicknessTolerance: initialData?.variants[0]?.errorTolerance ?? '',
-    moq: initialData?.variants[0]?.minOrder ?? 1,
-    weightPerUnit: initialData?.variants[0]?.weight != null ? String(initialData.variants[0]?.weight) : '0',
-    palletCount: '',
-    dimensions: { width: '', depth: '', height: '' },
-    trackInventory: true,
-    currentStock: 0,
-    minStock: 0,
-    warehouseLocation: '',
-    basePriceNoVat: '',
-    priceRounding: '0.01',
-    showOldPrice: true,
-    showGallery: true,
-    imageFocus: 'center',
-    galleryMode: 'grid' as 'grid' | 'slider' | 'list',
-    imageAltText: '',
-    videoUrl: ''
-  });
-  const [documents, setDocuments] = useState<TechnicalDocument[]>(
-    () =>
-      initialData?.media
-        .filter((media) => media.mediaKind === 'document' && media.role === 'technical_sheet')
-        .map((media) => ({
-          name: media.filename || 'Tehnični list',
-          size: '—',
-          blobUrl: media.blobUrl ?? media.externalUrl ?? null,
-          blobPathname: media.blobPathname ?? null
-        })) ?? []
-  );
+  const [sideSettings, setSideSettings] = useState<SideSettingsState>(() => cloneSideSettings(initialPersistedState.sideSettings));
+  const [documents, setDocuments] = useState<StagedTechnicalDocument[]>(() => initialPersistedState.documents.map(cloneDocument));
   const [editorMode, setEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
-  const [tableEditorMode, setTableEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
-  const [itemLevelNote, setItemLevelNote] = useState<VariantTag | ''>(() => {
-    const raw = normalizeVariantTag(initialData?.badge ?? initialData?.adminNotes);
-    return ITEM_NOTE_OPTIONS.some((entry) => entry.value === raw) ? raw : '';
-  });
+  const [isSaving, setIsSaving] = useState(false);
+  const [itemLevelNote, setItemLevelNote] = useState<VariantTag | ''>(initialPersistedState.itemLevelNote);
   const [mediaTab, setMediaTab] = useState<MediaTab>('slike');
-  const [mediaImagesDraft, setMediaImagesDraft] = useState<string[]>(draft.images);
+  const [mediaImageSlots, setMediaImageSlots] = useState<StagedImageSlot[]>(() => initialPersistedState.mediaImages.map(cloneMediaImage));
   const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
   const [draggedVariantId, setDraggedVariantId] = useState<string | null>(null);
   const [draggedVariantImageSlot, setDraggedVariantImageSlot] = useState<number | null>(null);
@@ -1028,50 +1318,20 @@ export default function AdminItemEditorPage({
   const uploadPlanRef = useRef<{ startSlot: number; nextOffset: number; maxFiles: number }>({ startSlot: 0, nextOffset: 0, maxFiles: 1 });
   const mediaUploadInputRef = useRef<HTMLInputElement>(null);
   const mediaUploadContextRef = useRef<{ slotIndex: number; multiple: boolean }>({ slotIndex: 0, multiple: true });
-  const updateImageAtSlotRef = useRef<(slotIndex: number, imageUrl: string) => void>(() => {});
+  const updateImageAtSlotRef = useRef<(slotIndex: number, slot: StagedImageSlot) => void>(() => {});
   const [youtubeInput, setYoutubeInput] = useState('');
-  const [videoDraft, setVideoDraft] = useState<VideoState | null>(() => {
-    const video = initialData?.media.find((media) => media.mediaKind === 'video');
-    if (!video) return null;
-    return {
-      source: video.sourceKind === 'youtube' ? 'youtube' : 'upload',
-      label: video.filename || 'Video',
-      previewUrl: video.externalUrl || video.blobUrl || ''
-    };
-  });
+  const [videoDraft, setVideoDraft] = useState<StagedVideoState | null>(() => cloneVideo(initialPersistedState.video));
   const [videoDragActive, setVideoDragActive] = useState(false);
   const [videoMoveMode, setVideoMoveMode] = useState(false);
-  const [videoAssignedVariantId, setVideoAssignedVariantId] = useState<string | null>(() => {
-    const video = initialData?.media.find((media) => media.mediaKind === 'video');
-    if (!video || typeof video.variantIndex !== 'number') return null;
-    const variant = draft.variants[video.variantIndex];
-    return variant ? variant.id : null;
-  });
+  const [videoAssignedVariantId, setVideoAssignedVariantId] = useState<string | null>(initialPersistedState.videoAssignedVariantId);
   const technicalUploadInputRef = useRef<HTMLInputElement>(null);
   const [pendingMediaRemoval, setPendingMediaRemoval] = useState<{ type: 'image'; slotIndex: number } | { type: 'video' } | null>(null);
-  const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>(() => {
-    const allowed = new Set<VariantTag>(['na-zalogi', 'novo', 'akcija', 'zadnji-kosi', 'ni-na-zalogi']);
-    const next: Record<string, VariantTag> = {};
-    initialData?.variants.forEach((variant) => {
-      const key = String(variant.id ?? '');
-      const rawBadge = normalizeVariantTag(variant.badge) as VariantTag;
-      if (key && allowed.has(rawBadge)) next[key] = rawBadge;
-    });
-    return next;
-  });
+  const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>(() => ({ ...initialPersistedState.variantTags }));
   const [editingImageSlot, setEditingImageSlot] = useState<number | null>(null);
   const [decimalInputDrafts, setDecimalInputDrafts] = useState<Record<string, string>>({});
-  const [imageSettings, setImageSettings] = useState<Record<number, ImageSettings>>(() => {
-    const settings: Record<number, ImageSettings> = {};
-    const imageMedia = initialData?.media
-      .filter((media) => media.mediaKind === 'image' && media.role === 'gallery')
-      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0)) ?? [];
-    imageMedia.forEach((media, index) => {
-      settings[index] = { altText: media.altText ?? '' };
-    });
-    return settings;
-  });
-  const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() => initialData?.categoryPath ?? []);
+  const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() => [...initialPersistedState.selectedCategoryPath]);
+  const [savedSnapshot, setSavedSnapshot] = useState<EditorPersistedState>(() => cloneEditorPersistedState(initialPersistedState));
+  const mediaImagesDraft = useMemo(() => mediaImageSlots.map((slot) => slot.previewUrl).filter(Boolean), [mediaImageSlots]);
 
   const decimalDraftKey = (variantId: string, field: string) => `${variantId}:${field}`;
 
@@ -1123,9 +1383,52 @@ export default function AdminItemEditorPage({
     setSelectedCategoryPath(path);
   };
 
+  const currentPersistedState = useMemo<EditorPersistedState>(() => ({
+    draft: {
+      ...draft,
+      variants: draft.variants.map(cloneVariant)
+    },
+    sideSettings: cloneSideSettings(sideSettings),
+    documents: documents.map(cloneDocument),
+    itemLevelNote,
+    mediaImages: mediaImageSlots.map(cloneMediaImage),
+    video: cloneVideo(videoDraft),
+    variantTags: { ...variantTags },
+    selectedCategoryPath: [...selectedCategoryPath],
+    videoAssignedVariantId
+  }), [documents, draft, itemLevelNote, mediaImageSlots, selectedCategoryPath, sideSettings, variantTags, videoAssignedVariantId, videoDraft]);
+
+  const savedSnapshotKey = useMemo(() => serializeEditorPersistedState(savedSnapshot, {}), [savedSnapshot]);
+  const currentSnapshotKey = useMemo(
+    () => serializeEditorPersistedState(currentPersistedState, decimalInputDrafts),
+    [currentPersistedState, decimalInputDrafts]
+  );
+
+  const restoreSavedSnapshot = useCallback(() => {
+    setDraft({
+      ...savedSnapshot.draft,
+      variants: savedSnapshot.draft.variants.map(cloneVariant)
+    });
+    setSideSettings(cloneSideSettings(savedSnapshot.sideSettings));
+    setDocuments(savedSnapshot.documents.map(cloneDocument));
+    setItemLevelNote(savedSnapshot.itemLevelNote);
+    setMediaImageSlots(savedSnapshot.mediaImages.map(cloneMediaImage));
+    setVideoDraft(cloneVideo(savedSnapshot.video));
+    setVariantTags({ ...savedSnapshot.variantTags });
+    setSelectedCategoryPath([...savedSnapshot.selectedCategoryPath]);
+    setVideoAssignedVariantId(savedSnapshot.videoAssignedVariantId);
+    setDecimalInputDrafts({});
+    setVariantSelections(new Set());
+    setPendingMediaRemoval(null);
+    setEditingImageSlot(null);
+    setYoutubeInput('');
+    setVideoMoveMode(false);
+  }, [savedSnapshot]);
+
   const isEditable = editorMode === 'edit';
-  const isTableEditable = tableEditorMode === 'edit';
-  const isMediaEditable = true;
+  const hasUnsavedChanges = currentSnapshotKey !== savedSnapshotKey;
+  const isTableEditable = isEditable;
+  const isMediaEditable = isEditable;
   const isToleranceLocked = false;
   const isDimensionLockActive = false;
   const isThicknessLockActive = false;
@@ -1152,131 +1455,331 @@ export default function AdminItemEditorPage({
     return activeDimensions.reduce((total, values) => total * values.length, 1);
   }, [generatorByDimension]);
 
-  const save = async (asDraft = false) => {
+  const commitPendingDecimalDrafts = useCallback(() => {
+    if (Object.keys(decimalInputDrafts).length === 0) return { nextDraft: draft };
+
+    const fieldConfigs: Record<string, { emptyFallback: number | null; apply: (value: number | null) => Partial<Variant> }> = {
+      length: { emptyFallback: null, apply: (value) => ({ length: value }) },
+      width: { emptyFallback: null, apply: (value) => ({ width: value }) },
+      thickness: { emptyFallback: null, apply: (value) => ({ thickness: value }) },
+      weight: { emptyFallback: null, apply: (value) => ({ weight: value }) },
+      price: { emptyFallback: 0, apply: (value) => ({ price: value ?? 0 }) },
+      discountPct: { emptyFallback: 0, apply: (value) => ({ discountPct: Math.min(99.9, Math.max(0, value ?? 0)) }) }
+    };
+
+    let changed = false;
+    let invalidFieldLabel = '';
+
+    const nextVariants = draft.variants.map((variant) => {
+      let nextVariant = variant;
+
+      for (const [key, raw] of Object.entries(decimalInputDrafts)) {
+        const [variantId, field] = key.split(':');
+        if (variantId !== variant.id) continue;
+
+        const trimmed = raw.trim();
+        if (field === 'errorTolerance') {
+          const parsed = trimmed ? parseDecimalInput(trimmed) : null;
+          if (trimmed && parsed === null) {
+            invalidFieldLabel = 'toleranca';
+            return variant;
+          }
+          const nextValue = parsed === null ? null : formatDecimalForDisplay(parsed);
+          if (nextVariant.errorTolerance !== nextValue) {
+            nextVariant = { ...nextVariant, errorTolerance: nextValue };
+            changed = true;
+          }
+          continue;
+        }
+
+        const fieldConfig = fieldConfigs[field];
+        if (!fieldConfig) continue;
+        if (!trimmed) {
+          nextVariant = { ...nextVariant, ...fieldConfig.apply(fieldConfig.emptyFallback) };
+          changed = true;
+          continue;
+        }
+
+        const parsed = parseDecimalInput(trimmed);
+        if (parsed === null) {
+          invalidFieldLabel = field;
+          return variant;
+        }
+
+        nextVariant = { ...nextVariant, ...fieldConfig.apply(parsed) };
+        changed = true;
+      }
+
+      return nextVariant;
+    });
+
+    if (invalidFieldLabel) {
+      return { nextDraft: draft, error: `Preverite vrednost v polju ${invalidFieldLabel}.` };
+    }
+
+    return {
+      nextDraft: changed ? { ...draft, variants: nextVariants } : draft
+    };
+  }, [decimalInputDrafts, draft]);
+
+  const save = async (..._args: unknown[]) => {
     if (!draft.name.trim()) {
       toast.error('Naziv je obvezen.');
       return;
     }
-    if (!draft.category.trim()) {
+    if (!draft.category.trim() || selectedCategoryPath.length === 0) {
       toast.error('Kategorija je obvezna.');
       return;
     }
-    const normalizedMediaImages = mediaImagesDraft
-      .map((url, index) => ({ url, index }))
-      .filter((entry) => Boolean(entry.url) && !entry.url.startsWith('blob:'));
-    const hasUnpersistedImages = mediaImagesDraft.some((url) => Boolean(url) && url.startsWith('blob:'));
-    if (hasUnpersistedImages) {
-      toast.error('Nekatere slike še niso naložene. Počakajte, da se nalaganje konča.');
+    if (!isEditable || !hasUnsavedChanges || isSaving) return;
+
+    const decimalCommit = commitPendingDecimalDrafts();
+    if (decimalCommit.error) {
+      toast.error(decimalCommit.error);
       return;
     }
 
-    const payload: CatalogItemEditorPayload = {
-      itemName: draft.name.trim(),
-      itemType: (initialData?.itemType ?? 'unit') as 'unit' | 'sheet' | 'linear' | 'bulk',
-      badge: itemLevelNote || null,
-      status: draft.active ? 'active' : 'inactive',
-      categoryPath: selectedCategoryPath,
-      sku: sideSettings.sku || draft.variants[0]?.sku || null,
-      slug: draft.slug.trim() || toSlug(draft.name.trim()),
-      unit: null,
-      brand: sideSettings.brand || null,
-      material: sideSettings.material || null,
-      colour: sideSettings.color || null,
-      shape: sideSettings.surface || null,
-      description: draft.description || '',
-      adminNotes: initialData?.adminNotes ?? null,
-      position: draft.sort ?? 0,
-      variants: draft.variants.map((variant, index) => ({
-        variantName: variant.label || `Različica ${index + 1}`,
-        length: variant.length,
-        width: variant.width,
-        thickness: variant.thickness,
-        weight: variant.weight ?? (sideSettings.weightPerUnit ? Number(sideSettings.weightPerUnit) : null),
-        errorTolerance: (variant.errorTolerance ?? sideSettings.thicknessTolerance) || null,
-        price: variant.price,
-        discountPct: variant.discountPct,
-        inventory: variant.stock,
-        minOrder: Math.max(1, variant.minOrder ?? Number(sideSettings.moq || 1)),
-        variantSku: variant.sku || null,
-        unit: null,
-        status: variant.active ? 'active' : 'inactive',
-        badge: variantTags[variant.id] ?? (normalizeVariantTag(variant.badge) || null),
-        position: variant.sort ?? index,
-        imageAssignments: variant.imageAssignments ?? []
-      })),
-      media: [
-        ...normalizedMediaImages.map((entry) => ({
-          mediaKind: 'image' as const,
-          role: 'gallery' as const,
-          sourceKind: 'upload' as const,
-          blobUrl: entry.url,
-          altText: imageSettings[entry.index]?.altText ?? null,
-          position: entry.index
-        })),
-        ...(videoDraft
-          ? [
-              {
-                mediaKind: 'video' as const,
-                role: 'gallery' as const,
-                sourceKind: videoDraft.source === 'youtube' ? ('youtube' as const) : ('upload' as const),
-                externalUrl: videoDraft.source === 'youtube' ? videoDraft.previewUrl : null,
-                blobUrl: videoDraft.source === 'upload' && !videoDraft.previewUrl.startsWith('blob:') ? videoDraft.previewUrl : null,
-                blobPathname: videoDraft.source === 'upload' ? videoDraft.blobPathname ?? null : null,
-                filename: videoDraft.label,
-                videoType: videoDraft.source,
-                variantIndex: videoAssignedVariantId
-                  ? Math.max(0, draft.variants.findIndex((variant) => variant.id === videoAssignedVariantId))
-                  : null,
-                position: 0
-              }
-            ]
-          : []),
-        ...documents.map((documentEntry, index) => ({
-          mediaKind: 'document' as const,
-          role: 'technical_sheet' as const,
-          sourceKind: 'upload' as const,
-          filename: documentEntry.name,
-          blobUrl: documentEntry.blobUrl,
-          blobPathname: documentEntry.blobPathname,
-          position: index
-        }))
-      ]
-    };
+    const nextDraft = decimalCommit.nextDraft;
+    if (nextDraft !== draft) {
+      setDraft(nextDraft);
+    }
+    if (Object.keys(decimalInputDrafts).length > 0) {
+      setDecimalInputDrafts({});
+    }
+
+    const nextSlug = nextDraft.slug.trim() || toSlug(nextDraft.name.trim());
+    const localImageUrlsToRevoke = mediaImageSlots
+      .filter((slot) => slot.file && slot.previewUrl.startsWith('blob:'))
+      .map((slot) => slot.previewUrl);
+    const localVideoUrlsToRevoke = videoDraft?.file && videoDraft.previewUrl.startsWith('blob:') ? [videoDraft.previewUrl] : [];
+
+    setIsSaving(true);
 
     try {
+      const uploadedImages = await Promise.all(
+        mediaImageSlots.map(async (slot) => {
+          if (!slot.file) return slot;
+          const uploaded = await uploadMediaFile(slot.file);
+          imageTypeHintsRef.current[uploaded.url] = inferImageExtensionLabel({
+            mimeType: uploaded.mimeType ?? slot.mimeType ?? undefined,
+            fileName: uploaded.filename ?? slot.filename ?? undefined
+          });
+          return {
+            ...slot,
+            previewUrl: uploaded.url,
+            uploadedUrl: uploaded.url,
+            file: null,
+            filename: uploaded.filename ?? slot.filename,
+            mimeType: uploaded.mimeType ?? slot.mimeType,
+            localId: null
+          } satisfies StagedImageSlot;
+        })
+      );
+
+      const uploadedVideo = videoDraft
+        ? await (async () => {
+            if (videoDraft.source === 'youtube' || !videoDraft.file) return videoDraft;
+            const uploaded = await uploadMediaFile(videoDraft.file);
+            return {
+              ...videoDraft,
+              previewUrl: uploaded.url,
+              uploadedUrl: uploaded.url,
+              blobPathname: uploaded.pathname,
+              label: uploaded.filename ?? videoDraft.label,
+              file: null,
+              mimeType: uploaded.mimeType ?? videoDraft.mimeType,
+              localId: null
+            } satisfies StagedVideoState;
+          })()
+        : null;
+
+      const uploadedDocuments = await Promise.all(
+        documents.map(async (documentEntry) => {
+          if (!documentEntry.file) return documentEntry;
+          const uploaded = await uploadMediaFile(documentEntry.file);
+          return {
+            ...documentEntry,
+            name: uploaded.filename ?? documentEntry.name,
+            blobUrl: uploaded.url,
+            blobPathname: uploaded.pathname,
+            file: null,
+            mimeType: uploaded.mimeType ?? documentEntry.mimeType,
+            localId: null
+          } satisfies StagedTechnicalDocument;
+        })
+      );
+
+      const payload: CatalogItemEditorPayload = {
+        id: initialData?.id,
+        itemName: nextDraft.name.trim(),
+        itemType: (initialData?.itemType ?? 'unit') as 'unit' | 'sheet' | 'linear' | 'bulk',
+        badge: itemLevelNote || null,
+        status: nextDraft.active ? 'active' : 'inactive',
+        categoryPath: selectedCategoryPath,
+        sku: sideSettings.sku || nextDraft.variants[0]?.sku || null,
+        slug: nextSlug,
+        unit: null,
+        brand: sideSettings.brand || null,
+        material: sideSettings.material || null,
+        colour: sideSettings.color || null,
+        shape: sideSettings.surface || null,
+        description: nextDraft.description || '',
+        adminNotes: initialData?.adminNotes ?? null,
+        position: nextDraft.sort ?? 0,
+        variants: nextDraft.variants.map((variant, index) => ({
+          variantName: variant.label || `Različica ${index + 1}`,
+          length: variant.length,
+          width: variant.width,
+          thickness: variant.thickness,
+          weight: variant.weight ?? (sideSettings.weightPerUnit ? Number(sideSettings.weightPerUnit) : null),
+          errorTolerance: (variant.errorTolerance ?? sideSettings.thicknessTolerance) || null,
+          price: variant.price,
+          discountPct: variant.discountPct,
+          inventory: variant.stock,
+          minOrder: Math.max(1, variant.minOrder ?? Number(sideSettings.moq || 1)),
+          variantSku: variant.sku || null,
+          unit: null,
+          status: variant.active ? 'active' : 'inactive',
+          badge: variantTags[variant.id] ?? (normalizeVariantTag(variant.badge) || null),
+          position: variant.sort ?? index,
+          imageAssignments: variant.imageAssignments ?? []
+        })),
+        media: [
+          ...uploadedImages.map((entry, index) => ({
+            mediaKind: 'image' as const,
+            role: 'gallery' as const,
+            sourceKind: 'upload' as const,
+            blobUrl: entry.uploadedUrl,
+            altText: entry.altText || null,
+            position: index
+          })),
+          ...(uploadedVideo
+            ? [
+                {
+                  mediaKind: 'video' as const,
+                  role: 'gallery' as const,
+                  sourceKind: uploadedVideo.source === 'youtube' ? ('youtube' as const) : ('upload' as const),
+                  externalUrl: uploadedVideo.source === 'youtube' ? uploadedVideo.previewUrl : null,
+                  blobUrl: uploadedVideo.source === 'upload' ? uploadedVideo.uploadedUrl : null,
+                  blobPathname: uploadedVideo.source === 'upload' ? uploadedVideo.blobPathname ?? null : null,
+                  filename: uploadedVideo.label,
+                  videoType: uploadedVideo.source,
+                  variantIndex: videoAssignedVariantId
+                    ? Math.max(0, nextDraft.variants.findIndex((variant) => variant.id === videoAssignedVariantId))
+                    : null,
+                  position: 0
+                }
+              ]
+            : []),
+          ...uploadedDocuments.map((documentEntry, index) => ({
+            mediaKind: 'document' as const,
+            role: 'technical_sheet' as const,
+            sourceKind: 'upload' as const,
+            filename: documentEntry.name,
+            blobUrl: documentEntry.blobUrl,
+            blobPathname: documentEntry.blobPathname,
+            position: index
+          }))
+        ]
+      };
+
       const body = await saveCatalogItemPayload(payload);
-      toast.success(asDraft ? 'Osnutek shranjen.' : 'Artikel shranjen.');
+      localImageUrlsToRevoke.forEach(revokeLocalImageUrl);
+      localVideoUrlsToRevoke.forEach(revokeLocalImageUrl);
+
+      const canonicalDraft: ProductFamily = {
+        ...nextDraft,
+        slug: body.slug ?? nextSlug,
+        category: selectedCategoryPath.join(' / ')
+      };
+      const canonicalSnapshot: EditorPersistedState = {
+        draft: {
+          ...canonicalDraft,
+          variants: canonicalDraft.variants.map(cloneVariant)
+        },
+        sideSettings: cloneSideSettings(sideSettings),
+        documents: uploadedDocuments.map(cloneDocument),
+        itemLevelNote,
+        mediaImages: uploadedImages.map(cloneMediaImage),
+        video: cloneVideo(uploadedVideo),
+        variantTags: { ...variantTags },
+        selectedCategoryPath: [...selectedCategoryPath],
+        videoAssignedVariantId
+      };
+
+      setDraft(canonicalDraft);
+      setMediaImageSlots(uploadedImages.map(cloneMediaImage));
+      setVideoDraft(cloneVideo(uploadedVideo));
+      setDocuments(uploadedDocuments.map(cloneDocument));
+      setSavedSnapshot(cloneEditorPersistedState(canonicalSnapshot));
+      setEditorMode('read');
+      toast.success('Artikel shranjen.');
       if (body.slug) {
         router.push(`/admin/artikli/${encodeURIComponent(body.slug)}`);
       }
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Shranjevanje artikla ni uspelo.');
+    } finally {
+      setIsSaving(false);
     }
   };
-  const deleteItem = async () => {
-    const shouldDelete = window.confirm('Ali želite odstraniti artikel iz urejanja?');
-    if (!shouldDelete) return;
-    const slug = draft.slug || articleId || '';
-    if (!slug) {
-      toast.error('Artikel nima veljavnega identifikatorja za brisanje.');
+  const archiveItem = async () => {
+    const itemIdentifier = articleId || String(initialData?.id ?? '').trim() || draft.slug.trim();
+    if (!itemIdentifier) {
+      toast.error('Artikel nima veljavnega identifikatorja za arhiviranje.');
       return;
     }
+    const shouldArchive = window.confirm(
+      hasUnsavedChanges
+        ? 'Artikel ima neshranjene spremembe. Če nadaljujete, bo v arhiv dodana trenutna lokalna različica, artikel pa bo odstranjen iz aktivnega seznama. Želite nadaljevati?'
+        : 'Ali želite arhivirati ta artikel?'
+    );
+    if (!shouldArchive) return;
+
+    const previousArchiveItems = readArchivedItemStorage();
+    writeArchivedItemStorage([
+      buildArchiveRecord(currentPersistedState, itemIdentifier),
+      ...previousArchiveItems.filter((item) => String(item.id ?? '') !== itemIdentifier)
+    ]);
+
     try {
-      const response = await fetch(`/api/admin/artikli/${encodeURIComponent(slug)}`, { method: 'DELETE' });
+      const response = await fetch(`/api/admin/artikli/${encodeURIComponent(itemIdentifier)}`, { method: 'DELETE' });
       if (!response.ok) {
         const body = (await response.json().catch(() => ({}))) as { message?: string };
-        throw new Error(body.message || 'Brisanje artikla ni uspelo.');
+        throw new Error(body.message || 'Arhiviranje artikla ni uspelo.');
       }
-      toast.success('Artikel je izbrisan.');
-      router.push('/admin/artikli');
+      toast.success('Artikel je arhiviran.');
+      router.push('/admin/arhiv/artikli');
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Brisanje artikla ni uspelo.');
+      writeArchivedItemStorage(previousArchiveItems);
+      toast.error(error instanceof Error ? error.message : 'Arhiviranje artikla ni uspelo.');
     }
   };
 
+  const deleteItem = archiveItem;
+  const setTableEditorMode = (_value: 'read' | 'edit' | ((current: 'read' | 'edit') => 'read' | 'edit')) => undefined;
+  const canArchive = mode !== 'create' && Boolean(articleId || initialData?.id || draft.slug.trim()) && !isSaving;
+
+  const handleEditModeToggle = () => {
+    if (editorMode === 'read') {
+      setEditorMode('edit');
+      return;
+    }
+    if (!hasUnsavedChanges) {
+      setEditorMode('read');
+      return;
+    }
+    const shouldDiscard = window.confirm('Na strani imate neshranjene spremembe. Ali jih želite zavreči in zapreti način urejanja?');
+    if (!shouldDiscard) return;
+    restoreSavedSnapshot();
+    setEditorMode('read');
+    toast.success('Neshranjene spremembe so zavržene.');
+  };
+
   const generateVariants = () => {
+    if (!isTableEditable) return;
     const widths = generatorByDimension.get('width') ?? [];
     const lengths = generatorByDimension.get('length') ?? [];
     const thicknesses = generatorByDimension.get('thickness') ?? [];
@@ -1470,51 +1973,71 @@ export default function AdminItemEditorPage({
       if (options.showError) toast.error('Vnesite veljavno YouTube povezavo.');
       return false;
     }
-    setVideoDraft({ source: 'youtube', label: value, previewUrl });
+    if (videoDraft?.file && videoDraft.previewUrl.startsWith('blob:')) {
+      revokeLocalImageUrl(videoDraft.previewUrl);
+    }
+    setVideoDraft({
+      source: 'youtube',
+      label: value,
+      previewUrl,
+      uploadedUrl: null,
+      blobPathname: null,
+      file: null,
+      mimeType: null,
+      localId: null
+    });
     setYoutubeInput('');
     setVideoMoveMode(false);
     return true;
   };
 
-  const handleVideoFileSelect = async (file?: File | null) => {
+  const handleVideoFileSelect = (file?: File | null) => {
     if (!file) return;
     if (!file.type.startsWith('video/')) {
       toast.error('Izberite veljavno video datoteko.');
       return;
     }
-    const maxBytes = 100 * 1024 * 1024;
-    if (file.size > maxBytes) {
+    if (file.size > VIDEO_MAX_UPLOAD_BYTES) {
       toast.error('Video je prevelik. Dovoljena velikost je največ 100 MB.');
       return;
     }
-    try {
-      const uploaded = await uploadMediaFile(file);
-      setVideoDraft({ source: 'upload', label: uploaded.filename, previewUrl: uploaded.url, blobPathname: uploaded.pathname });
-      setVideoMoveMode(false);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Nalaganje videa ni uspelo.');
+    if (videoDraft?.file && videoDraft.previewUrl.startsWith('blob:')) {
+      revokeLocalImageUrl(videoDraft.previewUrl);
     }
+    const previewUrl = createLocalImageUrl(file);
+    setVideoDraft({
+      source: 'upload',
+      label: file.name,
+      previewUrl,
+      uploadedUrl: null,
+      blobPathname: null,
+      file,
+      mimeType: file.type || null,
+      localId: createLocalStageId()
+    });
+    setVideoMoveMode(false);
   };
 
-  const handleTechnicalFileSelect = async (file?: File | null) => {
+  const handleTechnicalFileSelect = (file?: File | null) => {
     if (!file) return;
-    const maxBytes = 5 * 1024 * 1024;
-    if (file.size > maxBytes) {
+    if (file.size > TECHNICAL_DOCUMENT_MAX_UPLOAD_BYTES) {
       toast.error('Datoteka je prevelika. Dovoljena velikost je največ 5 MB.');
       return;
     }
-    try {
-      const uploaded = await uploadMediaFile(file);
-      const fileSizeLabel = file.size < 1024 * 1024
-        ? `${Math.round(file.size / 1024)} KB`
-        : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
-      setDocuments((current) => [
-        { name: uploaded.filename, size: fileSizeLabel, blobUrl: uploaded.url, blobPathname: uploaded.pathname },
-        ...current.filter((entry) => entry.name !== uploaded.filename)
-      ]);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Nalaganje tehničnega lista ni uspelo.');
-    }
+    const nextDocument: StagedTechnicalDocument = {
+      id: `document-${createLocalStageId()}`,
+      name: file.name,
+      size: formatFileSize(file.size),
+      blobUrl: null,
+      blobPathname: null,
+      file,
+      mimeType: file.type || null,
+      localId: createLocalStageId()
+    };
+    setDocuments((current) => [
+      nextDocument,
+      ...current.filter((entry) => entry.name !== file.name)
+    ]);
   };
 
   const updateVariant = (variantId: string, updates: Partial<Variant>) => {
@@ -1624,18 +2147,17 @@ export default function AdminItemEditorPage({
     if (!mediaImagesDraft[editingImageSlot]) setEditingImageSlot(null);
   }, [editingImageSlot, mediaImagesDraft]);
 
-  const updateImageAtSlot = useCallback((slotIndex: number, imageUrl: string) => {
-    setMediaImagesDraft((current) => {
+  const updateImageAtSlot = useCallback((slotIndex: number, nextSlot: StagedImageSlot) => {
+    setMediaImageSlots((current) => {
       const next = [...current];
       if (slotIndex < next.length) {
         const previous = next[slotIndex];
-        if (previous && previous !== imageUrl) revokeLocalImageUrl(previous);
-        next[slotIndex] = imageUrl;
+        if (previous && previous.previewUrl !== nextSlot.previewUrl) revokeLocalImageUrl(previous.previewUrl);
+        next[slotIndex] = nextSlot;
         return next.slice(0, MEDIA_SLOT_COUNT);
       }
-      while (next.length < slotIndex) next.push('');
-      next.push(imageUrl);
-      return next.filter(Boolean).slice(0, MEDIA_SLOT_COUNT);
+      next.push(nextSlot);
+      return next.slice(0, MEDIA_SLOT_COUNT);
     });
   }, [revokeLocalImageUrl]);
 
@@ -1648,7 +2170,7 @@ export default function AdminItemEditorPage({
       autoProceed: false,
       restrictions: {
         allowedFileTypes: ['image/*'],
-        maxFileSize: 4 * 1024 * 1024,
+        maxFileSize: IMAGE_MAX_UPLOAD_BYTES,
         maxNumberOfFiles: 1
       },
       onBeforeFileAdded: (file) => {
@@ -1685,13 +2207,18 @@ export default function AdminItemEditorPage({
         if (!Number.isFinite(targetSlot)) continue;
         const blob = file.data;
         if (!(blob instanceof Blob)) continue;
-        try {
-          const uploaded = await uploadMediaFile(new File([blob], file.name, { type: file.type }));
-          imageTypeHintsRef.current[uploaded.url] = inferImageExtensionLabel({ mimeType: file.type, fileName: file.name });
-          updateImageAtSlotRef.current(Math.max(0, Math.min(MEDIA_SLOT_COUNT - 1, targetSlot)), uploaded.url);
-        } catch (error) {
-          toast.error(error instanceof Error ? error.message : 'Nalaganje slike ni uspelo.');
-        }
+        const stagedFile = blob instanceof File ? blob : new File([blob], file.name, { type: file.type });
+        const previewUrl = createLocalImageUrl(stagedFile);
+        imageTypeHintsRef.current[previewUrl] = inferImageExtensionLabel({ mimeType: file.type, fileName: file.name });
+        updateImageAtSlotRef.current(Math.max(0, Math.min(MEDIA_SLOT_COUNT - 1, targetSlot)), {
+          previewUrl,
+          uploadedUrl: null,
+          file: stagedFile,
+          filename: file.name,
+          mimeType: file.type || null,
+          altText: mediaImageSlots[Math.max(0, Math.min(MEDIA_SLOT_COUNT - 1, targetSlot))]?.altText ?? '',
+          localId: createLocalStageId()
+        });
       }
       fileIDs.forEach((fileID) => {
         if (uppy.getFile(fileID)) uppy.removeFile(fileID);
@@ -1704,7 +2231,7 @@ export default function AdminItemEditorPage({
       uppy.destroy();
       uppyRef.current = null;
     };
-  }, [toast, uploadMediaFile]);
+  }, [createLocalImageUrl, mediaImageSlots, toast, updateImageAtSlot]);
 
   const queueImageUpload = useCallback((files: FileList | File[] | null, startSlot: number, allowMultiple: boolean) => {
     if (!isMediaEditable) return;
@@ -1781,7 +2308,7 @@ export default function AdminItemEditorPage({
 
   const moveImageSlot = (fromIndex: number, toIndex: number) => {
     if (fromIndex === toIndex) return;
-    setMediaImagesDraft((current) => {
+    setMediaImageSlots((current) => {
       const next = [...current];
       const image = next[fromIndex];
       if (!image) return current;
@@ -1803,9 +2330,9 @@ export default function AdminItemEditorPage({
   };
 
   const removeImageSlot = (slotIndex: number) => {
-    setMediaImagesDraft((current) => {
-      const imageToRemove = current[slotIndex];
-      if (imageToRemove) revokeLocalImageUrl(imageToRemove);
+    setMediaImageSlots((current) => {
+      const slotToRemove = current[slotIndex];
+      if (slotToRemove?.previewUrl) revokeLocalImageUrl(slotToRemove.previewUrl);
       return current.filter((_, index) => index !== slotIndex).slice(0, MEDIA_SLOT_COUNT);
     });
     setDraft((current) => ({
@@ -1822,11 +2349,6 @@ export default function AdminItemEditorPage({
       if (current === slotIndex) return null;
       return current > slotIndex ? current - 1 : current;
     });
-  };
-
-  const removeSelectedImageSlots = (selected: Set<number>) => {
-    const sorted = Array.from(selected).sort((a, b) => b - a);
-    sorted.forEach((slotIndex) => removeImageSlot(slotIndex));
   };
 
   const requestRemoveImageSlot = (slotIndex: number) => {
@@ -1846,6 +2368,9 @@ export default function AdminItemEditorPage({
       removeImageSlot(pendingMediaRemoval.slotIndex);
       setPendingMediaRemoval(null);
       return;
+    }
+    if (videoDraft?.file && videoDraft.previewUrl.startsWith('blob:')) {
+      revokeLocalImageUrl(videoDraft.previewUrl);
     }
     setVideoDraft(null);
     setYoutubeInput('');
@@ -1879,32 +2404,33 @@ export default function AdminItemEditorPage({
     });
   };
 
-  const ensureImageSettings = useCallback((slotIndex: number): ImageSettings => {
-    return imageSettings[slotIndex] ?? { altText: '' };
-  }, [imageSettings]);
-
-  const updateImageSettings = useCallback((slotIndex: number, updates: Partial<ImageSettings>) => {
-    setImageSettings((current) => {
-      const previous = current[slotIndex] ?? { altText: '' };
-      const merged = { ...previous, ...updates };
-      return {
-        ...current,
-        [slotIndex]: merged
-      };
-    });
+  const updateImageAltText = useCallback((slotIndex: number, altText: string) => {
+    setMediaImageSlots((current) => current.map((slot, index) => (index === slotIndex ? { ...slot, altText } : slot)));
   }, []);
 
-  const handleSaveEditedImage = useCallback(async (slotIndex: number, blob: Blob, mimeType: string) => {
-    try {
-      const uploaded = await uploadMediaFile(new File([blob], `edited-${Date.now()}.webp`, { type: mimeType || 'image/webp' }));
-      imageTypeHintsRef.current[uploaded.url] = inferImageExtensionLabel({ mimeType });
-      updateImageAtSlot(slotIndex, uploaded.url);
-      setEditingImageSlot(null);
-      toast.success('Slika je uspešno urejena.');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Shranjevanje obrezane slike ni uspelo.');
+  const handleSaveEditedImage = useCallback((slotIndex: number, blob: Blob, mimeType: string) => {
+    const nextMimeType = mimeType || 'image/webp';
+    if (blob.size > IMAGE_MAX_UPLOAD_BYTES) {
+      toast.error('Urejena slika je prevelika. Dovoljene so le slike do 4 MB.');
+      return;
     }
-  }, [toast, updateImageAtSlot, uploadMediaFile]);
+    const extension = inferImageExtensionLabel({ mimeType: nextMimeType, fileName: 'edited.webp' }).toLowerCase();
+    const fileName = `edited-${Date.now()}.${extension}`;
+    const file = new File([blob], fileName, { type: nextMimeType });
+    const previewUrl = createLocalImageUrl(file);
+    imageTypeHintsRef.current[previewUrl] = inferImageExtensionLabel({ mimeType: nextMimeType, fileName });
+    updateImageAtSlot(slotIndex, {
+      previewUrl,
+      uploadedUrl: null,
+      file,
+      filename: fileName,
+      mimeType: nextMimeType,
+      altText: mediaImageSlots[slotIndex]?.altText ?? '',
+      localId: createLocalStageId()
+    });
+    setEditingImageSlot(null);
+    toast.success('Slika je pripravljena za shranjevanje.');
+  }, [createLocalImageUrl, mediaImageSlots, toast, updateImageAtSlot]);
 
   const renderImageActionButtons = (slotIndex: number) => {
     const compact = slotIndex !== 0;
@@ -1970,13 +2496,93 @@ export default function AdminItemEditorPage({
     );
   };
   return (
-    <div className="mx-auto max-w-7xl space-y-4 font-['Inter',system-ui,sans-serif]">
+    <div className="mx-auto max-w-7xl space-y-5 font-['Inter',system-ui,sans-serif] [&>div:nth-child(2)]:hidden">
+      <section className="rounded-[24px] border border-slate-200 bg-white px-5 py-4">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex min-w-0 flex-1 flex-col gap-3 xl:flex-row xl:items-center">
+            <div className={`${compactSideInputWrapClassName} !mt-0 !h-[38.4px] min-w-0 flex-1 xl:max-w-[420px] ${isEditable ? '' : '!bg-[color:var(--ui-neutral-bg)] text-slate-500'}`}>
+              <SideInputIcon icon="material" muted={draft.name.trim().length === 0} className="h-[18px] w-[18px]" />
+              <input
+                aria-label="Naziv artikla"
+                value={draft.name}
+                disabled={!isEditable}
+                onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
+                placeholder="Naziv artikla"
+                className={`${topBarArticleNameInputClassName} ${isEditable ? 'text-slate-900' : 'cursor-not-allowed text-slate-500'}`}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <ActiveStateChip
+                active={draft.active}
+                editable={isEditable}
+                chipClassName="!h-[26px] !min-w-[132px] !justify-center !px-4"
+                onChange={(next) => setDraft((current) => ({ ...current, active: next }))}
+              />
+              {itemLevelNote
+                ? (
+                  <NoteTagChip
+                    value={itemLevelNote}
+                    editable={isEditable}
+                    chipClassName="!h-[26px] !min-w-[132px] !justify-center !px-4"
+                    menuPlacement="bottom"
+                    onChange={setItemLevelNote}
+                  />
+                )
+                : (
+                  <NeutralDropdownChip
+                    value=""
+                    editable={isEditable}
+                    chipClassName="!h-[26px] !min-w-[132px] !justify-center !px-4"
+                    placeholderLabel="Opombe"
+                    onChange={(value) => setItemLevelNote((value as VariantTag) || 'na-zalogi')}
+                    options={ITEM_NOTE_OPTIONS as unknown as Array<{ value: string; label: string }>}
+                  />
+                )}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="toolbar"
+              className={topActionMatchArchiveButtonClassName}
+              onClick={handleEditModeToggle}
+              disabled={isSaving}
+            >
+              <PencilIcon />
+              <span>Uredi</span>
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="toolbar"
+              className={topActionMatchArchiveButtonClassName}
+              onClick={() => void save()}
+              disabled={!isEditable || !hasUnsavedChanges || isSaving}
+            >
+              <SaveIcon />
+              <span>Shrani</span>
+            </Button>
+            <Button
+              type="button"
+              variant="archive"
+              size="toolbar"
+              className={topActionButtonClassName}
+              onClick={() => void archiveItem()}
+              disabled={!canArchive}
+            >
+              <ArchiveIcon />
+              <span>Arhiviraj</span>
+            </Button>
+          </div>
+        </div>
+      </section>
       <div className="text-xs text-slate-500"><Link href="/admin/artikli" className="hover:underline">Artikli</Link> › {mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</div>
 
-      <div className="grid items-stretch gap-6 lg:grid-cols-[minmax(0,11fr)_minmax(0,9fr)]">
+      <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
         <div className="space-y-4">
-          <section className="h-full rounded-xl border border-slate-200 bg-white p-4">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
+          <section className="h-full rounded-[24px] border border-slate-200 bg-white p-6">
+            <div className="hidden flex flex-wrap items-center gap-2">
               <h1 className="flex min-h-10 flex-1 flex-nowrap items-center gap-1 whitespace-nowrap text-lg font-semibold tracking-tight text-slate-900">
                 <span className="inline-flex h-10 min-w-0 flex-1 items-center gap-0">
                   <div className={`inline-flex h-[36px] w-full min-w-[20ch] max-w-[38ch] items-center gap-2 rounded-md border border-slate-300 px-[10px] ${isEditable ? 'bg-white' : 'bg-[color:var(--ui-neutral-bg)] text-slate-500'}`}>
@@ -2018,10 +2624,13 @@ export default function AdminItemEditorPage({
                 <button type="button" className={buttonTokenClasses.closeX} onClick={deleteItem} aria-label="Izbriši artikel" title="Izbriši"><TrashCanIcon /></button>
               </div>
             </div>
-            <div className="mx-[-1rem] mb-5 grid grid-cols-[minmax(0,1fr)] items-center border-y border-slate-200 bg-slate-50/80 px-4 py-2">
+            <div className="mb-5 space-y-2">
+              <h2 className={editorSectionTitleClassName}>Osnovni podatki</h2>
+            </div>
+            <div className="mb-5 grid grid-cols-[minmax(0,1fr)] items-center">
               <div className="col-span-1 flex min-h-8 items-center px-1">
                 <AdminCategoryBreadcrumbPicker
-                  className="flex h-8 items-center rounded-md bg-transparent px-1 !py-0"
+                  className="flex h-9 items-center rounded-md bg-transparent px-0 !py-0"
                   value={selectedCategoryPath}
                   onChange={selectCategoryPath}
                   categoryPaths={categoryPaths}
@@ -2029,8 +2638,9 @@ export default function AdminItemEditorPage({
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2 grid grid-cols-2 gap-3">
+            <div className="mb-5 border-t border-slate-200" />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 md:col-span-2 md:grid-cols-2">
                 {[
                   { title: 'Osnovni SKU', value: sideSettings.sku, placeholder: 'SKU koda', icon: 'sku' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, sku: value })) },
                   { title: 'URL', value: draft.slug, placeholder: toSlug(draft.name || 'naziv-artikla'), icon: 'link' as SideFieldIcon, onChange: (value: string) => setDraft((current) => ({ ...current, slug: value })) },
@@ -2048,7 +2658,7 @@ export default function AdminItemEditorPage({
                   </div>
                 ))}
               </div>
-              <div className="col-span-2 space-y-1 pt-0.5">
+              <div className="space-y-1 pt-0.5 md:col-span-2">
                 <label className="text-sm font-semibold text-slate-900">Opis</label>
                 <OpisRichTextEditor value={draft.description} editable={isEditable} onChange={(next) => setDraft((current) => ({ ...current, description: next }))} />
               </div>
@@ -2057,7 +2667,7 @@ export default function AdminItemEditorPage({
 
         </div>
 
-        <aside className="h-full rounded-xl border border-slate-200 bg-white p-4">
+        <aside className="h-full rounded-[24px] border border-slate-200 bg-white p-6">
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <EuiTabs
@@ -2549,10 +3159,10 @@ export default function AdminItemEditorPage({
         </aside>
       </div>
 
-      <section className="rounded-xl border border-slate-200 bg-white px-4 pb-5 pt-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold tracking-tight">Uredi artikel</h2>
-          <div className="flex items-center gap-2">
+      <section className="rounded-[24px] border border-slate-200 bg-white px-5 pb-5 pt-5">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className={editorSectionTitleClassName}>Uredi artikel</h2>
+          <div className={`flex items-center gap-2 [&>*:first-child]:hidden [&>*:nth-child(3)]:hidden ${isTableEditable ? '' : '[&>*:nth-child(5)]:pointer-events-none [&>*:nth-child(5)]:opacity-50'}`}>
             <IconButton
               type="button"
               aria-label="Uredi tabelo artikla"
@@ -2595,7 +3205,7 @@ export default function AdminItemEditorPage({
             >
               <TrashCanIcon />
             </IconButton>
-            <Button type="button" variant="primary" size="toolbar" className="!h-8 !rounded-lg !px-3 !text-xs" onClick={generateVariants}>Generiraj različice</Button>
+            <Button type="button" variant="primary" size="toolbar" className={`!h-8 !rounded-lg !px-3 !leading-none !tracking-[0] ${adminTextButtonTypographyTokenClasses}`} onClick={generateVariants}>Generiraj različice</Button>
           </div>
         </div>
         <div className="mb-3 space-y-2">
@@ -2697,7 +3307,7 @@ export default function AdminItemEditorPage({
                 <TH className="h-11 px-2 text-center text-[11px]">Toleranca</TH>
                 <TH className="h-11 px-2 text-right text-[11px]">Cena</TH>
                 <TH className="h-11 px-2 text-right text-[11px]">Popust</TH>
-                <TH className="h-11 px-2 text-right text-[11px]">Akcijska cena</TH>
+                <TH className="h-11 whitespace-nowrap px-2 text-right text-[11px]">Akcijska cena</TH>
                 <TH className="h-11 px-2 text-right text-[11px]">Zaloga</TH>
                 <TH className="h-11 px-2 text-center text-[11px]">Min/nar.</TH>
                 <TH className="h-11 px-2 text-center text-[11px]">SKU</TH>
@@ -2804,8 +3414,8 @@ export default function AdminItemEditorPage({
         panelClassName="max-w-xs"
         footer={(
           <div className="mt-3 flex justify-end gap-2">
-            <Button type="button" variant="ghost" size="toolbar" onClick={closePendingMediaRemoval}>Prekliči</Button>
-            <Button type="button" variant="danger" size="toolbar" onClick={confirmPendingMediaRemoval}>Odstrani</Button>
+            <Button type="button" variant="ghost" size="toolbar" className={adminTextButtonTypographyTokenClasses} onClick={closePendingMediaRemoval}>Prekliči</Button>
+            <Button type="button" variant="danger" size="toolbar" className={adminTextButtonTypographyTokenClasses} onClick={confirmPendingMediaRemoval}>Odstrani</Button>
           </div>
         )}
       >
@@ -2820,8 +3430,8 @@ export default function AdminItemEditorPage({
           <UploadedImageCropperModal
             imageUrl={mediaImagesDraft[editingImageSlot]}
             slotIndex={editingImageSlot}
-            altText={ensureImageSettings(editingImageSlot).altText}
-            onAltTextChange={(value) => updateImageSettings(editingImageSlot, { altText: value })}
+            altText={mediaImageSlots[editingImageSlot]?.altText ?? ''}
+            onAltTextChange={(value) => updateImageAltText(editingImageSlot, value)}
             onCancel={() => setEditingImageSlot(null)}
             onSave={({ blob, mimeType }) => { void handleSaveEditedImage(editingImageSlot, blob, mimeType); }}
           />,

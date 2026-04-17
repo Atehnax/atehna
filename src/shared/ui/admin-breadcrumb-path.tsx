@@ -32,7 +32,7 @@ export default function AdminBreadcrumbPath({
               <button
                 type="button"
                 onClick={crumb.onClick}
-                className="text-slate-600 hover:text-slate-900 focus-visible:outline-none focus-visible:underline"
+                className="text-sm leading-5 text-slate-600 hover:text-slate-900 focus-visible:outline-none focus-visible:underline"
               >
                 <span className={crumb.labelClassName} title={crumb.title ?? crumb.label}>{crumb.label}</span>
               </button>

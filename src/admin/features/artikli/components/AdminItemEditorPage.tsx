@@ -301,10 +301,21 @@ function VideoUploadFrameIcon({ className = '' }: { className?: string }) {
 
 function ArchiveActionIcon({ className = '' }: { className?: string }) {
   return (
-    <svg viewBox="0 0 20 20" className={className} fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
-      <path d="M3.5 5h13v3h-13z" />
-      <path d="M5 8v8h10V8" />
-      <path d="M8 11h4" />
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+      <path d="M12 10v6" />
+      <path d="m15 13-3 3-3-3" />
+    </svg>
+  );
+}
+
+function PackageTitleIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z" />
+      <path d="M12 22V12" />
+      <path d="M3.29 7 12 12l8.71-5" />
+      <path d="m7.5 4.27 9 5.15" />
     </svg>
   );
 }
@@ -2166,10 +2177,10 @@ export default function AdminItemEditorPage({
   return (
     <div className="mx-auto max-w-7xl space-y-4 font-['Inter',system-ui,sans-serif]">
       <div className="text-xs text-slate-500"><Link href="/admin/artikli" className="hover:underline">Artikli</Link> › {mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</div>
-      <div className="flex w-full items-center justify-between gap-3 rounded-xl border border-[#b8cdf7] bg-white px-4 py-3">
+      <div className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          <div className={`flex h-11 min-w-[280px] max-w-[420px] flex-1 items-center gap-2 rounded-xl border px-3 ${isEditable ? 'border-[#3e67d6] bg-white' : 'border-slate-300 bg-[color:var(--ui-neutral-bg)]'}`}>
-            <PencilIcon className="h-5 w-5 text-[#3e67d6]" />
+          <div className={`flex h-11 min-w-[280px] max-w-[420px] flex-1 items-center gap-2 rounded-xl border border-slate-300 px-3 transition-colors focus-within:border-[#3e67d6] ${isEditable ? 'bg-white' : 'bg-[color:var(--ui-neutral-bg)]'}`}>
+            <PackageTitleIcon className="h-[18px] w-[18px] text-slate-500" />
             <input
               aria-label="Naziv artikla"
               value={draft.name}
@@ -2179,13 +2190,14 @@ export default function AdminItemEditorPage({
               className={articleNameInputClassName}
             />
           </div>
-          <ActiveStateChip active={draft.active} editable={isEditable} onChange={(next) => setDraft((current) => ({ ...current, active: next }))} />
+          <ActiveStateChip active={draft.active} editable={isEditable} chipClassName="!px-4 !py-1.5 !text-[15px]" onChange={(next) => setDraft((current) => ({ ...current, active: next }))} />
           {itemLevelNote
-            ? <NoteTagChip value={itemLevelNote} editable={isEditable} onChange={setItemLevelNote} />
+            ? <NoteTagChip value={itemLevelNote} editable={isEditable} chipClassName="!px-4 !py-1.5 !text-[15px]" onChange={setItemLevelNote} />
             : (
               <NeutralDropdownChip
                 value=""
                 editable={isEditable}
+                chipClassName="!px-4 !py-1.5 !text-[15px]"
                 placeholderLabel="Opombe"
                 onChange={(value) => setItemLevelNote((value as VariantTag) || 'na-zalogi')}
                 options={ITEM_NOTE_OPTIONS as unknown as Array<{ value: string; label: string }>}
@@ -2201,9 +2213,9 @@ export default function AdminItemEditorPage({
             <SaveIcon />
             Shrani
           </Button>
-          <Button type="button" variant="danger" size="toolbar" className="!h-11 !rounded-xl !px-5" onClick={deleteItem}>
-            <ArchiveActionIcon className="h-[18px] w-[18px]" />
-            Arhiviraj
+          <Button type="button" variant="ghost" size="toolbar" className="!h-11 !rounded-xl !border !border-[#fad161] !px-5 !text-[#fad161] hover:!bg-[#fff4cc] hover:!text-[#d3a300]" onClick={deleteItem}>
+            <ArchiveActionIcon className="h-[18px] w-[18px] shrink-0" />
+            <span className="pl-2.5">Arhiviraj</span>
           </Button>
         </div>
       </div>
@@ -2211,10 +2223,11 @@ export default function AdminItemEditorPage({
       <div className="grid items-stretch gap-6 lg:grid-cols-[minmax(0,11fr)_minmax(0,9fr)]">
         <div className="space-y-4">
           <section className="h-full rounded-xl border border-slate-200 bg-white p-4">
+            <h2 className="mb-3 text-lg font-semibold tracking-tight">Osnovni podatki</h2>
             <div className="mb-5 grid grid-cols-[minmax(0,1fr)] items-center border-b border-slate-200 pb-2">
               <div className="col-span-1 flex min-h-8 items-center px-1">
                 <AdminCategoryBreadcrumbPicker
-                  className="flex h-8 items-center rounded-md bg-transparent px-1 !py-0"
+                  className="flex min-h-8 items-center rounded-md bg-transparent px-1 !py-0 text-sm"
                   value={selectedCategoryPath}
                   onChange={selectCategoryPath}
                   categoryPaths={categoryPaths}

@@ -55,6 +55,8 @@ const compactTableAdornmentClassName = 'text-xs text-slate-500';
 const compactTableNumericSlotClassName = 'inline-flex h-7 w-[7ch] items-center justify-end';
 const compactTableFourDigitSlotClassName = 'inline-flex h-7 w-[5ch] items-center justify-end';
 const compactTableThreeDigitSlotClassName = 'inline-flex h-7 w-[4ch] items-center justify-end';
+const compactTableSkuFieldWidthClassName = 'w-[24ch] min-w-[24ch]';
+const compactTableStatusFieldWidthClassName = 'min-w-[92px]';
 const compactSideInputWrapClassName = 'mt-0.5 flex h-[30px] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[10px] pr-3 transition-colors focus-within:border-[#3e67d6]';
 const compactSideInputClassName = 'h-full w-full border-0 bg-transparent p-0 text-sm text-slate-900 outline-none focus:ring-0';
 const articleNameInputClassName = 'admin-item-name-input h-full w-full min-w-0 border-0 bg-transparent p-0 shadow-none outline-none transition focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none disabled:cursor-not-allowed';
@@ -2186,17 +2188,19 @@ export default function AdminItemEditorPage({
   return (
     <div className="mx-auto max-w-7xl space-y-4 font-['Inter',system-ui,sans-serif]">
       <div className="text-xs text-slate-500"><Link href="/admin/artikli" className="hover:underline">Artikli</Link> › {mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</div>
-      <div className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+      <div className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4">
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          <div className={`flex h-11 min-w-[280px] max-w-[420px] flex-1 items-center gap-2 rounded-xl border border-slate-300 px-3 transition-colors focus-within:border-[#3e67d6] ${isEditable ? 'bg-white' : 'bg-[color:var(--ui-neutral-bg)]'}`}>
-            <PackageTitleIcon className="h-[18px] w-[18px] text-slate-500" />
+          <div className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-[color:var(--ui-neutral-bg)]">
+            <PackageTitleIcon className="h-8 w-8 text-slate-500" />
+          </div>
+          <div className={`flex h-14 min-w-[280px] max-w-[520px] flex-1 items-center rounded-xl border border-slate-300 px-4 transition-colors focus-within:border-[#3e67d6] ${isEditable ? 'bg-white' : 'bg-[color:var(--ui-neutral-bg)]'}`}>
             <input
               aria-label="Naziv artikla"
               value={draft.name}
               disabled={!isEditable}
               onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
               placeholder="Naziv artikla"
-              className={articleNameInputClassName}
+              className={`${articleNameInputClassName} text-lg font-semibold`}
             />
           </div>
           <ActiveStateChip active={draft.active} editable={isEditable} chipClassName="!px-4 !py-1 !text-[14px] !font-semibold" leadingIcon={<StatusCheckIcon className="h-[15px] w-[15px]" />} onChange={(next) => setDraft((current) => ({ ...current, active: next }))} />
@@ -2856,7 +2860,7 @@ export default function AdminItemEditorPage({
           </div>
         </div>
         <div className="relative overflow-x-hidden overflow-y-visible rounded-lg border border-slate-200">
-          <table className="min-w-full table-fixed whitespace-nowrap text-[13px] leading-5">
+          <table className="min-w-full whitespace-nowrap text-[13px] leading-5">
             <colgroup>
               <col style={{ width: '1.87%' }} />
               <col style={{ width: '5.4%' }} />
@@ -2957,13 +2961,13 @@ export default function AdminItemEditorPage({
                   <td className="px-2 py-2 text-right"><span className="inline-flex h-5 items-center justify-end">{variant.discountPct > 0 ? formatCurrency(computeSalePrice(variant.price, variant.discountPct)) : '—'}</span></td>
                   <td className="px-2 py-2 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !w-auto !max-w-[5ch] text-right`} value={variant.stock} onChange={(event) => updateVariant(variant.id, { stock: Number(event.target.value) || 0 })} /></span> : <span className="inline-flex h-5 w-full justify-end"><span className="inline-flex h-5 max-w-[6ch] items-center justify-end">{variant.stock}</span></span>}</td>
                   <td className="px-2 py-2 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !w-[4.5ch] !px-0 text-center`} value={variant.minOrder ?? 1} onChange={(event) => updateVariant(variant.id, { minOrder: Math.max(1, Number(event.target.value) || 1) })} /> : <span className="inline-flex h-5 w-[5ch] items-center justify-center">{variant.minOrder ?? 1}</span>}</td>
-                  <td className="px-2 py-2 text-center">{isTableEditable ? <input className={`${compactTableAlignedTextInputClassName} !mt-0 !w-[20ch] text-center`} value={variant.sku} onChange={(event) => updateVariant(variant.id, { sku: event.target.value, skuAutoGenerated: false })} /> : <span className="inline-flex h-5 w-[20ch] items-center justify-center overflow-hidden text-ellipsis whitespace-nowrap text-center">{variant.sku || '—'}</span>}</td>
+                  <td className="px-2 py-2 text-center">{isTableEditable ? <input className={`${compactTableAlignedTextInputClassName} ${compactTableSkuFieldWidthClassName} !mt-0 text-center`} value={variant.sku} onChange={(event) => updateVariant(variant.id, { sku: event.target.value, skuAutoGenerated: false })} /> : <span className={`inline-flex h-5 items-center justify-center whitespace-nowrap text-center ${compactTableSkuFieldWidthClassName}`}>{variant.sku || '—'}</span>}</td>
                   <td className="px-2 py-2 text-center">
                     <div className="inline-flex justify-center">
                       <ActiveStateChip
                         active={variant.active}
                         editable={isTableEditable}
-                        chipClassName="!h-7 !min-w-[92px] !px-2 !text-xs"
+                        chipClassName={`!h-7 !px-2 !text-xs ${compactTableStatusFieldWidthClassName}`}
                         menuPlacement="bottom"
                         onChange={(next) => updateVariant(variant.id, { active: next })}
                       />
@@ -2974,7 +2978,7 @@ export default function AdminItemEditorPage({
                       <NoteTagChip
                         value={getVariantTag(variant.id)}
                         editable={isTableEditable}
-                        chipClassName="!h-7 !min-w-[92px] !px-2 !text-xs"
+                        chipClassName={`!h-7 !px-2 !text-xs ${compactTableStatusFieldWidthClassName}`}
                         menuPlacement="bottom"
                         onChange={(next) => {
                           if (!next) return;

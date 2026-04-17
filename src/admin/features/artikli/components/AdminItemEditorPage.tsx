@@ -24,7 +24,6 @@ import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { IconButton } from '@/shared/ui/icon-button';
 import { PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
-import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import EuiTabs from '@/shared/ui/eui-tabs';
 import {
@@ -97,6 +96,46 @@ type VideoState = { source: 'upload' | 'youtube'; label: string; previewUrl: str
 type ImageSettings = { altText: string };
 type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'sku';
 type TechnicalDocument = { name: string; size: string; blobUrl: string | null; blobPathname: string | null };
+type SideSettings = {
+  sku: string;
+  brand: string;
+  material: string;
+  surface: string;
+  color: string;
+  thicknessTolerance: string | number;
+  moq: number;
+  weightPerUnit: string;
+  palletCount: string;
+  dimensions: { width: string; depth: string; height: string };
+  trackInventory: boolean;
+  currentStock: number;
+  minStock: number;
+  warehouseLocation: string;
+  basePriceNoVat: string;
+  priceRounding: string;
+  showOldPrice: boolean;
+  showGallery: boolean;
+  imageFocus: string;
+  galleryMode: 'grid' | 'slider' | 'list';
+  imageAltText: string;
+  videoUrl: string;
+};
+type PendingImageUpload = { file: File; mimeType: string | null; fileName: string };
+type PendingVideoUpload = { file: File; mimeType: string | null; fileName: string } | null;
+type PendingDocumentUpload = { file: File; name: string; size: string };
+type EditorSnapshot = {
+  draft: ProductFamily;
+  sideSettings: SideSettings;
+  itemLevelNote: VariantTag | '';
+  selectedCategoryPath: string[];
+  mediaImagesDraft: string[];
+  videoDraft: VideoState | null;
+  documents: TechnicalDocument[];
+  generatorChips: GeneratorChip[];
+  variantTags: Record<string, VariantTag>;
+  imageSettings: Record<number, ImageSettings>;
+  videoAssignedVariantId: string | null;
+};
 const MEDIA_SLOT_COUNT = 7;
 const GALLERY_SMALL_SLOT_COUNT = 6;
 const ITEM_NOTE_OPTIONS: Array<{ value: VariantTag; label: string }> = [
@@ -256,6 +295,16 @@ function VideoUploadFrameIcon({ className = '' }: { className?: string }) {
       <path d="M60 41.5A2.5 2.5 0 0 1 57.5 44H54v-2h2.5a1.5 1.5 0 0 0 1.5-1.5V38h2v3.5Z" fill="currentColor" />
       <rect x="9" y="8" width="46" height="32" rx="4" fill="currentColor" opacity="0.9" />
       <path d="M27 18.2c0-1.7 1.8-2.8 3.3-2l11.5 6.4c1.6.9 1.6 3.1 0 4L30.3 33c-1.5.9-3.3-.2-3.3-2V18.2Z" fill="#f8fafc" />
+    </svg>
+  );
+}
+
+function ArchiveActionIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+      <path d="M3.5 5h13v3h-13z" />
+      <path d="M5 8v8h10V8" />
+      <path d="M8 11h4" />
     </svg>
   );
 }
@@ -972,7 +1021,7 @@ export default function AdminItemEditorPage({
   const [generatorInput, setGeneratorInput] = useState('');
   const [generatorChips, setGeneratorChips] = useState<GeneratorChip[]>([]);
   const [generatorError, setGeneratorError] = useState<string | null>(null);
-  const [sideSettings, setSideSettings] = useState({
+  const [sideSettings, setSideSettings] = useState<SideSettings>({
     sku: initialData?.sku ?? '',
     brand: initialData?.brand ?? '',
     material: initialData?.material ?? '',
@@ -1008,13 +1057,13 @@ export default function AdminItemEditorPage({
         })) ?? []
   );
   const [editorMode, setEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
-  const [tableEditorMode, setTableEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
   const [itemLevelNote, setItemLevelNote] = useState<VariantTag | ''>(() => {
     const raw = normalizeVariantTag(initialData?.badge ?? initialData?.adminNotes);
     return ITEM_NOTE_OPTIONS.some((entry) => entry.value === raw) ? raw : '';
   });
   const [mediaTab, setMediaTab] = useState<MediaTab>('slike');
   const [mediaImagesDraft, setMediaImagesDraft] = useState<string[]>(draft.images);
+  const [pendingImageUploads, setPendingImageUploads] = useState<Record<number, PendingImageUpload>>({});
   const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
   const [draggedVariantId, setDraggedVariantId] = useState<string | null>(null);
   const [draggedVariantImageSlot, setDraggedVariantImageSlot] = useState<number | null>(null);
@@ -1037,6 +1086,7 @@ export default function AdminItemEditorPage({
       previewUrl: video.externalUrl || video.blobUrl || ''
     };
   });
+  const [pendingVideoUpload, setPendingVideoUpload] = useState<PendingVideoUpload>(null);
   const [videoDragActive, setVideoDragActive] = useState(false);
   const [videoMoveMode, setVideoMoveMode] = useState(false);
   const [videoAssignedVariantId, setVideoAssignedVariantId] = useState<string | null>(() => {
@@ -1046,6 +1096,7 @@ export default function AdminItemEditorPage({
     return variant ? variant.id : null;
   });
   const technicalUploadInputRef = useRef<HTMLInputElement>(null);
+  const [pendingDocumentUploads, setPendingDocumentUploads] = useState<Record<string, PendingDocumentUpload>>({});
   const [pendingMediaRemoval, setPendingMediaRemoval] = useState<{ type: 'image'; slotIndex: number } | { type: 'video' } | null>(null);
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>(() => {
     const allowed = new Set<VariantTag>(['na-zalogi', 'novo', 'akcija', 'zadnji-kosi', 'ni-na-zalogi']);
@@ -1070,6 +1121,8 @@ export default function AdminItemEditorPage({
     return settings;
   });
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() => initialData?.categoryPath ?? []);
+  const snapshotRef = useRef<EditorSnapshot | null>(null);
+  const isSavingRef = useRef(false);
 
   const decimalDraftKey = (variantId: string, field: string) => `${variantId}:${field}`;
 
@@ -1122,8 +1175,8 @@ export default function AdminItemEditorPage({
   };
 
   const isEditable = editorMode === 'edit';
-  const isTableEditable = tableEditorMode === 'edit';
-  const isMediaEditable = true;
+  const isTableEditable = isEditable;
+  const isMediaEditable = isEditable;
   const isToleranceLocked = false;
   const isDimensionLockActive = false;
   const isThicknessLockActive = false;
@@ -1150,23 +1203,99 @@ export default function AdminItemEditorPage({
     return activeDimensions.reduce((total, values) => total * values.length, 1);
   }, [generatorByDimension]);
 
+  const buildSnapshot = useCallback((): EditorSnapshot => ({
+    draft,
+    sideSettings,
+    itemLevelNote,
+    selectedCategoryPath,
+    mediaImagesDraft,
+    videoDraft,
+    documents,
+    generatorChips,
+    variantTags,
+    imageSettings,
+    videoAssignedVariantId
+  }), [
+    draft,
+    sideSettings,
+    itemLevelNote,
+    selectedCategoryPath,
+    mediaImagesDraft,
+    videoDraft,
+    documents,
+    generatorChips,
+    variantTags,
+    imageSettings,
+    videoAssignedVariantId
+  ]);
+
+  useEffect(() => {
+    if (snapshotRef.current) return;
+    snapshotRef.current = buildSnapshot();
+  }, [buildSnapshot]);
+
+  const hasPendingUploads = Object.keys(pendingImageUploads).length > 0 || pendingVideoUpload !== null || Object.keys(pendingDocumentUploads).length > 0;
+  const isDirty = useMemo(() => {
+    if (!snapshotRef.current) return false;
+    return JSON.stringify(snapshotRef.current) !== JSON.stringify(buildSnapshot()) || hasPendingUploads;
+  }, [buildSnapshot, hasPendingUploads]);
+
   const save = async (asDraft = false) => {
+    if (!isEditable || !isDirty) return;
+    isSavingRef.current = true;
     if (!draft.name.trim()) {
       toast.error('Naziv je obvezen.');
+      isSavingRef.current = false;
       return;
     }
     if (!draft.category.trim()) {
       toast.error('Kategorija je obvezna.');
+      isSavingRef.current = false;
       return;
     }
-    const normalizedMediaImages = mediaImagesDraft
+
+    const stagedImageUrls = [...mediaImagesDraft];
+    const stagedDocuments = [...documents];
+    let stagedVideo = videoDraft;
+
+    try {
+      for (const [slotKey, pendingImage] of Object.entries(pendingImageUploads)) {
+        const slotIndex = Number(slotKey);
+        const uploaded = await uploadMediaFile(pendingImage.file);
+        imageTypeHintsRef.current[uploaded.url] = inferImageExtensionLabel({ mimeType: pendingImage.mimeType ?? undefined, fileName: pendingImage.fileName });
+        stagedImageUrls[slotIndex] = uploaded.url;
+      }
+
+      if (pendingVideoUpload) {
+        const uploadedVideo = await uploadMediaFile(pendingVideoUpload.file);
+        stagedVideo = {
+          source: 'upload',
+          label: uploadedVideo.filename,
+          previewUrl: uploadedVideo.url,
+          blobPathname: uploadedVideo.pathname
+        };
+      }
+
+      for (const [docKey, pendingDocument] of Object.entries(pendingDocumentUploads)) {
+        const uploadedDocument = await uploadMediaFile(pendingDocument.file);
+        const index = Number(docKey);
+        if (!Number.isFinite(index) || !stagedDocuments[index]) continue;
+        stagedDocuments[index] = {
+          ...stagedDocuments[index],
+          name: uploadedDocument.filename,
+          blobUrl: uploadedDocument.url,
+          blobPathname: uploadedDocument.pathname
+        };
+      }
+    } catch (error) {
+      isSavingRef.current = false;
+      toast.error(error instanceof Error ? error.message : 'Nalaganje datotek ni uspelo.');
+      return;
+    }
+
+    const normalizedMediaImages = stagedImageUrls
       .map((url, index) => ({ url, index }))
       .filter((entry) => Boolean(entry.url) && !entry.url.startsWith('blob:'));
-    const hasUnpersistedImages = mediaImagesDraft.some((url) => Boolean(url) && url.startsWith('blob:'));
-    if (hasUnpersistedImages) {
-      toast.error('Nekatere slike še niso naložene. Počakajte, da se nalaganje konča.');
-      return;
-    }
 
     const payload = {
       itemName: draft.name.trim(),
@@ -1211,17 +1340,17 @@ export default function AdminItemEditorPage({
           altText: imageSettings[entry.index]?.altText ?? null,
           position: entry.index
         })),
-        ...(videoDraft
+        ...(stagedVideo
           ? [
               {
                 mediaKind: 'video' as const,
                 role: 'gallery' as const,
-                sourceKind: videoDraft.source === 'youtube' ? ('youtube' as const) : ('upload' as const),
-                externalUrl: videoDraft.source === 'youtube' ? videoDraft.previewUrl : null,
-                blobUrl: videoDraft.source === 'upload' && !videoDraft.previewUrl.startsWith('blob:') ? videoDraft.previewUrl : null,
-                blobPathname: videoDraft.source === 'upload' ? videoDraft.blobPathname ?? null : null,
-                filename: videoDraft.label,
-                videoType: videoDraft.source,
+                sourceKind: stagedVideo.source === 'youtube' ? ('youtube' as const) : ('upload' as const),
+                externalUrl: stagedVideo.source === 'youtube' ? stagedVideo.previewUrl : null,
+                blobUrl: stagedVideo.source === 'upload' && !stagedVideo.previewUrl.startsWith('blob:') ? stagedVideo.previewUrl : null,
+                blobPathname: stagedVideo.source === 'upload' ? stagedVideo.blobPathname ?? null : null,
+                filename: stagedVideo.label,
+                videoType: stagedVideo.source,
                 variantIndex: videoAssignedVariantId
                   ? Math.max(0, draft.variants.findIndex((variant) => variant.id === videoAssignedVariantId))
                   : null,
@@ -1229,7 +1358,7 @@ export default function AdminItemEditorPage({
               }
             ]
           : []),
-        ...documents.map((documentEntry, index) => ({
+        ...stagedDocuments.map((documentEntry, index) => ({
           mediaKind: 'document' as const,
           role: 'technical_sheet' as const,
           sourceKind: 'upload' as const,
@@ -1251,6 +1380,19 @@ export default function AdminItemEditorPage({
       if (!response.ok) {
         throw new Error(body.message || 'Shranjevanje artikla ni uspelo.');
       }
+      setMediaImagesDraft(stagedImageUrls);
+      setDocuments(stagedDocuments);
+      setVideoDraft(stagedVideo);
+      setPendingImageUploads({});
+      setPendingVideoUpload(null);
+      setPendingDocumentUploads({});
+      snapshotRef.current = {
+        ...buildSnapshot(),
+        mediaImagesDraft: stagedImageUrls,
+        documents: stagedDocuments,
+        videoDraft: stagedVideo
+      };
+      setEditorMode('read');
       toast.success(asDraft ? 'Osnutek shranjen.' : 'Artikel shranjen.');
       if (body.slug) {
         router.push(`/admin/artikli/${encodeURIComponent(body.slug)}`);
@@ -1258,31 +1400,35 @@ export default function AdminItemEditorPage({
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Shranjevanje artikla ni uspelo.');
+    } finally {
+      isSavingRef.current = false;
     }
   };
   const deleteItem = async () => {
-    const shouldDelete = window.confirm('Ali želite odstraniti artikel iz urejanja?');
-    if (!shouldDelete) return;
+    const shouldArchive = window.confirm('Ali želite arhivirati artikel?');
+    if (!shouldArchive) return;
     const slug = draft.slug || articleId || '';
     if (!slug) {
-      toast.error('Artikel nima veljavnega identifikatorja za brisanje.');
+      toast.error('Artikel nima veljavnega identifikatorja za arhiviranje.');
       return;
     }
     try {
       const response = await fetch(`/api/admin/artikli/${encodeURIComponent(slug)}`, { method: 'DELETE' });
       if (!response.ok) {
         const body = (await response.json().catch(() => ({}))) as { message?: string };
-        throw new Error(body.message || 'Brisanje artikla ni uspelo.');
+        throw new Error(body.message || 'Arhiviranje artikla ni uspelo.');
       }
-      toast.success('Artikel je izbrisan.');
-      router.push('/admin/artikli');
+      toast.success('Artikel je arhiviran.');
+      router.push('/admin/arhiv/artikli');
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Brisanje artikla ni uspelo.');
+      toast.error(error instanceof Error ? error.message : 'Arhiviranje artikla ni uspelo.');
     }
   };
 
+
   const generateVariants = () => {
+    if (!isTableEditable) return;
     const widths = generatorByDimension.get('width') ?? [];
     const lengths = generatorByDimension.get('length') ?? [];
     const thicknesses = generatorByDimension.get('thickness') ?? [];
@@ -1493,13 +1639,10 @@ export default function AdminItemEditorPage({
       toast.error('Video je prevelik. Dovoljena velikost je največ 100 MB.');
       return;
     }
-    try {
-      const uploaded = await uploadMediaFile(file);
-      setVideoDraft({ source: 'upload', label: uploaded.filename, previewUrl: uploaded.url, blobPathname: uploaded.pathname });
-      setVideoMoveMode(false);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Nalaganje videa ni uspelo.');
-    }
+    const previewUrl = createLocalImageUrl(file);
+    setPendingVideoUpload({ file, mimeType: file.type || null, fileName: file.name });
+    setVideoDraft({ source: 'upload', label: file.name, previewUrl, blobPathname: null });
+    setVideoMoveMode(false);
   };
 
   const handleTechnicalFileSelect = async (file?: File | null) => {
@@ -1509,18 +1652,19 @@ export default function AdminItemEditorPage({
       toast.error('Datoteka je prevelika. Dovoljena velikost je največ 5 MB.');
       return;
     }
-    try {
-      const uploaded = await uploadMediaFile(file);
-      const fileSizeLabel = file.size < 1024 * 1024
-        ? `${Math.round(file.size / 1024)} KB`
-        : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
-      setDocuments((current) => [
-        { name: uploaded.filename, size: fileSizeLabel, blobUrl: uploaded.url, blobPathname: uploaded.pathname },
-        ...current.filter((entry) => entry.name !== uploaded.filename)
-      ]);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Nalaganje tehničnega lista ni uspelo.');
-    }
+    const previewUrl = createLocalImageUrl(file);
+    const fileSizeLabel = file.size < 1024 * 1024
+      ? `${Math.round(file.size / 1024)} KB`
+      : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+    setDocuments((current) => [{ name: file.name, size: fileSizeLabel, blobUrl: previewUrl, blobPathname: null }, ...current]);
+    setPendingDocumentUploads((current) => {
+      const shifted: Record<string, PendingDocumentUpload> = {};
+      Object.entries(current).forEach(([key, value]) => {
+        shifted[String(Number(key) + 1)] = value;
+      });
+      shifted['0'] = { file, name: file.name, size: fileSizeLabel };
+      return shifted;
+    });
   };
 
   const updateVariant = (variantId: string, updates: Partial<Variant>) => {
@@ -1691,13 +1835,15 @@ export default function AdminItemEditorPage({
         if (!Number.isFinite(targetSlot)) continue;
         const blob = file.data;
         if (!(blob instanceof Blob)) continue;
-        try {
-          const uploaded = await uploadMediaFile(new File([blob], file.name, { type: file.type }));
-          imageTypeHintsRef.current[uploaded.url] = inferImageExtensionLabel({ mimeType: file.type, fileName: file.name });
-          updateImageAtSlotRef.current(Math.max(0, Math.min(MEDIA_SLOT_COUNT - 1, targetSlot)), uploaded.url);
-        } catch (error) {
-          toast.error(error instanceof Error ? error.message : 'Nalaganje slike ni uspelo.');
-        }
+        const stagedFile = new File([blob], file.name, { type: file.type });
+        const localUrl = createLocalImageUrl(stagedFile);
+        imageTypeHintsRef.current[localUrl] = inferImageExtensionLabel({ mimeType: file.type, fileName: file.name });
+        const normalizedSlot = Math.max(0, Math.min(MEDIA_SLOT_COUNT - 1, targetSlot));
+        updateImageAtSlotRef.current(normalizedSlot, localUrl);
+        setPendingImageUploads((current) => ({
+          ...current,
+          [normalizedSlot]: { file: stagedFile, mimeType: file.type || null, fileName: file.name }
+        }));
       }
       fileIDs.forEach((fileID) => {
         if (uppy.getFile(fileID)) uppy.removeFile(fileID);
@@ -1710,7 +1856,7 @@ export default function AdminItemEditorPage({
       uppy.destroy();
       uppyRef.current = null;
     };
-  }, [toast, uploadMediaFile]);
+  }, [createLocalImageUrl, toast]);
 
   const queueImageUpload = useCallback((files: FileList | File[] | null, startSlot: number, allowMultiple: boolean) => {
     if (!isMediaEditable) return;
@@ -1828,6 +1974,15 @@ export default function AdminItemEditorPage({
       if (current === slotIndex) return null;
       return current > slotIndex ? current - 1 : current;
     });
+    setPendingImageUploads((current) => {
+      const next: Record<number, PendingImageUpload> = {};
+      Object.entries(current).forEach(([key, value]) => {
+        const index = Number(key);
+        if (index === slotIndex) return;
+        next[index > slotIndex ? index - 1 : index] = value;
+      });
+      return next;
+    });
   };
 
   const removeSelectedImageSlots = (selected: Set<number>) => {
@@ -1853,7 +2008,9 @@ export default function AdminItemEditorPage({
       setPendingMediaRemoval(null);
       return;
     }
+    if (videoDraft?.previewUrl) revokeLocalImageUrl(videoDraft.previewUrl);
     setVideoDraft(null);
+    setPendingVideoUpload(null);
     setYoutubeInput('');
     setVideoMoveMode(false);
     setVideoAssignedVariantId(null);
@@ -1901,16 +2058,17 @@ export default function AdminItemEditorPage({
   }, []);
 
   const handleSaveEditedImage = useCallback(async (slotIndex: number, blob: Blob, mimeType: string) => {
-    try {
-      const uploaded = await uploadMediaFile(new File([blob], `edited-${Date.now()}.webp`, { type: mimeType || 'image/webp' }));
-      imageTypeHintsRef.current[uploaded.url] = inferImageExtensionLabel({ mimeType });
-      updateImageAtSlot(slotIndex, uploaded.url);
-      setEditingImageSlot(null);
-      toast.success('Slika je uspešno urejena.');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Shranjevanje obrezane slike ni uspelo.');
-    }
-  }, [toast, updateImageAtSlot, uploadMediaFile]);
+    const file = new File([blob], `edited-${Date.now()}.webp`, { type: mimeType || 'image/webp' });
+    const localUrl = createLocalImageUrl(file);
+    imageTypeHintsRef.current[localUrl] = inferImageExtensionLabel({ mimeType });
+    updateImageAtSlot(slotIndex, localUrl);
+    setPendingImageUploads((current) => ({
+      ...current,
+      [slotIndex]: { file, mimeType: file.type || null, fileName: file.name }
+    }));
+    setEditingImageSlot(null);
+    toast.success('Slika je lokalno posodobljena. Shranite za potrditev.');
+  }, [createLocalImageUrl, toast, updateImageAtSlot]);
 
   const renderImageActionButtons = (slotIndex: number) => {
     const compact = slotIndex !== 0;
@@ -1964,10 +2122,12 @@ export default function AdminItemEditorPage({
             }}
             onClick={(event) => {
               event.stopPropagation();
+              if (!isMediaEditable) return;
               action.onClick();
             }}
             aria-label={action.label}
             title={action.label}
+            disabled={!isMediaEditable}
           >
             <span className="inline-flex h-full w-full items-center justify-center">{action.icon}</span>
           </button>
@@ -1975,56 +2135,83 @@ export default function AdminItemEditorPage({
       </div>
     );
   };
+
+  const discardChanges = useCallback(() => {
+    const snapshot = snapshotRef.current;
+    if (!snapshot) return;
+    setDraft(snapshot.draft);
+    setSideSettings(snapshot.sideSettings);
+    setItemLevelNote(snapshot.itemLevelNote);
+    setSelectedCategoryPath(snapshot.selectedCategoryPath);
+    setMediaImagesDraft(snapshot.mediaImagesDraft);
+    setVideoDraft(snapshot.videoDraft);
+    setDocuments(snapshot.documents);
+    setGeneratorChips(snapshot.generatorChips);
+    setVariantTags(snapshot.variantTags);
+    setImageSettings(snapshot.imageSettings);
+    setVideoAssignedVariantId(snapshot.videoAssignedVariantId);
+    setPendingImageUploads({});
+    setPendingVideoUpload(null);
+    setPendingDocumentUploads({});
+  }, []);
+
+  const handleToggleEditMode = () => {
+    if (isEditable && isDirty && !isSavingRef.current) {
+      const shouldDiscard = window.confirm('Imate neshranjene spremembe. Želite zavreči spremembe?');
+      if (!shouldDiscard) return;
+      discardChanges();
+    }
+    setEditorMode((current) => (current === 'read' ? 'edit' : 'read'));
+  };
   return (
     <div className="mx-auto max-w-7xl space-y-4 font-['Inter',system-ui,sans-serif]">
       <div className="text-xs text-slate-500"><Link href="/admin/artikli" className="hover:underline">Artikli</Link> › {mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</div>
+      <div className="flex w-full items-center justify-between gap-3 rounded-xl border border-[#b8cdf7] bg-white px-4 py-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className={`flex h-11 min-w-[280px] max-w-[420px] flex-1 items-center gap-2 rounded-xl border px-3 ${isEditable ? 'border-[#3e67d6] bg-white' : 'border-slate-300 bg-[color:var(--ui-neutral-bg)]'}`}>
+            <PencilIcon className="h-5 w-5 text-[#3e67d6]" />
+            <input
+              aria-label="Naziv artikla"
+              value={draft.name}
+              disabled={!isEditable}
+              onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
+              placeholder="Naziv artikla"
+              className={articleNameInputClassName}
+            />
+          </div>
+          <ActiveStateChip active={draft.active} editable={isEditable} onChange={(next) => setDraft((current) => ({ ...current, active: next }))} />
+          {itemLevelNote
+            ? <NoteTagChip value={itemLevelNote} editable={isEditable} onChange={setItemLevelNote} />
+            : (
+              <NeutralDropdownChip
+                value=""
+                editable={isEditable}
+                placeholderLabel="Opombe"
+                onChange={(value) => setItemLevelNote((value as VariantTag) || 'na-zalogi')}
+                options={ITEM_NOTE_OPTIONS as unknown as Array<{ value: string; label: string }>}
+              />
+            )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="ghost" size="toolbar" className="!h-11 !rounded-xl !px-5" onClick={handleToggleEditMode}>
+            <PencilIcon />
+            Uredi
+          </Button>
+          <Button type="button" variant="primary" size="toolbar" className="!h-11 !rounded-xl !px-5" onClick={() => void save(false)} disabled={!isEditable || !isDirty}>
+            <SaveIcon />
+            Shrani
+          </Button>
+          <Button type="button" variant="danger" size="toolbar" className="!h-11 !rounded-xl !px-5" onClick={deleteItem}>
+            <ArchiveActionIcon className="h-[18px] w-[18px]" />
+            Arhiviraj
+          </Button>
+        </div>
+      </div>
 
       <div className="grid items-stretch gap-6 lg:grid-cols-[minmax(0,11fr)_minmax(0,9fr)]">
         <div className="space-y-4">
           <section className="h-full rounded-xl border border-slate-200 bg-white p-4">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <h1 className="flex min-h-10 flex-1 flex-nowrap items-center gap-1 whitespace-nowrap text-lg font-semibold tracking-tight text-slate-900">
-                <span className="inline-flex h-10 min-w-0 flex-1 items-center gap-0">
-                  <div className={`inline-flex h-[36px] w-full min-w-[20ch] max-w-[38ch] items-center gap-2 rounded-md border border-slate-300 px-[10px] ${isEditable ? 'bg-white' : 'bg-[color:var(--ui-neutral-bg)] text-slate-500'}`}>
-                    <input
-                      aria-label="Naziv artikla"
-                      value={draft.name}
-                      disabled={!isEditable}
-                      onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
-                      placeholder="Naziv artikla"
-                      className={articleNameInputClassName}
-                    />
-                  </div>
-                </span>
-              </h1>
-              <div className="ml-auto flex items-center gap-1.5">
-                {itemLevelNote
-                  ? (
-                    <NoteTagChip
-                      value={itemLevelNote}
-                      editable={isEditable}
-                      chipClassName="!min-w-[131px]"
-                      menuPlacement="bottom"
-                      onChange={setItemLevelNote}
-                    />
-                  )
-                  : (
-                    <NeutralDropdownChip
-                      value=""
-                      editable={isEditable}
-                      chipClassName="!min-w-[131px]"
-                      placeholderLabel="Opombe"
-                      onChange={(value) => setItemLevelNote((value as VariantTag) || 'na-zalogi')}
-                      options={ITEM_NOTE_OPTIONS as unknown as Array<{ value: string; label: string }>}
-                    />
-                  )}
-                <ActiveStateChip active={draft.active} editable={isEditable} onChange={(next) => setDraft((current) => ({ ...current, active: next }))} />
-                <IconButton type="button" tone="neutral" onClick={() => setEditorMode((current) => (current === 'read' ? 'edit' : 'read'))} aria-label="Uredi artikel" title="Uredi"><PencilIcon /></IconButton>
-                <IconButton type="button" tone="neutral" onClick={() => save(false)} aria-label="Shrani artikel" title="Shrani" disabled={!isEditable}><SaveIcon /></IconButton>
-                <button type="button" className={buttonTokenClasses.closeX} onClick={deleteItem} aria-label="Izbriši artikel" title="Izbriši"><TrashCanIcon /></button>
-              </div>
-            </div>
-            <div className="mx-[-1rem] mb-5 grid grid-cols-[minmax(0,1fr)] items-center border-y border-slate-200 bg-slate-50/80 px-4 py-2">
+            <div className="mb-5 grid grid-cols-[minmax(0,1fr)] items-center border-b border-slate-200 pb-2">
               <div className="col-span-1 flex min-h-8 items-center px-1">
                 <AdminCategoryBreadcrumbPicker
                   className="flex h-8 items-center rounded-md bg-transparent px-1 !py-0"
@@ -2561,15 +2748,6 @@ export default function AdminItemEditorPage({
           <div className="flex items-center gap-2">
             <IconButton
               type="button"
-              aria-label="Uredi tabelo artikla"
-              title={isTableEditable ? 'Zaključi urejanje' : 'Uredi'}
-              tone="neutral"
-              onClick={() => setTableEditorMode((current) => (current === 'read' ? 'edit' : 'read'))}
-            >
-              <PencilIcon />
-            </IconButton>
-            <IconButton
-              type="button"
               aria-label="Dodaj različico"
               title="Dodaj različico"
               tone="neutral"
@@ -2577,19 +2755,6 @@ export default function AdminItemEditorPage({
               onClick={() => setDraft((current) => ({ ...current, variants: [...current.variants, createVariant({ sort: current.variants.length + 1 })] }))}
             >
               <PlusIcon />
-            </IconButton>
-            <IconButton
-              type="button"
-              aria-label="Shrani tabelo artikla"
-              title="Shrani"
-              tone="neutral"
-              disabled={!isTableEditable}
-              onClick={async () => {
-                setTableEditorMode('read');
-                await save();
-              }}
-            >
-              <SaveIcon />
             </IconButton>
             <IconButton
               type="button"
@@ -2601,7 +2766,7 @@ export default function AdminItemEditorPage({
             >
               <TrashCanIcon />
             </IconButton>
-            <Button type="button" variant="primary" size="toolbar" className="!h-8 !rounded-lg !px-3 !text-xs" onClick={generateVariants}>Generiraj različice</Button>
+            <Button type="button" variant="primary" size="toolbar" className="!h-8 !rounded-lg !px-3 !text-xs" onClick={generateVariants} disabled={!isTableEditable}>Generiraj različice</Button>
           </div>
         </div>
         <div className="mb-3 space-y-2">

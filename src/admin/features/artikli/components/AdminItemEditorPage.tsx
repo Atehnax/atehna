@@ -60,11 +60,30 @@ const compactTableFourDigitSlotClassName = `${compactReadonlyRightBoxClassName} 
 const compactTableThreeDigitSlotClassName = `${compactReadonlyRightBoxClassName} w-[4ch]`;
 const compactTableSkuFieldWidthClassName = 'w-full min-w-0';
 const compactTableStatusFieldWidthClassName = 'min-w-[84px]';
+const compactTableVariantChipClassName = `!h-7 !px-2 !pr-5 !text-xs ${compactTableStatusFieldWidthClassName}`;
 const articleVariantsHeaderCellClassName = 'px-2 py-3 !text-[13px] !font-normal text-slate-700';
 const articleVariantsCheckboxShellClassName = 'inline-flex h-3.5 w-3.5 items-center justify-center';
 const articleVariantsCheckboxCellClassName = 'pl-2 pr-1 py-2 text-center';
 const compactTableStockSlotClassName = `${compactReadonlyRightBoxClassName} w-[5ch] !px-0`;
 const compactTableMinOrderSlotClassName = `${compactReadonlyCenterBoxClassName} w-[4.5ch] !px-0`;
+const compactReadonlyTextShellClassName = `${compactReadonlyCenterBoxClassName} w-full min-w-0 !justify-center whitespace-nowrap`;
+const ARTICLE_VARIANTS_COLUMN_WIDTHS = {
+  checkbox: '2%',
+  length: '6%',
+  width: '6%',
+  thickness: '5.5%',
+  weight: '5%',
+  tolerance: '6%',
+  price: '5%',
+  discount: '4.5%',
+  sale: '8%',
+  stock: '4.5%',
+  minOrder: '4.5%',
+  sku: '22%',
+  status: '8%',
+  note: '9%',
+  sort: '4%'
+} as const;
 const articleHeaderChipClassName = '!h-11 !min-w-[164px] !rounded-2xl !px-5 !text-[15px] !font-semibold';
 const articleHeaderActionButtonClassName = '!h-11 !rounded-2xl !px-7 !text-[15px] !font-semibold [&_svg+*]:pl-2.5';
 const compactSideInputWrapClassName = 'mt-0.5 flex h-[30px] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[10px] pr-3 transition-colors focus-within:border-[#3e67d6]';
@@ -2870,21 +2889,21 @@ export default function AdminItemEditorPage({
         <div className="relative overflow-x-hidden overflow-y-visible rounded-lg border border-slate-200">
           <table className="min-w-full table-fixed whitespace-nowrap text-[13px] leading-5">
             <colgroup>
-              <col style={{ width: '2%' }} />
-              <col style={{ width: '6%' }} />
-              <col style={{ width: '6%' }} />
-              <col style={{ width: '5.5%' }} />
-              <col style={{ width: '5%' }} />
-              <col style={{ width: '6%' }} />
-              <col style={{ width: '5%' }} />
-              <col style={{ width: '4.5%' }} />
-              <col style={{ width: '8%' }} />
-              <col style={{ width: '4.5%' }} />
-              <col style={{ width: '4.5%' }} />
-              <col style={{ width: '22%' }} />
-              <col style={{ width: '8%' }} />
-              <col style={{ width: '9%' }} />
-              <col style={{ width: '4%' }} />
+              <col style={{ width: ARTICLE_VARIANTS_COLUMN_WIDTHS.checkbox }} />
+              <col style={{ width: ARTICLE_VARIANTS_COLUMN_WIDTHS.length }} />
+              <col style={{ width: ARTICLE_VARIANTS_COLUMN_WIDTHS.width }} />
+              <col style={{ width: ARTICLE_VARIANTS_COLUMN_WIDTHS.thickness }} />
+              <col style={{ width: ARTICLE_VARIANTS_COLUMN_WIDTHS.weight }} />
+              <col style={{ width: ARTICLE_VARIANTS_COLUMN_WIDTHS.tolerance }} />
+              <col style={{ width: ARTICLE_VARIANTS_COLUMN_WIDTHS.price }} />
+              <col style={{ width: ARTICLE_VARIANTS_COLUMN_WIDTHS.discount }} />
+              <col style={{ width: ARTICLE_VARIANTS_COLUMN_WIDTHS.sale }} />
+              <col style={{ width: ARTICLE_VARIANTS_COLUMN_WIDTHS.stock }} />
+              <col style={{ width: ARTICLE_VARIANTS_COLUMN_WIDTHS.minOrder }} />
+              <col style={{ width: ARTICLE_VARIANTS_COLUMN_WIDTHS.sku }} />
+              <col style={{ width: ARTICLE_VARIANTS_COLUMN_WIDTHS.status }} />
+              <col style={{ width: ARTICLE_VARIANTS_COLUMN_WIDTHS.note }} />
+              <col style={{ width: ARTICLE_VARIANTS_COLUMN_WIDTHS.sort }} />
             </colgroup>
             <thead className="bg-slate-50">
               <tr>
@@ -2958,7 +2977,7 @@ export default function AdminItemEditorPage({
                         <span className={`ml-1 ${compactTableAdornmentClassName}`}>mm</span>
                       </div>
                     ) : (
-                      <span className="inline-flex h-7 items-center justify-center">
+                      <span className={`${compactReadonlyCenterBoxClassName} !px-0`}>
                         {variant.errorTolerance
                           ? (
                             <span className="inline-flex h-7 items-center whitespace-nowrap">
@@ -2975,13 +2994,13 @@ export default function AdminItemEditorPage({
                   <td className="px-2 py-2 text-right"><span className="inline-flex h-7 items-center justify-end">{variant.discountPct > 0 ? formatCurrency(computeSalePrice(variant.price, variant.discountPct)) : '—'}</span></td>
                   <td className="px-2 py-2 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !w-[5ch] !px-0 text-right`} value={variant.stock} onChange={(event) => updateVariant(variant.id, { stock: Number(event.target.value) || 0 })} /></span> : <span className="inline-flex h-7 w-full justify-end"><span className={compactTableStockSlotClassName}>{variant.stock}</span></span>}</td>
                   <td className="px-2 py-2 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !w-[4.5ch] !px-0 text-center`} value={variant.minOrder ?? 1} onChange={(event) => updateVariant(variant.id, { minOrder: Math.max(1, Number(event.target.value) || 1) })} /> : <span className={compactTableMinOrderSlotClassName}>{variant.minOrder ?? 1}</span>}</td>
-                  <td className="px-2 py-2 text-center">{isTableEditable ? <input className={`${compactTableAlignedTextInputClassName} ${compactTableSkuFieldWidthClassName} !mt-0 text-center`} value={variant.sku} onChange={(event) => updateVariant(variant.id, { sku: event.target.value, skuAutoGenerated: false })} /> : <span className={`inline-flex h-7 items-center justify-center whitespace-nowrap text-center ${compactTableSkuFieldWidthClassName}`}>{variant.sku || '—'}</span>}</td>
+                  <td className="px-2 py-2 text-center">{isTableEditable ? <input className={`${compactTableAlignedTextInputClassName} ${compactTableSkuFieldWidthClassName} !mt-0 text-center`} value={variant.sku} onChange={(event) => updateVariant(variant.id, { sku: event.target.value, skuAutoGenerated: false })} /> : <span className={`${compactReadonlyTextShellClassName} ${compactTableSkuFieldWidthClassName}`}>{variant.sku || '—'}</span>}</td>
                   <td className="px-2 py-2 text-center">
                     <div className="inline-flex justify-center">
                       <ActiveStateChip
                         active={variant.active}
                         editable={isTableEditable}
-                        chipClassName={`!h-7 !px-2 !text-xs ${compactTableStatusFieldWidthClassName}`}
+                        chipClassName={compactTableVariantChipClassName}
                         menuPlacement="bottom"
                         onChange={(next) => updateVariant(variant.id, { active: next })}
                       />
@@ -2992,7 +3011,7 @@ export default function AdminItemEditorPage({
                       <NoteTagChip
                         value={getVariantTag(variant.id)}
                         editable={isTableEditable}
-                        chipClassName={`!h-7 !px-2 !text-xs ${compactTableStatusFieldWidthClassName}`}
+                        chipClassName={compactTableVariantChipClassName}
                         menuPlacement="bottom"
                         onChange={(next) => {
                           if (!next) return;
@@ -3001,7 +3020,7 @@ export default function AdminItemEditorPage({
                       />
                     </div>
                   </td>
-                  <td className="px-2 py-2 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !w-[4ch] !px-0 text-center`} value={variant.sort} onChange={(event) => updateVariant(variant.id, { sort: Number(event.target.value) || 1 })} /> : <span className="inline-flex h-7 w-[4ch] items-center justify-center">{variant.sort}</span>}</td>
+                  <td className="px-2 py-2 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !w-[4ch] !px-0 text-center`} value={variant.sort} onChange={(event) => updateVariant(variant.id, { sort: Number(event.target.value) || 1 })} /> : <span className={`${compactReadonlyCenterBoxClassName} w-[4ch] !px-0`}>{variant.sort}</span>}</td>
                 </tr>
               ))}
             </tbody>

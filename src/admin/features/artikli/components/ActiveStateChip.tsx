@@ -2,6 +2,7 @@
 
 import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Chip } from '@/shared/ui/badge';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 
@@ -10,6 +11,7 @@ export default function ActiveStateChip({
   editable,
   onChange,
   chipClassName,
+  leadingIcon,
   menuPlacement = 'bottom',
   editScope
 }: {
@@ -17,6 +19,7 @@ export default function ActiveStateChip({
   editable: boolean;
   onChange: (next: boolean) => void;
   chipClassName?: string;
+  leadingIcon?: ReactNode;
   menuPlacement?: 'top' | 'bottom';
   editScope?: string;
 }) {
@@ -76,7 +79,12 @@ export default function ActiveStateChip({
       >
         {editable ? <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span> : null}
         <span className="block">
-          <Chip variant={active ? 'success' : 'neutral'} className={chipClassName}>{label}</Chip>
+          <Chip variant={active ? 'success' : 'neutral'} className={chipClassName}>
+            <span className="inline-flex items-center gap-2">
+              {leadingIcon ? <span className="inline-flex shrink-0">{leadingIcon}</span> : null}
+              <span>{label}</span>
+            </span>
+          </Chip>
         </span>
       </button>
 

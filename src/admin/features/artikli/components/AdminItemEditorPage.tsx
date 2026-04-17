@@ -52,14 +52,15 @@ const compactTableNumberInputClassName = `h-7 w-full rounded-md border border-sl
 const compactTableAlignedInputClassName = `${compactTableNumberInputClassName} !rounded-md !border-slate-300 !bg-white !px-1.5 shadow-none`;
 const compactTableAlignedTextInputClassName = `${orderLikeEditableInputClassName} !rounded-md !border-slate-300 !bg-white !px-2 shadow-none`;
 const compactTableValueUnitShellClassName = 'inline-flex h-7 items-center gap-1 whitespace-nowrap';
-const compactTableAdornmentClassName = 'text-xs text-slate-500';
+const compactTableAdornmentClassName = 'text-[13px] font-normal leading-5 text-slate-700';
 const compactTableNumericSlotClassName = 'inline-flex h-7 w-[6.5ch] items-center justify-end';
 const compactTableFourDigitSlotClassName = 'inline-flex h-7 w-[4.5ch] items-center justify-end';
 const compactTableThreeDigitSlotClassName = 'inline-flex h-7 w-[4ch] items-center justify-end';
-const compactTableSkuFieldWidthClassName = 'w-[24ch] min-w-[24ch]';
-const compactTableStatusFieldWidthClassName = 'min-w-[92px]';
+const compactTableSkuFieldWidthClassName = 'w-full min-w-0';
+const compactTableStatusFieldWidthClassName = 'min-w-[84px]';
 const articleVariantsHeaderCellClassName = 'px-2 py-3 !text-[13px] !font-normal text-slate-700';
-const articleVariantsCheckboxShellClassName = 'inline-flex h-5 w-5 items-center justify-center';
+const articleVariantsCheckboxShellClassName = 'inline-flex h-3.5 w-3.5 items-center justify-center';
+const articleVariantsCheckboxCellClassName = 'px-1 py-2 text-center';
 const compactTableStockSlotClassName = 'inline-flex h-5 w-[5ch] items-center justify-end';
 const compactTableMinOrderSlotClassName = 'inline-flex h-5 w-[4.5ch] items-center justify-center';
 const articleHeaderChipClassName = '!h-11 !min-w-[164px] !rounded-2xl !px-5 !text-[15px] !font-semibold';
@@ -2867,25 +2868,25 @@ export default function AdminItemEditorPage({
         <div className="relative overflow-x-hidden overflow-y-visible rounded-lg border border-slate-200">
           <table className="min-w-full table-fixed whitespace-nowrap text-[13px] leading-5">
             <colgroup>
-              <col style={{ width: '1.87%' }} />
-              <col style={{ width: '5.4%' }} />
-              <col style={{ width: '5.4%' }} />
-              <col style={{ width: '5.1%' }} />
+              <col style={{ width: '2%' }} />
+              <col style={{ width: '6%' }} />
+              <col style={{ width: '6%' }} />
+              <col style={{ width: '5.5%' }} />
               <col style={{ width: '5%' }} />
-              <col style={{ width: '5.1%' }} />
-              <col style={{ width: '5.1%' }} />
               <col style={{ width: '6%' }} />
+              <col style={{ width: '5%' }} />
+              <col style={{ width: '4.5%' }} />
               <col style={{ width: '8%' }} />
-              <col style={{ width: '6%' }} />
-              <col style={{ width: '6%' }} />
-              <col style={{ width: '20.97%' }} />
+              <col style={{ width: '4.5%' }} />
+              <col style={{ width: '4.5%' }} />
+              <col style={{ width: '22%' }} />
               <col style={{ width: '8%' }} />
               <col style={{ width: '9%' }} />
-              <col style={{ width: '3.06%' }} />
+              <col style={{ width: '4%' }} />
             </colgroup>
             <thead className="bg-slate-50">
               <tr>
-                <TH className={`${articleVariantsHeaderCellClassName} text-center`}>
+                <TH className={`${articleVariantsHeaderCellClassName} !px-1 text-center`}>
                   <span className={articleVariantsCheckboxShellClassName}>
                     <AdminCheckbox
                       checked={isTableEditable && allVariantsSelected}
@@ -2915,7 +2916,7 @@ export default function AdminItemEditorPage({
             <tbody>
               {draft.variants.map((variant, index) => (
                 <tr key={variant.id} className="h-10 border-t border-slate-100 align-middle">
-                  <td className="px-2 py-2 text-center">
+                  <td className={articleVariantsCheckboxCellClassName}>
                     <span className={articleVariantsCheckboxShellClassName}>
                       <AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} disabled={!isTableEditable} />
                     </span>

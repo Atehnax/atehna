@@ -57,7 +57,8 @@ const compactTableFourDigitSlotClassName = 'inline-flex h-7 w-[5ch] items-center
 const compactTableThreeDigitSlotClassName = 'inline-flex h-7 w-[4ch] items-center justify-end';
 const compactTableSkuFieldWidthClassName = 'w-[24ch] min-w-[24ch]';
 const compactTableStatusFieldWidthClassName = 'min-w-[92px]';
-const articleHeaderChipClassName = `!h-7 !px-2 !text-xs ${compactTableStatusFieldWidthClassName}`;
+const articleHeaderChipClassName = '!h-11 !min-w-[164px] !rounded-2xl !px-5 !text-[15px] !font-semibold';
+const articleHeaderActionButtonClassName = '!h-11 !rounded-2xl !px-7 !text-[15px] !font-semibold [&_svg+*]:pl-2.5';
 const compactSideInputWrapClassName = 'mt-0.5 flex h-[30px] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[10px] pr-3 transition-colors focus-within:border-[#3e67d6]';
 const compactSideInputClassName = 'h-full w-full border-0 bg-transparent p-0 text-sm text-slate-900 outline-none focus:ring-0';
 const articleNameInputClassName = 'admin-item-name-input h-full w-full min-w-0 border-0 bg-transparent p-0 shadow-none outline-none transition focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none disabled:cursor-not-allowed';
@@ -2202,9 +2203,9 @@ export default function AdminItemEditorPage({
               className={articleNameInputClassName}
             />
           </div>
-          <ActiveStateChip active={draft.active} editable={isEditable} chipClassName={articleHeaderChipClassName} leadingIcon={<StatusCheckIcon className="h-[15px] w-[15px]" />} onChange={(next) => setDraft((current) => ({ ...current, active: next }))} />
+          <ActiveStateChip active={draft.active} editable={isEditable} chipClassName={articleHeaderChipClassName} leadingIcon={<StatusCheckIcon className="h-[24px] w-[24px]" />} onChange={(next) => setDraft((current) => ({ ...current, active: next }))} />
           {itemLevelNote
-            ? <NoteTagChip value={itemLevelNote} editable={isEditable} chipClassName={articleHeaderChipClassName} leadingIcon={<PackageTitleIcon className="h-[15px] w-[15px]" />} onChange={setItemLevelNote} />
+            ? <NoteTagChip value={itemLevelNote} editable={isEditable} chipClassName={articleHeaderChipClassName} leadingIcon={<PackageTitleIcon className="h-[24px] w-[24px]" />} onChange={setItemLevelNote} />
             : (
               <NeutralDropdownChip
                 value=""
@@ -2217,17 +2218,17 @@ export default function AdminItemEditorPage({
             )}
         </div>
         <div className="flex items-center gap-2">
-          <Button type="button" variant="ghost" size="toolbar" className="!h-11 !rounded-xl !px-5 [&_svg+*]:pl-2.5" onClick={handleToggleEditMode}>
+          <Button type="button" variant="ghost" size="toolbar" className={articleHeaderActionButtonClassName} onClick={handleToggleEditMode}>
             <PencilIcon />
-            Uredi
+            <span>Uredi</span>
           </Button>
-          <Button type="button" variant="primary" size="toolbar" className="!h-11 !rounded-xl !px-5 [&_svg+*]:pl-2.5" onClick={() => void save(false)} disabled={!isEditable || !isDirty}>
+          <Button type="button" variant="primary" size="toolbar" className={articleHeaderActionButtonClassName} onClick={() => void save(false)} disabled={!isEditable || !isDirty}>
             <SaveIcon />
             <span>Shrani</span>
           </Button>
-          <Button type="button" variant="ghost" size="toolbar" className="!h-11 !rounded-xl !border !border-[#c97d00] !px-5 !text-[#c97d00] hover:!bg-[#fff4cc] hover:!text-[#9a5e00] [&_svg+*]:pl-2.5" onClick={deleteItem}>
+          <Button type="button" variant="ghost" size="toolbar" className={`${articleHeaderActionButtonClassName} !border !border-[#c97d00] !text-[#c97d00] hover:!bg-[#fff4cc] hover:!text-[#9a5e00]`} onClick={deleteItem}>
             <ArchiveActionIcon className="h-[18px] w-[18px] shrink-0" />
-            Arhiviraj
+            <span>Arhiviraj</span>
           </Button>
         </div>
       </div>

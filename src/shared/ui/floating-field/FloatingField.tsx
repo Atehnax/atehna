@@ -40,13 +40,13 @@ const getFieldBackground = (disabled?: boolean, readOnly?: boolean): FieldBackgr
 const toneClasses = {
   order: {
     shell:
-      'group relative rounded-lg border border-slate-300 transition-colors focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100',
+      'group relative rounded-lg border border-slate-300 transition-[border-color,box-shadow] focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100',
     input:
-      'h-14 w-full rounded-lg border-0 bg-transparent px-3 pb-2 pt-6 text-sm text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:text-slate-400 read-only:cursor-default read-only:text-slate-500',
+      'h-14 w-full rounded-lg border-0 bg-transparent px-3 pb-2 pt-6 text-sm text-slate-900 outline-none ring-0 transition-[color] focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:text-slate-400 read-only:cursor-default read-only:text-slate-500',
     textarea:
-      'min-h-[110px] w-full rounded-lg border-0 bg-transparent px-3 pb-2 pt-6 text-sm text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:text-slate-400 read-only:cursor-default read-only:text-slate-500',
+      'min-h-[110px] w-full rounded-lg border-0 bg-transparent px-3 pb-2 pt-6 text-sm text-slate-900 outline-none ring-0 transition-[color] focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:text-slate-400 read-only:cursor-default read-only:text-slate-500',
     select:
-      'peer h-14 w-full appearance-none rounded-lg border-0 bg-transparent px-3 pb-2 pt-6 text-sm text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:text-slate-400',
+      'peer h-14 w-full appearance-none rounded-lg border-0 bg-transparent px-3 pb-2 pt-6 text-sm text-slate-900 outline-none ring-0 transition-[color] focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:text-slate-400',
     inputLabel:
       'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400 transition-all duration-150 group-focus-within:top-2 group-focus-within:translate-y-0 group-focus-within:bg-[var(--field-bg)] group-focus-within:px-1 group-focus-within:text-[11px] group-focus-within:text-slate-600 group-data-[filled=true]:top-2 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:bg-[var(--field-bg)] group-data-[filled=true]:px-1 group-data-[filled=true]:text-[11px] group-data-[filled=true]:text-slate-600',
     inputLabelStatic:
@@ -68,13 +68,13 @@ const toneClasses = {
   },
   admin: {
     shell:
-      'group relative rounded-xl border border-slate-300 transition-colors focus-within:border-[#3e67d6] focus-within:ring-2 focus-within:ring-brand-100',
+      'group relative rounded-xl border border-slate-300 transition-[border-color,box-shadow] focus-within:border-[#3e67d6] focus-within:ring-2 focus-within:ring-brand-100',
     input:
-      'h-10 w-full overflow-visible rounded-xl border-0 bg-transparent px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:text-slate-400 read-only:cursor-default read-only:text-slate-500',
+      'h-10 w-full overflow-visible rounded-xl border-0 bg-transparent px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none ring-0 transition-[color] focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:text-slate-400 read-only:cursor-default read-only:text-slate-500',
     textarea:
-      'h-10 min-h-[40px] w-full resize-y overflow-hidden rounded-xl border-0 bg-transparent px-2.5 pb-1 pt-4 text-xs leading-4 text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:text-slate-400 read-only:cursor-default read-only:text-slate-500',
+      'h-10 min-h-[40px] w-full resize-y overflow-hidden rounded-xl border-0 bg-transparent px-2.5 pb-1 pt-4 text-xs leading-4 text-slate-900 outline-none ring-0 transition-[color] focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:text-slate-400 read-only:cursor-default read-only:text-slate-500',
     select:
-      'peer h-10 w-full appearance-none overflow-visible rounded-xl border-0 bg-transparent px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none ring-0 transition focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:text-slate-400',
+      'peer h-10 w-full appearance-none overflow-visible rounded-xl border-0 bg-transparent px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none ring-0 transition-[color] focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:text-slate-400',
     inputLabel:
       'pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 bg-transparent px-0 text-xs text-slate-400 transition-all duration-150 group-focus-within:top-1.5 group-focus-within:translate-y-0 group-focus-within:bg-[var(--field-bg)] group-focus-within:px-1 group-focus-within:text-[10px] group-focus-within:text-slate-600 group-data-[filled=true]:top-1.5 group-data-[filled=true]:translate-y-0 group-data-[filled=true]:bg-[var(--field-bg)] group-data-[filled=true]:px-1 group-data-[filled=true]:text-[10px] group-data-[filled=true]:text-slate-600',
     inputLabelStatic:
@@ -110,7 +110,7 @@ export function FloatingInput({
   const classes = toneClasses[tone];
   const isStatic = labelMode === 'static';
   const muted = getFieldBackground(props.disabled, props.readOnly) === 'muted';
-  return <div className={classNames(classes.shell, isStatic && classes.staticShell, muted && 'bg-slate-50')} data-floating-field>
+  return <div className={classNames(classes.shell, isStatic && classes.staticShell, muted && 'bg-[color:var(--field-locked-bg)]')} data-floating-field>
     <EuiFieldText
       {...props}
       id={id}
@@ -135,7 +135,7 @@ export function FloatingTextarea({
   const classes = toneClasses[tone];
   const isStatic = labelMode === 'static';
   const muted = getFieldBackground(props.disabled, props.readOnly) === 'muted';
-  return <div className={classNames(classes.shell, isStatic && classes.staticShell, muted && 'bg-slate-50')} data-floating-field>
+  return <div className={classNames(classes.shell, isStatic && classes.staticShell, muted && 'bg-[color:var(--field-locked-bg)]')} data-floating-field>
     <EuiTextArea
       {...props}
       id={id}
@@ -163,7 +163,7 @@ export function FloatingSelect({
   const classes = toneClasses[tone];
   const fieldBackground = getFieldBackground(props.disabled, false);
   const fieldBackgroundVariable =
-    ({ '--field-bg': fieldBackground === 'muted' ? 'rgb(248 250 252)' : 'rgb(255 255 255)' } as CSSProperties);
+    ({ '--field-bg': fieldBackground === 'muted' ? 'rgb(245 246 248)' : 'rgb(255 255 255)' } as CSSProperties);
 
   const isStatic = labelMode === 'static';
 

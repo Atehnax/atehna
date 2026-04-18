@@ -52,6 +52,7 @@
   --admin-bg: var(--blue-50);
   --admin-accent: var(--blue-500);
   --admin-hover: var(--blue-100);
+  --field-locked-bg: #f5f6f8;
   --ui-neutral-bg: var(--surface-2);
   --ui-neutral-bg-hover: color-mix(in srgb, var(--ui-neutral-bg) 82%, #cbd5e1);
   --hover-neutral: var(--ui-neutral-bg);
@@ -107,6 +108,13 @@ body {
 input[type='checkbox'],
 input[type='radio'] {
   accent-color: var(--blue-500);
+}
+
+input:disabled:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+input[readonly]:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+textarea:disabled,
+textarea[readonly] {
+  background-color: var(--field-locked-bg) !important;
 }
 
 .prose h1,

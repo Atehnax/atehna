@@ -296,7 +296,7 @@ export default function AdminOrderPdfManager({
           placeholder=""
           aria-label="Opombe"
           readOnly={notesSectionMode !== 'edit'}
-          className={`${notesSharedClass} ${adminInputFocusTokenClasses} transition ${notesSectionMode === 'edit' ? 'bg-white text-slate-900' : '!bg-[color:var(--ui-neutral-bg)] text-slate-600'}`}
+          className={`${notesSharedClass} ${adminInputFocusTokenClasses} transition ${notesSectionMode === 'edit' ? 'bg-white text-slate-900' : '!bg-[color:var(--field-locked-bg)] text-slate-600'}`}
         />
       </div>
 

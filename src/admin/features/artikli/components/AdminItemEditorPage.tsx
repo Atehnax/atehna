@@ -47,10 +47,10 @@ import Dialog from '@/shared/ui/dialog/dialog';
 import { THead, TH } from '@/shared/ui/table';
 import type { CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/server/catalogItems';
 
-const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0';
+const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition-[border-color,box-shadow,color] focus:border-[#3e67d6] focus:ring-0';
 const numberInputClass = '[-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
-const orderLikeEditableInputClassName = 'mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0';
-const compactTableNumberInputClassName = `h-6 w-full rounded-md border border-slate-300 bg-white px-1.5 text-[11px] leading-6 text-slate-900 outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0 ${numberInputClass}`;
+const orderLikeEditableInputClassName = 'mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none transition-[border-color,box-shadow,color] focus:border-[#3e67d6] focus:outline-none focus:ring-0';
+const compactTableNumberInputClassName = `h-6 w-full rounded-md border border-slate-300 bg-white px-1.5 text-[11px] leading-6 text-slate-900 outline-none transition-[border-color,box-shadow,color] focus:border-[#3e67d6] focus:outline-none focus:ring-0 ${numberInputClass}`;
 const compactTableAlignedInputClassName = `${compactTableNumberInputClassName} !rounded-md !border-slate-300 !bg-white !px-0.5 shadow-none`;
 const compactTableAlignedTextInputClassName = `${orderLikeEditableInputClassName} !h-6 !rounded-md !border-slate-300 !bg-white !px-1 !leading-6 shadow-none`;
 const compactTableValueUnitShellClassName = 'inline-flex h-6 items-center gap-1 whitespace-nowrap';
@@ -58,12 +58,13 @@ const compactTableAdornmentClassName = 'text-[11px] text-slate-500';
 const compactTableNumericSlotClassName = 'inline-flex h-6 w-[7ch] items-center justify-end';
 const compactTableFourDigitSlotClassName = 'inline-flex h-6 w-[5ch] items-center justify-end';
 const compactTableThreeDigitSlotClassName = 'inline-flex h-6 w-[4ch] items-center justify-end';
-const compactSideInputWrapClassName = 'mt-0.5 flex h-[30px] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[10px] pr-3 transition-colors focus-within:border-[#3e67d6]';
+const compactSideInputWrapClassName = 'mt-0.5 flex h-[30px] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[10px] pr-3 transition-[border-color,box-shadow] focus-within:border-[#3e67d6]';
 const compactSideInputClassName = 'h-full w-full border-0 bg-transparent p-0 text-sm text-slate-900 outline-none focus:ring-0';
-const articleNameInputClassName = 'admin-item-name-input h-full w-full min-w-0 border-0 bg-transparent p-0 shadow-none outline-none transition focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none disabled:cursor-not-allowed';
+const articleNameInputClassName = 'admin-item-name-input h-full w-full min-w-0 border-0 bg-transparent p-0 shadow-none outline-none transition-[color] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none disabled:cursor-not-allowed';
 const topBarArticleNameInputClassName = `${articleNameInputClassName} min-w-0 font-['Inter',system-ui,sans-serif] text-[22px] font-semibold leading-none tracking-tight`;
 const topActionButtonClassName = `inline-flex h-12 items-center gap-2 rounded-2xl px-5 ${adminTextButtonTypographyTokenClasses} leading-none tracking-[0]`;
-const topActionMatchArchiveButtonClassName = `${adminTextButtonTypographyTokenClasses} !h-8 !leading-none !tracking-[0]`;
+const topActionMatchArchiveButtonClassName = `gap-2 ${adminTextButtonTypographyTokenClasses} !h-8 !leading-none !tracking-[0]`;
+const topActionButtonIconClassName = 'h-[15.3px] w-[15.3px]';
 const editorSectionTitleClassName = 'text-[20px] font-semibold tracking-tight text-slate-900';
 const inlineSnippetClass = 'rounded bg-[#1982bf1a] px-1 py-0.5 font-mono text-[11px] text-[#1982bf]';
 const mimeTypeToImageExtension: Record<string, string> = {
@@ -504,7 +505,19 @@ function canonicalizeVariantDimensions(
   return normalized;
 }
 
-function CalmDashedOutline({ className = '' }: { className?: string }) {
+function CalmDashedOutline({
+  className = '',
+  strokeWidth = 1.2,
+  dashLength = 5,
+  gapLength = 6,
+  lineCap = 'butt'
+}: {
+  className?: string;
+  strokeWidth?: number;
+  dashLength?: number;
+  gapLength?: number;
+  lineCap?: 'butt' | 'round' | 'square';
+}) {
   const frameRef = useRef<SVGSVGElement>(null);
   const [frameSize, setFrameSize] = useState({ width: 0, height: 0 });
   const [cornerRadius, setCornerRadius] = useState(8);
@@ -534,10 +547,9 @@ function CalmDashedOutline({ className = '' }: { className?: string }) {
   const snappedHeight = Math.max(1, snapToDevicePixel(height));
   const svgOffsetX = (width - snappedWidth) / 2;
   const svgOffsetY = (height - snappedHeight) / 2;
-  const strokeWidth = 1.125;
   const pathLength = 1000;
-  const targetDashLength = 6;
-  const targetGapLength = 10;
+  const targetDashLength = dashLength;
+  const targetGapLength = gapLength;
   const targetUnit = targetDashLength + targetGapLength;
 
   const snapToGrid = (value: number) => snapToDevicePixel(value);
@@ -580,22 +592,12 @@ function CalmDashedOutline({ className = '' }: { className?: string }) {
           pathLength={pathLength}
           strokeDasharray={`${normalizedDashLength} ${normalizedGapLength}`}
           strokeDashoffset={dashOffset}
-          strokeLinecap="butt"
+          strokeLinecap={lineCap}
           strokeLinejoin="round"
           vectorEffect="non-scaling-stroke"
           shapeRendering="geometricPrecision"
         />
       ) : null}
-    </svg>
-  );
-}
-
-function CloudUploadIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 64 48" aria-hidden className={className}>
-      <path fill="currentColor" d="M17 40h30a11 11 0 0 0 1.5-21.9A17 17 0 0 0 16.2 13 12 12 0 0 0 17 40Z" />
-      <path fill="#fff" d="M30 31v-9h-6l8-9 8 9h-6v9z" />
-      <rect x="27.5" y="30.5" width="9" height="3" rx="1.5" fill="#fff" />
     </svg>
   );
 }
@@ -610,6 +612,16 @@ function ImageUploadFrameIcon({ className = '' }: { className?: string }) {
       <path d="M60 6.5A2.5 2.5 0 0 0 57.5 4H54v2h2.5A1.5 1.5 0 0 1 58 7.5V10h2V6.5Z" fill="#74addb" />
       <path d="M4 41.5A2.5 2.5 0 0 0 6.5 44H10v-2H7.5A1.5 1.5 0 0 1 6 40.5V38H4v3.5Z" fill="#74addb" />
       <path d="M60 41.5A2.5 2.5 0 0 1 57.5 44H54v-2h2.5a1.5 1.5 0 0 0 1.5-1.5V38h2v3.5Z" fill="#74addb" />
+    </svg>
+  );
+}
+
+function PictureFrameIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className={className} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="5.25" width="16" height="13.5" rx="2.15" />
+      <circle cx="9" cy="10" r="1.25" fill="currentColor" stroke="none" />
+      <path d="M7.1 15.55 9.8 12.8a.58.58 0 0 1 .82 0l1.72 1.72a.58.58 0 0 0 .82 0l2.08-2.08a.58.58 0 0 1 .82 0l1.88 1.88" />
     </svg>
   );
 }
@@ -1024,7 +1036,7 @@ function OpisRichTextEditor({
   ] as const;
 
   return (
-    <div className={`relative flex h-[150px] min-h-[130px] resize-y flex-col overflow-hidden rounded-lg border border-slate-300 ${editable ? 'bg-white' : 'bg-[color:var(--ui-neutral-bg)]'}`}>
+    <div className={`relative flex h-[150px] min-h-[130px] resize-y flex-col overflow-hidden rounded-lg border border-slate-300 ${editable ? 'bg-white' : 'bg-[color:var(--field-locked-bg)]'}`}>
       <div ref={toolbarRef} className="flex flex-nowrap items-center gap-0.5 border-b border-slate-200 bg-slate-50 px-3 py-2">
         <button type="button" title="Krepko" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleBold().run())} aria-label="Bold"><span className="inline-block w-4 text-center text-base font-bold leading-none">B</span></button>
         <button type="button" title="Ležeče" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleItalic().run())} aria-label="Italic"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconItalicClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" x2="10" y1="4" y2="4"/><line x1="14" x2="5" y1="20" y2="20"/><line x1="15" x2="9" y1="4" y2="20"/></svg></button>
@@ -1113,7 +1125,7 @@ function OpisRichTextEditor({
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
         <div
           ref={editorHostRef}
-          className={`min-h-0 flex-1 overflow-x-hidden overflow-y-hidden [&_.ProseMirror]:min-h-[112px] [&_.ProseMirror]:px-4 [&_.ProseMirror]:py-3 [&_.ProseMirror]:text-sm [&_.ProseMirror]:outline-none [&_.ProseMirror]:prose [&_.ProseMirror]:max-w-none [&_.ProseMirror_h1]:text-xl [&_.ProseMirror_h2]:text-lg [&_.ProseMirror_h3]:text-base [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5 [&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-slate-300 [&_.ProseMirror_blockquote]:pl-3 [&_.ProseMirror_a]:text-blue-600 [&_.ProseMirror_a]:underline ${editable ? '[&_.ProseMirror]:text-slate-800 [&_.ProseMirror]:prose-slate' : 'cursor-not-allowed [&_.ProseMirror]:bg-[color:var(--ui-neutral-bg)] [&_.ProseMirror]:text-slate-500 [&_.ProseMirror]:prose-slate'}`}
+          className={`min-h-0 flex-1 overflow-x-hidden overflow-y-hidden [&_.ProseMirror]:min-h-[112px] [&_.ProseMirror]:px-4 [&_.ProseMirror]:py-3 [&_.ProseMirror]:text-sm [&_.ProseMirror]:outline-none [&_.ProseMirror]:prose [&_.ProseMirror]:max-w-none [&_.ProseMirror_h1]:text-xl [&_.ProseMirror_h2]:text-lg [&_.ProseMirror_h3]:text-base [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5 [&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-slate-300 [&_.ProseMirror_blockquote]:pl-3 [&_.ProseMirror_a]:text-blue-600 [&_.ProseMirror_a]:underline ${editable ? '[&_.ProseMirror]:text-slate-800 [&_.ProseMirror]:prose-slate' : 'cursor-not-allowed [&_.ProseMirror]:bg-[color:var(--field-locked-bg)] [&_.ProseMirror]:text-slate-500 [&_.ProseMirror]:prose-slate'}`}
         />
         <div className={`pointer-events-none ml-auto px-4 pb-2 text-xs ${editable ? 'text-slate-400' : 'text-slate-500'}`}>{textLength} / 5000</div>
       </div>
@@ -2500,7 +2512,7 @@ export default function AdminItemEditorPage({
       <section className="rounded-[24px] border border-slate-200 bg-white px-5 py-4">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex min-w-0 flex-1 flex-col gap-3 xl:flex-row xl:items-center">
-            <div className={`${compactSideInputWrapClassName} !mt-0 !h-[38.4px] min-w-0 flex-1 xl:max-w-[420px] ${isEditable ? '' : '!bg-[color:var(--ui-neutral-bg)] text-slate-500'}`}>
+            <div className={`${compactSideInputWrapClassName} !mt-0 !h-[38.4px] min-w-0 flex-1 xl:max-w-[420px] ${isEditable ? '' : '!bg-[color:var(--field-locked-bg)] text-slate-500'}`}>
               <SideInputIcon icon="material" muted={draft.name.trim().length === 0} className="h-[18px] w-[18px]" />
               <input
                 aria-label="Naziv artikla"
@@ -2549,7 +2561,7 @@ export default function AdminItemEditorPage({
               onClick={handleEditModeToggle}
               disabled={isSaving}
             >
-              <PencilIcon />
+              <PencilIcon className={topActionButtonIconClassName} />
               <span>Uredi</span>
             </Button>
             <Button
@@ -2560,7 +2572,7 @@ export default function AdminItemEditorPage({
               onClick={() => void save()}
               disabled={!isEditable || !hasUnsavedChanges || isSaving}
             >
-              <SaveIcon />
+              <SaveIcon className={topActionButtonIconClassName} />
               <span>Shrani</span>
             </Button>
             <Button
@@ -2571,7 +2583,7 @@ export default function AdminItemEditorPage({
               onClick={() => void archiveItem()}
               disabled={!canArchive}
             >
-              <ArchiveIcon />
+              <ArchiveIcon className={topActionButtonIconClassName} />
               <span>Arhiviraj</span>
             </Button>
           </div>
@@ -2585,7 +2597,7 @@ export default function AdminItemEditorPage({
             <div className="hidden flex flex-wrap items-center gap-2">
               <h1 className="flex min-h-10 flex-1 flex-nowrap items-center gap-1 whitespace-nowrap text-lg font-semibold tracking-tight text-slate-900">
                 <span className="inline-flex h-10 min-w-0 flex-1 items-center gap-0">
-                  <div className={`inline-flex h-[36px] w-full min-w-[20ch] max-w-[38ch] items-center gap-2 rounded-md border border-slate-300 px-[10px] ${isEditable ? 'bg-white' : 'bg-[color:var(--ui-neutral-bg)] text-slate-500'}`}>
+                  <div className={`inline-flex h-[36px] w-full min-w-[20ch] max-w-[38ch] items-center gap-2 rounded-md border border-slate-300 px-[10px] ${isEditable ? 'bg-white' : 'bg-[color:var(--field-locked-bg)] text-slate-500'}`}>
                     <input
                       aria-label="Naziv artikla"
                       value={draft.name}
@@ -2651,7 +2663,7 @@ export default function AdminItemEditorPage({
                 ].map((field) => (
                   <div key={field.title} className="min-h-10">
                     <p className="text-sm font-semibold text-slate-900">{field.title}</p>
-                    <div className={`${compactSideInputWrapClassName} ${isEditable ? '' : '!bg-[color:var(--ui-neutral-bg)] text-slate-500'}`}>
+                    <div className={`${compactSideInputWrapClassName} ${isEditable ? '' : '!bg-[color:var(--field-locked-bg)] text-slate-500'}`}>
                       <SideInputIcon icon={field.icon} muted={field.value.trim().length === 0} />
                       <input disabled={!isEditable} style={{ outline: 'none', boxShadow: 'none' }} className={`${compactSideInputClassName} ${isEditable ? '' : 'cursor-not-allowed text-slate-500'}`} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
                     </div>
@@ -2705,17 +2717,31 @@ export default function AdminItemEditorPage({
                         uppy={uppyRef.current}
                         disabled={!isMediaEditable}
                         onPrepareAddFiles={(files) => prepareDropzoneUploadPlan(0, true, files)}
-                        className="flex h-full w-full items-center justify-center rounded-lg text-blue-600"
+                        className="group !relative !flex h-full w-full !items-center !justify-center !rounded-[8px] !border-0 !bg-[#f5f6f8] text-blue-600 hover:!bg-[#f3f5f7]"
                       >
-                        <span className="flex flex-col items-center justify-center gap-2 text-center">
+                        <CalmDashedOutline
+                          className="inset-0 text-[#c8c8c8]"
+                          strokeWidth={1.1664}
+                          dashLength={3.77}
+                          gapLength={2.95}
+                          lineCap="butt"
+                        />
+                        <span className="relative z-[1] flex flex-col items-center justify-center gap-2 text-center">
                           <ImageUploadFrameIcon className="h-[84px] w-[84px] text-[#2f7dc5]" />
                           <span className="text-base font-semibold text-slate-800">Naloži sliko</span>
                           <span className="text-xs font-medium text-slate-500">(največ 4 MB)</span>
                         </span>
                       </UppyDropzoneField>
                     ) : (
-                      <div className={`relative flex h-full w-full items-center justify-center rounded-lg border-2 border-dashed border-[#9cb8ea] bg-[#f7f9fe] text-blue-600 transition ${isMediaEditable ? 'cursor-pointer hover:border-[#1982bf] hover:bg-[#edf3ff]' : 'cursor-not-allowed opacity-60'}`}>
-                        <span className="flex flex-col items-center justify-center gap-2 text-center">
+                      <div className={`group relative flex h-full w-full items-center justify-center rounded-[8px] bg-[#f5f6f8] text-blue-600 transition ${isMediaEditable ? 'cursor-pointer hover:bg-[#f3f5f7]' : 'cursor-not-allowed opacity-60'}`}>
+                        <CalmDashedOutline
+                          className="inset-0 text-[#c8c8c8]"
+                          strokeWidth={1.1664}
+                          dashLength={3.77}
+                          gapLength={2.95}
+                          lineCap="butt"
+                        />
+                        <span className="relative z-[1] flex flex-col items-center justify-center gap-2 text-center">
                           <ImageUploadFrameIcon className="h-[84px] w-[84px] text-[#2f7dc5]" />
                           <span className="text-base font-semibold text-slate-800">Naloži sliko</span>
                           <span className="text-xs font-medium text-slate-500">(največ 4 MB)</span>
@@ -2725,7 +2751,7 @@ export default function AdminItemEditorPage({
                   ) : (
                     <div className="grid h-full grid-cols-5 grid-rows-2 gap-2">
                       <div
-                        className={`group relative col-span-2 row-span-2 overflow-hidden rounded-lg border border-slate-300 ${isMediaEditable ? 'cursor-grab' : ''}`}
+                        className={`group relative col-span-2 row-span-2 overflow-hidden rounded-[8px] border border-slate-300 ${isMediaEditable ? 'cursor-grab' : ''}`}
                         draggable={Boolean(isMediaEditable)}
                         onDragStart={() => {
                           suppressImageClickAfterDragRef.current = true;
@@ -2766,7 +2792,7 @@ export default function AdminItemEditorPage({
                           return (
                             <div
                               key={`slot-${slotIndex}`}
-                              className={`group relative overflow-hidden rounded-lg border border-slate-300 ${isMediaEditable ? 'cursor-grab' : ''}`}
+                              className={`group relative overflow-hidden rounded-[8px] border border-slate-300 ${isMediaEditable ? 'cursor-grab' : ''}`}
                               draggable={Boolean(isMediaEditable)}
                               onDragStart={() => {
                                 suppressImageClickAfterDragRef.current = true;
@@ -2808,23 +2834,54 @@ export default function AdminItemEditorPage({
                                 uppy={uppyRef.current}
                                 disabled={!isMediaEditable}
                                 onPrepareAddFiles={(files) => prepareDropzoneUploadPlan(slotIndex, true, files)}
-                                className="flex h-full items-center justify-center rounded-lg text-blue-600"
+                                className="group !relative !flex h-full !items-center !justify-center !rounded-[8px] !border-0 !bg-[#f5f6f8] px-2 py-3 text-slate-500 hover:!bg-[#f3f5f7]"
                               >
-                                <span className="inline-flex h-full w-full items-center justify-center">
-                                  <svg viewBox="0 0 24 24" className="h-9 w-9 text-[#2f7dc5]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                                    <path d="M12 5v14M5 12h14" />
-                                  </svg>
+                                <CalmDashedOutline
+                                  className="inset-0 text-[#c8c8c8] transition group-hover:text-[#c8c8c8]"
+                                  strokeWidth={1.1664}
+                                  dashLength={3.77}
+                                  gapLength={2.95}
+                                  lineCap="butt"
+                                />
+                                <span className="relative z-[1] flex h-full w-full flex-col items-center justify-center gap-1.5 text-center">
+                                  <ImageUploadFrameIcon className="h-[42px] w-[42px] text-[#2f7dc5]" />
+                                  <span className="-translate-y-[7px] text-[10px] font-medium leading-none text-slate-600">Naloži sliko</span>
                                 </span>
                               </UppyDropzoneField>
                             ) : (
-                              <div key={`slot-${slotIndex}`} className={`relative flex h-full items-center justify-center rounded-lg border-2 border-dashed border-[#9cb8ea] bg-[#f7f9fe] text-blue-600 transition ${isMediaEditable ? 'cursor-pointer hover:border-[#1982bf] hover:bg-[#edf3ff]' : 'cursor-not-allowed opacity-60'}`}>
-                                <CloudUploadIcon className="h-8 w-8 text-[#2f7dc5]" />
+                              <div
+                                key={`slot-${slotIndex}`}
+                                className={`group relative flex h-full flex-col items-center justify-center gap-1.5 rounded-[8px] bg-[#f5f6f8] px-2 py-3 text-center text-slate-500 transition ${isMediaEditable ? 'cursor-pointer hover:bg-[#f3f5f7]' : 'cursor-not-allowed opacity-60'}`}
+                              >
+                                <CalmDashedOutline
+                                  className="inset-0 text-[#c8c8c8] transition group-hover:text-[#c8c8c8]"
+                                  strokeWidth={1.1664}
+                                  dashLength={3.77}
+                                  gapLength={2.95}
+                                  lineCap="butt"
+                                />
+                                <ImageUploadFrameIcon className="relative z-[1] h-[42px] w-[42px] text-[#2f7dc5]" />
+                                <span className="relative z-[1] -translate-y-[7px] text-[10px] font-medium leading-none text-slate-600">Naloži sliko</span>
                               </div>
                             )
                           );
                         }
 
-                        return <div key={`slot-${slotIndex}`} className="relative h-full rounded-lg border-2 border-dashed border-[#d7e3f7] bg-[#f7f9fe] opacity-70" />;
+                        return (
+                          <div
+                            key={`slot-${slotIndex}`}
+                            className={`relative h-full rounded-[8px] bg-[#f5f6f8] ${isMediaEditable ? '' : 'opacity-60'}`}
+                            aria-hidden
+                          >
+                            <CalmDashedOutline
+                              className="inset-0 text-[#c8c8c8]"
+                              strokeWidth={1.1664}
+                              dashLength={3.77}
+                              gapLength={2.95}
+                              lineCap="butt"
+                            />
+                          </div>
+                        );
                       })}
                     </div>
                   )}
@@ -2985,7 +3042,7 @@ export default function AdminItemEditorPage({
                     </div>
                   ) : (
                     <div
-                      className={`relative flex h-full w-full flex-col items-center justify-between rounded-lg border-2 border-dashed bg-[#f7f9fe] px-5 pb-4 pt-3 text-center transition ${videoDragActive ? 'border-[#1982bf] bg-[#edf3ff]' : 'border-[#9cb8ea]'} ${isMediaEditable ? 'cursor-pointer hover:border-[#1982bf] hover:bg-[#edf3ff]' : 'cursor-not-allowed opacity-60'}`}
+                      className={`group relative flex h-full w-full flex-col items-center justify-between rounded-[8px] px-5 pb-4 pt-3 text-center transition ${videoDragActive ? 'bg-[#f3f5f7]' : 'bg-[#f5f6f8]'} ${isMediaEditable ? 'cursor-pointer hover:bg-[#f3f5f7]' : 'cursor-not-allowed opacity-60'}`}
                       onClick={() => {
                         if (!isMediaEditable) return;
                         document.getElementById('video-upload-input')?.click();
@@ -3014,14 +3071,21 @@ export default function AdminItemEditorPage({
                         void handleVideoFileSelect(event.dataTransfer.files?.[0]);
                       }}
                     >
-                      <div className="flex flex-1 flex-col items-center justify-center">
+                      <CalmDashedOutline
+                        className="inset-0 text-[#c8c8c8]"
+                        strokeWidth={1.1664}
+                        dashLength={3.77}
+                        gapLength={2.95}
+                        lineCap="butt"
+                      />
+                      <div className="relative z-[1] flex flex-1 flex-col items-center justify-center">
                         <VideoUploadFrameIcon className="h-[72px] w-[72px] text-[#74addb]" />
                         <div className="mt-1 flex flex-col items-center justify-center leading-tight">
                           <span className="text-base font-semibold text-slate-800">Naloži video</span>
                           <span className="mt-1 text-xs font-medium text-slate-500">(največ 100 MB)</span>
                         </div>
                       </div>
-                      <div className="mt-3 w-full max-w-[340px] pb-1">
+                      <div className="relative z-[1] mt-3 w-full max-w-[340px] pb-1">
                         <div
                           className="flex h-[30px] items-center gap-1 rounded-md border border-slate-200 bg-white px-1"
                           onClick={(event) => event.stopPropagation()}
@@ -3109,7 +3173,7 @@ export default function AdminItemEditorPage({
                 />
                 <div className="h-[11.5rem]">
                   <div
-                    className={`relative flex h-full w-full flex-col items-center justify-center rounded-lg border-2 border-dashed bg-[#f7f9fe] px-5 pb-4 pt-3 text-center transition ${isMediaEditable ? 'cursor-pointer border-[#9cb8ea] hover:border-[#1982bf] hover:bg-[#edf3ff]' : 'cursor-not-allowed border-[#9cb8ea] opacity-60'}`}
+                    className={`group relative flex h-full w-full flex-col items-center justify-center rounded-[8px] bg-[#f5f6f8] px-5 pb-4 pt-3 text-center transition ${isMediaEditable ? 'cursor-pointer hover:bg-[#f3f5f7]' : 'cursor-not-allowed opacity-60'}`}
                     onClick={() => {
                       if (!isMediaEditable) return;
                       technicalUploadInputRef.current?.click();
@@ -3124,8 +3188,15 @@ export default function AdminItemEditorPage({
                       void handleTechnicalFileSelect(event.dataTransfer.files?.[0]);
                     }}
                   >
-                    <DocumentUploadFrameIcon className="h-[72px] w-[72px] text-[#74addb]" />
-                    <div className="mt-1 flex flex-col items-center justify-center leading-tight">
+                    <CalmDashedOutline
+                      className="inset-0 text-[#c8c8c8]"
+                      strokeWidth={1.1664}
+                      dashLength={3.77}
+                      gapLength={2.95}
+                      lineCap="butt"
+                    />
+                    <DocumentUploadFrameIcon className="relative z-[1] h-[72px] w-[72px] text-[#74addb]" />
+                    <div className="relative z-[1] mt-1 flex flex-col items-center justify-center leading-tight">
                       <span className="text-base font-semibold text-slate-800">Naloži tehnični list</span>
                       <span className="mt-1 text-xs font-medium text-slate-500">(največ 5 MB)</span>
                     </div>
@@ -3220,7 +3291,7 @@ export default function AdminItemEditorPage({
           <div className="pt-2">
             <div className="flex items-start gap-3">
             <div className="relative w-1/2 min-w-[300px]">
-              <div className={`flex h-[30px] flex-nowrap items-center gap-2 overflow-hidden rounded-md border border-slate-300 pl-[10px] pr-11 ${isGeneratorLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : 'bg-white'}`}>
+              <div className={`flex h-[30px] flex-nowrap items-center gap-2 overflow-hidden rounded-md border border-slate-300 pl-[10px] pr-11 ${isGeneratorLocked ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : 'bg-white'}`}>
                 <SideInputIcon icon="dimension" muted={generatorInput.trim().length === 0 && generatorChips.length === 0} />
                 {generatorChips.map((chip) => (
                   <span key={chip.dimension} className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs text-slate-700">
@@ -3320,9 +3391,9 @@ export default function AdminItemEditorPage({
               {draft.variants.map((variant, index) => (
                 <tr key={variant.id} className="h-[38.4px] border-t border-slate-100 align-middle">
                   <td className="px-2 py-1.5 text-center"><AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} disabled={!isTableEditable} /></td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" disabled={isDimensionLockActive} className={`${compactTableAlignedInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'length', variant.length)} onChange={(event) => updateDecimalInputDraft(variant.id, 'length', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'length', variant.length, (value) => updateVariant(variant.id, { length: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-6 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{variant.length === null ? '—' : formatDecimalForDisplay(variant.length)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" disabled={isDimensionLockActive} className={`${compactTableAlignedInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'width', variant.width)} onChange={(event) => updateDecimalInputDraft(variant.id, 'width', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'width', variant.width, (value) => updateVariant(variant.id, { width: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-6 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{variant.width === null ? '—' : formatDecimalForDisplay(variant.width)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" disabled={isThicknessLockActive} className={`${compactTableAlignedInputClassName} !w-[5ch] text-right ${isThicknessLockActive ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'thickness', variant.thickness)} onChange={(event) => updateDecimalInputDraft(variant.id, 'thickness', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'thickness', variant.thickness, (value) => updateVariant(variant.id, { thickness: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-6 w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><span className={compactTableFourDigitSlotClassName}>{variant.thickness === null ? '—' : formatDecimalForDisplay(variant.thickness)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" disabled={isDimensionLockActive} className={`${compactTableAlignedInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'length', variant.length)} onChange={(event) => updateDecimalInputDraft(variant.id, 'length', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'length', variant.length, (value) => updateVariant(variant.id, { length: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-6 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{variant.length === null ? '—' : formatDecimalForDisplay(variant.length)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" disabled={isDimensionLockActive} className={`${compactTableAlignedInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'width', variant.width)} onChange={(event) => updateDecimalInputDraft(variant.id, 'width', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'width', variant.width, (value) => updateVariant(variant.id, { width: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-6 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{variant.width === null ? '—' : formatDecimalForDisplay(variant.width)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" disabled={isThicknessLockActive} className={`${compactTableAlignedInputClassName} !w-[5ch] text-right ${isThicknessLockActive ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'thickness', variant.thickness)} onChange={(event) => updateDecimalInputDraft(variant.id, 'thickness', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'thickness', variant.thickness, (value) => updateVariant(variant.id, { thickness: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-6 w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><span className={compactTableFourDigitSlotClassName}>{variant.thickness === null ? '—' : formatDecimalForDisplay(variant.thickness)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" className={`${compactTableAlignedInputClassName} !mt-0 !w-[7ch] text-right`} value={readDecimalInputValue(variant.id, 'weight', variant.weight)} onChange={(event) => updateDecimalInputDraft(variant.id, 'weight', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'weight', variant.weight ?? null, (value) => updateVariant(variant.id, { weight: value }), null)} /><span className={compactTableAdornmentClassName}>g</span></span></span> : <span className="inline-flex h-6 w-full justify-end"><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{variant.weight === null || variant.weight === undefined ? '—' : formatDecimalForDisplay(variant.weight)}</span><span className={compactTableAdornmentClassName}>g</span></span></span>}</td>
                   <td className="px-2 py-1.5 text-center">
                     {isTableEditable ? (
@@ -3333,7 +3404,7 @@ export default function AdminItemEditorPage({
                           inputMode="decimal"
                           disabled={isToleranceLocked}
                           maxLength={1}
-                          className={`${compactTableAlignedInputClassName} !mt-0 !w-[3ch] !px-0 text-center ${isToleranceLocked ? '!bg-[color:var(--ui-neutral-bg)] text-slate-500' : ''}`}
+                          className={`${compactTableAlignedInputClassName} !mt-0 !w-[3ch] !px-0 text-center ${isToleranceLocked ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : ''}`}
                           value={decimalInputDrafts[decimalDraftKey(variant.id, 'errorTolerance')] ?? variant.errorTolerance ?? ''}
                           onChange={(event) => {
                             if (isToleranceLocked) return;

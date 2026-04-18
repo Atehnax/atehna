@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type FocusEvent as ReactFocusEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Uppy from '@uppy/core';
 import { UppyContextProvider, useDropzone } from '@uppy/react';
@@ -22,7 +22,7 @@ import { Button } from '@/shared/ui/button';
 import { Chip } from '@/shared/ui/badge';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { IconButton } from '@/shared/ui/icon-button';
-import { ArchiveIcon, PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { ActionUndoIcon, ArchiveIcon, PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
 import { adminTextButtonTypographyTokenClasses, buttonTokenClasses } from '@/shared/ui/theme/tokens';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
@@ -62,9 +62,8 @@ const compactSideInputWrapClassName = 'mt-0.5 flex h-[30px] items-center gap-2 r
 const compactSideInputClassName = 'h-full w-full border-0 bg-transparent p-0 text-sm text-slate-900 outline-none focus:ring-0';
 const articleNameInputClassName = 'admin-item-name-input h-full w-full min-w-0 border-0 bg-transparent p-0 shadow-none outline-none transition-[color] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none disabled:cursor-not-allowed';
 const topBarArticleNameInputClassName = `${articleNameInputClassName} min-w-0 font-['Inter',system-ui,sans-serif] text-[22px] font-semibold leading-none tracking-tight`;
-const topActionButtonClassName = `inline-flex h-12 items-center gap-2 rounded-2xl px-5 ${adminTextButtonTypographyTokenClasses} leading-none tracking-[0]`;
-const topActionMatchArchiveButtonClassName = `gap-2 ${adminTextButtonTypographyTokenClasses} !h-8 !leading-none !tracking-[0]`;
-const topActionButtonIconClassName = 'h-[15.3px] w-[15.3px]';
+const topActionSaveButtonClassName = `gap-2 ${adminTextButtonTypographyTokenClasses} !h-8 !leading-none !tracking-[0] disabled:!border-transparent disabled:!bg-[color:var(--blue-500)] disabled:!text-white disabled:!opacity-50`;
+const topSaveActionButtonIconClassName = 'h-[15.3px] w-[15.3px]';
 const editorSectionTitleClassName = 'text-[20px] font-semibold tracking-tight text-slate-900';
 const inlineSnippetClass = 'rounded bg-[#1982bf1a] px-1 py-0.5 font-mono text-[11px] text-[#1982bf]';
 const mimeTypeToImageExtension: Record<string, string> = {
@@ -165,8 +164,27 @@ type EditorPersistedState = {
   selectedCategoryPath: string[];
   videoAssignedVariantId: string | null;
 };
+type SaveChangeGroup = {
+  title: string;
+  items: string[];
+};
+type PendingSaveConfirmation = {
+  nextPersistedState: EditorPersistedState;
+  changeGroups: SaveChangeGroup[];
+  changeCount: number;
+};
+type EditorUndoSnapshot = {
+  persistedState: EditorPersistedState;
+  decimalDrafts: Record<string, string>;
+};
+type TextUndoSession = {
+  element: HTMLElement;
+  snapshot: EditorUndoSnapshot;
+  snapshotKey: string;
+};
 const MEDIA_SLOT_COUNT = 7;
 const GALLERY_SMALL_SLOT_COUNT = 6;
+const UNDO_HISTORY_LIMIT = 10;
 const IMAGE_MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 const VIDEO_MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 const TECHNICAL_DOCUMENT_MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
@@ -240,6 +258,29 @@ function cloneEditorPersistedState(state: EditorPersistedState): EditorPersisted
   };
 }
 
+function cloneEditorUndoSnapshot(snapshot: EditorUndoSnapshot): EditorUndoSnapshot {
+  return {
+    persistedState: cloneEditorPersistedState(snapshot.persistedState),
+    decimalDrafts: { ...snapshot.decimalDrafts }
+  };
+}
+
+function isUndoTrackedTextField(target: EventTarget | null): target is HTMLElement {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target instanceof HTMLTextAreaElement) return true;
+  if (target instanceof HTMLInputElement) {
+    const inputType = (target.type || 'text').toLowerCase();
+    return inputType !== 'checkbox'
+      && inputType !== 'radio'
+      && inputType !== 'range'
+      && inputType !== 'file'
+      && inputType !== 'button'
+      && inputType !== 'submit'
+      && inputType !== 'reset';
+  }
+  return target.isContentEditable;
+}
+
 function serializeEditorPersistedState(state: EditorPersistedState, decimalDrafts: Record<string, string>) {
   return JSON.stringify({
     draft: {
@@ -306,6 +347,277 @@ function serializeEditorPersistedState(state: EditorPersistedState, decimalDraft
     videoAssignedVariantId: state.videoAssignedVariantId,
     decimalDrafts: Object.fromEntries(Object.entries(decimalDrafts).sort(([left], [right]) => left.localeCompare(right)))
   });
+}
+
+function truncateSaveDiffText(value: string, maxLength = 120) {
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  if (!normalized) return 'prazno';
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
+}
+
+function formatSaveDiffText(value: string | null | undefined, maxLength = 120) {
+  const normalized = (value ?? '').trim();
+  return normalized ? truncateSaveDiffText(normalized, maxLength) : 'prazno';
+}
+
+function formatSaveDiffPath(path: string[]) {
+  return path.length > 0 ? path.join(' / ') : 'prazno';
+}
+
+function formatSaveDiffNumber(value: number | null | undefined, suffix = '') {
+  if (value === null || value === undefined || !Number.isFinite(value)) return 'prazno';
+  const display = formatDecimalForDisplay(value);
+  return suffix ? `${display} ${suffix}` : display;
+}
+
+function formatSaveDiffInteger(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return 'prazno';
+  return `${Math.round(value)}`;
+}
+
+function formatSaveDiffCurrency(value: number) {
+  return formatCurrency(Number.isFinite(value) ? value : 0);
+}
+
+function formatSaveDiffStatus(active: boolean) {
+  return active ? 'Aktiven' : 'Skrit';
+}
+
+function formatSaveDiffNoteTag(value: VariantTag | '') {
+  return ITEM_NOTE_OPTIONS.find((entry) => entry.value === value)?.label ?? 'Brez opombe';
+}
+
+function formatSaveDiffAssignments(assignments: number[] | undefined) {
+  const normalized = (assignments ?? [])
+    .filter((value) => Number.isFinite(value))
+    .slice()
+    .sort((left, right) => left - right);
+  return normalized.length > 0 ? normalized.map((value) => `#${value + 1}`).join(', ') : 'brez dodeljenih slik';
+}
+
+function buildVariantSaveDiffLabel(variant: Variant, index: number) {
+  const label = variant.label.trim();
+  return label || `Razlicica ${index + 1}`;
+}
+
+function describeStagedImageSlot(slot: StagedImageSlot) {
+  return formatSaveDiffText(slot.file?.name ?? slot.filename ?? slot.uploadedUrl ?? slot.previewUrl ?? 'slika', 80);
+}
+
+function describeStagedDocument(documentEntry: StagedTechnicalDocument) {
+  return formatSaveDiffText(documentEntry.file?.name ?? documentEntry.name ?? documentEntry.blobUrl ?? 'tehnicni list', 80);
+}
+
+function describeStagedVideo(video: StagedVideoState) {
+  const sourceLabel = video.source === 'youtube' ? 'YouTube' : 'Upload';
+  const label = video.file?.name ?? video.label ?? video.uploadedUrl ?? video.previewUrl ?? 'video';
+  return `${sourceLabel}: ${formatSaveDiffText(label, 80)}`;
+}
+
+function resolveVideoVariantTargetLabel(state: EditorPersistedState, variantId: string | null) {
+  if (!variantId) return 'brez dodelitve';
+  const index = state.draft.variants.findIndex((variant) => variant.id === variantId);
+  if (index === -1) return 'brez dodelitve';
+  return buildVariantSaveDiffLabel(state.draft.variants[index], index);
+}
+
+function pushSaveDiff(items: string[], label: string, previousValue: string, nextValue: string) {
+  if (previousValue === nextValue) return;
+  items.push(`${label}: ${previousValue} -> ${nextValue}`);
+}
+
+function sameNumberArray(left: number[] | undefined, right: number[] | undefined) {
+  const normalizedLeft = (left ?? []).slice().sort((a, b) => a - b);
+  const normalizedRight = (right ?? []).slice().sort((a, b) => a - b);
+  if (normalizedLeft.length !== normalizedRight.length) return false;
+  return normalizedLeft.every((value, index) => value === normalizedRight[index]);
+}
+
+function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersistedState): SaveChangeGroup[] {
+  const groups: SaveChangeGroup[] = [];
+
+  const basicItems: string[] = [];
+  pushSaveDiff(basicItems, 'Naziv', formatSaveDiffText(saved.draft.name), formatSaveDiffText(next.draft.name));
+  pushSaveDiff(basicItems, 'URL', formatSaveDiffText(saved.draft.slug), formatSaveDiffText(next.draft.slug));
+  pushSaveDiff(basicItems, 'Status', formatSaveDiffStatus(saved.draft.active), formatSaveDiffStatus(next.draft.active));
+  pushSaveDiff(basicItems, 'Kategorija', formatSaveDiffPath(saved.selectedCategoryPath), formatSaveDiffPath(next.selectedCategoryPath));
+  pushSaveDiff(basicItems, 'Opis', formatSaveDiffText(saved.draft.description, 180), formatSaveDiffText(next.draft.description, 180));
+  pushSaveDiff(basicItems, 'Opomba artikla', formatSaveDiffNoteTag(saved.itemLevelNote), formatSaveDiffNoteTag(next.itemLevelNote));
+  if (basicItems.length > 0) groups.push({ title: 'Osnovni podatki', items: basicItems });
+
+  const detailItems: string[] = [];
+  pushSaveDiff(detailItems, 'Osnovni SKU', formatSaveDiffText(saved.sideSettings.sku), formatSaveDiffText(next.sideSettings.sku));
+  pushSaveDiff(detailItems, 'Blagovna znamka', formatSaveDiffText(saved.sideSettings.brand), formatSaveDiffText(next.sideSettings.brand));
+  pushSaveDiff(detailItems, 'Material', formatSaveDiffText(saved.sideSettings.material), formatSaveDiffText(next.sideSettings.material));
+  pushSaveDiff(detailItems, 'Barva', formatSaveDiffText(saved.sideSettings.color), formatSaveDiffText(next.sideSettings.color));
+  pushSaveDiff(detailItems, 'Oblika', formatSaveDiffText(saved.sideSettings.surface), formatSaveDiffText(next.sideSettings.surface));
+  pushSaveDiff(detailItems, 'Toleranca', formatSaveDiffText(saved.sideSettings.thicknessTolerance), formatSaveDiffText(next.sideSettings.thicknessTolerance));
+  pushSaveDiff(detailItems, 'Min. narocilo', formatSaveDiffInteger(saved.sideSettings.moq), formatSaveDiffInteger(next.sideSettings.moq));
+  pushSaveDiff(detailItems, 'Teza / kos', formatSaveDiffText(saved.sideSettings.weightPerUnit), formatSaveDiffText(next.sideSettings.weightPerUnit));
+  if (detailItems.length > 0) groups.push({ title: 'Dodatni podatki', items: detailItems });
+
+  const variantItems: string[] = [];
+  const savedVariantsById = new Map(saved.draft.variants.map((variant, index) => [variant.id, { variant, index }]));
+  const nextVariantsById = new Map(next.draft.variants.map((variant, index) => [variant.id, { variant, index }]));
+
+  saved.draft.variants.forEach((variant, index) => {
+    if (nextVariantsById.has(variant.id)) return;
+    variantItems.push(`Odstranjena razlicica "${buildVariantSaveDiffLabel(variant, index)}".`);
+  });
+
+  next.draft.variants.forEach((variant, index) => {
+    const savedVariantInfo = savedVariantsById.get(variant.id);
+    const variantLabel = buildVariantSaveDiffLabel(variant, index);
+    const prefix = `Razlicica "${variantLabel}"`;
+
+    if (!savedVariantInfo) {
+      const summary: string[] = [];
+      if (variant.sku.trim()) summary.push(`SKU ${variant.sku.trim()}`);
+      if (variant.length !== null || variant.width !== null || variant.thickness !== null) {
+        summary.push(
+          `dimenzije ${[
+            formatSaveDiffNumber(variant.length, 'mm'),
+            formatSaveDiffNumber(variant.width, 'mm'),
+            formatSaveDiffNumber(variant.thickness, 'mm')
+          ].join(' / ')}`
+        );
+      }
+      summary.push(`cena ${formatSaveDiffCurrency(variant.price)}`);
+      variantItems.push(`Dodana razlicica "${variantLabel}"${summary.length > 0 ? ` (${summary.join(', ')})` : ''}.`);
+      return;
+    }
+
+    const savedVariant = savedVariantInfo.variant;
+    pushSaveDiff(variantItems, `${prefix} - naziv`, formatSaveDiffText(savedVariant.label), formatSaveDiffText(variant.label));
+    pushSaveDiff(variantItems, `${prefix} - dolzina`, formatSaveDiffNumber(savedVariant.length, 'mm'), formatSaveDiffNumber(variant.length, 'mm'));
+    pushSaveDiff(variantItems, `${prefix} - sirina/fi`, formatSaveDiffNumber(savedVariant.width, 'mm'), formatSaveDiffNumber(variant.width, 'mm'));
+    pushSaveDiff(variantItems, `${prefix} - debelina`, formatSaveDiffNumber(savedVariant.thickness, 'mm'), formatSaveDiffNumber(variant.thickness, 'mm'));
+    pushSaveDiff(variantItems, `${prefix} - teza`, formatSaveDiffNumber(savedVariant.weight, 'g'), formatSaveDiffNumber(variant.weight, 'g'));
+    pushSaveDiff(variantItems, `${prefix} - toleranca`, formatSaveDiffText(savedVariant.errorTolerance), formatSaveDiffText(variant.errorTolerance));
+    pushSaveDiff(variantItems, `${prefix} - cena`, formatSaveDiffCurrency(savedVariant.price), formatSaveDiffCurrency(variant.price));
+    pushSaveDiff(variantItems, `${prefix} - popust`, formatSaveDiffNumber(savedVariant.discountPct, '%'), formatSaveDiffNumber(variant.discountPct, '%'));
+    pushSaveDiff(variantItems, `${prefix} - zaloga`, formatSaveDiffInteger(savedVariant.stock), formatSaveDiffInteger(variant.stock));
+    pushSaveDiff(variantItems, `${prefix} - min. narocilo`, formatSaveDiffInteger(savedVariant.minOrder), formatSaveDiffInteger(variant.minOrder));
+    pushSaveDiff(variantItems, `${prefix} - SKU`, formatSaveDiffText(savedVariant.sku), formatSaveDiffText(variant.sku));
+    pushSaveDiff(variantItems, `${prefix} - status`, formatSaveDiffStatus(savedVariant.active), formatSaveDiffStatus(variant.active));
+    pushSaveDiff(variantItems, `${prefix} - vrstni red`, formatSaveDiffInteger(savedVariant.sort), formatSaveDiffInteger(variant.sort));
+
+    const savedVariantTag = saved.variantTags[savedVariant.id] ?? '';
+    const nextVariantTag = next.variantTags[variant.id] ?? '';
+    pushSaveDiff(variantItems, `${prefix} - opomba`, formatSaveDiffNoteTag(savedVariantTag), formatSaveDiffNoteTag(nextVariantTag));
+
+    if (!sameNumberArray(savedVariant.imageAssignments, variant.imageAssignments)) {
+      pushSaveDiff(
+        variantItems,
+        `${prefix} - dodeljene slike`,
+        formatSaveDiffAssignments(savedVariant.imageAssignments),
+        formatSaveDiffAssignments(variant.imageAssignments)
+      );
+    }
+  });
+
+  if (variantItems.length > 0) groups.push({ title: 'Razlicice', items: variantItems });
+
+  const imageItems: string[] = [];
+  const maxImageSlots = Math.max(saved.mediaImages.length, next.mediaImages.length);
+  for (let index = 0; index < maxImageSlots; index += 1) {
+    const savedSlot = saved.mediaImages[index];
+    const nextSlot = next.mediaImages[index];
+    const label = `Slika ${index + 1}`;
+    if (!savedSlot && nextSlot) {
+      imageItems.push(`${label}: dodana (${describeStagedImageSlot(nextSlot)}).`);
+      continue;
+    }
+    if (savedSlot && !nextSlot) {
+      imageItems.push(`${label}: odstranjena (${describeStagedImageSlot(savedSlot)}).`);
+      continue;
+    }
+    if (!savedSlot || !nextSlot) continue;
+
+    const savedImageKey = JSON.stringify({
+      fileName: savedSlot.file?.name ?? null,
+      filename: savedSlot.filename,
+      uploadedUrl: savedSlot.uploadedUrl,
+      previewUrl: savedSlot.previewUrl
+    });
+    const nextImageKey = JSON.stringify({
+      fileName: nextSlot.file?.name ?? null,
+      filename: nextSlot.filename,
+      uploadedUrl: nextSlot.uploadedUrl,
+      previewUrl: nextSlot.previewUrl
+    });
+    if (savedImageKey !== nextImageKey) {
+      pushSaveDiff(imageItems, label, describeStagedImageSlot(savedSlot), describeStagedImageSlot(nextSlot));
+    }
+    pushSaveDiff(imageItems, `${label} - alt`, formatSaveDiffText(savedSlot.altText), formatSaveDiffText(nextSlot.altText));
+  }
+  if (imageItems.length > 0) groups.push({ title: 'Slike', items: imageItems });
+
+  const videoItems: string[] = [];
+  if (!saved.video && next.video) {
+    videoItems.push(`Video: dodan (${describeStagedVideo(next.video)}).`);
+  } else if (saved.video && !next.video) {
+    videoItems.push(`Video: odstranjen (${describeStagedVideo(saved.video)}).`);
+  } else if (saved.video && next.video) {
+    const savedVideoKey = JSON.stringify({
+      source: saved.video.source,
+      label: saved.video.label,
+      uploadedUrl: saved.video.uploadedUrl,
+      previewUrl: saved.video.previewUrl,
+      fileName: saved.video.file?.name ?? null
+    });
+    const nextVideoKey = JSON.stringify({
+      source: next.video.source,
+      label: next.video.label,
+      uploadedUrl: next.video.uploadedUrl,
+      previewUrl: next.video.previewUrl,
+      fileName: next.video.file?.name ?? null
+    });
+    if (savedVideoKey !== nextVideoKey) {
+      pushSaveDiff(videoItems, 'Video', describeStagedVideo(saved.video), describeStagedVideo(next.video));
+    }
+  }
+  const savedVideoTarget = resolveVideoVariantTargetLabel(saved, saved.videoAssignedVariantId);
+  const nextVideoTarget = resolveVideoVariantTargetLabel(next, next.videoAssignedVariantId);
+  if (saved.video || next.video) {
+    pushSaveDiff(videoItems, 'Dodelitev videa', savedVideoTarget, nextVideoTarget);
+  }
+  if (videoItems.length > 0) groups.push({ title: 'Video', items: videoItems });
+
+  const documentItems: string[] = [];
+  const maxDocumentCount = Math.max(saved.documents.length, next.documents.length);
+  for (let index = 0; index < maxDocumentCount; index += 1) {
+    const savedDocument = saved.documents[index];
+    const nextDocument = next.documents[index];
+    const label = `Tehnicni list ${index + 1}`;
+    if (!savedDocument && nextDocument) {
+      documentItems.push(`${label}: dodan (${describeStagedDocument(nextDocument)}).`);
+      continue;
+    }
+    if (savedDocument && !nextDocument) {
+      documentItems.push(`${label}: odstranjen (${describeStagedDocument(savedDocument)}).`);
+      continue;
+    }
+    if (!savedDocument || !nextDocument) continue;
+
+    const savedDocumentKey = JSON.stringify({
+      fileName: savedDocument.file?.name ?? null,
+      name: savedDocument.name,
+      blobUrl: savedDocument.blobUrl
+    });
+    const nextDocumentKey = JSON.stringify({
+      fileName: nextDocument.file?.name ?? null,
+      name: nextDocument.name,
+      blobUrl: nextDocument.blobUrl
+    });
+    if (savedDocumentKey !== nextDocumentKey) {
+      pushSaveDiff(documentItems, label, describeStagedDocument(savedDocument), describeStagedDocument(nextDocument));
+    }
+  }
+  if (documentItems.length > 0) groups.push({ title: 'Tehnicni listi', items: documentItems });
+
+  return groups;
 }
 
 function buildArchiveRecord(state: EditorPersistedState, identifier: string) {
@@ -1337,12 +1649,20 @@ export default function AdminItemEditorPage({
   const [videoMoveMode, setVideoMoveMode] = useState(false);
   const [videoAssignedVariantId, setVideoAssignedVariantId] = useState<string | null>(initialPersistedState.videoAssignedVariantId);
   const technicalUploadInputRef = useRef<HTMLInputElement>(null);
-  const [pendingMediaRemoval, setPendingMediaRemoval] = useState<{ type: 'image'; slotIndex: number } | { type: 'video' } | null>(null);
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>(() => ({ ...initialPersistedState.variantTags }));
   const [editingImageSlot, setEditingImageSlot] = useState<number | null>(null);
   const [decimalInputDrafts, setDecimalInputDrafts] = useState<Record<string, string>>({});
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() => [...initialPersistedState.selectedCategoryPath]);
   const [savedSnapshot, setSavedSnapshot] = useState<EditorPersistedState>(() => cloneEditorPersistedState(initialPersistedState));
+  const [pendingSaveConfirmation, setPendingSaveConfirmation] = useState<PendingSaveConfirmation | null>(null);
+  const undoHistoryRef = useRef<EditorUndoSnapshot[]>([]);
+  const activeTextUndoSessionRef = useRef<TextUndoSession | null>(null);
+  const pendingTextUndoCommitRef = useRef<TextUndoSession | null>(null);
+  const pendingTextUndoStartRef = useRef<HTMLElement | null>(null);
+  const suppressUndoTrackingRef = useRef(false);
+  const lastTrackedUndoSnapshotRef = useRef<{ key: string; snapshot: EditorUndoSnapshot } | null>(null);
+  const [undoDepth, setUndoDepth] = useState(0);
+  const [textUndoSessionRevision, setTextUndoSessionRevision] = useState(0);
   const mediaImagesDraft = useMemo(() => mediaImageSlots.map((slot) => slot.previewUrl).filter(Boolean), [mediaImageSlots]);
 
   const decimalDraftKey = (variantId: string, field: string) => `${variantId}:${field}`;
@@ -1395,20 +1715,29 @@ export default function AdminItemEditorPage({
     setSelectedCategoryPath(path);
   };
 
-  const currentPersistedState = useMemo<EditorPersistedState>(() => ({
-    draft: {
-      ...draft,
-      variants: draft.variants.map(cloneVariant)
-    },
-    sideSettings: cloneSideSettings(sideSettings),
-    documents: documents.map(cloneDocument),
-    itemLevelNote,
-    mediaImages: mediaImageSlots.map(cloneMediaImage),
-    video: cloneVideo(videoDraft),
-    variantTags: { ...variantTags },
-    selectedCategoryPath: [...selectedCategoryPath],
-    videoAssignedVariantId
-  }), [documents, draft, itemLevelNote, mediaImageSlots, selectedCategoryPath, sideSettings, variantTags, videoAssignedVariantId, videoDraft]);
+  const buildPersistedState = useCallback((nextDraft: ProductFamily): EditorPersistedState => (
+    {
+      draft: {
+        ...nextDraft,
+        category: selectedCategoryPath.join(' / '),
+        variants: nextDraft.variants.map(cloneVariant)
+      },
+      sideSettings: cloneSideSettings(sideSettings),
+      documents: documents.map(cloneDocument),
+      itemLevelNote,
+      mediaImages: mediaImageSlots.map(cloneMediaImage),
+      video: cloneVideo(videoDraft),
+      variantTags: { ...variantTags },
+      selectedCategoryPath: [...selectedCategoryPath],
+      videoAssignedVariantId
+    }
+  ), [documents, itemLevelNote, mediaImageSlots, selectedCategoryPath, sideSettings, variantTags, videoAssignedVariantId, videoDraft]);
+
+  const currentPersistedState = useMemo<EditorPersistedState>(() => buildPersistedState(draft), [buildPersistedState, draft]);
+  const currentUndoSnapshot = useMemo<EditorUndoSnapshot>(() => ({
+    persistedState: cloneEditorPersistedState(currentPersistedState),
+    decimalDrafts: { ...decimalInputDrafts }
+  }), [currentPersistedState, decimalInputDrafts]);
 
   const savedSnapshotKey = useMemo(() => serializeEditorPersistedState(savedSnapshot, {}), [savedSnapshot]);
   const currentSnapshotKey = useMemo(
@@ -1416,26 +1745,142 @@ export default function AdminItemEditorPage({
     [currentPersistedState, decimalInputDrafts]
   );
 
-  const restoreSavedSnapshot = useCallback(() => {
+  const clearUndoHistory = useCallback(() => {
+    undoHistoryRef.current = [];
+    activeTextUndoSessionRef.current = null;
+    pendingTextUndoCommitRef.current = null;
+    pendingTextUndoStartRef.current = null;
+    setUndoDepth(0);
+  }, []);
+
+  const commitPendingTextUndoSession = useCallback(() => {
+    const pendingSession = pendingTextUndoCommitRef.current;
+    if (!pendingSession) return;
+
+    pendingTextUndoCommitRef.current = null;
+    if (pendingSession.snapshotKey !== currentSnapshotKey) {
+      const nextHistory = [...undoHistoryRef.current, cloneEditorUndoSnapshot(pendingSession.snapshot)];
+      undoHistoryRef.current = nextHistory.slice(-UNDO_HISTORY_LIMIT);
+      setUndoDepth(undoHistoryRef.current.length);
+    }
+
+    suppressUndoTrackingRef.current = false;
+    lastTrackedUndoSnapshotRef.current = {
+      key: currentSnapshotKey,
+      snapshot: cloneEditorUndoSnapshot(currentUndoSnapshot)
+    };
+  }, [currentSnapshotKey, currentUndoSnapshot]);
+
+  const startTextUndoSession = useCallback((element: HTMLElement) => {
+    activeTextUndoSessionRef.current = {
+      element,
+      snapshot: cloneEditorUndoSnapshot(currentUndoSnapshot),
+      snapshotKey: currentSnapshotKey
+    };
+  }, [currentSnapshotKey, currentUndoSnapshot]);
+
+  useEffect(() => {
+    if (pendingTextUndoCommitRef.current) {
+      commitPendingTextUndoSession();
+    }
+
+    if (editorMode !== 'edit') {
+      pendingTextUndoStartRef.current = null;
+      activeTextUndoSessionRef.current = null;
+      return;
+    }
+
+    const pendingStart = pendingTextUndoStartRef.current;
+    if (!pendingStart) return;
+    pendingTextUndoStartRef.current = null;
+    startTextUndoSession(pendingStart);
+  }, [commitPendingTextUndoSession, editorMode, startTextUndoSession, textUndoSessionRevision]);
+
+  useEffect(() => {
+    const previous = lastTrackedUndoSnapshotRef.current;
+    if (!previous) {
+      lastTrackedUndoSnapshotRef.current = {
+        key: currentSnapshotKey,
+        snapshot: cloneEditorUndoSnapshot(currentUndoSnapshot)
+      };
+      return;
+    }
+
+    if (previous.key === currentSnapshotKey) return;
+    if (activeTextUndoSessionRef.current || pendingTextUndoCommitRef.current || pendingTextUndoStartRef.current) return;
+
+    if (editorMode === 'edit' && !suppressUndoTrackingRef.current) {
+      const nextHistory = [...undoHistoryRef.current, cloneEditorUndoSnapshot(previous.snapshot)];
+      undoHistoryRef.current = nextHistory.slice(-UNDO_HISTORY_LIMIT);
+      setUndoDepth(undoHistoryRef.current.length);
+    }
+
+    suppressUndoTrackingRef.current = false;
+    lastTrackedUndoSnapshotRef.current = {
+      key: currentSnapshotKey,
+      snapshot: cloneEditorUndoSnapshot(currentUndoSnapshot)
+    };
+  }, [currentSnapshotKey, currentUndoSnapshot, editorMode]);
+
+  const applyUndoSnapshot = useCallback((snapshot: EditorUndoSnapshot) => {
+    suppressUndoTrackingRef.current = true;
+    activeTextUndoSessionRef.current = null;
+    pendingTextUndoCommitRef.current = null;
+    pendingTextUndoStartRef.current = null;
     setDraft({
-      ...savedSnapshot.draft,
-      variants: savedSnapshot.draft.variants.map(cloneVariant)
+      ...snapshot.persistedState.draft,
+      variants: snapshot.persistedState.draft.variants.map(cloneVariant)
     });
-    setSideSettings(cloneSideSettings(savedSnapshot.sideSettings));
-    setDocuments(savedSnapshot.documents.map(cloneDocument));
-    setItemLevelNote(savedSnapshot.itemLevelNote);
-    setMediaImageSlots(savedSnapshot.mediaImages.map(cloneMediaImage));
-    setVideoDraft(cloneVideo(savedSnapshot.video));
-    setVariantTags({ ...savedSnapshot.variantTags });
-    setSelectedCategoryPath([...savedSnapshot.selectedCategoryPath]);
-    setVideoAssignedVariantId(savedSnapshot.videoAssignedVariantId);
-    setDecimalInputDrafts({});
+    setSideSettings(cloneSideSettings(snapshot.persistedState.sideSettings));
+    setDocuments(snapshot.persistedState.documents.map(cloneDocument));
+    setItemLevelNote(snapshot.persistedState.itemLevelNote);
+    setMediaImageSlots(snapshot.persistedState.mediaImages.map(cloneMediaImage));
+    setVideoDraft(cloneVideo(snapshot.persistedState.video));
+    setVariantTags({ ...snapshot.persistedState.variantTags });
+    setSelectedCategoryPath([...snapshot.persistedState.selectedCategoryPath]);
+    setVideoAssignedVariantId(snapshot.persistedState.videoAssignedVariantId);
+    setDecimalInputDrafts({ ...snapshot.decimalDrafts });
     setVariantSelections(new Set());
-    setPendingMediaRemoval(null);
     setEditingImageSlot(null);
     setYoutubeInput('');
     setVideoMoveMode(false);
-  }, [savedSnapshot]);
+    setPendingSaveConfirmation(null);
+  }, []);
+
+  const handleUndoTrackedFieldFocus = useCallback((event: ReactFocusEvent<HTMLDivElement>) => {
+    if (editorMode !== 'edit') return;
+    if (!isUndoTrackedTextField(event.target)) return;
+
+    if (pendingTextUndoCommitRef.current) {
+      pendingTextUndoStartRef.current = event.target;
+      return;
+    }
+
+    const activeSession = activeTextUndoSessionRef.current;
+    if (activeSession?.element === event.target) return;
+    startTextUndoSession(event.target);
+  }, [editorMode, startTextUndoSession]);
+
+  const handleUndoTrackedFieldBlur = useCallback((event: ReactFocusEvent<HTMLDivElement>) => {
+    if (!isUndoTrackedTextField(event.target)) return;
+
+    const activeSession = activeTextUndoSessionRef.current;
+    if (!activeSession || activeSession.element !== event.target) return;
+    if (event.relatedTarget instanceof HTMLElement && activeSession.element.contains(event.relatedTarget)) return;
+
+    activeTextUndoSessionRef.current = null;
+    pendingTextUndoCommitRef.current = activeSession;
+    pendingTextUndoStartRef.current = isUndoTrackedTextField(event.relatedTarget) ? event.relatedTarget : null;
+    setTextUndoSessionRevision((current) => current + 1);
+  }, []);
+
+  const restoreSavedSnapshot = useCallback(() => {
+    applyUndoSnapshot({
+      persistedState: cloneEditorPersistedState(savedSnapshot),
+      decimalDrafts: {}
+    });
+    clearUndoHistory();
+  }, [applyUndoSnapshot, clearUndoHistory, savedSnapshot]);
 
   const isEditable = editorMode === 'edit';
   const hasUnsavedChanges = currentSnapshotKey !== savedSnapshotKey;
@@ -1447,6 +1892,7 @@ export default function AdminItemEditorPage({
   const isGeneratorLocked = !isTableEditable;
   const hasSelectedVariants = variantSelections.size > 0;
   const allVariantsSelected = draft.variants.length > 0 && draft.variants.every((variant) => variantSelections.has(variant.id));
+  const canUndoStagedChanges = isEditable && !isSaving && pendingSaveConfirmation === null && undoDepth > 0;
   const generatorDimensionLabels: Record<GeneratorDimension, string> = {
     length: 'Dolžina',
     width: 'Širina/fi',
@@ -1534,42 +1980,48 @@ export default function AdminItemEditorPage({
     };
   }, [decimalInputDrafts, draft]);
 
-  const save = async (..._args: unknown[]) => {
-    if (!draft.name.trim()) {
+  const performSave = async (preparedState: EditorPersistedState) => {
+    const nextDraft = preparedState.draft;
+
+    if (!nextDraft.name.trim()) {
       toast.error('Naziv je obvezen.');
       return;
     }
-    if (!draft.category.trim() || selectedCategoryPath.length === 0) {
+    if (!nextDraft.category.trim() || preparedState.selectedCategoryPath.length === 0) {
       toast.error('Kategorija je obvezna.');
       return;
     }
-    if (!isEditable || !hasUnsavedChanges || isSaving) return;
+    if (!isEditable || isSaving) return;
 
-    const decimalCommit = commitPendingDecimalDrafts();
-    if (decimalCommit.error) {
-      toast.error(decimalCommit.error);
-      return;
-    }
-
-    const nextDraft = decimalCommit.nextDraft;
-    if (nextDraft !== draft) {
-      setDraft(nextDraft);
-    }
+    suppressUndoTrackingRef.current = true;
+    setDraft({
+      ...nextDraft,
+      variants: nextDraft.variants.map(cloneVariant)
+    });
+    setSideSettings(cloneSideSettings(preparedState.sideSettings));
+    setDocuments(preparedState.documents.map(cloneDocument));
+    setItemLevelNote(preparedState.itemLevelNote);
+    setMediaImageSlots(preparedState.mediaImages.map(cloneMediaImage));
+    setVideoDraft(cloneVideo(preparedState.video));
+    setVariantTags({ ...preparedState.variantTags });
+    setSelectedCategoryPath([...preparedState.selectedCategoryPath]);
+    setVideoAssignedVariantId(preparedState.videoAssignedVariantId);
     if (Object.keys(decimalInputDrafts).length > 0) {
       setDecimalInputDrafts({});
     }
 
     const nextSlug = nextDraft.slug.trim() || toSlug(nextDraft.name.trim());
-    const localImageUrlsToRevoke = mediaImageSlots
+    const localImageUrlsToRevoke = preparedState.mediaImages
       .filter((slot) => slot.file && slot.previewUrl.startsWith('blob:'))
       .map((slot) => slot.previewUrl);
-    const localVideoUrlsToRevoke = videoDraft?.file && videoDraft.previewUrl.startsWith('blob:') ? [videoDraft.previewUrl] : [];
+    const localVideoUrlsToRevoke =
+      preparedState.video?.file && preparedState.video.previewUrl.startsWith('blob:') ? [preparedState.video.previewUrl] : [];
 
     setIsSaving(true);
 
     try {
       const uploadedImages = await Promise.all(
-        mediaImageSlots.map(async (slot) => {
+        preparedState.mediaImages.map(async (slot) => {
           if (!slot.file) return slot;
           const uploaded = await uploadMediaFile(slot.file);
           imageTypeHintsRef.current[uploaded.url] = inferImageExtensionLabel({
@@ -1588,25 +2040,25 @@ export default function AdminItemEditorPage({
         })
       );
 
-      const uploadedVideo = videoDraft
+      const uploadedVideo = preparedState.video
         ? await (async () => {
-            if (videoDraft.source === 'youtube' || !videoDraft.file) return videoDraft;
-            const uploaded = await uploadMediaFile(videoDraft.file);
+            if (preparedState.video?.source === 'youtube' || !preparedState.video?.file) return preparedState.video;
+            const uploaded = await uploadMediaFile(preparedState.video.file);
             return {
-              ...videoDraft,
+              ...preparedState.video,
               previewUrl: uploaded.url,
               uploadedUrl: uploaded.url,
               blobPathname: uploaded.pathname,
-              label: uploaded.filename ?? videoDraft.label,
+              label: uploaded.filename ?? preparedState.video.label,
               file: null,
-              mimeType: uploaded.mimeType ?? videoDraft.mimeType,
+              mimeType: uploaded.mimeType ?? preparedState.video.mimeType,
               localId: null
             } satisfies StagedVideoState;
           })()
         : null;
 
       const uploadedDocuments = await Promise.all(
-        documents.map(async (documentEntry) => {
+        preparedState.documents.map(async (documentEntry) => {
           if (!documentEntry.file) return documentEntry;
           const uploaded = await uploadMediaFile(documentEntry.file);
           return {
@@ -1625,16 +2077,16 @@ export default function AdminItemEditorPage({
         id: initialData?.id,
         itemName: nextDraft.name.trim(),
         itemType: (initialData?.itemType ?? 'unit') as 'unit' | 'sheet' | 'linear' | 'bulk',
-        badge: itemLevelNote || null,
+        badge: preparedState.itemLevelNote || null,
         status: nextDraft.active ? 'active' : 'inactive',
-        categoryPath: selectedCategoryPath,
-        sku: sideSettings.sku || nextDraft.variants[0]?.sku || null,
+        categoryPath: preparedState.selectedCategoryPath,
+        sku: preparedState.sideSettings.sku || nextDraft.variants[0]?.sku || null,
         slug: nextSlug,
         unit: null,
-        brand: sideSettings.brand || null,
-        material: sideSettings.material || null,
-        colour: sideSettings.color || null,
-        shape: sideSettings.surface || null,
+        brand: preparedState.sideSettings.brand || null,
+        material: preparedState.sideSettings.material || null,
+        colour: preparedState.sideSettings.color || null,
+        shape: preparedState.sideSettings.surface || null,
         description: nextDraft.description || '',
         adminNotes: initialData?.adminNotes ?? null,
         position: nextDraft.sort ?? 0,
@@ -1643,16 +2095,16 @@ export default function AdminItemEditorPage({
           length: variant.length,
           width: variant.width,
           thickness: variant.thickness,
-          weight: variant.weight ?? (sideSettings.weightPerUnit ? Number(sideSettings.weightPerUnit) : null),
-          errorTolerance: (variant.errorTolerance ?? sideSettings.thicknessTolerance) || null,
+          weight: variant.weight ?? (preparedState.sideSettings.weightPerUnit ? Number(preparedState.sideSettings.weightPerUnit) : null),
+          errorTolerance: (variant.errorTolerance ?? preparedState.sideSettings.thicknessTolerance) || null,
           price: variant.price,
           discountPct: variant.discountPct,
           inventory: variant.stock,
-          minOrder: Math.max(1, variant.minOrder ?? Number(sideSettings.moq || 1)),
+          minOrder: Math.max(1, variant.minOrder ?? Number(preparedState.sideSettings.moq || 1)),
           variantSku: variant.sku || null,
           unit: null,
           status: variant.active ? 'active' : 'inactive',
-          badge: variantTags[variant.id] ?? (normalizeVariantTag(variant.badge) || null),
+          badge: preparedState.variantTags[variant.id] ?? (normalizeVariantTag(variant.badge) || null),
           position: variant.sort ?? index,
           imageAssignments: variant.imageAssignments ?? []
         })),
@@ -1676,8 +2128,8 @@ export default function AdminItemEditorPage({
                   blobPathname: uploadedVideo.source === 'upload' ? uploadedVideo.blobPathname ?? null : null,
                   filename: uploadedVideo.label,
                   videoType: uploadedVideo.source,
-                  variantIndex: videoAssignedVariantId
-                    ? Math.max(0, nextDraft.variants.findIndex((variant) => variant.id === videoAssignedVariantId))
+                  variantIndex: preparedState.videoAssignedVariantId
+                    ? Math.max(0, nextDraft.variants.findIndex((variant) => variant.id === preparedState.videoAssignedVariantId))
                     : null,
                   position: 0
                 }
@@ -1702,28 +2154,35 @@ export default function AdminItemEditorPage({
       const canonicalDraft: ProductFamily = {
         ...nextDraft,
         slug: body.slug ?? nextSlug,
-        category: selectedCategoryPath.join(' / ')
+        category: preparedState.selectedCategoryPath.join(' / ')
       };
       const canonicalSnapshot: EditorPersistedState = {
         draft: {
           ...canonicalDraft,
           variants: canonicalDraft.variants.map(cloneVariant)
         },
-        sideSettings: cloneSideSettings(sideSettings),
+        sideSettings: cloneSideSettings(preparedState.sideSettings),
         documents: uploadedDocuments.map(cloneDocument),
-        itemLevelNote,
+        itemLevelNote: preparedState.itemLevelNote,
         mediaImages: uploadedImages.map(cloneMediaImage),
         video: cloneVideo(uploadedVideo),
-        variantTags: { ...variantTags },
-        selectedCategoryPath: [...selectedCategoryPath],
-        videoAssignedVariantId
+        variantTags: { ...preparedState.variantTags },
+        selectedCategoryPath: [...preparedState.selectedCategoryPath],
+        videoAssignedVariantId: preparedState.videoAssignedVariantId
       };
 
+      suppressUndoTrackingRef.current = true;
       setDraft(canonicalDraft);
+      setSideSettings(cloneSideSettings(preparedState.sideSettings));
       setMediaImageSlots(uploadedImages.map(cloneMediaImage));
       setVideoDraft(cloneVideo(uploadedVideo));
       setDocuments(uploadedDocuments.map(cloneDocument));
+      setItemLevelNote(preparedState.itemLevelNote);
+      setVariantTags({ ...preparedState.variantTags });
+      setSelectedCategoryPath([...preparedState.selectedCategoryPath]);
+      setVideoAssignedVariantId(preparedState.videoAssignedVariantId);
       setSavedSnapshot(cloneEditorPersistedState(canonicalSnapshot));
+      clearUndoHistory();
       setEditorMode('read');
       toast.success('Artikel shranjen.');
       if (body.slug) {
@@ -1736,6 +2195,56 @@ export default function AdminItemEditorPage({
       setIsSaving(false);
     }
   };
+
+  const save = async (..._args: unknown[]) => {
+    commitPendingTextUndoSession();
+    if (!draft.name.trim()) {
+      toast.error('Naziv je obvezen.');
+      return;
+    }
+    if (!draft.category.trim() || selectedCategoryPath.length === 0) {
+      toast.error('Kategorija je obvezna.');
+      return;
+    }
+    if (!isEditable || !hasUnsavedChanges || isSaving) return;
+
+    const decimalCommit = commitPendingDecimalDrafts();
+    if (decimalCommit.error) {
+      toast.error(decimalCommit.error);
+      return;
+    }
+
+    const nextPersistedState = cloneEditorPersistedState(buildPersistedState(decimalCommit.nextDraft));
+    const computedChangeGroups = buildProposedSaveChanges(savedSnapshot, nextPersistedState);
+    const computedChangeCount = computedChangeGroups.reduce((count, group) => count + group.items.length, 0);
+    const changeGroups =
+      computedChangeCount > 0
+        ? computedChangeGroups
+        : [{ title: 'Spremembe', items: ['Trenutna verzija artikla bo shranjena.'] }];
+    const changeCount = changeGroups.reduce((count, group) => count + group.items.length, 0);
+
+    setPendingSaveConfirmation({
+      nextPersistedState,
+      changeGroups,
+      changeCount
+    });
+  };
+
+  const confirmSave = async () => {
+    if (!pendingSaveConfirmation) return;
+    const nextState = cloneEditorPersistedState(pendingSaveConfirmation.nextPersistedState);
+    setPendingSaveConfirmation(null);
+    await performSave(nextState);
+  };
+
+  const undoLastChange = () => {
+    commitPendingTextUndoSession();
+    const previous = undoHistoryRef.current.pop();
+    if (!previous) return;
+    setUndoDepth(undoHistoryRef.current.length);
+    applyUndoSnapshot(cloneEditorUndoSnapshot(previous));
+  };
+
   const archiveItem = async () => {
     const itemIdentifier = articleId || String(initialData?.id ?? '').trim() || draft.slug.trim();
     if (!itemIdentifier) {
@@ -1775,11 +2284,14 @@ export default function AdminItemEditorPage({
   const canArchive = mode !== 'create' && Boolean(articleId || initialData?.id || draft.slug.trim()) && !isSaving;
 
   const handleEditModeToggle = () => {
+    commitPendingTextUndoSession();
     if (editorMode === 'read') {
+      clearUndoHistory();
       setEditorMode('edit');
       return;
     }
     if (!hasUnsavedChanges) {
+      clearUndoHistory();
       setEditorMode('read');
       return;
     }
@@ -2363,24 +2875,8 @@ export default function AdminItemEditorPage({
     });
   };
 
-  const requestRemoveImageSlot = (slotIndex: number) => {
-    setPendingMediaRemoval({ type: 'image', slotIndex });
-  };
-
-  const requestRemoveVideo = () => {
+  const removeVideoDraft = () => {
     if (!videoDraft) return;
-    setPendingMediaRemoval({ type: 'video' });
-  };
-
-  const closePendingMediaRemoval = () => setPendingMediaRemoval(null);
-
-  const confirmPendingMediaRemoval = () => {
-    if (!pendingMediaRemoval) return;
-    if (pendingMediaRemoval.type === 'image') {
-      removeImageSlot(pendingMediaRemoval.slotIndex);
-      setPendingMediaRemoval(null);
-      return;
-    }
     if (videoDraft?.file && videoDraft.previewUrl.startsWith('blob:')) {
       revokeLocalImageUrl(videoDraft.previewUrl);
     }
@@ -2388,7 +2884,6 @@ export default function AdminItemEditorPage({
     setYoutubeInput('');
     setVideoMoveMode(false);
     setVideoAssignedVariantId(null);
-    setPendingMediaRemoval(null);
   };
 
   const assignImageToVariant = (variantIndex: number, slotIndex: number) => {
@@ -2452,7 +2947,7 @@ export default function AdminItemEditorPage({
         key: 'remove',
         label: 'Odstrani',
         tone: 'danger' as const,
-        onClick: () => requestRemoveImageSlot(slotIndex),
+        onClick: () => removeImageSlot(slotIndex),
         icon: <span aria-hidden className={`${compact ? 'text-[11px]' : 'text-sm'} leading-none`}>✕</span>
       },
       {
@@ -2508,7 +3003,11 @@ export default function AdminItemEditorPage({
     );
   };
   return (
-    <div className="mx-auto max-w-7xl space-y-5 font-['Inter',system-ui,sans-serif] [&>div:nth-child(2)]:hidden">
+    <div
+      className="mx-auto max-w-7xl space-y-5 font-['Inter',system-ui,sans-serif] [&>div:nth-child(2)]:hidden"
+      onFocus={handleUndoTrackedFieldFocus}
+      onBlur={handleUndoTrackedFieldBlur}
+    >
       <section className="rounded-[24px] border border-slate-200 bg-white px-5 py-4">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex min-w-0 flex-1 flex-col gap-3 xl:flex-row xl:items-center">
@@ -2552,39 +3051,53 @@ export default function AdminItemEditorPage({
                 )}
             </div>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-3">
-            <Button
+          <div className="flex flex-nowrap items-center justify-end gap-3">
+            <IconButton
               type="button"
-              variant="outline"
-              size="toolbar"
-              className={topActionMatchArchiveButtonClassName}
               onClick={handleEditModeToggle}
+              tone="neutral"
+              size="sm"
+              className="order-1"
+              aria-label="Uredi artikel"
+              title="Uredi"
               disabled={isSaving}
             >
-              <PencilIcon className={topActionButtonIconClassName} />
-              <span>Uredi</span>
-            </Button>
+              <PencilIcon />
+            </IconButton>
+            <IconButton
+              type="button"
+              onClick={undoLastChange}
+              tone="neutral"
+              size="sm"
+              className="order-2"
+              aria-label="Razveljavi"
+              title="Razveljavi"
+              disabled={!canUndoStagedChanges}
+            >
+              <ActionUndoIcon />
+            </IconButton>
+            <IconButton
+              type="button"
+              onClick={() => void archiveItem()}
+              tone="warning"
+              size="sm"
+              className="order-3"
+              aria-label="Arhiviraj artikel"
+              title="Arhiviraj"
+              disabled={!canArchive}
+            >
+              <ArchiveIcon />
+            </IconButton>
             <Button
               type="button"
               variant="primary"
               size="toolbar"
-              className={topActionMatchArchiveButtonClassName}
+              className={`order-4 ${topActionSaveButtonClassName}`}
               onClick={() => void save()}
               disabled={!isEditable || !hasUnsavedChanges || isSaving}
             >
-              <SaveIcon className={topActionButtonIconClassName} />
+              <SaveIcon className={topSaveActionButtonIconClassName} />
               <span>Shrani</span>
-            </Button>
-            <Button
-              type="button"
-              variant="archive"
-              size="toolbar"
-              className={topActionButtonClassName}
-              onClick={() => void archiveItem()}
-              disabled={!canArchive}
-            >
-              <ArchiveIcon className={topActionButtonIconClassName} />
-              <span>Arhiviraj</span>
             </Button>
           </div>
         </div>
@@ -3008,7 +3521,7 @@ export default function AdminItemEditorPage({
                       )}
                       <div className="absolute inset-y-0 right-2 z-20 flex flex-col items-end justify-start gap-1.5 pt-2 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
                         {[
-                          { key: 'remove', label: 'Odstrani', tone: 'danger' as const, onClick: requestRemoveVideo, icon: <span aria-hidden className="text-sm leading-none">✕</span> },
+                          { key: 'remove', label: 'Odstrani', tone: 'danger' as const, onClick: removeVideoDraft, icon: <span aria-hidden className="text-sm leading-none">✕</span> },
                           {
                             key: 'move',
                             label: 'Premakni',
@@ -3477,24 +3990,52 @@ export default function AdminItemEditorPage({
         </div>
       </section>
       <Dialog
-        open={pendingMediaRemoval !== null}
+        open={pendingSaveConfirmation !== null}
         onOpenChange={(open) => {
-          if (!open) closePendingMediaRemoval();
+          if (!open) setPendingSaveConfirmation(null);
         }}
-        title={pendingMediaRemoval?.type === 'image' ? 'Odstrani sliko' : 'Odstrani video'}
-        panelClassName="max-w-xs"
+        title={pendingSaveConfirmation ? `Pred shranjevanjem preverite spremembe (${pendingSaveConfirmation.changeCount})` : 'Pred shranjevanjem preverite spremembe'}
+        panelClassName="!max-w-2xl"
         footer={(
-          <div className="mt-3 flex justify-end gap-2">
-            <Button type="button" variant="ghost" size="toolbar" className={adminTextButtonTypographyTokenClasses} onClick={closePendingMediaRemoval}>Prekliči</Button>
-            <Button type="button" variant="danger" size="toolbar" className={adminTextButtonTypographyTokenClasses} onClick={confirmPendingMediaRemoval}>Odstrani</Button>
+          <div className="mt-4 flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="default"
+              size="toolbar"
+              className={adminTextButtonTypographyTokenClasses}
+              onClick={() => setPendingSaveConfirmation(null)}
+            >
+              Prekliči
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="toolbar"
+              className={adminTextButtonTypographyTokenClasses}
+              onClick={() => { void confirmSave(); }}
+            >
+              Potrdi in shrani
+            </Button>
           </div>
         )}
       >
-        <p className="mt-2 text-sm text-slate-600">
-          {pendingMediaRemoval?.type === 'image'
-            ? 'Ali res želite odstraniti izbrano sliko?'
-            : 'Ali res želite odstraniti izbrani video?'}
-        </p>
+        <div className="mt-3 max-h-[60vh] space-y-4 overflow-y-auto pr-1">
+          <p className="text-sm text-slate-600">
+            Pred potrditvijo bodo shranjene naslednje spremembe:
+          </p>
+          {pendingSaveConfirmation?.changeGroups.map((group) => (
+            <div key={group.title} className="space-y-2">
+              <h3 className="text-sm font-semibold text-slate-900">{group.title}</h3>
+              <ul className="space-y-1.5 text-sm text-slate-600">
+                {group.items.map((item, index) => (
+                  <li key={`${group.title}-${index}`} className="rounded-lg bg-slate-50 px-3 py-2 leading-5">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       </Dialog>
       {editingImageSlot !== null && mediaImagesDraft[editingImageSlot]
         ? createPortal(

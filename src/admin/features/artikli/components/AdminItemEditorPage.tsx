@@ -1659,6 +1659,7 @@ export default function AdminItemEditorPage({
   const activeTextUndoSessionRef = useRef<TextUndoSession | null>(null);
   const pendingTextUndoCommitRef = useRef<TextUndoSession | null>(null);
   const pendingTextUndoStartRef = useRef<HTMLElement | null>(null);
+  const resumeTextUndoSessionRef = useRef<HTMLElement | null>(null);
   const suppressUndoTrackingRef = useRef(false);
   const lastTrackedUndoSnapshotRef = useRef<{ key: string; snapshot: EditorUndoSnapshot } | null>(null);
   const [undoDepth, setUndoDepth] = useState(0);
@@ -1750,26 +1751,30 @@ export default function AdminItemEditorPage({
     activeTextUndoSessionRef.current = null;
     pendingTextUndoCommitRef.current = null;
     pendingTextUndoStartRef.current = null;
+    resumeTextUndoSessionRef.current = null;
     setUndoDepth(0);
   }, []);
+
+  const appendUndoHistoryEntry = useCallback((snapshot: EditorUndoSnapshot, snapshotKey: string) => {
+    if (snapshotKey === currentSnapshotKey) return;
+    const nextHistory = [...undoHistoryRef.current, cloneEditorUndoSnapshot(snapshot)];
+    undoHistoryRef.current = nextHistory.slice(-UNDO_HISTORY_LIMIT);
+    setUndoDepth(undoHistoryRef.current.length);
+  }, [currentSnapshotKey]);
 
   const commitPendingTextUndoSession = useCallback(() => {
     const pendingSession = pendingTextUndoCommitRef.current;
     if (!pendingSession) return;
 
     pendingTextUndoCommitRef.current = null;
-    if (pendingSession.snapshotKey !== currentSnapshotKey) {
-      const nextHistory = [...undoHistoryRef.current, cloneEditorUndoSnapshot(pendingSession.snapshot)];
-      undoHistoryRef.current = nextHistory.slice(-UNDO_HISTORY_LIMIT);
-      setUndoDepth(undoHistoryRef.current.length);
-    }
+    appendUndoHistoryEntry(pendingSession.snapshot, pendingSession.snapshotKey);
 
     suppressUndoTrackingRef.current = false;
     lastTrackedUndoSnapshotRef.current = {
       key: currentSnapshotKey,
       snapshot: cloneEditorUndoSnapshot(currentUndoSnapshot)
     };
-  }, [currentSnapshotKey, currentUndoSnapshot]);
+  }, [appendUndoHistoryEntry, currentSnapshotKey, currentUndoSnapshot]);
 
   const startTextUndoSession = useCallback((element: HTMLElement) => {
     activeTextUndoSessionRef.current = {
@@ -1778,6 +1783,25 @@ export default function AdminItemEditorPage({
       snapshotKey: currentSnapshotKey
     };
   }, [currentSnapshotKey, currentUndoSnapshot]);
+
+  const commitUndoBoundaryForSelectionChange = useCallback(() => {
+    if (pendingTextUndoCommitRef.current) {
+      commitPendingTextUndoSession();
+    }
+
+    const activeSession = activeTextUndoSessionRef.current;
+    if (!activeSession) return;
+
+    activeTextUndoSessionRef.current = null;
+    resumeTextUndoSessionRef.current = activeSession.element.isConnected ? activeSession.element : null;
+    appendUndoHistoryEntry(activeSession.snapshot, activeSession.snapshotKey);
+
+    suppressUndoTrackingRef.current = false;
+    lastTrackedUndoSnapshotRef.current = {
+      key: currentSnapshotKey,
+      snapshot: cloneEditorUndoSnapshot(currentUndoSnapshot)
+    };
+  }, [appendUndoHistoryEntry, commitPendingTextUndoSession, currentSnapshotKey, currentUndoSnapshot]);
 
   useEffect(() => {
     if (pendingTextUndoCommitRef.current) {
@@ -1820,6 +1844,19 @@ export default function AdminItemEditorPage({
       key: currentSnapshotKey,
       snapshot: cloneEditorUndoSnapshot(currentUndoSnapshot)
     };
+
+    const resumeElement = resumeTextUndoSessionRef.current;
+    if (!resumeElement) return;
+
+    const activeElement = typeof document !== 'undefined' ? document.activeElement : null;
+    if (resumeElement.isConnected && activeElement instanceof Node && (resumeElement === activeElement || resumeElement.contains(activeElement))) {
+      activeTextUndoSessionRef.current = {
+        element: resumeElement,
+        snapshot: cloneEditorUndoSnapshot(currentUndoSnapshot),
+        snapshotKey: currentSnapshotKey
+      };
+    }
+    resumeTextUndoSessionRef.current = null;
   }, [currentSnapshotKey, currentUndoSnapshot, editorMode]);
 
   const applyUndoSnapshot = useCallback((snapshot: EditorUndoSnapshot) => {
@@ -1827,6 +1864,7 @@ export default function AdminItemEditorPage({
     activeTextUndoSessionRef.current = null;
     pendingTextUndoCommitRef.current = null;
     pendingTextUndoStartRef.current = null;
+    resumeTextUndoSessionRef.current = null;
     setDraft({
       ...snapshot.persistedState.draft,
       variants: snapshot.persistedState.draft.variants.map(cloneVariant)
@@ -1873,6 +1911,11 @@ export default function AdminItemEditorPage({
     pendingTextUndoStartRef.current = isUndoTrackedTextField(event.relatedTarget) ? event.relatedTarget : null;
     setTextUndoSessionRevision((current) => current + 1);
   }, []);
+
+  const applySelectionChange = useCallback((apply: () => void) => {
+    commitUndoBoundaryForSelectionChange();
+    apply();
+  }, [commitUndoBoundaryForSelectionChange]);
 
   const restoreSavedSnapshot = useCallback(() => {
     applyUndoSnapshot({
@@ -3008,6 +3051,11 @@ export default function AdminItemEditorPage({
       onFocus={handleUndoTrackedFieldFocus}
       onBlur={handleUndoTrackedFieldBlur}
     >
+      <div className="-mb-2 text-xs text-slate-500">
+        <Link href="/admin/artikli" className="hover:underline">Artikli</Link>
+        <span className="mx-1 text-slate-400">&rsaquo;</span>
+        <span>{mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</span>
+      </div>
       <section className="rounded-[24px] border border-slate-200 bg-white px-5 py-4">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex min-w-0 flex-1 flex-col gap-3 xl:flex-row xl:items-center">
@@ -3027,7 +3075,7 @@ export default function AdminItemEditorPage({
                 active={draft.active}
                 editable={isEditable}
                 chipClassName="!h-[26px] !min-w-[132px] !justify-center !px-4"
-                onChange={(next) => setDraft((current) => ({ ...current, active: next }))}
+                onChange={(next) => applySelectionChange(() => setDraft((current) => ({ ...current, active: next })))}
               />
               {itemLevelNote
                 ? (
@@ -3036,7 +3084,7 @@ export default function AdminItemEditorPage({
                     editable={isEditable}
                     chipClassName="!h-[26px] !min-w-[132px] !justify-center !px-4"
                     menuPlacement="bottom"
-                    onChange={setItemLevelNote}
+                    onChange={(next) => applySelectionChange(() => setItemLevelNote(next))}
                   />
                 )
                 : (
@@ -3045,7 +3093,7 @@ export default function AdminItemEditorPage({
                     editable={isEditable}
                     chipClassName="!h-[26px] !min-w-[132px] !justify-center !px-4"
                     placeholderLabel="Opombe"
-                    onChange={(value) => setItemLevelNote((value as VariantTag) || 'na-zalogi')}
+                    onChange={(value) => applySelectionChange(() => setItemLevelNote((value as VariantTag) || 'na-zalogi'))}
                     options={ITEM_NOTE_OPTIONS as unknown as Array<{ value: string; label: string }>}
                   />
                 )}
@@ -3102,8 +3150,6 @@ export default function AdminItemEditorPage({
           </div>
         </div>
       </section>
-      <div className="text-xs text-slate-500"><Link href="/admin/artikli" className="hover:underline">Artikli</Link> › {mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</div>
-
       <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
         <div className="space-y-4">
           <section className="h-full rounded-[24px] border border-slate-200 bg-white p-6">
@@ -3130,7 +3176,7 @@ export default function AdminItemEditorPage({
                       editable={isEditable}
                       chipClassName="!min-w-[131px]"
                       menuPlacement="bottom"
-                      onChange={setItemLevelNote}
+                      onChange={(next) => applySelectionChange(() => setItemLevelNote(next))}
                     />
                   )
                   : (
@@ -3139,11 +3185,11 @@ export default function AdminItemEditorPage({
                       editable={isEditable}
                       chipClassName="!min-w-[131px]"
                       placeholderLabel="Opombe"
-                      onChange={(value) => setItemLevelNote((value as VariantTag) || 'na-zalogi')}
+                      onChange={(value) => applySelectionChange(() => setItemLevelNote((value as VariantTag) || 'na-zalogi'))}
                       options={ITEM_NOTE_OPTIONS as unknown as Array<{ value: string; label: string }>}
                     />
                   )}
-                <ActiveStateChip active={draft.active} editable={isEditable} onChange={(next) => setDraft((current) => ({ ...current, active: next }))} />
+                <ActiveStateChip active={draft.active} editable={isEditable} onChange={(next) => applySelectionChange(() => setDraft((current) => ({ ...current, active: next })))} />
                 <IconButton type="button" tone="neutral" onClick={() => setEditorMode((current) => (current === 'read' ? 'edit' : 'read'))} aria-label="Uredi artikel" title="Uredi"><PencilIcon /></IconButton>
                 <IconButton type="button" tone="neutral" onClick={() => save(false)} aria-label="Shrani artikel" title="Shrani" disabled={!isEditable}><SaveIcon /></IconButton>
                 <button type="button" className={buttonTokenClasses.closeX} onClick={deleteItem} aria-label="Izbriši artikel" title="Izbriši"><TrashCanIcon /></button>
@@ -3157,7 +3203,7 @@ export default function AdminItemEditorPage({
                 <AdminCategoryBreadcrumbPicker
                   className="flex h-9 items-center rounded-md bg-transparent px-0 !py-0"
                   value={selectedCategoryPath}
-                  onChange={selectCategoryPath}
+                  onChange={(path) => applySelectionChange(() => selectCategoryPath(path))}
                   categoryPaths={categoryPaths}
                   disabled={!isEditable}
                 />
@@ -3875,7 +3921,7 @@ export default function AdminItemEditorPage({
             </colgroup>
             <THead>
               <tr>
-                <TH className="h-11 px-2 text-center text-[11px]">
+                <TH className="h-[38.4px] px-2 py-1.5 text-center text-[11px]">
                   <AdminCheckbox
                     checked={isTableEditable && allVariantsSelected}
                     onChange={() =>
@@ -3884,20 +3930,20 @@ export default function AdminItemEditorPage({
                     disabled={!isTableEditable}
                   />
                 </TH>
-                <TH className="h-11 px-2 text-right text-[11px]">Dolžina</TH>
-                <TH className="h-11 px-2 text-right text-[11px]">Širina/fi</TH>
-                <TH className="h-11 px-2 text-right text-[11px]">Debelina</TH>
-                <TH className="h-11 px-2 text-right text-[11px]">Teža</TH>
-                <TH className="h-11 px-2 text-center text-[11px]">Toleranca</TH>
-                <TH className="h-11 px-2 text-right text-[11px]">Cena</TH>
-                <TH className="h-11 px-2 text-right text-[11px]">Popust</TH>
-                <TH className="h-11 whitespace-nowrap px-2 text-right text-[11px]">Akcijska cena</TH>
-                <TH className="h-11 px-2 text-right text-[11px]">Zaloga</TH>
-                <TH className="h-11 px-2 text-center text-[11px]">Min/nar.</TH>
-                <TH className="h-11 px-2 text-center text-[11px]">SKU</TH>
-                <TH className="h-11 px-1 text-center text-[11px]">Status</TH>
-                <TH className="h-11 px-1 text-center text-[11px]">Opombe</TH>
-                <TH className="h-11 px-2 text-center text-[11px]">Mesto</TH>
+                <TH className="h-[38.4px] px-2 py-1.5 text-right text-[11px]">Dolžina</TH>
+                <TH className="h-[38.4px] px-2 py-1.5 text-right text-[11px]">Širina/fi</TH>
+                <TH className="h-[38.4px] px-2 py-1.5 text-right text-[11px]">Debelina</TH>
+                <TH className="h-[38.4px] px-2 py-1.5 text-right text-[11px]">Teža</TH>
+                <TH className="h-[38.4px] px-2 py-1.5 text-center text-[11px]">Toleranca</TH>
+                <TH className="h-[38.4px] px-2 py-1.5 text-right text-[11px]">Cena</TH>
+                <TH className="h-[38.4px] px-2 py-1.5 text-right text-[11px]">Popust</TH>
+                <TH className="h-[38.4px] whitespace-nowrap px-2 py-1.5 text-right text-[11px]">Akcijska cena</TH>
+                <TH className="h-[38.4px] px-2 py-1.5 text-right text-[11px]">Zaloga</TH>
+                <TH className="h-[38.4px] px-2 py-1.5 text-center text-[11px]">Min/nar.</TH>
+                <TH className="h-[38.4px] px-2 py-1.5 text-center text-[11px]">SKU</TH>
+                <TH className="h-[38.4px] px-1 py-1.5 text-center text-[11px]">Status</TH>
+                <TH className="h-[38.4px] px-1 py-1.5 text-center text-[11px]">Opombe</TH>
+                <TH className="h-[38.4px] px-2 py-1.5 text-center text-[11px]">Mesto</TH>
               </tr>
             </THead>
             <tbody>
@@ -3964,7 +4010,7 @@ export default function AdminItemEditorPage({
                         editable={isTableEditable}
                         chipClassName="!h-6 !min-w-[94px] !px-1.5 !text-[10px]"
                         menuPlacement="bottom"
-                        onChange={(next) => updateVariant(variant.id, { active: next })}
+                        onChange={(next) => applySelectionChange(() => updateVariant(variant.id, { active: next }))}
                       />
                     </div>
                   </td>
@@ -3977,7 +4023,7 @@ export default function AdminItemEditorPage({
                         menuPlacement="bottom"
                         onChange={(next) => {
                           if (!next) return;
-                          setVariantTag(variant.id, next);
+                          applySelectionChange(() => setVariantTag(variant.id, next));
                         }}
                       />
                     </div>
@@ -4053,3 +4099,4 @@ export default function AdminItemEditorPage({
     </div>
   );
 }
+

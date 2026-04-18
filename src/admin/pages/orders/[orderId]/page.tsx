@@ -83,6 +83,11 @@ function AdminOrderDetailShell({
   return (
     <div className="w-full font-['Inter',system-ui,sans-serif]">
       <div className="mx-auto max-w-7xl">
+        <div className="mb-3 text-xs text-slate-500">
+          <Link href="/admin/orders" className="hover:underline">Naročila</Link>
+          <span className="mx-1 text-slate-400">&rsaquo;</span>
+          <span>Naročilo {orderId}</span>
+        </div>
         {showDemoBanner ? (
           <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-6 text-sm text-amber-700">
             DATABASE_URL ni nastavljen — prikazan je demo pogled.

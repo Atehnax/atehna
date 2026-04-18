@@ -30,6 +30,7 @@ const toPathParts = (value: string) =>
 
 const pathKeyFromParts = (path: string[]) => path.join(' / ');
 const CATEGORY_PICKER_MENU_BASE_WIDTH_PX = 470;
+const CHILD_PLACEHOLDER_LABEL = 'Izberi podkategorijo';
 
 const buildCategoryIndex = (paths: string[]) => {
   const childrenByParent = new Map<string, Set<string>>();
@@ -110,8 +111,8 @@ export default function AdminCategoryBreadcrumbPicker({
 
   const categoryIndex = useMemo(() => buildCategoryIndex(allPaths), [allPaths]);
 
-  const drillChildren = useMemo(() => {
-    const key = pathKeyFromParts(drillPath);
+  function resolveVisibleChildren(path: string[]) {
+    const key = pathKeyFromParts(path);
     const childKeys = Array.from(categoryIndex.childrenByParent.get(key) ?? []);
 
     return childKeys
@@ -121,10 +122,22 @@ export default function AdminCategoryBreadcrumbPicker({
         return !isSlugLikeTitle(entry.title);
       })
       .sort((a, b) => a.title.localeCompare(b.title, 'sl'));
+  }
+
+  const drillChildren = useMemo(() => {
+    return resolveVisibleChildren(drillPath);
   }, [categoryIndex.childrenByParent, categoryIndex.entryMap, drillPath]);
 
   const searchResults = useMemo(() => {
     const normalizedQuery = normalizeSearch(query);
+    if (focusedSegmentIndex !== null) {
+      if (!normalizedQuery) return drillChildren;
+
+      return drillChildren
+        .filter((entry) => normalizeSearch(entry.title).includes(normalizedQuery))
+        .slice(0, 60);
+    }
+
     if (!normalizedQuery) return drillChildren;
 
     return categoryIndex.entries
@@ -134,7 +147,7 @@ export default function AdminCategoryBreadcrumbPicker({
         return normalizedTitle.includes(normalizedQuery);
       })
       .slice(0, 60);
-  }, [categoryIndex.entries, drillChildren, query]);
+  }, [categoryIndex.entries, drillChildren, focusedSegmentIndex, query]);
 
   useEffect(() => {
     setDrillPath(value);
@@ -185,45 +198,46 @@ export default function AdminCategoryBreadcrumbPicker({
   };
 
   const displayedPath = value.length > 0 ? value : isOpen ? drillPath : value;
+  const displayedPathChildren = useMemo(() => {
+    if (displayedPath.length === 0) return [];
+    return resolveVisibleChildren(displayedPath);
+  }, [categoryIndex.childrenByParent, categoryIndex.entryMap, displayedPath]);
+  const hasDisplayedPathChildren = displayedPathChildren.length > 0;
+
+  const assignFocusedPath = (path: string[]) => {
+    if (focusedSegmentIndex === null) {
+      assignPath(path);
+      return;
+    }
+
+    const currentSegmentPath = displayedPath.slice(0, focusedSegmentIndex + 1);
+    const nextPath = pathKeyFromParts(path) === pathKeyFromParts(currentSegmentPath) ? displayedPath : path;
+    assignPath(nextPath);
+  };
 
   const isCollapsibleIndex = (index: number) =>
     displayedPath.length >= 4 && index > 0 && index < displayedPath.length - 2;
 
-  const breadcrumbItems =
+  const baseBreadcrumbItems =
     displayedPath.length === 0
       ? [
-          {
-            key: 'categories-root',
-            label: 'Kategorije',
-            isCurrent: false,
-            onClick: disabled ? undefined : () => {
-              setDrillPath([]);
-              setQuery('');
-              setIsOpen(true);
-            }
-          },
           {
             key: 'categories-placeholder',
             label: placeholder,
             isCurrent: false,
-            onClick: disabled ? undefined : () => setIsOpen(true),
-            labelClassName: `font-semibold ${disabled ? 'text-slate-900' : 'text-[#1982bf]'}`
-          }
-        ]
-      : [
-          {
-            key: 'categories-root',
-            label: 'Kategorije',
-            isCurrent: false,
             onClick: disabled ? undefined : () => {
+              setFocusedSegmentIndex(null);
               setDrillPath([]);
               setQuery('');
               setIsOpen(true);
-            }
-          },
-          ...displayedPath.map((segment, index) => {
+            },
+            labelClassName: `font-semibold ${disabled ? 'text-slate-900' : 'text-[#1982bf]'}`
+          }
+        ]
+      : displayedPath.map((segment, index) => {
             const isCollapsed = isCollapsibleIndex(index);
             const isFocused = focusedSegmentIndex === index;
+            const isRightMostVisibleCrumb = index === displayedPath.length - 1 && !hasDisplayedPathChildren;
             const shouldShowNeighbor =
               focusedSegmentIndex !== null && Math.abs(focusedSegmentIndex - index) === 1 && isCollapsed;
             const isUserExpanded = expandedCollapsedSegments.has(index);
@@ -251,12 +265,12 @@ export default function AdminCategoryBreadcrumbPicker({
                       if (showCollapsedToken) {
                         return;
                       }
-                      setDrillPath(displayedPath.slice(0, index + 1));
+                      setDrillPath(displayedPath.slice(0, index));
                       setQuery('');
                       setIsOpen(true);
                     },
               labelClassName:
-                index === displayedPath.length - 1
+                isRightMostVisibleCrumb
                   ? `inline-block max-w-[260px] truncate align-bottom font-semibold text-[#1982bf] ${isFocused ? 'underline decoration-[#1982bf]/70 underline-offset-2' : ''}`.trim()
                   : showCollapsedToken
                     ? 'text-slate-500'
@@ -264,8 +278,33 @@ export default function AdminCategoryBreadcrumbPicker({
                       ? 'underline decoration-slate-500/70 underline-offset-2'
                       : undefined
             };
-          })
-        ];
+          });
+
+  const breadcrumbItems =
+    hasDisplayedPathChildren && displayedPath.length > 0
+      ? [
+          ...baseBreadcrumbItems,
+          {
+            key: `${pathKeyFromParts(displayedPath)}-child-placeholder`,
+            label: CHILD_PLACEHOLDER_LABEL,
+            title: 'Izberi podkategorijo',
+            isCurrent: false,
+            onClick:
+              disabled
+                ? undefined
+                : () => {
+                    setFocusedSegmentIndex(displayedPath.length);
+                    setExpandedCollapsedSegments(new Set());
+                    setDrillPath(displayedPath);
+                    setQuery('');
+                    setIsOpen(true);
+                  },
+            labelClassName: `font-semibold text-[#1982bf] ${
+              focusedSegmentIndex === displayedPath.length ? 'underline decoration-[#1982bf]/70 underline-offset-2' : ''
+            }`.trim()
+          }
+        ]
+      : baseBreadcrumbItems;
 
   return (
     <div ref={containerRef} className={`relative ${className}`.trim()}>
@@ -279,6 +318,7 @@ export default function AdminCategoryBreadcrumbPicker({
           if (disabled || isOpen || displayedPath.length === 0) return;
           const target = event.target as HTMLElement;
           if (target.closest('button')) return;
+          setFocusedSegmentIndex(null);
           setDrillPath(displayedPath);
           setQuery('');
           setIsOpen(true);
@@ -322,7 +362,9 @@ export default function AdminCategoryBreadcrumbPicker({
                   event.preventDefault();
                   const current = searchResults[activeIndex];
                   if (!current) return;
-                  if (current.isLeaf) {
+                  if (focusedSegmentIndex !== null) {
+                    assignFocusedPath(current.path);
+                  } else if (current.isLeaf) {
                     assignPath(current.path);
                   } else {
                     setDrillPath(current.path);
@@ -336,7 +378,7 @@ export default function AdminCategoryBreadcrumbPicker({
             />
           </div>
 
-          {query.length === 0 && drillPath.length > 0 ? (
+          {query.length === 0 && drillPath.length > 0 && focusedSegmentIndex === null ? (
             <div className="mt-1 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-600">
               <span className="truncate">{drillPath.join(' → ')}</span>
               <button
@@ -366,7 +408,9 @@ export default function AdminCategoryBreadcrumbPicker({
                 }`}
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => {
-                  if (entry.isLeaf) {
+                  if (focusedSegmentIndex !== null) {
+                    assignFocusedPath(entry.path);
+                  } else if (entry.isLeaf) {
                     assignPath(entry.path);
                   } else {
                     setDrillPath(entry.path);

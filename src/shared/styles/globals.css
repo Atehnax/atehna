@@ -53,6 +53,7 @@
   --admin-accent: var(--blue-500);
   --admin-hover: var(--blue-100);
   --field-locked-bg: #f5f6f8;
+  --admin-table-header-bg: color-mix(in srgb, var(--surface-muted) 60%, white);
   --ui-neutral-bg: var(--surface-2);
   --ui-neutral-bg-hover: color-mix(in srgb, var(--ui-neutral-bg) 82%, #cbd5e1);
   --hover-neutral: var(--ui-neutral-bg);

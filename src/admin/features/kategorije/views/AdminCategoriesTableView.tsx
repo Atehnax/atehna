@@ -112,7 +112,6 @@ export function AdminCategoriesTableView({
         <AdminTableLayout
           className="w-full border shadow-sm"
           style={{ background: '#ffffff', borderColor: '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
-          headerClassName="!bg-white"
           contentClassName="overflow-x-auto overflow-y-visible bg-white"
           headerLeft={
             <div className="flex h-7 w-full items-stretch">
@@ -191,14 +190,14 @@ export function AdminCategoriesTableView({
                   <col style={{ width: `${categoryTableColumnWidths.visibility}px` }} />
                   <col style={{ width: `${categoryTableColumnWidths.actions}px` }} />
                 </colgroup>
-                <thead>
+                <thead className="bg-[color:var(--admin-table-header-bg)]">
                   <tr>
-                    <th className="relative h-11 overflow-visible border-b border-slate-200 bg-[color:var(--ui-neutral-bg)] px-2 py-2 text-center text-[11px] font-semibold text-slate-600">
+                    <th className="relative h-11 overflow-visible border-b border-slate-200 px-2 py-2 text-center text-[11px] font-semibold text-slate-600">
                       <div className="absolute top-1/2 z-20" style={{ left: '100%', transform: 'translateY(-50%)' }}>
                         <AdminCheckbox id="categories-select-all" name="categoriesSelectAll" ref={selectAllRef} checked={allRowsSelected} onChange={onToggleSelectAll} aria-label="Izberi vse" />
                       </div>
                     </th>
-                    <th className="h-11 border-b border-slate-200 bg-[color:var(--ui-neutral-bg)] px-2.5 py-0 text-left text-[11px] font-semibold text-slate-600 align-middle">
+                    <th className="h-11 border-b border-slate-200 px-2.5 py-0 text-left text-[11px] font-semibold text-slate-600 align-middle">
                       <div className="relative flex h-12 items-center gap-2 overflow-visible px-1">
                         <div className="relative shrink-0 overflow-visible" style={{ width: `${treeIndent + treeButtonDiameter}px`, height: `${treeRowHeight}px` }}>
                           <div className="absolute inset-y-0 z-10 flex items-center justify-center" style={{ left: `${treeIndent}px`, width: `${treeButtonDiameter}px` }}>
@@ -212,18 +211,18 @@ export function AdminCategoriesTableView({
                         </button>
                       </div>
                     </th>
-                    <th className="h-11 border-b border-slate-200 bg-[color:var(--ui-neutral-bg)] px-2.5 py-2 text-left text-[11px] font-semibold text-slate-600">Opis</th>
-                    <th className="h-11 border-b border-slate-200 bg-[color:var(--ui-neutral-bg)] px-2.5 py-2 text-center text-[11px] font-semibold text-slate-600">
+                    <th className="h-11 border-b border-slate-200 px-2.5 py-2 text-left text-[11px] font-semibold text-slate-600">Opis</th>
+                    <th className="h-11 border-b border-slate-200 px-2.5 py-2 text-center text-[11px] font-semibold text-slate-600">
                       <button type="button" onClick={() => onSort('subcategories')} className={getSortHeaderClassName('subcategories')}>
                         Podkategorije
                       </button>
                     </th>
-                    <th className="h-11 border-b border-slate-200 bg-[color:var(--ui-neutral-bg)] px-2.5 py-2 text-center text-[11px] font-semibold text-slate-600">
+                    <th className="h-11 border-b border-slate-200 px-2.5 py-2 text-center text-[11px] font-semibold text-slate-600">
                       <button type="button" onClick={() => onSort('items')} className={getSortHeaderClassName('items')}>
                         Izdelki
                       </button>
                     </th>
-                    <th className="h-11 border-b border-slate-200 bg-[color:var(--ui-neutral-bg)] px-2.5 py-0 text-center text-[11px] font-semibold text-slate-600 align-middle">
+                    <th className="h-11 border-b border-slate-200 px-2.5 py-0 text-center text-[11px] font-semibold text-slate-600 align-middle">
                       <div className="relative flex h-8 items-center justify-center" ref={statusHeaderMenuRef}>
                         <button type="button" onClick={onToggleStatusHeaderMenu} className={`inline-flex h-6 items-center rounded-md border px-2 text-[11px] font-semibold ${selectedRows.length > 0 ? 'border-slate-300 bg-white text-slate-700 hover:bg-[color:var(--hover-neutral)]' : 'border-transparent bg-transparent text-slate-500 cursor-default'}`} aria-haspopup="menu" aria-expanded={selectedRows.length > 0 ? isStatusHeaderMenuOpen : false} disabled={selectedRows.length === 0}>
                           {selectedRows.length > 0 ? `Vidnost ▾ (${selectedRows.length})` : 'Vidnost'}
@@ -236,7 +235,7 @@ export function AdminCategoriesTableView({
                         ) : null}
                       </div>
                     </th>
-                    <th className="h-11 border-b border-slate-200 bg-[color:var(--ui-neutral-bg)] px-2.5 py-2 text-center text-[11px] font-semibold text-slate-600">Uredi</th>
+                    <th className="h-11 border-b border-slate-200 px-2.5 py-2 text-center text-[11px] font-semibold text-slate-600">Uredi</th>
                   </tr>
                 </thead>
                 <tbody>{treeRows}</tbody>

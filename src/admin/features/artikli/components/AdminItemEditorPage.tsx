@@ -3447,7 +3447,7 @@ export default function AdminItemEditorPage({
                 </div>
                 <div className="overflow-hidden rounded-lg border border-slate-200">
                   <table className="min-w-full text-xs">
-                    <thead className="bg-slate-50">
+                    <thead className="bg-[color:var(--admin-table-header-bg)]">
                       <tr>
                         <th className="px-2 py-1.5 text-left">SKU</th>
                         <th className="px-2 py-1.5 text-center">Tip</th>
@@ -3680,7 +3680,7 @@ export default function AdminItemEditorPage({
                 </div>
                 <div className="overflow-hidden rounded-lg border border-slate-200">
                   <table className="min-w-full text-xs">
-                    <thead className="bg-slate-50">
+                    <thead className="bg-[color:var(--admin-table-header-bg)]">
                       <tr>
                         <th className="px-2 py-1.5 text-left">SKU</th>
                         <th className="px-2 py-1.5 text-center">Tip</th>
@@ -3763,7 +3763,7 @@ export default function AdminItemEditorPage({
                 </div>
                 <div className="overflow-hidden rounded-lg border border-slate-200">
                   <table className="min-w-full text-xs">
-                    <thead className="bg-slate-50">
+                    <thead className="bg-[color:var(--admin-table-header-bg)]">
                       <tr>
                         <th className="px-2 py-1.5 text-left">Datoteka</th>
                         <th className="px-2 py-1.5 text-right">Velikost</th>

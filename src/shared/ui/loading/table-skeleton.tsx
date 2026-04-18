@@ -16,7 +16,7 @@ export default function TableSkeleton({ rows, cols, hasActions = false, classNam
   return (
     <div className={classNames('overflow-hidden rounded-xl border border-slate-200 bg-white', className)}>
       <div
-        className="grid gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3"
+        className="grid gap-3 border-b border-slate-100 bg-[color:var(--admin-table-header-bg)] px-4 py-3"
         style={{ gridTemplateColumns: `repeat(${totalColumns}, minmax(0, 1fr))` }}
       >
         {Array.from({ length: totalColumns }).map((_, index) => (

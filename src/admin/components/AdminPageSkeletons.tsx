@@ -71,7 +71,7 @@ export function AdminOrdersSectionSkeleton() {
           <col style={{ width: columnWidths.edit }} />
         </colgroup>
         <thead>
-          <tr className="h-11 border-b border-slate-200 bg-white">
+          <tr className="h-11 border-b border-slate-200 bg-[color:var(--admin-table-header-bg)]">
             {Array.from({ length: 11 }).map((_, index) => (
               <th key={`orders-head-${index}`} className="px-2 text-center">
                 <Skeleton className={index === 0 ? 'mx-auto h-4 w-4 rounded-sm' : 'mx-auto h-3 w-16'} />
@@ -110,7 +110,7 @@ export function AdminArchiveSectionSkeleton() {
     >
       <table className="w-full table-fixed border-collapse text-sm">
         <thead>
-          <tr className="h-11 border-b border-slate-200 bg-white">
+          <tr className="h-11 border-b border-slate-200 bg-[color:var(--admin-table-header-bg)]">
             <th className="w-10 px-2 text-center"><Skeleton className="mx-auto h-4 w-4 rounded-sm" /></th>
             <th className="w-28 px-2 text-left"><Skeleton className="h-3.5 w-12" /></th>
             <th className="px-2 text-left"><Skeleton className="h-3.5 w-14" /></th>
@@ -171,7 +171,7 @@ export function AdminItemsSectionSkeleton() {
       >
         <table className="min-w-[1000px] w-full border-collapse text-sm">
           <thead>
-            <tr className="h-11 border-b border-slate-200 bg-white">
+            <tr className="h-11 border-b border-slate-200 bg-[color:var(--admin-table-header-bg)]">
               {Array.from({ length: 9 }).map((_, index) => (
                 <th key={`items-head-${index}`} className="px-3 text-center">
                   <Skeleton className={index === 0 ? 'mx-auto h-4 w-4 rounded-sm' : 'mx-auto h-3.5 w-16'} />

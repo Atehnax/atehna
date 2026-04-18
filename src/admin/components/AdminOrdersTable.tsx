@@ -1324,7 +1324,6 @@ export default function AdminOrdersTable({
             boxShadow: '0 10px 24px rgba(15,23,42,0.06)'
           }}
           contentClassName="overflow-x-auto bg-white"
-          headerClassName="bg-white"
           showDivider={false}
           headerLeft={
             <div className="flex h-7 w-full items-stretch">

@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { ADMIN_TABLE_BG, TableShell } from '@/shared/ui/table';
+import { TableShell } from '@/shared/ui/table';
 
 type AdminTableLayoutProps = {
   headerLeft?: ReactNode;
@@ -35,7 +35,7 @@ export default function AdminTableLayout({
 
   return (
     <TableShell className={classNames('border-slate-200 bg-white', className)} style={style}>
-      <div className={classNames(ADMIN_TABLE_BG, 'px-3 py-3', headerClassName)}>
+      <div className={classNames('bg-white px-3 py-3', headerClassName)}>
         {hasHeaderRow ? (
           <div className="flex flex-nowrap items-center justify-between gap-1.5">
             <div className="flex min-w-0 flex-1 items-center gap-2">{headerLeft}</div>

@@ -9,6 +9,7 @@ const classNames = (...parts: Array<string | false | null | undefined>) =>
   parts.filter(Boolean).join(' ');
 
 const ADMIN_TABLE_BG = 'bg-[color:var(--ui-neutral-bg)]';
+const ADMIN_TABLE_HEADER_BG = 'bg-[color:var(--admin-table-header-bg)]';
 
 export function Table({ children, className, ...props }: BaseProps & TableHTMLAttributes<HTMLTableElement>) {
   return (
@@ -20,7 +21,7 @@ export function Table({ children, className, ...props }: BaseProps & TableHTMLAt
 
 export function THead({ children, className, ...props }: BaseProps & HTMLAttributes<HTMLTableSectionElement>) {
   return (
-    <thead className={classNames(className)} {...props}>
+    <thead className={classNames(ADMIN_TABLE_HEADER_BG, className)} {...props}>
       {children}
     </thead>
   );
@@ -44,7 +45,7 @@ export function TR({ children, className, ...props }: BaseProps & HTMLAttributes
 
 export function TH({ children, className, ...props }: BaseProps & ThHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <th className={classNames(`${ADMIN_TABLE_BG} border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-600 align-middle`, className)} {...props}>
+    <th className={classNames('border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-600 align-middle', className)} {...props}>
       {children}
     </th>
   );
@@ -62,4 +63,4 @@ export function RowActions({ children, className }: BaseProps) {
   return <div className={classNames('flex items-center justify-center gap-1', className)}>{children}</div>;
 }
 
-export { ADMIN_TABLE_BG };
+export { ADMIN_TABLE_BG, ADMIN_TABLE_HEADER_BG };

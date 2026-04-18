@@ -358,7 +358,7 @@ export default function AdminOrderItemsEditor({
               <col style={{ width: '10%' }} />
               <col style={{ width: '13%' }} />
             </colgroup>
-            <thead className="bg-white text-slate-600">
+            <thead className="bg-[color:var(--admin-table-header-bg)] text-slate-600">
               <tr>
                 <th className="px-1 py-2 text-center" aria-label="Izbira">
                   <input

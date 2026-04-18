@@ -582,7 +582,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       <AdminTableLayout
         className="border shadow-sm"
         style={{ background: '#fff', borderColor: '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
-        headerClassName="!bg-white"
         headerLeft={
           <div className="flex h-7 w-full items-center gap-2">
             <div className="min-w-0 w-full rounded-md border border-slate-200 bg-white transition-colors focus-within:border-[#3e67d6]">
@@ -932,7 +931,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                         <td />
                         <td colSpan={9} className="p-0">
                           <table className="w-full text-[12px]">
-                            <thead>
+                            <thead className="bg-[color:var(--admin-table-header-bg)]">
                               <tr className="border-b border-slate-200 text-[11px] font-medium text-slate-600">
                                 <th className="px-2 py-2" />
                                 <th className="w-[25%] px-2 py-2 text-left">Različica</th>

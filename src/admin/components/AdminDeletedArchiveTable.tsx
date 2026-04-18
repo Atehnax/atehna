@@ -539,7 +539,6 @@ export default function AdminDeletedArchiveTable({
     <AdminTableLayout
       className="w-full border shadow-sm"
       style={{ background: '#ffffff', borderColor: '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
-      headerClassName="!bg-white"
       headerLeft={
         <div className="flex h-7 w-full items-stretch">
           <div className="min-w-0 w-full rounded-md border border-slate-200 bg-white transition-colors focus-within:border-[#3e67d6]">

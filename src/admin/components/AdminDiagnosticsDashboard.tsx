@@ -124,7 +124,7 @@ function DataTable({ title, description, columns, rows }: { title: string; descr
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead>
+          <thead className="bg-[color:var(--admin-table-header-bg)]">
             <tr>
               {columns.map((column) => (
                 <th key={column} className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">

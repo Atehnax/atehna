@@ -28,7 +28,8 @@ const parseChartType = (value: unknown): AnalyticsChartType | undefined => {
   return allowed.includes(value as AnalyticsChartType) ? (value as AnalyticsChartType) : undefined;
 };
 
-export async function PATCH(request: Request, { params }: { params: { chartId: string } }) {
+export async function PATCH(request: Request, props: { params: Promise<{ chartId: string }> }) {
+  const params = await props.params;
   try {
     const chartId = Number(params.chartId);
     if (!Number.isFinite(chartId)) return NextResponse.json({ message: 'Neveljaven ID.' }, { status: 400 });
@@ -56,7 +57,8 @@ export async function PATCH(request: Request, { params }: { params: { chartId: s
   }
 }
 
-export async function DELETE(_: Request, { params }: { params: { chartId: string } }) {
+export async function DELETE(_: Request, props: { params: Promise<{ chartId: string }> }) {
+  const params = await props.params;
   try {
     const chartId = Number(params.chartId);
     if (!Number.isFinite(chartId)) return NextResponse.json({ message: 'Neveljaven ID.' }, { status: 400 });

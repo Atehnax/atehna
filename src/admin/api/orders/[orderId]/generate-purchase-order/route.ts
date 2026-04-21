@@ -4,10 +4,8 @@ import { getPool } from '@/shared/server/db';
 import { generateOrderPdf } from '@/shared/server/pdf';
 import { buildGeneratedPdfFileName, buildPdfContext } from '@/shared/server/pdfGeneration';
 
-export async function POST(
-  _request: Request,
-  { params }: { params: { orderId: string } }
-) {
+export async function POST(_request: Request, props: { params: Promise<{ orderId: string }> }) {
+  const params = await props.params;
   try {
     const orderId = Number(params.orderId);
     if (!Number.isFinite(orderId)) {

@@ -1,13 +1,14 @@
 import type { ReactNode } from 'react';
 import { Suspense } from 'react';
 import Link from 'next/link';
-import dynamicImport from 'next/dynamic';
 import { notFound } from 'next/navigation';
 import {
   AdminOrderDocumentsSectionSkeleton,
   AdminOrderItemsSectionSkeleton
 } from '@/admin/components/AdminPageSkeletons';
 import AdminOrderHeaderChips from '@/admin/components/AdminOrderHeaderChips';
+import AdminOrderItemsEditorClient from '@/admin/components/AdminOrderItemsEditorClient';
+import AdminOrderPdfManagerClient from '@/admin/components/AdminOrderPdfManagerClient';
 import { toDisplayOrderNumber } from '@/admin/components/adminOrdersTableUtils';
 import {
   fetchOrderById,
@@ -25,15 +26,6 @@ export const metadata = {
 };
 
 export const dynamic = 'force-dynamic';
-
-const AdminOrderItemsEditor = dynamicImport(() => import('@/admin/components/AdminOrderItemsEditor'), {
-  loading: () => <AdminOrderItemsSectionSkeleton />,
-  ssr: false
-});
-const AdminOrderPdfManager = dynamicImport(() => import('@/admin/components/AdminOrderPdfManager'), {
-  loading: () => <AdminOrderDocumentsSectionSkeleton />,
-  ssr: false
-});
 
 const asText = (value: unknown, fallback = '') => (typeof value === 'string' ? value : fallback);
 const asNumber = (value: unknown, fallback = 0) => {
@@ -162,7 +154,7 @@ async function AdminOrderItemsSection({
   const items = await itemsPromise;
 
   return (
-    <AdminOrderItemsEditor
+    <AdminOrderItemsEditorClient
       orderId={orderId}
       items={items}
       initialSubtotal={initialSubtotal}
@@ -185,10 +177,18 @@ async function AdminOrderDocumentsSection({
 }) {
   const documents = await documentsPromise;
 
-  return <AdminOrderPdfManager orderId={orderId} documents={documents} paymentStatus={paymentStatus} adminOrderNotes={adminOrderNotes} />;
+  return (
+    <AdminOrderPdfManagerClient
+      orderId={orderId}
+      documents={documents}
+      paymentStatus={paymentStatus}
+      adminOrderNotes={adminOrderNotes}
+    />
+  );
 }
 
-export default async function AdminOrderDetailPage({ params }: { params: { orderId: string } }) {
+export default async function AdminOrderDetailPage(props: { params: Promise<{ orderId: string }> }) {
+  const params = await props.params;
   return instrumentAdminRouteRender('/admin/orders/[orderId]', async () => {
     if (!getDatabaseUrl()) {
       const demoOrder = normalizeOrder(
@@ -254,7 +254,7 @@ export default async function AdminOrderDetailPage({ params }: { params: { order
           order={demoOrder}
           showDemoBanner
           itemsSection={
-            <AdminOrderItemsEditor
+            <AdminOrderItemsEditorClient
               orderId={1}
               items={demoItems}
               initialSubtotal={demoOrder.subtotal}
@@ -263,7 +263,7 @@ export default async function AdminOrderDetailPage({ params }: { params: { order
             />
           }
           documentsSection={
-            <AdminOrderPdfManager
+            <AdminOrderPdfManagerClient
               orderId={1}
               documents={demoDocuments}
               paymentStatus={demoOrder.payment_status}

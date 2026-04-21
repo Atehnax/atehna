@@ -21,14 +21,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Manjkajo podatki dogodka.' }, { status: 400 });
     }
 
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     let visitorId = cookieStore.get('ath_vid')?.value;
     let sessionId = cookieStore.get('ath_sid')?.value;
 
     if (!visitorId) visitorId = randomUUID();
     if (!sessionId) sessionId = randomUUID();
 
-    const headerStore = headers();
+    const headerStore = await headers();
     const userAgent = headerStore.get('user-agent');
     const referer = headerStore.get('referer');
 

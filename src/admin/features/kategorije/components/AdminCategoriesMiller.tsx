@@ -98,7 +98,7 @@ export function AdminCategoriesMiller({
   hasPendingStagedChanges: boolean;
   onRestore: () => void;
   millerError: string | null;
-  millerViewportRef: RefObject<HTMLDivElement>;
+  millerViewportRef: RefObject<HTMLDivElement | null>;
   onSelectIds: (ids: string[]) => void;
   millerColumns: MillerColumn[];
   plusIcon: ReactNode;

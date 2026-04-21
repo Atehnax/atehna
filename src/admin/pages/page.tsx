@@ -8,11 +8,11 @@ function expectedToken(username: string, password: string) {
   return Buffer.from(`${username}:${password}`).toString('base64');
 }
 
-export default function AdminLoginPage() {
+export default async function AdminLoginPage() {
   const username = process.env.ADMIN_USERNAME ?? 'admin';
   const password = process.env.ADMIN_PASSWORD ?? 'admin';
 
-  const cookieValue = cookies().get(ADMIN_SESSION_COOKIE)?.value;
+  const cookieValue = (await cookies()).get(ADMIN_SESSION_COOKIE)?.value;
   if (cookieValue && cookieValue === expectedToken(username, password)) {
     redirect('/admin/orders');
   }

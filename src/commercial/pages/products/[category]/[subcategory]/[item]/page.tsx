@@ -25,12 +25,18 @@ export async function generateStaticParams() {
   }
 }
 
-export async function generateMetadata({ params }: { params: { category: string; subcategory: string; item: string } }) {
+export async function generateMetadata(
+  props: { params: Promise<{ category: string; subcategory: string; item: string }> }
+) {
+  const params = await props.params;
   const item = await getCatalogItemServer(params.category, params.subcategory, params.item);
   return { title: item.name, description: item.description };
 }
 
-export default async function ItemPage({ params }: { params: { category: string; subcategory: string; item: string } }) {
+export default async function ItemPage(
+  props: { params: Promise<{ category: string; subcategory: string; item: string }> }
+) {
+  const params = await props.params;
   const { category, subcategory, item } = await getCatalogItemPageDataServer(params.category, params.subcategory, params.item);
   const itemSku = getCatalogItemSku(category.slug, subcategory.slug, item.slug);
   const basePrice = item.price ?? getCatalogItemPrice(category.slug, subcategory.slug, item.slug);

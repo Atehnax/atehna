@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { deleteCatalogItemBySlug, fetchCatalogItemEditorBySlug } from '@/shared/server/catalogItems';
 
-export async function GET(_request: Request, { params }: { params: { slug: string } }) {
+export async function GET(_request: Request, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   try {
     const slug = decodeURIComponent(params.slug ?? '').trim();
     if (!slug) return NextResponse.json({ message: 'Neveljaven slug.' }, { status: 400 });
@@ -14,7 +15,8 @@ export async function GET(_request: Request, { params }: { params: { slug: strin
   }
 }
 
-export async function DELETE(_request: Request, { params }: { params: { slug: string } }) {
+export async function DELETE(_request: Request, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   try {
     const slug = decodeURIComponent(params.slug ?? '').trim();
     if (!slug) return NextResponse.json({ message: 'Neveljaven slug.' }, { status: 400 });

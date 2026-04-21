@@ -7,7 +7,7 @@ type DialogProps = {
   children: ReactNode;
   footer?: ReactNode;
   isDismissable?: boolean;
-  initialFocusRef?: RefObject<HTMLElement>;
+  initialFocusRef?: RefObject<HTMLElement | null>;
   panelClassName?: string;
 };
 

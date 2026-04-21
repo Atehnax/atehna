@@ -19,11 +19,12 @@ export async function generateStaticParams() {
   return params;
 }
 
-export async function generateMetadata({
-  params
-}: {
-  params: { category: string; item: string };
-}) {
+export async function generateMetadata(
+  props: {
+    params: Promise<{ category: string; item: string }>;
+  }
+) {
+  const params = await props.params;
   const item = await getCatalogCategoryItemServer(params.category, params.item);
   return {
     title: item.name,
@@ -31,11 +32,12 @@ export async function generateMetadata({
   };
 }
 
-export default async function CategoryItemPage({
-  params
-}: {
-  params: { category: string; item: string };
-}) {
+export default async function CategoryItemPage(
+  props: {
+    params: Promise<{ category: string; item: string }>;
+  }
+) {
+  const params = await props.params;
   const { category, item } = await getCatalogCategoryItemPageDataServer(params.category, params.item);
   const itemSku = getCatalogCategoryItemSku(category.slug, item.slug);
   const basePrice = item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug);

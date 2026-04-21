@@ -257,19 +257,20 @@ async function AdminOrdersTableSection({
   });
 }
 
-export default async function AdminOrdersPage({
-  searchParams
-}: {
-  searchParams?: {
-    from?: string | string[];
-    to?: string | string[];
-    q?: string | string[];
-    status?: string | string[];
-    docType?: string | string[];
-    page?: string | string[];
-    pageSize?: string | string[];
-  };
-}) {
+export default async function AdminOrdersPage(
+  props: {
+    searchParams?: Promise<{
+      from?: string | string[];
+      to?: string | string[];
+      q?: string | string[];
+      status?: string | string[];
+      docType?: string | string[];
+      page?: string | string[];
+      pageSize?: string | string[];
+    }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   return (
     <div className="w-full">
       <div className="flex w-full flex-col gap-4">

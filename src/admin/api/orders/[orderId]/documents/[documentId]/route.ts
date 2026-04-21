@@ -37,8 +37,9 @@ async function hasDocumentsDeletedAtColumn() {
 
 export async function DELETE(
   _request: Request,
-  { params }: { params: { orderId: string; documentId: string } }
+  props: { params: Promise<{ orderId: string; documentId: string }> }
 ) {
+  const params = await props.params;
   try {
     const orderId = Number(params.orderId);
     const documentId = Number(params.documentId);

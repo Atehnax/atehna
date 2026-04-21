@@ -1103,8 +1103,8 @@ export async function patchCategoryTree(
     }
 
     await client.query('commit');
-    revalidateTag(CATALOG_PUBLIC_TAG);
-    revalidateTag(CATALOG_ADMIN_TAG);
+    revalidateTag(CATALOG_PUBLIC_TAG, 'max');
+    revalidateTag(CATALOG_ADMIN_TAG, 'max');
   } catch (error) {
     await client.query('rollback');
     throw error;
@@ -1308,8 +1308,8 @@ export async function replaceCategoryTree(
     }
 
     await client.query('commit');
-    revalidateTag(CATALOG_PUBLIC_TAG);
-    revalidateTag(CATALOG_ADMIN_TAG);
+    revalidateTag(CATALOG_PUBLIC_TAG, 'max');
+    revalidateTag(CATALOG_ADMIN_TAG, 'max');
   } catch (error) {
     await client.query('rollback');
     throw error;

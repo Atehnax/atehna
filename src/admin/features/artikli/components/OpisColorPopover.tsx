@@ -16,7 +16,7 @@ export default function OpisColorPopover({
   onClose
 }: {
   open: boolean;
-  anchorRef: RefObject<HTMLButtonElement>;
+  anchorRef: RefObject<HTMLButtonElement | null>;
   color: string;
   onChange: (nextColor: string) => void;
   onClose: () => void;

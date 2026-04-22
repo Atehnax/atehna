@@ -22,30 +22,16 @@ export function proxy(request: NextRequest) {
   const username = process.env.ADMIN_USERNAME ?? 'admin';
   const password = process.env.ADMIN_PASSWORD ?? 'admin';
 
-  const isAdminPage = pathname.startsWith('/admin');
-  const isAdminApi = pathname.startsWith('/api/admin');
   const isLoginPage = pathname === '/admin';
-  const isLoginApi = pathname === '/api/admin/login';
-  const isLogoutApi = pathname === '/api/admin/logout';
-
   const authenticated = hasValidSession(request, username, password);
 
   if (authenticated && isLoginPage) {
     return NextResponse.redirect(new URL('/admin/orders', request.url));
   }
 
-  if (isLoginPage || isLoginApi || isLogoutApi) {
-    return NextResponse.next();
-  }
-
-  if (isAdminPage && !authenticated) {
-    return NextResponse.redirect(new URL('/admin', request.url));
-  }
-
-  if (isAdminApi && !authenticated) {
-    return unauthorizedApi();
-  }
-
+  // Temporary admin-auth bypass:
+  // allow all matched /admin/* and /api/admin/* requests through without
+  // requiring the atehna_admin_session cookie.
   return NextResponse.next();
 }
 

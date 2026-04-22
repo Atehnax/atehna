@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { fetchCatalogItemSeeds } from '@/shared/server/catalogItems';
 import { instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
+import { getDatabaseUrl, isDatabaseUnavailableError } from '@/shared/server/db';
 
 type CatalogChoice = {
   sku: string;
@@ -28,12 +29,27 @@ async function collectCatalogChoices(): Promise<CatalogChoice[]> {
 }
 
 export async function GET() {
+  if (!getDatabaseUrl()) {
+    return NextResponse.json({
+      items: [],
+      warning: 'Povezava z bazo ni nastavljena. Prikazan je prazen katalog artiklov.'
+    });
+  }
+
   try {
     const items = await collectCatalogChoices();
     return NextResponse.json({ items });
   } catch (error) {
+    if (isDatabaseUnavailableError(error)) {
+      console.error('Failed to load /api/admin/catalog-items data', error);
+      return NextResponse.json({
+        items: [],
+        warning: 'Podatkov trenutno ni mogoče naložiti. Prikazan je prazen katalog artiklov, dokler povezava z bazo ne deluje.'
+      });
+    }
+
     return NextResponse.json(
-      { message: error instanceof Error ? error.message : 'Napaka na strežniku.' },
+      { message: error instanceof Error ? error.message : 'Napaka na strezniku.' },
       { status: 500 }
     );
   }

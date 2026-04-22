@@ -335,11 +335,13 @@ export default function AdminCategoryBreadcrumbPicker({
 
       {isOpen ? (
         <div
+          data-ignore-edit-shortcuts="true"
           className="absolute left-0 top-full z-30 mt-1 rounded-md border border-slate-200 bg-white p-2 shadow-lg"
           style={{ width: menuWidthPx ? `${menuWidthPx}px` : `${CATEGORY_PICKER_MENU_BASE_WIDTH_PX}px` }}
         >
           <div className="rounded-md border border-slate-300 bg-white transition-colors focus-within:border-[#3e67d6]">
             <input
+              data-ignore-edit-shortcuts="true"
               autoFocus
               value={query}
               onChange={(event) => setQuery(event.target.value)}

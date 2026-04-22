@@ -1,16 +1,17 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
+import { Dialog } from '@/shared/ui/dialog';
 import { IconButton } from '@/shared/ui/icon-button';
 import { Spinner } from '@/shared/ui/loading';
 import { useToast } from '@/shared/ui/toast';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
-import { ArchiveIcon, ColumnFilterIcon, DownloadIcon, PencilIcon, SaveIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { ArchiveIcon, CheckIcon, CloseIcon, ColumnFilterIcon, DownloadIcon, PencilIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActionsDropdown, Table, THead, TH, TR } from '@/shared/ui/table';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
@@ -50,6 +51,7 @@ type StatusFilter = 'all' | 'active' | 'inactive';
 type DiscountFilter = 'all' | 'yes' | 'no';
 type NoteFilter = 'all' | 'na-zalogi' | 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
 type OpenFilter = 'category' | 'status' | 'discount' | 'note' | 'variantCount' | 'priceRange' | 'actionPriceRange' | null;
+type EditScopeKind = 'row' | 'group';
 type SortState =
   | { column: 'article' | 'sku' | 'category'; direction: 'asc' | 'desc' }
   | { column: 'variantCount' | 'discount' | 'status' | 'note'; direction: 'desc' | 'asc' }
@@ -61,6 +63,8 @@ type ListFamily = ProductFamily & { baseSku: string; material: string | null; ca
 type NoteValue = '' | NoteTag;
 type FamilyDraft = { name: string; sku: string; categoryPath: string[]; active: boolean; badge: NoteValue };
 type VariantDraft = { label: string; sku: string; price: number; discountPct: number; stock: number; active: boolean; minOrder: number; note: NoteValue; position: number };
+type ActiveEditScope = { familyId: string; kind: EditScopeKind; restoreExpandedOnExit: boolean };
+type PendingGuardAction = { label: string; run: () => void };
 type NumericDraftField = 'price' | 'discountPct' | 'salePrice';
 type NumericDraftScope = 'family' | 'variant';
 const ROW_EDIT_INPUT_CLASS = `${compactTableAlignedTextInputClassName} !mt-0 !h-7 !w-full !px-2 text-[12px]`;
@@ -69,12 +73,14 @@ const QUICK_EDIT_NAME_SHELL_CLASS = 'min-w-0 flex-1';
 const QUICK_EDIT_NAME_INPUT_CLASS = `${ROW_EDIT_INPUT_CLASS} font-medium`;
 const STATUS_COLUMN_CLASS = 'w-[120px] min-w-[120px] max-w-[120px]';
 const NOTE_COLUMN_CLASS = 'w-[124px] min-w-[124px] max-w-[124px]';
+const ACTIONS_COLUMN_CLASS = 'w-[96px] min-w-[96px] max-w-[96px]';
 const STATUS_NOTE_CELL_INNER_CLASS = 'inline-flex w-full items-center justify-center';
 const NUMERIC_FIELD_LABELS: Record<NumericDraftField, string> = {
   price: 'Cena',
   discountPct: 'Popust',
   salePrice: 'Akcijska cena'
 };
+const EDIT_SHORTCUT_IGNORE_SELECTOR = '[data-ignore-edit-shortcuts="true"], [role="menu"], [role="listbox"], [role="dialog"]';
 const LazyConfirmDialog = dynamic(
   () => import('@/shared/ui/confirm-dialog').then((module) => module.ConfirmDialog),
   { ssr: false }
@@ -246,6 +252,113 @@ function buildArchiveRecordForFamily(family: ListFamily) {
   });
 }
 
+const createFamilyDraft = (family: ListFamily): FamilyDraft => ({
+  name: family.name,
+  sku: getBaseSku(family),
+  categoryPath: family.categoryPath.length > 0 ? family.categoryPath : normalizeCategoryPath(family.category),
+  active: family.active,
+  badge: family.itemBadge || 'na-zalogi'
+});
+
+const getFamilyDraftForState = (family: ListFamily, sourceDrafts: Record<string, FamilyDraft>) =>
+  sourceDrafts[family.id] ?? createFamilyDraft(family);
+
+const buildFamilyPatch = (family: ListFamily, draft: FamilyDraft) => {
+  const baseline = createFamilyDraft(family);
+  const patch: Record<string, unknown> = {};
+  let changeCount = 0;
+
+  if (draft.name !== baseline.name) {
+    patch.itemName = draft.name;
+    changeCount += 1;
+  }
+  if ((draft.sku || null) !== (baseline.sku || null)) {
+    patch.sku = draft.sku || null;
+    changeCount += 1;
+  }
+  if (draft.active !== baseline.active) {
+    patch.status = draft.active ? 'active' : 'inactive';
+    changeCount += 1;
+  }
+  if ((draft.badge || null) !== (baseline.badge || null)) {
+    patch.badge = draft.badge || null;
+    changeCount += 1;
+  }
+
+  const baselinePath = baseline.categoryPath.join('/');
+  const draftPath = draft.categoryPath.join('/');
+  if (draftPath !== baselinePath && draft.categoryPath.length > 0) {
+    patch.categoryPath = draft.categoryPath;
+    changeCount += 1;
+  }
+
+  return { patch, changeCount };
+};
+
+const createVariantDraft = (variant: Variant): VariantDraft => ({
+  label: variant.label || 'Različica',
+  sku: variant.sku,
+  price: variant.price,
+  discountPct: variant.discountPct,
+  stock: variant.stock,
+  active: variant.active,
+  minOrder: variant.minOrder ?? 1,
+  note: (normalizeNoteValue(variant.badge) as NoteValue) || 'na-zalogi',
+  position: variant.position ?? 1
+});
+
+const buildVariantPatch = (variant: Variant, draft: VariantDraft) => {
+  const baseline = createVariantDraft(variant);
+  const patch: Record<string, unknown> = {};
+  let changeCount = 0;
+
+  if (draft.label !== baseline.label) {
+    patch.variantName = draft.label;
+    changeCount += 1;
+  }
+  if (draft.sku !== baseline.sku) {
+    patch.variantSku = draft.sku || null;
+    changeCount += 1;
+  }
+  if (draft.price !== baseline.price) {
+    patch.price = draft.price;
+    changeCount += 1;
+  }
+  if (draft.discountPct !== baseline.discountPct) {
+    patch.discountPct = draft.discountPct;
+    changeCount += 1;
+  }
+  if (draft.stock !== baseline.stock) {
+    patch.inventory = draft.stock;
+    changeCount += 1;
+  }
+  if (Math.max(1, draft.minOrder) !== Math.max(1, baseline.minOrder)) {
+    patch.minOrder = Math.max(1, draft.minOrder);
+    changeCount += 1;
+  }
+  if (draft.active !== baseline.active) {
+    patch.status = draft.active ? 'active' : 'inactive';
+    changeCount += 1;
+  }
+  if ((draft.note || null) !== (baseline.note || null)) {
+    patch.badge = draft.note || null;
+    changeCount += 1;
+  }
+  if (Math.max(1, draft.position) !== Math.max(1, baseline.position)) {
+    patch.position = Math.max(1, draft.position);
+    changeCount += 1;
+  }
+
+  return { patch, changeCount };
+};
+
+const formatUnsavedChangeLabel = (count: number) => {
+  if (count === 1) return '1 neshranjena sprememba';
+  if (count === 2) return '2 neshranjeni spremembi';
+  if (count >= 3 && count <= 4) return `${count} neshranjene spremembe`;
+  return `${count} neshranjenih sprememb`;
+};
+
 export default function AdminItemsManager({ items }: { items: AdminCatalogListItem[] }) {
   const router = useRouter();
   const [search, setSearch] = useState('');
@@ -257,7 +370,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [expandedFamilyIds, setExpandedFamilyIds] = useState<Set<string>>(new Set());
   const [selectedFamilyIds, setSelectedFamilyIds] = useState<Set<string>>(new Set());
   const [selectedVariantIds, setSelectedVariantIds] = useState<Set<string>>(new Set());
-  const [editingFamilyId, setEditingFamilyId] = useState<string | null>(null);
+  const [activeEditScope, setActiveEditScope] = useState<ActiveEditScope | null>(null);
+  const [isSavingActiveScope, setIsSavingActiveScope] = useState(false);
   const [deletedVariantIds] = useState<Set<string>>(new Set());
   const [familyDrafts, setFamilyDrafts] = useState<Record<string, FamilyDraft>>({});
   const [variantDrafts, setVariantDrafts] = useState<Record<string, VariantDraft>>({});
@@ -273,12 +387,14 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [draftActionPriceRangeFilter, setDraftActionPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [isBulkArchiveDialogOpen, setIsBulkArchiveDialogOpen] = useState(false);
   const [isArchivingSelected, setIsArchivingSelected] = useState(false);
+  const [pendingGuardLabel, setPendingGuardLabel] = useState<string | null>(null);
   const categoryFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const priceFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const discountFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const actionPriceFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const statusFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const noteFilterButtonRef = useRef<HTMLButtonElement | null>(null);
+  const pendingGuardActionRef = useRef<PendingGuardAction | null>(null);
 
   const families = useMemo(() => toListFamilies(items), [items]);
   const { toast } = useToast();
@@ -632,6 +748,19 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     position: variant.position ?? 1
   });
   const getVariantDraftForState = (variant: Variant, sourceDrafts: Record<string, VariantDraft>) => sourceDrafts[variant.id] ?? createVariantDraft(variant);
+  const getEditableVariantsForFamily = useCallback(
+    (family: ListFamily) => family.variants.filter((variant) => !deletedVariantIds.has(variant.id)),
+    [deletedVariantIds]
+  );
+  const getScopeVariants = useCallback(
+    (scope: ActiveEditScope | null, family: ListFamily | null) => {
+      if (!scope || !family) return [];
+      const variants = getEditableVariantsForFamily(family);
+      return scope.kind === 'group' ? variants : variants.slice(0, 1);
+    },
+    [getEditableVariantsForFamily]
+  );
+  const resolveScopeKind = (variants: Variant[]): EditScopeKind => (variants.length > 1 ? 'group' : 'row');
   const numericDraftKey = (scope: NumericDraftScope, id: string, field: NumericDraftField) => `${scope}:${id}:${field}`;
   const clearNumericDraftKeys = (keys: string[]) =>
     setNumericDrafts((current) => {
@@ -792,65 +921,163 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     const salePrices = drafts.map((draft) => getVariantSalePrice(draft)).filter((value): value is number => value !== null);
     return formatAmountRangeForInput(salePrices);
   };
-  const startFamilyEdit = (family: ListFamily, variants: Variant[]) => {
-    setEditingFamilyId(family.id);
-    setExpandedFamilyIds((current) => {
-      const next = new Set(current);
-      if (variants.length > 0) next.add(family.id);
-      return next;
-    });
-    setVariantDrafts((current) => {
-      const next = { ...current };
-      variants.forEach((variant) => {
-        next[variant.id] = createVariantDraft(variant);
-      });
-      return next;
-    });
-    clearNumericDraftKeys([
+  const getScopeNumericDraftKeys = useCallback((scope: ActiveEditScope | null, family: ListFamily | null) => {
+    if (!scope || !family) return [];
+    const variants = getScopeVariants(scope, family);
+    return [
       ...(['price', 'discountPct', 'salePrice'] as NumericDraftField[]).map((field) => numericDraftKey('family', family.id, field)),
       ...variants.flatMap((variant) =>
         (['price', 'discountPct', 'salePrice'] as NumericDraftField[]).map((field) => numericDraftKey('variant', variant.id, field))
       )
-    ]);
-    setFamilyDrafts((current) => ({
-      ...current,
-      [family.id]: {
-        name: family.name,
-        sku: getBaseSku(family),
-        categoryPath: family.categoryPath.length > 0 ? family.categoryPath : normalizeCategoryPath(family.category),
-        active: family.active,
-        badge: family.itemBadge || 'na-zalogi'
+    ];
+  }, [getScopeVariants]);
+  const effectiveFamiliesById = useMemo(
+    () => new Map(effectiveFamilies.map((family) => [family.id, family])),
+    [effectiveFamilies]
+  );
+  const activeScopeFamily = useMemo(
+    () => (activeEditScope ? effectiveFamiliesById.get(activeEditScope.familyId) ?? null : null),
+    [activeEditScope, effectiveFamiliesById]
+  );
+  const resolveEditScopeSnapshot = useCallback(
+    (
+      scope: ActiveEditScope | null,
+      family: ListFamily | null,
+      sourceFamilyDrafts = familyDrafts,
+      sourceVariantDrafts = variantDrafts,
+      sourceNumericDrafts = numericDrafts
+    ) => {
+      if (!scope || !family) return null;
+
+      const variants = getScopeVariants(scope, family);
+      const familyDraft = getFamilyDraftForState(family, sourceFamilyDrafts);
+      const resolvedDraftsResult = resolvePendingNumericDraftsForFamily(
+        family.id,
+        variants,
+        sourceVariantDrafts,
+        sourceNumericDrafts
+      );
+      const validationMessages: string[] = [];
+      const resolvedVariantDrafts =
+        'error' in resolvedDraftsResult && resolvedDraftsResult.error
+          ? sourceVariantDrafts
+          : resolvedDraftsResult.nextVariantDrafts ?? sourceVariantDrafts;
+
+      if ('error' in resolvedDraftsResult && resolvedDraftsResult.error) {
+        validationMessages.push(resolvedDraftsResult.error);
       }
-    }));
-  };
-  const updateFamilyDraft = (familyId: string, fallbackDraft: FamilyDraft, mutate: (draft: FamilyDraft) => FamilyDraft) =>
-    setFamilyDrafts((current) => {
-      const draft = current[familyId] ?? fallbackDraft;
-      return { ...current, [familyId]: mutate(draft) };
-    });
-  const saveFamilyEdit = async (family: ListFamily, variants: Variant[], fallbackDraft: FamilyDraft) => {
-    const draft = familyDrafts[family.id] ?? fallbackDraft;
-    if (!draft) return;
+      if (familyDraft.name.trim().length === 0) {
+        validationMessages.push('Ime artikla je obvezno.');
+      }
+      if (familyDraft.categoryPath.length === 0) {
+        validationMessages.push('Kategorija je obvezna.');
+      }
+
+      const familyPatchResult = buildFamilyPatch(family, familyDraft);
+      const variantPatchResults = variants.map((variant) => {
+        const draft = getVariantDraftForState(variant, resolvedVariantDrafts);
+        if (draft.label.trim().length === 0) {
+          validationMessages.push('Naziv različice je obvezen.');
+        }
+        return {
+          variant,
+          draft,
+          ...buildVariantPatch(variant, draft)
+        };
+      });
+
+      const dirtyChangeCount =
+        familyPatchResult.changeCount +
+        variantPatchResults.reduce((sum, result) => sum + result.changeCount, 0);
+
+      return {
+        familyDraft,
+        variants,
+        familyPatchResult,
+        variantPatchResults,
+        dirtyChangeCount,
+        isDirty: dirtyChangeCount > 0,
+        isValid: validationMessages.length === 0,
+        validationMessage: validationMessages[0] ?? null
+      };
+    },
+    [familyDrafts, getScopeVariants, numericDrafts, variantDrafts]
+  );
+  const activeEditSnapshot = useMemo(
+    () => resolveEditScopeSnapshot(activeEditScope, activeScopeFamily),
+    [activeEditScope, activeScopeFamily, resolveEditScopeSnapshot]
+  );
+  const clearActiveEditScopeState = useCallback(
+    (scope: ActiveEditScope | null, family: ListFamily | null) => {
+      if (!scope || !family) {
+        setActiveEditScope(null);
+        return;
+      }
+
+      const variantIds = getScopeVariants(scope, family).map((variant) => variant.id);
+      setFamilyDrafts((current) => {
+        if (!(scope.familyId in current)) return current;
+        const next = { ...current };
+        delete next[scope.familyId];
+        return next;
+      });
+      setVariantDrafts((current) => {
+        if (variantIds.length === 0) return current;
+        const next = { ...current };
+        variantIds.forEach((variantId) => {
+          delete next[variantId];
+        });
+        return next;
+      });
+      clearNumericDraftKeys(getScopeNumericDraftKeys(scope, family));
+      setActiveEditScope(null);
+      if (scope.kind === 'group' && scope.restoreExpandedOnExit) {
+        setExpandedFamilyIds((current) => {
+          const next = new Set(current);
+          next.delete(scope.familyId);
+          return next;
+        });
+      }
+    },
+    [getScopeNumericDraftKeys, getScopeVariants]
+  );
+  const cancelCurrentEditScope = useCallback(() => {
+    clearActiveEditScopeState(activeEditScope, activeScopeFamily);
+  }, [activeEditScope, activeScopeFamily, clearActiveEditScopeState]);
+  const saveCurrentEditScope = useCallback(async () => {
+    if (!activeEditScope || !activeScopeFamily) return true;
+
+    const snapshot = resolveEditScopeSnapshot(activeEditScope, activeScopeFamily);
+    if (!snapshot) return true;
+    if (!snapshot.isDirty) {
+      clearActiveEditScopeState(activeEditScope, activeScopeFamily);
+      return true;
+    }
+    if (!snapshot.isValid) {
+      toast.error(snapshot.validationMessage || 'Preverite vnose pred shranjevanjem.');
+      return false;
+    }
+    if (!activeScopeFamily.slug) {
+      toast.error('Artikel nima veljavnega identifikatorja (slug).');
+      return false;
+    }
+
+    setIsSavingActiveScope(true);
+
     try {
-      if (!family.slug) throw new Error('Artikel nima veljavnega identifikatorja (slug).');
-      const preparedVariantDrafts = commitPendingNumericDraftsForFamily(family.id, variants);
-      if (!preparedVariantDrafts) return;
-      const patch: Record<string, unknown> = {};
-      if (draft.name !== family.name) patch.itemName = draft.name;
-      if ((draft.sku || null) !== (getBaseSku(family) || null)) patch.sku = draft.sku || null;
-      if ((draft.active ? 'active' : 'inactive') !== (family.active ? 'active' : 'inactive')) patch.status = draft.active ? 'active' : 'inactive';
-      if ((draft.badge || null) !== (family.itemBadge || null)) patch.badge = draft.badge || null;
-      const familyPath = (family.categoryPath.length > 0 ? family.categoryPath : normalizeCategoryPath(family.category)).join('/');
-      const draftPath = draft.categoryPath.join('/');
-      if (draftPath !== familyPath && draft.categoryPath.length > 0) patch.categoryPath = draft.categoryPath;
+      const committedVariantDrafts = commitPendingNumericDraftsForFamily(activeScopeFamily.id, snapshot.variants);
+      if (!committedVariantDrafts) return false;
+
+      const familyPatchResult = buildFamilyPatch(activeScopeFamily, snapshot.familyDraft);
       let latestSavedItem: AdminCatalogListItem | null = null;
-      if (Object.keys(patch).length > 0) {
+
+      if (familyPatchResult.changeCount > 0) {
         const response = await fetch('/api/admin/artikli/quick-save/item', {
           method: 'PATCH',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
-            itemIdentifier: family.slug,
-            patch
+            itemIdentifier: activeScopeFamily.slug,
+            patch: familyPatchResult.patch
           })
         });
         const body = (await response.json().catch(() => ({}))) as { item?: AdminCatalogListItem; message?: string };
@@ -858,75 +1085,252 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         latestSavedItem = body.item;
       }
 
-      for (const variant of variants) {
-        const variantDraft = preparedVariantDrafts[variant.id] ?? createVariantDraft(variant);
-        const variantPatch: Record<string, unknown> = {};
-        if (variantDraft.label !== variant.label) variantPatch.variantName = variantDraft.label;
-        if (variantDraft.sku !== variant.sku) variantPatch.variantSku = variantDraft.sku || null;
-        if (variantDraft.price !== variant.price) variantPatch.price = variantDraft.price;
-        if (variantDraft.discountPct !== variant.discountPct) variantPatch.discountPct = variantDraft.discountPct;
-        if (variantDraft.stock !== variant.stock) variantPatch.inventory = variantDraft.stock;
-        if (Math.max(1, variantDraft.minOrder) !== Math.max(1, variant.minOrder ?? 1)) variantPatch.minOrder = Math.max(1, variantDraft.minOrder);
-        if ((variantDraft.active ? 'active' : 'inactive') !== (variant.active ? 'active' : 'inactive')) variantPatch.status = variantDraft.active ? 'active' : 'inactive';
-        if ((variantDraft.note || null) !== (normalizeNoteValue(variant.badge) || null)) variantPatch.badge = variantDraft.note || null;
-        if (Math.max(1, variantDraft.position) !== Math.max(1, variant.position ?? 1)) variantPatch.position = Math.max(1, variantDraft.position);
+      for (const { variant, patch, changeCount } of snapshot.variantPatchResults) {
+        if (changeCount === 0) continue;
 
-        if (Object.keys(variantPatch).length > 0) {
-          const variantResponse = await fetch('/api/admin/artikli/quick-save/variant', {
-            method: 'PATCH',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
-              itemIdentifier: family.slug,
-              variantId: Number(variant.id),
-              patch: variantPatch
-            })
-          });
-          const variantBody = (await variantResponse.json().catch(() => ({}))) as { item?: AdminCatalogListItem; message?: string };
-          if (!variantResponse.ok || !variantBody.item) throw new Error(variantBody.message || 'Shranjevanje različice ni uspelo.');
-          latestSavedItem = variantBody.item;
+        const variantResponse = await fetch('/api/admin/artikli/quick-save/variant', {
+          method: 'PATCH',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            itemIdentifier: activeScopeFamily.slug,
+            variantId: Number(variant.id),
+            patch
+          })
+        });
+        const variantBody = (await variantResponse.json().catch(() => ({}))) as { item?: AdminCatalogListItem; message?: string };
+        if (!variantResponse.ok || !variantBody.item) {
+          throw new Error(variantBody.message || 'Shranjevanje različice ni uspelo.');
         }
+        latestSavedItem = variantBody.item;
       }
 
       if (latestSavedItem) {
         applySavedFamilyRow(latestSavedItem);
       }
-      setEditingFamilyId(null);
+
+      clearActiveEditScopeState(activeEditScope, activeScopeFamily);
       router.refresh();
+      return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Shranjevanje ni uspelo.');
+      return false;
+    } finally {
+      setIsSavingActiveScope(false);
     }
-  };
+  }, [activeEditScope, activeScopeFamily, clearActiveEditScopeState, resolveEditScopeSnapshot, router, toast]);
+  const resolvePendingGuardAction = useCallback(() => {
+    const action = pendingGuardActionRef.current;
+    pendingGuardActionRef.current = null;
+    setPendingGuardLabel(null);
+    action?.run();
+  }, []);
+  const requestCurrentEditResolution = useCallback((label: string, run: () => void) => {
+    if (!activeEditScope || !activeScopeFamily) {
+      run();
+      return;
+    }
+
+    if (!activeEditSnapshot?.isDirty) {
+      clearActiveEditScopeState(activeEditScope, activeScopeFamily);
+      run();
+      return;
+    }
+
+    pendingGuardActionRef.current = { label, run };
+    setPendingGuardLabel(label);
+  }, [activeEditScope, activeScopeFamily, activeEditSnapshot?.isDirty, clearActiveEditScopeState]);
+  const beginFamilyEditScope = useCallback((family: ListFamily) => {
+    const allVariants = getEditableVariantsForFamily(family);
+    const nextKind = resolveScopeKind(allVariants);
+    const nextScope: ActiveEditScope = {
+      familyId: family.id,
+      kind: nextKind,
+      restoreExpandedOnExit: nextKind === 'group' ? !expandedFamilyIds.has(family.id) : false
+    };
+    const scopedVariants = nextKind === 'group' ? allVariants : allVariants.slice(0, 1);
+
+    const beginEdit = () => {
+      setActiveEditScope(nextScope);
+      if (nextKind === 'group') {
+        setExpandedFamilyIds((current) => {
+          const next = new Set(current);
+          next.add(family.id);
+          return next;
+        });
+      }
+      setVariantDrafts((current) => {
+        const next = { ...current };
+        scopedVariants.forEach((variant) => {
+          next[variant.id] = createVariantDraft(variant);
+        });
+        return next;
+      });
+      clearNumericDraftKeys([
+        ...(['price', 'discountPct', 'salePrice'] as NumericDraftField[]).map((field) => numericDraftKey('family', family.id, field)),
+        ...scopedVariants.flatMap((variant) =>
+          (['price', 'discountPct', 'salePrice'] as NumericDraftField[]).map((field) => numericDraftKey('variant', variant.id, field))
+        )
+      ]);
+      setFamilyDrafts((current) => ({
+        ...current,
+        [family.id]: createFamilyDraft(family)
+      }));
+    };
+
+    if (activeEditScope?.familyId === family.id && activeEditScope.kind === nextScope.kind) return;
+    requestCurrentEditResolution(`začetkom urejanja artikla ${family.name}`, beginEdit);
+  }, [activeEditScope, expandedFamilyIds, getEditableVariantsForFamily, requestCurrentEditResolution]);
+  const updateFamilyDraft = (familyId: string, fallbackDraft: FamilyDraft, mutate: (draft: FamilyDraft) => FamilyDraft) =>
+    setFamilyDrafts((current) => {
+      const draft = current[familyId] ?? fallbackDraft;
+      return { ...current, [familyId]: mutate(draft) };
+    });
   const getSortTitleClass = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'actionPriceRange' | 'status' | 'note') =>
     `inline-flex items-center text-[12px] font-semibold leading-none text-slate-900 hover:text-[color:var(--blue-500)] ${
       sortState && 'column' in sortState && sortState.column === column ? 'underline underline-offset-2 text-[color:var(--blue-500)]' : ''
     }`;
   const cycleSort = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'actionPriceRange' | 'status' | 'note') => {
-    setSortState((current) => {
-      if (column === 'article' || column === 'sku' || column === 'category') {
-        if (!current || !('column' in current) || current.column !== column) return { column, direction: 'asc' };
-        if ('direction' in current && current.direction === 'asc') return { column, direction: 'desc' };
-        return null;
-      }
-      if (column === 'variantCount' || column === 'discount' || column === 'status' || column === 'note') {
-        if (!current || !('column' in current) || current.column !== column) return { column, direction: 'desc' };
-        if ('direction' in current && current.direction === 'desc') return { column, direction: 'asc' };
-        return null;
-      }
-      if (column === 'priceRange' || column === 'actionPriceRange') {
-        if (!current || !('column' in current) || current.column !== column) return { column, mode: 'minAsc' };
-        if ('mode' in current && current.mode === 'minAsc') return { column, mode: 'minDesc' };
-        if ('mode' in current && current.mode === 'minDesc') return { column, mode: 'maxDesc' };
-        if ('mode' in current && current.mode === 'maxDesc') return { column, mode: 'maxAsc' };
-        return null;
-      }
-      return current;
+    requestCurrentEditResolution(`razvrščanjem po stolpcu ${column}`, () => {
+      setSortState((current) => {
+        if (column === 'article' || column === 'sku' || column === 'category') {
+          if (!current || !('column' in current) || current.column !== column) return { column, direction: 'asc' };
+          if ('direction' in current && current.direction === 'asc') return { column, direction: 'desc' };
+          return null;
+        }
+        if (column === 'variantCount' || column === 'discount' || column === 'status' || column === 'note') {
+          if (!current || !('column' in current) || current.column !== column) return { column, direction: 'desc' };
+          if ('direction' in current && current.direction === 'desc') return { column, direction: 'asc' };
+          return null;
+        }
+        if (column === 'priceRange' || column === 'actionPriceRange') {
+          if (!current || !('column' in current) || current.column !== column) return { column, mode: 'minAsc' };
+          if ('mode' in current && current.mode === 'minAsc') return { column, mode: 'minDesc' };
+          if ('mode' in current && current.mode === 'minDesc') return { column, mode: 'maxDesc' };
+          if ('mode' in current && current.mode === 'maxDesc') return { column, mode: 'maxAsc' };
+          return null;
+        }
+        return current;
+      });
     });
   };
+  const setFamilyExpanded = useCallback((familyId: string, expanded: boolean) => {
+    setExpandedFamilyIds((current) => {
+      const next = new Set(current);
+      if (expanded) next.add(familyId);
+      else next.delete(familyId);
+      return next;
+    });
+  }, []);
+  const handleGuardDialogCancel = () => {
+    pendingGuardActionRef.current = null;
+    setPendingGuardLabel(null);
+  };
+  const handleGuardDialogDiscard = () => {
+    const action = pendingGuardActionRef.current;
+    pendingGuardActionRef.current = null;
+    setPendingGuardLabel(null);
+    clearActiveEditScopeState(activeEditScope, activeScopeFamily);
+    action?.run();
+  };
+  const handleGuardDialogSave = async () => {
+    const saved = await saveCurrentEditScope();
+    if (!saved) return;
+    resolvePendingGuardAction();
+  };
+
+  useEffect(() => {
+    if (!activeEditSnapshot?.isDirty) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [activeEditSnapshot?.isDirty]);
+
+  useEffect(() => {
+    if (!activeEditSnapshot?.isDirty) return;
+
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+      const target = event.target as HTMLElement | null;
+      const anchor = target?.closest('a[href]') as HTMLAnchorElement | null;
+      if (!anchor) return;
+      if (anchor.hasAttribute('download')) return;
+      if (anchor.target && anchor.target !== '_self') return;
+
+      const url = new URL(anchor.href, window.location.href);
+      const currentUrl = new URL(window.location.href);
+      if (url.origin !== currentUrl.origin) return;
+      if (url.pathname === currentUrl.pathname && url.search === currentUrl.search && url.hash === currentUrl.hash) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      requestCurrentEditResolution('zapustitvijo strani', () => {
+        router.push(`${url.pathname}${url.search}${url.hash}`);
+      });
+    };
+
+    document.addEventListener('click', handleDocumentClick, true);
+    return () => {
+      document.removeEventListener('click', handleDocumentClick, true);
+    };
+  }, [activeEditSnapshot?.isDirty, requestCurrentEditResolution, router]);
+
+  useEffect(() => {
+    if (!activeEditScope || pendingGuardLabel) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest(`[data-edit-scope="family:${activeEditScope.familyId}"]`)) return;
+      if (target.closest(EDIT_SHORTCUT_IGNORE_SELECTOR)) return;
+
+      const tagName = target.tagName.toLowerCase();
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        cancelCurrentEditScope();
+        return;
+      }
+
+      if (event.key !== 'Enter' || tagName === 'button' || tagName === 'textarea') return;
+
+      const input = target as HTMLInputElement;
+      if (input.type === 'search') return;
+
+      event.preventDefault();
+      void saveCurrentEditScope();
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [activeEditScope, cancelCurrentEditScope, pendingGuardLabel, saveCurrentEditScope]);
 
   useHeaderFilterDismiss({
     isOpen: Boolean(openFilter),
     onClose: () => setOpenFilter(null)
   });
+
+  const handlePageChange = (nextPage: number) =>
+    requestCurrentEditResolution('menjavo strani', () => setPage(nextPage));
+  const handlePageSizeChange = (nextPageSize: number) =>
+    requestCurrentEditResolution('spremembo števila vrstic na stran', () => setPageSize(nextPageSize));
+  const handleSearchInputChange = (nextValue: string) =>
+    requestCurrentEditResolution('iskanjem po artiklih', () => setSearch(nextValue));
+  const handleCreateItemNavigation = () =>
+    requestCurrentEditResolution('odhodom na ustvarjanje novega artikla', () => router.push('/admin/artikli/nov'));
+  const handleArchiveSelectionAction = () =>
+    requestCurrentEditResolution('arhiviranjem izbranih artiklov', handleArchiveSelected);
 
   return (
     <div className="space-y-4 font-['Inter',system-ui,sans-serif]">
@@ -948,42 +1352,88 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
           confirmDisabled={isArchivingSelected}
         />
       ) : null}
+      {pendingGuardLabel ? (
+        <Dialog
+          open
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) handleGuardDialogCancel();
+          }}
+          title="Neshranjene spremembe"
+          isDismissable={false}
+          footer={
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={handleGuardDialogCancel}
+                className="h-8 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600"
+              >
+                Nadaljuj urejanje
+              </button>
+              <button
+                type="button"
+                onClick={handleGuardDialogDiscard}
+                className="h-8 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-700"
+              >
+                Zavrzi spremembe
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void handleGuardDialogSave();
+                }}
+                disabled={!activeEditSnapshot?.isDirty || !activeEditSnapshot.isValid || isSavingActiveScope}
+                className="h-8 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700 disabled:cursor-default disabled:opacity-50"
+              >
+                {isSavingActiveScope ? 'Shranjujem...' : 'Shrani in nadaljuj'}
+              </button>
+            </div>
+          }
+        >
+          <p className="mt-2 text-xs text-slate-600">
+            Pred {pendingGuardLabel} shranite ali zavrzite trenutno urejanje, da se spremembe ne izgubijo.
+          </p>
+          {activeEditSnapshot?.validationMessage ? (
+            <p className="mt-2 text-xs font-medium text-rose-600">{activeEditSnapshot.validationMessage}</p>
+          ) : null}
+        </Dialog>
+      ) : null}
       <AdminTableLayout
         className="border shadow-sm"
         style={{ background: '#fff', borderColor: '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
+        headerClassName="px-5 pt-5 pb-2 [&>div:last-child]:!mt-3"
         headerLeft={
-          <div className="flex h-7 w-full items-center gap-2">
-            <div className="min-w-0 w-full rounded-md border border-slate-200 bg-white transition-colors focus-within:border-[#3e67d6]">
-              <AdminSearchInput
-                showIcon={false}
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Poišči artikel, SKU, kategorijo, status ali opombe ..."
-                aria-label="Poišči artikel, SKU, kategorijo, status ali opombe"
-                className="!m-0 !h-7 min-w-0 w-full flex-1 !rounded-md !border-0 !bg-transparent !shadow-none !outline-none ring-0 transition-colors placeholder:text-slate-400 [--euiFormControlStateWidth:0px] focus:[--euiFormControlStateWidth:0px] focus-visible:[--euiFormControlStateWidth:0px] focus:!border-0 focus:!shadow-none focus:!outline-none focus-visible:!border-0 focus-visible:!shadow-none focus-visible:!outline-none"
-              />
-            </div>
+          <div className="flex min-h-11 w-full items-center gap-2">
+            <AdminSearchInput
+              value={search}
+              onChange={(event) => handleSearchInputChange(event.target.value)}
+              placeholder="Poišči artikel, SKU, kategorijo, status ali opombe ..."
+              aria-label="Poišči artikel, SKU, kategorijo, status ali opombe"
+              wrapperClassName="rounded-xl border-slate-200/90 bg-slate-50/80"
+              inputClassName="!m-0 !h-11 min-w-0 w-full flex-1 !rounded-xl !border-0 !bg-transparent !pr-4 !text-[14px] !font-normal text-slate-700 !shadow-none !outline-none ring-0 transition-colors placeholder:text-slate-400 [--euiFormControlStateWidth:0px] focus:[--euiFormControlStateWidth:0px] focus-visible:[--euiFormControlStateWidth:0px] focus:!border-0 focus:!shadow-none focus:!outline-none focus-visible:!border-0 focus-visible:!shadow-none focus-visible:!outline-none"
+              iconClassName="left-4 h-5 w-5 text-slate-400"
+            />
           </div>
         }
         headerRight={
-          <div className="flex h-7 items-center gap-2 self-center">
+          <div className="flex min-h-11 items-center gap-1.5 self-center">
             <IconButton
               type="button"
               onClick={exportVariantsCsv}
               tone="neutral"
               size="sm"
+              className="!h-11 !w-11 !rounded-xl !border-slate-200/90 !bg-white !text-slate-600 hover:!bg-slate-50"
               aria-label={hasExportSelection ? 'Prenesi izbrane artikle' : 'Prenesi vse artikle'}
               title={hasExportSelection ? 'Prenesi izbrane' : 'Prenesi vse'}
             >
-              <DownloadIcon />
+              <DownloadIcon className="!h-5 !w-5" />
             </IconButton>
             <IconButton
               type="button"
-              onClick={handleArchiveSelected}
+              onClick={handleArchiveSelectionAction}
               disabled={!hasSelectedArchiveFamilies || isArchivingSelected}
               tone={hasSelectedArchiveFamilies ? 'warning' : 'neutral'}
               size="sm"
-              className={hasSelectedArchiveFamilies ? '!bg-amber-50 !transition-none' : '!transition-none'}
+              className={hasSelectedArchiveFamilies ? '!h-11 !w-11 !rounded-xl !border-amber-300/80 !bg-amber-50 !text-amber-700 !transition-none' : '!h-11 !w-11 !rounded-xl !border-slate-200/90 !bg-white !text-slate-600 !transition-none hover:!bg-slate-50'}
               aria-label={
                 hasSelectedArchiveFamilies
                   ? `Arhiviraj izbrane artikle (${selectedArchiveCount})`
@@ -991,17 +1441,17 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
               }
               title="Arhiviraj"
             >
-              {isArchivingSelected ? <Spinner size="sm" className="text-amber-700" /> : <ArchiveIcon />}
+              {isArchivingSelected ? <Spinner size="sm" className="text-amber-700" /> : <ArchiveIcon className="!h-5 !w-5" />}
             </IconButton>
             <Button
               type="button"
               variant="primary"
               size="toolbar"
-              className={`!h-7 !rounded-md ${adminTextButtonTypographyTokenClasses}`}
-              aria-label="Dodaj artikel"
-              onClick={() => router.push('/admin/artikli/nov')}
+              className={`${adminTextButtonTypographyTokenClasses} !h-11 !rounded-xl !px-5 !text-sm !font-semibold`}
+              aria-label="Nov artikel"
+              onClick={handleCreateItemNavigation}
             >
-              Dodaj artikel
+              Nov artikel
             </Button>
           </div>
         }
@@ -1010,7 +1460,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
             {categoryFilter !== 'all' ? (
               <span className={filterPillTokenClasses.base}>
                 Kategorija: {categoryFilter}
-                <button type="button" className={filterPillTokenClasses.clear} onClick={() => setCategoryFilter('all')} aria-label="Počisti filter kategorije">
+                <button type="button" className={filterPillTokenClasses.clear} onClick={() => requestCurrentEditResolution('čiščenjem filtra kategorije', () => setCategoryFilter('all'))} aria-label="Počisti filter kategorije">
                   ×
                 </button>
               </span>
@@ -1018,7 +1468,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
             {statusFilter !== 'all' ? (
               <span className={filterPillTokenClasses.base}>
                 Status: {statusFilter === 'active' ? 'Aktiven' : 'Neaktiven'}
-                <button type="button" className={filterPillTokenClasses.clear} onClick={() => setStatusFilter('all')} aria-label="Počisti filter statusa">
+                <button type="button" className={filterPillTokenClasses.clear} onClick={() => requestCurrentEditResolution('čiščenjem filtra statusa', () => setStatusFilter('all'))} aria-label="Počisti filter statusa">
                   ×
                 </button>
               </span>
@@ -1026,7 +1476,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
             {noteFilter !== 'all' ? (
               <span className={filterPillTokenClasses.base}>
                 Opombe: {noteFilter === 'na-zalogi' ? 'Na zalogi' : noteFilter === 'novo' ? 'Novo' : noteFilter === 'akcija' ? 'V akciji' : noteFilter === 'zadnji-kosi' ? 'Zadnji kosi' : 'Ni na zalogi'}
-                <button type="button" className={filterPillTokenClasses.clear} onClick={() => setNoteFilter('all')} aria-label="Počisti filter opomb">
+                <button type="button" className={filterPillTokenClasses.clear} onClick={() => requestCurrentEditResolution('čiščenjem filtra opomb', () => setNoteFilter('all'))} aria-label="Počisti filter opomb">
                   ×
                 </button>
               </span>
@@ -1034,7 +1484,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
             {discountFilter !== 'all' ? (
               <span className={filterPillTokenClasses.base}>
                 Popust: {discountFilter === 'yes' ? 'Da' : 'Ne'}
-                <button type="button" className={filterPillTokenClasses.clear} onClick={() => setDiscountFilter('all')} aria-label="Počisti filter popusta">
+                <button type="button" className={filterPillTokenClasses.clear} onClick={() => requestCurrentEditResolution('čiščenjem filtra popusta', () => setDiscountFilter('all'))} aria-label="Počisti filter popusta">
                   ×
                 </button>
               </span>
@@ -1045,10 +1495,10 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 <button
                   type="button"
                   className={filterPillTokenClasses.clear}
-                  onClick={() => {
+                  onClick={() => requestCurrentEditResolution('čiščenjem filtra števila različic', () => {
                     setVariantCountRange({ min: '', max: '' });
                     setDraftVariantCountRange({ min: '', max: '' });
-                  }}
+                  })}
                   aria-label="Počisti filter Št. različic"
                 >
                   ×
@@ -1061,10 +1511,10 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 <button
                   type="button"
                   className={filterPillTokenClasses.clear}
-                  onClick={() => {
+                  onClick={() => requestCurrentEditResolution('čiščenjem filtra cene', () => {
                     setPriceRangeFilter({ min: '', max: '' });
                     setDraftPriceRangeFilter({ min: '', max: '' });
-                  }}
+                  })}
                   aria-label="Počisti filter Razpon cen"
                 >
                   ×
@@ -1077,10 +1527,10 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 <button
                   type="button"
                   className={filterPillTokenClasses.clear}
-                  onClick={() => {
+                  onClick={() => requestCurrentEditResolution('čiščenjem filtra akcijske cene', () => {
                     setActionPriceRangeFilter({ min: '', max: '' });
                     setDraftActionPriceRangeFilter({ min: '', max: '' });
-                  }}
+                  })}
                   aria-label="Počisti filter Razpon akcijske cene"
                 >
                   ×
@@ -1089,13 +1539,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
             ) : null}
           </div>
         }
-        filterRowRight={<EuiTablePagination page={page} pageCount={pageCount} onPageChange={setPage} itemsPerPage={pageSize} onChangeItemsPerPage={setPageSize} itemsPerPageOptions={PAGE_SIZE_OPTIONS} />}
+        filterRowRight={<EuiTablePagination page={page} pageCount={pageCount} onPageChange={handlePageChange} itemsPerPage={pageSize} onChangeItemsPerPage={handlePageSizeChange} itemsPerPageOptions={PAGE_SIZE_OPTIONS} />}
         contentClassName="overflow-x-auto overflow-y-visible bg-white"
-        footerRight={<EuiTablePagination page={page} pageCount={pageCount} onPageChange={setPage} itemsPerPage={pageSize} onChangeItemsPerPage={setPageSize} itemsPerPageOptions={PAGE_SIZE_OPTIONS} />}
+        footerRight={<EuiTablePagination page={page} pageCount={pageCount} onPageChange={handlePageChange} itemsPerPage={pageSize} onChangeItemsPerPage={handlePageSizeChange} itemsPerPageOptions={PAGE_SIZE_OPTIONS} />}
         showDivider={false}
       >
-        <Table className="w-full table-fixed text-[12px]">
-            <THead>
+        <Table className="w-full table-fixed text-[12px] [&_thead_th]:!border-slate-200 [&_thead_th]:!py-4">
+            <THead className="border-t border-slate-200">
               <TR>
                 <TH className="w-10 px-2 text-center">
                   <AdminCheckbox
@@ -1132,7 +1582,9 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                       className={HEADER_FILTER_BUTTON_CLASS}
                       onClick={(event) => {
                         event.stopPropagation();
-                        setOpenFilter((current) => (current === 'category' ? null : 'category'));
+                        requestCurrentEditResolution('filtriranjem kategorij', () => {
+                          setOpenFilter((current) => (current === 'category' ? null : 'category'));
+                        });
                       }}
                       aria-label="Filtriraj kategorijo"
                     >
@@ -1151,8 +1603,10 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                       className={HEADER_FILTER_BUTTON_CLASS}
                       onClick={(event) => {
                         event.stopPropagation();
-                        setDraftPriceRangeFilter(priceRangeFilter);
-                        setOpenFilter((current) => (current === 'priceRange' ? null : 'priceRange'));
+                        requestCurrentEditResolution('filtriranjem cen', () => {
+                          setDraftPriceRangeFilter(priceRangeFilter);
+                          setOpenFilter((current) => (current === 'priceRange' ? null : 'priceRange'));
+                        });
                       }}
                       aria-label="Filtriraj Cena"
                     >
@@ -1171,7 +1625,9 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                       className={HEADER_FILTER_BUTTON_CLASS}
                       onClick={(event) => {
                         event.stopPropagation();
-                        setOpenFilter((current) => (current === 'discount' ? null : 'discount'));
+                        requestCurrentEditResolution('filtriranjem popustov', () => {
+                          setOpenFilter((current) => (current === 'discount' ? null : 'discount'));
+                        });
                       }}
                       aria-label="Filtriraj popust"
                     >
@@ -1190,8 +1646,10 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                       className={HEADER_FILTER_BUTTON_CLASS}
                       onClick={(event) => {
                         event.stopPropagation();
-                        setDraftActionPriceRangeFilter(actionPriceRangeFilter);
-                        setOpenFilter((current) => (current === 'actionPriceRange' ? null : 'actionPriceRange'));
+                        requestCurrentEditResolution('filtriranjem akcijskih cen', () => {
+                          setDraftActionPriceRangeFilter(actionPriceRangeFilter);
+                          setOpenFilter((current) => (current === 'actionPriceRange' ? null : 'actionPriceRange'));
+                        });
                       }}
                       aria-label="Filtriraj Akcijska cena"
                     >
@@ -1210,7 +1668,9 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                       className={HEADER_FILTER_BUTTON_CLASS}
                       onClick={(event) => {
                         event.stopPropagation();
-                        setOpenFilter((current) => (current === 'status' ? null : 'status'));
+                        requestCurrentEditResolution('filtriranjem statusov', () => {
+                          setOpenFilter((current) => (current === 'status' ? null : 'status'));
+                        });
                       }}
                       aria-label="Filtriraj status"
                     >
@@ -1229,7 +1689,9 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                       className={HEADER_FILTER_BUTTON_CLASS}
                       onClick={(event) => {
                         event.stopPropagation();
-                        setOpenFilter((current) => (current === 'note' ? null : 'note'));
+                        requestCurrentEditResolution('filtriranjem opomb', () => {
+                          setOpenFilter((current) => (current === 'note' ? null : 'note'));
+                        });
                       }}
                       aria-label="Filtriraj opombe"
                     >
@@ -1237,7 +1699,9 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     </button>
                   </div>
                 </TH>
-                <TH className="w-[5%] px-2 text-center">Uredi</TH>
+                <TH className={`${ACTIONS_COLUMN_CLASS} px-2 text-center`}>
+                  <span className="inline-flex items-center text-[12px] font-semibold leading-none text-slate-900">Uredi</span>
+                </TH>
               </TR>
             </THead>
             <tbody>
@@ -1245,14 +1709,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 const { family, visibleVariants, minPrice, maxPrice, discounts } = row;
                 const isExpanded = expandedFamilyIds.has(family.id);
                 const hasSubtable = visibleVariants.length > 0;
-                const isEditingFamily = editingFamilyId === family.id;
-                const familyDraft = familyDrafts[family.id] ?? {
-                  name: family.name,
-                  sku: getBaseSku(family),
-                  categoryPath: family.categoryPath.length > 0 ? family.categoryPath : normalizeCategoryPath(family.category),
-                  active: family.active,
-                  badge: family.itemBadge || 'na-zalogi'
-                };
+                const isEditingFamily = activeEditScope?.familyId === family.id;
+                const isEditingRow = isEditingFamily && activeEditScope?.kind === 'row';
+                const isEditingGroup = isEditingFamily && activeEditScope?.kind === 'group';
+                const familyDraft = getFamilyDraftForState(family, familyDrafts);
+                const rowEditSnapshot = isEditingFamily ? activeEditSnapshot : null;
                 const draftVisibleVariants = visibleVariants.map((variant) => getVariantDraftForState(variant, variantDrafts));
                 const draftActionPrices = draftVisibleVariants
                   .map((draft) => getVariantSalePrice(draft))
@@ -1262,27 +1723,29 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                   .map((variant) => computeSalePrice(variant.price, variant.discountPct));
                 return (
                   <Fragment key={family.id}>
-                    <tr className={`border-t border-slate-100 bg-white ${adminTableRowToneClasses.hover}`} data-edit-scope={`family:${family.id}`}>
-                      <td className="w-10 px-2 py-2 text-center"><AdminCheckbox checked={selectedFamilyIds.has(family.id)} onChange={() => setSelectedFamilyIds((current) => {
+                    <tr className={`border-t border-slate-200/90 bg-white ${adminTableRowToneClasses.hover}`} data-edit-scope={`family:${family.id}`}>
+                      <td className="w-10 px-2 py-4 text-center"><AdminCheckbox checked={selectedFamilyIds.has(family.id)} onChange={() => setSelectedFamilyIds((current) => {
                         const next = new Set(current);
                         if (next.has(family.id)) next.delete(family.id); else next.add(family.id);
                         return next;
                       })} aria-label={`Izberi ${family.name}`} /></td>
-                      <td className="px-2 py-3">
+                      <td className="px-2 py-4">
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
                             disabled={!hasSubtable}
-                            className="inline-flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 disabled:cursor-default disabled:hover:bg-transparent"
-                            onClick={() =>
-                              setExpandedFamilyIds((current) => {
-                                if (!hasSubtable) return current;
-                                const next = new Set(current);
-                                if (next.has(family.id)) next.delete(family.id);
-                                else next.add(family.id);
-                                return next;
-                              })
-                            }
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 disabled:cursor-default disabled:hover:bg-transparent"
+                            onClick={() => {
+                              if (!hasSubtable) return;
+                              const nextExpanded = !isExpanded;
+                              if (isEditingGroup && !nextExpanded) {
+                                requestCurrentEditResolution(`skrivanjem različic za ${family.name}`, () => {
+                                  setFamilyExpanded(family.id, false);
+                                });
+                                return;
+                              }
+                              setFamilyExpanded(family.id, nextExpanded);
+                            }}
                             aria-label={isExpanded ? `Skrij različice za ${family.name}` : `Prikaži različice za ${family.name}`}
                           >
                             <span className="inline-flex h-4 w-4 items-center justify-center">{hasSubtable ? (isExpanded ? '▾' : '▸') : ''}</span>
@@ -1296,7 +1759,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                               />
                             </div>
                           ) : (
-                            <button type="button" className="min-w-0 flex-1 text-left" onClick={() => router.push(getItemEditHref(family))}>
+                            <button type="button" className="min-w-0 flex-1 text-left" onClick={() => requestCurrentEditResolution(`odhodom na urejanje artikla ${family.name}`, () => router.push(getItemEditHref(family)))}>
                               <span className="block truncate text-[12px] font-semibold text-slate-900 transition hover:text-[color:var(--blue-500)] hover:underline underline-offset-2">
                                 {family.name}
                               </span>
@@ -1304,8 +1767,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                           )}
                         </div>
                       </td>
-                      <td className="px-2 py-3 text-slate-600">{isEditingFamily ? <input className={ROW_EDIT_INPUT_CLASS} value={familyDraft.sku} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, sku: event.target.value } }))} /> : (getBaseSku(family) || '—')}</td>
-                      <td className="px-2 py-3 text-slate-600">
+                      <td className="px-2 py-4 text-slate-600">{isEditingFamily ? <input className={ROW_EDIT_INPUT_CLASS} value={familyDraft.sku} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, sku: event.target.value } }))} /> : (getBaseSku(family) || '—')}</td>
+                      <td className="px-2 py-4 text-slate-600">
                         {isEditingFamily ? (
                           <div className="min-w-0">
                             <AdminCategoryBreadcrumbPicker
@@ -1327,7 +1790,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                           </div>
                         )}
                       </td>
-                      <td className="w-[6.83%] whitespace-nowrap px-2 py-3 text-right">
+                      <td className="w-[6.83%] whitespace-nowrap px-2 py-4 text-right">
                         {isEditingFamily ? (
                           <span className="inline-flex w-full justify-end">
                             <span className={compactTableValueUnitShellClassName}>
@@ -1345,7 +1808,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                           </span>
                         ) : formatCurrencyRange(minPrice, maxPrice)}
                       </td>
-                      <td className="w-[6.83%] px-2 py-3 text-right text-emerald-700">
+                      <td className="w-[6.83%] px-2 py-4 text-right text-emerald-700">
                         {isEditingFamily ? (
                           <span className="inline-flex w-full justify-end">
                             <span className={compactTableValueUnitShellClassName}>
@@ -1363,7 +1826,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                           </span>
                         ) : formatPercentRange(discounts)}
                       </td>
-                      <td className="w-[10.33%] px-2 py-3 text-right">
+                      <td className="w-[10.33%] px-2 py-4 text-right">
                         {isEditingFamily ? (
                           <span className="inline-flex w-full justify-end">
                             <span className={compactTableValueUnitShellClassName}>
@@ -1381,16 +1844,71 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                           </span>
                         ) : rawActionPrices.length ? formatCurrencyRangeFromValues(rawActionPrices) : '—'}
                       </td>
-                      <td className={`${STATUS_COLUMN_CLASS} px-0 py-3 text-center`}><div className={STATUS_NOTE_CELL_INNER_CLASS}><ActiveStateChip active={familyDraft.active} editable={isEditingFamily} editScope={`family:${family.id}`} chipClassName="!min-w-[92px] !text-[11px]" onChange={(next) => updateFamilyDraft(family.id, familyDraft, (current) => ({ ...current, active: next }))} /></div></td>
-                      <td className={`${NOTE_COLUMN_CLASS} px-0 py-3 text-center`}>
+                      <td className={`${STATUS_COLUMN_CLASS} px-0 py-4 text-center`}><div className={STATUS_NOTE_CELL_INNER_CLASS}><ActiveStateChip active={familyDraft.active} editable={isEditingFamily} editScope={`family:${family.id}`} chipClassName="!min-w-[92px] !text-[11px]" onChange={(next) => updateFamilyDraft(family.id, familyDraft, (current) => ({ ...current, active: next }))} /></div></td>
+                      <td className={`${NOTE_COLUMN_CLASS} px-0 py-4 text-center`}>
                         {isEditingFamily
                           ? <div className={STATUS_NOTE_CELL_INNER_CLASS}><NoteTagChip value={(familyDraft.badge || 'na-zalogi') as NoteTag} editable editScope={`family:${family.id}`} chipClassName="!min-w-[97px] !text-[11px]" placeholderLabel="Opombe" onChange={(next) => updateFamilyDraft(family.id, familyDraft, (current) => ({ ...current, badge: (next || 'na-zalogi') as NoteValue }))} /></div>
                           : <div className={STATUS_NOTE_CELL_INNER_CLASS}><NoteTagChip value={(family.itemBadge || 'na-zalogi') as NoteTag} editable={false} editScope={`family:${family.id}`} chipClassName="!min-w-[97px] !text-[11px]" placeholderLabel="Opombe" onChange={() => {}} /></div>}
                       </td>
-                      <td className="w-[5%] px-2 py-3 text-center"><RowActionsDropdown label={`Možnosti za ${family.name}`} editScope={`family:${family.id}`} items={[{ key: 'quick-edit', label: 'Hitro urejanje', icon: <PencilIcon />, onSelect: () => startFamilyEdit(family, visibleVariants) }, { key: 'save', label: 'Shrani', icon: <SaveIcon />, disabled: !isEditingFamily, onSelect: () => { void saveFamilyEdit(family, visibleVariants, familyDraft); } }, { key: 'edit', label: 'Uredi', onSelect: () => router.push(getItemEditHref(family)) }]} /></td>
+                      <td className={`${ACTIONS_COLUMN_CLASS} px-2 py-4 text-center`}>
+                        {isEditingRow ? (
+                          <div className="flex items-center justify-center gap-0 whitespace-nowrap">
+                            <IconButton
+                              type="button"
+                              tone="neutral"
+                              size="sm"
+                              className="!h-9 !w-9 !rounded-2xl !border-0 !bg-transparent !p-0 !text-[color:var(--blue-500)] !shadow-none hover:!bg-slate-100 hover:!text-[#22c55e] active:!bg-slate-100 active:!text-[#22c55e] disabled:!bg-transparent disabled:!text-slate-300 disabled:!opacity-100"
+                              disabled={!rowEditSnapshot?.isDirty || !rowEditSnapshot.isValid || isSavingActiveScope}
+                              aria-label={`Shrani urejanje za ${family.name}`}
+                              title={
+                                rowEditSnapshot?.validationMessage ??
+                                (!rowEditSnapshot?.isDirty ? 'Ni sprememb za shranjevanje' : 'Shrani')
+                              }
+                              onClick={() => {
+                                void saveCurrentEditScope();
+                              }}
+                            >
+                              {isSavingActiveScope ? (
+                                <Spinner size="sm" className="text-[color:var(--blue-500)]" />
+                              ) : (
+                                <CheckIcon className="!h-[20px] !w-[20px]" strokeWidth={2.2} />
+                              )}
+                            </IconButton>
+                            <IconButton
+                              type="button"
+                              tone="neutral"
+                              size="sm"
+                              className="!h-9 !w-9 !rounded-2xl !border-0 !bg-transparent !p-0 !text-slate-900 !shadow-none hover:!bg-slate-100 hover:!text-[color:var(--danger-600)] active:!bg-slate-100 active:!text-[color:var(--danger-600)] disabled:!bg-transparent disabled:!opacity-100"
+                              onClick={cancelCurrentEditScope}
+                              aria-label={`Prekliči urejanje za ${family.name}`}
+                              title="Prekliči"
+                            >
+                              <CloseIcon
+                                className="!h-[16px] !w-[16px]"
+                                strokeWidth={1.9}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </IconButton>
+                          </div>
+                        ) : isEditingGroup ? (
+                          <span className="truncate text-[10px] font-medium text-slate-500" title="Skupinsko urejanje">
+                            Skupinsko
+                          </span>
+                        ) : (
+                          <RowActionsDropdown
+                            label={`Možnosti za ${family.name}`}
+                            editScope={`family:${family.id}`}
+                            items={[
+                              { key: 'quick-edit', label: 'Hitro urejanje', icon: <PencilIcon />, onSelect: () => beginFamilyEditScope(family) },
+                              { key: 'edit', label: 'Uredi', onSelect: () => requestCurrentEditResolution(`odhodom na urejanje artikla ${family.name}`, () => router.push(getItemEditHref(family))) }
+                            ]}
+                          />
+                        )}
+                      </td>
                     </tr>
                     {isExpanded && hasSubtable ? (
-                      <tr className="border-t border-slate-100 bg-slate-50/70">
+                      <tr className="border-t border-slate-200/90 bg-slate-50/70">
                         <td />
                         <td colSpan={9} className="p-0">
                           <table className="w-full text-[12px]">
@@ -1409,11 +1927,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                             </thead>
                             <tbody>
                               {visibleVariants.map((variant) => {
-                                const isEditing = isEditingFamily;
+                                const isEditing = isEditingGroup;
                                 const draft = variantDrafts[variant.id] ?? createVariantDraft(variant);
                                 const actionPrice = draft.discountPct > 0 ? computeSalePrice(draft.price, draft.discountPct) : null;
                                 return (
-                                  <tr key={variant.id} className="border-t border-slate-100" data-edit-scope={`family:${family.id}`}>
+                                  <tr key={variant.id} className="border-t border-slate-200/90" data-edit-scope={`family:${family.id}`}>
                                     <td className="px-2 py-2 text-center">
                                       <AdminCheckbox
                                         checked={selectedVariantIds.has(variant.id)}
@@ -1580,6 +2098,47 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 );
               })}
             </tbody>
+            {activeEditScope?.kind === 'group' && activeScopeFamily ? (
+              <tfoot className="sticky bottom-0 z-20">
+                <tr>
+                  <td colSpan={10} className="border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-10px_24px_rgba(15,23,42,0.08)] backdrop-blur supports-[backdrop-filter]:bg-white/85">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-slate-700">
+                          {activeEditSnapshot?.isDirty ? formatUnsavedChangeLabel(activeEditSnapshot.dirtyChangeCount) : 'Ni neshranjenih sprememb'}
+                        </p>
+                        {activeEditSnapshot?.validationMessage ? (
+                          <p className="mt-1 text-xs font-medium text-rose-600">{activeEditSnapshot.validationMessage}</p>
+                        ) : null}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="toolbar"
+                          className="!h-9 !rounded-lg !px-4 !text-xs !font-semibold"
+                          onClick={cancelCurrentEditScope}
+                        >
+                          Prekliči
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="primary"
+                          size="toolbar"
+                          className="!h-9 !rounded-lg !px-4 !text-xs !font-semibold"
+                          disabled={!activeEditSnapshot?.isDirty || !activeEditSnapshot.isValid || isSavingActiveScope}
+                          onClick={() => {
+                            void saveCurrentEditScope();
+                          }}
+                        >
+                          {isSavingActiveScope ? 'Shranjujem...' : 'Shrani spremembe'}
+                        </Button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tfoot>
+            ) : null}
           </Table>
       </AdminTableLayout>
       <HeaderFilterPortal open={Boolean(openFilter)}>
@@ -1590,10 +2149,10 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 (option) => (
                   <MenuItem
                     key={option.value}
-                    onClick={() => {
+                    onClick={() => requestCurrentEditResolution('filtriranjem kategorij', () => {
                       setCategoryFilter(option.value);
                       setOpenFilter(null);
-                    }}
+                    })}
                   >
                     {option.label}
                   </MenuItem>
@@ -1608,15 +2167,15 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
               title="Cena"
               draftRange={draftPriceRangeFilter}
               onDraftChange={setDraftPriceRangeFilter}
-              onConfirm={() => {
+              onConfirm={() => requestCurrentEditResolution('filtriranjem cen', () => {
                 setPriceRangeFilter(draftPriceRangeFilter);
                 setOpenFilter(null);
-              }}
-              onReset={() => {
+              })}
+              onReset={() => requestCurrentEditResolution('ponastavitvijo filtra cen', () => {
                 setDraftPriceRangeFilter({ min: '', max: '' });
                 setPriceRangeFilter({ min: '', max: '' });
                 setOpenFilter(null);
-              }}
+              })}
               minPlaceholder="Min cena"
               maxPlaceholder="Max cena"
               min={0}
@@ -1626,9 +2185,9 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         {openFilter === 'discount' ? (
           <div style={getHeaderPopoverStyle(discountFilterButtonRef.current, 160)}>
             <MenuPanel className="w-40 shadow-lg">
-              <MenuItem onClick={() => { setDiscountFilter('all'); setOpenFilter(null); }}>Vsi</MenuItem>
-              <MenuItem onClick={() => { setDiscountFilter('yes'); setOpenFilter(null); }}>S popustom</MenuItem>
-              <MenuItem onClick={() => { setDiscountFilter('no'); setOpenFilter(null); }}>Brez popusta</MenuItem>
+              <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem popustov', () => { setDiscountFilter('all'); setOpenFilter(null); })}>Vsi</MenuItem>
+              <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem popustov', () => { setDiscountFilter('yes'); setOpenFilter(null); })}>S popustom</MenuItem>
+              <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem popustov', () => { setDiscountFilter('no'); setOpenFilter(null); })}>Brez popusta</MenuItem>
             </MenuPanel>
           </div>
         ) : null}
@@ -1638,15 +2197,15 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
               title="Akcijska cena"
               draftRange={draftActionPriceRangeFilter}
               onDraftChange={setDraftActionPriceRangeFilter}
-              onConfirm={() => {
+              onConfirm={() => requestCurrentEditResolution('filtriranjem akcijskih cen', () => {
                 setActionPriceRangeFilter(draftActionPriceRangeFilter);
                 setOpenFilter(null);
-              }}
-              onReset={() => {
+              })}
+              onReset={() => requestCurrentEditResolution('ponastavitvijo filtra akcijskih cen', () => {
                 setDraftActionPriceRangeFilter({ min: '', max: '' });
                 setActionPriceRangeFilter({ min: '', max: '' });
                 setOpenFilter(null);
-              }}
+              })}
               minPlaceholder="Min akcijska"
               maxPlaceholder="Max akcijska"
               min={0}
@@ -1656,21 +2215,21 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         {openFilter === 'note' ? (
           <div style={getHeaderPopoverStyle(noteFilterButtonRef.current, 184)}>
             <MenuPanel className="w-44 shadow-lg">
-              <MenuItem onClick={() => { setNoteFilter('all'); setOpenFilter(null); }}>Vse opombe</MenuItem>
-              <MenuItem onClick={() => { setNoteFilter('na-zalogi'); setOpenFilter(null); }}>Na zalogi</MenuItem>
-              <MenuItem onClick={() => { setNoteFilter('novo'); setOpenFilter(null); }}>Novo</MenuItem>
-              <MenuItem onClick={() => { setNoteFilter('akcija'); setOpenFilter(null); }}>V akciji</MenuItem>
-              <MenuItem onClick={() => { setNoteFilter('zadnji-kosi'); setOpenFilter(null); }}>Zadnji kosi</MenuItem>
-              <MenuItem onClick={() => { setNoteFilter('ni-na-zalogi'); setOpenFilter(null); }}>Ni na zalogi</MenuItem>
+              <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter('all'); setOpenFilter(null); })}>Vse opombe</MenuItem>
+              <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter('na-zalogi'); setOpenFilter(null); })}>Na zalogi</MenuItem>
+              <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter('novo'); setOpenFilter(null); })}>Novo</MenuItem>
+              <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter('akcija'); setOpenFilter(null); })}>V akciji</MenuItem>
+              <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter('zadnji-kosi'); setOpenFilter(null); })}>Zadnji kosi</MenuItem>
+              <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter('ni-na-zalogi'); setOpenFilter(null); })}>Ni na zalogi</MenuItem>
             </MenuPanel>
           </div>
         ) : null}
         {openFilter === 'status' ? (
           <div style={getHeaderPopoverStyle(statusFilterButtonRef.current, 144)}>
             <MenuPanel className="w-36 shadow-lg">
-              <MenuItem onClick={() => { setStatusFilter('all'); setOpenFilter(null); }}>Vsi</MenuItem>
-              <MenuItem onClick={() => { setStatusFilter('active'); setOpenFilter(null); }}>Aktiven</MenuItem>
-              <MenuItem onClick={() => { setStatusFilter('inactive'); setOpenFilter(null); }}>Neaktiven</MenuItem>
+              <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem statusov', () => { setStatusFilter('all'); setOpenFilter(null); })}>Vsi</MenuItem>
+              <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem statusov', () => { setStatusFilter('active'); setOpenFilter(null); })}>Aktiven</MenuItem>
+              <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem statusov', () => { setStatusFilter('inactive'); setOpenFilter(null); })}>Neaktiven</MenuItem>
             </MenuPanel>
           </div>
         ) : null}

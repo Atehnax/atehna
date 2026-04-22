@@ -4,17 +4,36 @@ import { adminInputFocusTokenClasses } from '@/shared/ui/theme/tokens';
 
 type AdminSearchInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & {
   showIcon?: boolean;
+  wrapperClassName?: string;
+  inputClassName?: string;
+  iconClassName?: string;
 };
 
-export function AdminSearchInput({ className = '', showIcon = true, ...props }: AdminSearchInputProps) {
+const classNames = (...parts: Array<string | false | null | undefined>) =>
+  parts.filter(Boolean).join(' ');
+
+export function AdminSearchInput({
+  className = '',
+  showIcon = true,
+  wrapperClassName,
+  inputClassName,
+  iconClassName,
+  ...props
+}: AdminSearchInputProps) {
   return (
     <div
-      className={`relative min-w-0 w-full flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white transition-colors focus-within:border-[#3e67d6] ${className}`}
+      className={classNames(
+        'relative min-w-0 w-full flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white transition-colors focus-within:border-[#3e67d6]',
+        wrapperClassName
+      )}
     >
       {showIcon ? (
         <svg
           viewBox="0 0 20 20"
-          className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-500"
+          className={classNames(
+            'pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-500',
+            iconClassName
+          )}
           fill="none"
           stroke="currentColor"
           strokeWidth="1.5"
@@ -27,7 +46,14 @@ export function AdminSearchInput({ className = '', showIcon = true, ...props }: 
 
       <input
         type="search"
-        className={`!h-7 min-w-0 w-full rounded-xl border-0 bg-transparent ${ADMIN_CONTROL_PADDING_X} ${showIcon ? '!pl-10' : ''} font-['Inter',system-ui,sans-serif] !text-[11px] text-slate-700 shadow-none ${adminInputFocusTokenClasses} ${className}`}
+        className={classNames(
+          `!h-7 min-w-0 w-full rounded-xl border-0 bg-transparent ${ADMIN_CONTROL_PADDING_X}`,
+          showIcon ? '!pl-10' : '',
+          "font-['Inter',system-ui,sans-serif] !text-[11px] text-slate-700 shadow-none",
+          adminInputFocusTokenClasses,
+          className,
+          inputClassName
+        )}
         aria-label={props['aria-label'] ?? props.placeholder ?? 'Iskanje'}
         {...props}
       />

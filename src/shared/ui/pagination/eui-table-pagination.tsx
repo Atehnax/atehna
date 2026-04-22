@@ -13,7 +13,23 @@ type EuiTablePaginationProps = {
   onChangeItemsPerPage: (size: number) => void;
   itemsPerPageOptions: number[];
   className?: string;
+  size?: 'sm' | 'md';
 };
+
+const paginationSizeClassMap = {
+  sm: {
+    root: 'min-h-7 gap-2',
+    label: 'text-xs',
+    footprint: PAGINATION_FOOTPRINT_CLASS,
+    pageSizeClassName: 'w-[55px]'
+  },
+  md: {
+    root: 'min-h-10 gap-3',
+    label: 'text-[13px]',
+    footprint: 'inline-flex h-10 min-w-[172px] items-center justify-end',
+    pageSizeClassName: 'w-[72px]'
+  }
+} as const;
 
 export default function EuiTablePagination({
   page,
@@ -22,26 +38,34 @@ export default function EuiTablePagination({
   itemsPerPage,
   onChangeItemsPerPage,
   itemsPerPageOptions,
-  className
+  className,
+  size = 'sm'
 }: EuiTablePaginationProps) {
   const safePageCount = Math.max(pageCount, 1);
   const safePage = Math.min(Math.max(page, 1), safePageCount);
+  const sizeClasses = paginationSizeClassMap[size];
 
   return (
-    <div aria-label="Paginacija tabele" className={`admin-orders-pagination inline-flex min-h-7 items-center gap-2 whitespace-nowrap ${className ?? ''}`.trim()}>
-      <span className="text-xs font-normal text-slate-600" style={{ fontFamily: '"Inter",system-ui,sans-serif' }}>Vrstic na stran</span>
+    <div
+      aria-label="Paginacija tabele"
+      className={`admin-orders-pagination inline-flex items-center whitespace-nowrap ${sizeClasses.root} ${className ?? ''}`.trim()}
+    >
+      <span className={`${sizeClasses.label} font-normal text-slate-600`} style={{ fontFamily: '"Inter",system-ui,sans-serif' }}>
+        Vrstic na stran
+      </span>
       <PageSizeSelect
         value={itemsPerPage}
         options={itemsPerPageOptions}
         onChange={onChangeItemsPerPage}
-        className="w-[55px]"
+        className={sizeClasses.pageSizeClassName}
+        size={size}
       />
-      <div className={PAGINATION_FOOTPRINT_CLASS}>
+      <div className={sizeClasses.footprint}>
         <Pagination
           page={safePage}
           pageCount={safePageCount}
           onPageChange={onPageChange}
-          size="sm"
+          size={size}
           className="!gap-0.5"
         />
       </div>

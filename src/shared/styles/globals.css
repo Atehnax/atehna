@@ -58,7 +58,7 @@
   --ui-neutral-bg-hover: color-mix(in srgb, var(--ui-neutral-bg) 82%, #cbd5e1);
   --hover-neutral: var(--ui-neutral-bg);
 
-  --admin-table-row-hover: var(--blue-50); /* #e3e9f0; */
+  --admin-table-row-hover: color-mix(in srgb, var(--surface-subtle) 58%, white);
   --admin-table-row-selected: #e3e9f0;
 
   /* admin destructive controls */

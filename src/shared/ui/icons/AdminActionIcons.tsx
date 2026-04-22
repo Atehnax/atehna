@@ -230,6 +230,24 @@ export function PlusIcon({ className, ...props }: ActionIconProps) {
   );
 }
 
+export function CheckIcon({ className, ...props }: ActionIconProps) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className={iconClassName(className)}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M4.8 10.2 8.2 13.6 15.2 6.6" />
+    </svg>
+  );
+}
+
 export function CheckCircleIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg

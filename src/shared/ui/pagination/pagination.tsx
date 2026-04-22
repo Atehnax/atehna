@@ -24,10 +24,15 @@ const sizeClassMap = {
     input: 'h-7 text-xs'
   },
   md: {
-    icon: 'h-8 w-8',
-    label: 'text-sm',
-    input: 'h-8 text-sm'
+    icon: 'h-10 w-10',
+    label: 'text-[13px]',
+    input: 'h-10 rounded-xl border-slate-200/90 px-1.5 text-[13px]'
   }
+} as const;
+
+const navButtonClassMap = {
+  sm: 'group border-0 bg-transparent text-slate-600 shadow-none active:bg-[color:var(--hover-neutral)] disabled:bg-transparent disabled:text-slate-400 disabled:opacity-70',
+  md: 'group rounded-xl border-slate-200/90 bg-white text-slate-600 shadow-none hover:border-slate-300 hover:bg-slate-50 active:bg-slate-100 disabled:border-slate-200/80 disabled:bg-white disabled:text-slate-400 disabled:opacity-70'
 } as const;
 
 function NavIcon({ direction }: { direction: 'first' | 'prev' | 'next' | 'last' }) {
@@ -105,7 +110,7 @@ export default function Pagination({
           size={size === 'sm' ? 'sm' : 'md'}
           onClick={() => onPageChange(1)}
           disabled={safePage <= 1}
-          className={classNames('group border-0 bg-transparent text-slate-600 shadow-none active:bg-[color:var(--hover-neutral)] disabled:bg-transparent disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
+          className={classNames(navButtonClassMap[size], sizeClassMap[size].icon)}
           aria-label="Prva stran"
           title="Prva stran"
         >
@@ -119,7 +124,7 @@ export default function Pagination({
           size={size === 'sm' ? 'sm' : 'md'}
           onClick={() => onPageChange(safePage - 1)}
           disabled={safePage <= 1}
-          className={classNames('group border-0 bg-transparent text-slate-600 shadow-none active:bg-[color:var(--hover-neutral)] disabled:bg-transparent disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
+          className={classNames(navButtonClassMap[size], sizeClassMap[size].icon)}
           aria-label="Prejšnja stran"
           title="Prejšnja stran"
         >
@@ -133,7 +138,7 @@ export default function Pagination({
           size={size === 'sm' ? 'sm' : 'md'}
           onClick={() => onPageChange(safePage + 1)}
           disabled={safePage >= safePageCount}
-          className={classNames('group border-0 bg-transparent text-slate-600 shadow-none active:bg-[color:var(--hover-neutral)] disabled:bg-transparent disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
+          className={classNames(navButtonClassMap[size], sizeClassMap[size].icon)}
           aria-label="Naslednja stran"
           title="Naslednja stran"
         >
@@ -147,7 +152,7 @@ export default function Pagination({
           size={size === 'sm' ? 'sm' : 'md'}
           onClick={() => onPageChange(safePageCount)}
           disabled={safePage >= safePageCount}
-          className={classNames('group border-0 bg-transparent text-slate-600 shadow-none active:bg-[color:var(--hover-neutral)] disabled:bg-transparent disabled:text-slate-400 disabled:opacity-70', sizeClassMap[size].icon)}
+          className={classNames(navButtonClassMap[size], sizeClassMap[size].icon)}
           aria-label="Zadnja stran"
           title="Zadnja stran"
         >

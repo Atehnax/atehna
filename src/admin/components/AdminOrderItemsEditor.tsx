@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { EuiFieldText } from '@elastic/eui';
 import { IconButton } from '@/shared/ui/icon-button';
 import { PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
@@ -512,7 +511,7 @@ export default function AdminOrderItemsEditor({
                 Zapri
               </button>
             </div>
-            <EuiFieldText
+            <input
               value={catalogQuery}
               onChange={(event) => setCatalogQuery(event.target.value)}
               placeholder="Išči po nazivu ali šifri"

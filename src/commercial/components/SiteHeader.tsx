@@ -3,13 +3,12 @@
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
-import { EuiFieldText } from '@elastic/eui';
 import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 
 function CatalogSearchShell() {
   return (
     <div className="relative">
-      <EuiFieldText
+      <input
         type="search"
         disabled
         readOnly

@@ -28,6 +28,11 @@ import { adminTextButtonTypographyTokenClasses, buttonTokenClasses } from '@/sha
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import EuiTabs from '@/shared/ui/eui-tabs';
 import {
+  createArchivedItemRecord,
+  readArchivedItemStorage,
+  writeArchivedItemStorage
+} from '@/admin/features/artikli/lib/archiveItemClient';
+import {
   computeSalePrice,
   createFamily,
   createVariant,
@@ -42,26 +47,27 @@ import ActiveStateChip from '@/admin/features/artikli/components/ActiveStateChip
 import OpisColorPopover from '@/admin/features/artikli/components/OpisColorPopover';
 import UploadedImageCropperModal from '@/admin/features/artikli/components/UploadedImageCropperModal';
 import { NoteTagChip, type NoteTag } from '@/admin/features/artikli/components/NoteTagChip';
+import {
+  articleNameInputClassName,
+  compactSideInputWrapClassName,
+  compactTableAdornmentClassName,
+  compactTableAlignedInputClassName,
+  compactTableAlignedTextInputClassName,
+  compactTableValueUnitShellClassName,
+  numberInputClass,
+  orderLikeEditableInputClassName,
+  topBarArticleNameInputClassName
+} from '@/admin/features/artikli/components/artikliFieldStyles';
 import { saveCatalogItemPayload } from '@/admin/features/artikli/lib/canonicalSaveClient';
 import Dialog from '@/shared/ui/dialog/dialog';
 import { THead, TH } from '@/shared/ui/table';
 import type { CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/server/catalogItems';
 
 const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition-[border-color,box-shadow,color] focus:border-[#3e67d6] focus:ring-0';
-const numberInputClass = '[-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
-const orderLikeEditableInputClassName = 'mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 text-xs leading-5 text-slate-900 outline-none transition-[border-color,box-shadow,color] focus:border-[#3e67d6] focus:outline-none focus:ring-0';
-const compactTableNumberInputClassName = `h-6 w-full rounded-md border border-slate-300 bg-white px-1.5 text-[11px] leading-6 text-slate-900 outline-none transition-[border-color,box-shadow,color] focus:border-[#3e67d6] focus:outline-none focus:ring-0 ${numberInputClass}`;
-const compactTableAlignedInputClassName = `${compactTableNumberInputClassName} !rounded-md !border-slate-300 !bg-white !px-0.5 shadow-none`;
-const compactTableAlignedTextInputClassName = `${orderLikeEditableInputClassName} !h-6 !rounded-md !border-slate-300 !bg-white !px-1 !leading-6 shadow-none`;
-const compactTableValueUnitShellClassName = 'inline-flex h-6 items-center gap-1 whitespace-nowrap';
-const compactTableAdornmentClassName = 'text-[11px] text-slate-500';
 const compactTableNumericSlotClassName = 'inline-flex h-6 w-[7ch] items-center justify-end';
 const compactTableFourDigitSlotClassName = 'inline-flex h-6 w-[5ch] items-center justify-end';
 const compactTableThreeDigitSlotClassName = 'inline-flex h-6 w-[4ch] items-center justify-end';
-const compactSideInputWrapClassName = 'mt-0.5 flex h-[30px] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[10px] pr-3 transition-[border-color,box-shadow] focus-within:border-[#3e67d6]';
 const compactSideInputClassName = 'h-full w-full border-0 bg-transparent p-0 text-sm text-slate-900 outline-none focus:ring-0';
-const articleNameInputClassName = 'admin-item-name-input h-full w-full min-w-0 border-0 bg-transparent p-0 shadow-none outline-none transition-[color] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none disabled:cursor-not-allowed';
-const topBarArticleNameInputClassName = `${articleNameInputClassName} min-w-0 font-['Inter',system-ui,sans-serif] text-[22px] font-semibold leading-none tracking-tight`;
 const topActionSaveButtonClassName = `gap-2 ${adminTextButtonTypographyTokenClasses} !h-8 !leading-none !tracking-[0] disabled:!border-transparent disabled:!bg-[color:var(--blue-500)] disabled:!text-white disabled:!opacity-50`;
 const topSaveActionButtonIconClassName = 'h-[15.3px] w-[15.3px]';
 const editorSectionTitleClassName = 'text-[20px] font-semibold tracking-tight text-slate-900';
@@ -188,7 +194,6 @@ const UNDO_HISTORY_LIMIT = 10;
 const IMAGE_MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 const VIDEO_MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 const TECHNICAL_DOCUMENT_MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
-const ARCHIVED_ITEMS_STORAGE_KEY = 'admin-items-crud-v2';
 const ITEM_NOTE_OPTIONS: Array<{ value: VariantTag; label: string }> = [
   { value: 'na-zalogi', label: 'Na zalogi' },
   { value: 'novo', label: 'Novo' },
@@ -622,33 +627,15 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
 
 function buildArchiveRecord(state: EditorPersistedState, identifier: string) {
   const firstVariant = state.draft.variants[0];
-  return {
+  return createArchivedItemRecord({
     id: identifier,
-    name: state.draft.name.trim() || 'Artikel',
+    name: state.draft.name,
     category: state.selectedCategoryPath.join(' / '),
     sku: state.sideSettings.sku || firstVariant?.sku || '',
     price: firstVariant?.price ?? 0,
     discountPct: firstVariant?.discountPct ?? 0,
-    active: state.draft.active,
-    archivedAt: new Date().toISOString()
-  };
-}
-
-function readArchivedItemStorage() {
-  if (typeof window === 'undefined') return [];
-  const raw = window.localStorage.getItem(ARCHIVED_ITEMS_STORAGE_KEY);
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw) as Array<Record<string, unknown>>;
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeArchivedItemStorage(items: Array<Record<string, unknown>>) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(ARCHIVED_ITEMS_STORAGE_KEY, JSON.stringify(items));
+    active: state.draft.active
+  });
 }
 
 function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydration | null, createType: CreateType): EditorPersistedState {

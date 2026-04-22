@@ -3,7 +3,7 @@
 import PageSizeSelect from './page-size-select';
 import Pagination from './pagination';
 
-const PAGINATION_FOOTPRINT_CLASS = 'inline-flex h-7 min-w-[140px] items-center justify-end';
+const PAGINATION_FOOTPRINT_CLASS = 'inline-flex h-7 min-w-[112px] items-center justify-end';
 
 type EuiTablePaginationProps = {
   page: number;

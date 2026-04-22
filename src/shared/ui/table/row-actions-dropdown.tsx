@@ -21,6 +21,7 @@ type RowActionsDropdownProps = {
   className?: string;
   triggerClassName?: string;
   menuClassName?: string;
+  editScope?: string;
 };
 
 export default function RowActionsDropdown({
@@ -28,7 +29,8 @@ export default function RowActionsDropdown({
   items,
   className,
   triggerClassName,
-  menuClassName
+  menuClassName,
+  editScope
 }: RowActionsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -75,7 +77,7 @@ export default function RowActionsDropdown({
   };
 
   return (
-    <div ref={rootRef} className={`relative ${className ?? ''}`.trim()}>
+    <div ref={rootRef} className={`relative ${className ?? ''}`.trim()} data-edit-scope={editScope}>
       <div ref={triggerRef} className="inline-flex">
         <IconButton
           type="button"
@@ -91,7 +93,7 @@ export default function RowActionsDropdown({
 
       {isOpen ? (
         createPortal(
-          <div ref={menuRef} style={getMenuStyle()}>
+          <div ref={menuRef} style={getMenuStyle()} data-edit-scope={editScope}>
             <MenuPanel className={`w-28 ${menuClassName ?? ''}`.trim()}>
               {items.map((item) => (
                 <MenuItem

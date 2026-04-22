@@ -21,12 +21,12 @@ const sizeClassMap = {
   sm: {
     icon: 'h-7 w-7',
     label: 'text-xs',
-    input: 'h-7 w-[44px] text-xs'
+    input: 'h-7 text-xs'
   },
   md: {
     icon: 'h-8 w-8',
     label: 'text-sm',
-    input: 'h-8 w-[48px] text-sm'
+    input: 'h-8 text-sm'
   }
 } as const;
 
@@ -48,6 +48,8 @@ export default function Pagination({
   const safePageCount = Math.max(pageCount, 1);
   const safePage = Math.min(Math.max(page, 1), safePageCount);
   const [pageInput, setPageInput] = useState(String(safePage));
+  const pageInputDigits = Math.max(pageInput.length, String(safePageCount).length);
+  const pageInputWidthCh = Math.max(3.9375, (pageInputDigits + 0.2) * 2.25);
 
   useEffect(() => {
     setPageInput(String(safePage));
@@ -81,7 +83,8 @@ export default function Pagination({
           inputMode="numeric"
           pattern="[0-9]*"
           aria-label="Številka strani"
-          className={classNames(sizeClassMap[size].input, 'px-1 text-center font-semibold leading-none')}
+          className={classNames(sizeClassMap[size].input, '!w-auto min-w-0 flex-none px-0.5 text-center font-semibold leading-none tabular-nums')}
+          style={{ width: `${pageInputWidthCh}ch`, minWidth: `${pageInputWidthCh}ch`, maxWidth: `${pageInputWidthCh}ch` }}
           onChange={(event) => setPageInput(event.target.value.replace(/[^0-9]/g, ''))}
           onBlur={commitPageInput}
           onKeyDown={(event) => {

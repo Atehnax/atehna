@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { EuiFieldText } from '@elastic/eui';
 import type { CatalogSearchItem } from '@/commercial/catalog/catalog';
 
 type ItemSearchProps = {
@@ -43,7 +42,7 @@ export default function ItemSearch({
 
   return (
     <div className="relative">
-      <EuiFieldText
+      <input
         type="search"
         value={query}
         onChange={(event) => {

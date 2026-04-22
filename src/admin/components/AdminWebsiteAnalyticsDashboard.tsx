@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { EuiFieldText } from '@elastic/eui';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
 
@@ -106,11 +105,11 @@ export default function AdminWebsiteAnalyticsDashboard({
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <label className="mb-1 block text-[11px] font-semibold uppercase text-slate-500">Od</label>
-            <EuiFieldText type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} className="h-8 rounded-lg border border-slate-300 px-2 text-[13px]" aria-label="Datum od" />
+            <input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} className="h-8 rounded-lg border border-slate-300 px-2 text-[13px]" aria-label="Datum od" />
           </div>
           <div>
             <label className="mb-1 block text-[11px] font-semibold uppercase text-slate-500">Do</label>
-            <EuiFieldText type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} className="h-8 rounded-lg border border-slate-300 px-2 text-[13px]" aria-label="Datum do" />
+            <input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} className="h-8 rounded-lg border border-slate-300 px-2 text-[13px]" aria-label="Datum do" />
           </div>
           <Button type="button" variant="brand" onClick={applyRange} className="h-8 rounded-lg px-3 text-[13px] font-medium">
             Uporabi obdobje

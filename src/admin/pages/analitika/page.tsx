@@ -50,11 +50,12 @@ async function AdminAnalyticsDashboardSection({
   });
 }
 
-export default async function AdminAnalyticsIndexPage({
-  searchParams
-}: {
-  searchParams?: { range?: string; from?: string; to?: string; grouping?: string; view?: string; focus?: string };
-}) {
+export default async function AdminAnalyticsIndexPage(
+  props: {
+    searchParams?: Promise<{ range?: string; from?: string; to?: string; grouping?: string; view?: string; focus?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   return (
     <div className="w-full">
       <AdminPageHeader title="Analitika" description="Pregled analitike naročil in spletnega obiska." />

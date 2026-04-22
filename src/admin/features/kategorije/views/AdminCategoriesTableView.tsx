@@ -80,12 +80,12 @@ export function AdminCategoriesTableView({
   sensors: ReturnType<typeof import('@dnd-kit/core').useSensors>;
   onTreeDragEnd: (event: DragEndEvent) => void;
   visibleRowIds: string[];
-  selectAllRef: RefObject<HTMLInputElement>;
+  selectAllRef: RefObject<HTMLInputElement | null>;
   allRowsSelected: boolean;
   onToggleSelectAll: () => void;
   allExpanded: boolean;
   onToggleAllExpanded: () => void;
-  statusHeaderMenuRef: RefObject<HTMLDivElement>;
+  statusHeaderMenuRef: RefObject<HTMLDivElement | null>;
   onToggleStatusHeaderMenu: () => void;
   isStatusHeaderMenuOpen: boolean;
   statusByRow: Record<string, CategoryStatus>;

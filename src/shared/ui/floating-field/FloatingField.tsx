@@ -5,7 +5,6 @@ import type {
   SelectHTMLAttributes,
   TextareaHTMLAttributes
 } from 'react';
-import { EuiFieldText, EuiTextArea } from '@elastic/eui';
 
 import './floating-field.css';
 
@@ -111,10 +110,9 @@ export function FloatingInput({
   const isStatic = labelMode === 'static';
   const muted = getFieldBackground(props.disabled, props.readOnly) === 'muted';
   return <div className={classNames(classes.shell, isStatic && classes.staticShell, muted && 'bg-[color:var(--field-locked-bg)]')} data-floating-field>
-    <EuiFieldText
+    <input
       {...props}
       id={id}
-      fullWidth
       className={classNames((isStatic ? classes.staticInput : classes.input), isStatic && 'mt-1', "font-['Inter',system-ui,sans-serif]", className)}
       placeholder={placeholder ?? label}
       aria-label={ariaLabel ?? label}
@@ -136,10 +134,9 @@ export function FloatingTextarea({
   const isStatic = labelMode === 'static';
   const muted = getFieldBackground(props.disabled, props.readOnly) === 'muted';
   return <div className={classNames(classes.shell, isStatic && classes.staticShell, muted && 'bg-[color:var(--field-locked-bg)]')} data-floating-field>
-    <EuiTextArea
+    <textarea
       {...props}
       id={id}
-      fullWidth
       className={classNames((isStatic ? classes.staticTextarea : classes.textarea), isStatic && 'mt-1', "font-['Inter',system-ui,sans-serif]", className)}
       placeholder={placeholder ?? label}
       aria-label={ariaLabel ?? label}

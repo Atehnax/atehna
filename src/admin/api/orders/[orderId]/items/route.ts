@@ -24,10 +24,8 @@ const normalizeNumber = (value: unknown) => {
   return NaN;
 };
 
-export async function POST(
-  request: Request,
-  { params }: { params: { orderId: string } }
-) {
+export async function POST(request: Request, props: { params: Promise<{ orderId: string }> }) {
+  const params = await props.params;
   const orderId = Number(params.orderId);
   if (!Number.isFinite(orderId)) {
     return NextResponse.json({ message: 'Neveljaven ID naročila.' }, { status: 400 });

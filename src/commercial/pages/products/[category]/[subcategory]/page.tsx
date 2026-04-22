@@ -15,12 +15,14 @@ export async function generateStaticParams() {
   return params;
 }
 
-export async function generateMetadata({ params }: { params: { category: string; subcategory: string } }) {
+export async function generateMetadata(props: { params: Promise<{ category: string; subcategory: string }> }) {
+  const params = await props.params;
   const subcategory = await getCatalogSubcategoryServer(params.category, params.subcategory);
   return { title: subcategory.title, description: subcategory.description };
 }
 
-export default async function SubcategoryPage({ params }: { params: { category: string; subcategory: string } }) {
+export default async function SubcategoryPage(props: { params: Promise<{ category: string; subcategory: string }> }) {
+  const params = await props.params;
   const { category, subcategory } = await getCatalogSubcategoryPageDataServer(params.category, params.subcategory);
 
   return (

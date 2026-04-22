@@ -1,6 +1,5 @@
 import { useMemo, type RefObject, type ReactNode } from 'react';
 import Selecto from 'react-selecto';
-import { EuiFieldText } from '@elastic/eui';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { ActionRestoreIcon, ActionUndoIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
@@ -98,7 +97,7 @@ export function AdminCategoriesMiller({
   hasPendingStagedChanges: boolean;
   onRestore: () => void;
   millerError: string | null;
-  millerViewportRef: RefObject<HTMLDivElement>;
+  millerViewportRef: RefObject<HTMLDivElement | null>;
   onSelectIds: (ids: string[]) => void;
   millerColumns: MillerColumn[];
   plusIcon: ReactNode;
@@ -290,7 +289,7 @@ export function AdminCategoriesMiller({
                   {renderDropMarker(column.key, 0)}
                   {column.rows.map((row, rowIndex) => (
                     millerRename?.id === row.id && row.kind !== 'item' ? (
-                      <EuiFieldText
+                      <input
                         id={`miller-rename-${row.id}`}
                         name={`millerRename-${row.id}`}
                         key={row.id}

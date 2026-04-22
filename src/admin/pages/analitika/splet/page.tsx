@@ -17,11 +17,12 @@ const toIsoOrNull = (value?: string) => {
   return date.toISOString();
 };
 
-export default async function AdminWebsiteAnalyticsPage({
-  searchParams
-}: {
-  searchParams?: { from?: string; to?: string };
-}) {
+export default async function AdminWebsiteAnalyticsPage(
+  props: {
+    searchParams?: Promise<{ from?: string; to?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   return instrumentAdminRouteRender('/admin/analitika/splet', async () => {
     const from = searchParams?.from ?? '';
   const to = searchParams?.to ?? '';

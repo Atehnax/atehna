@@ -1,6 +1,5 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import dynamicImport from 'next/dynamic';
 import {
   formatCatalogPrice,
   getCatalogCategoryItemPrice,
@@ -13,19 +12,7 @@ import {
   getCatalogCategoryServer,
   getCatalogCategorySlugsServer
 } from '@/commercial/catalog/catalogServer';
-import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
-const ProgressiveAddToCartButton = dynamicImport(() => import('@/commercial/features/products/AddToCartButton'), {
-  ssr: false,
-  loading: () => (
-    <button
-      type="button"
-      disabled
-      className={`mt-4 w-full justify-center ${buttonTokenClasses.primary}`}
-    >
-      Dodaj v naročilo
-    </button>
-  )
-});
+import ProgressiveAddToCartButton from '@/commercial/features/products/ProgressiveAddToCartButton';
 
 export const dynamic = 'force-static';
 
@@ -33,7 +20,8 @@ export async function generateStaticParams() {
   return (await getCatalogCategorySlugsServer()).map((category) => ({ category }));
 }
 
-export async function generateMetadata({ params }: { params: { category: string } }) {
+export async function generateMetadata(props: { params: Promise<{ category: string }> }) {
+  const params = await props.params;
   const category = await getCatalogCategoryServer(params.category);
   return {
     title: category.title,
@@ -48,7 +36,8 @@ const getArticleLabel = (count: number) => {
   return 'artiklov';
 };
 
-export default async function CategoryPage({ params }: { params: { category: string } }) {
+export default async function CategoryPage(props: { params: Promise<{ category: string }> }) {
+  const params = await props.params;
   const { category, categories } = await getCatalogCategoryPageDataServer(params.category);
 
   return <div>{/* unchanged JSX below */}

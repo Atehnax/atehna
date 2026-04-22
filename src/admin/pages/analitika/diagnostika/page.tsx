@@ -29,11 +29,12 @@ async function AdminDiagnosticsDashboardSection({
   return <AdminDiagnosticsDashboard windowHours={resolveWindowHours(searchParams?.window)} />;
 }
 
-export default function AdminDiagnosticsPage({
-  searchParams
-}: {
-  searchParams?: { window?: string };
-}) {
+export default async function AdminDiagnosticsPage(
+  props: {
+    searchParams?: Promise<{ window?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   return (
     <div className="w-full">
       <div className="mb-4">

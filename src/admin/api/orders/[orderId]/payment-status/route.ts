@@ -4,10 +4,8 @@ import { isPaymentStatus } from '@/shared/domain/order/paymentStatus';
 import { getPool } from '@/shared/server/db';
 
 
-export async function POST(
-  request: Request,
-  { params }: { params: { orderId: string } }
-) {
+export async function POST(request: Request, props: { params: Promise<{ orderId: string }> }) {
+  const params = await props.params;
   try {
     const orderId = Number(params.orderId);
     if (!Number.isFinite(orderId)) {

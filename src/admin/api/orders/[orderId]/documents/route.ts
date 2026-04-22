@@ -20,10 +20,8 @@ function isPdfFile(file: File): boolean {
   return mimeType === 'application/pdf' || fileNameLower.endsWith('.pdf');
 }
 
-export async function POST(
-  request: Request,
-  { params }: { params: { orderId: string } }
-) {
+export async function POST(request: Request, props: { params: Promise<{ orderId: string }> }) {
+  const params = await props.params;
   try {
     const orderId = Number(params.orderId);
     if (!Number.isFinite(orderId)) {

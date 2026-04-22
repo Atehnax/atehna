@@ -740,7 +740,7 @@ export async function quickPatchCatalogItemByIdentifier(
     );
 
     await client.query('commit');
-    revalidateTag(CATALOG_PUBLIC_TAG);
+    revalidateTag(CATALOG_PUBLIC_TAG, 'max');
     return await fetchAdminCatalogListItemByItemId(itemId);
   } catch (error) {
     await client.query('rollback');
@@ -825,7 +825,7 @@ export async function quickPatchCatalogVariantByIdentifier(
     );
 
     await client.query('commit');
-    revalidateTag(CATALOG_PUBLIC_TAG);
+    revalidateTag(CATALOG_PUBLIC_TAG, 'max');
     const item = await fetchAdminCatalogListItemByItemId(itemId);
     if (!item) return null;
     const variant = item.variants.find((entry) => entry.id === variantId);
@@ -991,7 +991,7 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
     }
 
     await client.query('commit');
-    revalidateTag(CATALOG_PUBLIC_TAG);
+    revalidateTag(CATALOG_PUBLIC_TAG, 'max');
     return { id: itemRow.id, slug: itemRow.slug };
   } catch (error) {
     await client.query('rollback');
@@ -1005,7 +1005,7 @@ export async function deleteCatalogItemBySlug(slug: string): Promise<boolean> {
   const pool = await getPool();
   const result = await pool.query('delete from catalog_items where slug = $1 returning id', [slug]);
   if ((result.rowCount ?? 0) > 0) {
-    revalidateTag(CATALOG_PUBLIC_TAG);
+    revalidateTag(CATALOG_PUBLIC_TAG, 'max');
     return true;
   }
   return false;

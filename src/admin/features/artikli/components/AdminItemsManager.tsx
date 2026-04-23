@@ -11,7 +11,7 @@ import { useToast } from '@/shared/ui/toast';
 import { AdminTableLayout } from '@/shared/ui/admin-table';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
-import { ArchiveIcon, CheckIcon, CloseIcon, ColumnFilterIcon, DownloadIcon, PencilIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { ArchiveIcon, CheckIcon, CloseIcon, ColumnFilterIcon, DownloadIcon, OpenArticleIcon, PencilIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActionsDropdown, Table, THead, TH, TR } from '@/shared/ui/table';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
@@ -69,6 +69,8 @@ type NumericDraftField = 'price' | 'discountPct' | 'salePrice';
 type NumericDraftScope = 'family' | 'variant';
 const ROW_EDIT_INPUT_CLASS = `${compactTableAlignedTextInputClassName} !mt-0 !h-7 !w-full !px-2 text-[12px]`;
 const ROW_EDIT_COMPACT_NUMBER_INPUT_CLASS = `${compactTableAlignedInputClassName} !mt-0 !h-7 text-right text-[12px]`;
+const MESTO_EDIT_INPUT_CLASS =
+  'mx-auto h-7 w-3/4 rounded-md border border-slate-300 bg-white px-1 text-center text-[12px] leading-7 text-slate-900 shadow-none outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0';
 const QUICK_EDIT_NAME_SHELL_CLASS = 'min-w-0 flex-1';
 const QUICK_EDIT_NAME_INPUT_CLASS = `${ROW_EDIT_INPUT_CLASS} font-medium`;
 const STATUS_COLUMN_CLASS = 'w-[120px] min-w-[120px] max-w-[120px]';
@@ -352,13 +354,6 @@ const buildVariantPatch = (variant: Variant, draft: VariantDraft) => {
   return { patch, changeCount };
 };
 
-const formatUnsavedChangeLabel = (count: number) => {
-  if (count === 1) return '1 neshranjena sprememba';
-  if (count === 2) return '2 neshranjeni spremembi';
-  if (count >= 3 && count <= 4) return `${count} neshranjene spremembe`;
-  return `${count} neshranjenih sprememb`;
-};
-
 export default function AdminItemsManager({ items }: { items: AdminCatalogListItem[] }) {
   const router = useRouter();
   const [search, setSearch] = useState('');
@@ -387,6 +382,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [draftActionPriceRangeFilter, setDraftActionPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [isBulkArchiveDialogOpen, setIsBulkArchiveDialogOpen] = useState(false);
   const [isArchivingSelected, setIsArchivingSelected] = useState(false);
+  const [archiveDialogFamilyIds, setArchiveDialogFamilyIds] = useState<Set<string> | null>(null);
   const [pendingGuardLabel, setPendingGuardLabel] = useState<string | null>(null);
   const categoryFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const priceFilterButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -417,6 +413,14 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   );
   const selectedArchiveCount = selectedArchiveFamilies.length;
   const hasSelectedArchiveFamilies = selectedArchiveCount > 0;
+  const archiveDialogFamilies = useMemo(
+    () =>
+      archiveDialogFamilyIds
+        ? effectiveFamilies.filter((family) => archiveDialogFamilyIds.has(family.id))
+        : selectedArchiveFamilies,
+    [archiveDialogFamilyIds, effectiveFamilies, selectedArchiveFamilies]
+  );
+  const archiveDialogCount = archiveDialogFamilies.length;
   const categories = useMemo(() => Array.from(new Set(effectiveFamilies.map((family) => family.category))).sort((a, b) => a.localeCompare(b, 'sl')), [effectiveFamilies]);
 
   useEffect(() => {
@@ -641,12 +645,14 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
 
   const handleArchiveSelected = () => {
     if (!hasSelectedArchiveFamilies || isArchivingSelected) return;
+    setArchiveDialogFamilyIds(null);
     setIsBulkArchiveDialogOpen(true);
   };
 
   const confirmArchiveSelected = async () => {
-    if (!hasSelectedArchiveFamilies) {
+    if (archiveDialogCount === 0) {
       setIsBulkArchiveDialogOpen(false);
+      setArchiveDialogFamilyIds(null);
       return;
     }
 
@@ -658,7 +664,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     const failedFamilies: string[] = [];
 
     try {
-      for (const family of selectedArchiveFamilies) {
+      for (const family of archiveDialogFamilies) {
         const itemIdentifier = family.slug.trim();
         if (!itemIdentifier) {
           failedFamilies.push(family.name);
@@ -724,6 +730,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         );
       }
     } finally {
+      setArchiveDialogFamilyIds(null);
       setIsArchivingSelected(false);
     }
   };
@@ -1331,21 +1338,30 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     requestCurrentEditResolution('odhodom na ustvarjanje novega artikla', () => router.push('/admin/artikli/nov'));
   const handleArchiveSelectionAction = () =>
     requestCurrentEditResolution('arhiviranjem izbranih artiklov', handleArchiveSelected);
+  const handleArchiveFamilyAction = (family: ListFamily) =>
+    requestCurrentEditResolution(`arhiviranjem artikla ${family.name}`, () => {
+      if (isArchivingSelected) return;
+      setArchiveDialogFamilyIds(new Set([family.id]));
+      setIsBulkArchiveDialogOpen(true);
+    });
 
   return (
     <div className="space-y-4 font-['Inter',system-ui,sans-serif]">
       {isBulkArchiveDialogOpen ? (
         <LazyConfirmDialog
           open={isBulkArchiveDialogOpen}
-          title={selectedArchiveCount === 1 ? 'Arhiviranje artikla' : 'Arhiviranje artiklov'}
+          title={archiveDialogCount === 1 ? 'Arhiviranje artikla' : 'Arhiviranje artiklov'}
           description={
-            selectedArchiveCount === 1
+            archiveDialogCount === 1
               ? 'Ali želite arhivirati izbrani artikel?'
-              : `Ali želite arhivirati ${selectedArchiveCount} izbranih artiklov?`
+              : `Ali želite arhivirati ${archiveDialogCount} izbranih artiklov?`
           }
           confirmLabel="Arhiviraj"
           cancelLabel="Prekliči"
-          onCancel={() => setIsBulkArchiveDialogOpen(false)}
+          onCancel={() => {
+            setIsBulkArchiveDialogOpen(false);
+            setArchiveDialogFamilyIds(null);
+          }}
           onConfirm={() => {
             void confirmArchiveSelected();
           }}
@@ -1361,30 +1377,30 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
           title="Neshranjene spremembe"
           isDismissable={false}
           footer={
-            <div className="mt-4 flex flex-wrap justify-end gap-2">
-              <button
-                type="button"
-                onClick={handleGuardDialogCancel}
-                className="h-8 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600"
-              >
-                Nadaljuj urejanje
-              </button>
-              <button
-                type="button"
-                onClick={handleGuardDialogDiscard}
-                className="h-8 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-700"
-              >
-                Zavrzi spremembe
-              </button>
+            <div className="mt-4 flex flex-nowrap items-center justify-end gap-1.5">
               <button
                 type="button"
                 onClick={() => {
                   void handleGuardDialogSave();
                 }}
                 disabled={!activeEditSnapshot?.isDirty || !activeEditSnapshot.isValid || isSavingActiveScope}
-                className="h-8 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700 disabled:cursor-default disabled:opacity-50"
+                className="h-8 whitespace-nowrap rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-default disabled:opacity-50"
               >
                 {isSavingActiveScope ? 'Shranjujem...' : 'Shrani in nadaljuj'}
+              </button>
+              <button
+                type="button"
+                onClick={handleGuardDialogCancel}
+                className="h-8 whitespace-nowrap rounded-lg border border-slate-200 px-2.5 text-[11px] font-semibold text-slate-600"
+              >
+                Nadaljuj urejanje
+              </button>
+              <button
+                type="button"
+                onClick={handleGuardDialogDiscard}
+                className="h-8 whitespace-nowrap rounded-lg border border-rose-300 bg-rose-50 px-2.5 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-100"
+              >
+                Zavrzi spremembe
               </button>
             </div>
           }
@@ -1398,34 +1414,34 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         </Dialog>
       ) : null}
       <AdminTableLayout
-        className="border shadow-sm"
-        style={{ background: '#fff', borderColor: '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
+        className="border shadow-[0_14px_34px_rgba(15,23,42,0.07),0_2px_6px_rgba(15,23,42,0.03)]"
+        style={{ background: '#fff', borderColor: '#e2e8f0' }}
         headerClassName="px-5 pt-5 pb-2 [&>div:last-child]:!mt-3"
         headerLeft={
-          <div className="flex min-h-11 w-full items-center gap-2">
+          <div className="flex min-h-9 w-full items-center gap-2">
             <AdminSearchInput
               value={search}
               onChange={(event) => handleSearchInputChange(event.target.value)}
               placeholder="Poišči artikel, SKU, kategorijo, status ali opombe ..."
               aria-label="Poišči artikel, SKU, kategorijo, status ali opombe"
-              wrapperClassName="rounded-xl border-slate-200/90 bg-slate-50/80"
-              inputClassName="!m-0 !h-11 min-w-0 w-full flex-1 !rounded-xl !border-0 !bg-transparent !pr-4 !text-[14px] !font-normal text-slate-700 !shadow-none !outline-none ring-0 transition-colors placeholder:text-slate-400 [--euiFormControlStateWidth:0px] focus:[--euiFormControlStateWidth:0px] focus-visible:[--euiFormControlStateWidth:0px] focus:!border-0 focus:!shadow-none focus:!outline-none focus-visible:!border-0 focus-visible:!shadow-none focus-visible:!outline-none"
-              iconClassName="left-4 h-5 w-5 text-slate-400"
+              wrapperClassName="!w-full min-w-0 h-9 !rounded-md border-slate-200/90 !bg-slate-50 sm:!flex-none sm:!w-[40%] sm:min-w-[20rem] sm:max-w-[30rem]"
+              inputClassName="!m-0 !h-full min-w-0 w-full flex-1 !rounded-md !border-0 !bg-transparent !pr-4 !text-[13px] !font-normal text-slate-700 !shadow-none !outline-none ring-0 transition-colors placeholder:text-slate-400 [--euiFormControlStateWidth:0px] focus:[--euiFormControlStateWidth:0px] focus-visible:[--euiFormControlStateWidth:0px] focus:!border-0 focus:!shadow-none focus:!outline-none focus-visible:!border-0 focus-visible:!shadow-none focus-visible:!outline-none"
+              iconClassName="left-4 h-[18px] w-[18px] text-slate-400"
             />
           </div>
         }
         headerRight={
-          <div className="flex min-h-11 items-center gap-1.5 self-center">
+          <div className="flex min-h-9 items-center gap-1.5 self-center">
             <IconButton
               type="button"
               onClick={exportVariantsCsv}
               tone="neutral"
               size="sm"
-              className="!h-11 !w-11 !rounded-xl !border-slate-200/90 !bg-white !text-slate-600 hover:!bg-slate-50"
+              className="!h-9 !w-9 !rounded-md !border-slate-200/90 !bg-white !text-slate-600 hover:!bg-slate-50 hover:!text-[#1982bf] active:!text-[#1982bf]"
               aria-label={hasExportSelection ? 'Prenesi izbrane artikle' : 'Prenesi vse artikle'}
               title={hasExportSelection ? 'Prenesi izbrane' : 'Prenesi vse'}
             >
-              <DownloadIcon className="!h-5 !w-5" />
+              <DownloadIcon className="!h-[18px] !w-[18px]" />
             </IconButton>
             <IconButton
               type="button"
@@ -1433,7 +1449,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
               disabled={!hasSelectedArchiveFamilies || isArchivingSelected}
               tone={hasSelectedArchiveFamilies ? 'warning' : 'neutral'}
               size="sm"
-              className={hasSelectedArchiveFamilies ? '!h-11 !w-11 !rounded-xl !border-amber-300/80 !bg-amber-50 !text-amber-700 !transition-none' : '!h-11 !w-11 !rounded-xl !border-slate-200/90 !bg-white !text-slate-600 !transition-none hover:!bg-slate-50'}
+              className={hasSelectedArchiveFamilies ? '!h-9 !w-9 !rounded-md !border-amber-300/80 !bg-amber-50 !text-amber-700 !transition-none' : '!h-9 !w-9 !rounded-md !border-slate-200/90 !bg-white !text-slate-600 !transition-none hover:!bg-slate-50 hover:!text-[#1982bf] active:!text-[#1982bf]'}
               aria-label={
                 hasSelectedArchiveFamilies
                   ? `Arhiviraj izbrane artikle (${selectedArchiveCount})`
@@ -1441,13 +1457,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
               }
               title="Arhiviraj"
             >
-              {isArchivingSelected ? <Spinner size="sm" className="text-amber-700" /> : <ArchiveIcon className="!h-5 !w-5" />}
+              {isArchivingSelected ? <Spinner size="sm" className="text-amber-700" /> : <ArchiveIcon className="!h-[18px] !w-[18px]" />}
             </IconButton>
             <Button
               type="button"
               variant="primary"
               size="toolbar"
-              className={`${adminTextButtonTypographyTokenClasses} !h-11 !rounded-xl !px-5 !text-sm !font-semibold`}
+              className={`${adminTextButtonTypographyTokenClasses} !h-9 !rounded-md !px-4 !text-[13px] !font-semibold !tracking-[0.005em] hover:!bg-[#1777af] active:!bg-[#146997]`}
               aria-label="Nov artikel"
               onClick={handleCreateItemNavigation}
             >
@@ -1710,7 +1726,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 const isExpanded = expandedFamilyIds.has(family.id);
                 const hasSubtable = visibleVariants.length > 0;
                 const isEditingFamily = activeEditScope?.familyId === family.id;
-                const isEditingRow = isEditingFamily && activeEditScope?.kind === 'row';
                 const isEditingGroup = isEditingFamily && activeEditScope?.kind === 'group';
                 const familyDraft = getFamilyDraftForState(family, familyDrafts);
                 const rowEditSnapshot = isEditingFamily ? activeEditSnapshot : null;
@@ -1851,13 +1866,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                           : <div className={STATUS_NOTE_CELL_INNER_CLASS}><NoteTagChip value={(family.itemBadge || 'na-zalogi') as NoteTag} editable={false} editScope={`family:${family.id}`} chipClassName="!min-w-[97px] !text-[11px]" placeholderLabel="Opombe" onChange={() => {}} /></div>}
                       </td>
                       <td className={`${ACTIONS_COLUMN_CLASS} px-2 py-4 text-center`}>
-                        {isEditingRow ? (
-                          <div className="flex items-center justify-center gap-0 whitespace-nowrap">
+                        {isEditingFamily ? (
+                          <div className="flex items-center justify-center gap-1 whitespace-nowrap">
                             <IconButton
                               type="button"
                               tone="neutral"
                               size="sm"
-                              className="!h-9 !w-9 !rounded-2xl !border-0 !bg-transparent !p-0 !text-[color:var(--blue-500)] !shadow-none hover:!bg-slate-100 hover:!text-[#22c55e] active:!bg-slate-100 active:!text-[#22c55e] disabled:!bg-transparent disabled:!text-slate-300 disabled:!opacity-100"
+                              className="!h-8 !w-8 !rounded-md !border !border-slate-200 !bg-white !p-0 !text-emerald-600/70 !shadow-none hover:!border-emerald-300 hover:!bg-emerald-50 hover:!text-emerald-700 active:!border-emerald-300 active:!bg-emerald-50 active:!text-emerald-700 disabled:!border-slate-200 disabled:!bg-white disabled:!text-slate-300 disabled:!opacity-100"
                               disabled={!rowEditSnapshot?.isDirty || !rowEditSnapshot.isValid || isSavingActiveScope}
                               aria-label={`Shrani urejanje za ${family.name}`}
                               title={
@@ -1878,7 +1893,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                               type="button"
                               tone="neutral"
                               size="sm"
-                              className="!h-9 !w-9 !rounded-2xl !border-0 !bg-transparent !p-0 !text-slate-900 !shadow-none hover:!bg-slate-100 hover:!text-[color:var(--danger-600)] active:!bg-slate-100 active:!text-[color:var(--danger-600)] disabled:!bg-transparent disabled:!opacity-100"
+                              className="!h-8 !w-8 !rounded-md !border !border-slate-200 !bg-white !p-0 !text-rose-600/70 !shadow-none hover:!border-rose-300 hover:!bg-rose-50 hover:!text-rose-700 active:!border-rose-300 active:!bg-rose-50 active:!text-rose-700 disabled:!border-slate-200 disabled:!bg-white disabled:!text-slate-300 disabled:!opacity-100"
                               onClick={cancelCurrentEditScope}
                               aria-label={`Prekliči urejanje za ${family.name}`}
                               title="Prekliči"
@@ -1891,17 +1906,27 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                               />
                             </IconButton>
                           </div>
-                        ) : isEditingGroup ? (
-                          <span className="truncate text-[10px] font-medium text-slate-500" title="Skupinsko urejanje">
-                            Skupinsko
-                          </span>
                         ) : (
                           <RowActionsDropdown
                             label={`Možnosti za ${family.name}`}
                             editScope={`family:${family.id}`}
+                            menuWidth={144}
+                            menuClassName="w-36"
                             items={[
                               { key: 'quick-edit', label: 'Hitro urejanje', icon: <PencilIcon />, onSelect: () => beginFamilyEditScope(family) },
-                              { key: 'edit', label: 'Uredi', onSelect: () => requestCurrentEditResolution(`odhodom na urejanje artikla ${family.name}`, () => router.push(getItemEditHref(family))) }
+                              {
+                                key: 'open',
+                                label: 'Odpri artikel',
+                                icon: <OpenArticleIcon />,
+                                onSelect: () => requestCurrentEditResolution(`odhodom na urejanje artikla ${family.name}`, () => router.push(getItemEditHref(family)))
+                              },
+                              {
+                                key: 'archive',
+                                label: 'Arhiviraj',
+                                icon: <ArchiveIcon />,
+                                className: 'text-amber-800 hover:bg-amber-50 hover:text-amber-900',
+                                onSelect: () => handleArchiveFamilyAction(family)
+                              }
                             ]}
                           />
                         )}
@@ -2074,8 +2099,10 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                     <td className="w-[5%] px-2 py-2 text-center">
                                       {isEditing ? (
                                         <input
-                                          type="number"
-                                          className={`${ROW_EDIT_INPUT_CLASS} mx-auto w-[20%] text-center`}
+                                          type="text"
+                                          inputMode="numeric"
+                                          pattern="[0-9]*"
+                                          className={MESTO_EDIT_INPUT_CLASS}
                                           value={draft.position}
                                           onChange={(event) =>
                                             setVariantDrafts((current) => ({
@@ -2098,47 +2125,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 );
               })}
             </tbody>
-            {activeEditScope?.kind === 'group' && activeScopeFamily ? (
-              <tfoot className="sticky bottom-0 z-20">
-                <tr>
-                  <td colSpan={10} className="border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-10px_24px_rgba(15,23,42,0.08)] backdrop-blur supports-[backdrop-filter]:bg-white/85">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-slate-700">
-                          {activeEditSnapshot?.isDirty ? formatUnsavedChangeLabel(activeEditSnapshot.dirtyChangeCount) : 'Ni neshranjenih sprememb'}
-                        </p>
-                        {activeEditSnapshot?.validationMessage ? (
-                          <p className="mt-1 text-xs font-medium text-rose-600">{activeEditSnapshot.validationMessage}</p>
-                        ) : null}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="toolbar"
-                          className="!h-9 !rounded-lg !px-4 !text-xs !font-semibold"
-                          onClick={cancelCurrentEditScope}
-                        >
-                          Prekliči
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="primary"
-                          size="toolbar"
-                          className="!h-9 !rounded-lg !px-4 !text-xs !font-semibold"
-                          disabled={!activeEditSnapshot?.isDirty || !activeEditSnapshot.isValid || isSavingActiveScope}
-                          onClick={() => {
-                            void saveCurrentEditScope();
-                          }}
-                        >
-                          {isSavingActiveScope ? 'Shranjujem...' : 'Shrani spremembe'}
-                        </Button>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              </tfoot>
-            ) : null}
           </Table>
       </AdminTableLayout>
       <HeaderFilterPortal open={Boolean(openFilter)}>

@@ -214,6 +214,26 @@ export function PencilIcon({ className, ...props }: ActionIconProps) {
   );
 }
 
+export function OpenArticleIcon({ className, ...props }: ActionIconProps) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className={iconClassName(className)}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M7 5H5.5A2.5 2.5 0 0 0 3 7.5v7A2.5 2.5 0 0 0 5.5 17h7A2.5 2.5 0 0 0 15 14.5V13" />
+      <path d="M11 3h6v6" />
+      <path d="m9.5 10.5 7-7" />
+    </svg>
+  );
+}
+
 export function PlusIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg

@@ -107,7 +107,7 @@ export function NoteTagChip({
       >
         {editable ? <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span> : null}
         <span className="block">
-          <Chip variant={variant} className={`${chipClassName ?? ''} ${emphasisClassName}`.trim()}>{label}</Chip>
+          <Chip variant={variant} className={`${chipClassName ?? ''} ${emphasisClassName} !h-7`.trim()}>{label}</Chip>
         </span>
       </button>
       {editable && isOpen && menuPosition && typeof document !== 'undefined'

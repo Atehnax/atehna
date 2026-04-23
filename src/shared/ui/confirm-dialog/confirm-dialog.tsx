@@ -1,5 +1,12 @@
 import type { ReactNode } from 'react';
-import { Dialog } from '@/shared/ui/dialog';
+import { Button } from '@/shared/ui/button';
+import { adminTablePrimaryButtonClassName } from '@/shared/ui/admin-table';
+import {
+  Dialog,
+  dialogActionButtonClassName,
+  dialogDescriptionClassName,
+  dialogFooterClassName
+} from '@/shared/ui/dialog';
 
 type ConfirmDialogProps = {
   open: boolean;
@@ -38,30 +45,30 @@ export default function ConfirmDialog({
       isDismissable={false}
       panelClassName={panelClassName}
       footer={
-        <div className="mt-4 flex justify-end gap-2">
-          <button
+        <div className={dialogFooterClassName}>
+          <Button
             type="button"
+            variant="default"
+            size="toolbar"
             onClick={onCancel}
-            className="h-8 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600"
+            className={dialogActionButtonClassName}
           >
             {cancelLabel}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant={isDanger ? 'danger' : 'primary'}
+            size="toolbar"
             onClick={onConfirm}
             disabled={confirmDisabled}
-            className={
-              isDanger
-                ? 'h-8 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-700 disabled:cursor-default disabled:opacity-50'
-                : 'h-8 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700 disabled:cursor-default disabled:opacity-50'
-            }
+            className={isDanger ? dialogActionButtonClassName : `${adminTablePrimaryButtonClassName} !h-8 !rounded-lg !px-3`}
           >
             {confirmLabel}
-          </button>
+          </Button>
         </div>
       }
     >
-      {description ? <p className="mt-2 text-xs text-slate-600">{description}</p> : null}
+      {description ? <p className={dialogDescriptionClassName}>{description}</p> : null}
       {children}
     </Dialog>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type CSSProperties } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   DndContext,
@@ -71,14 +71,21 @@ import {
 } from '../common/catalog-helpers';
 import { getAdminCategoriesSessionPayload, setAdminCategoriesSessionPayload } from '../common/client-session';
 import { sortCatalogItems } from '@/commercial/catalog/catalogUtils';
-import { Button } from '@/shared/ui/button';
+import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/AdminCategoryBreadcrumbPicker';
 import { IconButton } from '@/shared/ui/icon-button';
 import { Chip } from '@/shared/ui/badge';
-import { PencilIcon, PlusIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { CheckIcon, CloseIcon, PencilIcon, PlusIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActions, RowActionsDropdown } from '@/shared/ui/table';
 import {
-  adminInputFocusTokenClasses,
+  adminTableInlineActionRowClassName,
+  adminTableInlineCancelButtonClassName,
+  adminTableInlineCancelIconClassName,
+  adminTableInlineConfirmButtonClassName,
+  adminTableInlineConfirmIconClassName,
+  adminTableInlineEditInputClassName
+} from '@/shared/ui/admin-table';
+import {
   adminTableRowToneClasses
 } from '@/shared/ui/theme/tokens';
 import { Input } from '@/shared/ui/input';
@@ -147,6 +154,10 @@ type PendingImageUpload = {
   file: File;
   objectUrl: string;
 };
+type CreateLocationOption = {
+  path: string[];
+  target: Exclude<CreateTarget, null>;
+};
 
 const treeIndent = 32;
 const treeRowHeight = 48;
@@ -157,7 +168,8 @@ const treeExpandButtonSize = 16;
 const treeExpandButtonInset = (treeButtonDiameter - treeExpandButtonSize) / 2;
 const treeExpandButtonHalf = treeExpandButtonSize / 2;
 const treeButtonRadius = treeButtonDiameter / 2;
-const treeConnectorBleed = 1;
+const treeConnectorBleed = 3;
+const treeConnectorClassName = 'absolute z-[1] bg-slate-300/90 pointer-events-none';
 const expandTransitionMs = 140;
 const treeCheckboxSize = 16;
 const treeCheckboxHalf = treeCheckboxSize / 2;
@@ -407,6 +419,7 @@ export default function AdminCategoriesMainTable({
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [createTarget, setCreateTarget] = useState<CreateTarget>(null);
   const [createName, setCreateName] = useState('');
+  const [createLocationPath, setCreateLocationPath] = useState<string[]>([]);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -448,7 +461,7 @@ export default function AdminCategoriesMainTable({
   const statusHeaderMenuRef = useRef<HTMLDivElement>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
   const isInlineSavingRef = useRef(false);
-  const skipNextInlineBlurSaveRef = useRef(false);
+  const tableAutosaveBlockedRef = useRef(false);
   const saveInlineEditRef = useRef<() => void>(() => {});
   const toastRef = useRef(toast);
   const persistedTableRef = useRef<CatalogData>({ categories: [] });
@@ -674,7 +687,7 @@ export default function AdminCategoriesMainTable({
       }
     };
 
-    const closeOnEscape = (event: KeyboardEvent) => {
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsStatusHeaderMenuOpen(false);
       }
@@ -841,20 +854,15 @@ export default function AdminCategoriesMainTable({
 
   const millerBreadcrumbs = useMemo(() => {
     if (selected.kind === 'root') {
-      return [{ label: 'Kategorije', isCurrent: true }] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
+      return [{ label: '/', isCurrent: true }] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
     }
 
     const category = millerCatalog.categories.find((entry) => entry.slug === selected.categorySlug);
     if (!category) {
-      return [{ label: 'Kategorije', isCurrent: true }] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
+      return [{ label: '/', isCurrent: true }] as Array<{ label: string; onClick?: () => void; isCurrent: boolean }>;
     }
 
     const crumbs: Array<{ label: string; onClick?: () => void; isCurrent: boolean }> = [
-      {
-        label: 'Kategorije',
-        isCurrent: false,
-        onClick: () => setSelected({ kind: 'root' })
-      },
       {
         label: category.title,
         isCurrent: selected.kind === 'category',
@@ -930,6 +938,7 @@ export default function AdminCategoriesMainTable({
       setTableError(null);
       return;
     }
+    tableAutosaveBlockedRef.current = false;
     stagedTableHistoryRef.current.push({
       catalog: normalizeCatalogData(catalog),
       statuses: { ...statusByRow }
@@ -959,6 +968,7 @@ export default function AdminCategoriesMainTable({
       );
       setMillerError(null);
     } else {
+      tableAutosaveBlockedRef.current = false;
       stagedTableHistoryRef.current.push(snapshot);
       setTableDirty(
         !areCatalogsEqual(catalog, persistedTableRef.current) ||
@@ -1085,7 +1095,7 @@ export default function AdminCategoriesMainTable({
     setTableError(null);
     setMillerError(null);
 
-    toast.success('Obnovljena je bila prejšnja shranjena verzija. Za potrditev kliknite "Shrani spremembe".');
+    toast.success('Obnovljena je bila prejšnja shranjena verzija.');
   };
 
   const addCategory = (title: string, afterSlug?: string) => {
@@ -1220,29 +1230,102 @@ export default function AdminCategoriesMainTable({
     }
   };
 
-  const openCreateDialog = (target: CreateTarget) => {
+  const createLocationOptions = useMemo<CreateLocationOption[]>(() => {
+    const options: CreateLocationOption[] = [
+      {
+        path: [],
+        target: { kind: 'category' }
+      }
+    ];
+
+    const visitSubcategories = (
+      category: RecursiveCatalogCategory,
+      nodes: RecursiveCatalogSubcategory[],
+      breadcrumbLabels: string[] = [],
+      parentPath: string[] = []
+    ) => {
+      nodes.forEach((node) => {
+        const nextPath = [...parentPath, node.slug];
+        const nextBreadcrumbLabels = [...breadcrumbLabels, node.title];
+        options.push({
+          path: [category.title, ...nextBreadcrumbLabels],
+          target: {
+            kind: 'subcategory',
+            categorySlug: category.slug,
+            parentPath: nextPath
+          }
+        });
+        visitSubcategories(category, node.subcategories, nextBreadcrumbLabels, nextPath);
+      });
+    };
+
+    catalog.categories.forEach((category) => {
+      options.push({
+        path: [category.title],
+        target: {
+          kind: 'subcategory',
+          categorySlug: category.slug,
+          parentPath: []
+        }
+      });
+      visitSubcategories(category, category.subcategories);
+    });
+
+    return options;
+  }, [catalog.categories]);
+
+  const createLocationPaths = useMemo(
+    () => createLocationOptions.filter((option) => option.path.length > 0).map((option) => option.path.join(' / ')),
+    [createLocationOptions]
+  );
+
+  const resolveCreateLocationPath = useCallback((target: CreateTarget) => {
+    if (!target || target.kind === 'category') return [];
+
+    return (
+      createLocationOptions.find(
+        (option) =>
+          option.target.kind === 'subcategory' &&
+          option.target.categorySlug === target.categorySlug &&
+          pathEquals(option.target.parentPath, target.parentPath ?? [])
+      )?.path ?? []
+    );
+  }, [createLocationOptions]);
+
+  const selectedCreateLocation = useMemo(
+    () =>
+      createLocationOptions.find((option) => pathEquals(option.path, createLocationPath)) ??
+      createLocationOptions[0] ??
+      null,
+    [createLocationOptions, createLocationPath]
+  );
+
+  const openCreateDialog = async (target: CreateTarget) => {
+    await ensureFullPayloadLoaded();
     setCreateTarget(target);
     setCreateName('');
+    setCreateLocationPath(resolveCreateLocationPath(target));
   };
 
   const confirmCreate = async () => {
     await ensureFullPayloadLoaded();
     const nextName = createName.trim();
-    if (!nextName || !createTarget) return;
+    if (!nextName || !createTarget || !selectedCreateLocation) return;
 
-    if (createTarget.kind === 'category') {
+    if (selectedCreateLocation.target.kind === 'category') {
       addCategory(nextName, createTarget.afterSlug);
     } else {
       addSubcategory(
-        createTarget.categorySlug,
+        selectedCreateLocation.target.categorySlug,
         nextName,
-        createTarget.parentPath,
+        selectedCreateLocation.target.parentPath,
         createTarget.afterSlug
       );
     }
 
     setCreateTarget(null);
     setCreateName('');
+    setCreateLocationPath([]);
   };
 
 
@@ -1856,12 +1939,12 @@ export default function AdminCategoriesMainTable({
   const addMillerNode = async (column: 'categories' | 'subcategories' | 'items') => {
     await ensureFullPayloadLoaded();
     if (column === 'categories') {
-      openCreateDialog({ kind: 'category' });
+      await openCreateDialog({ kind: 'category' });
       return;
     }
 
     if (column === 'subcategories' && selected.kind !== 'root') {
-      openCreateDialog({ kind: 'subcategory', categorySlug: selected.categorySlug });
+      await openCreateDialog({ kind: 'subcategory', categorySlug: selected.categorySlug });
       return;
     }
 
@@ -1912,7 +1995,7 @@ export default function AdminCategoriesMainTable({
 
     if (!savedPayload) {
       setTableError('Shranjevanje sprememb ni uspelo. Lokalno stanje je ohranjeno.');
-      return;
+      return false;
     }
 
     const canonicalCatalog = normalizeCatalogData(savedPayload);
@@ -1940,7 +2023,21 @@ export default function AdminCategoriesMainTable({
     setMillerDirty(false);
     setTableError(null);
     setMillerError(null);
+    return true;
   };
+
+  useEffect(() => {
+    if (activeView !== 'table' || !tableDirty || saving || editingRow || isInlineSavingRef.current || tableAutosaveBlockedRef.current) {
+      return;
+    }
+
+    void (async () => {
+      const didSave = await saveTableChanges();
+      if (!didSave) {
+        tableAutosaveBlockedRef.current = true;
+      }
+    })();
+  }, [activeView, editingRow, saveTableChanges, saving, tableDirty]);
 
   const millerSearchIndex = useMemo(
     () => activeView === 'miller' ? getMillerSearchIndex(millerCatalog.categories, millerSearchQuery) : {
@@ -2008,7 +2105,7 @@ export default function AdminCategoriesMainTable({
     const categoryIds = categoriesSource.map((category) => catId(category.slug));
     columns.push({
       key: 'categories',
-      title: 'Kategorije',
+      title: '/',
       kind: 'categories',
       ids: categoryIds,
       rows: categoriesSource.map((category) => ({
@@ -2307,7 +2404,10 @@ export default function AdminCategoriesMainTable({
       subcategorySlug: card.subcategoryPath.at(-1),
       title: card.title,
       description: card.description,
-      status: statusByRow[rowId] ?? 'active'
+      status: statusByRow[rowId] ?? 'active',
+      initialTitle: card.title,
+      initialDescription: card.description,
+      initialStatus: statusByRow[rowId] ?? 'active'
     });
   }, [ensureFullPayloadLoaded, statusByRow]);
 
@@ -2480,8 +2580,9 @@ export default function AdminCategoriesMainTable({
     }, expandTransitionMs);
   }, [isRowExpanded]);
 
-  const saveInlineEdit = useCallback(() => {
+  const saveInlineEdit = useCallback(async () => {
     if (!editingRow) return;
+    await ensureFullPayloadLoaded();
     const nextTitle = editingRow.title.trim();
 
     if (!nextTitle) {
@@ -2495,11 +2596,10 @@ export default function AdminCategoriesMainTable({
       const currentCategory = catalog.categories.find((entry) => entry.slug === editingRow.categorySlug);
       if (!currentCategory) return;
 
-      const currentStatus = statusByRow[editingRow.id] ?? 'active';
       const hasChange =
-        currentCategory.title !== nextTitle ||
-        currentCategory.summary !== editingRow.description ||
-        currentStatus !== editingRow.status;
+        (editingRow.initialTitle ?? currentCategory.title) !== nextTitle ||
+        (editingRow.initialDescription ?? currentCategory.summary) !== editingRow.description ||
+        (editingRow.initialStatus ?? (statusByRow[editingRow.id] ?? 'active')) !== editingRow.status;
 
       if (!hasChange) {
         setEditingRow(null);
@@ -2507,19 +2607,22 @@ export default function AdminCategoriesMainTable({
       }
 
       const nextStatuses = { ...statusByRow, [editingRow.id]: editingRow.status };
+      const nextCatalog = {
+        categories: catalog.categories.map((entry) =>
+          entry.slug === editingRow.categorySlug
+            ? { ...entry, title: nextTitle, summary: editingRow.description }
+            : entry
+        )
+      };
 
-      stageTableCatalog(
-        {
-          categories: catalog.categories.map((entry) =>
-            entry.slug === editingRow.categorySlug
-              ? { ...entry, title: nextTitle, summary: editingRow.description }
-              : entry
-          )
-        },
-        nextStatuses
-      );
-
-      setEditingRow(null);
+      isInlineSavingRef.current = true;
+      try {
+        stageTableCatalog(nextCatalog, nextStatuses);
+        setEditingRow(null);
+        await saveTableChanges();
+      } finally {
+        isInlineSavingRef.current = false;
+      }
       return;
     }
 
@@ -2534,11 +2637,10 @@ export default function AdminCategoriesMainTable({
       : null;
     if (!currentSubcategory) return;
 
-    const currentStatus = statusByRow[editingRow.id] ?? 'active';
     const hasChange =
-      currentSubcategory.title !== nextTitle ||
-      currentSubcategory.description !== editingRow.description ||
-      currentStatus !== editingRow.status;
+      (editingRow.initialTitle ?? currentSubcategory.title) !== nextTitle ||
+      (editingRow.initialDescription ?? currentSubcategory.description) !== editingRow.description ||
+      (editingRow.initialStatus ?? (statusByRow[editingRow.id] ?? 'active')) !== editingRow.status;
 
     if (!hasChange) {
       setEditingRow(null);
@@ -2546,62 +2648,45 @@ export default function AdminCategoriesMainTable({
     }
 
     const nextStatuses = { ...statusByRow, [editingRow.id]: editingRow.status };
+    const nextCatalog = {
+      categories: catalog.categories.map((entry) =>
+        entry.slug === editingRow.categorySlug
+          ? {
+              ...entry,
+              subcategories: updateSubcategoryTree(entry.subcategories, subcategoryPath, (sub) => ({
+                ...sub,
+                title: nextTitle,
+                description: editingRow.description
+              }))
+            }
+          : entry
+      )
+    };
 
-    stageTableCatalog(
-      {
-        categories: catalog.categories.map((entry) =>
-          entry.slug === editingRow.categorySlug
-            ? {
-                ...entry,
-                subcategories: updateSubcategoryTree(entry.subcategories, subcategoryPath, (sub) => ({
-                  ...sub,
-                  title: nextTitle,
-                  description: editingRow.description
-                }))
-              }
-            : entry
-        )
-      },
-      nextStatuses
-    );
-
-    setEditingRow(null);
-  }, [catalog.categories, editingRow, stageTableCatalog, statusByRow, toast]);
+    isInlineSavingRef.current = true;
+    try {
+      stageTableCatalog(nextCatalog, nextStatuses);
+      setEditingRow(null);
+      await saveTableChanges();
+    } finally {
+      isInlineSavingRef.current = false;
+    }
+  }, [catalog.categories, editingRow, ensureFullPayloadLoaded, saveTableChanges, stageTableCatalog, statusByRow, toast]);
 
   saveInlineEditRef.current = saveInlineEdit;
 
-  const handleInlineBlur = useCallback((event: FocusEvent<HTMLElement>) => {
-    if (skipNextInlineBlurSaveRef.current) {
-      skipNextInlineBlurSaveRef.current = false;
+  const handleInlineEditKeyDown = useCallback((event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      void saveInlineEditRef.current();
       return;
     }
 
-    const nextTarget = event.relatedTarget as Node | null;
-    if (nextTarget && event.currentTarget.closest('tr')?.contains(nextTarget)) {
-      return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      setEditingRow(null);
     }
-    saveInlineEdit();
-  }, [saveInlineEdit]);
-
-  useEffect(() => {
-    if (!editingRow) return;
-
-    const closeInlineEditOnOutsideClick = (event: MouseEvent) => {
-      const target = event.target as Node | null;
-      if (!target) return;
-
-      const targetElement = target instanceof Element ? target : null;
-      if (targetElement?.closest('[data-inline-edit-field="true"]')) return;
-
-      skipNextInlineBlurSaveRef.current = true;
-      saveInlineEditRef.current();
-    };
-
-    document.addEventListener('mousedown', closeInlineEditOnOutsideClick, true);
-    return () => {
-      document.removeEventListener('mousedown', closeInlineEditOnOutsideClick, true);
-    };
-  }, [editingRow]);
+  }, []);
 
   const searchQuery = query.trim().toLowerCase();
   const isSearchActive = searchQuery.length > 0;
@@ -2844,6 +2929,12 @@ export default function AdminCategoriesMainTable({
     const isRowEditing = editingRow?.id === id;
     const isChecked = selectedRowSet.has(id);
     const rowStatus = statusByRow[id] ?? 'active';
+    const isInlineEditValid = isRowEditing ? editingRow.title.trim().length > 0 : false;
+    const isInlineEditDirty = isRowEditing
+      ? editingRow.title.trim() !== (editingRow.initialTitle ?? title).trim() ||
+        editingRow.description !== (editingRow.initialDescription ?? description) ||
+        editingRow.status !== (editingRow.initialStatus ?? rowStatus)
+      : false;
 
     const toggleInlineEdit = async () => {
       await ensureFullPayloadLoaded();
@@ -2860,15 +2951,22 @@ export default function AdminCategoriesMainTable({
         subcategorySlug: resolvedSubcategoryPath.at(-1),
         title,
         description,
-        status: rowStatus
+        status: rowStatus,
+        initialTitle: title,
+        initialDescription: description,
+        initialStatus: rowStatus
       });
     };
 
     const setStatus = async (nextStatus: CategoryStatus) => {
       await ensureFullPayloadLoaded();
+      if (isRowEditing) {
+        setEditingRow((prev) => (prev && prev.id === id ? { ...prev, status: nextStatus } : prev));
+        return;
+      }
+
       const nextStatuses = { ...statusByRow, [id]: nextStatus };
       stageStatusChange(nextStatuses);
-      setEditingRow((prev) => (prev && prev.id === id ? { ...prev, status: nextStatus } : prev));
     };
 
     const isOpening = parentIsAnimating && openingRowIdSet.size > 0;
@@ -2917,10 +3015,10 @@ export default function AdminCategoriesMainTable({
             key={id}
             ref={setNodeRef}
             style={style}
-            className={`${isSelected ? adminTableRowToneClasses.selected : 'bg-white'} transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''} ${isDragging ? 'opacity-70' : ''} ${kind !== 'root' ? 'cursor-grab active:cursor-grabbing select-none' : ''}`}
+            className={`${isSelected ? adminTableRowToneClasses.selected : 'bg-white'} border-t border-slate-200/90 transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''} ${isDragging ? 'opacity-70' : ''} ${kind !== 'root' ? 'cursor-grab active:cursor-grabbing select-none' : ''}`}
             {...dragHandleProps}
           >
-            <td className="relative overflow-visible border-b border-slate-200 px-2 py-0 text-center align-middle">
+            <td className="relative overflow-visible px-2 py-0 text-center align-middle">
               <div
                 className="absolute top-1/2 z-20"
                 style={
@@ -2946,7 +3044,7 @@ export default function AdminCategoriesMainTable({
               </div>
             </td>
 
-            <td className="border-b border-slate-200 px-3 py-0 align-middle">
+            <td className="px-3 py-0 align-middle">
               <div className="relative flex h-12 items-center gap-2 overflow-visible px-1">
                 <div
                   className="relative shrink-0 overflow-visible"
@@ -2963,7 +3061,7 @@ export default function AdminCategoriesMainTable({
                     return (
                       <span
                         key={`ancestor-${ancestorIndex}`}
-                        className="absolute z-0 w-px bg-slate-300/90"
+                        className={`${treeConnectorClassName} w-px`}
                         style={{
                           left: `${ancestorX}px`,
                           top: `-${treeConnectorBleed}px`,
@@ -2975,7 +3073,7 @@ export default function AdminCategoriesMainTable({
 
                   {hasChildren && isExpanded ? (
                     <span
-                      className="absolute z-0 w-px bg-slate-300/90"
+                      className={`${treeConnectorClassName} w-px`}
                       style={{
                         left: `${buttonCenterX}px`,
                         top: `${treeHalfRowHeight + treeExpandButtonHalf}px`,
@@ -2986,9 +3084,9 @@ export default function AdminCategoriesMainTable({
 
                   {level > 0 && parentColumnX !== null ? (
                     <>
-                      {hasPreviousSibling ? (
+                      {kind === 'subcategory' || hasPreviousSibling ? (
                         <span
-                          className="absolute z-0 w-px bg-slate-300/90"
+                          className={`${treeConnectorClassName} w-px`}
                           style={{
                             left: `${parentColumnX}px`,
                             top: `-${treeConnectorBleed}px`,
@@ -2999,7 +3097,7 @@ export default function AdminCategoriesMainTable({
 
                       {continueCurrentColumnBelow ? (
                         <span
-                          className="absolute z-0 w-px bg-slate-300/90"
+                          className={`${treeConnectorClassName} w-px`}
                           style={{
                             left: `${parentColumnX}px`,
                             top: `${treeHalfRowHeight}px`,
@@ -3009,7 +3107,7 @@ export default function AdminCategoriesMainTable({
                       ) : null}
 
                       <span
-                        className="absolute z-0 h-px bg-slate-300/90"
+                        className={`${treeConnectorClassName} h-px`}
                         style={{
                           left: `${parentColumnX}px`,
                           top: `${treeHalfRowHeight}px`,
@@ -3058,9 +3156,8 @@ export default function AdminCategoriesMainTable({
                         setEditingRow((prev) => (prev ? { ...prev, title: event.target.value } : prev))
                       }
                       data-inline-edit-field="true"
-                      onBlur={handleInlineBlur}
-                      className="h-7 min-w-[10ch] max-w-[34ch] truncate whitespace-nowrap px-2 text-[11px] font-semibold text-slate-500"
-                      style={{ width: `${Math.min(34, Math.max(10, editingRow.title.length + 2))}ch` }}
+                      className={`${adminTableInlineEditInputClassName} truncate whitespace-nowrap !font-semibold`}
+                      onKeyDown={handleInlineEditKeyDown}
                       autoFocus
                     />
                   ) : (
@@ -3079,7 +3176,7 @@ export default function AdminCategoriesMainTable({
                         }
                       }}
                       onPointerDown={(event) => event.stopPropagation()}
-                      className="block w-full truncate whitespace-nowrap text-left text-[11px] font-semibold text-slate-500"
+                      className="block w-full truncate whitespace-nowrap text-left text-[12px] font-semibold text-slate-700"
                       title={title}
                     >
                       {title}
@@ -3089,7 +3186,7 @@ export default function AdminCategoriesMainTable({
               </div>
             </td>
 
-            <td className="border-b border-slate-200 px-2.5 py-2 text-[11px] font-normal text-slate-500">
+            <td className="px-2.5 py-3 text-[12px] font-normal text-slate-600">
               {isRowEditing ? (
                 <Input
                   id={`category-description-${id}`}
@@ -3099,9 +3196,8 @@ export default function AdminCategoriesMainTable({
                     setEditingRow((prev) => (prev ? { ...prev, description: event.target.value } : prev))
                   }
                   data-inline-edit-field="true"
-                  onBlur={handleInlineBlur}
-                  className="h-7 min-w-[18ch] max-w-[64ch] truncate whitespace-nowrap px-2 text-[11px] font-normal text-slate-500"
-                  style={{ width: `${Math.min(64, Math.max(18, editingRow.description.length + 2))}ch` }}
+                  className={`${adminTableInlineEditInputClassName} truncate whitespace-nowrap !font-normal`}
+                  onKeyDown={handleInlineEditKeyDown}
                 />
               ) : (
                 <div className="truncate whitespace-nowrap" title={description || '—'}>
@@ -3110,10 +3206,10 @@ export default function AdminCategoriesMainTable({
               )}
             </td>
 
-            <td className="border-b border-slate-200 px-3 py-2 text-center text-[11px] text-slate-600">{childrenCount}</td>
-            <td className="border-b border-slate-200 px-3 py-2 text-center text-[11px] text-slate-600">{productCount}</td>
+            <td className="px-3 py-3 text-center text-[12px] text-slate-600">{childrenCount}</td>
+            <td className="px-3 py-3 text-center text-[12px] text-slate-600">{productCount}</td>
 
-            <td className="border-b border-slate-200 px-3 py-2 text-center text-[11px]">
+            <td className="px-3 py-3 text-center text-[12px]">
               {kind === 'root' ? (
                 <span className="text-xs text-slate-400">—</span>
               ) : (
@@ -3125,9 +3221,39 @@ export default function AdminCategoriesMainTable({
               )}
             </td>
 
-            <td className="border-b border-slate-200 px-3 py-2 text-center">
-              <RowActions>
-                <RowActionsDropdown
+            <td className="px-3 py-3 text-center">
+              {isRowEditing ? (
+                <div className={adminTableInlineActionRowClassName}>
+                  <IconButton
+                    type="button"
+                    tone="neutral"
+                    size="sm"
+                    className={adminTableInlineConfirmButtonClassName}
+                    disabled={!isInlineEditDirty || !isInlineEditValid}
+                    aria-label={`Shrani urejanje za ${title}`}
+                    title={!isInlineEditValid ? 'Naziv je obvezen' : (!isInlineEditDirty ? 'Ni sprememb za shranjevanje' : 'Shrani')}
+                    onClick={() => {
+                      void saveInlineEditRef.current();
+                    }}
+                  >
+                    <CheckIcon className={adminTableInlineConfirmIconClassName} strokeWidth={2.2} />
+                  </IconButton>
+                  <IconButton
+                    type="button"
+                    tone="neutral"
+                    size="sm"
+                    className={adminTableInlineCancelButtonClassName}
+                    onClick={() => setEditingRow(null)}
+                    aria-label={`PrekliÄi urejanje za ${title}`}
+                    title="PrekliÄi"
+                  >
+                    <CloseIcon className={adminTableInlineCancelIconClassName} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
+                  </IconButton>
+                </div>
+              ) : null}
+              {!isRowEditing ? (
+                <RowActions>
+                  <RowActionsDropdown
                   label={`Možnosti za ${title}`}
                   items={[
                     {
@@ -3135,30 +3261,6 @@ export default function AdminCategoriesMainTable({
                       label: 'Uredi',
                       icon: <PencilIcon />,
                       onSelect: toggleInlineEdit
-                    },
-                    {
-                      key: 'add',
-                      label: 'Ustvari',
-                      icon: <PlusIcon />,
-                      onSelect: () => {
-                        if (kind === 'root') {
-                          openCreateDialog({ kind: 'category' });
-                          return;
-                        }
-
-                        if (kind === 'category' && categorySlug) {
-                          openCreateDialog({ kind: 'subcategory', categorySlug, parentPath: [] });
-                          return;
-                        }
-
-                        if (kind === 'subcategory' && categorySlug) {
-                          openCreateDialog({
-                            kind: 'subcategory',
-                            categorySlug,
-                            parentPath: resolvedSubcategoryPath
-                          });
-                        }
-                      }
                     },
                     {
                       key: 'delete',
@@ -3196,8 +3298,9 @@ export default function AdminCategoriesMainTable({
                       }
                     }
                   ]}
-                />
-              </RowActions>
+                  />
+                </RowActions>
+              ) : null}
             </td>
           </tr>
         );
@@ -3224,7 +3327,7 @@ export default function AdminCategoriesMainTable({
     editingRow,
     expanded,
     getDescendantIds,
-    handleInlineBlur,
+    handleInlineEditKeyDown,
     openingRowIdSet,
     selected,
     selectedRowSet,
@@ -3430,28 +3533,48 @@ export default function AdminCategoriesMainTable({
       {createTarget !== null ? <LazyConfirmDialog
         open={createTarget !== null}
         panelClassName={activeView === 'preview' ? "font-['Inter',system-ui,sans-serif]" : undefined}
-        title={createTarget?.kind === 'category' ? 'Nova kategorija' : 'Nova podkategorija'}
-        description="Vnesite ime kategorije."
+        title="Nova kategorija"
+        description="Izberi pot do kategorije."
         confirmLabel="Ustvari"
         cancelLabel="Prekliči"
         onCancel={() => {
           setCreateTarget(null);
           setCreateName('');
+          setCreateLocationPath([]);
         }}
         onConfirm={confirmCreate}
-        confirmDisabled={createName.trim().length === 0}
+        confirmDisabled={createName.trim().length === 0 || selectedCreateLocation === null}
       >
-        <div className="mt-3">
-          <input
-            id="create-category-name"
-            name="createCategoryName"
-            value={createName}
-            onChange={(event: ChangeEvent<HTMLInputElement>) => setCreateName(event.target.value)}
-            placeholder="Ime kategorije"
-            className={`h-9 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-['Inter',system-ui,sans-serif] text-slate-900 ${adminInputFocusTokenClasses}`}
-            autoFocus
-            aria-label="Ime kategorije"
-          />
+        <div className="mt-3 space-y-3">
+          <div className="space-y-1.5">
+            <div className="block text-[12px] font-semibold text-slate-700">
+              Ustvari pod
+            </div>
+            <div className="rounded-md border border-slate-300 bg-white px-3">
+              <AdminCategoryBreadcrumbPicker
+                value={createLocationPath}
+                onChange={setCreateLocationPath}
+                categoryPaths={createLocationPaths}
+                placeholder="Izberi kategorijo"
+                className="flex h-9 items-center rounded-md bg-transparent px-0 !py-0 text-[12px] [&_input]:text-[12px] [&_span]:text-[12px]"
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="create-category-name" className="block text-[12px] font-semibold text-slate-700">
+              Ime kategorije
+            </label>
+            <Input
+              id="create-category-name"
+              name="createCategoryName"
+              value={createName}
+              onChange={(event: ChangeEvent<HTMLInputElement>) => setCreateName(event.target.value)}
+              placeholder="Ime kategorije"
+              className="h-9 rounded-md px-3 text-[12px]"
+              autoFocus
+              aria-label="Ime kategorije"
+            />
+          </div>
         </div>
       </LazyConfirmDialog> : null}
 
@@ -3467,15 +3590,11 @@ export default function AdminCategoriesMainTable({
           query={query}
           onQueryChange={setQuery}
           onBulkDelete={handleBulkDelete}
+          onRequestCreateCategory={() => {
+            void openCreateDialog({ kind: 'category' });
+          }}
           selectedRows={selectedRows}
           isBulkDeleting={isBulkDeleting}
-          onRequestSave={() => {
-            const summary = summarizeCatalogChanges(persistedTableRef.current, catalog, persistedStatusRef.current, statusByRow);
-            setTableSaveSummary(summary);
-            setIsTableSaveDialogOpen(true);
-          }}
-          tableDirty={tableDirty}
-          saving={saving}
           canUndoStagedChanges={canUndoStagedChanges}
           onUndo={() => {
             undoStagedChanges();
@@ -3552,7 +3671,9 @@ export default function AdminCategoriesMainTable({
         onCancelEdit={() => setEditingRow(null)}
         onOpenNode={openPreviewNode}
         onStageStatusChange={(rowId, status) => stageStatusChange({ ...statusByRow, [rowId]: status })}
-        onRequestCreateCategory={() => openCreateDialog({ kind: 'category' })}
+        onRequestCreateCategory={() => {
+          void openCreateDialog({ kind: 'category' });
+        }}
         />
       ) : null}
 

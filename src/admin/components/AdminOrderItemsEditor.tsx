@@ -1,8 +1,26 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { AdminCheckbox } from '@/shared/ui/checkbox';
+import { AdminSearchInput } from '@/shared/ui/admin-search-input';
+import {
+  adminTableCardClassName,
+  adminTableCardStyle,
+  adminTableInlineActionRowClassName,
+  adminTableInlineCancelButtonClassName,
+  adminTableInlineCancelIconClassName,
+  adminTableInlineConfirmButtonClassName,
+  adminTableInlineConfirmIconClassName,
+  adminTableInlineEditInputClassName,
+  adminTableNeutralIconButtonClassName,
+  adminTableSearchIconClassName,
+  adminTableSearchInputClassName,
+  adminTableSearchWrapperClassName,
+  adminTableSelectedDangerIconButtonClassName
+} from '@/shared/ui/admin-table';
 import { IconButton } from '@/shared/ui/icon-button';
-import { PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { CheckIcon, CloseIcon, PencilIcon, PlusIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { adminTableRowToneClasses } from '@/shared/ui/theme/tokens';
 import { useToast } from '@/shared/ui/toast';
 
 type OrderItemInput = {
@@ -86,6 +104,14 @@ const areEditableItemsEqual = (left: EditableItem[], right: EditableItem[]) => {
   return true;
 };
 
+const orderItemsEditInputClassName =
+  `${adminTableInlineEditInputClassName} !h-8 !px-2 !text-[12px] !leading-none`;
+
+const centeredEditInputClassName = `${orderItemsEditInputClassName} !text-center`;
+const rightAlignedEditInputClassName = `${orderItemsEditInputClassName} !text-right`;
+const readonlyCellFrameClassName =
+  'inline-flex h-8 items-center justify-center rounded-md border border-transparent px-2 text-[12px] text-slate-900';
+
 export default function AdminOrderItemsEditor({
   orderId,
   items,
@@ -108,21 +134,20 @@ export default function AdminOrderItemsEditor({
   const [draftShipping, setDraftShipping] = useState(initialShipping);
   const [isItemsSaving, setIsItemsSaving] = useState(false);
   const [selectedDraftItemIds, setSelectedDraftItemIds] = useState<string[]>([]);
-
   const [catalogChoices, setCatalogChoices] = useState<CatalogChoice[]>([]);
   const [catalogQuery, setCatalogQuery] = useState('');
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const { toast } = useToast();
+
+  const itemsEditable = itemsSectionMode === 'edit';
 
   const isItemsDirty = useMemo(
     () => !areEditableItemsEqual(draftItems, persistedItems) || toMoney(draftShipping) !== toMoney(persistedShipping),
     [draftItems, persistedItems, draftShipping, persistedShipping]
   );
 
-  const itemsEditable = itemsSectionMode === 'edit';
-  const itemsSaveDisabled = !itemsEditable || isItemsSaving;
+  const itemsSaveDisabled = !itemsEditable || isItemsSaving || !isItemsDirty;
   const addItemDisabled = !itemsEditable || isItemsSaving;
-
   const activeItems = itemsEditable ? draftItems : persistedItems;
   const hasSelectedDraftItems = selectedDraftItemIds.length > 0;
   const areAllActiveItemsSelected =
@@ -168,18 +193,19 @@ export default function AdminOrderItemsEditor({
   };
 
   const startItemsEdit = () => {
-    if (itemsSectionMode === 'edit') {
-      setDraftItems(cloneEditableItems(persistedItems));
-      setDraftShipping(persistedShipping);
-      setSelectedDraftItemIds([]);
-      setItemsSectionMode('read');
-      return;
-    }
-
     setDraftItems(cloneEditableItems(persistedItems));
     setDraftShipping(persistedShipping);
     setSelectedDraftItemIds([]);
     setItemsSectionMode('edit');
+  };
+
+  const cancelItemsEdit = () => {
+    setDraftItems(cloneEditableItems(persistedItems));
+    setDraftShipping(persistedShipping);
+    setSelectedDraftItemIds([]);
+    setItemsSectionMode('read');
+    setIsPickerOpen(false);
+    setCatalogQuery('');
   };
 
   const openAddItem = async () => {
@@ -221,10 +247,10 @@ export default function AdminOrderItemsEditor({
   };
 
   const saveItems = async () => {
-    if (itemsSaveDisabled) return;
+    if (!itemsEditable || isItemsSaving) return;
 
     if (!isItemsDirty) {
-      setItemsSectionMode('read');
+      cancelItemsEdit();
       return;
     }
 
@@ -271,6 +297,32 @@ export default function AdminOrderItemsEditor({
     }
   };
 
+  useEffect(() => {
+    if (!itemsEditable || isPickerOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTextEntry =
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.getAttribute('contenteditable') === 'true';
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        cancelItemsEdit();
+        return;
+      }
+
+      if (event.key === 'Enter' && isTextEntry && !event.shiftKey) {
+        event.preventDefault();
+        void saveItems();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [itemsEditable, isPickerOpen, draftItems, draftShipping, persistedItems, persistedShipping, isItemsSaving]);
+
   const toggleSelectedDraftItem = (itemId: string) => {
     if (!itemsEditable) return;
     setSelectedDraftItemIds((previous) =>
@@ -295,51 +347,76 @@ export default function AdminOrderItemsEditor({
   };
 
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className={`${adminTableCardClassName} rounded-[24px] border bg-white p-6`} style={adminTableCardStyle}>
       <h2 className="text-lg font-semibold text-slate-900">Uredi naročilo</h2>
 
-      <div className="mt-4 min-h-[340px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/50">
+      <div className="mt-4 min-h-[340px] overflow-hidden rounded-xl border border-slate-200 bg-white">
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-          <h3 className="text-sm font-semibold text-slate-900">Postavke</h3>
+          <h3 className="text-[13px] font-semibold text-slate-900">Postavke</h3>
           <div className="ml-auto flex items-center gap-1.5">
-            <IconButton
-              type="button"
-              aria-label="Uredi postavke"
-              onClick={startItemsEdit}
-              title="Uredi"
-              tone="neutral"
-              disabled={isItemsSaving}
-            >
-              <PencilIcon />
-            </IconButton>
-
-            <IconButton
-              type="button"
-              aria-label="Shrani postavke"
-              onClick={() => void saveItems()}
-              title="Shrani"
-              tone="neutral"
-              disabled={itemsSaveDisabled}
-            >
-              <SaveIcon />
-            </IconButton>
+            {itemsEditable ? (
+              <div className={adminTableInlineActionRowClassName}>
+                <IconButton
+                  type="button"
+                  tone="neutral"
+                  size="sm"
+                  className={adminTableInlineConfirmButtonClassName}
+                  disabled={itemsSaveDisabled}
+                  aria-label="Shrani postavke"
+                  title={isItemsDirty ? 'Shrani spremembe' : 'Ni sprememb za shranjevanje'}
+                  onClick={() => {
+                    void saveItems();
+                  }}
+                >
+                  <CheckIcon className={adminTableInlineConfirmIconClassName} strokeWidth={2.2} />
+                </IconButton>
+                <IconButton
+                  type="button"
+                  tone="neutral"
+                  size="sm"
+                  className={adminTableInlineCancelButtonClassName}
+                  aria-label="Prekliči urejanje postavk"
+                  title="Prekliči"
+                  onClick={cancelItemsEdit}
+                >
+                  <CloseIcon className={adminTableInlineCancelIconClassName} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
+                </IconButton>
+              </div>
+            ) : (
+              <IconButton
+                type="button"
+                aria-label="Hitro urejanje postavk"
+                onClick={startItemsEdit}
+                title="Hitro urejanje"
+                tone="neutral"
+                className={adminTableNeutralIconButtonClassName}
+                disabled={isItemsSaving}
+              >
+                <PencilIcon />
+              </IconButton>
+            )}
 
             <IconButton
               type="button"
               aria-label="Dodaj postavko"
-              onClick={() => void openAddItem()}
+              onClick={() => {
+                void openAddItem();
+              }}
               title="Dodaj"
               tone="neutral"
+              className={adminTableNeutralIconButtonClassName}
               disabled={addItemDisabled}
             >
               <PlusIcon />
             </IconButton>
+
             <IconButton
               type="button"
               aria-label="Odstrani izbrane postavke"
               onClick={deleteSelectedDraftItems}
               title="Izbriši izbrane"
               tone={hasSelectedDraftItems ? 'danger' : 'neutral'}
+              className={hasSelectedDraftItems ? adminTableSelectedDangerIconButtonClassName : `${adminTableNeutralIconButtonClassName} !transition-none`}
               disabled={!itemsEditable || !hasSelectedDraftItems}
             >
               <TrashCanIcon />
@@ -348,53 +425,52 @@ export default function AdminOrderItemsEditor({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full text-[11px] leading-4">
+          <table className="min-w-full table-fixed text-[12px] leading-5">
             <colgroup>
-              <col style={{ width: '4%' }} />
-              <col style={{ width: '53%' }} />
-              <col style={{ width: '10%' }} />
-              <col style={{ width: '10%' }} />
-              <col style={{ width: '10%' }} />
+              <col style={{ width: '5%' }} />
+              <col style={{ width: '47%' }} />
+              <col style={{ width: '12%' }} />
               <col style={{ width: '13%' }} />
+              <col style={{ width: '11%' }} />
+              <col style={{ width: '12%' }} />
             </colgroup>
-            <thead className="bg-[color:var(--admin-table-header-bg)] text-slate-600">
+            <thead className="border-t border-slate-200 bg-[color:var(--admin-table-header-bg)] text-slate-700">
               <tr>
-                <th className="px-1 py-2 text-center" aria-label="Izbira">
-                  <input
-                    type="checkbox"
+                <th className="border-b border-slate-200 px-2 py-4 text-center" aria-label="Izbira">
+                  <AdminCheckbox
                     checked={itemsEditable ? areAllActiveItemsSelected : false}
                     disabled={!itemsEditable}
                     onChange={toggleAllDraftItems}
-                    className="h-3.5 w-3.5 rounded border-slate-300 text-[color:var(--blue-500)] focus:ring-0 disabled:cursor-default disabled:opacity-45"
                     aria-label="Izberi vse postavke"
                   />
                 </th>
-                <th className="px-3 py-2 text-left">Artikel</th>
-                <th className="px-2 py-2 text-center">Količina</th>
-                <th className="px-2 py-2 text-center">Cena</th>
-                <th className="px-2 py-2 text-center">Popust %</th>
-                <th className="px-2 py-2 text-right">Skupaj</th>
+                <th className="border-b border-slate-200 px-3 py-4 text-left text-[12px] font-semibold">Artikel</th>
+                <th className="border-b border-slate-200 px-2 py-4 text-center text-[12px] font-semibold">Količina</th>
+                <th className="border-b border-slate-200 px-2 py-4 text-center text-[12px] font-semibold">Cena</th>
+                <th className="border-b border-slate-200 px-2 py-4 text-center text-[12px] font-semibold">Popust %</th>
+                <th className="border-b border-slate-200 px-2 py-4 text-right text-[12px] font-semibold">Skupaj</th>
               </tr>
             </thead>
             <tbody>
               {activeItems.map((item) => {
                 const lineTotal = toMoney(item.quantity * item.unitPrice * (1 - item.discountPercentage / 100));
                 return (
-                  <tr key={item.id} className="border-t border-slate-200/80 bg-white/80 align-middle">
-                    <td className="px-1 py-1.5 align-middle text-center">
-                      <input
-                        type="checkbox"
+                  <tr key={item.id} className={`border-t border-slate-200/90 bg-white align-middle ${adminTableRowToneClasses.hover}`}>
+                    <td className="px-2 py-3 text-center">
+                      <AdminCheckbox
                         checked={selectedDraftItemIds.includes(item.id)}
                         disabled={!itemsEditable}
                         onChange={() => toggleSelectedDraftItem(item.id)}
-                        className="h-3.5 w-3.5 rounded border-slate-300 text-[color:var(--blue-500)] focus:ring-0 disabled:cursor-default disabled:opacity-45"
                         aria-label={`Izberi postavko ${item.name}`}
                       />
                     </td>
-                    <td className="px-3 py-1.5 align-middle">
-                      <p className="text-[11px] leading-4 font-medium text-slate-900">{item.name}</p>
+                    <td className="px-3 py-3 align-middle">
+                      <div className="grid gap-0.5">
+                        <p className="truncate text-[12px] font-medium text-slate-900">{item.name}</p>
+                        <p className="truncate text-[11px] text-slate-500">{item.sku}</p>
+                      </div>
                     </td>
-                    <td className="px-2 py-1.5 align-middle text-center">
+                    <td className="px-2 py-3 text-center">
                       {itemsEditable ? (
                         <input
                           type="number"
@@ -402,55 +478,47 @@ export default function AdminOrderItemsEditor({
                           value={item.quantity}
                           onChange={(event) => updateItem(item.id, { quantity: Number(event.target.value) || 1 })}
                           aria-label="Količina"
-                          className="h-5 w-10 rounded-md border border-slate-300 bg-white px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                          className={`${centeredEditInputClassName} mx-auto w-14`}
                         />
                       ) : (
-                        <span className="inline-flex h-5 w-10 items-center justify-center text-[11px] leading-4 text-slate-900">
-                          {item.quantity}
-                        </span>
+                        <span className={`${readonlyCellFrameClassName} w-14`}>{item.quantity}</span>
                       )}
                     </td>
-                    <td className="px-2 py-1.5 align-middle text-center">
-                      <span className="inline-flex w-[60px] items-center justify-center gap-1">
-                        {itemsEditable ? (
+                    <td className="px-2 py-3 text-center">
+                      {itemsEditable ? (
+                        <span className="mx-auto inline-flex w-[88px] items-center justify-center gap-1">
                           <input
                             type="text"
                             inputMode="decimal"
                             value={formatDecimalInput(item.unitPrice)}
                             onChange={(event) => updateItem(item.id, { unitPrice: parseLocaleNumber(event.target.value) })}
                             aria-label="Cena"
-                            className="h-5 w-14 rounded-md border border-slate-300 bg-white px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                            className={`${centeredEditInputClassName} w-[62px]`}
                           />
-                        ) : (
-                          <span className="inline-flex h-5 items-center justify-center text-[11px] leading-4 text-slate-900">
-                            {formatDecimalInput(item.unitPrice)} €
-                          </span>
-                        )}
-                        {itemsEditable ? <span className="text-[11px] leading-4 text-slate-900">€</span> : null}
-                      </span>
+                          <span className="text-[12px] text-slate-700">€</span>
+                        </span>
+                      ) : (
+                        <span className={`${readonlyCellFrameClassName} justify-center gap-1`}>{formatDecimalInput(item.unitPrice)} €</span>
+                      )}
                     </td>
-                    <td className="px-2 py-1.5 align-middle text-center">
-                      <span className="inline-flex w-[45px] items-center justify-center gap-1">
-                        {itemsEditable ? (
+                    <td className="px-2 py-3 text-center">
+                      {itemsEditable ? (
+                        <span className="mx-auto inline-flex w-[80px] items-center justify-center gap-1">
                           <input
                             type="text"
                             inputMode="decimal"
                             value={formatDecimalInput(item.discountPercentage)}
-                            onChange={(event) =>
-                              updateItem(item.id, { discountPercentage: parseLocaleNumber(event.target.value) })
-                            }
+                            onChange={(event) => updateItem(item.id, { discountPercentage: parseLocaleNumber(event.target.value) })}
                             aria-label="Popust"
-                            className="h-5 w-10 rounded-md border border-slate-300 bg-white px-0.5 text-center text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0"
+                            className={`${centeredEditInputClassName} w-[54px]`}
                           />
-                        ) : (
-                          <span className="inline-flex h-5 items-center justify-center text-[11px] leading-4 text-slate-900">
-                            {formatDecimalInput(item.discountPercentage)} %
-                          </span>
-                        )}
-                        {itemsEditable ? <span className="text-[11px] leading-4 text-slate-900">%</span> : null}
-                      </span>
+                          <span className="text-[12px] text-slate-700">%</span>
+                        </span>
+                      ) : (
+                        <span className={`${readonlyCellFrameClassName} justify-center gap-1`}>{formatDecimalInput(item.discountPercentage)} %</span>
+                      )}
                     </td>
-                    <td className="px-2 py-1.5 align-middle text-right font-semibold text-slate-900">{formatCurrency(lineTotal)}</td>
+                    <td className="px-2 py-3 text-right font-semibold text-slate-900">{formatCurrency(lineTotal)}</td>
                   </tr>
                 );
               })}
@@ -458,82 +526,90 @@ export default function AdminOrderItemsEditor({
           </table>
         </div>
 
-        <div className="space-y-1 border-t border-slate-200 px-2 py-3 text-[11px] text-slate-700">
+        <div className="space-y-2 border-t border-slate-200 bg-slate-50/50 px-4 py-4 text-[12px] text-slate-700">
           <div className="flex items-center justify-between">
             <span>Vmesni seštevek</span>
-            <span className="inline-flex w-[13%] justify-end font-semibold">{formatCurrency(totals.subtotal)}</span>
+            <span className="font-semibold">{formatCurrency(totals.subtotal)}</span>
           </div>
-          <div className="flex h-5 items-center justify-between">
+          <div className="flex min-h-8 items-center justify-between">
             <span>Poštnina</span>
-            <span className="inline-flex w-[13%] justify-end">
-              {itemsEditable ? (
-                <span className="inline-flex h-5 items-center justify-end gap-1">
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={formatDecimalInput(draftShipping)}
-                    onChange={(event) => {
-                      const sanitized = event.target.value.replace(/[^0-9,]/g, '').slice(0, 5);
-                      setDraftShipping(Math.max(0, parseLocaleNumber(sanitized)));
-                    }}
-                    aria-label="Poštnina"
-                    className="h-5 w-[38px] rounded-md border border-slate-300 bg-white px-0.5 text-right text-[11px] leading-4 outline-none transition focus:border-[#3e67d6] focus:ring-0"
-                  />
-                  <span className="text-[11px] leading-4 text-slate-900">€</span>
-                </span>
-              ) : (
-                <span className="inline-flex h-5 items-center font-semibold">{formatCurrency(totals.shipping)}</span>
-              )}
-            </span>
+            {itemsEditable ? (
+              <span className="inline-flex items-center gap-1">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={formatDecimalInput(draftShipping)}
+                  onChange={(event) => {
+                    const sanitized = event.target.value.replace(/[^0-9,]/g, '').slice(0, 5);
+                    setDraftShipping(Math.max(0, parseLocaleNumber(sanitized)));
+                  }}
+                  aria-label="Poštnina"
+                  className={`${rightAlignedEditInputClassName} w-[78px]`}
+                />
+                <span className="text-[12px] text-slate-700">€</span>
+              </span>
+            ) : (
+              <span className="font-semibold">{formatCurrency(totals.shipping)}</span>
+            )}
           </div>
           <div className="flex items-center justify-between text-slate-500">
             <span>DDV (22 %)</span>
-            <span className="inline-flex w-[13%] justify-end font-semibold">{formatCurrency(totals.taxIncludedInfo)}</span>
+            <span className="font-semibold">{formatCurrency(totals.taxIncludedInfo)}</span>
           </div>
-          <hr className="border-slate-200" />
-          <div className="flex items-center justify-between text-sm font-semibold text-slate-900">
-            <span>Skupaj</span>
-            <span className="inline-flex w-[13%] justify-end">{formatCurrency(totals.total)}</span>
+          <div className="border-t border-slate-200 pt-2">
+            <div className="flex items-center justify-between text-[13px] font-semibold text-slate-900">
+              <span>Skupaj</span>
+              <span>{formatCurrency(totals.total)}</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {isPickerOpen && (
+      {isPickerOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-2xl rounded-xl bg-white p-4 shadow-xl">
+          <div className="w-full max-w-2xl rounded-xl border border-slate-200 bg-white p-4 shadow-[0_14px_34px_rgba(15,23,42,0.08),0_2px_6px_rgba(15,23,42,0.05)]">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-900">Dodaj artikel</h3>
+              <h3 className="text-[13px] font-semibold text-slate-900">Dodaj artikel</h3>
               <button
                 type="button"
-                className="text-xs text-slate-500 hover:text-slate-700"
+                className="text-[12px] text-slate-500 hover:text-slate-700"
                 onClick={() => setIsPickerOpen(false)}
               >
                 Zapri
               </button>
             </div>
-            <input
-              value={catalogQuery}
-              onChange={(event) => setCatalogQuery(event.target.value)}
-              placeholder="Išči po nazivu ali šifri"
-              aria-label="Išči artikel"
-              className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-            <div className="mt-3 max-h-[360px] overflow-y-auto rounded-lg border border-slate-200">
+
+            <div className="mt-3">
+              <AdminSearchInput
+                value={catalogQuery}
+                onChange={(event) => setCatalogQuery(event.target.value)}
+                placeholder="Išči po nazivu ali šifri"
+                aria-label="Išči artikel"
+                wrapperClassName={adminTableSearchWrapperClassName}
+                inputClassName={adminTableSearchInputClassName}
+                iconClassName={adminTableSearchIconClassName}
+              />
+            </div>
+
+            <div className="mt-3 max-h-[360px] overflow-y-auto rounded-md border border-slate-200">
               {filteredChoices.map((choice) => (
                 <button
                   key={choice.sku}
                   type="button"
                   onClick={() => addCatalogItem(choice)}
-                  className="flex w-full items-center justify-between border-b border-slate-100 px-3 py-2 text-left text-sm hover:bg-[color:var(--hover-neutral)]"
+                  className="flex w-full items-center justify-between border-b border-slate-200/80 px-3 py-3 text-left text-[12px] text-slate-700 transition-colors hover:bg-[color:var(--admin-table-row-hover)] last:border-b-0"
                 >
                   <span className="font-medium text-slate-900">{choice.name}</span>
-                  <span className="text-xs text-slate-600">{formatCurrency(choice.unitPrice)}</span>
+                  <span className="text-[12px] text-slate-600">{formatCurrency(choice.unitPrice)}</span>
                 </button>
               ))}
+              {filteredChoices.length === 0 ? (
+                <div className="px-3 py-6 text-center text-[12px] text-slate-500">Ni ujemajočih artiklov.</div>
+              ) : null}
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </section>
   );
 }

@@ -1,6 +1,10 @@
 import type { InputHTMLAttributes } from 'react';
-import { ADMIN_CONTROL_PADDING_X } from '@/shared/ui/admin-controls/controlSizes';
 import { adminInputFocusTokenClasses } from '@/shared/ui/theme/tokens';
+import {
+  adminTableSearchIconClassName,
+  adminTableSearchInputClassName,
+  adminTableSearchWrapperClassName
+} from '@/shared/ui/admin-table/standards';
 
 type AdminSearchInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & {
   showIcon?: boolean;
@@ -23,7 +27,7 @@ export function AdminSearchInput({
   return (
     <div
       className={classNames(
-        'relative min-w-0 w-full flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white transition-colors focus-within:border-[#3e67d6]',
+        `relative min-w-0 w-full flex-1 overflow-hidden border transition-colors focus-within:border-[#3e67d6] ${adminTableSearchWrapperClassName}`,
         wrapperClassName
       )}
     >
@@ -31,7 +35,7 @@ export function AdminSearchInput({
         <svg
           viewBox="0 0 20 20"
           className={classNames(
-            'pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-500',
+            `pointer-events-none absolute top-1/2 z-10 -translate-y-1/2 ${adminTableSearchIconClassName}`,
             iconClassName
           )}
           fill="none"
@@ -47,9 +51,8 @@ export function AdminSearchInput({
       <input
         type="search"
         className={classNames(
-          `!h-7 min-w-0 w-full rounded-xl border-0 bg-transparent ${ADMIN_CONTROL_PADDING_X}`,
-          showIcon ? '!pl-10' : '',
-          "font-['Inter',system-ui,sans-serif] !text-[11px] text-slate-700 shadow-none",
+          adminTableSearchInputClassName,
+          showIcon ? '!pl-11' : '!pl-3',
           adminInputFocusTokenClasses,
           className,
           inputClassName

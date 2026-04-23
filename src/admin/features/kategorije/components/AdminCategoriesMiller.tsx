@@ -1,15 +1,23 @@
 import { useMemo, type RefObject, type ReactNode } from 'react';
 import Selecto from 'react-selecto';
-import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { ActionRestoreIcon, ActionUndoIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import AdminBreadcrumbPath from '@/shared/ui/admin-breadcrumb-path';
-import { adminTextButtonTypographyTokenClasses } from '@/shared/ui/theme/tokens';
+import {
+  AdminTablePrimaryActionButton,
+  adminTableCardClassName,
+  adminTableNeutralIconButtonClassName,
+  adminTableSelectedSuccessIconButtonClassName,
+  adminTableSelectedDangerIconButtonClassName,
+  adminTableSearchIconClassName,
+  adminTableSearchInputClassName,
+  adminTableSearchWrapperClassName
+} from '@/shared/ui/admin-table';
 
 const padTwoDigits = (value: number) => String(value).padStart(2, '0');
 
-const formatMillerDate = (value?: string) => {
+const formatMillerDate = (value?: string, mode: 'full' | 'compact' | 'narrow' = 'full') => {
   const parsedDate = value ? new Date(value) : new Date();
   const safeDate = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
 
@@ -17,15 +25,34 @@ const formatMillerDate = (value?: string) => {
   const month = padTwoDigits(safeDate.getMonth() + 1);
   const year = safeDate.getFullYear();
 
+  if (mode === 'narrow') return `${day}.${month}`;
+  if (mode === 'compact') return `${day}.${month}.`;
   return `${day}.${month}.${year}`;
 };
 
-const millerRowGridClass = 'grid grid-cols-3 items-center gap-x-3';
+const MILLER_COMPACT_COLUMN_COUNT = 5;
+const MILLER_ACTIVE_MIN_WIDTH_PERCENT = 25;
+const millerRowGridClass = 'grid items-center gap-x-3';
 
-const getMillerNameColumnLabel = (column: MillerColumn) => {
-  if (column.kind === 'items') return 'Artikel';
-  if (column.key === 'categories') return 'Kategorija';
-  return 'Podkategorija';
+const getMillerNameColumnLabel = (
+  column: MillerColumn,
+  mode: 'full' | 'compact' | 'narrow' = 'full'
+) => {
+  if (mode === 'full') {
+    if (column.kind === 'items') return 'Artikel';
+    if (column.key === 'categories') return 'Kategorija';
+    return 'Podkategorija';
+  }
+
+  if (column.kind === 'items') return mode === 'narrow' ? 'A.' : 'Art.';
+  if (column.key === 'categories') return 'K.';
+  return 'P.';
+};
+
+const getActiveColumnWidthPercent = (count: number) => {
+  if (count <= 0) return 100;
+  if (count <= 4) return 100 / count;
+  return MILLER_ACTIVE_MIN_WIDTH_PERCENT;
 };
 
 type MillerColumn = {
@@ -114,32 +141,30 @@ export function AdminCategoriesMiller({
 }) {
   const millerWindowStyles = useMemo(() => {
     const count = millerColumns.length;
-    if (count <= 1) {
-      return [{ width: '100%', marginLeft: '0%', zIndex: 1 }];
+    if (count <= 0) {
+      return [];
     }
 
-    if (count < 5) {
+    if (count <= 4) {
       return Array.from({ length: count }, (_, index) => ({
         width: `${100 / count}%`,
-        marginLeft: '0%',
+        flex: `0 0 ${100 / count}%`,
         zIndex: index + 1
       }));
     }
 
-    const currentWidth = 100 / count;
-    const historyWidth = 100 - currentWidth;
-    const previousCount = count - 1;
-    const overlap = Math.max(2.4, Math.min(5, historyWidth / (previousCount * 5)));
-    const previousWidth = Math.max(10, (historyWidth + overlap * (previousCount - 1)) / previousCount);
+    const activeColumnWidth = getActiveColumnWidthPercent(count);
+    const previousColumnWidth = (100 - activeColumnWidth) / (count - 1);
 
-    const styles = Array.from({ length: previousCount }, (_, index) => ({
-      width: `${previousWidth}%`,
-      marginLeft: index === 0 ? '0%' : `-${overlap}%`,
-      zIndex: index + 1
-    }));
-
-    styles.push({ width: `${currentWidth}%`, marginLeft: '0%', zIndex: count + 1 });
-    return styles;
+    return Array.from({ length: count }, (_, index) => {
+      const width = index === count - 1 ? activeColumnWidth : previousColumnWidth;
+      return {
+        width: `${width}%`,
+        flex: `0 0 ${width}%`,
+        maxWidth: `${width}%`,
+        zIndex: index + 1
+      };
+    });
   }, [millerColumns.length]);
 
   const renderDropMarker = (columnKey: string, index: number) =>
@@ -155,33 +180,35 @@ export function AdminCategoriesMiller({
   const canUseRestore = canRestoreCommittedHistory && !hasPendingStagedChanges;
 
   return (
-    <section className={activeView === 'miller' ? 'w-full rounded-2xl border border-slate-200 bg-white p-3 shadow-sm' : 'hidden'}>
+    <section className={activeView === 'miller' ? `w-full rounded-2xl bg-white p-3 ${adminTableCardClassName}` : 'hidden'}>
       <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="ml-[30px] min-w-0 text-xs text-slate-600">
+        <div className="ml-[14px] min-w-0 text-xs text-slate-600">
           <AdminBreadcrumbPath items={breadcrumbs} />
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-[320px] max-w-[36vw] items-stretch">
-            <div className="min-w-0 w-full rounded-md border border-slate-200 bg-white transition-colors focus-within:border-[#3e67d6]">
+        <div className="flex items-center gap-1.5">
+          <div className="w-[320px] max-w-[36vw] min-w-0">
+            <div className="min-w-0 w-full">
               <AdminSearchInput
                 id="miller-search"
                 name="millerSearch"
                 value={searchQuery}
-                showIcon={false}
+                wrapperClassName={adminTableSearchWrapperClassName}
                 onChange={(event) => onSearchQueryChange(event.target.value)}
                 placeholder="Išči po kategorijah"
                 aria-label="Išči v Miller stolpcih"
-                className="!m-0 !h-7 min-w-0 w-full flex-1 !rounded-md !border-0 !bg-transparent !shadow-none !outline-none ring-0 transition-colors placeholder:text-slate-400 [--euiFormControlStateWidth:0px] focus:[--euiFormControlStateWidth:0px] focus-visible:[--euiFormControlStateWidth:0px] focus:!border-0 focus:!shadow-none focus:!outline-none focus-visible:!border-0 focus-visible:!shadow-none focus-visible:!outline-none"
+                inputClassName={adminTableSearchInputClassName}
+                iconClassName={adminTableSearchIconClassName}
               />
             </div>
           </div>
-          <IconButton type="button" size="sm" tone="neutral" aria-label="Dodaj" onClick={() => onAddNode(activeColumnKind)}>
+          <IconButton type="button" size="sm" tone="neutral" className={adminTableNeutralIconButtonClassName} aria-label="Dodaj" onClick={() => onAddNode(activeColumnKind)}>
             {plusIcon}
           </IconButton>
           <IconButton
             type="button"
             size="sm"
             tone="neutral"
+            className={adminTableNeutralIconButtonClassName}
             aria-label="Razveljavi"
             title="Razveljavi"
             onClick={onUndo}
@@ -193,6 +220,7 @@ export function AdminCategoriesMiller({
             type="button"
             size="sm"
             tone="neutral"
+            className={canUseRestore ? adminTableSelectedSuccessIconButtonClassName : `${adminTableNeutralIconButtonClassName} !transition-none`}
             aria-label="Obnovi"
             title="Obnovi"
             onClick={onRestore}
@@ -204,6 +232,7 @@ export function AdminCategoriesMiller({
             type="button"
             size="sm"
             tone={hasColumnSelection ? 'danger' : 'neutral'}
+            className={hasColumnSelection ? adminTableSelectedDangerIconButtonClassName : adminTableNeutralIconButtonClassName}
             aria-label="Izbriši"
             title="Izbriši"
             onClick={() => onRequestDelete(activeColumnKind)}
@@ -211,9 +240,9 @@ export function AdminCategoriesMiller({
           >
             <TrashCanIcon />
           </IconButton>
-          <Button type="button" variant="primary" size="toolbar" className={`!h-7 !rounded-md !px-3 ${adminTextButtonTypographyTokenClasses}`} onClick={onRequestSave} disabled={!millerDirty || saving}>
+          <AdminTablePrimaryActionButton type="button" onClick={onRequestSave} disabled={!millerDirty || saving}>
             Shrani
-          </Button>
+          </AdminTablePrimaryActionButton>
         </div>
       </div>
 
@@ -235,20 +264,53 @@ export function AdminCategoriesMiller({
 
       <div
         ref={millerViewportRef}
-        className="flex items-stretch overflow-x-auto pb-1"
+        className="flex items-stretch overflow-hidden pb-1"
         onMouseDown={(event) => {
           const target = event.target as HTMLElement;
           if (!target.closest('[data-miller-id]')) onSelectIds([]);
         }}
       >
         {millerColumns.map((column, index) => (
+          (() => {
+            const isLastColumn = index === millerColumns.length - 1;
+            const canUseFullColumnLabels = isLastColumn || millerColumns.length <= 4;
+            const compactLabelMode =
+              !isLastColumn && millerColumns.length >= 7
+                ? 'narrow'
+                : !isLastColumn && millerColumns.length >= MILLER_COMPACT_COLUMN_COUNT
+                  ? 'compact'
+                  : 'full';
+            const gridDateWidth = canUseFullColumnLabels
+              ? 72
+              : millerColumns.length === 5
+                ? 52
+                : millerColumns.length === 6
+                  ? 42
+                  : millerColumns.length === 7
+                    ? 36
+                    : 32;
+            const rowGridTemplate = `minmax(0,1fr) ${gridDateWidth}px ${gridDateWidth}px`;
+            const dateHeaderMode = canUseFullColumnLabels
+              ? 'full'
+              : millerColumns.length >= 7
+                ? 'narrow'
+                : 'compact';
+            const dateDisplayMode = canUseFullColumnLabels
+              ? 'full'
+              : millerColumns.length >= 7
+                ? 'narrow'
+                : 'compact';
+            const dateTextClassName =
+              canUseFullColumnLabels || millerColumns.length <= 5 ? 'text-[11px]' : 'text-[10px]';
+
+            return (
           <div
             key={column.key}
             className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white"
             style={millerWindowStyles[index]}
           >
             <div className="flex items-center justify-between border-b border-slate-200 bg-white px-2.5 py-2">
-              <h3 className="truncate text-[11px] font-semibold text-slate-700" title={column.title}>{column.title}</h3>
+              <h3 className="truncate text-[11px] font-bold text-slate-800" title={column.title}>{column.title}</h3>
             </div>
 
             <div
@@ -281,10 +343,17 @@ export function AdminCategoriesMiller({
             >
               {column.rows.length === 0 ? <p className="px-2 py-3 text-xs text-slate-500">Ni zapisov.</p> : (
                 <>
-                  <div className={`${millerRowGridClass} border-b border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600`}>
-                    <span>{getMillerNameColumnLabel(column)}</span>
-                    <span className="text-center">Ustvarjeno</span>
-                    <span className="text-center">Spremenjeno</span>
+                  <div
+                    className={`${millerRowGridClass} border-b border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600`}
+                    style={{ gridTemplateColumns: rowGridTemplate }}
+                  >
+                    <span className="min-w-0 truncate" title={getMillerNameColumnLabel(column, 'full')}>{getMillerNameColumnLabel(column, compactLabelMode)}</span>
+                    <span className="truncate text-center" title="Ustvarjeno">
+                      {dateHeaderMode === 'full' ? 'Ustvarjeno' : dateHeaderMode === 'compact' ? 'Ustv.' : 'U.'}
+                    </span>
+                    <span className="truncate text-center" title="Spremenjeno">
+                      {dateHeaderMode === 'full' ? 'Spremenjeno' : dateHeaderMode === 'compact' ? 'Sprem.' : 'S.'}
+                    </span>
                   </div>
                   {renderDropMarker(column.key, 0)}
                   {column.rows.map((row, rowIndex) => (
@@ -311,6 +380,7 @@ export function AdminCategoriesMiller({
                           type="button"
                           data-miller-id={row.id}
                           className={`miller-select-item ${millerRowGridClass} w-full rounded-md px-2 py-1 text-left text-[11px] font-medium transition ${millerSelection.includes(row.id) || row.tone === 'focused' ? `${row.isInactive ? 'text-slate-400' : 'text-[#1f3f93]'} bg-[#f0f4ff]` : `${row.isInactive ? 'text-slate-400' : 'text-slate-700'} bg-white hover:bg-slate-100`}`}
+                          style={{ gridTemplateColumns: rowGridTemplate }}
                           onClick={row.onClick}
                           onDoubleClick={() => {
                             if (row.kind === 'item') return;
@@ -339,8 +409,8 @@ export function AdminCategoriesMiller({
                           }}
                         >
                           <span className="min-w-0 truncate whitespace-nowrap" title={row.label} style={row.isInactive ? { color: '#94a3b8' } : undefined}>{row.label}</span>
-                          <span className="whitespace-nowrap text-center text-[11px] font-normal">{formatMillerDate(row.createdAt)}</span>
-                          <span className="whitespace-nowrap text-center text-[11px] font-normal">{formatMillerDate(row.updatedAt)}</span>
+                          <span className={`whitespace-nowrap text-center font-normal ${dateTextClassName}`}>{formatMillerDate(row.createdAt, dateDisplayMode)}</span>
+                          <span className={`whitespace-nowrap text-center font-normal ${dateTextClassName}`}>{formatMillerDate(row.updatedAt, dateDisplayMode)}</span>
                         </button>
                         {renderDropMarker(column.key, rowIndex + 1)}
                       </div>
@@ -350,6 +420,8 @@ export function AdminCategoriesMiller({
               )}
             </div>
           </div>
+            );
+          })()
         ))}
       </div>
     </section>

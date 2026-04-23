@@ -15,6 +15,7 @@ export function ColumnVisibilityControl({
   visibleMap,
   onToggle,
   className,
+  triggerClassName,
   showLabel = true,
   icon,
   menuClassName
@@ -23,6 +24,7 @@ export function ColumnVisibilityControl({
   visibleMap: Record<string, boolean>;
   onToggle: (key: string) => void;
   className?: string;
+  triggerClassName?: string;
   showLabel?: boolean;
   icon?: ReactNode;
   menuClassName?: string;
@@ -57,7 +59,7 @@ export function ColumnVisibilityControl({
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className={`${selectTokenClasses.trigger} justify-center ${showLabel ? 'min-w-[92px] gap-2 px-2.5 pr-5' : 'w-8 !p-0'} ${isOpen ? 'bg-[color:var(--hover-neutral)]' : ''}`}
+        className={`${selectTokenClasses.trigger} justify-center ${showLabel ? 'min-w-[92px] gap-2 px-2.5 pr-5' : 'w-8 !p-0'} ${isOpen ? 'bg-[color:var(--hover-neutral)]' : ''} ${triggerClassName ?? ''}`}
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-label="Filtriraj stolpce"

@@ -2,10 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/shared/ui/button';
+import { AdminTablePrimaryActionButton } from '@/shared/ui/admin-table';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
-import { adminTextButtonTypographyTokenClasses } from '@/shared/ui/theme/tokens';
 
 type Props = {
   className?: string;
@@ -43,17 +42,15 @@ export default function AdminCreateDraftOrderButton({ className, buttonClassName
 
   return (
     <div className={`flex flex-col items-end gap-1 ${className ?? ''}`.trim()}>
-      <Button
+      <AdminTablePrimaryActionButton
         type="button"
         onClick={createDraft}
         disabled={isCreating}
         aria-label="Novo naročilo"
-        variant="primary"
-        size="toolbar"
-        className={[adminTextButtonTypographyTokenClasses, buttonClassName].filter(Boolean).join(' ')}
+        className={buttonClassName}
       >
-        {isCreating ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-slate-500" />Ustvarjam ...</span> : 'Novo naročilo'}
-      </Button>
+        {isCreating ? <span className="inline-flex items-center gap-1.5"><Spinner size="sm" className="text-white/90" />Ustvarjam ...</span> : 'Novo naročilo'}
+      </AdminTablePrimaryActionButton>
       {error && <p className="text-xs text-rose-600">{error}</p>}
     </div>
   );

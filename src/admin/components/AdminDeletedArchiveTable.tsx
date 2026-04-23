@@ -8,7 +8,27 @@ import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 import { EmptyState, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
-import { AdminTableLayout, ColumnVisibilityControl } from '@/shared/ui/admin-table';
+import {
+  adminTableCardClassName,
+  adminTableCardStyle,
+  adminTableContentClassName,
+  adminTableHeaderButtonClassName,
+  adminTableHeaderClassName,
+  adminTableNeutralIconButtonClassName,
+  adminTablePopoverPanelClassName,
+  adminTablePopoverPresetButtonClassName,
+  adminTablePopoverPrimaryButtonClassName,
+  adminTablePopoverSecondaryButtonClassName,
+  adminTableSearchIconClassName,
+  adminTableSearchInputClassName,
+  adminTableSearchWrapperClassName,
+  adminTableSelectedDangerIconButtonClassName,
+  adminTableSelectedSuccessIconButtonClassName,
+  adminTableToolbarActionsClassName,
+  adminTableToolbarGroupClassName,
+  AdminTableLayout,
+  ColumnVisibilityControl
+} from '@/shared/ui/admin-table';
 import { ActionRestoreIcon, ColumnFilterIcon, PanelAddRemoveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
@@ -488,7 +508,7 @@ export default function AdminDeletedArchiveTable({
   };
 
   const getHeaderTitleClass = (key: ArchiveSortKey) =>
-    `inline-flex items-center text-[11px] font-semibold leading-none hover:text-[color:var(--blue-500)] ${sortState?.key === key ? 'underline underline-offset-2' : ''}`;
+    `${adminTableHeaderButtonClassName} ${sortState?.key === key ? 'underline underline-offset-2 text-slate-900' : ''}`;
 
   const toComparableValue = (value: string) => (value || '—').toLowerCase();
   const isMatchingHoveredCell = (key: ArchiveSortKey, value: string) =>
@@ -537,38 +557,40 @@ export default function AdminDeletedArchiveTable({
 
   return (
     <AdminTableLayout
-      className="w-full border shadow-sm"
-      style={{ background: '#ffffff', borderColor: '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
+      className={`w-full ${adminTableCardClassName}`}
+      style={adminTableCardStyle}
+      headerClassName={adminTableHeaderClassName}
       headerLeft={
-        <div className="flex h-7 w-full items-stretch">
-          <div className="min-w-0 w-full rounded-md border border-slate-200 bg-white transition-colors focus-within:border-[#3e67d6]">
+        <div className={adminTableToolbarGroupClassName}>
+          <div className="min-w-0 w-full">
             <AdminSearchInput
-              showIcon={false}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Poišči arhivirane zapise"
               aria-label="Poišči arhivirane zapise"
-              className="!m-0 !h-7 min-w-0 w-full flex-1 !rounded-md !border-0 !bg-transparent !shadow-none !outline-none ring-0 transition-colors placeholder:text-slate-400 [--euiFormControlStateWidth:0px] focus:[--euiFormControlStateWidth:0px] focus-visible:[--euiFormControlStateWidth:0px] focus:!border-0 focus:!shadow-none focus:!outline-none focus-visible:!border-0 focus-visible:!shadow-none focus-visible:!outline-none"
+              wrapperClassName={`${adminTableSearchWrapperClassName} sm:!flex-none sm:!w-[40%] sm:min-w-[20rem] sm:max-w-[30rem]`}
+              inputClassName={adminTableSearchInputClassName}
+              iconClassName={adminTableSearchIconClassName}
             />
           </div>
         </div>
       }
       headerRight={
-        <div className="flex h-7 items-center gap-2 self-center">
+        <div className={adminTableToolbarActionsClassName}>
           <ColumnVisibilityControl
             options={ARCHIVE_COLUMN_OPTIONS.map((option) => ({ ...option, disabled: option.key === 'element' }))}
             visibleMap={visibleColumns}
             onToggle={(key) => toggleColumnVisibility(key as ArchiveColumnKey)}
             showLabel={false}
-            className="[&>button]:!h-7 [&>button]:!w-7 [&>button:hover]:text-[color:var(--blue-500)] [&>button[aria-expanded='true']]:text-[color:var(--blue-500)]"
             menuClassName="!w-[156px]"
+            triggerClassName={adminTableNeutralIconButtonClassName}
             icon={<PanelAddRemoveIcon className="!scale-[0.8]" />}
           />
           <IconButton
             type="button"
             size="sm"
             tone={hasSelectedRows ? 'success' : 'neutral'}
-            className={hasSelectedRows ? '!border-emerald-300 !bg-emerald-50/70 !text-emerald-700 !transition-none' : '!transition-none'}
+            className={hasSelectedRows ? adminTableSelectedSuccessIconButtonClassName : `${adminTableNeutralIconButtonClassName} !transition-none`}
             onClick={bulkRestore}
             disabled={!hasSelectedRows || isRestoring || isDeleting}
             aria-label="Obnovi izbrano"
@@ -584,7 +606,7 @@ export default function AdminDeletedArchiveTable({
             type="button"
             size="sm"
             tone={hasSelectedRows ? 'danger' : 'neutral'}
-            className={hasSelectedRows ? '!border-rose-300 !bg-rose-50/70 !text-rose-700 !transition-none' : '!transition-none'}
+            className={hasSelectedRows ? adminTableSelectedDangerIconButtonClassName : `${adminTableNeutralIconButtonClassName} !transition-none`}
             onClick={bulkDelete}
             disabled={!hasSelectedRows || isDeleting || isRestoring}
             aria-label="Trajno izbriši izbrano"
@@ -624,7 +646,7 @@ export default function AdminDeletedArchiveTable({
           itemsPerPageOptions={PAGE_SIZE_OPTIONS}
         />
       }
-      contentClassName="overflow-x-auto overflow-y-visible bg-white"
+      contentClassName={`${adminTableContentClassName} overflow-y-visible`}
       showDivider={false}
       footerRight={
         <EuiTablePagination
@@ -653,7 +675,7 @@ export default function AdminDeletedArchiveTable({
         />
       ) : null}
 
-      <Table className="w-full min-w-[1080px] table-fixed border-collapse text-[11px] font-['Inter',system-ui,sans-serif]">
+      <Table className="w-full min-w-[1080px] table-fixed border-collapse text-[12px] font-['Inter',system-ui,sans-serif]">
           <colgroup>
             <col className="w-[44px]" />
             {visibleColumns.type ? <col className="w-[108px]" /> : null}
@@ -665,13 +687,13 @@ export default function AdminDeletedArchiveTable({
             {visibleColumns.deleted ? <col className="w-[150px]" /> : null}
             {visibleColumns.expires ? <col className="w-[161px]" /> : null}
           </colgroup>
-          <THead>
+          <THead className="border-t border-slate-200 bg-[color:var(--admin-table-header-bg)]">
             <TR>
-              <TH className="w-10 text-center">
+              <TH className="w-10 border-b border-slate-200 py-4 text-center">
                 <AdminCheckbox checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" />
               </TH>
               {visibleColumns.type ? (
-                <TH className="w-[108px] text-[11px]">
+                <TH className="h-11 w-[108px] border-b border-slate-200 px-3 py-4 text-center text-[12px] font-semibold text-slate-700">
                   <div className="relative inline-flex items-center gap-1.5 align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" onClick={() => handleSort('type')} className={getHeaderTitleClass('type')}>Vrsta</button>
                     <button ref={typeFilterButtonRef} type="button" className={HEADER_FILTER_BUTTON_CLASS} data-active={openHeaderFilter === 'type'} aria-label="Filtriraj vrsto" onClick={() => setOpenHeaderFilter((previousFilter) => (previousFilter === 'type' ? null : 'type'))}>
@@ -680,8 +702,8 @@ export default function AdminDeletedArchiveTable({
                   </div>
                 </TH>
               ) : null}
-              {visibleColumns.element ? <TH className="text-[11px]"><button type="button" onClick={() => handleSort('element')} className={getHeaderTitleClass('element')}>Element</button></TH> : null}
-              {visibleColumns.orderDate ? <TH className="text-center text-[11px]">
+              {visibleColumns.element ? <TH className="h-11 border-b border-slate-200 px-3 py-4 text-left text-[12px] font-semibold text-slate-700"><button type="button" onClick={() => handleSort('element')} className={getHeaderTitleClass('element')}>Element</button></TH> : null}
+              {visibleColumns.orderDate ? <TH className="h-11 border-b border-slate-200 px-3 py-4 text-center text-[12px] font-semibold text-slate-700">
                 <div className="relative inline-flex items-center gap-1.5 align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                   <button type="button" onClick={() => handleSort('order_created_at')} className={getHeaderTitleClass('order_created_at')}>Datum naročila</button>
                   <button ref={orderDateFilterButtonRef} type="button" className={HEADER_FILTER_BUTTON_CLASS} data-active={openHeaderFilter === 'orderDate'} aria-label="Filtriraj datum naročila" onClick={() => setOpenHeaderFilter((previousFilter) => (previousFilter === 'orderDate' ? null : 'orderDate'))}>
@@ -689,9 +711,9 @@ export default function AdminDeletedArchiveTable({
                   </button>
                 </div>
               </TH> : null}
-              {visibleColumns.customer ? <TH className="text-[11px]"><button type="button" onClick={() => handleSort('customer_name')} className={getHeaderTitleClass('customer_name')}>Naročnik</button></TH> : null}
-              {visibleColumns.address ? <TH className="text-[11px]"><button type="button" onClick={() => handleSort('address')} className={getHeaderTitleClass('address')}>Naslov</button></TH> : null}
-              {visibleColumns.orderType ? <TH className="text-center text-[11px]">
+              {visibleColumns.customer ? <TH className="h-11 border-b border-slate-200 px-3 py-4 text-left text-[12px] font-semibold text-slate-700"><button type="button" onClick={() => handleSort('customer_name')} className={getHeaderTitleClass('customer_name')}>Naročnik</button></TH> : null}
+              {visibleColumns.address ? <TH className="h-11 border-b border-slate-200 px-3 py-4 text-left text-[12px] font-semibold text-slate-700"><button type="button" onClick={() => handleSort('address')} className={getHeaderTitleClass('address')}>Naslov</button></TH> : null}
+              {visibleColumns.orderType ? <TH className="h-11 border-b border-slate-200 px-3 py-4 text-center text-[12px] font-semibold text-slate-700">
                 <div className="relative inline-flex items-center gap-1.5 align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                   <button type="button" onClick={() => handleSort('customer_type')} className={getHeaderTitleClass('customer_type')}>Tip</button>
                   <button ref={customerTypeFilterButtonRef} type="button" className={HEADER_FILTER_BUTTON_CLASS} data-active={openHeaderFilter === 'customerType'} aria-label="Filtriraj tip" onClick={() => setOpenHeaderFilter((previousFilter) => (previousFilter === 'customerType' ? null : 'customerType'))}>
@@ -699,7 +721,7 @@ export default function AdminDeletedArchiveTable({
                   </button>
                 </div>
               </TH> : null}
-              {visibleColumns.deleted ? <TH className="w-40 text-center text-[11px]">
+              {visibleColumns.deleted ? <TH className="h-11 w-40 border-b border-slate-200 px-3 py-4 text-center text-[12px] font-semibold text-slate-700">
                 <div className="relative inline-flex items-center gap-1.5 align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                   <button type="button" onClick={() => handleSort('deleted_at')} className={getHeaderTitleClass('deleted_at')}>
                     Izbris
@@ -709,7 +731,7 @@ export default function AdminDeletedArchiveTable({
                   </button>
                 </div>
               </TH> : null}
-              {visibleColumns.expires ? <TH className="w-40 pr-5 text-center text-[11px]">
+              {visibleColumns.expires ? <TH className="h-11 w-40 border-b border-slate-200 px-3 py-4 pr-5 text-center text-[12px] font-semibold text-slate-700">
                 <div className="relative inline-flex items-center gap-1.5 align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                   <button type="button" onClick={() => handleSort('expires_at')} className={getHeaderTitleClass('expires_at')}>
                     Iztek
@@ -733,8 +755,8 @@ export default function AdminDeletedArchiveTable({
                     })();
 
               return (
-                <TR key={entry.id} className={`border-b border-slate-100 bg-white transition-colors ${adminTableRowToneClasses.hover}`}>
-                  <TD className="px-0 py-2 text-center">
+                <TR key={entry.id} className={`border-t border-slate-200/90 bg-white text-[12px] transition-colors ${adminTableRowToneClasses.hover}`}>
+                  <TD className="px-0 py-3 text-center">
                     <AdminCheckbox
                       className="disabled:cursor-default disabled:opacity-50"
                       checked={selectedIdSet.has(entry.id)}
@@ -743,7 +765,7 @@ export default function AdminDeletedArchiveTable({
                       aria-label={`Izberi zapis ${entry.label}`}
                     />
                   </TD>
-                  {visibleColumns.type ? <TD className="px-3 py-2 text-[11px] font-semibold text-slate-700">
+                  {visibleColumns.type ? <TD className="px-3 py-3 font-semibold text-slate-700">
                     <span
                       className={isMatchingHoveredCell('type', entry.item_type === 'order' ? 'Naročilo' : 'PDF datoteka') ? matchingValueHighlightClass : ''}
                       onMouseEnter={() => setHoveredCellMatch({ column: 'type', value: toComparableValue(entry.item_type === 'order' ? 'Naročilo' : 'PDF datoteka') })}
@@ -752,7 +774,7 @@ export default function AdminDeletedArchiveTable({
                       {entry.item_type === 'order' ? 'Naročilo' : 'PDF datoteka'}
                     </span>
                   </TD> : null}
-                  {visibleColumns.element ? <TD className={`px-3 py-2 text-[11px] font-['Inter',system-ui,sans-serif] text-slate-800 ${isChild ? 'pl-6' : ''}`}>
+                  {visibleColumns.element ? <TD className={`px-3 py-3 font-['Inter',system-ui,sans-serif] text-slate-800 ${isChild ? 'pl-6' : ''}`}>
                     {entry.item_type === 'order' && entry.order_id ? (
                       <a href={`/admin/orders/${entry.order_id}`} className="font-medium text-[color:var(--blue-500)] hover:text-[color:var(--blue-600)]">
                         {entry.label}
@@ -761,7 +783,7 @@ export default function AdminDeletedArchiveTable({
                       <span>{isChild ? `↳ ${entry.label}` : entry.label}</span>
                     )}
                   </TD> : null}
-                  {visibleColumns.orderDate ? <TD className="px-3 py-2 text-center text-xs text-slate-500">
+                  {visibleColumns.orderDate ? <TD className="px-3 py-3 text-center text-slate-600">
                     <span
                       className={isMatchingHoveredCell('order_created_at', entry.order_created_at ? formatDateOnly(entry.order_created_at) : '—') ? matchingValueHighlightClass : ''}
                       onMouseEnter={() => setHoveredCellMatch({ column: 'order_created_at', value: toComparableValue(entry.order_created_at ? formatDateOnly(entry.order_created_at) : '—') })}
@@ -770,27 +792,27 @@ export default function AdminDeletedArchiveTable({
                       {entry.order_created_at ? formatDateOnly(entry.order_created_at) : '—'}
                     </span>
                   </TD> : null}
-                  {visibleColumns.customer ? <TD className="px-3 py-2 text-xs text-slate-600">
+                  {visibleColumns.customer ? <TD className="px-3 py-3 text-slate-600">
                     <span className={`inline-flex max-w-full items-center truncate ${isMatchingHoveredCell('customer_name', entry.customer_name ?? '—') ? matchingValueHighlightNoShiftClass : ''}`} onMouseEnter={() => setHoveredCellMatch({ column: 'customer_name', value: toComparableValue(entry.customer_name ?? '—') })} onMouseLeave={() => setHoveredCellMatch(null)}>
                       {entry.customer_name ?? '—'}
                     </span>
                   </TD> : null}
-                  {visibleColumns.address ? <TD className="px-3 py-2 text-xs text-slate-600">
+                  {visibleColumns.address ? <TD className="px-3 py-3 text-slate-600">
                     <span className={`inline-flex max-w-full items-center truncate ${isMatchingHoveredCell('address', entry.address ?? '—') ? matchingValueHighlightNoShiftClass : ''}`} onMouseEnter={() => setHoveredCellMatch({ column: 'address', value: toComparableValue(entry.address ?? '—') })} onMouseLeave={() => setHoveredCellMatch(null)}>
                       {entry.address ?? '—'}
                     </span>
                   </TD> : null}
-                  {visibleColumns.orderType ? <TD className="px-3 py-2 text-center text-xs text-slate-600">
+                  {visibleColumns.orderType ? <TD className="px-3 py-3 text-center text-slate-600">
                     <span className={isMatchingHoveredCell('customer_type', entry.customer_type ? getCustomerTypeLabel(entry.customer_type) : '—') ? matchingValueHighlightClass : ''} onMouseEnter={() => setHoveredCellMatch({ column: 'customer_type', value: toComparableValue(entry.customer_type ? getCustomerTypeLabel(entry.customer_type) : '—') })} onMouseLeave={() => setHoveredCellMatch(null)}>
                       {entry.customer_type ? getCustomerTypeLabel(entry.customer_type) : '—'}
                     </span>
                   </TD> : null}
-                  {visibleColumns.deleted ? <TD className="px-3 py-2 text-center text-xs text-slate-500">
+                  {visibleColumns.deleted ? <TD className="px-3 py-3 text-center text-slate-600">
                     <span className={isMatchingHoveredCell('deleted_at', formatDateOnly(entry.deleted_at)) ? matchingValueHighlightClass : ''} onMouseEnter={() => setHoveredCellMatch({ column: 'deleted_at', value: toComparableValue(formatDateOnly(entry.deleted_at)) })} onMouseLeave={() => setHoveredCellMatch(null)}>
                       {formatDateOnly(entry.deleted_at)}
                     </span>
                   </TD> : null}
-                  {visibleColumns.expires ? <TD className="px-3 pr-5 py-2 text-center text-xs text-slate-500">
+                  {visibleColumns.expires ? <TD className="px-3 py-3 pr-5 text-center text-slate-600">
                     <span className={isMatchingHoveredCell('expires_at', formatDateOnly(entry.expires_at)) ? matchingValueHighlightClass : ''} onMouseEnter={() => setHoveredCellMatch({ column: 'expires_at', value: toComparableValue(formatDateOnly(entry.expires_at)) })} onMouseLeave={() => setHoveredCellMatch(null)}>
                       {formatDateOnly(entry.expires_at)}
                     </span>
@@ -810,7 +832,7 @@ export default function AdminDeletedArchiveTable({
       <HeaderFilterPortal open={Boolean(openHeaderFilter)}>
         {openHeaderFilter === 'type' ? (
           <div style={getHeaderPopoverStyle(typeFilterButtonRef.current, 160)}>
-            <MenuPanel className="w-40 shadow-lg">
+            <MenuPanel className="w-40">
               {TYPE_FILTER_OPTIONS.map((option) => (
                 <MenuItem key={option.value} onClick={() => { setTypeFilter(option.value); setOpenHeaderFilter(null); }}>
                   {option.label}
@@ -820,10 +842,10 @@ export default function AdminDeletedArchiveTable({
           </div>
         ) : null}
         {openHeaderFilter === 'orderDate' ? (
-          <div role="menu" style={getHeaderPopoverStyle(orderDateFilterButtonRef.current, 380)} className="rounded-xl border border-slate-200 bg-white p-3 text-left shadow-lg">
+          <div role="menu" style={getHeaderPopoverStyle(orderDateFilterButtonRef.current, 380)} className={adminTablePopoverPanelClassName}>
             <div className="mb-3 grid grid-cols-3 gap-2">
               {DATE_RANGE_PRESETS.map((preset) => (
-                <button key={preset.key} type="button" className="rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-[color:var(--hover-neutral)]" onClick={() => setDraftOrderDateRange(applyQuickDateRange(preset.key))}>
+                <button key={preset.key} type="button" className={adminTablePopoverPresetButtonClassName} onClick={() => setDraftOrderDateRange(applyQuickDateRange(preset.key))}>
                   {preset.label}
                 </button>
               ))}
@@ -833,14 +855,14 @@ export default function AdminDeletedArchiveTable({
               <AdminFilterInput type="date" value={draftOrderDateRange.to} onChange={(event) => setDraftOrderDateRange((current) => ({ ...current, to: event.target.value }))} aria-label="Do" />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <button type="button" className="rounded-xl bg-[color:var(--blue-500)] py-2 text-[11px] font-semibold text-white" onClick={() => { setOrderDateRange(draftOrderDateRange); setOpenHeaderFilter(null); }}>Potrdi</button>
-              <button type="button" className="rounded-xl border border-slate-300 bg-[color:var(--ui-neutral-bg)] py-2 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--ui-neutral-bg-hover)]" onClick={() => { const empty = { from: '', to: '' }; setDraftOrderDateRange(empty); setOrderDateRange(empty); setOpenHeaderFilter(null); }}>Ponastavi</button>
+              <button type="button" className={adminTablePopoverPrimaryButtonClassName} onClick={() => { setOrderDateRange(draftOrderDateRange); setOpenHeaderFilter(null); }}>Potrdi</button>
+              <button type="button" className={adminTablePopoverSecondaryButtonClassName} onClick={() => { const empty = { from: '', to: '' }; setDraftOrderDateRange(empty); setOrderDateRange(empty); setOpenHeaderFilter(null); }}>Ponastavi</button>
             </div>
           </div>
         ) : null}
         {openHeaderFilter === 'customerType' ? (
           <div style={getHeaderPopoverStyle(customerTypeFilterButtonRef.current, 160)}>
-            <MenuPanel className="w-40 shadow-lg">
+            <MenuPanel className="w-40">
               <MenuItem onClick={() => { setCustomerTypeFilter('all'); setOpenHeaderFilter(null); }}>Vsi tipi</MenuItem>
               <MenuItem onClick={() => { setCustomerTypeFilter('individual'); setOpenHeaderFilter(null); }}>Fiz. oseba</MenuItem>
               <MenuItem onClick={() => { setCustomerTypeFilter('company'); setOpenHeaderFilter(null); }}>Podjetje</MenuItem>
@@ -849,10 +871,10 @@ export default function AdminDeletedArchiveTable({
           </div>
         ) : null}
         {openHeaderFilter === 'deletedDate' ? (
-          <div role="menu" style={getHeaderPopoverStyle(deletedDateFilterButtonRef.current, 380)} className="rounded-xl border border-slate-200 bg-white p-3 text-left shadow-lg">
+          <div role="menu" style={getHeaderPopoverStyle(deletedDateFilterButtonRef.current, 380)} className={adminTablePopoverPanelClassName}>
             <div className="mb-3 grid grid-cols-3 gap-2">
               {DATE_RANGE_PRESETS.map((preset) => (
-                <button key={preset.key} type="button" className="rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-[color:var(--hover-neutral)]" onClick={() => setDraftDeletedDateRange(applyQuickDateRange(preset.key))}>
+                <button key={preset.key} type="button" className={adminTablePopoverPresetButtonClassName} onClick={() => setDraftDeletedDateRange(applyQuickDateRange(preset.key))}>
                   {preset.label}
                 </button>
               ))}
@@ -862,16 +884,16 @@ export default function AdminDeletedArchiveTable({
               <AdminFilterInput type="date" value={draftDeletedDateRange.to} onChange={(event) => setDraftDeletedDateRange((current) => ({ ...current, to: event.target.value }))} aria-label="Do" />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <button type="button" className="rounded-xl bg-[color:var(--blue-500)] py-2 text-[11px] font-semibold text-white" onClick={() => { setDeletedDateRange(draftDeletedDateRange); setOpenHeaderFilter(null); }}>Potrdi</button>
-              <button type="button" className="rounded-xl border border-slate-300 bg-[color:var(--ui-neutral-bg)] py-2 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--ui-neutral-bg-hover)]" onClick={() => { const empty = { from: '', to: '' }; setDraftDeletedDateRange(empty); setDeletedDateRange(empty); setOpenHeaderFilter(null); }}>Ponastavi</button>
+              <button type="button" className={adminTablePopoverPrimaryButtonClassName} onClick={() => { setDeletedDateRange(draftDeletedDateRange); setOpenHeaderFilter(null); }}>Potrdi</button>
+              <button type="button" className={adminTablePopoverSecondaryButtonClassName} onClick={() => { const empty = { from: '', to: '' }; setDraftDeletedDateRange(empty); setDeletedDateRange(empty); setOpenHeaderFilter(null); }}>Ponastavi</button>
             </div>
           </div>
         ) : null}
         {openHeaderFilter === 'expiresDate' ? (
-          <div role="menu" style={getHeaderPopoverStyle(expiresDateFilterButtonRef.current, 380)} className="rounded-xl border border-slate-200 bg-white p-3 text-left shadow-lg">
+          <div role="menu" style={getHeaderPopoverStyle(expiresDateFilterButtonRef.current, 380)} className={adminTablePopoverPanelClassName}>
             <div className="mb-3 grid grid-cols-3 gap-2">
               {DATE_RANGE_PRESETS.map((preset) => (
-                <button key={preset.key} type="button" className="rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-[color:var(--hover-neutral)]" onClick={() => setDraftExpiresDateRange(applyQuickDateRange(preset.key))}>
+                <button key={preset.key} type="button" className={adminTablePopoverPresetButtonClassName} onClick={() => setDraftExpiresDateRange(applyQuickDateRange(preset.key))}>
                   {preset.label}
                 </button>
               ))}
@@ -881,8 +903,8 @@ export default function AdminDeletedArchiveTable({
               <AdminFilterInput type="date" value={draftExpiresDateRange.to} onChange={(event) => setDraftExpiresDateRange((current) => ({ ...current, to: event.target.value }))} aria-label="Do" />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <button type="button" className="rounded-xl bg-[color:var(--blue-500)] py-2 text-[11px] font-semibold text-white" onClick={() => { setExpiresDateRange(draftExpiresDateRange); setOpenHeaderFilter(null); }}>Potrdi</button>
-              <button type="button" className="rounded-xl border border-slate-300 bg-[color:var(--ui-neutral-bg)] py-2 text-[11px] font-semibold text-slate-700 hover:bg-[color:var(--ui-neutral-bg-hover)]" onClick={() => { const empty = { from: '', to: '' }; setDraftExpiresDateRange(empty); setExpiresDateRange(empty); setOpenHeaderFilter(null); }}>Ponastavi</button>
+              <button type="button" className={adminTablePopoverPrimaryButtonClassName} onClick={() => { setExpiresDateRange(draftExpiresDateRange); setOpenHeaderFilter(null); }}>Potrdi</button>
+              <button type="button" className={adminTablePopoverSecondaryButtonClassName} onClick={() => { const empty = { from: '', to: '' }; setDraftExpiresDateRange(empty); setExpiresDateRange(empty); setOpenHeaderFilter(null); }}>Ponastavi</button>
             </div>
           </div>
         ) : null}

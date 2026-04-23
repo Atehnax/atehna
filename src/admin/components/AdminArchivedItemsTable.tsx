@@ -1,11 +1,28 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Button } from '@/shared/ui/button';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
-import { AdminTableLayout } from '@/shared/ui/admin-table';
-import { EmptyState, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
+import { IconButton } from '@/shared/ui/icon-button';
+import { AdminSearchInput } from '@/shared/ui/admin-search-input';
+import {
+  adminTableCardClassName,
+  adminTableCardStyle,
+  adminTableContentClassName,
+  adminTableHeaderClassName,
+  adminTableNeutralIconButtonClassName,
+  adminTableSearchIconClassName,
+  adminTableSearchInputClassName,
+  adminTableSearchWrapperClassName,
+  adminTableSelectedDangerIconButtonClassName,
+  adminTableSelectedSuccessIconButtonClassName,
+  adminTableToolbarActionsClassName,
+  adminTableToolbarGroupClassName,
+  AdminTableLayout
+} from '@/shared/ui/admin-table';
+import { ActionRestoreIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { adminTableRowToneClasses } from '@/shared/ui/theme/tokens';
+import { EmptyState, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 
 const STORAGE_KEY = 'admin-items-crud-v2';
 
@@ -31,6 +48,7 @@ const formatDateTime = (value?: string | null) => {
 export default function AdminArchivedItemsTable() {
   const [items, setItems] = useState<Item[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [search, setSearch] = useState('');
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   useEffect(() => {
@@ -51,7 +69,19 @@ export default function AdminArchivedItemsTable() {
     [items]
   );
 
-  const allSelected = archivedItems.length > 0 && archivedItems.every((item) => selectedIds.includes(item.id));
+  const filteredArchivedItems = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase('sl');
+    if (!query) return archivedItems;
+
+    return archivedItems.filter((item) =>
+      [item.name, item.sku, item.category]
+        .filter(Boolean)
+        .some((value) => value.toLocaleLowerCase('sl').includes(query))
+    );
+  }, [archivedItems, search]);
+
+  const allSelected =
+    filteredArchivedItems.length > 0 && filteredArchivedItems.every((item) => selectedIds.includes(item.id));
 
   const persist = (next: Item[]) => {
     setItems(next);
@@ -81,82 +111,134 @@ export default function AdminArchivedItemsTable() {
 
   return (
     <AdminTableLayout
-      headerRight={(
-        <div className="flex items-center justify-end gap-2">
-          <Button
+      className={`w-full ${adminTableCardClassName}`}
+      style={adminTableCardStyle}
+      headerClassName={adminTableHeaderClassName}
+      contentClassName={adminTableContentClassName}
+      headerLeft={
+        <div className={adminTableToolbarGroupClassName}>
+          <div className="min-w-0 w-full">
+            <AdminSearchInput
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Poišči arhivirane artikle"
+              aria-label="Poišči arhivirane artikle"
+              wrapperClassName={`${adminTableSearchWrapperClassName} sm:!flex-none sm:!w-[40%] sm:min-w-[20rem] sm:max-w-[30rem]`}
+              inputClassName={adminTableSearchInputClassName}
+              iconClassName={adminTableSearchIconClassName}
+            />
+          </div>
+        </div>
+      }
+      headerRight={
+        <div className={adminTableToolbarActionsClassName}>
+          <IconButton
             type="button"
-            variant="restore"
+            size="sm"
+            tone={selectedIds.length > 0 ? 'success' : 'neutral'}
+            className={selectedIds.length > 0 ? adminTableSelectedSuccessIconButtonClassName : `${adminTableNeutralIconButtonClassName} !transition-none`}
             onClick={restoreSelected}
             disabled={selectedIds.length === 0}
+            aria-label="Obnovi izbrane artikle"
+            title="Obnovi"
           >
-            Obnovi
-          </Button>
-          <Button
+            <ActionRestoreIcon />
+          </IconButton>
+          <IconButton
             type="button"
-            variant="danger"
+            size="sm"
+            tone={selectedIds.length > 0 ? 'danger' : 'neutral'}
+            className={selectedIds.length > 0 ? adminTableSelectedDangerIconButtonClassName : `${adminTableNeutralIconButtonClassName} !transition-none`}
             onClick={hardDeleteSelected}
             disabled={selectedIds.length === 0}
+            aria-label="Trajno izbriši izbrane artikle"
+            title="Trajno izbriši"
           >
-            Trajno izbriši
-          </Button>
+            <TrashCanIcon />
+          </IconButton>
         </div>
-      )}
+      }
     >
-      <Table>
-          <THead>
-            <TR>
-              <TH className="w-[40px] px-3 py-2 text-center">
-                <AdminCheckbox
-                  checked={allSelected}
-                  onChange={() => setSelectedIds(allSelected ? [] : archivedItems.map((item) => item.id))}
-                  aria-label="Izberi vse"
-                />
-              </TH>
-              <TH className="px-3 py-2">Naziv</TH>
-              <TH className="px-3 py-2">SKU</TH>
-              <TH className="px-3 py-2">Kategorija</TH>
-              <TH className="px-3 py-2">Cena</TH>
-              <TH className="px-3 py-2">Arhivirano</TH>
-            </TR>
-          </THead>
-          <TBody>
-            {archivedItems.length === 0 ? (
-              <TR>
-                <TD colSpan={6} className="px-3 py-6">
-                  <EmptyState
-                    title="Ni arhiviranih artiklov"
-                    description="Ko arhivirate artikel, se bo prikazal tukaj."
-                  />
-                </TD>
-              </TR>
-            ) : null}
+      {isDeleteConfirmOpen ? (
+        <ConfirmDialog
+          open={isDeleteConfirmOpen}
+          title="Trajni izbris"
+          description="Ali želite trajno izbrisati izbrane arhivirane artikle?"
+          confirmLabel="Izbriši"
+          cancelLabel="Prekliči"
+          isDanger
+          onCancel={() => setIsDeleteConfirmOpen(false)}
+          onConfirm={confirmHardDeleteSelected}
+        />
+      ) : null}
 
-            {archivedItems.map((item) => (
-              <TR key={item.id}>
-                <TD className="px-3 py-2 text-center">
-                  <AdminCheckbox
-                    checked={selectedIds.includes(item.id)}
-                    onChange={() =>
-                      setSelectedIds((current) =>
-                        current.includes(item.id)
-                          ? current.filter((entry) => entry !== item.id)
-                          : [...current, item.id]
-                      )
-                    }
-                    aria-label={`Izberi ${item.name}`}
-                  />
-                </TD>
-                <TD className="px-3 py-2 font-medium text-slate-900">{item.name}</TD>
-                <TD className="px-3 py-2 text-slate-600">{item.sku}</TD>
-                <TD className="px-3 py-2 text-slate-600">{item.category}</TD>
-                <TD className="px-3 py-2 text-slate-600">
-                  {formatCurrency(item.price * (1 - (item.discountPct ?? 0) / 100))}
-                </TD>
-                <TD className="px-3 py-2 text-slate-600">{formatDateTime(item.archivedAt)}</TD>
-              </TR>
-            ))}
-          </TBody>
-        </Table>
+      <Table className="w-full table-fixed border-collapse text-[12px] font-['Inter',system-ui,sans-serif]">
+        <colgroup>
+          <col className="w-[44px]" />
+          <col className="w-[34%]" />
+          <col className="w-[18%]" />
+          <col className="w-[20%]" />
+          <col className="w-[14%]" />
+          <col className="w-[24%]" />
+        </colgroup>
+        <THead className="border-t border-slate-200 bg-[color:var(--admin-table-header-bg)]">
+          <TR>
+            <TH className="w-[44px] border-b border-slate-200 py-4 text-center">
+              <AdminCheckbox
+                checked={allSelected}
+                onChange={() => setSelectedIds(allSelected ? [] : filteredArchivedItems.map((item) => item.id))}
+                aria-label="Izberi vse"
+              />
+            </TH>
+            <TH className="border-b border-slate-200 px-3 py-4 text-left text-[12px] font-semibold text-slate-700">Naziv</TH>
+            <TH className="border-b border-slate-200 px-3 py-4 text-left text-[12px] font-semibold text-slate-700">SKU</TH>
+            <TH className="border-b border-slate-200 px-3 py-4 text-left text-[12px] font-semibold text-slate-700">Kategorija</TH>
+            <TH className="border-b border-slate-200 px-3 py-4 text-left text-[12px] font-semibold text-slate-700">Cena</TH>
+            <TH className="border-b border-slate-200 px-3 py-4 text-left text-[12px] font-semibold text-slate-700">Arhivirano</TH>
+          </TR>
+        </THead>
+        <TBody>
+          {filteredArchivedItems.length === 0 ? (
+            <TR>
+              <TD colSpan={6} className="px-3 py-8">
+                <EmptyState
+                  title={archivedItems.length === 0 ? 'Ni arhiviranih artiklov' : 'Ni zadetkov za iskani niz'}
+                  description={
+                    archivedItems.length === 0
+                      ? 'Ko arhivirate artikel, se bo prikazal tukaj.'
+                      : 'Poskusite z drugim iskalnim izrazom.'
+                  }
+                />
+              </TD>
+            </TR>
+          ) : null}
+
+          {filteredArchivedItems.map((item) => (
+            <TR key={item.id} className={`border-t border-slate-200/90 bg-white text-[12px] transition-colors ${adminTableRowToneClasses.hover}`}>
+              <TD className="px-0 py-3 text-center">
+                <AdminCheckbox
+                  checked={selectedIds.includes(item.id)}
+                  onChange={() =>
+                    setSelectedIds((current) =>
+                      current.includes(item.id)
+                        ? current.filter((entry) => entry !== item.id)
+                        : [...current, item.id]
+                    )
+                  }
+                  aria-label={`Izberi ${item.name}`}
+                />
+              </TD>
+              <TD className="px-3 py-3 font-medium text-slate-900">{item.name}</TD>
+              <TD className="px-3 py-3 text-slate-600">{item.sku}</TD>
+              <TD className="px-3 py-3 text-slate-600">{item.category}</TD>
+              <TD className="px-3 py-3 text-slate-600">
+                {formatCurrency(item.price * (1 - (item.discountPct ?? 0) / 100))}
+              </TD>
+              <TD className="px-3 py-3 text-slate-600">{formatDateTime(item.archivedAt)}</TD>
+            </TR>
+          ))}
+        </TBody>
+      </Table>
     </AdminTableLayout>
   );
 }

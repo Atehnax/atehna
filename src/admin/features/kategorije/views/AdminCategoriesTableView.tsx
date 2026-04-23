@@ -5,11 +5,24 @@ import { Button } from '@/shared/ui/button';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { IconButton } from '@/shared/ui/icon-button';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
-import { AdminTableLayout } from '@/shared/ui/admin-table';
+import {
+  adminTableCardClassName,
+  adminTableCardStyle,
+  adminTableHeaderButtonClassName,
+  adminTableNeutralIconButtonClassName,
+  AdminTablePrimaryActionButton,
+  adminTableSearchIconClassName,
+  adminTableSearchInputClassName,
+  adminTableSelectedDangerIconButtonClassName,
+  adminTableSelectedSuccessIconButtonClassName,
+  adminTableSearchWrapperClassName,
+  adminTableToolbarActionsClassName,
+  adminTableToolbarGroupClassName,
+  AdminTableLayout
+} from '@/shared/ui/admin-table';
 import { ActionRestoreIcon, ActionUndoIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { Spinner } from '@/shared/ui/loading';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
-import { adminTextButtonTypographyTokenClasses } from '@/shared/ui/theme/tokens';
 import type { CategoryStatus, CategoriesView } from '../common/types';
 
 const treeRowHeight = 48;
@@ -22,10 +35,11 @@ const categoryTableColumnWidths = {
   subcategories: 116,
   items: 100,
   visibility: 116,
-  actions: 144
+  actions: 72
 } as const;
 const categoryTableTotalWidth = Object.values(categoryTableColumnWidths).reduce((sum, width) => sum + width, 0);
 const categoryTableFixedWidthWithoutDescription = categoryTableTotalWidth - categoryTableColumnWidths.description;
+const categoriesTableHeaderClassName = 'px-5 pt-4 pb-8 [&>div:last-child]:!mt-0';
 
 type CategorySortKey = 'category' | 'subcategories' | 'items';
 type CategorySortDirection = 'asc' | 'desc';
@@ -36,11 +50,9 @@ export function AdminCategoriesTableView({
   query,
   onQueryChange,
   onBulkDelete,
+  onRequestCreateCategory,
   selectedRows,
   isBulkDeleting,
-  onRequestSave,
-  tableDirty,
-  saving,
   canUndoStagedChanges,
   onUndo,
   canRestoreCommittedHistory,
@@ -67,11 +79,9 @@ export function AdminCategoriesTableView({
   query: string;
   onQueryChange: (value: string) => void;
   onBulkDelete: () => void;
+  onRequestCreateCategory: () => void;
   selectedRows: string[];
   isBulkDeleting: boolean;
-  onRequestSave: () => void;
-  tableDirty: boolean;
-  saving: boolean;
   canUndoStagedChanges: boolean;
   onUndo: () => void;
   canRestoreCommittedHistory: boolean;
@@ -99,10 +109,10 @@ export function AdminCategoriesTableView({
 
   const getSortHeaderClassName = (key: CategorySortKey) => {
     const isActive = sortState?.key === key;
-    return `inline-flex items-center text-[11px] font-semibold transition-colors ${
+    return `${adminTableHeaderButtonClassName} ${
       isActive
         ? 'text-slate-900 underline underline-offset-2 hover:text-[color:var(--blue-500)]'
-        : 'text-slate-700 hover:text-[color:var(--blue-500)]'
+        : ''
     }`;
   };
 
@@ -110,31 +120,34 @@ export function AdminCategoriesTableView({
     <div className={activeView === 'table' ? 'w-full space-y-4' : 'hidden'}>
       <section>
         <AdminTableLayout
-          className="w-full border shadow-sm"
-          style={{ background: '#ffffff', borderColor: '#e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}
+          className={`w-full ${adminTableCardClassName}`}
+          style={adminTableCardStyle}
+          headerClassName={categoriesTableHeaderClassName}
           contentClassName="overflow-x-auto overflow-y-visible bg-white"
           headerLeft={
-            <div className="flex h-7 w-full items-stretch">
-              <div className="min-w-0 w-full rounded-md border border-slate-200 bg-white transition-colors focus-within:border-[#3e67d6]">
+            <div className={adminTableToolbarGroupClassName}>
+              <div className="min-w-0 w-full">
                 <AdminSearchInput
                   id="categories-table-search"
                   name="categoriesTableSearch"
                   value={query}
-                  showIcon={false}
+                  wrapperClassName={`${adminTableSearchWrapperClassName} sm:!flex-none sm:!w-[40%] sm:min-w-[20rem] sm:max-w-[30rem]`}
                   onChange={(event) => onQueryChange(event.target.value)}
                   placeholder="Poišči kategorije"
                   aria-label="Poišči kategorije"
-                  className="!m-0 !h-7 min-w-0 w-full flex-1 !rounded-md !border-0 !bg-transparent !shadow-none !outline-none ring-0 transition-colors placeholder:text-slate-400 [--euiFormControlStateWidth:0px] focus:[--euiFormControlStateWidth:0px] focus-visible:[--euiFormControlStateWidth:0px] focus:!border-0 focus:!shadow-none focus:!outline-none focus-visible:!border-0 focus-visible:!shadow-none focus-visible:!outline-none"
+                  inputClassName={adminTableSearchInputClassName}
+                  iconClassName={adminTableSearchIconClassName}
                 />
               </div>
             </div>
           }
           headerRight={
-            <>
+            <div className={adminTableToolbarActionsClassName}>
               <IconButton
                 type="button"
                 size="sm"
                 tone="neutral"
+                className={adminTableNeutralIconButtonClassName}
                 aria-label="Razveljavi"
                 title="Razveljavi"
                 onClick={onUndo}
@@ -148,7 +161,7 @@ export function AdminCategoriesTableView({
                 tone="neutral"
                 aria-label="Obnovi"
                 title="Obnovi"
-                className={canUseRestore ? '!border-emerald-300 !bg-emerald-50/70 !text-emerald-700 !transition-none' : '!transition-none'}
+                className={canUseRestore ? adminTableSelectedSuccessIconButtonClassName : `${adminTableNeutralIconButtonClassName} !transition-none`}
                 onClick={onRestore}
                 disabled={!canUseRestore}
               >
@@ -160,27 +173,24 @@ export function AdminCategoriesTableView({
                 tone={hasSelectedRows ? 'danger' : 'neutral'}
                 aria-label="Izbriši"
                 title="Izbriši"
-                className={hasSelectedRows ? '!border-rose-300 !bg-rose-50/70 !text-rose-700 !transition-none' : '!transition-none'}
+                className={hasSelectedRows ? adminTableSelectedDangerIconButtonClassName : `${adminTableNeutralIconButtonClassName} !transition-none`}
                 onClick={onBulkDelete}
                 disabled={!hasSelectedRows || isBulkDeleting}
               >
                 {isBulkDeleting ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : <TrashCanIcon />}
               </IconButton>
-              <Button
-                variant="primary"
-                size="toolbar"
-                className={`!h-7 !rounded-md !px-3 ${adminTextButtonTypographyTokenClasses}`}
-                onClick={onRequestSave}
-                disabled={!tableDirty || saving}
+              <AdminTablePrimaryActionButton
+                aria-label="Nova kategorija"
+                onClick={onRequestCreateCategory}
               >
-                Shrani
-              </Button>
-            </>
+                Nova kategorija
+              </AdminTablePrimaryActionButton>
+            </div>
           }
         >
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onTreeDragEnd}>
             <SortableContext items={visibleRowIds} strategy={verticalListSortingStrategy}>
-              <table className="w-full table-fixed border-collapse text-[11px] font-['Inter',system-ui,sans-serif]" style={{ width: '100%', minWidth: `${categoryTableTotalWidth}px` }}>
+              <table className="w-full table-fixed border-collapse text-[12px] font-['Inter',system-ui,sans-serif]" style={{ width: '100%', minWidth: `${categoryTableTotalWidth}px` }}>
                 <colgroup>
                   <col style={{ width: `${categoryTableColumnWidths.select}px` }} />
                   <col style={{ width: `${categoryTableColumnWidths.category}px` }} />
@@ -190,14 +200,14 @@ export function AdminCategoriesTableView({
                   <col style={{ width: `${categoryTableColumnWidths.visibility}px` }} />
                   <col style={{ width: `${categoryTableColumnWidths.actions}px` }} />
                 </colgroup>
-                <thead className="bg-[color:var(--admin-table-header-bg)]">
+                <thead className="border-t border-slate-200 bg-[color:var(--admin-table-header-bg)]">
                   <tr>
-                    <th className="relative h-11 overflow-visible border-b border-slate-200 px-2 py-2 text-center text-[11px] font-semibold text-slate-600">
+                    <th className="relative h-11 overflow-visible border-b border-slate-200 px-2 py-4 text-center text-[12px] font-semibold text-slate-700">
                       <div className="absolute top-1/2 z-20" style={{ left: '100%', transform: 'translateY(-50%)' }}>
                         <AdminCheckbox id="categories-select-all" name="categoriesSelectAll" ref={selectAllRef} checked={allRowsSelected} onChange={onToggleSelectAll} aria-label="Izberi vse" />
                       </div>
                     </th>
-                    <th className="h-11 border-b border-slate-200 px-2.5 py-0 text-left text-[11px] font-semibold text-slate-600 align-middle">
+                    <th className="h-11 border-b border-slate-200 px-2.5 py-0 text-left text-[12px] font-semibold text-slate-700 align-middle">
                       <div className="relative flex h-12 items-center gap-2 overflow-visible px-1">
                         <div className="relative shrink-0 overflow-visible" style={{ width: `${treeIndent + treeButtonDiameter}px`, height: `${treeRowHeight}px` }}>
                           <div className="absolute inset-y-0 z-10 flex items-center justify-center" style={{ left: `${treeIndent}px`, width: `${treeButtonDiameter}px` }}>
@@ -211,20 +221,20 @@ export function AdminCategoriesTableView({
                         </button>
                       </div>
                     </th>
-                    <th className="h-11 border-b border-slate-200 px-2.5 py-2 text-left text-[11px] font-semibold text-slate-600">Opis</th>
-                    <th className="h-11 border-b border-slate-200 px-2.5 py-2 text-center text-[11px] font-semibold text-slate-600">
+                    <th className="h-11 border-b border-slate-200 px-2.5 py-4 text-left text-[12px] font-semibold text-slate-700">Opis</th>
+                    <th className="h-11 border-b border-slate-200 px-2.5 py-4 text-center text-[12px] font-semibold text-slate-700">
                       <button type="button" onClick={() => onSort('subcategories')} className={getSortHeaderClassName('subcategories')}>
                         Podkategorije
                       </button>
                     </th>
-                    <th className="h-11 border-b border-slate-200 px-2.5 py-2 text-center text-[11px] font-semibold text-slate-600">
+                    <th className="h-11 border-b border-slate-200 px-2.5 py-4 text-center text-[12px] font-semibold text-slate-700">
                       <button type="button" onClick={() => onSort('items')} className={getSortHeaderClassName('items')}>
                         Izdelki
                       </button>
                     </th>
-                    <th className="h-11 border-b border-slate-200 px-2.5 py-0 text-center text-[11px] font-semibold text-slate-600 align-middle">
+                    <th className="h-11 border-b border-slate-200 px-2.5 py-0 text-center text-[12px] font-semibold text-slate-700 align-middle">
                       <div className="relative flex h-8 items-center justify-center" ref={statusHeaderMenuRef}>
-                        <button type="button" onClick={onToggleStatusHeaderMenu} className={`inline-flex h-6 items-center rounded-md border px-2 text-[11px] font-semibold ${selectedRows.length > 0 ? 'border-slate-300 bg-white text-slate-700 hover:bg-[color:var(--hover-neutral)]' : 'border-transparent bg-transparent text-slate-500 cursor-default'}`} aria-haspopup="menu" aria-expanded={selectedRows.length > 0 ? isStatusHeaderMenuOpen : false} disabled={selectedRows.length === 0}>
+                        <button type="button" onClick={onToggleStatusHeaderMenu} className={`inline-flex h-8 items-center rounded-md border px-2.5 text-[12px] font-semibold ${selectedRows.length > 0 ? 'border-slate-300 bg-white text-slate-700 hover:bg-[color:var(--hover-neutral)]' : 'border-transparent bg-transparent text-slate-500 cursor-default'}`} aria-haspopup="menu" aria-expanded={selectedRows.length > 0 ? isStatusHeaderMenuOpen : false} disabled={selectedRows.length === 0}>
                           {selectedRows.length > 0 ? `Vidnost ▾ (${selectedRows.length})` : 'Vidnost'}
                         </button>
                         {selectedRows.length > 0 && isStatusHeaderMenuOpen ? (
@@ -235,7 +245,7 @@ export function AdminCategoriesTableView({
                         ) : null}
                       </div>
                     </th>
-                    <th className="h-11 border-b border-slate-200 px-2.5 py-2 text-center text-[11px] font-semibold text-slate-600">Uredi</th>
+                    <th className="h-11 border-b border-slate-200 px-2.5 py-4 text-center text-[12px] font-semibold text-slate-700">Uredi</th>
                   </tr>
                 </thead>
                 <tbody>{treeRows}</tbody>

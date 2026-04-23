@@ -6,6 +6,10 @@ export type OrderRow = {
   customer_type: string;
   organization_name: string | null;
   contact_name: string;
+  email: string;
+  reference?: string | null;
+  notes?: string | null;
+  admin_order_notes?: string | null;
   status: string;
   payment_status?: string | null;
   total: number | string | null;
@@ -88,16 +92,16 @@ export const statusTabs: Array<{ value: StatusTab; label: string }> = [
 
 export const columnWidths = {
   selectAndDelete: '40px',
-  order: '52px',
-  customer: '160px',
-  address: '152px',
-  type: '105px',
-  status: '110px',
-  payment: '110px',
-  total: '110px',
-  date: '104px',
-  documents: '90px',
-  edit: '84px'
+  order: '60px',
+  customer: '150px',
+  address: '188px',
+  type: '88px',
+  status: '104px',
+  payment: '104px',
+  total: '92px',
+  date: '128px',
+  documents: '144px',
+  edit: '64px'
 };
 
 const currencyFormatter = new Intl.NumberFormat('sl-SI', {

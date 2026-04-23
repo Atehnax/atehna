@@ -57,6 +57,9 @@ export type EditingRowDraft = {
   title: string;
   description: string;
   status: CategoryStatus;
+  initialTitle?: string;
+  initialDescription?: string;
+  initialStatus?: CategoryStatus;
 };
 
 export type CreateTarget =

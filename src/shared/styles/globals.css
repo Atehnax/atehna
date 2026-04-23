@@ -118,6 +118,21 @@ textarea[readonly] {
   background-color: var(--field-locked-bg) !important;
 }
 
+.admin-orders-date-input::-webkit-calendar-picker-indicator {
+  width: 13px;
+  min-width: 13px;
+  margin-left: -4px;
+  margin-right: 1px;
+  padding: 0;
+}
+
+.admin-orders-date-input::-webkit-date-and-time-value,
+.admin-orders-date-input::-webkit-datetime-edit,
+.admin-orders-date-input::-webkit-datetime-edit-fields-wrapper {
+  min-width: 0;
+  padding: 0;
+}
+
 .prose h1,
 .prose h2,
 .prose h3 {

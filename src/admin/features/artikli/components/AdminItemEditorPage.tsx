@@ -27,6 +27,7 @@ import { useToast } from '@/shared/ui/toast';
 import { adminTextButtonTypographyTokenClasses, buttonTokenClasses } from '@/shared/ui/theme/tokens';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import EuiTabs from '@/shared/ui/eui-tabs';
+import { adminTablePrimaryButtonClassName } from '@/shared/ui/admin-table';
 import {
   createArchivedItemRecord,
   readArchivedItemStorage,
@@ -59,7 +60,7 @@ import {
   topBarArticleNameInputClassName
 } from '@/admin/features/artikli/components/artikliFieldStyles';
 import { saveCatalogItemPayload } from '@/admin/features/artikli/lib/canonicalSaveClient';
-import Dialog from '@/shared/ui/dialog/dialog';
+import { Dialog, dialogActionButtonClassName, dialogFooterClassName } from '@/shared/ui/dialog';
 import { THead, TH } from '@/shared/ui/table';
 import type { CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/server/catalogItems';
 
@@ -68,7 +69,7 @@ const compactTableNumericSlotClassName = 'inline-flex h-6 w-[7ch] items-center j
 const compactTableFourDigitSlotClassName = 'inline-flex h-6 w-[5ch] items-center justify-end';
 const compactTableThreeDigitSlotClassName = 'inline-flex h-6 w-[4ch] items-center justify-end';
 const compactSideInputClassName = 'h-full w-full border-0 bg-transparent p-0 text-sm text-slate-900 outline-none focus:ring-0';
-const topActionSaveButtonClassName = `gap-2 ${adminTextButtonTypographyTokenClasses} !h-8 !leading-none !tracking-[0] disabled:!border-transparent disabled:!bg-[color:var(--blue-500)] disabled:!text-white disabled:!opacity-50`;
+const topActionSaveButtonClassName = `gap-2 ${adminTablePrimaryButtonClassName} !h-8 !leading-none !tracking-[0] disabled:!border-transparent disabled:!bg-[color:var(--blue-500)] disabled:!text-white disabled:!opacity-50`;
 const topSaveActionButtonIconClassName = 'h-[15.3px] w-[15.3px]';
 const editorSectionTitleClassName = 'text-[20px] font-semibold tracking-tight text-slate-900';
 const inlineSnippetClass = 'rounded bg-[#1982bf1a] px-1 py-0.5 font-mono text-[11px] text-[#1982bf]';
@@ -1438,9 +1439,9 @@ function OpisRichTextEditor({
         title={mediaDialogMode === 'link' ? 'Dodaj povezavo' : 'Dodaj sliko'}
         isDismissable
         footer={(
-          <div className="mt-3 flex items-center justify-end gap-2">
-            <Button type="button" variant="default" size="toolbar" className={adminTextButtonTypographyTokenClasses} onClick={() => setMediaDialogMode(null)}>Prekliči</Button>
-            <Button type="button" variant="primary" size="toolbar" className={adminTextButtonTypographyTokenClasses} onClick={submitMediaUrl}>Potrdi</Button>
+          <div className={dialogFooterClassName}>
+            <Button type="button" variant="default" size="toolbar" className={dialogActionButtonClassName} onClick={() => setMediaDialogMode(null)}>Prekliči</Button>
+            <Button type="button" variant="primary" size="toolbar" className={dialogActionButtonClassName} onClick={submitMediaUrl}>Potrdi</Button>
           </div>
         )}
       >
@@ -3995,7 +3996,7 @@ export default function AdminItemEditorPage({
                       <ActiveStateChip
                         active={variant.active}
                         editable={isTableEditable}
-                        chipClassName="!h-6 !min-w-[94px] !px-1.5 !text-[10px]"
+                        chipClassName="!h-7 !min-w-[94px] !px-1.5 !text-[10px]"
                         menuPlacement="bottom"
                         onChange={(next) => applySelectionChange(() => updateVariant(variant.id, { active: next }))}
                       />
@@ -4006,7 +4007,7 @@ export default function AdminItemEditorPage({
                       <NoteTagChip
                         value={getVariantTag(variant.id)}
                         editable={isTableEditable}
-                        chipClassName="!h-6 !min-w-[94px] !px-1.5 !text-[10px]"
+                        chipClassName="!h-7 !min-w-[94px] !px-1.5 !text-[10px]"
                         menuPlacement="bottom"
                         onChange={(next) => {
                           if (!next) return;
@@ -4030,12 +4031,12 @@ export default function AdminItemEditorPage({
         title={pendingSaveConfirmation ? `Pred shranjevanjem preverite spremembe (${pendingSaveConfirmation.changeCount})` : 'Pred shranjevanjem preverite spremembe'}
         panelClassName="!max-w-2xl"
         footer={(
-          <div className="mt-4 flex items-center justify-end gap-2">
+          <div className={dialogFooterClassName}>
             <Button
               type="button"
               variant="default"
               size="toolbar"
-              className={adminTextButtonTypographyTokenClasses}
+              className={dialogActionButtonClassName}
               onClick={() => setPendingSaveConfirmation(null)}
             >
               Prekliči
@@ -4044,7 +4045,7 @@ export default function AdminItemEditorPage({
               type="button"
               variant="primary"
               size="toolbar"
-              className={adminTextButtonTypographyTokenClasses}
+              className={dialogActionButtonClassName}
               onClick={() => { void confirmSave(); }}
             >
               Potrdi in shrani

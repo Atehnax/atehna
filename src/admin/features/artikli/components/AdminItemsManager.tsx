@@ -4,11 +4,30 @@ import dynamic from 'next/dynamic';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
-import { Dialog } from '@/shared/ui/dialog';
+import { Dialog, dialogActionButtonClassName, dialogDescriptionClassName, dialogFooterClassName } from '@/shared/ui/dialog';
 import { IconButton } from '@/shared/ui/icon-button';
 import { Spinner } from '@/shared/ui/loading';
 import { useToast } from '@/shared/ui/toast';
-import { AdminTableLayout } from '@/shared/ui/admin-table';
+import {
+  adminTableCardClassName,
+  adminTableCardStyle,
+  adminTableHeaderClassName,
+  adminTableHeaderTextClassName,
+  adminTableInlineActionRowClassName,
+  adminTableInlineCancelButtonClassName,
+  adminTableInlineCancelIconClassName,
+  adminTableInlineConfirmButtonClassName,
+  adminTableInlineConfirmIconClassName,
+  adminTableNeutralIconButtonClassName,
+  adminTablePrimaryButtonClassName,
+  adminTableSearchIconClassName,
+  adminTableSearchInputClassName,
+  adminTableSearchWrapperClassName,
+  adminTableSelectedWarningIconButtonClassName,
+  adminTableToolbarActionsClassName,
+  adminTableToolbarGroupClassName,
+  AdminTableLayout
+} from '@/shared/ui/admin-table';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import { ArchiveIcon, CheckIcon, CloseIcon, ColumnFilterIcon, DownloadIcon, OpenArticleIcon, PencilIcon } from '@/shared/ui/icons/AdminActionIcons';
@@ -23,7 +42,7 @@ import {
   getHeaderPopoverStyle,
   useHeaderFilterDismiss
 } from '@/shared/ui/admin-header-filter';
-import { adminTableRowToneClasses, adminTextButtonTypographyTokenClasses, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
+import { adminTableRowToneClasses, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
 import {
   createArchivedItemRecord,
   readArchivedItemStorage,
@@ -393,6 +412,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const pendingGuardActionRef = useRef<PendingGuardAction | null>(null);
 
   const families = useMemo(() => toListFamilies(items), [items]);
+  const pendingGuardArticleTitle = useMemo(() => {
+    if (!pendingGuardLabel) return null;
+    const articleEditPrefix = 'začetkom urejanja artikla ';
+    return pendingGuardLabel.startsWith(articleEditPrefix) ? pendingGuardLabel.slice(articleEditPrefix.length) : null;
+  }, [pendingGuardLabel]);
   const { toast } = useToast();
   const effectiveFamilies = useMemo(
     () =>
@@ -1376,68 +1400,83 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
           }}
           title="Neshranjene spremembe"
           isDismissable={false}
+          panelClassName="!max-w-[32rem]"
           footer={
-            <div className="mt-4 flex flex-nowrap items-center justify-end gap-1.5">
-              <button
+            <div className={`${dialogFooterClassName} flex-nowrap gap-1.5`}>
+              <Button
                 type="button"
+                variant="restore"
+                size="toolbar"
                 onClick={() => {
                   void handleGuardDialogSave();
                 }}
                 disabled={!activeEditSnapshot?.isDirty || !activeEditSnapshot.isValid || isSavingActiveScope}
-                className="h-8 whitespace-nowrap rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-default disabled:opacity-50"
+                className={`${dialogActionButtonClassName} whitespace-nowrap !px-2.5 !text-[11px]`}
               >
                 {isSavingActiveScope ? 'Shranjujem...' : 'Shrani in nadaljuj'}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="default"
+                size="toolbar"
                 onClick={handleGuardDialogCancel}
-                className="h-8 whitespace-nowrap rounded-lg border border-slate-200 px-2.5 text-[11px] font-semibold text-slate-600"
+                className={`${dialogActionButtonClassName} whitespace-nowrap !px-2.5 !text-[11px]`}
               >
                 Nadaljuj urejanje
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="danger"
+                size="toolbar"
                 onClick={handleGuardDialogDiscard}
-                className="h-8 whitespace-nowrap rounded-lg border border-rose-300 bg-rose-50 px-2.5 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-100"
+                className={`${dialogActionButtonClassName} whitespace-nowrap !px-2.5 !text-[11px]`}
               >
                 Zavrzi spremembe
-              </button>
+              </Button>
             </div>
           }
         >
-          <p className="mt-2 text-xs text-slate-600">
-            Pred {pendingGuardLabel} shranite ali zavrzite trenutno urejanje, da se spremembe ne izgubijo.
-          </p>
+          {pendingGuardArticleTitle ? (
+            <p className={dialogDescriptionClassName}>
+              Pred začetkom urejanja artikla{' '}
+              <span className="font-semibold text-slate-900">{pendingGuardArticleTitle}</span>{' '}
+              shrani ali zavrzi trenutno urejanje, da se spremembe ne izgubijo.
+            </p>
+          ) : (
+            <p className={dialogDescriptionClassName}>
+              Pred {pendingGuardLabel} shrani ali zavrzi trenutno urejanje, da se spremembe ne izgubijo.
+            </p>
+          )}
           {activeEditSnapshot?.validationMessage ? (
             <p className="mt-2 text-xs font-medium text-rose-600">{activeEditSnapshot.validationMessage}</p>
           ) : null}
         </Dialog>
       ) : null}
       <AdminTableLayout
-        className="border shadow-[0_14px_34px_rgba(15,23,42,0.07),0_2px_6px_rgba(15,23,42,0.03)]"
-        style={{ background: '#fff', borderColor: '#e2e8f0' }}
-        headerClassName="px-5 pt-5 pb-2 [&>div:last-child]:!mt-3"
+        className={adminTableCardClassName}
+        style={adminTableCardStyle}
+        headerClassName={adminTableHeaderClassName}
         headerLeft={
-          <div className="flex min-h-9 w-full items-center gap-2">
+          <div className={adminTableToolbarGroupClassName}>
             <AdminSearchInput
               value={search}
               onChange={(event) => handleSearchInputChange(event.target.value)}
               placeholder="Poišči artikel, SKU, kategorijo, status ali opombe ..."
               aria-label="Poišči artikel, SKU, kategorijo, status ali opombe"
-              wrapperClassName="!w-full min-w-0 h-9 !rounded-md border-slate-200/90 !bg-slate-50 sm:!flex-none sm:!w-[40%] sm:min-w-[20rem] sm:max-w-[30rem]"
-              inputClassName="!m-0 !h-full min-w-0 w-full flex-1 !rounded-md !border-0 !bg-transparent !pr-4 !text-[13px] !font-normal text-slate-700 !shadow-none !outline-none ring-0 transition-colors placeholder:text-slate-400 [--euiFormControlStateWidth:0px] focus:[--euiFormControlStateWidth:0px] focus-visible:[--euiFormControlStateWidth:0px] focus:!border-0 focus:!shadow-none focus:!outline-none focus-visible:!border-0 focus-visible:!shadow-none focus-visible:!outline-none"
-              iconClassName="left-4 h-[18px] w-[18px] text-slate-400"
+              wrapperClassName={`${adminTableSearchWrapperClassName} sm:!flex-none sm:!w-[40%] sm:min-w-[20rem] sm:max-w-[30rem]`}
+              inputClassName={adminTableSearchInputClassName}
+              iconClassName={adminTableSearchIconClassName}
             />
           </div>
         }
         headerRight={
-          <div className="flex min-h-9 items-center gap-1.5 self-center">
+          <div className={adminTableToolbarActionsClassName}>
             <IconButton
               type="button"
               onClick={exportVariantsCsv}
               tone="neutral"
               size="sm"
-              className="!h-9 !w-9 !rounded-md !border-slate-200/90 !bg-white !text-slate-600 hover:!bg-slate-50 hover:!text-[#1982bf] active:!text-[#1982bf]"
+              className={adminTableNeutralIconButtonClassName}
               aria-label={hasExportSelection ? 'Prenesi izbrane artikle' : 'Prenesi vse artikle'}
               title={hasExportSelection ? 'Prenesi izbrane' : 'Prenesi vse'}
             >
@@ -1449,7 +1488,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
               disabled={!hasSelectedArchiveFamilies || isArchivingSelected}
               tone={hasSelectedArchiveFamilies ? 'warning' : 'neutral'}
               size="sm"
-              className={hasSelectedArchiveFamilies ? '!h-9 !w-9 !rounded-md !border-amber-300/80 !bg-amber-50 !text-amber-700 !transition-none' : '!h-9 !w-9 !rounded-md !border-slate-200/90 !bg-white !text-slate-600 !transition-none hover:!bg-slate-50 hover:!text-[#1982bf] active:!text-[#1982bf]'}
+              className={hasSelectedArchiveFamilies ? adminTableSelectedWarningIconButtonClassName : `${adminTableNeutralIconButtonClassName} !transition-none`}
               aria-label={
                 hasSelectedArchiveFamilies
                   ? `Arhiviraj izbrane artikle (${selectedArchiveCount})`
@@ -1463,7 +1502,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
               type="button"
               variant="primary"
               size="toolbar"
-              className={`${adminTextButtonTypographyTokenClasses} !h-9 !rounded-md !px-4 !text-[13px] !font-semibold !tracking-[0.005em] hover:!bg-[#1777af] active:!bg-[#146997]`}
+              className={adminTablePrimaryButtonClassName}
               aria-label="Nov artikel"
               onClick={handleCreateItemNavigation}
             >
@@ -1716,7 +1755,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                   </div>
                 </TH>
                 <TH className={`${ACTIONS_COLUMN_CLASS} px-2 text-center`}>
-                  <span className="inline-flex items-center text-[12px] font-semibold leading-none text-slate-900">Uredi</span>
+                  <span className={adminTableHeaderTextClassName}>Uredi</span>
                 </TH>
               </TR>
             </THead>
@@ -1867,12 +1906,12 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                       </td>
                       <td className={`${ACTIONS_COLUMN_CLASS} px-2 py-4 text-center`}>
                         {isEditingFamily ? (
-                          <div className="flex items-center justify-center gap-1 whitespace-nowrap">
+                          <div className={adminTableInlineActionRowClassName}>
                             <IconButton
                               type="button"
                               tone="neutral"
                               size="sm"
-                              className="!h-8 !w-8 !rounded-md !border !border-slate-200 !bg-white !p-0 !text-emerald-600/70 !shadow-none hover:!border-emerald-300 hover:!bg-emerald-50 hover:!text-emerald-700 active:!border-emerald-300 active:!bg-emerald-50 active:!text-emerald-700 disabled:!border-slate-200 disabled:!bg-white disabled:!text-slate-300 disabled:!opacity-100"
+                              className={adminTableInlineConfirmButtonClassName}
                               disabled={!rowEditSnapshot?.isDirty || !rowEditSnapshot.isValid || isSavingActiveScope}
                               aria-label={`Shrani urejanje za ${family.name}`}
                               title={
@@ -1886,20 +1925,20 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                               {isSavingActiveScope ? (
                                 <Spinner size="sm" className="text-[color:var(--blue-500)]" />
                               ) : (
-                                <CheckIcon className="!h-[20px] !w-[20px]" strokeWidth={2.2} />
+                                <CheckIcon className={adminTableInlineConfirmIconClassName} strokeWidth={2.2} />
                               )}
                             </IconButton>
                             <IconButton
                               type="button"
                               tone="neutral"
                               size="sm"
-                              className="!h-8 !w-8 !rounded-md !border !border-slate-200 !bg-white !p-0 !text-rose-600/70 !shadow-none hover:!border-rose-300 hover:!bg-rose-50 hover:!text-rose-700 active:!border-rose-300 active:!bg-rose-50 active:!text-rose-700 disabled:!border-slate-200 disabled:!bg-white disabled:!text-slate-300 disabled:!opacity-100"
+                              className={adminTableInlineCancelButtonClassName}
                               onClick={cancelCurrentEditScope}
                               aria-label={`Prekliči urejanje za ${family.name}`}
                               title="Prekliči"
                             >
                               <CloseIcon
-                                className="!h-[16px] !w-[16px]"
+                                className={adminTableInlineCancelIconClassName}
                                 strokeWidth={1.9}
                                 strokeLinecap="round"
                                 strokeLinejoin="round"

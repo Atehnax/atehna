@@ -36,6 +36,12 @@ export const UI_TOKENS = {
 export const adminTextButtonTypographyTokenClasses =
   "font-['Inter',system-ui,sans-serif] !text-xs !font-normal";
 
+export const adminPlaceholderTokenClasses =
+  'placeholder:font-normal placeholder:text-slate-300 placeholder:opacity-100';
+
+export const adminSearchPlaceholderTokenClasses =
+  'placeholder:font-normal placeholder:text-slate-500 placeholder:opacity-80';
+
 export const hoverTokenClasses = {
   neutral: 'hover:bg-[color:var(--hover-neutral)]'
 } as const;
@@ -160,28 +166,28 @@ export const filterPillTokenClasses = {
 } as const;
 
 export const adminFilterInputTokenClasses =
-  "h-7 rounded-md border border-slate-300 bg-white px-2 text-[11px] leading-[1.2] text-slate-700 font-['Inter',system-ui,sans-serif] outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0";
+  `h-8 rounded-md border border-slate-300 bg-white px-2.5 text-[12px] leading-[1.25] text-slate-700 font-['Inter',system-ui,sans-serif] outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0 ${adminPlaceholderTokenClasses}`;
 
 export const adminRangeFilterTokenClasses = {
-  panel: 'rounded-xl border border-slate-200 bg-white p-2 text-left shadow-lg',
+  panel: 'rounded-md border border-slate-200 bg-white p-2 text-left shadow-[0_14px_34px_rgba(15,23,42,0.08),0_2px_6px_rgba(15,23,42,0.05)]',
   title: 'mb-2 text-[11px] font-semibold text-slate-800',
   presetsGrid: 'mb-3 grid grid-cols-3 gap-1',
   presetButton:
-    `rounded-lg border border-slate-300 px-2 py-1 text-slate-800 hover:bg-[color:var(--hover-neutral)] ${adminTextButtonTypographyTokenClasses}`,
+    `rounded-md border border-slate-300 px-2 py-1 text-slate-800 hover:bg-[color:var(--hover-neutral)] ${adminTextButtonTypographyTokenClasses}`,
   inputsSection: 'mb-3 border-t border-slate-200 pt-3',
   inputGrid: 'grid grid-cols-2 gap-2',
   actionsGrid: 'grid grid-cols-2 gap-2',
-  confirmButton: `rounded-xl bg-[color:var(--blue-500)] py-2 text-white ${adminTextButtonTypographyTokenClasses}`,
+  confirmButton: `rounded-md bg-[color:var(--blue-500)] py-2 text-white ${adminTextButtonTypographyTokenClasses}`,
   resetButton:
-    `rounded-xl border border-slate-300 bg-[color:var(--ui-neutral-bg)] py-2 text-slate-700 hover:bg-[color:var(--ui-neutral-bg-hover)] ${adminTextButtonTypographyTokenClasses}`
+    `rounded-md border border-slate-300 bg-[color:var(--ui-neutral-bg)] py-2 text-slate-700 hover:bg-[color:var(--ui-neutral-bg-hover)] ${adminTextButtonTypographyTokenClasses}`
 } as const;
 
 export const selectTokenClasses = {
   trigger:
     "inline-flex h-7 w-full items-center overflow-visible rounded-md border border-slate-300 bg-white px-2 py-0.5 text-left text-[11px] font-normal leading-[1.2] text-slate-700 font-['Inter',system-ui,sans-serif] outline-none ring-0 transition hover:bg-white active:bg-white focus:border-[#3e67d6] focus:bg-white focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:bg-white focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:text-slate-300",
-  menu: 'w-full rounded-md border border-slate-300 bg-white p-1 shadow-sm',
+  menu: 'w-full rounded-md border border-slate-200 bg-white p-1 shadow-[0_14px_34px_rgba(15,23,42,0.08),0_2px_6px_rgba(15,23,42,0.05)]',
   menuItem:
-    `flex h-7 w-full items-center rounded-md px-2 text-left text-[11px] font-normal leading-[1.2] text-slate-700 font-['Inter',system-ui,sans-serif] transition ${hoverTokenClasses.neutral} hover:text-[color:var(--blue-500)] disabled:cursor-default disabled:text-slate-300`
+    `flex h-8 w-full items-center rounded-md px-2.5 text-left text-[12px] font-normal leading-[1.25] text-slate-700 font-['Inter',system-ui,sans-serif] transition ${hoverTokenClasses.neutral} hover:text-[color:var(--blue-500)] disabled:cursor-default disabled:text-slate-300`
 } as const;
 
 export const dateInputTokenClasses = {

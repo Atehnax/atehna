@@ -1,18 +1,21 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { IconButton } from '@/shared/ui/icon-button';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
-import AdminOrderStatusSelect from '@/admin/components/AdminOrderStatusSelect';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { Spinner } from '@/shared/ui/loading';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
 import {
+  CheckIcon,
+  CloseIcon,
   ColumnFilterIcon,
   DownloadIcon,
+  OpenArticleIcon,
   PanelAddRemoveIcon,
   PencilIcon,
   TrashCanIcon
@@ -20,8 +23,36 @@ import {
 import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, RowActionsDropdown, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
-import { adminTableRowToneClasses, adminTextButtonTypographyTokenClasses, dateInputTokenClasses, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
-import { AdminTableLayout, ColumnVisibilityControl } from '@/shared/ui/admin-table';
+import { Input } from '@/shared/ui/input';
+import { adminTableRowToneClasses, adminTextButtonTypographyTokenClasses, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
+import {
+  adminTableCardClassName,
+  adminTableCardStyle,
+  adminTableCompactPopoverPanelClassName,
+  adminTableContentClassName,
+  adminTableHeaderButtonClassName,
+  adminTableHeaderClassName,
+  adminTableHeaderTextClassName,
+  adminTableInlineActionRowClassName,
+  adminTableInlineCancelButtonClassName,
+  adminTableInlineCancelIconClassName,
+  adminTableInlineConfirmButtonClassName,
+  adminTableInlineConfirmIconClassName,
+  adminTableNeutralIconButtonClassName,
+  adminTablePopoverPanelClassName,
+  adminTablePopoverPresetButtonClassName,
+  adminTablePopoverPrimaryButtonClassName,
+  adminTablePopoverSecondaryButtonClassName,
+  adminTablePrimaryButtonClassName,
+  adminTableSearchIconClassName,
+  adminTableSearchInputClassName,
+  adminTableSearchWrapperClassName,
+  adminTableSelectedDangerIconButtonClassName,
+  adminTableToolbarActionsClassName,
+  adminTableToolbarGroupClassName,
+  AdminTableLayout,
+  ColumnVisibilityControl
+} from '@/shared/ui/admin-table';
 import AdminRangeFilterPanel, { type RangePreset } from '@/shared/ui/admin-range-filter-panel';
 import AdminFilterInput from '@/shared/ui/admin-filter-input';
 import {
@@ -31,10 +62,10 @@ import {
   getHeaderPopoverStyle,
   useHeaderFilterDismiss
 } from '@/shared/ui/admin-header-filter';
-import AdminOrderPaymentSelect from '@/admin/components/AdminOrderPaymentSelect';
 import StatusChip from '@/admin/components/StatusChip';
 import PaymentChip from '@/admin/components/PaymentChip';
-import { getCustomerTypeLabel } from '@/shared/domain/order/customerType';
+import { CustomSelect } from '@/shared/ui/select';
+import { CUSTOMER_TYPE_FORM_OPTIONS, getCustomerTypeLabel } from '@/shared/domain/order/customerType';
 import { ORDER_STATUS_OPTIONS } from '@/shared/domain/order/orderStatus';
 import { formatSlDate, formatSlDateTime } from '@/shared/domain/order/dateTime';
 import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, isPaymentStatus } from '@/shared/domain/order/paymentStatus';
@@ -82,6 +113,30 @@ type OrderRowTuple = [
   deletedAt?: string | null
 ];
 type PdfDocTuple = readonly [id: number, orderId: number, type: PdfDoc['type'], filename: string, blobUrl: string, createdAt: string];
+type OrderQuickEditState = {
+  orderId: number;
+  draftOrderNumber: string;
+  initialOrderNumber: string;
+  draftOrderDate: string;
+  initialOrderDate: string;
+  draftCustomerName: string;
+  initialCustomerName: string;
+  draftAddress: string;
+  initialAddress: string;
+  draftCustomerType: string;
+  initialCustomerType: string;
+  draftStatus: string;
+  initialStatus: string;
+  draftPaymentStatus: string;
+  initialPaymentStatus: string;
+  email: string;
+  contactName: string;
+  organizationName: string | null;
+  reference: string | null;
+  notes: string | null;
+  postalCode: string | null;
+  isSaving: boolean;
+};
 
 type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
 type OrdersColumnKey = 'order' | 'date' | 'customer' | 'address' | 'type' | 'status' | 'payment' | 'total' | 'documents';
@@ -114,11 +169,198 @@ const PAYMENT_SORT_PRIORITY: Record<string, number> = {
   unpaid: 2
 };
 const TYPE_SORT_CYCLE: TypePriority[] = ['school', 'company', 'individual'];
-const HEADER_TITLE_BUTTON_CLASS = 'inline-flex items-center text-[11px] font-semibold leading-none hover:text-[color:var(--blue-500)]';
+const HEADER_TITLE_BUTTON_CLASS = adminTableHeaderButtonClassName;
 const ORDERS_NUMERIC_RANGE_PRESETS: RangePreset[] = ['20', '50', '100', '200', '500', '1000'].map((maxValue) => ({
   label: `0-${maxValue === '1000' ? '1k' : maxValue}`,
   value: { min: '0', max: maxValue }
 }));
+const ORDER_CUSTOMER_TYPE_ROW_OPTIONS = CUSTOMER_TYPE_FORM_OPTIONS.map((option) => ({
+  value: option.value,
+  label: getCustomerTypeLabel(option.value)
+}));
+const ORDERS_HEADER_CELL_BASE_CLASS = 'h-11 border-b border-slate-200 px-3 py-0 align-middle text-[12px] font-semibold text-slate-700';
+const ORDERS_HEADER_CELL_CENTER_CLASS = `${ORDERS_HEADER_CELL_BASE_CLASS} text-center`;
+const ORDERS_HEADER_CELL_LEFT_CLASS = `${ORDERS_HEADER_CELL_BASE_CLASS} text-left`;
+const ORDERS_HEADER_CONTENT_CLASS = 'relative inline-flex h-11 items-center gap-1.5 align-middle';
+const ORDERS_BODY_CELL_BASE_CLASS = 'h-12 px-3 py-0 align-middle text-[12px] text-slate-700';
+const ORDERS_BODY_CELL_CENTER_CLASS = `${ORDERS_BODY_CELL_BASE_CLASS} text-center`;
+const ORDERS_ROW_CLASS = 'h-12 border-t border-slate-200/90 bg-white text-[12px] transition-colors duration-200';
+const ORDERS_INLINE_CONTROL_FRAME_CLASS = 'mx-auto flex h-7 w-full items-center justify-center';
+const ORDERS_INLINE_SELECT_TRIGGER_CLASS =
+  '!h-7 !rounded-md !border-slate-300 !bg-white !px-2 !py-0 !text-[12px] !leading-none !text-slate-700';
+const ORDERS_BULK_HEADER_BUTTON_CLASS =
+  'inline-flex h-8 items-center rounded-md border border-slate-300 bg-white px-2.5 text-[12px] font-semibold leading-none text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300';
+const ORDERS_INLINE_TEXT_INPUT_CLASS =
+  'h-7 !rounded-md border-slate-300 bg-white px-2 text-[12px] text-slate-900';
+const ORDERS_ORDER_INPUT_CLASS = `${ORDERS_INLINE_TEXT_INPUT_CLASS} !w-[52px] !text-center font-semibold`;
+const ORDERS_DATE_INPUT_CLASS = `${ORDERS_INLINE_TEXT_INPUT_CLASS} admin-orders-date-input !w-[100px] !max-w-[100px] !pl-2 !pr-[3px] !font-normal`;
+const ORDERS_TEXT_INPUT_FULL_CLASS = `${ORDERS_INLINE_TEXT_INPUT_CLASS} !w-full !font-normal`;
+const ORDERS_TYPE_SELECT_TRIGGER_CLASS = `${ORDERS_INLINE_SELECT_TRIGGER_CLASS} !min-w-[82px] !font-normal`;
+const ORDERS_STATUS_CHIP_CLASS = '!min-w-[96px] !text-[11px]';
+const ORDERS_PAYMENT_CHIP_CLASS = '!min-w-[96px] !text-[11px]';
+const ORDERS_EMPHASIZED_VALUE_CLASS = 'font-semibold text-slate-900';
+const ORDERS_STANDARD_VALUE_CLASS = 'font-normal text-slate-700';
+const DATE_DISPLAY_PATTERN = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+
+type InlineChipSelectOption<Value extends string> = {
+  value: Value;
+  label: string;
+};
+
+function OrdersInlineChipSelect<Value extends string>({
+  value,
+  options,
+  disabled = false,
+  ariaLabel,
+  menuWidth = 144,
+  onChange,
+  children
+}: {
+  value: Value;
+  options: readonly InlineChipSelectOption<Value>[];
+  disabled?: boolean;
+  ariaLabel: string;
+  menuWidth?: number;
+  onChange: (next: Value) => void;
+  children: ReactNode;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const updateMenuPosition = useCallback(() => {
+    if (!triggerRef.current || typeof window === 'undefined') return;
+
+    const triggerRect = triggerRef.current.getBoundingClientRect();
+    const resolvedWidth = Math.max(menuWidth, triggerRect.width, menuRef.current?.offsetWidth ?? 0);
+    const resolvedHeight = menuRef.current?.offsetHeight ?? 0;
+    const left = Math.min(
+      Math.max(8, triggerRect.left + triggerRect.width / 2 - resolvedWidth / 2),
+      window.innerWidth - resolvedWidth - 8
+    );
+    const belowTop = triggerRect.bottom + 6;
+    const aboveTop = Math.max(8, triggerRect.top - resolvedHeight - 6);
+    const top =
+      resolvedHeight > 0 && belowTop + resolvedHeight + 8 > window.innerHeight && aboveTop >= 8
+        ? aboveTop
+        : belowTop;
+
+    setMenuPosition({ top, left, width: resolvedWidth });
+  }, [menuWidth]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    updateMenuPosition();
+    const frameId = window.requestAnimationFrame(() => updateMenuPosition());
+
+    const handleDocumentClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setIsOpen(false);
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
+    const handleWindowChange = () => updateMenuPosition();
+
+    document.addEventListener('mousedown', handleDocumentClick);
+    document.addEventListener('keydown', handleEscape);
+    window.addEventListener('resize', handleWindowChange);
+    window.addEventListener('scroll', handleWindowChange, true);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      document.removeEventListener('mousedown', handleDocumentClick);
+      document.removeEventListener('keydown', handleEscape);
+      window.removeEventListener('resize', handleWindowChange);
+      window.removeEventListener('scroll', handleWindowChange, true);
+    };
+  }, [isOpen, updateMenuPosition]);
+
+  useEffect(() => {
+    if (!disabled) return;
+    setIsOpen(false);
+  }, [disabled]);
+
+  return (
+    <div ref={rootRef} className="relative inline-flex max-w-full items-center justify-center">
+      <button
+        ref={triggerRef}
+        type="button"
+        disabled={disabled}
+        onClick={() => {
+          if (disabled) return;
+          setIsOpen((current) => !current);
+        }}
+        className="relative inline-flex max-w-full items-center justify-center rounded-md focus:outline-none"
+        aria-label={ariaLabel}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+      >
+        <span className="block">{children}</span>
+        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-500">▾</span>
+      </button>
+
+      {isOpen && menuPosition && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              ref={menuRef}
+              role="menu"
+              className="fixed z-[1100]"
+              style={{ top: menuPosition.top, left: menuPosition.left, width: menuPosition.width }}
+            >
+              <MenuPanel className="w-full">
+                {options.map((option) => (
+                  <MenuItem
+                    key={option.value}
+                    isActive={option.value === value}
+                    onClick={() => {
+                      onChange(option.value);
+                      setIsOpen(false);
+                    }}
+                  >
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </MenuPanel>
+            </div>,
+            document.body
+          )
+        : null}
+    </div>
+  );
+}
+
+const toEditableOrderNumber = (value: string) => value.trim().replace(/^#/, '');
+const toDisplayOrderNumberValue = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return '#';
+  return trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
+};
+const toApiOrderDate = (value: string) => {
+  const trimmed = value.trim();
+  const displayMatch = DATE_DISPLAY_PATTERN.exec(trimmed);
+  if (displayMatch) {
+    const [, day, month, year] = displayMatch;
+    const isoCandidate = `${year}-${month}-${day}`;
+    const parsed = new Date(`${isoCandidate}T00:00:00`);
+    if (!Number.isNaN(parsed.getTime()) && parsed.getUTCFullYear() === Number(year) && parsed.getUTCMonth() + 1 === Number(month) && parsed.getUTCDate() === Number(day)) {
+      return isoCandidate;
+    }
+    return '';
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+  return '';
+};
 const formatDateForRangeChip = (value: string) => {
   const trimmed = value.trim();
   if (!trimmed) return '—';
@@ -242,6 +484,7 @@ export default function AdminOrdersTable({
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [confirmDeleteRowId, setConfirmDeleteRowId] = useState<number | null>(null);
   const [isBulkUpdatingStatus, setIsBulkUpdatingStatus] = useState(false);
+  const [quickEdit, setQuickEdit] = useState<OrderQuickEditState | null>(null);
 
   const [statusFilter, setStatusFilter] = useState<StatusTab>((initialStatusFilter as StatusTab) ?? 'all');
   const [query, setQuery] = useState(initialQuery);
@@ -829,19 +1072,6 @@ export default function AdminOrdersTable({
     const startIndex = (page - 1) * pageSize;
     return filteredAndSortedOrders.slice(startIndex, startIndex + pageSize);
   }, [filteredAndSortedOrders, isServerFilteredMode, page, pageSize]);
-  const rowDisplayByOrderId = useMemo(() => {
-    const next = new Map<number, { dateLabel: string; dateTimeLabel: string; orderAddress: string; typeLabel: string; totalLabel: string }>();
-    pagedOrders.forEach((order) => {
-      next.set(order.id, {
-        dateLabel: formatSlDate(order.created_at),
-        dateTimeLabel: formatSlDateTime(order.created_at),
-        orderAddress: formatOrderAddress(order),
-        typeLabel: getCustomerTypeLabel(order.customer_type),
-        totalLabel: formatCurrency(order.total)
-      });
-    });
-    return next;
-  }, [pagedOrders]);
 
   const visibleOrderIds = useMemo(() => pagedOrders.map((order) => order.id), [pagedOrders]);
   const selectedOrderIds = useMemo(() => new Set(selected), [selected]);
@@ -854,10 +1084,251 @@ export default function AdminOrdersTable({
   const allSelected = visibleOrderIds.length > 0 && selectedVisibleCount === visibleOrderIds.length;
   const selectedCount = selected.length;
   const hasSelectedRows = selectedCount > 0;
-  const isSingleSelection = selectedCount === 1;
 
   const [rowStatusOverrides, setRowStatusOverrides] = useState<Record<number, string>>({});
   const [rowPaymentOverrides, setRowPaymentOverrides] = useState<Record<number, string | null>>({});
+  const [rowDetailOverrides, setRowDetailOverrides] = useState<Record<number, Partial<OrderRow>>>({});
+  const rowDisplayByOrderId = useMemo(() => {
+    const next = new Map<number, { dateLabel: string; dateTimeLabel: string; orderAddress: string; typeLabel: string; totalLabel: string }>();
+    pagedOrders.forEach((order) => {
+      const effectiveOrder = {
+        ...order,
+        ...(rowDetailOverrides[order.id] ?? {}),
+        status: rowStatusOverrides[order.id] ?? order.status,
+        payment_status: rowPaymentOverrides[order.id] ?? order.payment_status ?? null
+      };
+      next.set(order.id, {
+        dateLabel: formatSlDate(effectiveOrder.created_at),
+        dateTimeLabel: formatSlDateTime(effectiveOrder.created_at),
+        orderAddress: formatOrderAddress(effectiveOrder),
+        typeLabel: getCustomerTypeLabel(effectiveOrder.customer_type),
+        totalLabel: formatCurrency(effectiveOrder.total)
+      });
+    });
+    return next;
+  }, [pagedOrders, rowDetailOverrides, rowPaymentOverrides, rowStatusOverrides]);
+
+  const startQuickEdit = useCallback(
+    (order: OrderRow) => {
+      if (
+        quickEdit &&
+        quickEdit.orderId !== order.id &&
+        (
+          quickEdit.draftOrderNumber.trim() !== quickEdit.initialOrderNumber.trim() ||
+          quickEdit.draftOrderDate !== quickEdit.initialOrderDate ||
+          quickEdit.draftCustomerName.trim() !== quickEdit.initialCustomerName.trim() ||
+          quickEdit.draftAddress.trim() !== quickEdit.initialAddress.trim() ||
+          quickEdit.draftCustomerType !== quickEdit.initialCustomerType ||
+          quickEdit.draftStatus !== quickEdit.initialStatus ||
+          quickEdit.draftPaymentStatus !== quickEdit.initialPaymentStatus
+        )
+      ) {
+        toast.error('Najprej shranite ali prekličite trenutno urejanje.');
+        return;
+      }
+
+      const detailOverrides = rowDetailOverrides[order.id] ?? {};
+      const nextStatus = rowStatusOverrides[order.id] ?? order.status;
+      const nextPaymentStatus = rowPaymentOverrides[order.id] ?? order.payment_status ?? null;
+      const normalizedPaymentStatus = isPaymentStatus(nextPaymentStatus ?? '') ? nextPaymentStatus ?? '' : '';
+      const nextCreatedAt = typeof detailOverrides.created_at === 'string' ? detailOverrides.created_at : order.created_at;
+      const nextCustomerType = typeof detailOverrides.customer_type === 'string' ? detailOverrides.customer_type : order.customer_type;
+      const nextOrganizationName =
+        typeof detailOverrides.organization_name === 'string' ? detailOverrides.organization_name : order.organization_name;
+      const nextContactName =
+        typeof detailOverrides.contact_name === 'string' ? detailOverrides.contact_name : order.contact_name;
+      const nextCustomerName = (nextOrganizationName?.trim() || nextContactName || '').trim();
+      const nextAddress =
+        typeof detailOverrides.delivery_address === 'string'
+          ? detailOverrides.delivery_address
+          : formatOrderAddress({ ...order, ...detailOverrides });
+
+      setQuickEdit({
+        orderId: order.id,
+        draftOrderNumber: toEditableOrderNumber(String(detailOverrides.order_number ?? order.order_number ?? '')),
+        initialOrderNumber: toEditableOrderNumber(String(detailOverrides.order_number ?? order.order_number ?? '')),
+        draftOrderDate: toDateInputValue(new Date(nextCreatedAt)),
+        initialOrderDate: toDateInputValue(new Date(nextCreatedAt)),
+        draftCustomerName: nextCustomerName,
+        initialCustomerName: nextCustomerName,
+        draftAddress: nextAddress,
+        initialAddress: nextAddress,
+        draftCustomerType: nextCustomerType,
+        initialCustomerType: nextCustomerType,
+        draftStatus: nextStatus,
+        initialStatus: nextStatus,
+        draftPaymentStatus: normalizedPaymentStatus,
+        initialPaymentStatus: normalizedPaymentStatus,
+        email: typeof detailOverrides.email === 'string' ? detailOverrides.email : order.email,
+        contactName: nextContactName,
+        organizationName: nextOrganizationName,
+        reference: typeof detailOverrides.reference === 'string' ? detailOverrides.reference : order.reference ?? null,
+        notes: typeof detailOverrides.notes === 'string' ? detailOverrides.notes : order.notes ?? null,
+        postalCode:
+          typeof detailOverrides.postal_code === 'string'
+            ? detailOverrides.postal_code
+            : order.postal_code ?? null,
+        isSaving: false
+      });
+    },
+    [quickEdit, rowDetailOverrides, rowPaymentOverrides, rowStatusOverrides, toast]
+  );
+
+  const cancelQuickEdit = useCallback(() => {
+    setQuickEdit(null);
+  }, []);
+
+  const saveQuickEdit = useCallback(async () => {
+    if (!quickEdit) return;
+    if (!quickEdit.draftCustomerName.trim() || !quickEdit.draftOrderDate.trim() || !quickEdit.draftCustomerType.trim()) {
+      return;
+    }
+
+    const detailsDirty =
+      quickEdit.draftOrderNumber.trim() !== quickEdit.initialOrderNumber.trim() ||
+      quickEdit.draftOrderDate !== quickEdit.initialOrderDate ||
+      quickEdit.draftCustomerName.trim() !== quickEdit.initialCustomerName.trim() ||
+      quickEdit.draftAddress.trim() !== quickEdit.initialAddress.trim() ||
+      quickEdit.draftCustomerType !== quickEdit.initialCustomerType;
+    const statusDirty = quickEdit.draftStatus !== quickEdit.initialStatus;
+    const paymentDirty = quickEdit.draftPaymentStatus !== quickEdit.initialPaymentStatus;
+    if (!detailsDirty && !statusDirty && !paymentDirty) return;
+
+    setQuickEdit((current) => (current ? { ...current, isSaving: true } : current));
+
+    let nextInitialOrderNumber = quickEdit.initialOrderNumber;
+    let nextInitialOrderDate = quickEdit.initialOrderDate;
+    let nextInitialCustomerName = quickEdit.initialCustomerName;
+    let nextInitialAddress = quickEdit.initialAddress;
+    let nextInitialCustomerType = quickEdit.initialCustomerType;
+    let nextInitialStatus = quickEdit.initialStatus;
+    let nextInitialPaymentStatus = quickEdit.initialPaymentStatus;
+    let hasError = false;
+
+    if (detailsDirty) {
+      const normalizedCustomerName = quickEdit.draftCustomerName.trim();
+      const normalizedAddress = quickEdit.draftAddress.trim();
+      const isCompanyLike = quickEdit.draftCustomerType === 'company' || quickEdit.draftCustomerType === 'school';
+      const nextOrganizationName = isCompanyLike ? normalizedCustomerName : '';
+      const nextContactName = isCompanyLike ? (quickEdit.contactName.trim() || normalizedCustomerName) : normalizedCustomerName;
+      const nextOrderNumber = quickEdit.draftOrderNumber.trim() ? toDisplayOrderNumberValue(quickEdit.draftOrderNumber) : '';
+      const nextOrderDate = toApiOrderDate(quickEdit.draftOrderDate);
+
+      try {
+        const response = await fetch(`/api/admin/orders/${quickEdit.orderId}/details`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderNumber: nextOrderNumber,
+            customerType: quickEdit.draftCustomerType,
+            organizationName: nextOrganizationName,
+            contactName: nextContactName,
+            email: quickEdit.email,
+            deliveryAddress: normalizedAddress,
+            postalCode: quickEdit.postalCode ?? '',
+            reference: quickEdit.reference ?? '',
+            notes: quickEdit.notes ?? '',
+            orderDate: nextOrderDate
+          })
+        });
+
+        if (!response.ok) {
+          hasError = true;
+        } else {
+          nextInitialOrderNumber = quickEdit.draftOrderNumber;
+          nextInitialOrderDate = quickEdit.draftOrderDate;
+          nextInitialCustomerName = normalizedCustomerName;
+          nextInitialAddress = normalizedAddress;
+          nextInitialCustomerType = quickEdit.draftCustomerType;
+          setRowDetailOverrides((current) => ({
+            ...current,
+            [quickEdit.orderId]: {
+              ...current[quickEdit.orderId],
+              order_number: nextOrderNumber || toDisplayOrderNumberValue(quickEdit.initialOrderNumber),
+              created_at: `${(nextOrderDate || quickEdit.initialOrderDate)}T00:00:00.000Z`,
+              customer_type: quickEdit.draftCustomerType,
+              organization_name: nextOrganizationName || null,
+              contact_name: nextContactName,
+              delivery_address: normalizedAddress,
+              email: quickEdit.email,
+              postal_code: quickEdit.postalCode ?? null,
+              reference: quickEdit.reference ?? null,
+              notes: quickEdit.notes ?? null
+            }
+          }));
+        }
+      } catch {
+        hasError = true;
+      }
+    }
+
+    if (statusDirty) {
+      try {
+        const response = await fetch(`/api/admin/orders/${quickEdit.orderId}/status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: quickEdit.draftStatus })
+        });
+
+        if (!response.ok) {
+          hasError = true;
+        } else {
+          nextInitialStatus = quickEdit.draftStatus;
+          setRowStatusOverrides((current) => ({
+            ...current,
+            [quickEdit.orderId]: quickEdit.draftStatus
+          }));
+        }
+      } catch {
+        hasError = true;
+      }
+    }
+
+    if (paymentDirty) {
+      try {
+        const response = await fetch(`/api/admin/orders/${quickEdit.orderId}/payment-status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: quickEdit.draftPaymentStatus, note: '' })
+        });
+
+        if (!response.ok) {
+          hasError = true;
+        } else {
+          nextInitialPaymentStatus = quickEdit.draftPaymentStatus;
+          setRowPaymentOverrides((current) => ({
+            ...current,
+            [quickEdit.orderId]: quickEdit.draftPaymentStatus
+          }));
+        }
+      } catch {
+        hasError = true;
+      }
+    }
+
+    if (hasError) {
+      toast.error('Nekaterih sprememb ni bilo mogoče shraniti.');
+      setQuickEdit((current) =>
+        current && current.orderId === quickEdit.orderId
+          ? {
+              ...current,
+              initialOrderNumber: nextInitialOrderNumber,
+              initialOrderDate: nextInitialOrderDate,
+              initialCustomerName: nextInitialCustomerName,
+              initialAddress: nextInitialAddress,
+              initialCustomerType: nextInitialCustomerType,
+              initialStatus: nextInitialStatus,
+              initialPaymentStatus: nextInitialPaymentStatus,
+              isSaving: false
+            }
+          : current
+      );
+      return;
+    }
+
+    toast.success('Shranjeno');
+    setQuickEdit(null);
+  }, [quickEdit, toast]);
 
   useEffect(() => {
     if (selectedCount === 0) {
@@ -874,6 +1345,10 @@ export default function AdminOrdersTable({
   useEffect(() => {
     const validIds = new Set(orders.map((order) => order.id));
     setSelected((previousSelected) => previousSelected.filter((selectedOrderId) => validIds.has(selectedOrderId)));
+    setQuickEdit((current) => (current && validIds.has(current.orderId) ? current : null));
+    setRowDetailOverrides((previousOverrides) =>
+      Object.fromEntries(Object.entries(previousOverrides).filter(([orderId]) => validIds.has(Number(orderId))))
+    );
     setRowStatusOverrides((previousOverrides) =>
       Object.fromEntries(Object.entries(previousOverrides).filter(([orderId]) => validIds.has(Number(orderId))))
     );
@@ -957,6 +1432,19 @@ export default function AdminOrdersTable({
   const handleDeleteRow = (orderId: number) => {
     setConfirmDeleteRowId(orderId);
   };
+
+  const handleQuickEditInputKeyDown = useCallback((event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      void saveQuickEdit();
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      cancelQuickEdit();
+    }
+  }, [cancelQuickEdit, saveQuickEdit]);
 
   const confirmDeleteRow = async () => {
     if (confirmDeleteRowId === null) return;
@@ -1317,37 +1805,36 @@ export default function AdminOrdersTable({
         ) : null}
 
         <AdminTableLayout
-          className="border"
-          style={{
-            background: '#ffffff',
-            borderColor: analyticsAppearance?.gridColor ?? '#e2e8f0',
-            boxShadow: '0 10px 24px rgba(15,23,42,0.06)'
-          }}
-          contentClassName="overflow-x-auto bg-white"
+          className={adminTableCardClassName}
+          style={{ ...adminTableCardStyle, borderColor: analyticsAppearance?.gridColor ?? String(adminTableCardStyle.borderColor) }}
+          contentClassName={adminTableContentClassName}
+          headerClassName={adminTableHeaderClassName}
           showDivider={false}
           headerLeft={
-            <div className="flex h-7 w-full items-stretch">
-              <div className="min-w-0 w-full rounded-md border border-slate-200 bg-white transition-colors focus-within:border-[#3e67d6]">
+            <div className={adminTableToolbarGroupClassName}>
+              <div className="min-w-0 w-full">
                 <AdminSearchInput
-                  showIcon={false}
+                  wrapperClassName={`${adminTableSearchWrapperClassName} sm:!flex-none sm:!w-[40%] sm:min-w-[20rem] sm:max-w-[30rem]`}
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Poišči naročila"
                   aria-label="Poišči naročila"
-                  className="!m-0 !h-7 min-w-0 w-full flex-1 !rounded-md !border-0 !bg-transparent !shadow-none !outline-none ring-0 transition-colors placeholder:text-slate-400 [--euiFormControlStateWidth:0px] focus:[--euiFormControlStateWidth:0px] focus-visible:[--euiFormControlStateWidth:0px] focus:!border-0 focus:!shadow-none focus:!outline-none focus-visible:!border-0 focus-visible:!shadow-none focus-visible:!outline-none"
+                  inputClassName={adminTableSearchInputClassName}
+                  iconClassName={adminTableSearchIconClassName}
                 />
               </div>
             </div>
           }
           headerRight={
             <>
-              <div className="flex h-7 items-center gap-2 self-center">
+              <div className={adminTableToolbarActionsClassName}>
                 <IconButton
                   type="button"
                   onClick={handleDownloadAllDocuments}
                   disabled={isDownloading}
                   tone="neutral"
                   size="sm"
+                  className={adminTableNeutralIconButtonClassName}
                   aria-label={selected.length > 0 ? `Prenesi izbrane (${selected.length})` : 'Prenesi vse dokumente'}
                   title={selected.length > 0 ? `Prenesi (${selected.length})` : 'Prenesi vse'}
                 >
@@ -1365,7 +1852,7 @@ export default function AdminOrdersTable({
                     setVisibleColumns((current) => ({ ...current, [key]: !current[key as OrdersColumnKey] }));
                   }}
                   showLabel={false}
-                  className="[&>button]:!h-7 [&>button]:!w-7 [&>button:hover]:text-[color:var(--blue-500)] [&>button[aria-expanded='true']]:text-[color:var(--blue-500)]"
+                  triggerClassName={adminTableNeutralIconButtonClassName}
                   icon={<PanelAddRemoveIcon className="!scale-[0.8]" />}
                   menuClassName="!w-32"
                 />
@@ -1375,7 +1862,7 @@ export default function AdminOrdersTable({
                   disabled={!hasSelectedRows || isDeleting}
                   tone={hasSelectedRows ? 'danger' : 'neutral'}
                   size="sm"
-                  className={hasSelectedRows ? '!border-rose-300 !bg-rose-50/70 !text-rose-700 !transition-none' : '!transition-none'}
+                  className={hasSelectedRows ? adminTableSelectedDangerIconButtonClassName : `${adminTableNeutralIconButtonClassName} !transition-none`}
                   aria-label="Izbriši izbrana naročila"
                   title="Izbriši"
                 >
@@ -1385,7 +1872,7 @@ export default function AdminOrdersTable({
                     <TrashCanIcon />
                   )}
                 </IconButton>
-                {topAction ? <div className="flex items-center [&_button]:!h-7 [&_button]:!rounded-md">{topAction}</div> : null}
+                {topAction ? <div className="flex items-center [&_button]:!rounded-md [&_button]:!px-4">{topAction}</div> : null}
               </div>
             </>
           }
@@ -1425,7 +1912,7 @@ export default function AdminOrdersTable({
             />
           }
         >
-          <Table className="min-w-[1060px] w-full table-fixed text-[11px]">
+          <Table className="min-w-[1060px] w-full table-fixed text-[12px] [&_thead_th]:!border-slate-200">
             <colgroup>
               <col style={{ width: columnWidths.selectAndDelete }} />
               {visibleColumns.order ? <col style={{ width: columnWidths.order }} /> : null}
@@ -1440,22 +1927,22 @@ export default function AdminOrdersTable({
               <col style={{ width: columnWidths.edit }} />
             </colgroup>
 
-            <THead>
+            <THead className="border-t border-slate-200">
               <TR>
-                <TH className="h-11 px-2 text-center text-[11px]">
-                  <div className="flex h-full items-center justify-center">
+                <TH className={`${ORDERS_HEADER_CELL_CENTER_CLASS} px-2`}>
+                  <div className="flex h-11 items-center justify-center">
                     <AdminCheckbox
                       ref={selectAllRef}
                       checked={allSelected}
                       onChange={toggleAll}
                       aria-label="Izberi vse"
-                      className="block h-3.5 w-3.5 translate-y-px"
+                      className="block h-3.5 w-3.5"
                     />
                   </div>
                 </TH>
 
-                {visibleColumns.order ? <TH className="h-11 text-center">
-                  <div className="relative inline-flex items-center gap-1.5 align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+                {visibleColumns.order ? <TH className={ORDERS_HEADER_CELL_CENTER_CLASS}>
+                  <div className={ORDERS_HEADER_CONTENT_CLASS} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" onClick={() => onSort('order')} className={getHeaderTitleClass('order')}>Naročilo</button>
                     <button ref={orderFilterButtonRef} data-active={openHeaderFilter === 'order'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('order'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Naročilo">
                       <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
@@ -1463,8 +1950,8 @@ export default function AdminOrdersTable({
                   </div>
                 </TH> : null}
 
-                {visibleColumns.date ? <TH className="h-11 text-center text-[11px]">
-                  <div className="relative inline-flex items-center gap-1.5 align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+                {visibleColumns.date ? <TH className={ORDERS_HEADER_CELL_CENTER_CLASS}>
+                  <div className={ORDERS_HEADER_CONTENT_CLASS} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" onClick={() => onSort('date')} className={getHeaderTitleClass('date')}>Datum</button>
                     <button ref={dateFilterButtonRef} data-active={openHeaderFilter === 'date'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('date'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Datum">
                       <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
@@ -1472,26 +1959,26 @@ export default function AdminOrdersTable({
                   </div>
                 </TH> : null}
 
-                {visibleColumns.customer ? <TH className="text-[11px]"><button type="button" onClick={() => onSort('customer')} className={getHeaderTitleClass('customer')}>Naročnik</button></TH> : null}
+                {visibleColumns.customer ? <TH className={ORDERS_HEADER_CELL_LEFT_CLASS}><div className="flex h-11 items-center"><button type="button" onClick={() => onSort('customer')} className={getHeaderTitleClass('customer')}>Naročnik</button></div></TH> : null}
 
-                {visibleColumns.address ? <TH className="text-[11px]"><button type="button" onClick={() => onSort('address')} className={getHeaderTitleClass('address')}>Naslov</button></TH> : null}
+                {visibleColumns.address ? <TH className={ORDERS_HEADER_CELL_LEFT_CLASS}><div className="flex h-11 items-center"><button type="button" onClick={() => onSort('address')} className={getHeaderTitleClass('address')}>Naslov</button></div></TH> : null}
 
-                {visibleColumns.type ? <TH className="h-11 text-center text-[11px]">
-                  <div className="relative inline-flex items-center gap-1.5 align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+                {visibleColumns.type ? <TH className={ORDERS_HEADER_CELL_CENTER_CLASS}>
+                  <div className={ORDERS_HEADER_CONTENT_CLASS} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" onClick={() => onSort('type')} className={getHeaderTitleClass('type')}>Tip</button>
                     <button ref={typeFilterButtonRef} data-active={openHeaderFilter === 'type'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('type'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Tip"><ColumnFilterIcon className="!h-[12px] !w-[12px]" /></button>
                   </div>
                 </TH> : null}
 
-                {visibleColumns.status ? <TH className="h-11 text-center text-[11px]">
-                  <div className="relative inline-flex items-center gap-1.5 align-middle" ref={statusHeaderMenuRef}>
+                {visibleColumns.status ? <TH className={ORDERS_HEADER_CELL_CENTER_CLASS}>
+                  <div className="relative flex h-11 items-center justify-center" ref={statusHeaderMenuRef}>
                     {selectedCount > 0 ? (
                       <>
                         <button
                           type="button"
                           onClick={() => setIsStatusHeaderMenuOpen((previousOpen) => !previousOpen)}
                           disabled={isBulkUpdatingStatus}
-                        className="inline-flex items-center rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold leading-none text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
+                        className={ORDERS_BULK_HEADER_BUTTON_CLASS}
                           aria-haspopup="menu"
                           aria-expanded={isStatusHeaderMenuOpen}
                         >
@@ -1515,7 +2002,7 @@ export default function AdminOrdersTable({
                         )}
                       </>
                     ) : (
-                      <div className="relative inline-flex items-center gap-1.5 align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+                      <div className={ORDERS_HEADER_CONTENT_CLASS} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                         <button type="button" onClick={() => onSort('status')} className={getHeaderTitleClass('status')}>Status</button>
                         <button ref={statusFilterButtonRef} data-active={openHeaderFilter === 'status'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('status'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Status"><ColumnFilterIcon className="!h-[12px] !w-[12px]" /></button>
                       </div>
@@ -1523,15 +2010,15 @@ export default function AdminOrdersTable({
                   </div>
                 </TH> : null}
 
-                {visibleColumns.payment ? <TH className="h-11 text-center text-[11px]">
-                  <div className="relative inline-flex items-center gap-1.5 align-middle" ref={paymentHeaderMenuRef}>
+                {visibleColumns.payment ? <TH className={ORDERS_HEADER_CELL_CENTER_CLASS}>
+                  <div className="relative flex h-11 items-center justify-center" ref={paymentHeaderMenuRef}>
                     {selectedCount > 0 ? (
                       <>
                         <button
                           type="button"
                           onClick={() => setIsPaymentHeaderMenuOpen((previousOpen) => !previousOpen)}
                           disabled={isBulkUpdatingStatus}
-                        className="inline-flex items-center rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold leading-none text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
+                        className={ORDERS_BULK_HEADER_BUTTON_CLASS}
                           aria-haspopup="menu"
                           aria-expanded={isPaymentHeaderMenuOpen}
                         >
@@ -1555,7 +2042,7 @@ export default function AdminOrdersTable({
                         )}
                       </>
                     ) : (
-                      <div className="relative inline-flex items-center gap-1.5 align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+                      <div className={ORDERS_HEADER_CONTENT_CLASS} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                         <button type="button" onClick={() => onSort('payment')} className={getHeaderTitleClass('payment')}>Plačilo</button>
                         <button ref={paymentFilterButtonRef} data-active={openHeaderFilter === 'payment'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('payment'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Plačilo"><ColumnFilterIcon className="!h-[12px] !w-[12px]" /></button>
                       </div>
@@ -1563,21 +2050,23 @@ export default function AdminOrdersTable({
                   </div>
                 </TH> : null}
 
-                {visibleColumns.total ? <TH className="h-11 text-center text-[11px]">
-                  <div className="relative inline-flex items-center gap-1.5 align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+                {visibleColumns.total ? <TH className={ORDERS_HEADER_CELL_CENTER_CLASS}>
+                  <div className={ORDERS_HEADER_CONTENT_CLASS} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" onClick={() => onSort('total')} className={getHeaderTitleClass('total')}>Skupaj</button>
                     <button ref={totalFilterButtonRef} data-active={openHeaderFilter === 'total'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('total'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Skupaj"><ColumnFilterIcon className="!h-[12px] !w-[12px]" /></button>
                   </div>
                 </TH> : null}
 
-                {visibleColumns.documents ? <TH className="h-11 min-w-[100px] whitespace-nowrap text-center text-[11px]">
-                  <div className="relative inline-flex items-center gap-1.5 whitespace-nowrap align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
-                    <span className="inline-flex items-center whitespace-nowrap text-[11px] font-semibold leading-none">PDF datoteke</span>
+                {visibleColumns.documents ? <TH className={`${ORDERS_HEADER_CELL_CENTER_CLASS} whitespace-nowrap`} style={{ minWidth: columnWidths.documents }}>
+                  <div className={`${ORDERS_HEADER_CONTENT_CLASS} whitespace-nowrap`} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+                    <span className={adminTableHeaderTextClassName}>PDF datoteke</span>
                     <button ref={documentsFilterButtonRef} data-active={openHeaderFilter === 'documents'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('documents'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj PDF datoteke"><ColumnFilterIcon className="!h-[12px] !w-[12px]" /></button>
                   </div>
                 </TH> : null}
-                <TH className="h-11 text-center text-[11px]">
-                  <span className="inline-flex items-center text-[11px] font-semibold leading-none text-slate-700">Uredi</span>
+                <TH className={ORDERS_HEADER_CELL_CENTER_CLASS}>
+                  <div className="flex h-11 items-center justify-center">
+                    <span className={adminTableHeaderTextClassName}>Uredi</span>
+                  </div>
                 </TH>
               </TR>
             </THead>
@@ -1593,7 +2082,7 @@ export default function AdminOrdersTable({
                           <button
                             type="button"
                             onClick={resetAllFilters}
-                            className={`rounded-full border border-slate-300 px-3 py-1 text-slate-700 hover:border-[color:var(--blue-500)] hover:bg-[color:var(--hover-neutral)] ${adminTextButtonTypographyTokenClasses}`}
+                            className={`rounded-md border border-slate-300 px-3 py-1 text-slate-700 hover:border-[color:var(--blue-500)] hover:bg-[color:var(--hover-neutral)] ${adminTextButtonTypographyTokenClasses}`}
                           >
                             Prikaži vsa naročila
                           </button>
@@ -1603,140 +2092,270 @@ export default function AdminOrdersTable({
                   </TD>
                 </TR>
               ) : (
-                pagedOrders.map((order, orderIndex) => {
+                pagedOrders.map((order) => {
+                  const effectiveOrder = {
+                    ...order,
+                    ...(rowDetailOverrides[order.id] ?? {}),
+                    status: rowStatusOverrides[order.id] ?? order.status,
+                    payment_status: rowPaymentOverrides[order.id] ?? order.payment_status ?? null
+                  };
                   const rowDisplay = rowDisplayByOrderId.get(order.id);
-                  const orderAddress = rowDisplay?.orderAddress ?? formatOrderAddress(order);
-                  const typeLabel = rowDisplay?.typeLabel ?? getCustomerTypeLabel(order.customer_type);
-                  const rowStatus = rowStatusOverrides[order.id] ?? order.status;
-                  const rowPaymentStatus = rowPaymentOverrides[order.id] ?? order.payment_status ?? null;
+                  const orderAddress = rowDisplay?.orderAddress ?? formatOrderAddress(effectiveOrder);
+                  const typeLabel = rowDisplay?.typeLabel ?? getCustomerTypeLabel(effectiveOrder.customer_type);
+                  const rowStatus = effectiveOrder.status;
+                  const rowPaymentStatus = effectiveOrder.payment_status ?? null;
                   const isRowSelected = selected.includes(order.id);
-                  const canEditStatus = isSingleSelection && isRowSelected;
-                  const canEditPayment = isSingleSelection && isRowSelected;
+                  const activeQuickEdit = quickEdit?.orderId === order.id ? quickEdit : null;
+                  const isRowQuickEditing = activeQuickEdit !== null;
+                  const isQuickEditValid = activeQuickEdit
+                    ? Boolean(
+                        activeQuickEdit.draftCustomerName.trim() &&
+                        activeQuickEdit.draftOrderDate.trim() &&
+                        activeQuickEdit.draftCustomerType.trim()
+                      )
+                    : false;
+                  const isQuickEditDirty = activeQuickEdit
+                    ? activeQuickEdit.draftOrderNumber.trim() !== activeQuickEdit.initialOrderNumber.trim() ||
+                      activeQuickEdit.draftOrderDate !== activeQuickEdit.initialOrderDate ||
+                      activeQuickEdit.draftCustomerName.trim() !== activeQuickEdit.initialCustomerName.trim() ||
+                      activeQuickEdit.draftAddress.trim() !== activeQuickEdit.initialAddress.trim() ||
+                      activeQuickEdit.draftCustomerType !== activeQuickEdit.initialCustomerType ||
+                      activeQuickEdit.draftStatus !== activeQuickEdit.initialStatus ||
+                      activeQuickEdit.draftPaymentStatus !== activeQuickEdit.initialPaymentStatus
+                    : false;
 
                   return (
                     <TR
                       key={order.id}
-                      className={`border-t border-slate-100 bg-white text-[11px] transition-colors duration-200 ${
+                      className={`${ORDERS_ROW_CLASS} ${
                         isRowSelected ? adminTableRowToneClasses.selected : ''
                       } ${adminTableRowToneClasses.hover}`}
                     >
-                      <TD>
-                        <div className="flex h-full items-center justify-center">
+                      <TD className="h-12 px-0 py-0 text-center align-middle">
+                        <div className="flex h-12 items-center justify-center">
                           <AdminCheckbox
                             data-no-row-nav
                             checked={selected.includes(order.id)}
                             onChange={() => toggleSelected(order.id)}
                             aria-label={`Izberi naročilo ${toDisplayOrderNumber(order.order_number)}`}
-                            className="h-3.5 w-3.5 align-middle"
+                            className="h-3.5 w-3.5"
                           />
                         </div>
                       </TD>
 
-                      {visibleColumns.order ? <TD className="text-center font-semibold text-slate-900" data-no-row-nav>
-                        <Link
-                          href={`/admin/orders/${order.id}`}
-                          prefetch={false}
-                          className="inline-flex rounded-sm px-1 text-[11px] font-semibold text-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
-                          aria-label={`Odpri naročilo ${toDisplayOrderNumber(order.order_number)}`}
-                        >
-                          {toDisplayOrderNumber(order.order_number)}
-                        </Link>
-                      </TD> : null}
-
-                      {visibleColumns.date ? <TD className="text-center whitespace-nowrap text-slate-700">
-                        <span
-                          className={`inline-block rounded-sm focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6] ${isMatchingHoveredCell('date', rowDisplay?.dateLabel ?? formatSlDate(order.created_at)) ? matchingValueHighlightClass : 'px-1'}`}
-                          title={rowDisplay?.dateTimeLabel ?? formatSlDateTime(order.created_at)}
-                          aria-label={`Datum naročila ${rowDisplay?.dateTimeLabel ?? formatSlDateTime(order.created_at)}`}
-                          tabIndex={0}
-                          onMouseEnter={() =>
-                            setHoveredCellMatch({
-                              column: 'date',
-                              value: getComparableCellValue(rowDisplay?.dateLabel ?? formatSlDate(order.created_at))
-                            })}
-                          onMouseLeave={() => setHoveredCellMatch(null)}
-                        >
-                          {rowDisplay?.dateLabel ?? formatSlDate(order.created_at)}
-                        </span>
-                      </TD> : null}
-
-                      {visibleColumns.customer ? <TD className="align-middle text-slate-700">
-                        <span
-                          className={`inline-flex max-w-full items-center truncate ${isMatchingHoveredCell('customer', order.organization_name || order.contact_name) ? matchingValueHighlightNoShiftClass : ''}`}
-                          title={order.organization_name || order.contact_name}
-                          onMouseEnter={() => setHoveredCellMatch({ column: 'customer', value: getComparableCellValue(order.organization_name || order.contact_name) })}
-                          onMouseLeave={() => setHoveredCellMatch(null)}
-                        >
-                          {order.organization_name || order.contact_name}
-                        </span>
-                      </TD> : null}
-
-                      {visibleColumns.address ? <TD className="align-middle text-slate-700">
-                        <span
-                          className={`inline-flex max-w-full items-center truncate ${isMatchingHoveredCell('address', orderAddress || '—') ? matchingValueHighlightNoShiftClass : ''}`}
-                          title={orderAddress || '—'}
-                          onMouseEnter={() => setHoveredCellMatch({ column: 'address', value: getComparableCellValue(orderAddress || '—') })}
-                          onMouseLeave={() => setHoveredCellMatch(null)}
-                        >
-                          {orderAddress || '—'}
-                        </span>
-                      </TD> : null}
-
-                      {visibleColumns.type ? <TD className="text-center text-slate-700">
-                        <span
-                          className={isMatchingHoveredCell('type', typeLabel) ? matchingValueHighlightClass : ''}
-                          onMouseEnter={() => setHoveredCellMatch({ column: 'type', value: getComparableCellValue(typeLabel) })}
-                          onMouseLeave={() => setHoveredCellMatch(null)}
-                        >
-                          {typeLabel}
-                        </span>
-                      </TD> : null}
-
-                      {visibleColumns.status ? <TD className="text-center text-slate-700">
-                        {selectedCount > 1 ? (
-                          <div className="flex justify-center">
-                            <StatusChip status={rowStatus} />
+                      {visibleColumns.order ? <TD className={`${ORDERS_BODY_CELL_CENTER_CLASS} font-semibold text-slate-900`} data-no-row-nav>
+                        {isRowQuickEditing ? (
+                          <div className="mx-auto flex h-7 w-full items-center justify-center">
+                            <Input
+                              id={`order-quick-edit-number-${order.id}`}
+                              name={`orderQuickEditNumber-${order.id}`}
+                              value={activeQuickEdit.draftOrderNumber}
+                              onChange={(event) =>
+                                setQuickEdit((current) =>
+                                  current && current.orderId === order.id
+                                    ? { ...current, draftOrderNumber: event.target.value.replace(/[^\d#]/g, '') }
+                                    : current
+                                )
+                              }
+                              onKeyDown={handleQuickEditInputKeyDown}
+                              inputMode="numeric"
+                              className={ORDERS_ORDER_INPUT_CLASS}
+                              aria-label={`Številka naročila ${order.id}`}
+                              autoFocus
+                            />
                           </div>
                         ) : (
-                          <AdminOrderStatusSelect
-                            orderId={order.id}
-                            status={rowStatus}
-                            canEdit={canEditStatus}
-                            disabled={isBulkUpdatingStatus}
-                            onStatusSaved={(nextStatus) =>
-                              setRowStatusOverrides((previousOverrides) => ({
-                                ...previousOverrides,
-                                [order.id]: nextStatus
-                              }))
-                            }
-                          />
+                          <Link
+                            href={`/admin/orders/${order.id}`}
+                            prefetch={false}
+                            className="inline-flex w-full items-center justify-center rounded-sm px-1 text-center text-[12px] font-semibold text-slate-900 transition-colors hover:text-[color:var(--blue-500)] hover:underline underline-offset-2 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
+                            aria-label={`Odpri naročilo ${toDisplayOrderNumber(effectiveOrder.order_number)}`}
+                          >
+                            {toDisplayOrderNumber(effectiveOrder.order_number)}
+                          </Link>
                         )}
                       </TD> : null}
 
-                      {visibleColumns.payment ? <TD className="text-center">
-                        {selectedCount > 1 ? (
-                          <div className="flex justify-center">
-                            <PaymentChip status={rowPaymentStatus} />
+                      {visibleColumns.date ? <TD className={`${ORDERS_BODY_CELL_CENTER_CLASS} whitespace-nowrap`}>
+                        {isRowQuickEditing ? (
+                          <div className="mx-auto flex h-7 w-full items-center justify-center">
+                            <Input
+                              id={`order-quick-edit-date-${order.id}`}
+                              name={`orderQuickEditDate-${order.id}`}
+                              type="date"
+                              value={activeQuickEdit.draftOrderDate}
+                              onChange={(event) =>
+                                setQuickEdit((current) =>
+                                  current && current.orderId === order.id
+                                    ? { ...current, draftOrderDate: event.target.value }
+                                    : current
+                                )
+                              }
+                              onKeyDown={handleQuickEditInputKeyDown}
+                              className={ORDERS_DATE_INPUT_CLASS}
+                              aria-label={`Datum naročila ${order.id}`}
+                            />
                           </div>
                         ) : (
-                          <AdminOrderPaymentSelect
-                            orderId={order.id}
-                            status={rowPaymentStatus}
-                            canEdit={canEditPayment}
-                            disabled={isBulkUpdatingStatus}
-                            onStatusSaved={(nextStatus) =>
-                              setRowPaymentOverrides((previousOverrides) => ({
-                                ...previousOverrides,
-                                [order.id]: nextStatus
-                              }))
-                            }
-                          />
+                          <span
+                            className={`inline-block rounded-sm focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6] ${isMatchingHoveredCell('date', rowDisplay?.dateLabel ?? formatSlDate(effectiveOrder.created_at)) ? matchingValueHighlightClass : 'px-1'}`}
+                            title={rowDisplay?.dateTimeLabel ?? formatSlDateTime(effectiveOrder.created_at)}
+                            aria-label={`Datum naročila ${rowDisplay?.dateTimeLabel ?? formatSlDateTime(effectiveOrder.created_at)}`}
+                            tabIndex={0}
+                            onMouseEnter={() =>
+                              setHoveredCellMatch({
+                                column: 'date',
+                                value: getComparableCellValue(rowDisplay?.dateLabel ?? formatSlDate(effectiveOrder.created_at))
+                              })}
+                            onMouseLeave={() => setHoveredCellMatch(null)}
+                          >
+                            {rowDisplay?.dateLabel ?? formatSlDate(effectiveOrder.created_at)}
+                          </span>
                         )}
                       </TD> : null}
 
-                      {visibleColumns.total ? <TD className="text-center text-slate-700">
+                      {visibleColumns.customer ? <TD className={ORDERS_BODY_CELL_BASE_CLASS}>
+                        {isRowQuickEditing ? (
+                          <Input
+                            id={`order-quick-edit-customer-${order.id}`}
+                            name={`orderQuickEditCustomer-${order.id}`}
+                            value={activeQuickEdit.draftCustomerName}
+                            onChange={(event) =>
+                              setQuickEdit((current) =>
+                                current && current.orderId === order.id
+                                  ? { ...current, draftCustomerName: event.target.value }
+                                  : current
+                              )
+                            }
+                            onKeyDown={handleQuickEditInputKeyDown}
+                            className={ORDERS_TEXT_INPUT_FULL_CLASS}
+                            aria-label={`Naročnik ${order.id}`}
+                          />
+                        ) : (
+                          <span
+                            className={`inline-flex max-w-full items-center truncate ${ORDERS_STANDARD_VALUE_CLASS} ${isMatchingHoveredCell('customer', effectiveOrder.organization_name || effectiveOrder.contact_name) ? matchingValueHighlightNoShiftClass : ''}`}
+                            title={effectiveOrder.organization_name || effectiveOrder.contact_name}
+                            onMouseEnter={() => setHoveredCellMatch({ column: 'customer', value: getComparableCellValue(effectiveOrder.organization_name || effectiveOrder.contact_name) })}
+                            onMouseLeave={() => setHoveredCellMatch(null)}
+                          >
+                            {effectiveOrder.organization_name || effectiveOrder.contact_name}
+                          </span>
+                        )}
+                      </TD> : null}
+
+                      {visibleColumns.address ? <TD className={ORDERS_BODY_CELL_BASE_CLASS}>
+                        {isRowQuickEditing ? (
+                          <Input
+                            id={`order-quick-edit-address-${order.id}`}
+                            name={`orderQuickEditAddress-${order.id}`}
+                            value={activeQuickEdit.draftAddress}
+                            onChange={(event) =>
+                              setQuickEdit((current) =>
+                                current && current.orderId === order.id
+                                  ? { ...current, draftAddress: event.target.value }
+                                  : current
+                              )
+                            }
+                            onKeyDown={handleQuickEditInputKeyDown}
+                            className={ORDERS_TEXT_INPUT_FULL_CLASS}
+                            aria-label={`Naslov ${order.id}`}
+                          />
+                        ) : (
+                          <span
+                            className={`inline-flex max-w-full items-center truncate ${ORDERS_STANDARD_VALUE_CLASS} ${isMatchingHoveredCell('address', orderAddress || '—') ? matchingValueHighlightNoShiftClass : ''}`}
+                            title={orderAddress || '—'}
+                            onMouseEnter={() => setHoveredCellMatch({ column: 'address', value: getComparableCellValue(orderAddress || '—') })}
+                            onMouseLeave={() => setHoveredCellMatch(null)}
+                          >
+                            {orderAddress || '—'}
+                          </span>
+                        )}
+                      </TD> : null}
+
+                      {visibleColumns.type ? <TD className={ORDERS_BODY_CELL_CENTER_CLASS}>
+                        {isRowQuickEditing ? (
+                          <div className={ORDERS_INLINE_CONTROL_FRAME_CLASS}>
+                            <CustomSelect
+                              value={activeQuickEdit.draftCustomerType}
+                              onChange={(value) =>
+                                setQuickEdit((current) =>
+                                  current && current.orderId === order.id
+                                    ? { ...current, draftCustomerType: value }
+                                    : current
+                                )
+                              }
+                              options={ORDER_CUSTOMER_TYPE_ROW_OPTIONS}
+                              disabled={activeQuickEdit.isSaving}
+                              className="w-full"
+                              triggerClassName={ORDERS_TYPE_SELECT_TRIGGER_CLASS}
+                              menuClassName="min-w-full"
+                              valueClassName="text-[12px]"
+                            />
+                          </div>
+                        ) : (
+                          <span
+                            className={isMatchingHoveredCell('type', typeLabel) ? matchingValueHighlightClass : ''}
+                            onMouseEnter={() => setHoveredCellMatch({ column: 'type', value: getComparableCellValue(typeLabel) })}
+                            onMouseLeave={() => setHoveredCellMatch(null)}
+                          >
+                            {typeLabel}
+                          </span>
+                        )}
+                      </TD> : null}
+
+                      {visibleColumns.status ? <TD className={ORDERS_BODY_CELL_CENTER_CLASS}>
+                        <div className={ORDERS_INLINE_CONTROL_FRAME_CLASS}>
+                          {isRowQuickEditing ? (
+                            <OrdersInlineChipSelect
+                              value={activeQuickEdit.draftStatus}
+                              onChange={(value) =>
+                                setQuickEdit((current) =>
+                                  current && current.orderId === order.id
+                                    ? { ...current, draftStatus: value }
+                                    : current
+                                )
+                              }
+                              options={ORDER_STATUS_OPTIONS}
+                              disabled={activeQuickEdit.isSaving}
+                              ariaLabel={`Status naročila ${order.id}`}
+                              menuWidth={152}
+                            >
+                              <StatusChip status={activeQuickEdit.draftStatus} className={ORDERS_STATUS_CHIP_CLASS} />
+                            </OrdersInlineChipSelect>
+                          ) : (
+                            <StatusChip status={rowStatus} className={ORDERS_STATUS_CHIP_CLASS} />
+                          )}
+                        </div>
+                      </TD> : null}
+
+                      {visibleColumns.payment ? <TD className={ORDERS_BODY_CELL_CENTER_CLASS}>
+                        <div className={ORDERS_INLINE_CONTROL_FRAME_CLASS}>
+                          {isRowQuickEditing ? (
+                            <OrdersInlineChipSelect
+                              value={activeQuickEdit.draftPaymentStatus}
+                              onChange={(value) =>
+                                setQuickEdit((current) =>
+                                  current && current.orderId === order.id
+                                    ? { ...current, draftPaymentStatus: value }
+                                    : current
+                                )
+                              }
+                              options={PAYMENT_STATUS_OPTIONS}
+                              disabled={activeQuickEdit.isSaving}
+                              ariaLabel={`Plačilo naročila ${order.id}`}
+                              menuWidth={140}
+                            >
+                              <PaymentChip status={activeQuickEdit.draftPaymentStatus} className={ORDERS_PAYMENT_CHIP_CLASS} />
+                            </OrdersInlineChipSelect>
+                          ) : (
+                            <PaymentChip status={rowPaymentStatus} className={ORDERS_PAYMENT_CHIP_CLASS} />
+                          )}
+                        </div>
+                      </TD> : null}
+
+                      {visibleColumns.total ? <TD className={ORDERS_BODY_CELL_CENTER_CLASS}>
                         <span
-                          className={isMatchingHoveredCell('total', rowDisplay?.totalLabel ?? formatCurrency(order.total)) ? matchingValueHighlightClass : ''}
+                          className={`${ORDERS_EMPHASIZED_VALUE_CLASS} ${isMatchingHoveredCell('total', rowDisplay?.totalLabel ?? formatCurrency(order.total)) ? matchingValueHighlightClass : ''}`}
                           onMouseEnter={() => setHoveredCellMatch({ column: 'total', value: getComparableCellValue(rowDisplay?.totalLabel ?? formatCurrency(order.total)) })}
                           onMouseLeave={() => setHoveredCellMatch(null)}
                         >
@@ -1744,7 +2363,7 @@ export default function AdminOrdersTable({
                         </span>
                       </TD> : null}
 
-                      {visibleColumns.documents ? <TD className="relative z-10 min-w-[100px] pl-0 pr-0 text-center" data-no-row-nav>
+                      {visibleColumns.documents ? <TD className="relative z-10 h-12 px-0 py-0 text-center align-middle" style={{ minWidth: columnWidths.documents }} data-no-row-nav>
                         <div className="flex justify-center">
                           <LazyAdminOrdersPdfCell
                             orderId={order.id}
@@ -1754,32 +2373,75 @@ export default function AdminOrdersTable({
                         </div>
                       </TD> : null}
 
-                      <TD className="relative z-0 pl-0 pr-0 text-center" data-no-row-nav>
-                        <RowActions className="relative">
-                          <RowActionsDropdown
-                            label={`Možnosti za naročilo ${toDisplayOrderNumber(order.order_number)}`}
-                            items={[
-                              {
-                                key: 'edit',
-                                label: 'Uredi',
-                                icon: <PencilIcon />,
-                                onSelect: () => {
-                                  router.push(`/admin/orders/${order.id}`);
-                                }
-                              },
-                              {
-                                key: 'delete',
-                                label: 'Izbriši',
-                                icon: deletingRowId === order.id ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : <TrashCanIcon />,
-                                className: 'text-rose-600 hover:!bg-rose-50 hover:!text-rose-600',
-                                disabled: deletingRowId === order.id,
-                                onSelect: () => {
-                                  void handleDeleteRow(order.id);
-                                }
-                              }
-                            ]}
-                          />
-                        </RowActions>
+                      <TD className="relative z-0 h-12 px-0 py-0 text-center align-middle" data-no-row-nav>
+                        <div className="flex h-12 items-center justify-center">
+                          {isRowQuickEditing ? (
+                            <div className={adminTableInlineActionRowClassName}>
+                              <IconButton
+                                type="button"
+                                tone="neutral"
+                                size="sm"
+                                className={adminTableInlineConfirmButtonClassName}
+                                onClick={() => {
+                                  void saveQuickEdit();
+                                }}
+                                disabled={!isQuickEditDirty || !isQuickEditValid || activeQuickEdit.isSaving}
+                                aria-label={`Shrani hitro urejanje za naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                                title={!isQuickEditValid ? 'Izpolnite obvezna polja' : (!isQuickEditDirty ? 'Ni sprememb za shranjevanje' : 'Shrani')}
+                              >
+                                <CheckIcon className={adminTableInlineConfirmIconClassName} strokeWidth={2.2} />
+                              </IconButton>
+                              <IconButton
+                                type="button"
+                                tone="neutral"
+                                size="sm"
+                                className={adminTableInlineCancelButtonClassName}
+                                onClick={cancelQuickEdit}
+                                disabled={activeQuickEdit.isSaving}
+                                aria-label={`Prekliči hitro urejanje za naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                                title="Prekliči"
+                              >
+                                <CloseIcon className={adminTableInlineCancelIconClassName} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
+                              </IconButton>
+                            </div>
+                          ) : (
+                            <RowActions className="relative">
+                              <RowActionsDropdown
+                                menuWidth={144}
+                                menuClassName="w-36"
+                                label={`Možnosti za naročilo ${toDisplayOrderNumber(order.order_number)}`}
+                                items={[
+                                  {
+                                    key: 'quick-edit',
+                                    label: 'Hitro urejanje',
+                                    icon: <PencilIcon />,
+                                    onSelect: () => {
+                                      startQuickEdit(order);
+                                    }
+                                  },
+                                  {
+                                    key: 'open',
+                                    label: 'Odpri naročilo',
+                                    icon: <OpenArticleIcon />,
+                                    onSelect: () => {
+                                      router.push(`/admin/orders/${order.id}`);
+                                    }
+                                  },
+                                  {
+                                    key: 'delete',
+                                    label: 'Izbriši',
+                                    icon: deletingRowId === order.id ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : <TrashCanIcon />,
+                                    className: 'text-rose-600 hover:!bg-rose-50 hover:!text-rose-600',
+                                    disabled: deletingRowId === order.id,
+                                    onSelect: () => {
+                                      void handleDeleteRow(order.id);
+                                    }
+                                  }
+                                ]}
+                              />
+                            </RowActions>
+                          )}
+                        </div>
                       </TD>
                     </TR>
                   );
@@ -1790,20 +2452,20 @@ export default function AdminOrdersTable({
         </AdminTableLayout>
         <HeaderFilterPortal open={Boolean(openHeaderFilter)}>
             {openHeaderFilter === 'order' ? (
-              <div style={getHeaderPopoverStyle(orderFilterButtonRef.current, 192)} className="rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+              <div style={getHeaderPopoverStyle(orderFilterButtonRef.current, 192)} className={adminTableCompactPopoverPanelClassName}>
                 <h4 className="mb-2 text-[11px] font-semibold text-slate-800">Nastavi razpon naročil</h4>
                 <div className="grid grid-cols-2 gap-2">
                   <AdminFilterInput type="number" placeholder="Od" value={draftOrderNumberRange.min} onChange={(event) => setDraftOrderNumberRange((current) => ({ ...current, min: event.target.value }))} aria-label="Od" />
                   <AdminFilterInput type="number" placeholder="Do" value={draftOrderNumberRange.max} onChange={(event) => setDraftOrderNumberRange((current) => ({ ...current, max: event.target.value }))} aria-label="Do" />
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2">
-                  <button type="button" className={`rounded-xl bg-[color:var(--blue-500)] py-2 text-white ${adminTextButtonTypographyTokenClasses}`} onClick={() => { setOrderNumberRange(draftOrderNumberRange); setOpenHeaderFilter(null); }}>Potrdi</button>
-                  <button type="button" className={`rounded-xl border border-slate-300 bg-[color:var(--ui-neutral-bg)] py-2 text-slate-700 hover:bg-[color:var(--ui-neutral-bg-hover)] ${adminTextButtonTypographyTokenClasses}`} onClick={() => { const emptyRange = { min: '', max: '' }; setDraftOrderNumberRange(emptyRange); setOrderNumberRange(emptyRange); setOpenHeaderFilter(null); }}>Ponastavi</button>
+                  <button type="button" className={adminTablePopoverPrimaryButtonClassName} onClick={() => { setOrderNumberRange(draftOrderNumberRange); setOpenHeaderFilter(null); }}>Potrdi</button>
+                  <button type="button" className={adminTablePopoverSecondaryButtonClassName} onClick={() => { const emptyRange = { min: '', max: '' }; setDraftOrderNumberRange(emptyRange); setOrderNumberRange(emptyRange); setOpenHeaderFilter(null); }}>Ponastavi</button>
                 </div>
               </div>
             ) : null}
             {openHeaderFilter === 'date' ? (
-              <div lang="sl-SI" style={getHeaderPopoverStyle(dateFilterButtonRef.current, 380)} className="rounded-xl border border-slate-200 bg-white p-3 text-left shadow-lg">
+              <div lang="sl-SI" style={getHeaderPopoverStyle(dateFilterButtonRef.current, 380)} className={adminTablePopoverPanelClassName}>
                 <h4 className="mb-2 text-[11px] font-semibold text-slate-800">Nastavi obdobje</h4>
                 <div className="mb-3 grid grid-cols-3 gap-2">
                     {[
@@ -1826,7 +2488,7 @@ export default function AdminOrdersTable({
                         setHasExplicitDateFilter(true);
                         setOpenHeaderFilter(null);
                       }}
-                      className={`rounded-lg border border-slate-300 px-2 py-1 text-slate-800 hover:bg-[color:var(--hover-neutral)] ${adminTextButtonTypographyTokenClasses}`}
+                      className={adminTablePopoverPresetButtonClassName}
                     >
                       {item.label}
                     </button>
@@ -1839,14 +2501,14 @@ export default function AdminOrdersTable({
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <button type="button" className={`rounded-xl bg-[color:var(--blue-500)] py-2 text-white ${adminTextButtonTypographyTokenClasses}`} onClick={() => { setFromDate(draftFromDate); setToDate(draftToDate); setHasExplicitDateFilter(Boolean(draftFromDate || draftToDate)); setOpenHeaderFilter(null); }}>Potrdi</button>
-                  <button type="button" className={`rounded-xl border border-slate-300 bg-[color:var(--ui-neutral-bg)] py-2 text-slate-700 hover:bg-[color:var(--ui-neutral-bg-hover)] ${adminTextButtonTypographyTokenClasses}`} onClick={() => { setDraftFromDate(''); setDraftToDate(''); setFromDate(''); setToDate(''); setHasExplicitDateFilter(false); setOpenHeaderFilter(null); }}>Ponastavi</button>
+                  <button type="button" className={adminTablePopoverPrimaryButtonClassName} onClick={() => { setFromDate(draftFromDate); setToDate(draftToDate); setHasExplicitDateFilter(Boolean(draftFromDate || draftToDate)); setOpenHeaderFilter(null); }}>Potrdi</button>
+                  <button type="button" className={adminTablePopoverSecondaryButtonClassName} onClick={() => { setDraftFromDate(''); setDraftToDate(''); setFromDate(''); setToDate(''); setHasExplicitDateFilter(false); setOpenHeaderFilter(null); }}>Ponastavi</button>
                 </div>
               </div>
             ) : null}
             {openHeaderFilter === 'type' ? (
               <div style={getHeaderPopoverStyle(typeFilterButtonRef.current, 144)}>
-                <MenuPanel className="shadow-lg">
+                <MenuPanel>
                   {[
                     { value: 'all', label: 'Vsi' },
                     { value: 'school', label: 'Šola' },
@@ -1858,7 +2520,7 @@ export default function AdminOrdersTable({
             ) : null}
             {openHeaderFilter === 'status' ? (
               <div style={getHeaderPopoverStyle(statusFilterButtonRef.current, 160)}>
-                <MenuPanel className="shadow-lg">
+                <MenuPanel>
                   {[{ value: 'all', label: 'Vsi' } as const, ...ORDER_STATUS_OPTIONS].map((option) => (
                     <MenuItem key={option.value} onClick={() => { setColumnStatusFilter(option.value as StatusTab); setOpenHeaderFilter(null); }}>
                       {option.label}
@@ -1869,7 +2531,7 @@ export default function AdminOrdersTable({
             ) : null}
             {openHeaderFilter === 'payment' ? (
               <div style={getHeaderPopoverStyle(paymentFilterButtonRef.current, 160)}>
-                <MenuPanel className="shadow-lg">
+                <MenuPanel>
                   {[{ value: 'all', label: 'Vsa' }, ...PAYMENT_STATUS_OPTIONS].map((option) => (
                     <MenuItem key={option.value} onClick={() => { setColumnPaymentFilter(option.value as any); setOpenHeaderFilter(null); }}>{option.label}</MenuItem>
                   ))}
@@ -1898,7 +2560,7 @@ export default function AdminOrdersTable({
             ) : null}
             {openHeaderFilter === 'documents' ? (
               <div style={getHeaderPopoverStyle(documentsFilterButtonRef.current, 160)}>
-                <MenuPanel className="shadow-lg">
+                <MenuPanel>
                   {documentTypeOptions.map((option) => <MenuItem key={option.value} onClick={() => { setDocumentType(option.value); setOpenHeaderFilter(null); }}>{option.label}</MenuItem>)}
                 </MenuPanel>
               </div>

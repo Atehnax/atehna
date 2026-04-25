@@ -1,4 +1,5 @@
 import { getStatusLabel, isOrderStatus } from '@/shared/domain/order/orderStatus';
+import type { OrderPdfDocumentSummary, OrderPdfTypeKey } from '@/shared/domain/order/orderTypes';
 import { adminStatusInfoPillTableColumnWidth } from '@/shared/ui/theme/tokens';
 
 export type OrderRow = {
@@ -21,16 +22,9 @@ export type OrderRow = {
   postal_code?: string | null;
 };
 
-export type PdfDoc = {
-  id: number;
-  order_id: number;
-  type: string;
-  filename: string;
-  blob_url: string;
-  created_at: string;
-};
+export type PdfDoc = OrderPdfDocumentSummary;
 
-export type SortKey =
+type SortKey =
   | 'order_number'
   | 'customer'
   | 'address'
@@ -40,7 +34,7 @@ export type SortKey =
   | 'total'
   | 'created_at';
 
-export type SortDirection = 'asc' | 'desc';
+type SortDirection = 'asc' | 'desc';
 
 export type StatusTab =
   | 'all'
@@ -51,13 +45,7 @@ export type StatusTab =
   | 'finished'
   | 'cancelled';
 
-export type DocumentType =
-  | 'all'
-  | 'order_summary'
-  | 'purchase_order'
-  | 'dobavnica'
-  | 'predracun'
-  | 'invoice';
+export type DocumentType = 'all' | OrderPdfTypeKey;
 
 export type UnifiedDocument = {
   order_id: number;
@@ -81,7 +69,7 @@ export const documentTypeLabelMap: Map<string, string> = new Map(
   documentTypeOptions.map((documentTypeOption) => [documentTypeOption.value, documentTypeOption.label])
 );
 
-export const statusTabs: Array<{ value: StatusTab; label: string }> = [
+const statusTabs: Array<{ value: StatusTab; label: string }> = [
   { value: 'all', label: 'Vsa' },
   { value: 'received', label: 'Prejeto' },
   { value: 'in_progress', label: 'V obdelavi' },

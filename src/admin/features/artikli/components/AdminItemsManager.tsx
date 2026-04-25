@@ -117,13 +117,6 @@ const LazyConfirmDialog = dynamic(
 );
 
 const getBaseSku = (family: ListFamily) => family.baseSku || family.variants[0]?.sku || '';
-const formatRangeValue = (values: number[], formatter: (value: number) => string) => {
-  if (!values.length) return '—';
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  return min === max ? formatter(min) : `${formatter(min)}–${formatter(max)}`;
-};
-
 const normalizeCategoryPath = (value: string) =>
   value
     .split('/')
@@ -238,6 +231,34 @@ const getUniformNumber = (values: number[]) => {
 };
 const getVariantSalePrice = (draft: Pick<VariantDraft, 'price' | 'discountPct'>) =>
   draft.discountPct > 0 ? computeSalePrice(draft.price, draft.discountPct) : null;
+const numericDraftKey = (scope: NumericDraftScope, id: string, field: NumericDraftField) => `${scope}:${id}:${field}`;
+const applyNumericFieldToVariantDraft = (draft: VariantDraft, field: NumericDraftField, raw: string) => {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return field === 'price'
+      ? { nextDraft: { ...draft, price: 0 } }
+      : { nextDraft: { ...draft, discountPct: 0 } };
+  }
+
+  const parsed = parseDecimalInput(trimmed);
+  if (parsed === null) {
+    return { nextDraft: draft, error: `Preverite vrednost v polju ${NUMERIC_FIELD_LABELS[field]}.` };
+  }
+
+  if (field === 'price') {
+    return { nextDraft: { ...draft, price: Math.max(0, parsed) } };
+  }
+  if (field === 'discountPct') {
+    return { nextDraft: { ...draft, discountPct: clampDiscountPct(parsed) } };
+  }
+
+  return {
+    nextDraft: {
+      ...draft,
+      discountPct: computeDiscountPctFromSalePrice(draft.price, parsed)
+    }
+  };
+};
 const formatAmountRangeForInput = (values: number[]) => {
   if (!values.length) return '';
   const min = Math.min(...values);
@@ -444,7 +465,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [categoryPaths, setCategoryPaths] = useState<string[]>([]);
   const [sortState, setSortState] = useState<SortState>(null);
   const [variantCountRange, setVariantCountRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
-  const [draftVariantCountRange, setDraftVariantCountRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [priceRangeFilter, setPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [draftPriceRangeFilter, setDraftPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [actionPriceRangeFilter, setActionPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
@@ -868,18 +888,10 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     setSavedFamilyRows((current) => ({ ...current, [nextFamily.id]: nextFamily }));
   };
   const getItemEditHref = (family: ListFamily) => `/admin/artikli/${encodeURIComponent(family.slug || family.id)}`;
-  const createVariantDraft = (variant: Variant): VariantDraft => ({
-    label: variant.label || 'Različica',
-    sku: variant.sku,
-    price: variant.price,
-    discountPct: variant.discountPct,
-    stock: variant.stock,
-    active: variant.active,
-    minOrder: variant.minOrder ?? 1,
-    note: (normalizeNoteValue(variant.badge) as NoteValue) || 'na-zalogi',
-    position: variant.position ?? 1
-  });
-  const getVariantDraftForState = (variant: Variant, sourceDrafts: Record<string, VariantDraft>) => sourceDrafts[variant.id] ?? createVariantDraft(variant);
+  const getVariantDraftForState = useCallback(
+    (variant: Variant, sourceDrafts: Record<string, VariantDraft>) => sourceDrafts[variant.id] ?? createVariantDraft(variant),
+    []
+  );
   const getEditableVariantsForFamily = useCallback(
     (family: ListFamily) => family.variants.filter((variant) => !deletedVariantIds.has(variant.id)),
     [deletedVariantIds]
@@ -893,8 +905,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     [getEditableVariantsForFamily]
   );
   const resolveScopeKind = (variants: Variant[]): EditScopeKind => (variants.length > 1 ? 'group' : 'row');
-  const numericDraftKey = (scope: NumericDraftScope, id: string, field: NumericDraftField) => `${scope}:${id}:${field}`;
-  const clearNumericDraftKeys = (keys: string[]) =>
+  const clearNumericDraftKeys = useCallback((keys: string[]) =>
     setNumericDrafts((current) => {
       if (keys.length === 0) return current;
       const next = { ...current };
@@ -902,40 +913,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         delete next[key];
       });
       return next;
-    });
+    }), []);
   const updateNumericDraft = (scope: NumericDraftScope, id: string, field: NumericDraftField, raw: string) => {
     if (!isDecimalInputDraft(raw)) return;
     const key = numericDraftKey(scope, id, field);
     setNumericDrafts((current) => ({ ...current, [key]: raw }));
   };
-  const applyNumericFieldToVariantDraft = (draft: VariantDraft, field: NumericDraftField, raw: string) => {
-    const trimmed = raw.trim();
-    if (!trimmed) {
-      return field === 'price'
-        ? { nextDraft: { ...draft, price: 0 } }
-        : { nextDraft: { ...draft, discountPct: 0 } };
-    }
-
-    const parsed = parseDecimalInput(trimmed);
-    if (parsed === null) {
-      return { nextDraft: draft, error: `Preverite vrednost v polju ${NUMERIC_FIELD_LABELS[field]}.` };
-    }
-
-    if (field === 'price') {
-      return { nextDraft: { ...draft, price: Math.max(0, parsed) } };
-    }
-    if (field === 'discountPct') {
-      return { nextDraft: { ...draft, discountPct: clampDiscountPct(parsed) } };
-    }
-
-    return {
-      nextDraft: {
-        ...draft,
-        discountPct: computeDiscountPctFromSalePrice(draft.price, parsed)
-      }
-    };
-  };
-  const resolvePendingNumericDraftsForFamily = (
+  const resolvePendingNumericDraftsForFamily = useCallback((
     familyId: string,
     variants: Variant[],
     sourceVariantDrafts = variantDrafts,
@@ -973,8 +957,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     }
 
     return { nextVariantDrafts, consumedKeys };
-  };
-  const commitPendingNumericDraftsForFamily = (familyId: string, variants: Variant[]) => {
+  }, [getVariantDraftForState, numericDrafts, variantDrafts]);
+  const commitPendingNumericDraftsForFamily = useCallback((familyId: string, variants: Variant[]) => {
     const resolved = resolvePendingNumericDraftsForFamily(familyId, variants);
     if ('error' in resolved && resolved.error) {
       toast.error(resolved.error);
@@ -987,7 +971,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       clearNumericDraftKeys(consumedKeys);
     }
     return nextVariantDrafts;
-  };
+  }, [clearNumericDraftKeys, resolvePendingNumericDraftsForFamily, toast, variantDrafts]);
   const commitVariantNumericDraft = (variant: Variant, field: NumericDraftField) => {
     const key = numericDraftKey('variant', variant.id, field);
     const raw = numericDrafts[key];
@@ -1133,7 +1117,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         validationMessage: validationMessages[0] ?? null
       };
     },
-    [familyDrafts, getScopeVariants, numericDrafts, variantDrafts]
+    [familyDrafts, getScopeVariants, getVariantDraftForState, numericDrafts, resolvePendingNumericDraftsForFamily, variantDrafts]
   );
   const activeEditSnapshot = useMemo(
     () => resolveEditScopeSnapshot(activeEditScope, activeScopeFamily),
@@ -1171,7 +1155,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         });
       }
     },
-    [getScopeNumericDraftKeys, getScopeVariants]
+    [clearNumericDraftKeys, getScopeNumericDraftKeys, getScopeVariants]
   );
   const cancelCurrentEditScope = useCallback(() => {
     clearActiveEditScopeState(activeEditScope, activeScopeFamily);
@@ -1249,7 +1233,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     } finally {
       setIsSavingActiveScope(false);
     }
-  }, [activeEditScope, activeScopeFamily, clearActiveEditScopeState, resolveEditScopeSnapshot, router, toast]);
+  }, [activeEditScope, activeScopeFamily, clearActiveEditScopeState, commitPendingNumericDraftsForFamily, resolveEditScopeSnapshot, router, toast]);
   const resolvePendingGuardAction = useCallback(() => {
     const action = pendingGuardActionRef.current;
     pendingGuardActionRef.current = null;
@@ -1311,7 +1295,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
 
     if (activeEditScope?.familyId === family.id && activeEditScope.kind === nextScope.kind) return;
     requestCurrentEditResolution(`začetkom urejanja artikla ${family.name}`, beginEdit);
-  }, [activeEditScope, expandedFamilyIds, getEditableVariantsForFamily, requestCurrentEditResolution]);
+  }, [activeEditScope, clearNumericDraftKeys, expandedFamilyIds, getEditableVariantsForFamily, requestCurrentEditResolution]);
   const updateFamilyDraft = (familyId: string, fallbackDraft: FamilyDraft, mutate: (draft: FamilyDraft) => FamilyDraft) =>
     setFamilyDrafts((current) => {
       const draft = current[familyId] ?? fallbackDraft;
@@ -1694,7 +1678,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                   className={filterPillTokenClasses.clear}
                   onClick={() => requestCurrentEditResolution('čiščenjem filtra števila različic', () => {
                     setVariantCountRange({ min: '', max: '' });
-                    setDraftVariantCountRange({ min: '', max: '' });
                   })}
                   aria-label="Počisti filter Št. različic"
                 >
@@ -1978,10 +1961,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 const canEditFamilyPills = !isSelectedPillUpdating && (isEditingFamily || isSingleSelectedFamily);
                 const familyDraft = getFamilyDraftForState(family, familyDrafts);
                 const rowEditSnapshot = isEditingFamily ? activeEditSnapshot : null;
-                const draftVisibleVariants = visibleVariants.map((variant) => getVariantDraftForState(variant, variantDrafts));
-                const draftActionPrices = draftVisibleVariants
-                  .map((draft) => getVariantSalePrice(draft))
-                  .filter((value): value is number => value !== null);
                 const rawActionPrices = visibleVariants
                   .filter((variant) => variant.discountPct > 0)
                   .map((variant) => computeSalePrice(variant.price, variant.discountPct));

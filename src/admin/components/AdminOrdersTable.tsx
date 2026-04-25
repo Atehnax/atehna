@@ -48,7 +48,6 @@ import {
   adminTablePopoverPanelClassName,
   adminTablePopoverPrimaryButtonClassName,
   adminTablePopoverSecondaryButtonClassName,
-  adminTablePrimaryButtonClassName,
   adminTableSearchIconClassName,
   adminTableSearchInputClassName,
   adminTableSearchWrapperClassName,
@@ -70,10 +69,10 @@ import {
 import StatusChip from '@/admin/components/StatusChip';
 import PaymentChip from '@/admin/components/PaymentChip';
 import { CustomSelect } from '@/shared/ui/select';
-import { CUSTOMER_TYPE_FORM_OPTIONS, getCustomerTypeLabel } from '@/shared/domain/order/customerType';
+import { CUSTOMER_TYPE_FORM_OPTIONS, getCustomerTypeLabel, type CustomerType } from '@/shared/domain/order/customerType';
 import { ORDER_STATUS_OPTIONS, getStatusMenuItemClassName } from '@/shared/domain/order/orderStatus';
 import { formatSlDate, formatSlDateTime } from '@/shared/domain/order/dateTime';
-import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, getPaymentMenuItemClassName, isPaymentStatus } from '@/shared/domain/order/paymentStatus';
+import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, getPaymentMenuItemClassName, isPaymentStatus, type PaymentStatus } from '@/shared/domain/order/paymentStatus';
 import type { AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
 
 import {
@@ -147,7 +146,9 @@ type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'cus
 type OrdersQuickDateRange = '7d' | '30d' | '90d' | '180d' | '365d' | 'ytd';
 type OrdersColumnKey = 'order' | 'date' | 'customer' | 'address' | 'type' | 'status' | 'payment' | 'total' | 'documents';
 type SortableColumnKey = 'order' | 'date' | 'customer' | 'address' | 'status' | 'payment' | 'total' | 'type';
-type TypePriority = 'school' | 'company' | 'individual';
+type TypePriority = CustomerType;
+type ColumnTypeFilter = 'all' | TypePriority;
+type ColumnPaymentFilter = 'all' | PaymentStatus;
 type SortCycleState = { column: SortableColumnKey; index: number } | null;
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
@@ -531,8 +532,8 @@ export default function AdminOrdersTable({
 
   const [documentType, setDocumentType] = useState<DocumentType>((initialDocumentType as DocumentType) ?? 'all');
   const [columnStatusFilter, setColumnStatusFilter] = useState<StatusTab>('all');
-  const [columnPaymentFilter, setColumnPaymentFilter] = useState<'all' | 'paid' | 'refunded' | 'unpaid'>('all');
-  const [columnTypeFilter, setColumnTypeFilter] = useState<'all' | TypePriority>('all');
+  const [columnPaymentFilter, setColumnPaymentFilter] = useState<ColumnPaymentFilter>('all');
+  const [columnTypeFilter, setColumnTypeFilter] = useState<ColumnTypeFilter>('all');
   const [totalRange, setTotalRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [draftTotalRange, setDraftTotalRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [orderNumberRange, setOrderNumberRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
@@ -2620,7 +2621,7 @@ export default function AdminOrdersTable({
                     { value: 'school', label: 'Šola' },
                     { value: 'company', label: 'Podjetje' },
                     { value: 'individual', label: 'Fiz. oseba' }
-                  ].map((option) => <MenuItem key={option.value} onClick={() => { setColumnTypeFilter(option.value as any); setOpenHeaderFilter(null); }}>{option.label}</MenuItem>)}
+                  ].map((option) => <MenuItem key={option.value} onClick={() => { setColumnTypeFilter(option.value as ColumnTypeFilter); setOpenHeaderFilter(null); }}>{option.label}</MenuItem>)}
                 </MenuPanel>
               </div>
             ) : null}
@@ -2646,7 +2647,7 @@ export default function AdminOrdersTable({
                     <MenuItem
                       key={option.value}
                       className={option.value === 'all' ? undefined : getPaymentMenuItemClassName(option.value)}
-                      onClick={() => { setColumnPaymentFilter(option.value as any); setOpenHeaderFilter(null); }}
+                      onClick={() => { setColumnPaymentFilter(option.value as ColumnPaymentFilter); setOpenHeaderFilter(null); }}
                     >
                       {option.label}
                     </MenuItem>

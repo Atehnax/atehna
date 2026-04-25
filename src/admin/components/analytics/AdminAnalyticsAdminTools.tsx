@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import type { DragEndEvent } from '@dnd-kit/core';
 import type { ChartTheme } from '@/admin/components/charts/chartTheme';
 import type { OrdersAnalyticsResponse } from '@/shared/server/orderAnalytics';
-import type { AnalyticsChartConfig, AnalyticsChartRow, AnalyticsChartType, AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
+import type { AnalyticsChartConfig, AnalyticsChartType, AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
 
 const LazyConfirmDialog = dynamic(() => import('@/shared/ui/confirm-dialog').then((module) => module.ConfirmDialog), { ssr: false });
 const LazyBuilderModal = dynamic(() => import('@/admin/components/analytics/AnalyticsBuilderModal'), { ssr: false });

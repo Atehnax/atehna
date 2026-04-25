@@ -71,7 +71,6 @@ import {
   compactTableAlignedTextInputClassName,
   compactTableValueUnitShellClassName,
   numberInputClass,
-  orderLikeEditableInputClassName,
   topBarArticleNameInputClassName
 } from '@/admin/features/artikli/components/artikliFieldStyles';
 import { saveCatalogItemPayload } from '@/admin/features/artikli/lib/canonicalSaveClient';
@@ -82,7 +81,6 @@ import type { CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/sha
 const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition-[border-color,box-shadow,color] focus:border-[#3e67d6] focus:ring-0';
 const compactTableNumericSlotClassName = 'inline-flex h-6 w-[7ch] items-center justify-end';
 const compactTableFourDigitSlotClassName = 'inline-flex h-6 w-[5ch] items-center justify-end';
-const compactTableThreeDigitSlotClassName = 'inline-flex h-6 w-[4ch] items-center justify-end';
 const topActionSaveButtonClassName = `gap-2 ${adminTablePrimaryButtonClassName} !h-8 !leading-none !tracking-[0] disabled:!border-transparent disabled:!bg-[color:var(--blue-500)] disabled:!text-white disabled:!opacity-50`;
 const topSaveActionButtonIconClassName = 'h-[15.3px] w-[15.3px]';
 const editorSectionTitleClassName = 'text-[20px] font-semibold tracking-tight text-slate-900';
@@ -930,16 +928,6 @@ function ImageUploadFrameIcon({ className = '' }: { className?: string }) {
   );
 }
 
-function PictureFrameIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden className={className} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="4" y="5.25" width="16" height="13.5" rx="2.15" />
-      <circle cx="9" cy="10" r="1.25" fill="currentColor" stroke="none" />
-      <path d="M7.1 15.55 9.8 12.8a.58.58 0 0 1 .82 0l1.72 1.72a.58.58 0 0 0 .82 0l2.08-2.08a.58.58 0 0 1 .82 0l1.88 1.88" />
-    </svg>
-  );
-}
-
 function VideoUploadFrameIcon({ className = '' }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 48" aria-hidden className={className}>
@@ -1468,7 +1456,7 @@ function OpisRichTextEditor({
   );
 }
 
-function NeutralDropdownChip({
+function NeutralDropdownChip<Value extends string>({
   value,
   editable,
   options,
@@ -1477,13 +1465,13 @@ function NeutralDropdownChip({
   placeholderLabel,
   optionClassName
 }: {
-  value: string;
+  value: Value | '';
   editable: boolean;
-  options: Array<{ value: string; label: string }>;
-  onChange: (next: string) => void;
+  options: ReadonlyArray<{ value: Value; label: string }>;
+  onChange: (next: Value) => void;
   chipClassName?: string;
   placeholderLabel?: string;
-  optionClassName?: (value: string) => string;
+  optionClassName?: (value: Value) => string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -1540,59 +1528,6 @@ function NeutralDropdownChip({
                 {option.label}
               </MenuItem>
             ))}
-          </MenuPanel>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function VisibilityChip({
-  visible,
-  editable,
-  onChange
-}: {
-  visible: boolean;
-  editable: boolean;
-  onChange: (next: boolean) => void;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!isOpen) return;
-    const onDocClick = (event: MouseEvent) => {
-      if (rootRef.current?.contains(event.target as Node)) return;
-      setIsOpen(false);
-    };
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsOpen(false);
-    };
-    document.addEventListener('mousedown', onDocClick);
-    document.addEventListener('keydown', onEscape);
-    return () => {
-      document.removeEventListener('mousedown', onDocClick);
-      document.removeEventListener('keydown', onEscape);
-    };
-  }, [isOpen]);
-
-  return (
-    <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        onClick={() => {
-          if (!editable) return;
-          setIsOpen((current) => !current);
-        }}
-        className="relative block rounded-full focus:outline-none"
-      >
-        {editable ? <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span> : null}
-        <Chip variant={visible ? 'success' : 'warning'}>{visible ? 'Prikaži' : 'Skrij'}</Chip>
-      </button>
-      {editable && isOpen ? (
-        <div role="menu" className="absolute left-0 top-8 z-30 min-w-[120px]">
-          <MenuPanel>
-            <MenuItem onClick={() => { onChange(true); setIsOpen(false); }}>Prikaži</MenuItem>
-            <MenuItem onClick={() => { onChange(false); setIsOpen(false); }}>Skrij</MenuItem>
           </MenuPanel>
         </div>
       ) : null}
@@ -2821,10 +2756,23 @@ export default function AdminItemEditorPage({
     };
   }, [createLocalImageUrl, mediaImageSlots, toast, updateImageAtSlot]);
 
+  const stageImageFile = useCallback((file: File, slotIndex: number) => {
+    const boundedSlotIndex = Math.max(0, Math.min(MEDIA_SLOT_COUNT - 1, slotIndex));
+    const previewUrl = createLocalImageUrl(file);
+    imageTypeHintsRef.current[previewUrl] = inferImageExtensionLabel({ mimeType: file.type, fileName: file.name });
+    updateImageAtSlot(boundedSlotIndex, {
+      previewUrl,
+      uploadedUrl: null,
+      file,
+      filename: file.name,
+      mimeType: file.type || null,
+      altText: mediaImageSlots[boundedSlotIndex]?.altText ?? '',
+      localId: createLocalStageId()
+    });
+  }, [createLocalImageUrl, mediaImageSlots, updateImageAtSlot]);
+
   const queueImageUpload = useCallback((files: FileList | File[] | null, startSlot: number, allowMultiple: boolean) => {
     if (!isMediaEditable) return;
-    const uppy = uppyRef.current;
-    if (!uppy) return;
     const queuedFiles = Array.from(files ?? []).filter((file): file is File => file instanceof File);
     if (queuedFiles.length === 0) return;
 
@@ -2840,29 +2788,19 @@ export default function AdminItemEditorPage({
       toast.error(`Izberete lahko največ ${maxFiles} slik.`);
     }
 
-    uppy.cancelAll();
-    uppy.getFiles().forEach((file) => uppy.removeFile(file.id));
-    uploadPlanRef.current = { startSlot, nextOffset: 0, maxFiles };
-    uppy.setOptions({
-      restrictions: {
-        ...(uppy.opts.restrictions ?? {}),
-        maxNumberOfFiles: maxFiles
+    acceptedFiles.forEach((file, offset) => {
+      if (!file.type.startsWith('image/')) {
+        toast.error('Izberite veljavno slikovno datoteko.');
+        return;
       }
+      if (file.size > IMAGE_MAX_UPLOAD_BYTES) {
+        toast.error('Slika je prevelika. Dovoljena velikost je največ 4 MB.');
+        return;
+      }
+      stageImageFile(file, startSlot + offset);
     });
 
-    acceptedFiles.forEach((file) => {
-      try {
-        uppy.addFile({
-          name: file.name,
-          type: file.type,
-          data: file
-        });
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Datoteke ni bilo mogoče dodati v vrsto.');
-      }
-    });
-
-  }, [isMediaEditable, toast]);
+  }, [isMediaEditable, stageImageFile, toast]);
 
   const openUppyFilePicker = useCallback((slotIndex: number, allowMultiple: boolean) => {
     if (!isMediaEditable) return;
@@ -2876,23 +2814,8 @@ export default function AdminItemEditorPage({
 
   const prepareDropzoneUploadPlan = useCallback((slotIndex: number, allowMultiple: boolean, files: File[]) => {
     if (!isMediaEditable) return;
-    const uppy = uppyRef.current;
-    if (!uppy) return;
-    const remainingSlots = Math.max(0, MEDIA_SLOT_COUNT - slotIndex);
-    const maxFiles = Math.max(1, allowMultiple ? remainingSlots : 1);
-    if (files.length > maxFiles) {
-      toast.error(`Izberete lahko največ ${maxFiles} slik.`);
-    }
-    uppy.cancelAll();
-    uppy.getFiles().forEach((file) => uppy.removeFile(file.id));
-    uploadPlanRef.current = { startSlot: slotIndex, nextOffset: 0, maxFiles };
-    uppy.setOptions({
-      restrictions: {
-        ...(uppy.opts.restrictions ?? {}),
-        maxNumberOfFiles: maxFiles
-      }
-    });
-  }, [isMediaEditable, toast]);
+    queueImageUpload(files, slotIndex, allowMultiple);
+  }, [isMediaEditable, queueImageUpload]);
 
   const moveImageSlot = (fromIndex: number, toIndex: number) => {
     if (fromIndex === toIndex) return;
@@ -3111,9 +3034,9 @@ export default function AdminItemEditorPage({
                     value=""
                     editable={isEditable}
                     placeholderLabel="Opombe"
-                    onChange={(value) => applySelectionChange(() => setItemLevelNote((value as VariantTag) || 'na-zalogi'))}
-                    options={ITEM_NOTE_OPTIONS as unknown as Array<{ value: string; label: string }>}
-                    optionClassName={(value) => getNoteTagMenuItemClassName(value as NoteTag | '')}
+                    onChange={(value) => applySelectionChange(() => setItemLevelNote(value || 'na-zalogi'))}
+                    options={ITEM_NOTE_OPTIONS}
+                    optionClassName={getNoteTagMenuItemClassName}
                   />
                 )}
             </div>
@@ -3202,9 +3125,9 @@ export default function AdminItemEditorPage({
                       value=""
                       editable={isEditable}
                       placeholderLabel="Opombe"
-                      onChange={(value) => applySelectionChange(() => setItemLevelNote((value as VariantTag) || 'na-zalogi'))}
-                      options={ITEM_NOTE_OPTIONS as unknown as Array<{ value: string; label: string }>}
-                      optionClassName={(value) => getNoteTagMenuItemClassName(value as NoteTag | '')}
+                      onChange={(value) => applySelectionChange(() => setItemLevelNote(value || 'na-zalogi'))}
+                      options={ITEM_NOTE_OPTIONS}
+                      optionClassName={getNoteTagMenuItemClassName}
                     />
                   )}
                 <ActiveStateChip active={draft.active} editable={isEditable} onChange={(next) => applySelectionChange(() => setDraft((current) => ({ ...current, active: next })))} />
@@ -3310,7 +3233,19 @@ export default function AdminItemEditorPage({
                         </span>
                       </UppyDropzoneField>
                     ) : (
-                      <div className={`group relative flex h-full w-full items-center justify-center rounded-[8px] bg-[#f5f6f8] text-blue-600 transition ${isMediaEditable ? 'cursor-pointer hover:bg-[#f3f5f7]' : 'cursor-not-allowed opacity-60'}`}>
+                      <div
+                        className={`group relative flex h-full w-full items-center justify-center rounded-[8px] bg-[#f5f6f8] text-blue-600 transition ${isMediaEditable ? 'cursor-pointer hover:bg-[#f3f5f7]' : 'cursor-not-allowed opacity-60'}`}
+                        onClick={() => openUppyFilePicker(0, true)}
+                        onDragOver={(event) => {
+                          if (!isMediaEditable) return;
+                          event.preventDefault();
+                        }}
+                        onDrop={(event) => {
+                          if (!isMediaEditable) return;
+                          event.preventDefault();
+                          prepareDropzoneUploadPlan(0, true, Array.from(event.dataTransfer.files));
+                        }}
+                      >
                         <CalmDashedOutline
                           className="inset-0 text-[#c8c8c8]"
                           strokeWidth={1.1664}
@@ -3429,6 +3364,16 @@ export default function AdminItemEditorPage({
                               <div
                                 key={`slot-${slotIndex}`}
                                 className={`group relative flex h-full flex-col items-center justify-center gap-1.5 rounded-[8px] bg-[#f5f6f8] px-2 py-3 text-center text-slate-500 transition ${isMediaEditable ? 'cursor-pointer hover:bg-[#f3f5f7]' : 'cursor-not-allowed opacity-60'}`}
+                                onClick={() => openUppyFilePicker(slotIndex, true)}
+                                onDragOver={(event) => {
+                                  if (!isMediaEditable) return;
+                                  event.preventDefault();
+                                }}
+                                onDrop={(event) => {
+                                  if (!isMediaEditable) return;
+                                  event.preventDefault();
+                                  prepareDropzoneUploadPlan(slotIndex, true, Array.from(event.dataTransfer.files));
+                                }}
                               >
                                 <CalmDashedOutline
                                   className="inset-0 text-[#c8c8c8] transition group-hover:text-[#c8c8c8]"
@@ -3977,7 +3922,7 @@ export default function AdminItemEditorPage({
               </tr>
             </THead>
             <tbody>
-              {draft.variants.map((variant, index) => (
+              {draft.variants.map((variant) => (
                 <tr key={variant.id} className={`${adminTableRowHeightClassName} border-t border-slate-100 align-middle`}>
                   <td className="px-2 py-1.5 text-center"><AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} disabled={!isTableEditable} /></td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" disabled={isDimensionLockActive} className={`${compactTableAlignedInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'length', variant.length)} onChange={(event) => updateDecimalInputDraft(variant.id, 'length', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'length', variant.length, (value) => updateVariant(variant.id, { length: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-6 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{variant.length === null ? '—' : formatDecimalForDisplay(variant.length)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>

@@ -44,24 +44,7 @@ import {
   adminTopBarArticleNameInputClassName,
   adminTopBarTitleTextClassName
 } from '@/shared/ui/admin-controls/adminCompactFieldStyles';
-
-type OrderItemInput = {
-  id: number;
-  sku: string;
-  name: string;
-  unit: string | null;
-  quantity: number;
-  unit_price: number | null;
-  discount_percentage?: number;
-};
-
-type PdfDocument = {
-  id: number;
-  type: string;
-  filename: string;
-  blob_url: string;
-  created_at: string;
-};
+import type { OrderItemInput, PersistedOrderPdfDocument } from '@/shared/domain/order/orderTypes';
 
 type NormalizedOrder = {
   order_number: string;
@@ -628,7 +611,7 @@ export default function AdminOrderDetailClient({
   orderId: number;
   order: NormalizedOrder;
   items: OrderItemInput[];
-  documents: PdfDocument[];
+  documents: PersistedOrderPdfDocument[];
   showDemoBanner?: boolean;
 }) {
   const router = useRouter();
@@ -689,35 +672,35 @@ export default function AdminOrderDetailClient({
     };
   }, []);
 
-  const resetDraftsToPersisted = () => {
+  const resetDraftsToPersisted = useCallback(() => {
     setDraftDetails({ ...persistedDetails });
     setDraftOrderNumber(toEditableOrderNumber(displayOrderNumber));
     setDraftAdminNotes(persistedAdminNotes);
-  };
+  }, [displayOrderNumber, persistedAdminNotes, persistedDetails]);
 
-  const discardUnsavedChanges = () => {
+  const discardUnsavedChanges = useCallback(() => {
     resetDraftsToPersisted();
     setItemsDirty(false);
     setIsEditing(false);
-  };
+  }, [resetDraftsToPersisted]);
 
-  const runPendingUnsavedAction = (action: PendingUnsavedAction) => {
+  const runPendingUnsavedAction = useCallback((action: PendingUnsavedAction) => {
     if (action.kind === 'navigate') {
       router.push(action.href);
       return;
     }
 
     discardUnsavedChanges();
-  };
+  }, [discardUnsavedChanges, router]);
 
-  const requestUnsavedResolution = (action: PendingUnsavedAction) => {
+  const requestUnsavedResolution = useCallback((action: PendingUnsavedAction) => {
     if (!hasUnsavedChanges) {
       runPendingUnsavedAction(action);
       return;
     }
 
     setPendingUnsavedAction(action);
-  };
+  }, [hasUnsavedChanges, runPendingUnsavedAction]);
 
   const toggleEdit = () => {
     if (isEditing) {
@@ -768,7 +751,7 @@ export default function AdminOrderDetailClient({
     return () => {
       document.removeEventListener('click', handleDocumentClick, true);
     };
-  }, [hasUnsavedChanges]);
+  }, [hasUnsavedChanges, requestUnsavedResolution]);
 
   const saveDetails = async () => {
     const requests: Promise<Response>[] = [];

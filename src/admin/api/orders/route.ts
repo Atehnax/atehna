@@ -6,10 +6,7 @@ import { getPool } from '@/shared/server/db';
 export async function POST() {
   try {
     const pool = await getPool();
-    let result;
-
-    try {
-      result = await pool.query(
+    const result = await pool.query(
       `
       with next_id as (
         select nextval('orders_id_seq') as id
@@ -36,39 +33,7 @@ export async function POST() {
       from next_id
       returning id
       `
-      );
-    } catch (error) {
-      if (!(error && typeof error === 'object' && 'code' in error && error.code === '42703')) {
-        throw error;
-      }
-
-      result = await pool.query(
-        `
-        with next_id as (
-          select nextval('orders_id_seq') as id
-        )
-        insert into orders (
-          id,
-          order_number,
-          customer_type,
-          contact_name,
-          email,
-          status,
-          payment_status
-        )
-        select
-          id,
-          '#' || id,
-          'company',
-          'Osnutek',
-          'draft@atehna.si',
-          'received',
-          'unpaid'
-        from next_id
-        returning id
-        `
-      );
-    }
+    );
 
     const row = result.rows[0] as { id: number } | undefined;
     if (!row) {

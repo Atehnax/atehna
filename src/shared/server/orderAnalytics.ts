@@ -2,7 +2,7 @@ import { getPool } from '@/shared/server/db';
 import { instrumentCatalogLoader, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import { fetchOrdersAnalyticsRows, type OrderAnalyticsRow } from '@/shared/server/orders';
 
-export const ANALYTICS_TIMEZONE = 'UTC';
+const ANALYTICS_TIMEZONE = 'UTC';
 
 export type AnalyticsRange = '7d' | '30d' | '90d' | '180d' | '365d' | 'ytd';
 export type AnalyticsGrouping = 'day';

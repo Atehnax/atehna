@@ -49,9 +49,34 @@ let cachedFonts: { regular: Uint8Array; bold: Uint8Array } | null = null;
 async function readFileIfExists(filePath: string): Promise<Uint8Array | null> {
   try {
     return await fs.readFile(filePath);
-  } catch {
-    return null;
+  } catch (error) {
+    if (typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === 'ENOENT') {
+      return null;
+    }
+    throw error;
   }
+}
+
+async function loadStandardFonts(doc: PDFDocument): Promise<{ font: PDFFont; fontBold: PDFFont }> {
+  return {
+    font: await doc.embedFont(StandardFonts.Helvetica),
+    fontBold: await doc.embedFont(StandardFonts.HelveticaBold)
+  };
+}
+
+async function loadOrderPdfFonts(doc: PDFDocument): Promise<{ font: PDFFont; fontBold: PDFFont }> {
+  doc.registerFontkit(fontkit);
+  const fonts = await loadFontsFromPublic();
+
+  if (!fonts) {
+    return await loadStandardFonts(doc);
+  }
+
+  // Embed full Noto fonts so Slovenian glyph layout stays stable in generated PDFs.
+  return {
+    font: await doc.embedFont(fonts.regular, { subset: false }),
+    fontBold: await doc.embedFont(fonts.bold, { subset: false })
+  };
 }
 
 async function loadFontsFromPublic(): Promise<{ regular: Uint8Array; bold: Uint8Array } | null> {
@@ -68,8 +93,9 @@ async function loadFontsFromPublic(): Promise<{ regular: Uint8Array; bold: Uint8
 
   if (!regular || !bold) return null;
 
-  // Basic sanity guard: avoid embedding broken tiny files.
-  if (regular.length < 1024 || bold.length < 1024) return null;
+  if (regular.length < 1024 || bold.length < 1024) {
+    throw new Error('Bundled PDF fonts are unexpectedly small.');
+  }
 
   cachedFonts = { regular, bold };
   return cachedFonts;
@@ -93,27 +119,7 @@ export async function generateOrderPdf(
   items: PdfItem[]
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
-
-  let font: PDFFont;
-  let fontBold: PDFFont;
-
-  try {
-    doc.registerFontkit(fontkit);
-    const fonts = await loadFontsFromPublic();
-
-    if (fonts) {
-      // subset: false to avoid glyph/subset weirdness while debugging scattered letters
-      font = await doc.embedFont(fonts.regular, { subset: false });
-      fontBold = await doc.embedFont(fonts.bold, { subset: false });
-    } else {
-      font = await doc.embedFont(StandardFonts.Helvetica);
-      fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
-    }
-  } catch {
-    font = await doc.embedFont(StandardFonts.Helvetica);
-    fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
-  }
-
+  const { font, fontBold } = await loadOrderPdfFonts(doc);
   const page = doc.addPage([595.28, 841.89]);
   const { height } = page.getSize();
 
@@ -196,7 +202,7 @@ export async function generateOrderPdf(
   y -= 12;
 
   for (const item of items) {
-    // crude page break for long orders
+    // Start a new page before item rows collide with the footer area.
     if (y < 80) {
       const newPage = doc.addPage([595.28, 841.89]);
       y = newPage.getSize().height - 50;

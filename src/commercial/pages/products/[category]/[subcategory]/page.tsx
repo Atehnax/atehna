@@ -50,7 +50,7 @@ export default async function SubcategoryPage(props: { params: Promise<{ categor
                 <p className="mt-2 text-sm text-slate-600">{item.description}</p>
                 <p className="mt-3 text-sm font-semibold text-slate-900">{price}</p>
               </div>
-              <AddToCartButton sku={itemSku} name={item.name} price={finalPrice} category={`${category.title} / ${subcategory.title}`} className="mt-4 w-full justify-center" />
+              <AddToCartButton sku={itemSku} name={item.name} unitPrice={finalPrice} category={`${category.title} / ${subcategory.title}`} className="mt-4 w-full justify-center" />
             </div>
           );
         })}

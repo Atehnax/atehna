@@ -5,15 +5,15 @@ import { createPortal } from 'react-dom';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { selectTokenClasses } from '@/shared/ui/theme/tokens';
 
-type CustomSelectOption = {
-  value: string;
+type CustomSelectOption<Value extends string> = {
+  value: Value;
   label: string;
 };
 
-type CustomSelectProps = {
-  value: string;
-  onChange: (value: string) => void;
-  options: ReadonlyArray<CustomSelectOption>;
+type CustomSelectProps<Value extends string> = {
+  value: Value;
+  onChange: (value: Value) => void;
+  options: ReadonlyArray<CustomSelectOption<Value>>;
   disabled?: boolean;
   placeholder?: string;
   ariaLabel?: string;
@@ -28,7 +28,7 @@ type CustomSelectProps = {
 
 const classNames = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ');
 
-export default function CustomSelect({
+export default function CustomSelect<Value extends string = string>({
   value,
   onChange,
   options,
@@ -42,7 +42,7 @@ export default function CustomSelect({
   valueClassName,
   showArrow = true,
   onOpenChange
-}: CustomSelectProps) {
+}: CustomSelectProps<Value>) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);

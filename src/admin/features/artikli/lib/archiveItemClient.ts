@@ -1,8 +1,8 @@
 'use client';
 
-export const ARCHIVED_ITEMS_STORAGE_KEY = 'admin-items-crud-v2';
+const ARCHIVED_ITEMS_STORAGE_KEY = 'admin-items-crud-v2';
 
-export type ArchivedItemRecordInput = {
+type ArchivedItemRecordInput = {
   id: string;
   name: string;
   category: string;

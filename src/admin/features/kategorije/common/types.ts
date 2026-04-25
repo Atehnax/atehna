@@ -1,18 +1,19 @@
-import type { CatalogCategory, CatalogItem, CatalogSubcategory } from '@/commercial/catalog/catalog';
+import type {
+  CatalogCategory,
+  CatalogSubcategory,
+  CategoriesView,
+  CategoryStatus,
+  RecursiveCatalogData as CatalogData
+} from '@/shared/domain/catalog/catalogTypes';
 
-export type CategoryStatus = 'active' | 'inactive';
+export type {
+  CategoriesView,
+  CategoryStatus,
+  RecursiveCatalogCategory,
+  RecursiveCatalogData as CatalogData,
+  RecursiveCatalogSubcategory
+} from '@/shared/domain/catalog/catalogTypes';
 
-export type RecursiveCatalogSubcategory = Omit<CatalogSubcategory, 'items'> & {
-  items: CatalogItem[];
-  subcategories: RecursiveCatalogSubcategory[];
-};
-
-export type RecursiveCatalogCategory = Omit<CatalogCategory, 'subcategories' | 'items'> & {
-  subcategories: RecursiveCatalogSubcategory[];
-  items: CatalogItem[];
-};
-
-export type CatalogData = { categories: RecursiveCatalogCategory[] };
 export type AdminCategoriesPayload = {
   categories: CatalogCategory[];
   statuses?: Record<string, CategoryStatus>;
@@ -25,7 +26,7 @@ export type SelectedNode =
   | { kind: 'category'; categorySlug: string }
   | { kind: 'subcategory'; categorySlug: string; subcategoryPath?: string[]; subcategorySlug?: string };
 
-export type DeleteTarget =
+type DeleteTarget =
   | { kind: 'root' }
   | { kind: 'category'; categorySlug: string }
   | { kind: 'subcategory'; categorySlug: string; subcategoryPath?: string[]; subcategorySlug?: string }
@@ -81,5 +82,3 @@ export type SelectedPreviewContext =
   | { kind: 'category'; category: CatalogCategory }
   | { kind: 'subcategory'; category: CatalogCategory; subcategory: CatalogSubcategory }
   | null;
-
-export type CategoriesView = 'table' | 'preview' | 'miller';

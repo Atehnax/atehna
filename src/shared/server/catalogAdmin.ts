@@ -1,6 +1,18 @@
 import fs from 'fs/promises';
 import path from 'path';
-import type { CatalogCategory, CatalogItem, CatalogSubcategory } from '@/commercial/catalog/catalog';
+import type {
+  CatalogCategory,
+  CatalogSubcategory,
+  RecursiveCatalogCategory,
+  RecursiveCatalogData,
+  RecursiveCatalogSubcategory
+} from '@/shared/domain/catalog/catalogTypes';
+
+export type {
+  RecursiveCatalogCategory,
+  RecursiveCatalogData as CatalogData,
+  RecursiveCatalogSubcategory
+} from '@/shared/domain/catalog/catalogTypes';
 
 function normalizeCatalogImage(value: unknown): string {
   if (typeof value !== 'string') return '';
@@ -9,27 +21,15 @@ function normalizeCatalogImage(value: unknown): string {
   return trimmed.startsWith('data:image/') ? '' : trimmed;
 }
 
-export type RecursiveCatalogSubcategory = Omit<CatalogSubcategory, 'items'> & {
-  items: CatalogItem[];
-  subcategories: RecursiveCatalogSubcategory[];
-};
-
-export type RecursiveCatalogCategory = Omit<CatalogCategory, 'subcategories' | 'items'> & {
-  subcategories: RecursiveCatalogSubcategory[];
-  items: CatalogItem[];
-};
-
-export type CatalogData = { categories: RecursiveCatalogCategory[] };
-
 const catalogPath = path.join(process.cwd(), 'src/commercial/content/data/catalog.json');
 
-export async function readCatalogFile(): Promise<CatalogData> {
+export async function readCatalogFile(): Promise<RecursiveCatalogData> {
   const raw = await fs.readFile(catalogPath, 'utf8');
-  const parsed = JSON.parse(raw) as unknown;
+  const parsed: unknown = JSON.parse(raw);
   return normalizeCatalogData(parsed);
 }
 
-export function normalizeCatalogData(input: unknown): CatalogData {
+export function normalizeCatalogData(input: unknown): RecursiveCatalogData {
   const categoriesSource =
     typeof input === 'object' && input !== null && Array.isArray((input as { categories?: unknown }).categories)
       ? (input as { categories: unknown[] }).categories

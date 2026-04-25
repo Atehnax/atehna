@@ -16,7 +16,6 @@ export type CartItem = {
 
 type AddCartItemInput = Omit<CartItem, 'quantity'> & {
   quantity?: number;
-  price?: number | null; // legacy fallback
 };
 
 type CartState = {
@@ -48,7 +47,7 @@ export const useCartStore = create<CartState>()(
 
       addItem: (item) =>
         set((state) => {
-          const incomingUnitPrice = item.unitPrice ?? item.price ?? null;
+          const incomingUnitPrice = item.unitPrice ?? null;
           const existing = state.items.find((current) => current.sku === item.sku);
 
           if (existing) {
@@ -56,14 +55,9 @@ export const useCartStore = create<CartState>()(
               items: state.items.map((current) => {
                 if (current.sku !== item.sku) return current;
 
-                // handles old persisted objects that might still have `price`
-                const currentUnitPrice =
-                  current.unitPrice ??
-                  ((current as CartItem & { price?: number | null }).price ?? null);
-
                 return {
                   ...current,
-                  unitPrice: currentUnitPrice ?? incomingUnitPrice,
+                  unitPrice: current.unitPrice ?? incomingUnitPrice,
                   quantity: current.quantity + (item.quantity ?? 1)
                 };
               })

@@ -4,7 +4,7 @@ import { buildOrderBlobPath, uploadBlob } from '@/shared/server/blob';
 import { generateOrderPdf } from '@/shared/server/pdf';
 import { buildGeneratedPdfFileName, buildPdfContext } from '@/shared/server/pdfGeneration';
 
-export async function POST(request: Request, props: { params: Promise<{ orderId: string }> }) {
+export async function POST(_request: Request, props: { params: Promise<{ orderId: string }> }) {
   const params = await props.params;
   try {
     const orderId = Number(params.orderId);

@@ -22,16 +22,7 @@ import { IconButton } from '@/shared/ui/icon-button';
 import { CheckIcon, CloseIcon, PencilIcon, PlusIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { adminTableRowToneClasses } from '@/shared/ui/theme/tokens';
 import { useToast } from '@/shared/ui/toast';
-
-type OrderItemInput = {
-  id: number;
-  sku: string;
-  name: string;
-  unit: string | null;
-  quantity: number;
-  unit_price: number | null;
-  discount_percentage?: number;
-};
+import type { OrderItemInput } from '@/shared/domain/order/orderTypes';
 
 type CatalogChoice = {
   sku: string;
@@ -211,14 +202,14 @@ export default function AdminOrderItemsEditor({
     setItemsSectionMode('edit');
   };
 
-  const cancelItemsEdit = () => {
+  const cancelItemsEdit = useCallback(() => {
     setDraftItems(cloneEditableItems(persistedItems));
     setDraftShipping(persistedShipping);
     setSelectedDraftItemIds([]);
     setItemsSectionMode('read');
     setIsPickerOpen(false);
     setCatalogQuery('');
-  };
+  }, [persistedItems, persistedShipping]);
 
   const openAddItem = async () => {
     if (addItemDisabled) return;
@@ -314,6 +305,7 @@ export default function AdminOrderItemsEditor({
   }, [
     draftItems,
     draftShipping,
+    cancelItemsEdit,
     hasExternalEditMode,
     isItemsDirty,
     isItemsSaving,
@@ -376,7 +368,7 @@ export default function AdminOrderItemsEditor({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [hasExternalEditMode, itemsEditable, isPickerOpen, saveItems]);
+  }, [cancelItemsEdit, hasExternalEditMode, itemsEditable, isPickerOpen, saveItems]);
 
   const toggleSelectedDraftItem = (itemId: string) => {
     if (!itemsEditable) return;

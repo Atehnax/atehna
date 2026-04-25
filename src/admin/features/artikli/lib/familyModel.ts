@@ -1,6 +1,6 @@
 import { formatDecimalForDisplay } from './decimalFormat';
 
-export type SeedItemTuple = [
+type SeedItemTuple = [
   id: string,
   name: string,
   description: string,
@@ -88,7 +88,7 @@ type VariantNameSource = Pick<Variant, 'width' | 'length' | 'thickness'> & {
 const isFiniteMeasurement = (value: number | null | undefined): value is number =>
   typeof value === 'number' && Number.isFinite(value);
 
-export const buildVariantMeasurementName = (
+const buildVariantMeasurementName = (
   variant: VariantNameSource,
   fallbackLabel = 'Osnovna različica'
 ) => {
@@ -156,11 +156,11 @@ export const createFamily = (overrides: Partial<ProductFamily> = {}): ProductFam
   ...overrides
 });
 
-export const statusLabel = (active: boolean) => (active ? 'Aktiven' : 'Skrit');
+const statusLabel = (active: boolean) => (active ? 'Aktiven' : 'Skrit');
 
-export const variantLabel = (variant: Variant) => buildVariantMeasurementName(variant);
+const variantLabel = (variant: Variant) => buildVariantMeasurementName(variant);
 
-export function buildFamiliesFromSeed(seedItems: SeedItemTuple[]): ProductFamily[] {
+function buildFamiliesFromSeed(seedItems: SeedItemTuple[]): ProductFamily[] {
   const grouped = new Map<string, ProductFamily>();
 
   seedItems.forEach((seed, index) => {

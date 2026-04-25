@@ -35,6 +35,45 @@ type SoftDeletedEntry = {
   expires_at: string;
 };
 
+type DatabaseDateValue = string | number | Date;
+
+type SoftDeletedOrderRow = {
+  order_id: number | string;
+  order_number: string | null;
+  contact_name: string | null;
+  deleted_at: DatabaseDateValue;
+  customer_type: string | null;
+  delivery_address: string | null;
+  created_at: DatabaseDateValue | null;
+  expires_at: DatabaseDateValue | null;
+};
+
+type SoftDeletedDocumentRow = {
+  document_id: number | string;
+  order_id: number | string | null;
+  filename: string | null;
+  deleted_at: DatabaseDateValue;
+  contact_name: string | null;
+  delivery_address: string | null;
+  customer_type: string | null;
+  created_at: DatabaseDateValue | null;
+  expires_at: DatabaseDateValue | null;
+};
+
+type ArchiveEntryRow = {
+  id: number | string;
+  item_type: 'order' | 'pdf';
+  order_id: number | string | null;
+  document_id: number | string | null;
+  label: string;
+  order_created_at: DatabaseDateValue | null;
+  customer_name: string | null;
+  address: string | null;
+  customer_type: string | null;
+  deleted_at: DatabaseDateValue;
+  expires_at: DatabaseDateValue;
+};
+
 export type RestoreTarget = {
   item_type: 'order' | 'pdf';
   order_id: number | null;
@@ -93,7 +132,7 @@ async function fetchSoftDeletedFallbackEntries(
 
   if (!itemType || itemType === 'all' || itemType === 'order') {
     try {
-      const ordersResult = await pool.query(
+      const ordersResult = await pool.query<SoftDeletedOrderRow>(
         `
         select
           id as order_id,
@@ -131,7 +170,7 @@ async function fetchSoftDeletedFallbackEntries(
 
   if (!itemType || itemType === 'all' || itemType === 'pdf') {
     try {
-      const documentsResult = await pool.query(
+      const documentsResult = await pool.query<SoftDeletedDocumentRow>(
         `
         select
           d.id as document_id,
@@ -186,7 +225,7 @@ export async function fetchArchiveEntries(itemType?: 'all' | 'order' | 'pdf'): P
     let explicitEntries: ArchiveEntry[] = [];
     let shouldUseFallbackEntries = false;
     try {
-      const result = await pool.query(
+      const result = await pool.query<ArchiveEntryRow>(
         `
         select
           e.id,
@@ -395,7 +434,7 @@ export async function permanentlyDeleteArchiveEntries(entryIds: number[]): Promi
         try {
           await deleteBlob(blobTarget);
         } catch {
-          // best effort
+          // Blob cleanup must not block permanent archive deletion.
         }
       }
     }

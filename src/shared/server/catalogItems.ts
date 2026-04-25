@@ -1,6 +1,6 @@
 import { getPool } from '@/shared/server/db';
 import { revalidateTag } from 'next/cache';
-import { CATALOG_PUBLIC_TAG } from '@/shared/server/catalogCategories';
+import { CATALOG_PUBLIC_TAG } from '@/shared/server/catalogCache';
 import type { CatalogItemType } from '@/shared/domain/catalog/itemType';
 
 export type CatalogItemSeedRow = {

@@ -12,7 +12,7 @@ import {
   getCatalogCategoryServer,
   getCatalogCategorySlugsServer
 } from '@/commercial/catalog/catalogServer';
-import ProgressiveAddToCartButton from '@/commercial/features/products/ProgressiveAddToCartButton';
+import AddToCartButton from '@/commercial/features/products/AddToCartButton';
 
 export const dynamic = 'force-static';
 
@@ -40,7 +40,7 @@ export default async function CategoryPage(props: { params: Promise<{ category: 
   const params = await props.params;
   const { category, categories } = await getCatalogCategoryPageDataServer(params.category);
 
-  return <div>{/* unchanged JSX below */}
+  return <div>
     <div className="container-base py-12">
       <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
         <div>
@@ -83,7 +83,7 @@ export default async function CategoryPage(props: { params: Promise<{ category: 
                         <p className="mt-2 text-sm text-slate-600">{item.description}</p>
                         <p className="mt-3 text-sm font-semibold text-slate-900">{price}</p>
                       </div>
-                      <ProgressiveAddToCartButton sku={itemSku} name={item.name} price={finalPrice} category={category.title} className="mt-4 w-full justify-center" />
+                      <AddToCartButton sku={itemSku} name={item.name} unitPrice={finalPrice} category={category.title} className="mt-4 w-full justify-center" />
                     </div>;
                   })}
                 </div>

@@ -9,6 +9,5 @@ export {
   adminCompactTableAlignedTextInputClassName as compactTableAlignedTextInputClassName,
   adminCompactTableValueUnitShellClassName as compactTableValueUnitShellClassName,
   adminNumberInputClassName as numberInputClass,
-  adminOrderLikeEditableInputClassName as orderLikeEditableInputClassName,
   adminTopBarArticleNameInputClassName as topBarArticleNameInputClassName
 } from '@/shared/ui/admin-controls/adminCompactFieldStyles';

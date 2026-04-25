@@ -18,16 +18,8 @@ import {
   adminWindowCardStyle
 } from '@/shared/ui/admin-table';
 import { useToast } from '@/shared/ui/toast';
-
-type PdfDocument = {
-  id: number;
-  type: string;
-  filename: string;
-  blob_url: string;
-  created_at: string;
-};
-
-type PdfTypeKey = 'order_summary' | 'purchase_order' | 'predracun' | 'dobavnica' | 'invoice';
+import { groupDocumentsByType, routeMap, type PdfTypeKey } from '@/admin/components/adminOrdersPdfCellUtils';
+import type { PersistedOrderPdfDocument } from '@/shared/domain/order/orderTypes';
 
 type PdfTypeConfig = {
   key: PdfTypeKey;
@@ -41,24 +33,6 @@ const PDF_TYPES: PdfTypeConfig[] = [
   { key: 'predracun', label: 'Predračun' },
   { key: 'invoice', label: 'Račun' }
 ];
-
-const routeMap: Record<PdfTypeKey, string> = {
-  order_summary: 'generate-order-summary',
-  purchase_order: 'generate-purchase-order',
-  predracun: 'generate-predracun',
-  dobavnica: 'generate-dobavnica',
-  invoice: 'generate-invoice'
-};
-
-const normalizeType = (type: string): PdfTypeKey | null => {
-  if (type === 'offer') return 'order_summary';
-  if (type === 'purchase_order') return 'purchase_order';
-  if (type === 'order_summary') return 'order_summary';
-  if (type === 'predracun') return 'predracun';
-  if (type === 'dobavnica') return 'dobavnica';
-  if (type === 'invoice') return 'invoice';
-  return null;
-};
 
 const pdfTimestampFormatter = new Intl.DateTimeFormat('sl-SI', {
   dateStyle: 'medium',
@@ -79,7 +53,7 @@ export default function AdminOrderPdfManager({
   adminNotesSlot
 }: {
   orderId: number;
-  documents: PdfDocument[];
+  documents: PersistedOrderPdfDocument[];
   adminNotesSlot?: ReactNode;
 }) {
   const [docList, setDocList] = useState(documents);
@@ -91,26 +65,8 @@ export default function AdminOrderPdfManager({
   const uploadInputRefs = useRef<Partial<Record<PdfTypeKey, HTMLInputElement | null>>>({});
   const { toast } = useToast();
 
-  const grouped = useMemo(() => {
-    const map: Record<PdfTypeKey, PdfDocument[]> = {
-      order_summary: [],
-      purchase_order: [],
-      predracun: [],
-      dobavnica: [],
-      invoice: []
-    };
-
-    const sorted = [...docList].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-
-    sorted.forEach((doc) => {
-      const normalized = normalizeType(doc.type);
-      if (!normalized) return;
-      map[normalized].push(doc);
-    });
-
-    return map;
+  const grouped = useMemo<Record<PdfTypeKey, PersistedOrderPdfDocument[]>>(() => {
+    return groupDocumentsByType(docList) as Record<PdfTypeKey, PersistedOrderPdfDocument[]>;
   }, [docList]);
 
   const handleGenerate = async (type: PdfTypeKey) => {

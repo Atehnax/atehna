@@ -7,12 +7,6 @@ type Props = {
   windowHours?: number;
 };
 
-type MiniChartPoint = {
-  timestamp: string;
-  label: string;
-  value: number;
-};
-
 type DiagnosticsWindowOption = {
   label: string;
   param: string;
@@ -22,8 +16,8 @@ type DiagnosticsWindowOption = {
 };
 
 const DIAGNOSTICS_WINDOW_OPTIONS: DiagnosticsWindowOption[] = [
-  { label: '5 min', param: '5m', minutes: 5, windowHours: 5 / 60, description: '1-min prikaz za live admin session in hiter debugging.' },
-  { label: '15 min', param: '15m', minutes: 15, windowHours: 0.25, description: '5-min bucketi za kratek admin session.' },
+  { label: '5 min', param: '5m', minutes: 5, windowHours: 5 / 60, description: '1-min prikaz za sprotni admin pregled.' },
+  { label: '15 min', param: '15m', minutes: 15, windowHours: 0.25, description: '5-min bucketi za kratek admin pregled.' },
   { label: '1 ura', param: '60m', minutes: 60, windowHours: 1, description: '5-min bucketi za krajše odpravljanje težav.' },
   { label: '6 ur', param: '6h', minutes: 360, windowHours: 6, description: '15-min bucketi za isti delovni blok.' },
   { label: '24 ur', param: '24h', minutes: 1440, windowHours: 24, description: 'Urni bucketi za širši dnevni pregled.' }

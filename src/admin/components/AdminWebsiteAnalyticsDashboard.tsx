@@ -46,7 +46,6 @@ export default function AdminWebsiteAnalyticsDashboard({
   topPages,
   topProducts,
   returningVisitors7d,
-  retentionByDay,
   initialFrom,
   initialTo
 }: {
@@ -191,7 +190,7 @@ export default function AdminWebsiteAnalyticsDashboard({
             </ul>
           </div>
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-            <p className="font-semibold text-slate-900">Dashboard sekcije (placeholder + roadmap)</p>
+            <p className="font-semibold text-slate-900">Dashboard sekcije</p>
             <ul className="mt-2 list-disc space-y-1 pl-4">
               <li>Promet in angažiranost (obiski, unikatni, trajanje, bounce)</li>
               <li>Akvizicija (referrerji, UTM, kanali)</li>

@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import { Pool, type PoolConfig } from 'pg';
 
 let pool: Pool | null = null;
 
@@ -16,12 +16,8 @@ export function getDatabaseUrl(): string | null {
 }
 
 function parseSslMode(databaseUrl: string): string | null {
-  try {
-    const parsedUrl = new URL(databaseUrl);
-    return parsedUrl.searchParams.get('sslmode');
-  } catch {
-    return null;
-  }
+  const parsedUrl = new URL(databaseUrl);
+  return parsedUrl.searchParams.get('sslmode');
 }
 
 function resolveSslConfig(databaseUrl: string): SslConfig {
@@ -79,9 +75,11 @@ export async function getPool(): Promise<Pool> {
     throw new Error('Database connection string is not set');
   }
 
-  pool = new Pool({
+  const poolConfig = {
     connectionString,
     ssl: resolveSslConfig(connectionString)
-  } as any);
+  } satisfies PoolConfig;
+
+  pool = new Pool(poolConfig);
   return pool;
 }

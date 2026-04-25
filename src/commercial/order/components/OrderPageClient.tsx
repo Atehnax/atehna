@@ -550,7 +550,7 @@ export default function OrderPageClient() {
                     onChange={(value) => {
                       setFormData((previous) => ({
                         ...previous,
-                        customerType: value as CustomerType
+                        customerType: value
                       }));
                     }}
                     options={CUSTOMER_TYPE_FORM_OPTIONS}

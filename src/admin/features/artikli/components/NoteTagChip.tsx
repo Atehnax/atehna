@@ -7,7 +7,7 @@ import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { getAdminStatusInfoMenuOptionClassName } from '@/shared/ui/theme/tokens';
 
 export type NoteTag = 'na-zalogi' | 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
-export type NoteTagValue = NoteTag | '';
+type NoteTagValue = NoteTag | '';
 
 export const getNoteTagMenuItemClassName = (value: NoteTagValue) =>
   getAdminStatusInfoMenuOptionClassName(

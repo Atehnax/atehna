@@ -274,22 +274,19 @@ export default async function AdminOrdersPage(
   return (
     <div className="w-full">
       <div className="flex w-full flex-col gap-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-900">Naročila</h1>
-            <p className="mt-1 text-sm text-slate-500">Pregled in urejanje naročil.</p>
-            <details className="mt-2 max-w-3xl rounded-xl bg-white/80 px-3 py-2 text-sm text-slate-600">
-              <summary className="cursor-pointer select-none font-semibold text-slate-700">Navodila</summary>
-              <div className="mt-2 rounded-lg bg-slate-50 px-3 py-2">
-                <p className="leading-relaxed">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900">Naročila</h1>
+          <p className="mt-1 text-sm text-slate-500">Pregled in urejanje naročil.</p>
+          <details className="mt-2 max-w-3xl rounded-xl bg-white/80 px-3 py-2 text-sm text-slate-600">
+            <summary className="cursor-pointer select-none font-semibold text-slate-700">Navodila</summary>
+            <div className="mt-2 rounded-lg bg-slate-50 px-3 py-2">
+              <p className="leading-relaxed">
                 Uporabite filtre v glavi tabele za hitro omejitev rezultatov po datumu, znesku, tipu dokumenta in statusih.
                 Pri serijskih opravilih najprej izberite vrstice s potrditvenimi polji, nato uporabite dejanja v zgornji vrstici.
-                </p>
-              </div>
-            </details>
-          </div>
+              </p>
+            </div>
+          </details>
         </div>
-
         {await AdminOrdersTableSection({ searchParams })}
       </div>
     </div>

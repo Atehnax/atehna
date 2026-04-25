@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import dynamic from 'next/dynamic';
+import AdminOrdersActivityHeatmap, { type AdminOrdersHeatmapDay } from '@/admin/components/AdminOrdersActivityHeatmap';
 import AnalyticsChartCardView from '@/admin/components/analytics/AnalyticsChartCardView';
 import AnalyticsPlotlySurface from '@/admin/components/analytics/AnalyticsPlotlySurface';
 import { buildChartModel, newSeries, rangeOptions, type RangeOption } from '@/admin/components/analytics/adminAnalyticsShared';
@@ -18,12 +19,13 @@ const LazyAdminTools = dynamic(() => import('@/admin/components/analytics/AdminA
 
 type Props = {
   initialData: OrdersAnalyticsResponse;
+  initialHeatmapDays: AdminOrdersHeatmapDay[];
   initialCharts: AnalyticsChartRow[];
   initialFocusKey?: string;
   initialAppearance: AnalyticsGlobalAppearance;
 };
 
-export default function AdminAnalyticsDashboardViewer({ initialData, initialCharts, initialFocusKey = '', initialAppearance }: Props) {
+export default function AdminAnalyticsDashboardViewer({ initialData, initialHeatmapDays, initialCharts, initialFocusKey = '', initialAppearance }: Props) {
   const chartTheme = useMemo(() => getChartThemeFromCssVars(), []);
   const initialRange = initialData.range as RangeOption;
   const [range, setRange] = useState<RangeOption>(initialRange);
@@ -150,6 +152,8 @@ export default function AdminAnalyticsDashboardViewer({ initialData, initialChar
           <button type="button" onClick={() => setReorderMode((v) => !v)} className="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700">{reorderMode ? 'Done reorder' : 'Reorder'}</button>
         </div>
       </div>
+
+      <AdminOrdersActivityHeatmap days={initialHeatmapDays} />
 
       {loading ? <div className="mb-4 space-y-3"><p className="inline-flex items-center gap-2 text-[11px] text-slate-500"><Spinner size="sm" className="text-slate-500" />Loading analytics…</p><TableSkeleton rows={4} cols={2} className="border-slate-200" /></div> : null}
 

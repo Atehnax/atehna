@@ -20,7 +20,7 @@ async function AdminAnalyticsDashboardSection({
   return instrumentAdminRouteRender('/admin/analitika', async () => {
     const fallbackAppearance = { sectionBg: '#f3f4f6', canvasBg: '#ffffff', cardBg: '#ffffff', plotBg: '#ffffff', axisTextColor: '#1f2937', seriesPalette: ['#2563eb', '#0ea5e9', '#14b8a6', '#f59e0b', '#ef4444'], gridColor: '#d1d5db', gridOpacity: 0.35 };
 
-  const [data, charts, appearance] = getDatabaseUrl()
+  const [data, heatmapData, charts, appearance] = getDatabaseUrl()
     ? await Promise.all([
         fetchOrdersAnalytics({
           range: searchParams?.range,
@@ -28,13 +28,18 @@ async function AdminAnalyticsDashboardSection({
           to: searchParams?.to,
           grouping: searchParams?.grouping
         }).catch(() => emptyOrdersAnalyticsResponse()),
+        fetchOrdersAnalytics({
+          range: '365d',
+          grouping: 'day'
+        }).catch(() => emptyOrdersAnalyticsResponse('365d')),
         fetchAnalyticsCharts('narocila').catch(() => []),
         fetchGlobalAnalyticsAppearance('narocila').catch(() => fallbackAppearance)
       ])
-    : [emptyOrdersAnalyticsResponse(), [], fallbackAppearance];
+    : [emptyOrdersAnalyticsResponse(), emptyOrdersAnalyticsResponse('365d'), [], fallbackAppearance];
 
     await profileRoutePhase('payload', 'AdminAnalyticsDashboardSection:props', async () => {
       profilePayloadEstimate('AdminAnalyticsDashboardSection:data', data);
+      profilePayloadEstimate('AdminAnalyticsDashboardSection:heatmapData', heatmapData);
       profilePayloadEstimate('AdminAnalyticsDashboardSection:charts', charts);
       profilePayloadEstimate('AdminAnalyticsDashboardSection:appearance', appearance);
     });
@@ -42,6 +47,11 @@ async function AdminAnalyticsDashboardSection({
     return (
       <AdminAnalyticsDashboardLoader
         initialData={data}
+        initialHeatmapDays={heatmapData.days.map((day) => ({
+          date: day.date,
+          order_count: day.order_count,
+          revenue_total: day.revenue_total
+        }))}
         initialCharts={charts}
         initialFocusKey={searchParams?.focus ?? ''}
         initialAppearance={appearance}

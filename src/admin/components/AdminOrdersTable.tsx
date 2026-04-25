@@ -1769,7 +1769,7 @@ export default function AdminOrdersTable({
             onRangeChange={applyAnalyticsRangePreset}
           />
         ) : (
-          <div aria-hidden="true" className="mb-3 h-[292px] rounded-2xl border border-slate-200/80 bg-white/60" />
+          <div aria-hidden="true" className="mb-3 h-[120px] rounded-[11px] border border-slate-200/80 bg-white/60" />
         )}
 
         {isBulkDeleteDialogOpen ? (
@@ -1806,7 +1806,7 @@ export default function AdminOrdersTable({
 
         <AdminTableLayout
           className={adminTableCardClassName}
-          style={{ ...adminTableCardStyle, borderColor: analyticsAppearance?.gridColor ?? String(adminTableCardStyle.borderColor) }}
+          style={adminTableCardStyle}
           contentClassName={adminTableContentClassName}
           headerClassName={adminTableHeaderClassName}
           showDivider={false}
